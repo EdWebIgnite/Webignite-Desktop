@@ -255,12 +255,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
             await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
             try
             {
-                var uid = new UniqueId(summary.Uid);
-                await folder.AddFlagsAsync(uid, MessageFlags.Deleted, true, cancel);
-                if (imap.Capabilities.HasFlag(ImapCapabilities.UidPlus))
-                    await folder.ExpungeAsync([uid], cancel);
-                else
-                    await folder.ExpungeAsync(cancel);
+                await Expunge(imap, folder, new UniqueId(summary.Uid), cancel);
             }
             finally
             {
@@ -269,6 +264,124 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
             return true;
         }, cancel);
         store.DeleteMailMessages(account.Id, summary.Folder, [summary.Uid]);
+    }
+
+    /// <summary>
+    /// Sends a finished mail, then files a copy in Sent, marks the original as answered and removes the
+    /// draft. Sending is never retried: if the connection drops part way, the mail may already have gone.
+    /// Returns a note when the mail went but the tidying up afterwards didn't.
+    /// </summary>
+    public async Task<string?> SendAsync(MailAccount account, MimeMessage message, MailSummary? answering = null, uint? draftUid = null,
+        CancellationToken cancel = default)
+    {
+        var password = secrets.Read(SecretName(account))
+            ?? throw new MailException($"The password for {account.Address} isn't saved on this PC yet. Add it under Manage mailboxes.");
+        var handedOver = false;
+        try
+        {
+            using var smtp = new SmtpClient { Timeout = 120_000 };
+            await smtp.ConnectAsync(account.SmtpHost, account.SmtpPort, SecureSocketOptions.Auto, cancel);
+            await smtp.AuthenticateAsync(account.SignInName, password, cancel);
+            handedOver = true;
+            await smtp.SendAsync(message, cancel);
+            await smtp.DisconnectAsync(true, CancellationToken.None);
+        }
+        catch (SmtpCommandException e) when (e.ErrorCode is SmtpErrorCode.RecipientNotAccepted)
+        {
+            throw new MailException($"The mail server refused {e.Mailbox?.Address ?? "one of the addresses"}. Nothing was sent.", e);
+        }
+        catch (Exception e) when (e is not OperationCanceledException && handedOver && e is not SmtpCommandException)
+        {
+            throw new MailException("The connection dropped while sending, so it may or may not have gone. Check with the person or look in Sent before sending again.", e);
+        }
+        catch (Exception e) when (e is not OperationCanceledException and not MailException)
+        {
+            throw Explain(e);
+        }
+
+        var notes = new List<string>();
+        try
+        {
+            await AppendAsync(account, FolderRole.Sent, message, MessageFlags.Seen, cancel);
+        }
+        catch (MailException e)
+        {
+            notes.Add("Sent, but a copy couldn't be saved in Sent: " + e.Message);
+        }
+        if (answering is not null)
+        {
+            try { await SetFlagAsync(account, answering, MessageFlags.Answered, true, s => s with { Answered = true }, cancel); }
+            catch (MailException) { /* The answered mark is a nicety; the mail has gone. */ }
+        }
+        if (draftUid is { } uid)
+        {
+            try { await DeleteDraftAsync(account, uid, cancel); }
+            catch (MailException) { notes.Add("Sent, but the draft is still in Drafts."); }
+        }
+        return notes.Count == 0 ? null : string.Join(" ", notes);
+    }
+
+    /// <summary>Saves a draft in the mailbox's Drafts folder on the server, replacing the earlier copy.</summary>
+    public async Task<uint?> SaveDraftAsync(MailAccount account, MimeMessage message, uint? replacing = null, CancellationToken cancel = default)
+    {
+        var uid = await AppendAsync(account, FolderRole.Drafts, message, MessageFlags.Seen | MessageFlags.Draft, cancel);
+        if (replacing is { } old && old != uid)
+            await DeleteDraftAsync(account, old, cancel);
+        if (Folder(account, FolderRole.Drafts) is { } drafts)
+        {
+            if (uid is { } saved)
+                store.SaveMailBody(account.Id, drafts.Path, saved, MailComposer.ToBytes(message));
+            await SyncFolderAsync(account, drafts.Path, cancel: cancel);
+        }
+        return uid;
+    }
+
+    public async Task DeleteDraftAsync(MailAccount account, uint uid, CancellationToken cancel = default)
+    {
+        if (Folder(account, FolderRole.Drafts) is not { } drafts)
+            return;
+        await WithImap(account, async imap =>
+        {
+            var folder = await imap.GetFolderAsync(drafts.Path, cancel);
+            await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
+            try
+            {
+                await Expunge(imap, folder, new UniqueId(uid), cancel);
+            }
+            finally
+            {
+                await folder.CloseAsync(false, cancel);
+            }
+            return true;
+        }, cancel);
+        store.DeleteMailMessages(account.Id, drafts.Path, [uid]);
+    }
+
+    private MailFolder? Folder(MailAccount account, FolderRole role) =>
+        store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == role);
+
+    private async Task<uint?> AppendAsync(MailAccount account, FolderRole role, MimeMessage message, MessageFlags flags, CancellationToken cancel)
+    {
+        var known = Folder(account, role);
+        return await WithImap(account, async imap =>
+        {
+            IMailFolder? folder = known is not null ? await imap.GetFolderAsync(known.Path, cancel)
+                : imap.Capabilities.HasFlag(ImapCapabilities.SpecialUse) ? imap.GetFolder(role == FolderRole.Sent ? SpecialFolder.Sent : SpecialFolder.Drafts)
+                : null;
+            if (folder is null)
+                throw new MailException($"This mailbox has no {(role == FolderRole.Sent ? "Sent" : "Drafts")} folder yet. Press Check for mail, then try again.");
+            var uid = await folder.AppendAsync(new AppendRequest(message, flags), cancel);
+            return uid?.Id;
+        }, cancel);
+    }
+
+    private static async Task Expunge(ImapClient imap, IMailFolder folder, UniqueId uid, CancellationToken cancel)
+    {
+        await folder.AddFlagsAsync(uid, MessageFlags.Deleted, true, cancel);
+        if (imap.Capabilities.HasFlag(ImapCapabilities.UidPlus))
+            await folder.ExpungeAsync([uid], cancel);
+        else
+            await folder.ExpungeAsync(cancel);
     }
 
     internal static MailSummary ToSummary(string accountId, string folder, IMessageSummary s)

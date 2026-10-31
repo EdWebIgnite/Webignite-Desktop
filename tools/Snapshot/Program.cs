@@ -174,6 +174,11 @@ vm.Mail.StatusIsProblem = false;
 var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 _ = vm.Mail.Select(opened);
 Save("mail");
+vm.Mail.Reader!.ReplyCommand.Execute(null);
+vm.Mail.Composer!.Body = "Hi Lerato,\n\nThanks for letting me know. I'm looking at it now and will come back to you before lunch." + vm.Mail.Composer.Body;
+vm.Mail.Composer.ShowQuote = true;
+Save("mail-reply");
+vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Status = "Up to date at 09:12";
 Save("mail-all-inboxes");
@@ -187,6 +192,7 @@ void SeedMail()
     {
         Id = "m1", DisplayName = "Eddie, Webignite", Address = "eddie@webignite.co.za",
         ImapHost = "mail.webignite.co.za", SmtpHost = "smtp.webignite.co.za", Created = now,
+        Signature = "Eddie Teichert\nWebignite  ·  webignite.co.za",
     });
     var accounts = store.SaveMailAccount(new Webignite.Core.Mail.MailAccount
     {

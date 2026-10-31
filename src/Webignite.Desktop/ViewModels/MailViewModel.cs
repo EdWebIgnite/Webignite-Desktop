@@ -32,8 +32,16 @@ public partial class MailViewModel : ViewModelBase
     public partial FolderNodeViewModel? CurrentFolder { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasReader))]
+    [NotifyPropertyChangedFor(nameof(HasReader), nameof(ShowReader), nameof(ShowNothing))]
     public partial MailReaderViewModel? Reader { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasComposer), nameof(ShowReader), nameof(ShowNothing))]
+    public partial ComposeViewModel? Composer { get; set; }
+
+    public bool HasComposer => Composer is not null;
+    public bool ShowReader => Reader is not null && Composer is null;
+    public bool ShowNothing => Reader is null && Composer is null;
 
     [ObservableProperty] public partial string Search { get; set; } = "";
     [ObservableProperty] public partial string Status { get; set; } = "";
@@ -143,6 +151,42 @@ public partial class MailViewModel : ViewModelBase
 
     [RelayCommand]
     private Task Refresh() => SyncAll();
+
+    /// <summary>A new mail from the mailbox you're looking at, or the first one.</summary>
+    [RelayCommand]
+    private void Write()
+    {
+        if (accounts.Count == 0)
+            return;
+        var from = CurrentFolder is { IsAllInboxes: false } folder ? folder.Mailbox : accounts[0];
+        Compose(new OutgoingMail { AccountId = from.Id, Body = Replies.StartBody(from.Signature) });
+    }
+
+    public void Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null)
+    {
+        if (Composer is { HasChanges: true } open)
+        {
+            open.Message = "Finish or close this mail before starting another.";
+            open.MessageIsProblem = true;
+            return;
+        }
+        Composer = new ComposeViewModel(services, this, accounts, mail, source, answering);
+    }
+
+    internal void CloseComposer(ComposeViewModel composer)
+    {
+        if (Composer == composer)
+            Composer = null;
+    }
+
+    internal void Sent(ComposeViewModel composer, string note)
+    {
+        CloseComposer(composer);
+        SetStatus(note, note.StartsWith("Sent, but", StringComparison.Ordinal));
+        _ = SyncAll();
+    }
+
+    internal void DraftSaved() => ShowMessages();
 
     /// <summary>Checks every mailbox for new mail. Safe to call often; a check already running is not doubled.</summary>
     public async Task SyncAll()

@@ -21,6 +21,9 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     public bool HasCc => Summary.Cc.Count > 0;
     public string Date => Summary.Date.ToLocalTime().ToString("dddd, d MMMM yyyy, HH:mm");
     public string FlagLabel => Summary.Flagged ? "Unflag" : "Flag";
+    public bool IsDraft => services.Store.ListMailFolders(account.Id).Any(f => f.Path == Summary.Folder && f.Role == FolderRole.Drafts);
+    public bool IsNotDraft => !IsDraft;
+    public bool CanWrite => mime is not null;
 
     public ObservableCollection<AttachmentViewModel> Attachments { get; } = [];
     public bool HasAttachments => Attachments.Count > 0;
@@ -48,6 +51,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
         {
             mime = await services.Mail.GetMessageAsync(account, Summary.Folder, Summary.Uid);
             Show(allowImages: false);
+            OnPropertyChanged(nameof(CanWrite));
         }
         catch (MailException e)
         {
@@ -121,6 +125,34 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     }
 
     [RelayCommand]
+    private void Reply() => Write(all: false);
+
+    [RelayCommand]
+    private void ReplyAll() => Write(all: true);
+
+    private void Write(bool all)
+    {
+        if (mime is null)
+            return;
+        var mine = owner.Accounts.Select(a => a.Address).ToList();
+        owner.Compose(MailComposer.Reply(mime, account, mine, all), source: null, answering: Summary);
+    }
+
+    [RelayCommand]
+    private void Forward()
+    {
+        if (mime is not null)
+            owner.Compose(MailComposer.Forward(mime, account), source: mime);
+    }
+
+    [RelayCommand]
+    private void EditDraft()
+    {
+        if (mime is not null)
+            owner.Compose(MailComposer.FromDraft(mime, account, Summary.Uid), source: mime);
+    }
+
+    [RelayCommand]
     private void SaveAll()
     {
         var saved = Attachments.Select(a => a.SaveToDownloads()).OfType<string>().ToList();
@@ -165,11 +197,13 @@ public partial class AttachmentViewModel(MailAttachment attachment, MailReaderVi
     };
 
     public string Name => attachment.FileName;
-    public string Size => attachment.Size switch
+    public string Size => FormatSize(attachment.Size);
+
+    public static string FormatSize(long size) => size switch
     {
-        < 1024 => $"{attachment.Size} B",
-        < 1024 * 1024 => $"{attachment.Size / 1024.0:0} KB",
-        _ => $"{attachment.Size / 1024.0 / 1024.0:0.0} MB",
+        < 1024 => $"{size} B",
+        < 1024 * 1024 => $"{size / 1024.0:0} KB",
+        _ => $"{size / 1024.0 / 1024.0:0.0} MB",
     };
 
     internal string? SaveToDownloads()

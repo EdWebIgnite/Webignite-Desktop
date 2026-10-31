@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:v="using:Webignite.Desktop.Views"
              xmlns:html="using:TheArtOfDev.HtmlRenderer.Avalonia"
              xmlns:core="using:Webignite.Core.Mail"
              x:Class="Webignite.Desktop.Views.MailView"
@@ -187,7 +188,10 @@
         <DockPanel>
           <StackPanel DockPanel.Dock="Top" Margin="16,16,16,10" Spacing="10">
             <DockPanel>
-              <Button DockPanel.Dock="Right" Classes="quiet" Content="Check for mail" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                <Button Classes="quiet" Content="Check for mail" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
+                <Button Classes="primary" Content="Write" Command="{Binding WriteCommand}" />
+              </StackPanel>
               <TextBlock Classes="h2" Text="{Binding ListTitle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
             <TextBox Text="{Binding Search}" PlaceholderText="Search all mail by sender, subject or words" />
@@ -232,8 +236,11 @@
 
       <!-- The open message -->
       <Grid Grid.Column="2" Background="{StaticResource Surface}">
-        <TextBlock Classes="muted" Text="Pick a message to read it." HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasReader}" />
-        <Panel IsVisible="{Binding HasReader}">
+        <TextBlock Classes="muted" Text="Pick a message to read it." HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowNothing}" />
+        <Panel IsVisible="{Binding HasComposer}">
+          <v:ComposeView DataContext="{Binding Composer}" />
+        </Panel>
+        <Panel IsVisible="{Binding ShowReader}">
         <DockPanel DataContext="{Binding Reader}" x:DataType="vm:MailReaderViewModel">
           <StackPanel DockPanel.Dock="Top" Margin="24,18,24,10" Spacing="10">
             <TextBlock Classes="h2" Text="{Binding Subject}" TextWrapping="Wrap" />
@@ -250,6 +257,10 @@
               <TextBlock Grid.Column="1" Classes="muted" FontSize="12" Margin="12,0,0,0" Text="{Binding Date}" />
             </Grid>
             <WrapPanel ItemSpacing="6" LineSpacing="6">
+              <Button Classes="primary" Content="Reply" Command="{Binding ReplyCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+              <Button Classes="quiet" Content="Reply all" Command="{Binding ReplyAllCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+              <Button Classes="quiet" Content="Forward" Command="{Binding ForwardCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+              <Button Classes="primary" Content="Edit draft" Command="{Binding EditDraftCommand}" IsVisible="{Binding IsDraft}" IsEnabled="{Binding CanWrite}" />
               <Button Classes="quiet" Content="{Binding FlagLabel}" Command="{Binding ToggleFlagCommand}" />
               <Button Classes="quiet" Content="Mark unread" Command="{Binding MarkUnreadCommand}" />
               <ComboBox PlaceholderText="Move to…" ItemsSource="{Binding MoveTargets}" SelectedItem="{Binding MoveTo}" MinWidth="140" />
