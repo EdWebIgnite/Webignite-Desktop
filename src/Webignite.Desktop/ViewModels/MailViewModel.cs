@@ -162,6 +162,27 @@ public partial class MailViewModel : ViewModelBase
         Compose(new OutgoingMail { AccountId = from.Id, Body = Replies.StartBody(from.Signature) });
     }
 
+    /// <summary>A new mail to these people, from Eddie's own mailbox rather than the accounts one.</summary>
+    public void WriteTo(IReadOnlyList<MailPerson> to)
+    {
+        if (accounts.Count == 0)
+            return;
+        var from = accounts.FirstOrDefault(a => !a.SendsInvoices) ?? accounts[0];
+        Compose(new OutgoingMail { AccountId = from.Id, To = to, Body = Replies.StartBody(from.Signature) });
+    }
+
+    /// <summary>Shows one mail, opening its folder first. Used from client pages.</summary>
+    public void OpenMessage(MailSummary summary)
+    {
+        if (Mailboxes.SelectMany(m => m.Folders).FirstOrDefault(f => !f.IsAllInboxes && f.Mailbox.Id == summary.AccountId && f.Path == summary.Folder) is { } folder)
+            Open(folder);
+        var row = Messages.FirstOrDefault(r => r.Summary.AccountId == summary.AccountId && r.Summary.Folder == summary.Folder && r.Summary.Uid == summary.Uid);
+        if (row is null && accounts.FirstOrDefault(a => a.Id == summary.AccountId) is { } account)
+            row = new MailRowViewModel(summary, account, false, this);
+        if (row is not null)
+            _ = Select(row);
+    }
+
     public void Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null)
     {
         if (Composer is { HasChanges: true } open)

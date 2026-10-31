@@ -182,6 +182,10 @@ vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Status = "Up to date at 09:12";
 Save("mail-all-inboxes");
+Open("Clients");
+vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
+Save("client-mail");
+vm.Clients.Detail!.BackCommand.Execute(null);
 Open("Overview");
 Save("overview");
 

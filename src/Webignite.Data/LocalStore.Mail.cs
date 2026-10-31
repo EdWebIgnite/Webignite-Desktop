@@ -208,6 +208,12 @@ public sealed partial class LocalStore
     public IReadOnlyList<MailSummary> SearchMail(IEnumerable<string> accountIds, string query, int limit = 200)
     {
         var words = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return FindMail(accountIds, summary => words.All(w => MailSearch.Matches(summary, w)), limit);
+    }
+
+    /// <summary>Cached mail in any folder of these mailboxes that passes the test. Newest first.</summary>
+    public IReadOnlyList<MailSummary> FindMail(IEnumerable<string> accountIds, Func<MailSummary, bool> match, int limit = 200)
+    {
         var found = new List<MailSummary>();
         foreach (var accountId in accountIds)
         {
@@ -218,7 +224,7 @@ public sealed partial class LocalStore
             while (reader.Read())
             {
                 var summary = Open<MailSummary>(MessageContext(accountId, reader.GetString(0), (uint)reader.GetInt64(1)), (byte[])reader[2]);
-                if (words.All(w => MailSearch.Matches(summary, w)))
+                if (match(summary))
                     found.Add(summary);
             }
         }

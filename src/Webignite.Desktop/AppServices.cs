@@ -49,6 +49,11 @@ public sealed class AppServices(LocalStore store) : IDisposable
     /// <summary>Mailbox passwords. Windows Credential Manager on Windows; memory only elsewhere (tests and screenshots).</summary>
     public ISecretStore Secrets { get; init; } = OperatingSystem.IsWindows() ? new WindowsSecretStore() : new MemorySecretStore();
 
+    /// <summary>Set by the main window, so other pages can open a mail or start one in the Mail page.</summary>
+    public Action<Webignite.Core.Mail.MailSummary>? OpenMail { get; set; }
+
+    public Action<IReadOnlyList<Webignite.Core.Mail.MailPerson>>? WriteMail { get; set; }
+
     private MailService? mail;
     public MailService Mail => mail ??= new MailService(Store, Secrets);
 

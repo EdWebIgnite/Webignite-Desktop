@@ -82,6 +82,18 @@ public sealed class AssistantMailTests : IDisposable
     }
 
     [Fact]
+    public async Task Search_by_client_finds_mail_with_their_domain()
+    {
+        Seed();
+        store.SaveClient(new Webignite.Core.Clients.Client { Id = "c", Name = "Fynbos Physio", Website = "fynbosphysio.co.za" });
+        var result = await tools.SearchAsync(null, null, null, false, 20, TestContext.Current.CancellationToken, client: "fynbos");
+        Assert.Equal(["Booking page"], result.Mail.Select(m => m.Subject));
+        var none = await tools.SearchAsync(null, null, null, false, 20, TestContext.Current.CancellationToken, client: "Nobody");
+        Assert.Empty(none.Mail);
+        Assert.Contains("No client called", none.Note);
+    }
+
+    [Fact]
     public async Task Reading_gives_plain_text_and_the_warning()
     {
         Seed();
@@ -147,6 +159,25 @@ public sealed class AssistantMailTests : IDisposable
 
         Assert.True(ClaudeDesktopConfig.HasConnector(ClaudeDesktopConfig.WithConnector(null, "x.exe"), "x.exe"));
         Assert.Throws<FormatException>(() => ClaudeDesktopConfig.WithConnector("{ not json", "x.exe"));
+    }
+
+    [Fact]
+    public void Client_mail_matches_their_addresses_and_their_own_domain_only()
+    {
+        var physio = new ClientMail(new Webignite.Core.Clients.Client
+        {
+            Id = "c", Name = "Fynbos Physio", Email = "admin@fynbosphysio.co.za; lerato.d@gmail.com", Website = "https://www.fynbosphysio.co.za/book",
+        });
+        Assert.Equal(["fynbosphysio.co.za"], physio.Domains);
+        Assert.True(physio.Matches(new MailPerson(null, "desk@fynbosphysio.co.za")));
+        Assert.True(physio.Matches(new MailPerson(null, "Lerato.D@gmail.com")));
+        Assert.False(physio.Matches(new MailPerson(null, "someone.else@gmail.com")));
+        Assert.True(physio.Matches(new MailSummary { AccountId = "a", Folder = "Sent", Uid = 1, From = new(null, "eddie@webignite.co.za"), To = [new(null, "admin@fynbosphysio.co.za")] }));
+
+        var gmailOnly = new ClientMail(new Webignite.Core.Clients.Client { Id = "g", Name = "Joe", Email = "joe@gmail.com" });
+        Assert.Empty(gmailOnly.Domains);
+        Assert.True(new ClientMail(new Webignite.Core.Clients.Client { Id = "n", Name = "Nobody" }).IsEmpty);
+        Assert.Equal("karoocoffee.co.za", ClientMail.WebsiteDomain("www.karoocoffee.co.za"));
     }
 
     private void Seed()

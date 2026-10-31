@@ -36,8 +36,20 @@ public sealed class AssistantTools(LocalStore store, MailService mail, TimeProvi
     /// Folders are brought up to date from the server first when the copy on this PC is a few minutes old.
     /// </summary>
     public async Task<SearchResult> SearchAsync(string? query, string? mailbox, string? folder, bool unreadOnly, int limit,
-        CancellationToken cancel = default)
+        CancellationToken cancel = default, string? client = null)
     {
+        ClientMail? withClient = null;
+        if (!string.IsNullOrWhiteSpace(client))
+        {
+            var clients = store.ListClients();
+            var match = clients.FirstOrDefault(c => c.Name.Equals(client.Trim(), StringComparison.OrdinalIgnoreCase))
+                ?? clients.FirstOrDefault(c => c.Name.Contains(client.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+                return new SearchResult([], $"No client called {client} in Webignite.");
+            withClient = new ClientMail(match);
+            if (withClient.IsEmpty)
+                return new SearchResult([], $"{match.Name} has no email address or website in Webignite, so their mail can't be found by client. Search by name instead.");
+        }
         var visible = Visible();
         if (visible.Count == 0)
             return new SearchResult([], "No mailboxes are shared with assistants. Eddie can allow it per mailbox in Webignite, under Mail, Manage mailboxes.");
@@ -57,7 +69,11 @@ public sealed class AssistantTools(LocalStore store, MailService mail, TimeProvi
         foreach (var (account, path) in folders)
             await Refresh(account, path, notes, cancel);
 
-        IEnumerable<MailSummary> found = string.IsNullOrWhiteSpace(query)
+        IEnumerable<MailSummary> found = withClient is not null
+            ? store.FindMail(accounts.Select(a => a.Id), s => withClient.Matches(s)
+                && (string.IsNullOrWhiteSpace(folder) || folders.Any(f => f.Account.Id == s.AccountId && f.Path == s.Folder))
+                && (string.IsNullOrWhiteSpace(query) || query.Split(' ', StringSplitOptions.RemoveEmptyEntries).All(w => MailSearch.Matches(s, w))), 500)
+            : string.IsNullOrWhiteSpace(query)
             ? folders.SelectMany(f => store.ListMailSummaries(f.Account.Id, f.Path))
             : store.SearchMail(accounts.Select(a => a.Id), query.Trim(), 500)
                 .Where(s => string.IsNullOrWhiteSpace(folder) || folders.Any(f => f.Account.Id == s.AccountId && f.Path == s.Folder));

@@ -36,6 +36,17 @@ public partial class MainViewModel : ViewModelBase
             new Module("Settings", new SettingsViewModel(services)),
         ];
         Selected = Modules[0];
+        var mailModule = Modules.Single(m => m.Page == Mail);
+        services.OpenMail = summary =>
+        {
+            Selected = mailModule;
+            Mail.OpenMessage(summary);
+        };
+        services.WriteMail = to =>
+        {
+            Selected = mailModule;
+            Mail.WriteTo(to);
+        };
     }
 
     public DocumentsViewModel Quotes { get; }

@@ -25,10 +25,11 @@ public sealed class MailTools(AssistantTools tools)
         [Description("Words to look for, e.g. a client name, an invoice number or a subject. Leave out to list the newest mail.")] string? query = null,
         [Description("Mailbox address, e.g. eddie@webignite.co.za or accounts@webignite.co.za. Leave out for all shared mailboxes.")] string? mailbox = null,
         [Description("Folder name or kind, e.g. Inbox, Sent, Drafts or a folder from list_mailboxes. Leave out for the inbox (when listing) or all mail (when searching).")] string? folder = null,
+        [Description("A client's name in Webignite. Finds mail from or to that client's addresses and domain, in every folder.")] string? client = null,
         [Description("Only unread mail.")] bool unread_only = false,
         [Description("How many to return, 1 to 50. Default 20.")] int limit = 20,
         CancellationToken cancellationToken = default) =>
-        Run(async () => Json(await tools.SearchAsync(query, mailbox, folder, unread_only, limit, cancellationToken)));
+        Run(async () => Json(await tools.SearchAsync(query, mailbox, folder, unread_only, limit, cancellationToken, client)));
 
     [McpServerTool(Name = "read_mail", Title = "Read a mail", ReadOnly = true, OpenWorld = false)]
     [Description("Reads one mail as plain text with its sender, recipients, date and attachment names. "

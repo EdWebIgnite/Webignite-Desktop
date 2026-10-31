@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Calendar;
 using Webignite.Core.Clients;
 using Webignite.Core.Documents;
+using Webignite.Core.Mail;
 using Webignite.Core.Tasks;
 
 namespace Webignite.Desktop.ViewModels;
@@ -65,6 +66,19 @@ public partial class ClientDetailViewModel : ViewModelBase
     public ObservableCollection<DocumentRow> Documents { get; } = [];
     public ObservableCollection<ClientTaskViewModel> Tasks { get; } = [];
     public ObservableCollection<ClientEventViewModel> Events { get; } = [];
+    public ObservableCollection<ClientMailRow> Mail { get; } = [];
+    public bool HasMail => Mail.Count > 0;
+    public bool HasMailboxes => services.Store.ListMailAccounts().Count > 0;
+    public bool CanWriteMail => HasMailboxes && Recipients.Parse(Email).People.Count > 0;
+    public string MailEmptyText => !HasMailboxes ? "Add a mailbox under Mail to see mail with this client here."
+        : new ClientMail(client).IsEmpty ? "Add an email address or website above to find their mail."
+        : "No mail with them on this PC yet.";
+
+    [RelayCommand]
+    private void WriteMail() => services.WriteMail?.Invoke(Recipients.Parse(Email).People);
+
+    [RelayCommand]
+    private void OpenMail(ClientMailRow row) => services.OpenMail?.Invoke(row.Summary);
 
     public bool HasDocuments => Documents.Count > 0;
     public bool HasTasks => Tasks.Count > 0;
@@ -192,8 +206,14 @@ public partial class ClientDetailViewModel : ViewModelBase
         Documents.Clear();
         Tasks.Clear();
         Events.Clear();
+        Mail.Clear();
         if (!isNew)
         {
+            var matcher = new ClientMail(client);
+            var accounts = services.Store.ListMailAccounts();
+            if (!matcher.IsEmpty)
+                foreach (var found in services.Store.FindMail(accounts.Select(a => a.Id), matcher.Matches, limit: 12))
+                    Mail.Add(new ClientMailRow(found, accounts.First(a => a.Id == found.AccountId), services.Store));
             var summary = ClientDirectory.Summarise(client, services.Store.List(), services.Store.ListTasks(),
                 services.Store.ListEvents(Today, Today.AddDays(90)), Today);
             foreach (var doc in summary.Documents)
@@ -207,6 +227,10 @@ public partial class ClientDetailViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasDocuments));
         OnPropertyChanged(nameof(HasTasks));
         OnPropertyChanged(nameof(HasEvents));
+        OnPropertyChanged(nameof(HasMail));
+        OnPropertyChanged(nameof(HasMailboxes));
+        OnPropertyChanged(nameof(CanWriteMail));
+        OnPropertyChanged(nameof(MailEmptyText));
         AddTaskCommand.NotifyCanExecuteChanged();
     }
 }
@@ -225,4 +249,25 @@ public sealed class ClientEventViewModel(CalendarEvent ev)
 {
     public string Title => ev.Title;
     public string When => ev.Start is { } start ? $"{ev.Date:ddd d MMM}, {start:HH\\:mm}" : ev.Date.ToString("ddd d MMM");
+}
+
+/// <summary>A mail with the client, shown on their page.</summary>
+public sealed class ClientMailRow(MailSummary summary, MailAccount account, Webignite.Data.LocalStore store)
+{
+    public MailSummary Summary => summary;
+    public string Subject => string.IsNullOrWhiteSpace(summary.Subject) ? "(no subject)" : summary.Subject;
+    public bool IsUnread => !summary.Seen;
+
+    public string Detail
+    {
+        get
+        {
+            var folder = store.ListMailFolders(account.Id).FirstOrDefault(f => f.Path == summary.Folder);
+            var outgoing = folder?.Role is FolderRole.Sent or FolderRole.Drafts;
+            var who = outgoing ? "To " + string.Join(", ", summary.To.Select(p => p.Display)) : summary.From?.Display ?? "";
+            return $"{who}  ·  {folder?.Name ?? summary.Folder}, {account.Address.Split('@')[0]}@";
+        }
+    }
+
+    public string When => summary.Date.ToLocalTime().ToString(summary.Date.Year == DateTime.Today.Year ? "d MMM" : "d MMM yyyy");
 }

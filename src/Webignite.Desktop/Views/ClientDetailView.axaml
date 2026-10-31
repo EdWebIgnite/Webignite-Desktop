@@ -114,6 +114,37 @@
             </StackPanel>
           </Border>
 
+          <!-- Mail -->
+          <Border Classes="card" Padding="0">
+            <StackPanel>
+              <DockPanel Margin="20,16,20,10">
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="Write to them" Command="{Binding WriteMailCommand}" IsVisible="{Binding CanWriteMail}" />
+                <TextBlock Classes="h2" Text="Mail" VerticalAlignment="Center" />
+              </DockPanel>
+              <TextBlock Classes="muted" Text="{Binding MailEmptyText}" TextWrapping="Wrap" Margin="20,0,20,16" IsVisible="{Binding !HasMail}" />
+              <ItemsControl ItemsSource="{Binding Mail}" Margin="0,0,0,8">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ClientMailRow">
+                    <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                            Command="{Binding #Root.((vm:ClientDetailViewModel)DataContext).OpenMailCommand}" CommandParameter="{Binding}">
+                      <DockPanel Margin="8,0">
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" Margin="8,0,0,0" />
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Subject}" TextTrimming="CharacterEllipsis" Classes.unread="{Binding IsUnread}">
+                            <TextBlock.Styles>
+                              <Style Selector="TextBlock.unread"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+                            </TextBlock.Styles>
+                          </TextBlock>
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </DockPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
           <!-- To-dos -->
           <Border Classes="card" Padding="0">
             <StackPanel>
