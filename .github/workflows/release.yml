@@ -1,7 +1,7 @@
 name: Release
 
 # Every merge to main builds the Windows installer and publishes it as a GitHub release, numbered
-# 0.1.<run>. It can also be started by hand from the Actions tab (Run workflow).
+# 0.2.<run>. It can also be started by hand from the Actions tab (Run workflow).
 # Installed copies of Webignite find the new release on their next start and offer a restart.
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
       - name: Publish both apps into one folder
         shell: pwsh
         run: |
-          $v = "0.1.${{ github.run_number }}"
+          $v = "0.2.${{ github.run_number }}"
           dotnet publish src/Webignite.Desktop -c Release -r win-x64 --self-contained -p:Version=$v -o publish
           dotnet publish src/Webignite.Connector -c Release -r win-x64 --self-contained -p:Version=$v -o publish
           Remove-Item publish/*.pdb
@@ -38,7 +38,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $v = "0.1.${{ github.run_number }}"
+          $v = "0.2.${{ github.run_number }}"
           $repo = "https://github.com/${{ github.repository }}"
           vpk download github --repoUrl $repo --token $env:GH_TOKEN
           vpk pack --packId WebigniteDesktop --packVersion $v --packDir publish --mainExe Webignite.exe --packTitle Webignite --packAuthors Webignite
