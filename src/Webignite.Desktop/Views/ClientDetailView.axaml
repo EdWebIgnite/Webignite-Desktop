@@ -1,0 +1,162 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.ClientDetailView"
+             x:DataType="vm:ClientDetailViewModel"
+             x:Name="Root">
+  <Panel>
+    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsShowingClient}" />
+
+    <StackPanel Spacing="18" IsVisible="{Binding IsShowingClient}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+          <Button Classes="quiet" Content="New quote" Command="{Binding NewQuoteCommand}" />
+          <Button Classes="primary" Content="New invoice" Command="{Binding NewInvoiceCommand}" />
+        </StackPanel>
+        <StackPanel Spacing="4">
+          <Button Classes="link" Content="← Back to clients" Command="{Binding BackCommand}" Padding="0,2" Margin="0,0,0,6" />
+          <TextBlock Classes="h1" Text="{Binding Title}" />
+          <TextBlock Classes="muted" Text="{Binding Owed}" IsVisible="{Binding HasOwed}" />
+        </StackPanel>
+      </DockPanel>
+
+      <Grid ColumnDefinitions="*,24,*">
+        <!-- Details -->
+        <Border Grid.Column="0" Classes="card" VerticalAlignment="Top">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Details" />
+            <StackPanel>
+              <TextBlock Classes="label" Text="Name, as it appears on quotes and invoices" />
+              <TextBox Text="{Binding Name}" PlaceholderText="Business or person" />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,12,*">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="label" Text="Contact person" />
+                <TextBox Text="{Binding ContactPerson}" PlaceholderText="Optional" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Phone" />
+                <TextBox Text="{Binding Phone}" PlaceholderText="Optional" />
+              </StackPanel>
+            </Grid>
+            <Grid ColumnDefinitions="*,12,*">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="label" Text="Email" />
+                <TextBox Text="{Binding Email}" PlaceholderText="Where invoices go" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Website" />
+                <TextBox Text="{Binding Website}" PlaceholderText="Optional" />
+              </StackPanel>
+            </Grid>
+            <StackPanel>
+              <TextBlock Classes="label" Text="Address" />
+              <TextBox Text="{Binding Address}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56" PlaceholderText="Optional" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Classes="label" Text="Notes" />
+              <TextBox Text="{Binding Notes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="88"
+                       PlaceholderText="Hosting details, how they like to be contacted, anything to remember" />
+            </StackPanel>
+
+            <Border Classes="pending" IsVisible="{Binding HasProblems}">
+              <ItemsControl ItemsSource="{Binding Problems}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Classes="muted" Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Border>
+
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsSaved}">
+                <Button Classes="link" Content="Delete client" Command="{Binding AskDeleteCommand}" IsVisible="{Binding !ConfirmingDelete}" />
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ConfirmingDelete}">
+                  <TextBlock Classes="muted" FontSize="12" Text="Quotes and invoices stay." VerticalAlignment="Center" />
+                  <Button Classes="quiet" Content="Delete" Command="{Binding DeleteCommand}" />
+                  <Button Classes="link" Content="Keep" Command="{Binding CancelDeleteCommand}" />
+                </StackPanel>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" />
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding SaveState}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
+              </StackPanel>
+            </DockPanel>
+          </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Column="2" Spacing="18">
+          <!-- Quotes and invoices -->
+          <Border Classes="card" Padding="0">
+            <StackPanel>
+              <TextBlock Classes="h2" Text="Quotes and invoices" Margin="20,16,20,10" />
+              <TextBlock Classes="muted" Text="None yet." Margin="20,0,20,16" IsVisible="{Binding !HasDocuments}" />
+              <ItemsControl ItemsSource="{Binding Documents}" Margin="0,0,0,8">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DocumentRow">
+                    <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                            Command="{Binding #Root.((vm:ClientDetailViewModel)DataContext).OpenDocumentCommand}" CommandParameter="{Binding}">
+                      <Grid ColumnDefinitions="*,Auto,110">
+                        <StackPanel Grid.Column="0" Margin="8,0" Spacing="2">
+                          <TextBlock Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Date}" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Classes="status" Classes.done="{Binding IsInXero}" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Status}" FontSize="12" />
+                        </Border>
+                        <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Total}" Margin="8,0" VerticalAlignment="Center" />
+                      </Grid>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
+          <!-- To-dos -->
+          <Border Classes="card" Padding="0">
+            <StackPanel>
+              <TextBlock Classes="h2" Text="To-do" Margin="20,16,20,10" />
+              <ItemsControl ItemsSource="{Binding Tasks}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ClientTaskViewModel">
+                    <Border Classes="taskrow">
+                      <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="link" Content="Done" Command="{Binding FinishCommand}" />
+                        <TextBlock DockPanel.Dock="Right" Classes="label" Classes.overdue="{Binding IsOverdue}" Text="{Binding DueText}"
+                                   VerticalAlignment="Center" Margin="8,0" />
+                        <TextBlock Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                      </DockPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <DockPanel Margin="16,12,16,16">
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Command="{Binding AddTaskCommand}" Margin="8,0,0,0" />
+                <TextBox Text="{Binding NewTask}" PlaceholderText="Something to do for this client" />
+              </DockPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Events -->
+          <Border Classes="card" IsVisible="{Binding HasEvents}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="h2" Text="Coming up" />
+              <ItemsControl ItemsSource="{Binding Events}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ClientEventViewModel">
+                    <DockPanel Margin="0,4">
+                      <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding When}" />
+                      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+  </Panel>
+</UserControl>

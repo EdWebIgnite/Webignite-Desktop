@@ -11,9 +11,11 @@ public partial class MainViewModel : ViewModelBase
         Invoices = new DocumentsViewModel(DocumentKind.Invoice, services);
         Todo = new TodoViewModel(services);
         Overview = new OverviewViewModel(services);
+        Clients = new ClientsViewModel(services);
         Modules =
         [
             new Module("Overview", Overview),
+            new Module("Clients", Clients),
             new Module("Quotes", Quotes),
             new Module("Invoices", Invoices),
             new Module("To-do", Todo),
@@ -32,6 +34,7 @@ public partial class MainViewModel : ViewModelBase
     public DocumentsViewModel Invoices { get; }
     public TodoViewModel Todo { get; }
     public OverviewViewModel Overview { get; }
+    public ClientsViewModel Clients { get; }
     public IReadOnlyList<Module> Modules { get; }
 
     [ObservableProperty]
@@ -46,6 +49,7 @@ public partial class MainViewModel : ViewModelBase
             case CalendarViewModel calendar: calendar.Refresh(); break;
             case PlannerViewModel planner: planner.Refresh(); break;
             case OverviewViewModel overview: overview.Refresh(); break;
+            case ClientsViewModel clients: clients.Refresh(); break;
         }
     }
 }

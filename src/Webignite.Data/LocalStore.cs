@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Webignite.Core.Calendar;
+using Webignite.Core.Clients;
 using Webignite.Core.Documents;
 using Webignite.Core.Tasks;
 
@@ -48,6 +49,10 @@ public sealed class LocalStore : IDisposable
                 payload BLOB NOT NULL
             );
             CREATE INDEX IF NOT EXISTS events_date ON events (date);
+            CREATE TABLE IF NOT EXISTS clients (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS settings (
                 name TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
@@ -202,6 +207,36 @@ public sealed class LocalStore : IDisposable
         while (reader.Read())
             list.Add(Open<CalendarEvent>("event:" + reader.GetString(0), (byte[])reader[1]));
         return list;
+    }
+
+    public Client SaveClient(Client client)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO clients (id, payload) VALUES ($id, $payload) ON CONFLICT (id) DO UPDATE SET payload = $payload";
+        command.Parameters.AddWithValue("$id", client.Id);
+        command.Parameters.AddWithValue("$payload", Seal("client:" + client.Id, client));
+        command.ExecuteNonQuery();
+        return client;
+    }
+
+    public void DeleteClient(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM clients WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>All clients, A to Z. Names are encrypted, so sorting happens after reading.</summary>
+    public IReadOnlyList<Client> ListClients()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, payload FROM clients";
+        using var reader = command.ExecuteReader();
+        var list = new List<Client>();
+        while (reader.Read())
+            list.Add(Open<Client>("client:" + reader.GetString(0), (byte[])reader[1]));
+        return list.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public T? GetSetting<T>(string name)

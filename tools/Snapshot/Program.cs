@@ -45,7 +45,7 @@ void Save(string name)
 
 Save("overview");
 
-vm.Selected = vm.Modules[2];
+vm.Selected = vm.Modules[3];
 Save("invoices");
 
 vm.Invoices.NewCommand.Execute(null);
@@ -62,7 +62,7 @@ invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
 invoice.SaveCommand.Execute(null);
 Save("invoice-editor");
 
-vm.Selected = vm.Modules[8];
+vm.Selected = vm.Modules[9];
 Save("settings");
 
 var today = DateOnly.FromDateTime(DateTime.Today);
@@ -74,17 +74,30 @@ var overdue = store.List(DocumentKind.Invoice).First(d => d.XeroNumber is not nu
 store.Save(overdue with { Document = overdue.Document with { Date = today.AddDays(-21), DueOrExpiryDate = today.AddDays(-14) } });
 var quote = store.List(DocumentKind.Quote)[0];
 store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031" });
-vm.Selected = vm.Modules[3];
+vm.Selected = vm.Modules[4];
 Save("todo");
 
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e1", Title = "Kick-off with Bosveld Builders", Date = today, Start = new TimeOnly(10, 0), Location = "Teams" });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e2", Title = "Fynbos Physio photo shoot", Date = today.AddDays(2), Start = new TimeOnly(14, 30) });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e3", Title = "Public holiday", Date = today.AddDays(-5) });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t5", Title = "Write blog post on site speed", Created = DateTimeOffset.UtcNow });
-vm.Selected = vm.Modules[4];
-Save("calendar");
 vm.Selected = vm.Modules[5];
+Save("calendar");
+vm.Selected = vm.Modules[6];
 Save("planner");
+store.SaveClient(new Webignite.Core.Clients.Client
+{
+    Id = "c1", Name = "Bosveld Builders", ContactPerson = "Pieter van Wyk", Email = "pieter@bosveldbuilders.co.za",
+    Phone = "082 555 0142", Website = "bosveldbuilders.co.za", Notes = "Prefers WhatsApp. Site on our xneelo server.",
+});
+store.SaveClient(new Webignite.Core.Clients.Client { Id = "c2", Name = "Fynbos Physio", Email = "admin@fynbosphysio.co.za" });
+store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t6", Title = "Get photos of finished projects", Customer = "Bosveld Builders", Due = today.AddDays(4), Created = DateTimeOffset.UtcNow });
+store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e4", Title = "Sitemap review", Date = today.AddDays(1), Start = new TimeOnly(9, 0), Customer = "Bosveld Builders" });
+vm.Selected = vm.Modules[1];
+Save("clients");
+vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
+Save("client");
+vm.Clients.Detail!.BackCommand.Execute(null);
 vm.Selected = vm.Modules[0];
 Save("overview");
 
