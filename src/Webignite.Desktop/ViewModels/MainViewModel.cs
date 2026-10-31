@@ -23,6 +23,7 @@ public partial class MainViewModel : ViewModelBase
             new Module("Quotes", Quotes),
             new Module("Invoices", Invoices),
             new Module("Retainers", new RetainersViewModel(services)),
+            new Module("Domains and hosting", new RenewalsViewModel(services)),
             new Module("Money", new MoneyViewModel(services)),
             new Module("Reports", new ReportsViewModel(services)),
             new Module("To-do", Todo),
@@ -55,6 +56,7 @@ public partial class MainViewModel : ViewModelBase
         {
             case DocumentsViewModel documents: documents.Refresh(); break;
             case RetainersViewModel retainers: retainers.Refresh(); break;
+            case RenewalsViewModel renewals: renewals.Refresh(); break;
             case TodoViewModel todo: todo.Refresh(); break;
             case CalendarViewModel calendar: calendar.Refresh(); break;
             case PlannerViewModel planner: planner.Refresh(); break;

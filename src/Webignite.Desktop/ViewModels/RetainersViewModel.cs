@@ -68,7 +68,7 @@ public partial class RetainersViewModel : ViewModelBase
     public void Refresh()
     {
         var retainers = services.Store.ListRetainers();
-        var runs = services.Store.RetainerRuns();
+        var runs = services.Store.DraftsMade();
         var drafted = runs.Keys.ToHashSet();
         Rows.Clear();
         foreach (var retainer in retainers)
@@ -206,7 +206,7 @@ public partial class RetainerEditorViewModel : ViewModelBase
             return;
         var retainer = Build();
         Total = $"{Money.Rand(retainer.MonthlyAmount)} a month";
-        var next = RetainerSchedule.NextDate(retainer, services.Store.RetainerRuns().Keys.ToHashSet(), Today);
+        var next = RetainerSchedule.NextDate(retainer, services.Store.DraftsMade().Keys.ToHashSet(), Today);
         Preview = next is { } date && RetainerSchedule.Check(retainer).Count == 0
             ? $"Next draft dated {date:d MMM yyyy}, reference \"{RetainerSchedule.InvoiceFor(retainer, date, services.DocumentSettings).Reference}\"."
               + (date <= Today ? " That day has passed, so it is drafted as soon as you save." : "")

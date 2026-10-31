@@ -22,6 +22,7 @@
     <DataTemplate DataType="vm:DocumentEditorViewModel"><v:DocumentEditorView /></DataTemplate>
     <DataTemplate DataType="vm:RetainersViewModel"><v:RetainersView /></DataTemplate>
     <DataTemplate DataType="vm:RetainerEditorViewModel"><v:RetainerEditorView /></DataTemplate>
+    <DataTemplate DataType="vm:RenewalsViewModel"><v:RenewalsView /></DataTemplate>
     <DataTemplate DataType="vm:MoneyViewModel"><v:MoneyView /></DataTemplate>
     <DataTemplate DataType="vm:ReportsViewModel"><v:ReportsView /></DataTemplate>
     <DataTemplate DataType="vm:TodoViewModel"><v:TodoView /></DataTemplate>

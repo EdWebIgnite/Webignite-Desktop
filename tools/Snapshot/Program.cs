@@ -146,6 +146,17 @@ var retainersPage = (RetainersViewModel)vm.Selected.Page;
 retainersPage.Edit(seo);
 Save("retainer-editor");
 retainersPage.Editor!.CancelCommand.Execute(null);
+
+Webignite.Core.Renewals.Renewal Renewal(string id, string name, Webignite.Core.Renewals.RenewalKind kind, string? client, string provider, DateOnly on, decimal? cost, decimal? price) =>
+    store.SaveRenewal(new Webignite.Core.Renewals.Renewal { Id = id, Name = name, Kind = kind, ClientName = client, Provider = provider, RenewsOn = on, Cost = cost, Price = price });
+var domain = Webignite.Core.Renewals.RenewalKind.Domain;
+Renewal("n1", "karoocoffee.co.za", domain, "Karoo Coffee Roasters", "domains.co.za", today.AddDays(12), 99m, 250m);
+Renewal("n2", "bosveldbuilders.co.za", domain, "Bosveld Builders", "domains.co.za", today.AddDays(-2), 99m, 250m);
+Renewal("n3", "webignite.co.za", domain, null, "xneelo", today.AddDays(140), 99m, null);
+Renewal("n4", "Fynbos Physio hosting", Webignite.Core.Renewals.RenewalKind.Hosting, "Fynbos Physio", "xneelo", today.AddDays(75), null, 1800m);
+Renewal("n5", "fynbosphysio.co.za", domain, "Fynbos Physio", "domains.co.za", today.AddDays(200), 99m, 250m);
+Open("Domains and hosting");
+Save("domains");
 Open("Reports");
 Save("reports");
 Open("Overview");

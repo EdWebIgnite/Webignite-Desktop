@@ -51,14 +51,15 @@ public sealed class AppServices(LocalStore store) : IDisposable
         xero ??= XeroSettings.ClientId is { Length: > 0 } id ? new XeroSession(new XeroOptions { ClientId = id }, Http, TokenStore) : null;
 
     /// <summary>
-    /// Does what the calendar calls for since the app last looked: drafts retainer invoices that are due
-    /// and adds monthly expenses. Both are on this PC only and safe to run any number of times.
+    /// Does what the calendar calls for since the app last looked: drafts retainer and renewal invoices that are due,
+    /// adds monthly expenses and renewal reminders. All of it stays on this PC and safe to run any number of times.
     /// </summary>
     public void CatchUp()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         Store.DraftRetainerInvoices(DocumentSettings, today);
         Store.AddRecurringExpenses(today);
+        Store.RaiseRenewals(DocumentSettings, today);
     }
 
     /// <summary>Opens a link in the person's own default browser. Nothing is embedded in the app.</summary>

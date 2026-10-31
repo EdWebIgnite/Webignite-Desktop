@@ -84,7 +84,7 @@ public sealed class RetainerTests : IDisposable
         var draft = Assert.Single(store.List(DocumentKind.Invoice));
         Assert.Equal(DocumentStatus.Draft, draft.Status);
         Assert.Equal("Fynbos Physio", draft.Document.Customer.Name);
-        Assert.Equal(draft.Id, store.RetainerRuns()["retainer:r1:2026-10"]);
+        Assert.Equal(draft.Id, store.DraftsMade()["retainer:r1:2026-10"]);
 
         store.DeleteRetainer("r1");
         Assert.Empty(store.ListRetainers());

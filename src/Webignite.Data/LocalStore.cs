@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Webignite.Core.Calendar;
 using Webignite.Core.Clients;
 using Webignite.Core.Finance;
+using Webignite.Core.Renewals;
 using Webignite.Core.Retainers;
 using Webignite.Core.Documents;
 using Webignite.Core.Tasks;
@@ -72,9 +73,13 @@ public sealed class LocalStore : IDisposable
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS retainer_runs (
+            CREATE TABLE IF NOT EXISTS drafts_made (
                 key TEXT PRIMARY KEY,
                 document_id TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS renewals (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
             );
             CREATE TABLE IF NOT EXISTS settings (
                 name TEXT PRIMARY KEY,
@@ -384,11 +389,11 @@ public sealed class LocalStore : IDisposable
         return list.OrderBy(r => r.ClientName, StringComparer.OrdinalIgnoreCase).ThenBy(r => r.Title, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    /// <summary>Every retainer month ever drafted, with the draft it made.</summary>
-    public IReadOnlyDictionary<string, string> RetainerRuns()
+    /// <summary>Every invoice the app has drafted by itself (retainer months, renewals), by key, with the draft it made.</summary>
+    public IReadOnlyDictionary<string, string> DraftsMade()
     {
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT key, document_id FROM retainer_runs";
+        command.CommandText = "SELECT key, document_id FROM drafts_made";
         using var reader = command.ExecuteReader();
         var runs = new Dictionary<string, string>();
         while (reader.Read())
@@ -397,33 +402,96 @@ public sealed class LocalStore : IDisposable
     }
 
     /// <summary>
+    /// Saves a draft the app made by itself, with its key, in one go: both land or neither does,
+    /// so a deleted draft is never made again and a crash never makes two.
+    /// </summary>
+    private StoredDocument SaveAutomaticDraft(string key, Document invoice)
+    {
+        // Raw BEGIN so Save's own commands join in.
+        Execute("BEGIN");
+        try
+        {
+            var stored = Save(new StoredDocument { Id = StoredDocument.NewId(), Document = invoice });
+            using var command = connection.CreateCommand();
+            command.CommandText = "INSERT INTO drafts_made (key, document_id) VALUES ($key, $id)";
+            command.Parameters.AddWithValue("$key", key);
+            command.Parameters.AddWithValue("$id", stored.Id);
+            command.ExecuteNonQuery();
+            Execute("COMMIT");
+            return stored;
+        }
+        catch
+        {
+            Execute("ROLLBACK");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Drafts the invoices retainers call for up to today. They are drafts on this PC only;
     /// nothing goes to Xero until a person sends it. Returns how many were drafted.
     /// </summary>
     public int DraftRetainerInvoices(DocumentSettings settings, DateOnly today)
     {
-        var due = RetainerSchedule.Due(ListRetainers(), RetainerRuns().Keys.ToHashSet(), settings, today);
+        var due = RetainerSchedule.Due(ListRetainers(), DraftsMade().Keys.ToHashSet(), settings, today);
         foreach (var (key, invoice) in due)
-        {
-            // Raw BEGIN so Save's own commands join in: the draft and its marker land together or not at all.
-            Execute("BEGIN");
-            try
-            {
-                var stored = Save(new StoredDocument { Id = StoredDocument.NewId(), Document = invoice });
-                using var command = connection.CreateCommand();
-                command.CommandText = "INSERT INTO retainer_runs (key, document_id) VALUES ($key, $id)";
-                command.Parameters.AddWithValue("$key", key);
-                command.Parameters.AddWithValue("$id", stored.Id);
-                command.ExecuteNonQuery();
-                Execute("COMMIT");
-            }
-            catch
-            {
-                Execute("ROLLBACK");
-                throw;
-            }
-        }
+            SaveAutomaticDraft(key, invoice);
         return due.Count;
+    }
+
+    public Renewal SaveRenewal(Renewal renewal)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO renewals (id, payload) VALUES ($id, $payload) ON CONFLICT (id) DO UPDATE SET payload = $payload";
+        command.Parameters.AddWithValue("$id", renewal.Id);
+        command.Parameters.AddWithValue("$payload", Seal("renewal:" + renewal.Id, renewal));
+        command.ExecuteNonQuery();
+        return renewal;
+    }
+
+    public void DeleteRenewal(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM renewals WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>All renewals, soonest first.</summary>
+    public IReadOnlyList<Renewal> ListRenewals()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, payload FROM renewals";
+        using var reader = command.ExecuteReader();
+        var list = new List<Renewal>();
+        while (reader.Read())
+            list.Add(Open<Renewal>("renewal:" + reader.GetString(0), (byte[])reader[1]));
+        return list.OrderBy(r => r.RenewsOn).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>
+    /// Adds renewal reminders to the to-do list and drafts invoices for renewals clients pay for,
+    /// once each is inside its reminder window. Returns how many of each were added.
+    /// </summary>
+    public (int Reminders, int Invoices) RaiseRenewals(DocumentSettings settings, DateOnly today)
+    {
+        var renewals = ListRenewals();
+        var reminders = RenewalRules.Reminders(renewals, AutoTaskKeys(), today, clock.GetUtcNow());
+        foreach (var task in reminders)
+            SaveTask(task);
+        var invoices = RenewalRules.InvoicesDue(renewals, DraftsMade().Keys.ToHashSet(), settings, today);
+        foreach (var (key, invoice) in invoices)
+            SaveAutomaticDraft(key, invoice);
+        return (reminders.Count, invoices.Count);
+    }
+
+    /// <summary>Marks a renewal done: moves it to the next date and adds what it cost under Money.</summary>
+    public Renewal MarkRenewed(Renewal renewal, DateOnly paidOn)
+    {
+        var (next, expense) = RenewalRules.Renewed(renewal, paidOn, clock.GetUtcNow());
+        if (expense is not null)
+            SaveEntry(expense);
+        return SaveRenewal(next);
     }
 
     public T? GetSetting<T>(string name)
