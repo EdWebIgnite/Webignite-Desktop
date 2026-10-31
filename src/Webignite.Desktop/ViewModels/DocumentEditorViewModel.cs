@@ -11,20 +11,42 @@ namespace Webignite.Desktop.ViewModels;
 /// </summary>
 public partial class DocumentEditorViewModel : ViewModelBase
 {
-    private readonly DocumentSettings settings;
+    private readonly AppServices services;
+    private readonly Action close;
+    private StoredDocument? stored;
+    private bool loading;
 
-    public DocumentEditorViewModel(DocumentKind kind, DocumentSettings settings)
+    public DocumentEditorViewModel(DocumentKind kind, AppServices services, Action close)
     {
         Kind = kind;
-        this.settings = settings;
-        Lines.Add(new LineRowViewModel(Recalculate));
+        this.services = services;
+        this.close = close;
+        Lines.Add(NewRow());
+        Recalculate();
+    }
+
+    public DocumentEditorViewModel(StoredDocument stored, AppServices services, Action close)
+        : this(stored.Document.Kind, services, close)
+    {
+        this.stored = stored;
+        var doc = stored.Document;
+        loading = true;
+        CustomerName = doc.Customer.Name;
+        Reference = doc.Reference ?? "";
+        Notes = doc.Notes ?? "";
+        Lines.Clear();
+        foreach (var line in doc.Lines)
+            Lines.Add(LineRowViewModel.From(line, Recalculate));
+        if (Lines.Count == 0)
+            Lines.Add(NewRow());
+        loading = false;
         Recalculate();
     }
 
     public DocumentKind Kind { get; }
-    public string Title => Kind == DocumentKind.Quote ? "New quote" : "New invoice";
+    public string Title => stored?.XeroNumber ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
     public string DueLabel => Kind == DocumentKind.Quote ? "Expires" : "Due";
-    public string NumberNote => "Xero gives it the next number when it is created.";
+    public string NumberNote => stored?.XeroNumber is null ? "Xero gives it the next number when it is created." : "Created in Xero.";
 
     public ObservableCollection<LineRowViewModel> Lines { get; } = [];
     public ObservableCollection<string> Problems { get; } = [];
@@ -53,6 +75,9 @@ public partial class DocumentEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IsReady { get; set; }
 
+    [ObservableProperty]
+    public partial string SaveState { get; set; } = "";
+
     partial void OnCustomerNameChanged(string value) => Recalculate();
 
     partial void OnReferenceChanged(string value) => Recalculate();
@@ -62,7 +87,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     [RelayCommand]
     private void AddLine()
     {
-        Lines.Add(new LineRowViewModel(Recalculate));
+        Lines.Add(NewRow());
         Recalculate();
     }
 
@@ -71,9 +96,29 @@ public partial class DocumentEditorViewModel : ViewModelBase
     {
         Lines.Remove(row);
         if (Lines.Count == 0)
-            Lines.Add(new LineRowViewModel(Recalculate));
+            Lines.Add(NewRow());
         Recalculate();
     }
+
+    /// <summary>Saves to this PC. Works even when the document isn't finished yet.</summary>
+    [RelayCommand]
+    private void Save()
+    {
+        stored = services.Store.Save((stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = Build() })
+            with { Document = Build() });
+        SaveState = $"Saved on this PC at {stored.Updated.ToLocalTime():HH:mm}";
+        OnPropertyChanged(nameof(Title));
+    }
+
+    [RelayCommand]
+    private void Back()
+    {
+        if (HasContent)
+            Save();
+        close();
+    }
+
+    private bool HasContent => !string.IsNullOrWhiteSpace(CustomerName) || Lines.Any(row => !row.IsBlank) || stored is not null;
 
     public Document Build() => DocumentDefaults.Complete(new Document
     {
@@ -82,16 +127,23 @@ public partial class DocumentEditorViewModel : ViewModelBase
         Customer = new Customer { Name = CustomerName.Trim() },
         Reference = string.IsNullOrWhiteSpace(Reference) ? null : Reference.Trim(),
         Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
+        Date = stored?.Document.Date,
+        DueOrExpiryDate = stored?.Document.DueOrExpiryDate,
         Lines = Lines.Select(row => row.ToLine()).OfType<Line>().ToList(),
-    }, settings, DateOnly.FromDateTime(DateTime.Today));
+    }, services.DocumentSettings, DateOnly.FromDateTime(DateTime.Today));
+
+    private LineRowViewModel NewRow() => new(Recalculate);
 
     private void Recalculate()
     {
+        if (loading)
+            return;
         var doc = Build();
         Subtotal = Money.Rand(doc.Subtotal ?? 0);
         Total = Money.Rand(doc.Total ?? 0);
         DateText = doc.Date?.ToString("d MMM yyyy") ?? "";
         DueText = doc.DueOrExpiryDate?.ToString("d MMM yyyy") ?? "";
+        SaveState = "";
 
         Problems.Clear();
         foreach (var problem in DocumentValidator.Validate(doc))

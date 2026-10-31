@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <StackPanel Spacing="18">
+    <TextBlock Classes="h1" Text="Settings" />
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Xero" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Sign-in happens in your own browser on Xero's site. Webignite never sees your Xero password, and the sign-in is kept in Windows Credential Manager." />
+        <StackPanel IsVisible="{Binding !IsConnected}" Spacing="10">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Client ID from your app at developer.xero.com" />
+            <TextBox Text="{Binding ClientId}" MaxWidth="420" HorizontalAlignment="Left" Width="420" PlaceholderText="32 letters and numbers" />
+          </StackPanel>
+          <Button Classes="primary" Content="Connect Xero" Command="{Binding ConnectCommand}" />
+        </StackPanel>
+        <Border Classes.ready="{Binding IsConnected}" Classes.pending="{Binding !IsConnected}">
+          <TextBlock Text="{Binding XeroStatus}" TextWrapping="Wrap" />
+        </Border>
+        <Button Classes="quiet" Content="Disconnect Xero" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsConnected}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="New documents" />
+        <StackPanel Orientation="Horizontal" Spacing="24">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Invoices due after (days)" />
+            <TextBox Text="{Binding InvoiceDueDays}" Width="120" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Quotes expire after (days)" />
+            <TextBox Text="{Binding QuoteExpiryDays}" Width="120" HorizontalAlignment="Left" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="quiet" Content="Save" Command="{Binding SaveDefaultsCommand}" />
+          <TextBlock Classes="muted" Text="{Binding DefaultsMessage}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Classes="muted" FontSize="12" Text="Currency is ZAR and there is no VAT, as Webignite is not VAT registered." />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

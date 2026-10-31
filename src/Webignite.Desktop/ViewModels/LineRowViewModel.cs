@@ -34,6 +34,13 @@ public partial class LineRowViewModel : ViewModelBase
         changed();
     }
 
+    public static LineRowViewModel From(Line line, Action changed) => new(changed)
+    {
+        Description = line.Description,
+        Quantity = line.Quantity?.ToString(CultureInfo.InvariantCulture) ?? "",
+        Price = line.UnitPrice?.ToString(CultureInfo.InvariantCulture) ?? "",
+    };
+
     public bool IsBlank => string.IsNullOrWhiteSpace(Description) && string.IsNullOrWhiteSpace(Price);
 
     public Line? ToLine()

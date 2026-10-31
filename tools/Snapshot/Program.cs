@@ -1,13 +1,23 @@
+using System.Security.Cryptography;
 using Avalonia;
 using Avalonia.Headless;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Webignite.Core.Documents;
+using Webignite.Data;
 using Webignite.Desktop;
 using Webignite.Desktop.ViewModels;
 using Webignite.Desktop.Views;
+using Webignite.Xero.Auth;
 
 // Usage: dotnet run --project tools/Snapshot -- <output folder>
+// Uses a throwaway database with sample documents, never the real one.
 var output = args.Length > 0 ? args[0] : "screenshots";
 Directory.CreateDirectory(output);
+var data = Directory.CreateTempSubdirectory("webignite-snapshot-").FullName;
+var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
+var services = new AppServices(store) { TokenStore = new MemoryTokenStore() };
+App.Services = services;
 
 AppBuilder.Configure<App>()
     .UseSkia()
@@ -15,7 +25,12 @@ AppBuilder.Configure<App>()
     .WithInterFont()
     .SetupWithoutStarting();
 
-var vm = new MainViewModel();
+Sample("Karoo Coffee Roasters", DocumentKind.Invoice, ("Website hosting, November", 1, 450m), ("Content updates (hours)", 3.5m, 650m));
+Sample("Fynbos Physio", DocumentKind.Invoice, ("Monthly SEO", 1, 2800m));
+store.Save(store.List(DocumentKind.Invoice)[0] with { Status = DocumentStatus.InXero, XeroNumber = "INV-0107" });
+Sample("Bosveld Builders", DocumentKind.Quote, ("New website, 6 pages", 1, 14500m), ("Logo refresh", 1, 3200m));
+
+var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();
 
@@ -24,16 +39,17 @@ void Save(string name)
     Dispatcher.UIThread.RunJobs();
     using var frame = window.CaptureRenderedFrame();
     using var file = File.Create(Path.Combine(output, name + ".png"));
-    frame?.Save(file, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+    frame?.Save(file, new PngBitmapEncoderOptions());
     Console.WriteLine("Saved " + name);
 }
 
 Save("overview");
 
-var invoice = (DocumentEditorViewModel)vm.Modules[2].Page;
 vm.Selected = vm.Modules[2];
-Save("invoice-empty");
+Save("invoices");
 
+vm.Invoices.NewCommand.Execute(null);
+var invoice = vm.Invoices.Editor!;
 invoice.CustomerName = "Karoo Coffee Roasters";
 invoice.Reference = "Website November";
 invoice.Lines[0].Description = "Website hosting, November";
@@ -43,7 +59,21 @@ invoice.Lines[1].Description = "Content updates (hours)";
 invoice.Lines[1].Quantity = "3,5";
 invoice.Lines[1].Price = "R650";
 invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
-Save("invoice-filled");
+invoice.SaveCommand.Execute(null);
+Save("invoice-editor");
 
-vm.Selected = vm.Modules[4];
-Save("mail-later");
+vm.Selected = vm.Modules[5];
+Save("settings");
+
+void Sample(string customer, DocumentKind kind, params (string Description, decimal Quantity, decimal Price)[] lines) =>
+    store.Save(new StoredDocument
+    {
+        Id = StoredDocument.NewId(),
+        Document = DocumentDefaults.Complete(new Document
+        {
+            Kind = kind,
+            Origin = DocumentOrigin.New,
+            Customer = new Customer { Name = customer },
+            Lines = lines.Select(l => new Line { Description = l.Description, Quantity = l.Quantity, UnitPrice = l.Price }).ToList(),
+        }, new DocumentSettings(), DateOnly.FromDateTime(DateTime.Today)),
+    });

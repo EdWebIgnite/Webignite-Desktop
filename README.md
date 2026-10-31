@@ -8,14 +8,22 @@ Native Windows software for Webignite's quotes and invoices, built to grow into 
 
 - **New quote** and **New invoice** screens. Type a customer and lines and the totals, date and due date fill in as you go. Amounts like `3,5` or `R650` are read correctly.
 - Every document goes through the same checks that will apply to documents Claude and ChatGPT prepare: totals must add up to the cent, no VAT (Webignite is not VAT registered), and dates and lines must make sense.
-- The Xero draft format and the read-back check are ready, but nothing is connected to Xero yet.
+- **Quotes** and **Invoices** lists. Documents save to an encrypted database on this PC (`%LOCALAPPDATA%\Webignite`).
+- **Settings**: connect Xero and set default due and expiry days. Xero sign-in opens in your own browser; the app never sees your Xero password, and the sign-in is kept in Windows Credential Manager.
+- The Xero draft format and the read-back check are ready. Creating drafts in Xero is the next step.
 
 ## Coming next
 
-1. Connect Xero (desktop sign-in, drafts only) and save documents locally in an encrypted database.
+1. Create drafts in Xero from the editor, with customer matching.
 2. The **To approve** list, plus the connector for Claude Desktop and ChatGPT.
-3. Installer with automatic updates and encrypted backups.
-4. Mail, with a native HTML viewer, plus the assistant tools to read and draft replies.
+3. Approve and send invoices from accounts@webignite.co.za, using the Xero PDF and your own email templates.
+4. Installer with automatic updates and encrypted backups.
+5. Mail, with a native HTML viewer, plus the assistant tools to read and draft replies.
+
+## Connecting Xero
+
+1. At [developer.xero.com/app/manage](https://developer.xero.com/app/manage), create a new app of type **Mobile or desktop app (PKCE)**, with redirect URI `http://localhost:47310/callback`.
+2. Copy its Client ID into Settings in the app and click Connect Xero.
 
 ## Building
 
@@ -32,7 +40,8 @@ dotnet run --project tools/Snapshot -- shots       # save screenshots of each sc
 | Project | What it holds |
 |---|---|
 | `src/Webignite.Core` | Documents, money rules, defaults and checks. No UI, no network. |
-| `src/Webignite.Xero` | The Xero draft format and the check that Xero saved what was sent. |
+| `src/Webignite.Data` | The local database. Everything except ids, kinds, statuses and timestamps is encrypted with AES-256-GCM; the key is protected by Windows (DPAPI). |
+| `src/Webignite.Xero` | Xero sign-in (PKCE), the draft format and the check that Xero saved what was sent. |
 | `src/Webignite.Desktop` | The Avalonia app. Each sidebar entry is a module. |
 | `tests/Webignite.Tests` | Tests for Core and Xero. |
 | `tools/Snapshot` | Renders screens to PNG without opening a window. |

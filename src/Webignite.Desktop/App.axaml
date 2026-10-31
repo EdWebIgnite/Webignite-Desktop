@@ -16,7 +16,9 @@
   <!-- Each module's view model is shown with its view. Listed by hand so nothing relies on reflection. -->
   <Application.DataTemplates>
     <DataTemplate DataType="vm:OverviewViewModel"><v:OverviewView /></DataTemplate>
+    <DataTemplate DataType="vm:DocumentsViewModel"><v:DocumentsView /></DataTemplate>
     <DataTemplate DataType="vm:DocumentEditorViewModel"><v:DocumentEditorView /></DataTemplate>
+    <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
     <DataTemplate DataType="vm:ComingLaterViewModel"><v:ComingLaterView /></DataTemplate>
   </Application.DataTemplates>
 

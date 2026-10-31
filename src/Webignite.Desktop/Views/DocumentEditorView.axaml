@@ -5,10 +5,17 @@
              x:DataType="vm:DocumentEditorViewModel"
              x:Name="Root">
   <StackPanel Spacing="18">
-    <StackPanel Spacing="4">
-      <TextBlock Classes="h1" Text="{Binding Title}" />
-      <TextBlock Classes="muted" Text="{Binding NumberNote}" />
-    </StackPanel>
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding SaveState}" VerticalAlignment="Center" />
+        <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" />
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <Button Classes="link" Content="← Back to the list" Command="{Binding BackCommand}" Padding="0,2" Margin="0,0,0,6" />
+        <TextBlock Classes="h1" Text="{Binding Title}" />
+        <TextBlock Classes="muted" Text="{Binding NumberNote}" />
+      </StackPanel>
+    </DockPanel>
 
     <!-- Customer and dates -->
     <Border Classes="card">

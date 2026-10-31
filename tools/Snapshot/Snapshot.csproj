@@ -9,5 +9,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Webignite.Desktop\Webignite.Desktop.csproj" />
+    <ProjectReference Include="..\..\src\Webignite.Data\Webignite.Data.csproj" />
   </ItemGroup>
 </Project>

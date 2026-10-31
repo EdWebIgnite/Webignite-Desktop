@@ -88,6 +88,32 @@
     <Setter Property="Padding" Value="6,2" />
   </Style>
 
+  <!-- List rows that open a document -->
+  <Style Selector="Button.row">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="12,11" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="Button.row:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Surface2}" />
+  </Style>
+  <Style Selector="Border.status">
+    <Setter Property="Background" Value="{StaticResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="8,1" />
+  </Style>
+  <Style Selector="Border.status.done">
+    <Setter Property="Background" Value="{StaticResource OkSoft}" />
+    <Setter Property="BorderBrush" Value="{StaticResource OkLine}" />
+  </Style>
+  <Style Selector="Border.status.done TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource Ok}" />
+  </Style>
+
   <!-- Sidebar -->
   <Style Selector="ListBox.nav">
     <Setter Property="Background" Value="Transparent" />
