@@ -1,5 +1,5 @@
 <!--
-  Colour tokens. This is the "Ledger green" palette from the design mockup. To try another palette,
+  Colour tokens. Soft black sidebar with a light page, as Eddie chose on 2026-10-31. To try another palette,
   change only this file: every screen reads its colours from these names.
   Rule of thumb: 60% canvas and surfaces, 30% navigation and text, 10% primary. Red and green mean
   "needs attention" and "done" only, never decoration.
@@ -16,12 +16,13 @@
   <SolidColorBrush x:Key="Ink" Color="#0F1A16" />
   <SolidColorBrush x:Key="Muted" Color="#5F6B66" />
 
-  <SolidColorBrush x:Key="Nav" Color="#0E3B32" />
-  <SolidColorBrush x:Key="NavHover" Color="#16483D" />
-  <SolidColorBrush x:Key="NavSelected" Color="#1D5649" />
-  <SolidColorBrush x:Key="NavText" Color="#E7F1ED" />
-  <SolidColorBrush x:Key="NavMuted" Color="#9FBDB2" />
-  <SolidColorBrush x:Key="NavActive" Color="#7FD3B5" />
+  <!-- Sidebar: a soft black, not pure black and not grey, with white text. -->
+  <SolidColorBrush x:Key="Nav" Color="#1C1D21" />
+  <SolidColorBrush x:Key="NavHover" Color="#27292E" />
+  <SolidColorBrush x:Key="NavSelected" Color="#33363C" />
+  <SolidColorBrush x:Key="NavText" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="NavMuted" Color="#A3A6AD" />
+  <SolidColorBrush x:Key="NavActive" Color="#FFFFFF" />
 
   <SolidColorBrush x:Key="Primary" Color="#12704F" />
   <SolidColorBrush x:Key="PrimaryHover" Color="#0D5A3F" />
