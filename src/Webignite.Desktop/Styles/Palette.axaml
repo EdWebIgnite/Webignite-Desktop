@@ -24,8 +24,8 @@
   <SolidColorBrush x:Key="NavMuted" Color="#A3A6AD" />
   <SolidColorBrush x:Key="NavActive" Color="#FFFFFF" />
 
-  <SolidColorBrush x:Key="Primary" Color="#12704F" />
-  <SolidColorBrush x:Key="PrimaryHover" Color="#0D5A3F" />
+  <SolidColorBrush x:Key="Primary" Color="#1C1D21" />
+  <SolidColorBrush x:Key="PrimaryHover" Color="#3A3D44" />
   <SolidColorBrush x:Key="OnPrimary" Color="#FFFFFF" />
 
   <SolidColorBrush x:Key="Attention" Color="#B4462F" />
@@ -40,5 +40,5 @@
   <SolidColorBrush x:Key="OkLine" Color="#CBE6D6" />
 
   <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
-  <Color x:Key="SystemAccentColor">#12704F</Color>
+  <Color x:Key="SystemAccentColor">#1C1D21</Color>
 </ResourceDictionary>

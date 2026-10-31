@@ -162,6 +162,69 @@ public partial class SettingsViewModel : ViewModelBase
         }
     }
 
+    // Which Xero account sales go to
+
+    public sealed record SalesAccount(string Code, string Name)
+    {
+        public override string ToString() => $"{Code}  {Name}";
+    }
+
+    public System.Collections.ObjectModel.ObservableCollection<SalesAccount> SalesAccounts { get; } = [];
+
+    [ObservableProperty] public partial SalesAccount? ChosenAccount { get; set; }
+    [ObservableProperty] public partial string AccountMessage { get; set; } = "";
+    [ObservableProperty] public partial bool AccountProblem { get; set; }
+
+    public string AccountText => services.XeroSettings.AccountCode is { } code
+        ? $"Quotes and invoices go to {code} {services.XeroSettings.AccountName}, with no VAT."
+        : "Choose the Xero account your sales go to before creating drafts.";
+
+    public bool HasAccounts => SalesAccounts.Count > 0;
+
+    [RelayCommand]
+    private async Task LoadAccounts()
+    {
+        if (services.XeroApi is not { } api)
+            return;
+        AccountMessage = "Loading accounts from Xero…";
+        AccountProblem = false;
+        try
+        {
+            var accounts = await api.GetAsync("Accounts");
+            var taxes = await api.GetAsync("TaxRates");
+            SalesAccounts.Clear();
+            foreach (var a in (accounts["Accounts"] as System.Text.Json.Nodes.JsonArray ?? []).OfType<System.Text.Json.Nodes.JsonObject>())
+                if (Webignite.Core.Xero.XeroRules.IsSalesAccount(Str(a["Type"]), Str(a["Status"])) && Str(a["Code"]) is { Length: > 0 } code)
+                    SalesAccounts.Add(new SalesAccount(code, Str(a["Name"])));
+            OnPropertyChanged(nameof(HasAccounts));
+            var noVat = (taxes["TaxRates"] as System.Text.Json.Nodes.JsonArray ?? []).Any(t => Str(t?["TaxType"]) == "NONE");
+            ChosenAccount = SalesAccounts.FirstOrDefault(a => a.Code == services.XeroSettings.AccountCode)
+                ?? SalesAccounts.FirstOrDefault(a => a.Code == "200") ?? SalesAccounts.FirstOrDefault();
+            AccountMessage = SalesAccounts.Count == 0 ? "Xero has no active sales accounts with a code."
+                : !noVat ? "Xero has no \"No VAT\" tax rate (NONE), which drafts need. Check the tax rates in Xero."
+                : "";
+            AccountProblem = AccountMessage.Length > 0;
+        }
+        catch (Exception e) when (e is Webignite.Xero.XeroException or XeroSignInException)
+        {
+            AccountMessage = e.Message;
+            AccountProblem = true;
+        }
+    }
+
+    [RelayCommand]
+    private void SaveAccount()
+    {
+        if (ChosenAccount is not { } account)
+            return;
+        services.XeroSettings = services.XeroSettings with { AccountCode = account.Code, AccountName = account.Name };
+        AccountMessage = "Saved.";
+        AccountProblem = false;
+        OnPropertyChanged(nameof(AccountText));
+    }
+
+    private static string Str(System.Text.Json.Nodes.JsonNode? node) => node?.GetValue<string>() ?? "";
+
     [RelayCommand]
     private void Disconnect()
     {

@@ -64,6 +64,21 @@ invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
 invoice.SaveCommand.Execute(null);
 Save("invoice-editor");
 
+// The Xero part of the editor: a customer Xero doesn't know, a broken write, and a checked draft.
+invoice.ContactQuestion = "Karoo Coffee Roasters isn't in Xero yet. Add them as a new contact, or search in case they are there under another name.";
+invoice.OfferNewContact = true;
+Save("invoice-xero-contact");
+var karoo = store.List(DocumentKind.Invoice).First(d => d.Document.Reference == "Website November");
+var uncertain = store.Save(karoo with { XeroState = Webignite.Core.Xero.XeroWriteState.Uncertain, XeroContactId = "k1",
+    XeroProblems = ["The connection to Xero broke during the write. Use Check Xero."] });
+vm.Invoices.Editor = new DocumentEditorViewModel(uncertain, services, () => vm.Invoices.Editor = null);
+Save("invoice-xero-uncertain");
+var verified = store.Save(uncertain with { XeroState = Webignite.Core.Xero.XeroWriteState.Verified, XeroId = "3f2a", XeroNumber = "INV-0111",
+    Status = DocumentStatus.InXero, XeroProblems = [] });
+vm.Invoices.Editor = new DocumentEditorViewModel(verified, services, () => vm.Invoices.Editor = null);
+Save("invoice-in-xero");
+vm.Invoices.Editor = null;
+
 Open("Settings");
 Save("settings");
 

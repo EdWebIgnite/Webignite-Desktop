@@ -46,7 +46,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     public DocumentKind Kind { get; }
     public string Title => stored?.XeroNumber ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
     public string DueLabel => Kind == DocumentKind.Quote ? "Expires" : "Due";
-    public string NumberNote => stored?.XeroNumber is null ? "Xero gives it the next number when it is created." : "Created in Xero.";
+    public string NumberNote => stored?.XeroNumber is null ? "Xero gives it the next number when it is created." : "Created in Xero. Changes are made in Xero from here on.";
 
     public ObservableCollection<LineRowViewModel> Lines { get; } = [];
     public ObservableCollection<string> Problems { get; } = [];
@@ -104,6 +104,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
+        if (!IsEditable)
+            return; // Once it has gone to Xero, Xero holds the real copy.
         stored = services.Store.Save((stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = Build() })
             with { Document = Build() });
         SaveState = $"Saved on this PC at {stored.Updated.ToLocalTime():HH:mm}";

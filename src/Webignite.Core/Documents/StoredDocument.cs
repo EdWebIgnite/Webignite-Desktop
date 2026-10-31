@@ -29,6 +29,15 @@ public sealed record StoredDocument
     public DocumentSource Source { get; init; } = DocumentSource.App;
     public string? XeroId { get; init; }
     public string? XeroNumber { get; init; }
+
+    /// <summary>Where the Xero write stands, and the Xero contact it used.</summary>
+    public Xero.XeroWriteState XeroState { get; init; }
+    public string? XeroContactId { get; init; }
+
+    /// <summary>Exactly what was sent to Xero, kept so it can be checked against what Xero saved.</summary>
+    public string? XeroSent { get; init; }
+
+    public IReadOnlyList<string> XeroProblems { get; init; } = [];
     public DateTimeOffset Created { get; init; }
     public DateTimeOffset Updated { get; init; }
 

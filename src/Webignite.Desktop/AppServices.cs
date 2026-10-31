@@ -13,6 +13,10 @@ public sealed record XeroSettings
     public string? ClientId { get; init; }
     public string? TenantId { get; init; }
     public string? TenantName { get; init; }
+
+    /// <summary>The Xero sales account documents are coded to, e.g. 200 Sales.</summary>
+    public string? AccountCode { get; init; }
+    public string? AccountName { get; init; }
 }
 
 /// <summary>What the screens share: the local database, settings and the Xero sign-in.</summary>
@@ -61,6 +65,16 @@ public sealed class AppServices(LocalStore store) : IDisposable
 
     public XeroSession? Xero =>
         xero ??= XeroSettings.ClientId is { Length: > 0 } id ? new XeroSession(new XeroOptions { ClientId = id }, Http, TokenStore) : null;
+
+    /// <summary>Xero's accounting API for the connected organisation, or null when Xero isn't connected.</summary>
+    public Webignite.Xero.XeroApi? XeroApi =>
+        Xero is { HasSavedSignIn: true } session && XeroSettings.TenantId is { Length: > 0 } tenant ? new Webignite.Xero.XeroApi(session, Http, tenant) : null;
+
+    /// <summary>Creates Xero drafts, saving each step to this PC as it goes.</summary>
+    public Webignite.Xero.XeroDrafts? XeroDrafts =>
+        XeroApi is { } api
+            ? new Webignite.Xero.XeroDrafts(api, Store.Save, () => Store.List().Select(d => d.XeroId).OfType<string>().ToHashSet())
+            : null;
 
     /// <summary>
     /// Does what the calendar calls for since the app last looked: drafts retainer and renewal invoices that are due,

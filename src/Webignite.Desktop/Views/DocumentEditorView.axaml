@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:xero="using:Webignite.Core.Xero"
              x:Class="Webignite.Desktop.Views.DocumentEditorView"
              x:DataType="vm:DocumentEditorViewModel"
              x:Name="Root">
@@ -8,7 +9,7 @@
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
         <TextBlock Classes="muted" FontSize="12" Text="{Binding SaveState}" VerticalAlignment="Center" />
-        <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" />
+        <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" IsVisible="{Binding IsEditable}" />
       </StackPanel>
       <StackPanel Spacing="4">
         <Button Classes="link" Content="← Back to the list" Command="{Binding BackCommand}" Padding="0,2" Margin="0,0,0,6" />
@@ -18,7 +19,7 @@
     </DockPanel>
 
     <!-- Customer and dates -->
-    <Border Classes="card">
+    <Border Classes="card" IsEnabled="{Binding IsEditable}">
       <Grid ColumnDefinitions="2*,16,*,16,*,16,*" RowDefinitions="Auto,Auto">
         <StackPanel Grid.Column="0">
           <TextBlock Classes="label" Text="Customer" />
@@ -40,7 +41,7 @@
     </Border>
 
     <!-- Lines -->
-    <Border Classes="card" Padding="0">
+    <Border Classes="card" Padding="0" IsEnabled="{Binding IsEditable}">
       <StackPanel>
         <Grid ColumnDefinitions="*,90,130,130,44" Background="{StaticResource TableHead}" Height="36">
           <TextBlock Grid.Column="0" Classes="label" Text="Description" Margin="20,0,0,0" VerticalAlignment="Center" />
@@ -74,7 +75,7 @@
       <StackPanel Grid.Column="0" Spacing="14">
         <StackPanel>
           <TextBlock Classes="label" Text="Notes for the client" />
-          <TextBox Text="{Binding Notes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
+          <TextBox Text="{Binding Notes}" IsReadOnly="{Binding !IsEditable}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
                    PlaceholderText="Banking details, thank you note, anything else" />
         </StackPanel>
 
@@ -90,7 +91,55 @@
             </ItemsControl>
           </StackPanel>
         </Border>
-        <Border Classes="ready" IsVisible="{Binding IsReady}">
+        <Border Classes="pending" IsVisible="{Binding HasContactQuestion}">
+          <StackPanel Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="Which Xero contact?" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding ContactQuestion}" />
+            <ItemsControl ItemsSource="{Binding ContactChoices}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="xero:XeroContact">
+                  <Button Classes="quiet" Margin="0,0,8,8"
+                          Command="{Binding #Root.((vm:DocumentEditorViewModel)DataContext).UseContactCommand}" CommandParameter="{Binding}">
+                    <StackPanel>
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Email}" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBox Text="{Binding ContactSearch}" PlaceholderText="Search Xero contacts" />
+            <Button Classes="quiet" Content="Add as a new contact in Xero" Command="{Binding AddNewContactCommand}"
+                    IsVisible="{Binding OfferNewContact}" IsEnabled="{Binding !XeroBusy}" />
+          </StackPanel>
+        </Border>
+        <Border Classes="pending" IsVisible="{Binding HasXeroMessage}">
+          <TextBlock TextWrapping="Wrap" Text="{Binding XeroMessage}" Classes.problem="{Binding XeroMessageIsProblem}" />
+        </Border>
+        <Border Classes="pending">
+          <Border.IsVisible>
+            <MultiBinding Converter="{x:Static BoolConverters.And}">
+              <Binding Path="HasXeroStatus" />
+              <Binding Path="!IsVerified" />
+            </MultiBinding>
+          </Border.IsVisible>
+          <TextBlock TextWrapping="Wrap" Text="{Binding XeroStatus}" Classes.problem="{Binding XeroStatusIsProblem}" />
+        </Border>
+        <Border Classes="ready" IsVisible="{Binding IsVerified}">
+          <TextBlock Foreground="{StaticResource Ok}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding XeroStatus}" />
+        </Border>
+        <Border Classes="ready">
+          <Border.IsVisible>
+            <MultiBinding Converter="{x:Static BoolConverters.And}">
+              <Binding Path="IsReady" />
+              <Binding Path="IsEditable" />
+            </MultiBinding>
+          </Border.IsVisible>
           <TextBlock Foreground="{StaticResource Ok}" FontWeight="SemiBold" Text="Everything adds up. Ready for Xero." />
         </Border>
       </StackPanel>
@@ -111,8 +160,18 @@
             <TextBlock Classes="amount" FontSize="20" FontWeight="SemiBold" Text="{Binding Total}" />
           </DockPanel>
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
-                  Content="Create draft in Xero" IsEnabled="False"
-                  ToolTip.Tip="Connecting Xero comes in the next step." ToolTip.ShowOnDisabled="True" />
+                  Content="Create draft in Xero" Command="{Binding CreateInXeroCommand}"
+                  IsVisible="{Binding ShowCreate}" IsEnabled="{Binding CanCreate}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding XeroHint}"
+                     IsVisible="{Binding ShowCreate}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding ShowCreate}"
+                     Text="It goes in as a draft. Approving and sending stay with you." />
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Check Xero" Command="{Binding CheckXeroCommand}" IsVisible="{Binding ShowCheck}" IsEnabled="{Binding !XeroBusy}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Start over (only if it isn't in Xero)" Command="{Binding StartOverCommand}" IsVisible="{Binding ShowStartOver}" IsEnabled="{Binding !XeroBusy}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Open in Xero" Command="{Binding OpenInXeroCommand}" IsVisible="{Binding HasXeroLink}" />
         </StackPanel>
       </Border>
     </Grid>

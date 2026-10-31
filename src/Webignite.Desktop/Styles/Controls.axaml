@@ -54,6 +54,9 @@
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="12,10" />
   </Style>
+  <Style Selector="TextBlock.problem">
+    <Setter Property="Foreground" Value="{StaticResource Attention}" />
+  </Style>
   <Style Selector="Border.ready">
     <Setter Property="Background" Value="{StaticResource OkSoft}" />
     <Setter Property="BorderBrush" Value="{StaticResource OkLine}" />
