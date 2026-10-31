@@ -1,0 +1,43 @@
+<!--
+  Colour tokens. This is the "Ledger green" palette from the design mockup. To try another palette,
+  change only this file: every screen reads its colours from these names.
+  Rule of thumb: 60% canvas and surfaces, 30% navigation and text, 10% primary. Red and green mean
+  "needs attention" and "done" only, never decoration.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="Canvas" Color="#F2F4F3" />
+  <SolidColorBrush x:Key="Surface" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Surface2" Color="#F7F9F8" />
+  <SolidColorBrush x:Key="TableHead" Color="#EFF3F1" />
+  <SolidColorBrush x:Key="Line" Color="#E1E6E3" />
+  <SolidColorBrush x:Key="Line2" Color="#CBD3CF" />
+  <SolidColorBrush x:Key="Text" Color="#1F2A26" />
+  <SolidColorBrush x:Key="Ink" Color="#0F1A16" />
+  <SolidColorBrush x:Key="Muted" Color="#5F6B66" />
+
+  <SolidColorBrush x:Key="Nav" Color="#0E3B32" />
+  <SolidColorBrush x:Key="NavHover" Color="#16483D" />
+  <SolidColorBrush x:Key="NavSelected" Color="#1D5649" />
+  <SolidColorBrush x:Key="NavText" Color="#E7F1ED" />
+  <SolidColorBrush x:Key="NavMuted" Color="#9FBDB2" />
+  <SolidColorBrush x:Key="NavActive" Color="#7FD3B5" />
+
+  <SolidColorBrush x:Key="Primary" Color="#12704F" />
+  <SolidColorBrush x:Key="PrimaryHover" Color="#0D5A3F" />
+  <SolidColorBrush x:Key="OnPrimary" Color="#FFFFFF" />
+
+  <SolidColorBrush x:Key="Attention" Color="#B4462F" />
+  <SolidColorBrush x:Key="AttentionSoft" Color="#FBEFEC" />
+  <SolidColorBrush x:Key="AttentionLine" Color="#F2D3CB" />
+  <SolidColorBrush x:Key="InvoiceTint" Color="#2F6F8F" />
+  <SolidColorBrush x:Key="InvoiceSoft" Color="#EAF3F6" />
+  <SolidColorBrush x:Key="QuoteTint" Color="#6A4C93" />
+  <SolidColorBrush x:Key="QuoteSoft" Color="#F3EFF8" />
+  <SolidColorBrush x:Key="Ok" Color="#1E7A4C" />
+  <SolidColorBrush x:Key="OkSoft" Color="#E9F5EE" />
+  <SolidColorBrush x:Key="OkLine" Color="#CBE6D6" />
+
+  <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
+  <Color x:Key="SystemAccentColor">#12704F</Color>
+</ResourceDictionary>

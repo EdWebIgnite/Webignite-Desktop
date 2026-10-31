@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.OverviewView"
+             x:DataType="vm:OverviewViewModel">
+  <StackPanel Spacing="22">
+    <StackPanel Spacing="4">
+      <TextBlock Classes="h1" Text="{Binding Greeting}" />
+      <TextBlock Classes="muted" Text="Here's where the money stands." />
+    </StackPanel>
+
+    <UniformGrid Columns="3" >
+      <Border Classes="card" Margin="0,0,12,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="OWED TO YOU" />
+          <TextBlock Classes="figure" Text="R 0.00" />
+          <TextBlock Classes="muted" FontSize="12" Text="Connect Xero to see open invoices." />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Margin="6,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="OVERDUE" />
+          <TextBlock Classes="figure" Text="R 0.00" />
+          <TextBlock Classes="muted" FontSize="12" Text="Nothing overdue yet." />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Margin="12,0,0,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="QUOTES OUT" />
+          <TextBlock Classes="figure" Text="R 0.00" />
+          <TextBlock Classes="muted" FontSize="12" Text="Quotes waiting on a client." />
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="h2" Text="Getting started" />
+        <TextBlock TextWrapping="Wrap" Classes="muted"
+                   Text="This is the first build of the desktop app. You can already write a quote or invoice and see the totals and checks work. Connecting Xero, saving, the approval list and the Claude and ChatGPT connector come next." />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

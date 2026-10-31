@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Webignite.Desktop.ViewModels"
+        x:Class="Webignite.Desktop.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/icon.png"
+        Title="Webignite"
+        Width="1200" Height="780" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+
+  <Grid ColumnDefinitions="232,*">
+
+    <!-- Sidebar -->
+    <Border Grid.Column="0" Background="{StaticResource Nav}" Padding="14,18">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Margin="6,0,6,22" Spacing="2">
+          <TextBlock Text="Webignite" FontSize="20" FontWeight="Bold" Foreground="{StaticResource NavText}" />
+          <TextBlock Text="Quotes, invoices and more" FontSize="12" Foreground="{StaticResource NavMuted}" />
+        </StackPanel>
+
+        <TextBlock DockPanel.Dock="Bottom" Margin="6,12,6,0" FontSize="11" Foreground="{StaticResource NavMuted}"
+                   Text="Runs on this PC. Your data stays here." TextWrapping="Wrap" />
+
+        <ListBox Classes="nav" ItemsSource="{Binding Modules}" SelectedItem="{Binding Selected}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:Module">
+              <DockPanel>
+                <Border DockPanel.Dock="Right" Classes="tag" IsVisible="{Binding IsLater}">
+                  <TextBlock Text="Later" FontSize="11" Foreground="{StaticResource NavMuted}" />
+                </Border>
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+              </DockPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- Page -->
+    <ScrollViewer Grid.Column="1">
+      <ContentControl Content="{Binding Selected.Page}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
+    </ScrollViewer>
+  </Grid>
+</Window>

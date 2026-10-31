@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.DocumentEditorView"
+             x:DataType="vm:DocumentEditorViewModel"
+             x:Name="Root">
+  <StackPanel Spacing="18">
+    <StackPanel Spacing="4">
+      <TextBlock Classes="h1" Text="{Binding Title}" />
+      <TextBlock Classes="muted" Text="{Binding NumberNote}" />
+    </StackPanel>
+
+    <!-- Customer and dates -->
+    <Border Classes="card">
+      <Grid ColumnDefinitions="2*,16,*,16,*,16,*" RowDefinitions="Auto,Auto">
+        <StackPanel Grid.Column="0">
+          <TextBlock Classes="label" Text="Customer" />
+          <TextBox Text="{Binding CustomerName}" PlaceholderText="Who is this for?" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock Classes="label" Text="Reference" />
+          <TextBox Text="{Binding Reference}" PlaceholderText="Optional" />
+        </StackPanel>
+        <StackPanel Grid.Column="4">
+          <TextBlock Classes="label" Text="Date" />
+          <TextBlock Text="{Binding DateText}" Margin="0,7,0,0" />
+        </StackPanel>
+        <StackPanel Grid.Column="6">
+          <TextBlock Classes="label" Text="{Binding DueLabel}" />
+          <TextBlock Text="{Binding DueText}" Margin="0,7,0,0" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Lines -->
+    <Border Classes="card" Padding="0">
+      <StackPanel>
+        <Grid ColumnDefinitions="*,90,130,130,44" Background="{StaticResource TableHead}" Height="36">
+          <TextBlock Grid.Column="0" Classes="label" Text="Description" Margin="20,0,0,0" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Classes="label" Text="Qty" Margin="8,0" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Classes="label" Text="Price" Margin="8,0" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="3" Classes="label" Text="Amount" Margin="8,0,12,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+        </Grid>
+
+        <ItemsControl ItemsSource="{Binding Lines}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:LineRowViewModel">
+              <Grid ColumnDefinitions="*,90,130,130,44" Margin="12,8,4,0">
+                <TextBox Grid.Column="0" Text="{Binding Description}" PlaceholderText="What was done or sold" Margin="0,0,8,0" />
+                <TextBox Grid.Column="1" Text="{Binding Quantity}" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
+                <TextBox Grid.Column="2" Text="{Binding Price}" PlaceholderText="0.00" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
+                <TextBlock Grid.Column="3" Classes="amount" Text="{Binding AmountText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <Button Grid.Column="4" Classes="link" Content="✕" ToolTip.Tip="Remove line"
+                        Command="{Binding #Root.((vm:DocumentEditorViewModel)DataContext).RemoveLineCommand}"
+                        CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button Classes="quiet" Content="+ Add line" Command="{Binding AddLineCommand}" Margin="12,12,0,16" />
+      </StackPanel>
+    </Border>
+
+    <!-- Notes, checks and totals -->
+    <Grid ColumnDefinitions="*,24,320">
+      <StackPanel Grid.Column="0" Spacing="14">
+        <StackPanel>
+          <TextBlock Classes="label" Text="Notes for the client" />
+          <TextBox Text="{Binding Notes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
+                   PlaceholderText="Banking details, thank you note, anything else" />
+        </StackPanel>
+
+        <Border Classes="pending" IsVisible="{Binding !IsReady}">
+          <StackPanel Spacing="4">
+            <TextBlock FontWeight="SemiBold" Text="Still needed" />
+            <ItemsControl ItemsSource="{Binding Problems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Classes="muted" Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Classes="ready" IsVisible="{Binding IsReady}">
+          <TextBlock Foreground="{StaticResource Ok}" FontWeight="SemiBold" Text="Everything adds up. Ready for Xero." />
+        </Border>
+      </StackPanel>
+
+      <Border Grid.Column="2" Classes="card" VerticalAlignment="Top">
+        <StackPanel Spacing="10">
+          <DockPanel>
+            <TextBlock Classes="muted" Text="Subtotal" />
+            <TextBlock Classes="amount" Text="{Binding Subtotal}" />
+          </DockPanel>
+          <DockPanel>
+            <TextBlock Classes="muted" Text="VAT" />
+            <TextBlock Classes="amount muted" Text="Not registered" />
+          </DockPanel>
+          <Border Height="1" Background="{StaticResource Line}" />
+          <DockPanel>
+            <TextBlock FontWeight="SemiBold" Text="Total" />
+            <TextBlock Classes="amount" FontSize="20" FontWeight="SemiBold" Text="{Binding Total}" />
+          </DockPanel>
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
+                  Content="Create draft in Xero" IsEnabled="False"
+                  ToolTip.Tip="Connecting Xero comes in the next step." ToolTip.ShowOnDisabled="True" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </StackPanel>
+</UserControl>
