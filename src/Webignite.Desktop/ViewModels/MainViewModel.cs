@@ -7,10 +7,13 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly AppServices services;
 
+    public UpdateViewModel Updates { get; } = new();
+
     public MainViewModel(AppServices services)
     {
         this.services = services;
         services.CatchUp();
+        _ = Updates.CheckAsync();
         Quotes = new DocumentsViewModel(DocumentKind.Quote, services);
         Invoices = new DocumentsViewModel(DocumentKind.Invoice, services);
         Todo = new TodoViewModel(services);

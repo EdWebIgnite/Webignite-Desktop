@@ -18,8 +18,14 @@
           <TextBlock Text="Quotes, invoices and more" FontSize="12" Foreground="{StaticResource NavMuted}" />
         </StackPanel>
 
-        <TextBlock DockPanel.Dock="Bottom" Margin="6,12,6,0" FontSize="11" Foreground="{StaticResource NavMuted}"
-                   Text="Runs on this PC. Your data stays here." TextWrapping="Wrap" />
+        <StackPanel DockPanel.Dock="Bottom" Margin="6,12,6,0" Spacing="6">
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Background="{StaticResource NavSelected}" IsVisible="{Binding Updates.IsReady}"
+                  Command="{Binding Updates.RestartCommand}"
+                  Content="{Binding Updates.ReadyVersion, StringFormat='Update to {0}: restart'}" />
+          <TextBlock FontSize="11" Foreground="{StaticResource NavMuted}" Text="Runs on this PC. Your data stays here." TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="{StaticResource NavMuted}" Text="{Binding Updates.VersionText}" />
+        </StackPanel>
 
         <ListBox Classes="nav" ItemsSource="{Binding Modules}" SelectedItem="{Binding Selected}">
           <ListBox.ItemTemplate>
