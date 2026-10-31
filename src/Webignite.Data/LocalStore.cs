@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Webignite.Core.Calendar;
 using Webignite.Core.Clients;
 using Webignite.Core.Finance;
+using Webignite.Core.Retainers;
 using Webignite.Core.Documents;
 using Webignite.Core.Tasks;
 
@@ -66,6 +67,14 @@ public sealed class LocalStore : IDisposable
             CREATE TABLE IF NOT EXISTS recurring (
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS retainers (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS retainer_runs (
+                key TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS settings (
                 name TEXT PRIMARY KEY,
@@ -342,6 +351,78 @@ public sealed class LocalStore : IDisposable
         var due = RecurringExpenses.Due(ListRecurring(), RecurringKeys(), today, clock.GetUtcNow());
         foreach (var entry in due)
             SaveEntry(entry);
+        return due.Count;
+    }
+
+    public Retainer SaveRetainer(Retainer retainer)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO retainers (id, payload) VALUES ($id, $payload) ON CONFLICT (id) DO UPDATE SET payload = $payload";
+        command.Parameters.AddWithValue("$id", retainer.Id);
+        command.Parameters.AddWithValue("$payload", Seal("retainer:" + retainer.Id, retainer));
+        command.ExecuteNonQuery();
+        return retainer;
+    }
+
+    /// <summary>Stops a retainer. Invoices it already drafted stay.</summary>
+    public void DeleteRetainer(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM retainers WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public IReadOnlyList<Retainer> ListRetainers()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, payload FROM retainers";
+        using var reader = command.ExecuteReader();
+        var list = new List<Retainer>();
+        while (reader.Read())
+            list.Add(Open<Retainer>("retainer:" + reader.GetString(0), (byte[])reader[1]));
+        return list.OrderBy(r => r.ClientName, StringComparer.OrdinalIgnoreCase).ThenBy(r => r.Title, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>Every retainer month ever drafted, with the draft it made.</summary>
+    public IReadOnlyDictionary<string, string> RetainerRuns()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT key, document_id FROM retainer_runs";
+        using var reader = command.ExecuteReader();
+        var runs = new Dictionary<string, string>();
+        while (reader.Read())
+            runs[reader.GetString(0)] = reader.GetString(1);
+        return runs;
+    }
+
+    /// <summary>
+    /// Drafts the invoices retainers call for up to today. They are drafts on this PC only;
+    /// nothing goes to Xero until a person sends it. Returns how many were drafted.
+    /// </summary>
+    public int DraftRetainerInvoices(DocumentSettings settings, DateOnly today)
+    {
+        var due = RetainerSchedule.Due(ListRetainers(), RetainerRuns().Keys.ToHashSet(), settings, today);
+        foreach (var (key, invoice) in due)
+        {
+            // Raw BEGIN so Save's own commands join in: the draft and its marker land together or not at all.
+            Execute("BEGIN");
+            try
+            {
+                var stored = Save(new StoredDocument { Id = StoredDocument.NewId(), Document = invoice });
+                using var command = connection.CreateCommand();
+                command.CommandText = "INSERT INTO retainer_runs (key, document_id) VALUES ($key, $id)";
+                command.Parameters.AddWithValue("$key", key);
+                command.Parameters.AddWithValue("$id", stored.Id);
+                command.ExecuteNonQuery();
+                Execute("COMMIT");
+            }
+            catch
+            {
+                Execute("ROLLBACK");
+                throw;
+            }
+        }
         return due.Count;
     }
 

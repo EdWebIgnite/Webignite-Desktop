@@ -123,6 +123,29 @@ store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r2", Nam
 store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r3", Name = "Fibre", Amount = 899m, DayOfMonth = 31, Category = "Internet and phone", Starts = month.AddMonths(-11) });
 Open("Money");
 Save("money");
+
+Webignite.Core.Documents.Line Priced(string description, decimal price) => new() { Description = description, Quantity = 1, UnitPrice = price };
+var seo = store.SaveRetainer(new Webignite.Core.Retainers.Retainer
+{
+    Id = "ret1", ClientName = "Fynbos Physio", Title = "Monthly SEO", DayOfMonth = 1, Starts = month.AddMonths(1),
+    Lines = [Priced("SEO and Google Business updates, [Month]", 2800m), Priced("Website hosting, [Month]", 450m)],
+});
+store.SaveRetainer(new Webignite.Core.Retainers.Retainer
+{
+    Id = "ret2", ClientName = "Karoo Coffee Roasters", Title = "Hosting", DayOfMonth = 25, Starts = month.AddMonths(1),
+    Lines = [Priced("Website hosting and backups, [Month]", 450m)],
+});
+store.SaveRetainer(new Webignite.Core.Retainers.Retainer
+{
+    Id = "ret3", ClientName = "Kalahari Kitchens", Title = "Social media", DayOfMonth = 31, Starts = month, Paused = true,
+    Lines = [Priced("Social media posts, [Month]", 3500m)],
+});
+Open("Retainers");
+Save("retainers");
+var retainersPage = (RetainersViewModel)vm.Selected.Page;
+retainersPage.Edit(seo);
+Save("retainer-editor");
+retainersPage.Editor!.CancelCommand.Execute(null);
 Open("Reports");
 Save("reports");
 Open("Overview");

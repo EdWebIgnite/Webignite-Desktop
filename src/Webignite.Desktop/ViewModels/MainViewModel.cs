@@ -5,8 +5,12 @@ namespace Webignite.Desktop.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
     public MainViewModel(AppServices services)
     {
+        this.services = services;
+        services.CatchUp();
         Quotes = new DocumentsViewModel(DocumentKind.Quote, services);
         Invoices = new DocumentsViewModel(DocumentKind.Invoice, services);
         Todo = new TodoViewModel(services);
@@ -18,6 +22,7 @@ public partial class MainViewModel : ViewModelBase
             new Module("Clients", Clients),
             new Module("Quotes", Quotes),
             new Module("Invoices", Invoices),
+            new Module("Retainers", new RetainersViewModel(services)),
             new Module("Money", new MoneyViewModel(services)),
             new Module("Reports", new ReportsViewModel(services)),
             new Module("To-do", Todo),
@@ -45,8 +50,11 @@ public partial class MainViewModel : ViewModelBase
     // These pages show things other pages change, so they look again whenever they're opened.
     partial void OnSelectedChanged(Module value)
     {
+        services.CatchUp();
         switch (value.Page)
         {
+            case DocumentsViewModel documents: documents.Refresh(); break;
+            case RetainersViewModel retainers: retainers.Refresh(); break;
             case TodoViewModel todo: todo.Refresh(); break;
             case CalendarViewModel calendar: calendar.Refresh(); break;
             case PlannerViewModel planner: planner.Refresh(); break;
