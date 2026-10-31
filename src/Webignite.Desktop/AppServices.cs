@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Webignite.Core.Documents;
+using Webignite.Core.Tasks;
 using Webignite.Data;
 using Webignite.Xero.Auth;
 
@@ -25,6 +26,12 @@ public sealed class AppServices(LocalStore store) : IDisposable
     {
         get => Store.GetSetting<DocumentSettings>("documents") ?? new DocumentSettings();
         set => Store.SetSetting("documents", value);
+    }
+
+    public TaskSettings TaskSettings
+    {
+        get => Store.GetSetting<TaskSettings>("tasks") ?? new TaskSettings();
+        set => Store.SetSetting("tasks", value);
     }
 
     public XeroSettings XeroSettings

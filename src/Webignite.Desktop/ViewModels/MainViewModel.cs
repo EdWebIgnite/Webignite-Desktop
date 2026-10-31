@@ -9,11 +9,13 @@ public partial class MainViewModel : ViewModelBase
     {
         Quotes = new DocumentsViewModel(DocumentKind.Quote, services);
         Invoices = new DocumentsViewModel(DocumentKind.Invoice, services);
+        Todo = new TodoViewModel(services);
         Modules =
         [
             new Module("Overview", new OverviewViewModel()),
             new Module("Quotes", Quotes),
             new Module("Invoices", Invoices),
+            new Module("To-do", Todo),
             new Module("To approve", new ComingLaterViewModel("To approve",
                 "Quotes and invoices that Claude or ChatGPT prepare will wait here for your approval before anything goes to Xero.")),
             new Module("Mail", new ComingLaterViewModel("Mail",
@@ -25,8 +27,16 @@ public partial class MainViewModel : ViewModelBase
 
     public DocumentsViewModel Quotes { get; }
     public DocumentsViewModel Invoices { get; }
+    public TodoViewModel Todo { get; }
     public IReadOnlyList<Module> Modules { get; }
 
     [ObservableProperty]
     public partial Module Selected { get; set; }
+
+    // Reminders depend on documents, so look again whenever the to-do list is opened.
+    partial void OnSelectedChanged(Module value)
+    {
+        if (value.Page is TodoViewModel todo)
+            todo.Refresh();
+    }
 }

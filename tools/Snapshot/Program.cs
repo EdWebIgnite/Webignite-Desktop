@@ -62,8 +62,20 @@ invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
 invoice.SaveCommand.Execute(null);
 Save("invoice-editor");
 
-vm.Selected = vm.Modules[5];
+vm.Selected = vm.Modules[6];
 Save("settings");
+
+var today = DateOnly.FromDateTime(DateTime.Today);
+store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t1", Title = "Send Bosveld the sitemap for sign-off", Due = today, Created = DateTimeOffset.UtcNow });
+store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t2", Title = "Renew webignite.co.za SSL certificate", Due = today.AddDays(3), Created = DateTimeOffset.UtcNow });
+store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t3", Title = "Update portfolio with Fynbos Physio site", Created = DateTimeOffset.UtcNow });
+store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t4", Title = "Back up client sites", Due = today.AddDays(-1), Done = true, DoneAt = DateTimeOffset.UtcNow, Created = DateTimeOffset.UtcNow });
+var overdue = store.List(DocumentKind.Invoice).First(d => d.XeroNumber is not null);
+store.Save(overdue with { Document = overdue.Document with { Date = today.AddDays(-21), DueOrExpiryDate = today.AddDays(-14) } });
+var quote = store.List(DocumentKind.Quote)[0];
+store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031" });
+vm.Selected = vm.Modules[3];
+Save("todo");
 
 void Sample(string customer, DocumentKind kind, params (string Description, decimal Quantity, decimal Price)[] lines) =>
     store.Save(new StoredDocument

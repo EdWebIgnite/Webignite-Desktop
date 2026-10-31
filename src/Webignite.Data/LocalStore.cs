@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Webignite.Core.Documents;
+using Webignite.Core.Tasks;
 
 namespace Webignite.Data;
 
@@ -34,6 +35,12 @@ public sealed class LocalStore : IDisposable
                 payload BLOB NOT NULL
             );
             CREATE INDEX IF NOT EXISTS documents_kind_updated ON documents (kind, updated DESC);
+            CREATE TABLE IF NOT EXISTS tasks (
+                id TEXT PRIMARY KEY,
+                auto_key TEXT UNIQUE,
+                deleted INTEGER NOT NULL DEFAULT 0,
+                payload BLOB NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS settings (
                 name TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
@@ -92,6 +99,66 @@ public sealed class LocalStore : IDisposable
         while (reader.Read())
             list.Add(Open<StoredDocument>("document:" + reader.GetString(0), (byte[])reader[1]));
         return list;
+    }
+
+    public TaskItem SaveTask(TaskItem task)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO tasks (id, auto_key, payload) VALUES ($id, $key, $payload)
+            ON CONFLICT (id) DO UPDATE SET payload = $payload, deleted = 0
+            """;
+        command.Parameters.AddWithValue("$id", task.Id);
+        command.Parameters.AddWithValue("$key", (object?)task.AutoKey ?? DBNull.Value);
+        command.Parameters.AddWithValue("$payload", Seal("task:" + task.Id, task));
+        command.ExecuteNonQuery();
+        return task;
+    }
+
+    /// <summary>
+    /// Removes a task from view. Automatic tasks keep a marker so the same reminder isn't raised again.
+    /// </summary>
+    public void DeleteTask(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE tasks SET deleted = 1, payload = x'' WHERE id = $id AND auto_key IS NOT NULL;
+            DELETE FROM tasks WHERE id = $id AND auto_key IS NULL;
+            """;
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public IReadOnlyList<TaskItem> ListTasks()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, payload FROM tasks WHERE deleted = 0";
+        using var reader = command.ExecuteReader();
+        var list = new List<TaskItem>();
+        while (reader.Read())
+            list.Add(Open<TaskItem>("task:" + reader.GetString(0), (byte[])reader[1]));
+        return list;
+    }
+
+    /// <summary>Every automatic-task key ever raised, including ticked-off and deleted ones.</summary>
+    public IReadOnlySet<string> AutoTaskKeys()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT auto_key FROM tasks WHERE auto_key IS NOT NULL";
+        using var reader = command.ExecuteReader();
+        var keys = new HashSet<string>();
+        while (reader.Read())
+            keys.Add(reader.GetString(0));
+        return keys;
+    }
+
+    /// <summary>Adds the reminders that quotes and invoices call for. Returns how many were added.</summary>
+    public int RaiseAutomaticTasks(TaskSettings settings, DateOnly today)
+    {
+        var added = AutomaticTasks.Suggest(List(), AutoTaskKeys(), settings, today, clock.GetUtcNow());
+        foreach (var task in added)
+            SaveTask(task);
+        return added.Count;
     }
 
     public T? GetSetting<T>(string name)

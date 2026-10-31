@@ -114,6 +114,20 @@
     <Setter Property="Foreground" Value="{StaticResource Ok}" />
   </Style>
 
+  <!-- To-do -->
+  <Style Selector="Border.taskrow">
+    <Setter Property="Padding" Value="16,8,8,8" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.taskrow.done TextBlock.tasktitle">
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    <Setter Property="TextDecorations" Value="Strikethrough" />
+  </Style>
+  <Style Selector="TextBlock.label.overdue">
+    <Setter Property="Foreground" Value="{StaticResource Attention}" />
+  </Style>
+
   <!-- Sidebar -->
   <Style Selector="ListBox.nav">
     <Setter Property="Background" Value="Transparent" />
