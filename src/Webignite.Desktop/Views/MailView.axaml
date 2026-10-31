@@ -267,6 +267,10 @@
               <Button Classes="quiet" Content="Delete" Command="{Binding DeleteCommand}" />
             </WrapPanel>
 
+            <Border Classes="card" Padding="12,8" IsVisible="{Binding HasDraftedBy}" Background="{StaticResource InvoiceSoft}">
+              <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
+            </Border>
+
             <Border Classes="card" Padding="12,8" IsVisible="{Binding CanShowImages}">
               <DockPanel>
                 <Button DockPanel.Dock="Right" Classes="link" Content="Show pictures" Command="{Binding ShowImagesCommand}" />

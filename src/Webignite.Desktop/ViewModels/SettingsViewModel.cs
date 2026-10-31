@@ -19,7 +19,68 @@ public partial class SettingsViewModel : ViewModelBase
         var xero = services.XeroSettings;
         ClientId = xero.ClientId ?? "";
         UpdateXeroStatus();
+        UpdateAssistantStatus();
     }
+
+    // Claude and ChatGPT
+
+    public string ConnectorCommand => "\"" + AssistantSetup.ConnectorPath() + "\"";
+
+    [ObservableProperty] public partial string ClaudeStatus { get; set; } = "";
+    [ObservableProperty] public partial bool ClaudeConnected { get; set; }
+    [ObservableProperty] public partial bool ClaudeProblem { get; set; }
+    [ObservableProperty] public partial string CopyMessage { get; set; } = "";
+
+    public void UpdateAssistantStatus()
+    {
+        ClaudeConnected = AssistantSetup.ClaudeConnected();
+        ClaudeProblem = false;
+        ClaudeStatus = !AssistantSetup.ConnectorInstalled()
+            ? "The connector program isn't next to Webignite.exe. Unzip the whole folder, not just Webignite.exe."
+            : ClaudeConnected ? "Claude Desktop is connected. In Claude, ask something like: what came in from Karoo Coffee this week?"
+            : "Not connected yet.";
+    }
+
+    [RelayCommand]
+    private void ConnectClaude()
+    {
+        try
+        {
+            if (!AssistantSetup.ConnectorInstalled())
+            {
+                UpdateAssistantStatus();
+                return;
+            }
+            var count = AssistantSetup.ConnectClaude();
+            if (count == 0)
+            {
+                ClaudeStatus = "Claude Desktop wasn't found on this PC. Install it from claude.ai/download, open it once, then try again.";
+                ClaudeProblem = true;
+                return;
+            }
+            ClaudeConnected = true;
+            ClaudeProblem = false;
+            ClaudeStatus = "Connected. Quit Claude Desktop completely (also from the tray by the clock) and open it again to load Webignite.";
+        }
+        catch (Exception e) when (e is FormatException or IOException or UnauthorizedAccessException)
+        {
+            ClaudeStatus = e.Message;
+            ClaudeProblem = true;
+        }
+    }
+
+    [RelayCommand]
+    private async Task CopyCommand(Avalonia.Controls.TopLevel? top)
+    {
+        if (top?.Clipboard is { } clipboard)
+        {
+            await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, ConnectorCommand);
+            CopyMessage = "Copied.";
+        }
+    }
+
+    [RelayCommand]
+    private static Task OpenTunnelGuide() => AppServices.OpenInBrowser(new Uri("https://developers.openai.com/api/docs/guides/secure-mcp-tunnels"));
 
     [ObservableProperty]
     public partial string InvoiceDueDays { get; set; }

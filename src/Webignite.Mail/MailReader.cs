@@ -19,12 +19,14 @@ public static class MailReader
         var text = message.TextBody;
         var html = message.HtmlBody;
 
+        var draftedBy = message.Headers[MailComposer.DraftedByHeader];
         if (html is null)
             return new MailBody
             {
                 Html = MailHtml.FromText(text ?? ""),
                 Text = text ?? "",
                 Attachments = attachments,
+                DraftedBy = draftedBy,
             };
 
         html = InlineImages(message, html);
@@ -34,6 +36,7 @@ public static class MailReader
             Text = string.IsNullOrWhiteSpace(text) ? MailHtml.ToText(html) : text,
             Attachments = attachments,
             HasRemoteImages = MailHtml.HasRemoteImages(html),
+            DraftedBy = draftedBy,
         };
     }
 

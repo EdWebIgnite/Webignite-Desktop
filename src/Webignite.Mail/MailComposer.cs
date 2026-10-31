@@ -10,6 +10,9 @@ public static class MailComposer
     /// <summary>Header that marks the part of a draft that was typed, so a reopened draft doesn't quote the quote.</summary>
     private const string QuoteHeader = "X-Webignite-Quote";
 
+    /// <summary>Header on drafts that Claude or ChatGPT saved, so the app can say who wrote it.</summary>
+    public const string DraftedByHeader = "X-Webignite-Drafted-By";
+
     public static MimeMessage Build(OutgoingMail mail, MailAccount from, byte[]? source = null)
     {
         var message = new MimeMessage();

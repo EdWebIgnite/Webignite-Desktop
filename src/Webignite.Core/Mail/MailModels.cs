@@ -67,4 +67,7 @@ public sealed record MailBody
 
     /// <summary>Whether the HTML asks for pictures from the internet, which stay blocked until you allow them.</summary>
     public bool HasRemoteImages { get; init; }
+
+    /// <summary>Set on drafts saved by Claude or ChatGPT: who drafted it.</summary>
+    public string? DraftedBy { get; init; }
 }

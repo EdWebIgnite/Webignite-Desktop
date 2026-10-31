@@ -35,6 +35,10 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     [ObservableProperty] public partial bool IsLoading { get; set; } = true;
     [ObservableProperty] public partial string Problem { get; set; } = "";
     [ObservableProperty] public partial bool CanShowImages { get; set; }
+    [ObservableProperty] public partial string DraftedBy { get; set; } = "";
+
+    public bool HasDraftedBy => DraftedBy.Length > 0;
+    partial void OnDraftedByChanged(string value) => OnPropertyChanged(nameof(HasDraftedBy));
     [ObservableProperty] public partial string AttachmentMessage { get; set; } = "";
     [ObservableProperty] public partial MoveTarget? MoveTo { get; set; }
 
@@ -70,6 +74,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
         var body = MailReader.Read(mime, allowImages);
         Html = MailStyle.Wrap(body.Html ?? "");
         CanShowImages = body.HasRemoteImages && !allowImages;
+        DraftedBy = body.DraftedBy is { Length: > 0 } who ? $"{who} drafted this. Read it through before you send it." : "";
         Attachments.Clear();
         foreach (var attachment in body.Attachments)
             Attachments.Add(new AttachmentViewModel(attachment, this));

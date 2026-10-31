@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Webignite.Connector/Webignite.Connector.csproj" />
     <Project Path="src/Webignite.Core/Webignite.Core.csproj" />
     <Project Path="src/Webignite.Data/Webignite.Data.csproj" />
     <Project Path="src/Webignite.Desktop/Webignite.Desktop.csproj" />

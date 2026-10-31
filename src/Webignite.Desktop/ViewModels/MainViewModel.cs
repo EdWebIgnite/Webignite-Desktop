@@ -66,6 +66,7 @@ public partial class MainViewModel : ViewModelBase
             case MoneyViewModel money: money.Refresh(); break;
             case ReportsViewModel reports: reports.Refresh(); break;
             case MailViewModel mail: mail.Reload(); _ = mail.SyncAll(); break;
+            case SettingsViewModel settings: settings.UpdateAssistantStatus(); break;
         }
     }
 }
