@@ -231,6 +231,17 @@ vm.Mail.Setup.Edit(invoiceBox);
 Save("mail-signature-picture");
 vm.Mail.Setup.CancelCommand.Execute(null);
 vm.Clients.Detail!.BackCommand.Execute(null);
+// To approve: a quote Claude prepared, alongside the Xero drafts from earlier.
+var assistant = new Webignite.Data.AssistantDocuments(store);
+assistant.Draft("quote", "Fynbos Physio", [new("Booking page rebuild", 1, 6500m), new("Mobile testing and fixes (hours)", 4, 650m)],
+    DocumentSource.Claude, reference: "Booking page");
+assistant.Draft("invoice", "Bosveld Builders", [new("Deposit: new website, 50%", 1, 7250m)], DocumentSource.ChatGpt, reference: "Website deposit");
+Open("To approve");
+Save("to-approve");
+vm.Approvals.Rows[1].OpenCommand.Execute(null);
+Save("to-approve-open");
+vm.Approvals.Editor!.BackCommand.Execute(null);
+
 Open("Overview");
 Save("overview");
 

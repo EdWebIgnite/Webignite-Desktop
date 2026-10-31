@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.ApprovalsView"
+             x:DataType="vm:ApprovalsViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.kind">
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="6,1" />
+      <Setter Property="Background" Value="{StaticResource InvoiceSoft}" />
+    </Style>
+    <Style Selector="Border.kind TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource InvoiceTint}" />
+    </Style>
+    <Style Selector="Border.kind.quote">
+      <Setter Property="Background" Value="{StaticResource QuoteSoft}" />
+    </Style>
+    <Style Selector="Border.kind.quote TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource QuoteTint}" />
+    </Style>
+  </UserControl.Styles>
+  <Panel>
+    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsListing}" />
+
+    <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="To approve" />
+        <TextBlock Classes="muted" Text="{Binding Summary}" />
+      </StackPanel>
+
+      <Border Classes="card" IsVisible="{Binding IsEmpty}">
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Quotes and invoices that Claude or ChatGPT prepare land here, along with drafts in Xero you haven't approved or emailed yet." />
+      </Border>
+
+      <ItemsControl ItemsSource="{Binding Rows}" IsVisible="{Binding !IsEmpty}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="10" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ApprovalRowViewModel">
+            <Border Classes="card" Padding="18,14">
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Spacing="8" VerticalAlignment="Center" Margin="16,0,0,0">
+                  <TextBlock Classes="amount" FontSize="16" FontWeight="SemiBold" Text="{Binding Total}" />
+                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" IsVisible="{Binding !ConfirmingReject}">
+                    <Button Classes="link" Content="Reject" Command="{Binding AskRejectCommand}" IsVisible="{Binding CanReject}" />
+                    <Button Classes="primary" Content="Open" Command="{Binding OpenCommand}" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" IsVisible="{Binding ConfirmingReject}">
+                    <Button Classes="quiet" Content="Throw it away" Command="{Binding RejectCommand}" />
+                    <Button Classes="link" Content="Keep" Command="{Binding KeepItCommand}" />
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Classes="kind" Classes.quote="{Binding IsQuote}" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding What}" FontSize="11" />
+                    </Border>
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding Lines}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock TextWrapping="Wrap" Text="{Binding Reason}" Classes.problem="{Binding IsProblem}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Panel>
+</UserControl>

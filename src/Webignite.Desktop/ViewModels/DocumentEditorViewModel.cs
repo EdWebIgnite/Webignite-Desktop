@@ -46,7 +46,10 @@ public partial class DocumentEditorViewModel : ViewModelBase
     public DocumentKind Kind { get; }
     public string Title => stored?.XeroNumber ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
     public string DueLabel => Kind == DocumentKind.Quote ? "Expires" : "Due";
-    public string NumberNote => stored?.XeroNumber is null ? "Xero gives it the next number when it is created." : "Created in Xero. Changes are made in Xero from here on.";
+    public string NumberNote =>
+        stored?.XeroNumber is not null ? "Created in Xero. Changes are made in Xero from here on."
+        : stored is { Status: DocumentStatus.AwaitingApproval } ? $"{(stored.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude")} prepared this. Check it, change anything, then create it in Xero."
+        : "Xero gives it the next number when it is created.";
 
     public ObservableCollection<LineRowViewModel> Lines { get; } = [];
     public ObservableCollection<string> Problems { get; } = [];
@@ -125,8 +128,9 @@ public partial class DocumentEditorViewModel : ViewModelBase
     public Document Build() => DocumentDefaults.Complete(new Document
     {
         Kind = Kind,
-        Origin = DocumentOrigin.New,
-        Customer = new Customer { Name = CustomerName.Trim() },
+        Origin = stored?.Document.Origin ?? DocumentOrigin.New,
+        // Keep the email and address an assistant or import supplied; only the name is edited here.
+        Customer = (stored?.Document.Customer ?? new Customer { Name = "" }) with { Name = CustomerName.Trim() },
         Reference = string.IsNullOrWhiteSpace(Reference) ? null : Reference.Trim(),
         Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
         Date = stored?.Document.Date,

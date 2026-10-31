@@ -14,6 +14,7 @@ builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 builder.Services.AddSingleton(_ => LocalStore.OpenDefault());
 builder.Services.AddSingleton<ISecretStore>(_ => OperatingSystem.IsWindows() ? new WindowsSecretStore() : new MemorySecretStore());
 builder.Services.AddSingleton(sp => new MailService(sp.GetRequiredService<LocalStore>(), sp.GetRequiredService<ISecretStore>()));
+builder.Services.AddSingleton(sp => new AssistantDocuments(sp.GetRequiredService<LocalStore>()));
 builder.Services.AddSingleton(sp => new AssistantTools(sp.GetRequiredService<LocalStore>(), sp.GetRequiredService<MailService>()));
 
 builder.Services
@@ -23,6 +24,7 @@ builder.Services
         options.ServerInstructions = Instructions.Text;
     })
     .WithStdioServerTransport()
-    .WithTools<MailTools>();
+    .WithTools<MailTools>()
+    .WithTools<DocumentTools>();
 
 await builder.Build().RunAsync();

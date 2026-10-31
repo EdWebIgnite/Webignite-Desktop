@@ -20,6 +20,7 @@ public partial class MainViewModel : ViewModelBase
         Overview = new OverviewViewModel(services);
         Clients = new ClientsViewModel(services);
         Mail = new MailViewModel(services);
+        Approvals = new ApprovalsViewModel(services);
         Modules =
         [
             new Module("Overview", Overview),
@@ -33,8 +34,7 @@ public partial class MainViewModel : ViewModelBase
             new Module("To-do", Todo),
             new Module("Calendar", new CalendarViewModel(services)),
             new Module("Planner", new PlannerViewModel(services)),
-            new Module("To approve", new ComingLaterViewModel("To approve",
-                "Quotes and invoices that Claude or ChatGPT prepare will wait here for your approval before anything goes to Xero.")),
+            new Module("To approve", Approvals),
             new Module("Mail", Mail, FullBleed: true),
             new Module("Settings", new SettingsViewModel(services)),
         ];
@@ -70,6 +70,7 @@ public partial class MainViewModel : ViewModelBase
     public OverviewViewModel Overview { get; }
     public ClientsViewModel Clients { get; }
     public MailViewModel Mail { get; }
+    public ApprovalsViewModel Approvals { get; }
     public IReadOnlyList<Module> Modules { get; }
 
     [ObservableProperty]
@@ -91,6 +92,7 @@ public partial class MainViewModel : ViewModelBase
             case ClientsViewModel clients: clients.Refresh(); break;
             case MoneyViewModel money: money.Refresh(); break;
             case ReportsViewModel reports: reports.Refresh(); break;
+            case ApprovalsViewModel approvals: approvals.Refresh(); break;
             case MailViewModel mail: mail.Reload(); _ = mail.SyncAll(); break;
             case SettingsViewModel settings: settings.UpdateAssistantStatus(); break;
         }

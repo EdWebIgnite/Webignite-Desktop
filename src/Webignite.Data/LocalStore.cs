@@ -151,6 +151,15 @@ public sealed partial class LocalStore : IDisposable
         return command.ExecuteScalar() is byte[] payload ? Open<StoredDocument>("document:" + id, payload) : null;
     }
 
+    /// <summary>Removes a document from this PC. Only for ones that never went to Xero.</summary>
+    public void DeleteDocument(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM documents WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     /// <summary>Newest first.</summary>
     public IReadOnlyList<StoredDocument> List(DocumentKind? kind = null)
     {
