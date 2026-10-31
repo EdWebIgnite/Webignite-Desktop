@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
+using Webignite.Core.Calendar;
 using Webignite.Core.Documents;
 using Webignite.Core.Tasks;
 
@@ -41,6 +42,12 @@ public sealed class LocalStore : IDisposable
                 deleted INTEGER NOT NULL DEFAULT 0,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS events (
+                id TEXT PRIMARY KEY,
+                date TEXT NOT NULL,
+                payload BLOB NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS events_date ON events (date);
             CREATE TABLE IF NOT EXISTS settings (
                 name TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
@@ -159,6 +166,42 @@ public sealed class LocalStore : IDisposable
         foreach (var task in added)
             SaveTask(task);
         return added.Count;
+    }
+
+    public CalendarEvent SaveEvent(CalendarEvent calendarEvent)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO events (id, date, payload) VALUES ($id, $date, $payload)
+            ON CONFLICT (id) DO UPDATE SET date = $date, payload = $payload
+            """;
+        command.Parameters.AddWithValue("$id", calendarEvent.Id);
+        command.Parameters.AddWithValue("$date", calendarEvent.Date.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$payload", Seal("event:" + calendarEvent.Id, calendarEvent));
+        command.ExecuteNonQuery();
+        return calendarEvent;
+    }
+
+    public void DeleteEvent(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM events WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Events from one date to another, both included. The dates are kept readable so ranges are fast.</summary>
+    public IReadOnlyList<CalendarEvent> ListEvents(DateOnly from, DateOnly to)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, payload FROM events WHERE date BETWEEN $from AND $to";
+        command.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd"));
+        using var reader = command.ExecuteReader();
+        var list = new List<CalendarEvent>();
+        while (reader.Read())
+            list.Add(Open<CalendarEvent>("event:" + reader.GetString(0), (byte[])reader[1]));
+        return list;
     }
 
     public T? GetSetting<T>(string name)

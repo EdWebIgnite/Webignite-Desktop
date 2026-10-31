@@ -1,0 +1,105 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.CalendarView"
+             x:DataType="vm:CalendarViewModel"
+             x:Name="Root">
+  <Grid ColumnDefinitions="*,20,300" RowDefinitions="Auto,*">
+    <DockPanel Grid.ColumnSpan="3" Margin="0,0,0,18">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+        <Button Classes="quiet" Content="Today" Command="{Binding GoToTodayCommand}" />
+        <Button Classes="quiet" Content="‹" Command="{Binding PreviousMonthCommand}" ToolTip.Tip="Previous month" />
+        <Button Classes="quiet" Content="›" Command="{Binding NextMonthCommand}" ToolTip.Tip="Next month" />
+      </StackPanel>
+      <TextBlock Classes="h1" Text="{Binding MonthTitle}" />
+    </DockPanel>
+
+    <!-- Month grid -->
+    <Border Grid.Row="1" Grid.Column="0" Classes="card" Padding="0" ClipToBounds="True" VerticalAlignment="Top">
+      <StackPanel>
+        <ItemsControl ItemsSource="{x:Static vm:CalendarViewModel.WeekdayNames}" Background="{StaticResource TableHead}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="label" Text="{Binding}" Margin="8,9" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <ItemsControl ItemsSource="{Binding Days}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DayCellViewModel">
+              <Button Classes="day" Classes.other="{Binding IsOtherMonth}" Classes.selected="{Binding IsSelected}" Height="104"
+                      Command="{Binding #Root.((vm:CalendarViewModel)DataContext).SelectDayCommand}" CommandParameter="{Binding}">
+                <StackPanel Spacing="3">
+                  <Panel HorizontalAlignment="Left">
+                    <Border Classes="todaydot" IsVisible="{Binding IsToday}" />
+                    <TextBlock Classes="daynum" Classes.today="{Binding IsToday}" Text="{Binding DayNumber}" FontSize="12" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,3" />
+                  </Panel>
+                  <ItemsControl ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:AgendaItemViewModel">
+                        <Border Classes="chip" Classes.task="{Binding IsTask}" Classes.quote="{Binding IsQuote}"
+                                Classes.invoice="{Binding IsInvoice}" Classes.done="{Binding IsDone}" Padding="4,1" Margin="0,0,0,2">
+                          <TextBlock Text="{Binding Title}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Classes="muted" FontSize="11" Text="{Binding More}" IsVisible="{Binding HasMore}" />
+                </StackPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <!-- Selected day -->
+    <StackPanel Grid.Row="1" Grid.Column="2" Spacing="14">
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="{Binding SelectedTitle}" />
+          <TextBlock Classes="muted" Text="Nothing on this day." IsVisible="{Binding SelectedIsEmpty}" />
+          <ItemsControl ItemsSource="{Binding SelectedItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AgendaItemViewModel">
+                <Border Classes="chip" Classes.task="{Binding IsTask}" Classes.quote="{Binding IsQuote}"
+                        Classes.invoice="{Binding IsInvoice}" Classes.done="{Binding IsDone}" Padding="8,6" Margin="0,0,0,6">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Right" Classes="link" Content="✕" ToolTip.Tip="Delete event"
+                            IsVisible="{Binding CanDelete}" Command="{Binding Delete}" Padding="4,0" />
+                    <StackPanel>
+                      <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted" FontSize="11">
+                        <Run Text="{Binding Time}" /><Run Text="  " /><Run Text="{Binding KindLabel}" />
+                      </TextBlock>
+                    </StackPanel>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Add an event" />
+          <TextBox Text="{Binding NewTitle}" PlaceholderText="e.g. Meeting with Bosveld Builders" />
+          <Grid ColumnDefinitions="100,8,*">
+            <TextBox Text="{Binding NewTime}" PlaceholderText="Time" ToolTip.Tip="e.g. 9:30 or 14:00. Empty means all day." />
+            <TextBox Grid.Column="2" Text="{Binding NewLocation}" PlaceholderText="Where (optional)" />
+          </Grid>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding FormMessage}" TextWrapping="Wrap" />
+          <Button Classes="primary" Content="Add to this day" Command="{Binding AddEventCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Grid>
+</UserControl>

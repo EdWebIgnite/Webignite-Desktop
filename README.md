@@ -10,6 +10,9 @@ Native Windows software for Webignite's quotes and invoices, built to grow into 
 - Every document goes through the same checks that will apply to documents Claude and ChatGPT prepare: totals must add up to the cent, no VAT (Webignite is not VAT registered), and dates and lines must make sense.
 - **Quotes** and **Invoices** lists. Documents save to an encrypted database on this PC (`%LOCALAPPDATA%\Webignite`).
 - **To-do**: quick-add tasks grouped into Overdue, Today, Coming up and No date. Reminders appear by themselves to follow up quotes, chase overdue invoices and finish old drafts.
+- **Calendar**: month view with events you add, plus to-dos, quote expiry dates and invoice due dates filled in automatically. Kept on this PC only.
+- **Planner**: the week at a glance, with undated to-dos waiting to be given a day.
+- **Overview**: money owed, overdue and quoted, plus everything on today.
 - **Settings**: connect Xero and set default due and expiry days. Xero sign-in opens in your own browser; the app never sees your Xero password, and the sign-in is kept in Windows Credential Manager.
 - The Xero draft format and the read-back check are ready. Creating drafts in Xero is the next step.
 

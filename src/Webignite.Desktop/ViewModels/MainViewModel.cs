@@ -10,12 +10,15 @@ public partial class MainViewModel : ViewModelBase
         Quotes = new DocumentsViewModel(DocumentKind.Quote, services);
         Invoices = new DocumentsViewModel(DocumentKind.Invoice, services);
         Todo = new TodoViewModel(services);
+        Overview = new OverviewViewModel(services);
         Modules =
         [
-            new Module("Overview", new OverviewViewModel()),
+            new Module("Overview", Overview),
             new Module("Quotes", Quotes),
             new Module("Invoices", Invoices),
             new Module("To-do", Todo),
+            new Module("Calendar", new CalendarViewModel(services)),
+            new Module("Planner", new PlannerViewModel(services)),
             new Module("To approve", new ComingLaterViewModel("To approve",
                 "Quotes and invoices that Claude or ChatGPT prepare will wait here for your approval before anything goes to Xero.")),
             new Module("Mail", new ComingLaterViewModel("Mail",
@@ -28,15 +31,21 @@ public partial class MainViewModel : ViewModelBase
     public DocumentsViewModel Quotes { get; }
     public DocumentsViewModel Invoices { get; }
     public TodoViewModel Todo { get; }
+    public OverviewViewModel Overview { get; }
     public IReadOnlyList<Module> Modules { get; }
 
     [ObservableProperty]
     public partial Module Selected { get; set; }
 
-    // Reminders depend on documents, so look again whenever the to-do list is opened.
+    // These pages show things other pages change, so they look again whenever they're opened.
     partial void OnSelectedChanged(Module value)
     {
-        if (value.Page is TodoViewModel todo)
-            todo.Refresh();
+        switch (value.Page)
+        {
+            case TodoViewModel todo: todo.Refresh(); break;
+            case CalendarViewModel calendar: calendar.Refresh(); break;
+            case PlannerViewModel planner: planner.Refresh(); break;
+            case OverviewViewModel overview: overview.Refresh(); break;
+        }
     }
 }

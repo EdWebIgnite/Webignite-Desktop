@@ -62,7 +62,7 @@ invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
 invoice.SaveCommand.Execute(null);
 Save("invoice-editor");
 
-vm.Selected = vm.Modules[6];
+vm.Selected = vm.Modules[8];
 Save("settings");
 
 var today = DateOnly.FromDateTime(DateTime.Today);
@@ -76,6 +76,17 @@ var quote = store.List(DocumentKind.Quote)[0];
 store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031" });
 vm.Selected = vm.Modules[3];
 Save("todo");
+
+store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e1", Title = "Kick-off with Bosveld Builders", Date = today, Start = new TimeOnly(10, 0), Location = "Teams" });
+store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e2", Title = "Fynbos Physio photo shoot", Date = today.AddDays(2), Start = new TimeOnly(14, 30) });
+store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e3", Title = "Public holiday", Date = today.AddDays(-5) });
+store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t5", Title = "Write blog post on site speed", Created = DateTimeOffset.UtcNow });
+vm.Selected = vm.Modules[4];
+Save("calendar");
+vm.Selected = vm.Modules[5];
+Save("planner");
+vm.Selected = vm.Modules[0];
+Save("overview");
 
 void Sample(string customer, DocumentKind kind, params (string Description, decimal Quantity, decimal Price)[] lines) =>
     store.Save(new StoredDocument

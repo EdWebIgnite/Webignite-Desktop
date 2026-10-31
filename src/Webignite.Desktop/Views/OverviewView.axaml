@@ -6,28 +6,28 @@
   <StackPanel Spacing="22">
     <StackPanel Spacing="4">
       <TextBlock Classes="h1" Text="{Binding Greeting}" />
-      <TextBlock Classes="muted" Text="Here's where the money stands." />
+      <TextBlock Classes="muted" Text="{Binding TodayText}" />
     </StackPanel>
 
-    <UniformGrid Columns="3" >
+    <UniformGrid Columns="3">
       <Border Classes="card" Margin="0,0,12,0">
         <StackPanel Spacing="6">
           <TextBlock Classes="label" Text="OWED TO YOU" />
-          <TextBlock Classes="figure" Text="R 0.00" />
-          <TextBlock Classes="muted" FontSize="12" Text="Connect Xero to see open invoices." />
+          <TextBlock Classes="figure" Text="{Binding Owed}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Invoices sent to Xero." />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="6,0">
         <StackPanel Spacing="6">
           <TextBlock Classes="label" Text="OVERDUE" />
-          <TextBlock Classes="figure" Text="R 0.00" />
-          <TextBlock Classes="muted" FontSize="12" Text="Nothing overdue yet." />
+          <TextBlock Classes="figure" Text="{Binding Overdue}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Past the due date." />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="12,0,0,0">
         <StackPanel Spacing="6">
           <TextBlock Classes="label" Text="QUOTES OUT" />
-          <TextBlock Classes="figure" Text="R 0.00" />
+          <TextBlock Classes="figure" Text="{Binding QuotesOut}" />
           <TextBlock Classes="muted" FontSize="12" Text="Quotes waiting on a client." />
         </StackPanel>
       </Border>
@@ -35,9 +35,26 @@
 
     <Border Classes="card">
       <StackPanel Spacing="10">
-        <TextBlock Classes="h2" Text="Getting started" />
-        <TextBlock TextWrapping="Wrap" Classes="muted"
-                   Text="This is the first build of the desktop app. You can already write a quote or invoice and see the totals and checks work. Connecting Xero, saving, the approval list and the Claude and ChatGPT connector come next." />
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Text="{Binding OverdueText}" IsVisible="{Binding HasOverdue}"
+                     Foreground="{StaticResource Attention}" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Classes="h2" Text="Today" />
+        </DockPanel>
+        <TextBlock Classes="muted" Text="Nothing booked or due today." IsVisible="{Binding TodayIsEmpty}" />
+        <ItemsControl ItemsSource="{Binding Today}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:AgendaItemViewModel">
+              <Border Classes="chip" Classes.task="{Binding IsTask}" Classes.quote="{Binding IsQuote}"
+                      Classes.invoice="{Binding IsInvoice}" Padding="10,7" Margin="0,0,0,6">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding KindLabel}" VerticalAlignment="Center" />
+                  <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="52" IsVisible="{Binding HasTime}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </Border>
   </StackPanel>

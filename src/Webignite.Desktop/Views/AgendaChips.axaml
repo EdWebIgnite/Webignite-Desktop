@@ -1,0 +1,67 @@
+<!-- Shared look for agenda items: a coloured bar by kind (event, to-do, quote, invoice). -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Border.chip">
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="Margin" Value="0,0,0,3" />
+    <Setter Property="Background" Value="{StaticResource OkSoft}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Primary}" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+  </Style>
+  <Style Selector="Border.chip.task">
+    <Setter Property="Background" Value="{StaticResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line2}" />
+  </Style>
+  <Style Selector="Border.chip.quote">
+    <Setter Property="Background" Value="{StaticResource QuoteSoft}" />
+    <Setter Property="BorderBrush" Value="{StaticResource QuoteTint}" />
+  </Style>
+  <Style Selector="Border.chip.invoice">
+    <Setter Property="Background" Value="{StaticResource InvoiceSoft}" />
+    <Setter Property="BorderBrush" Value="{StaticResource InvoiceTint}" />
+  </Style>
+  <Style Selector="Border.chip.done TextBlock">
+    <Setter Property="TextDecorations" Value="Strikethrough" />
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+  </Style>
+
+  <Style Selector="Button.day">
+    <Setter Property="Background" Value="{StaticResource Surface}" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="6,4" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Button.day:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Surface2}" />
+  </Style>
+  <Style Selector="Button.day.other">
+    <Setter Property="Background" Value="{StaticResource Surface2}" />
+  </Style>
+  <Style Selector="Button.day.other TextBlock.daynum">
+    <Setter Property="Foreground" Value="{StaticResource Line2}" />
+  </Style>
+  <Style Selector="Button.day.selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{StaticResource Primary}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.todaydot">
+    <Setter Property="Background" Value="{StaticResource Primary}" />
+    <Setter Property="CornerRadius" Value="11" />
+    <Setter Property="Width" Value="22" />
+    <Setter Property="Height" Value="22" />
+  </Style>
+  <Style Selector="TextBlock.daynum.today">
+    <Setter Property="Foreground" Value="{StaticResource OnPrimary}" />
+  </Style>
+  <Style Selector="Border.card.today">
+    <Setter Property="BorderBrush" Value="{StaticResource Primary}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+</Styles>

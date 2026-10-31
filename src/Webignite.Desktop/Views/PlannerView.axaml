@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.PlannerView"
+             x:DataType="vm:PlannerViewModel">
+  <StackPanel Spacing="18">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+        <Button Classes="quiet" Content="This week" Command="{Binding ThisWeekCommand}" />
+        <Button Classes="quiet" Content="‹" Command="{Binding PreviousWeekCommand}" ToolTip.Tip="Previous week" />
+        <Button Classes="quiet" Content="›" Command="{Binding NextWeekCommand}" ToolTip.Tip="Next week" />
+      </StackPanel>
+      <StackPanel>
+        <TextBlock Classes="h1" Text="Planner" />
+        <TextBlock Classes="muted" Text="{Binding WeekTitle}" />
+      </StackPanel>
+    </DockPanel>
+
+    <ItemsControl ItemsSource="{Binding Days}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:PlannerDayViewModel">
+          <Border Classes="card" Classes.today="{Binding IsToday}" Padding="10" Margin="0,0,8,0" MinHeight="260" VerticalAlignment="Stretch">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="h2" FontSize="14" Text="{Binding Name}" />
+              <TextBlock Classes="muted" FontSize="12" Text="Free" IsVisible="{Binding IsFree}" />
+              <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:AgendaItemViewModel">
+                    <Border Classes="chip" Classes.task="{Binding IsTask}" Classes.quote="{Binding IsQuote}"
+                            Classes.invoice="{Binding IsInvoice}" Classes.done="{Binding IsDone}" Padding="6,4">
+                      <StackPanel>
+                        <TextBlock Classes="muted" FontSize="11" Text="{Binding Time}" IsVisible="{Binding HasTime}" />
+                        <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Border Classes="card" IsVisible="{Binding HasUnplanned}">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="h2" Text="To-dos without a day" />
+        <TextBlock Classes="muted" FontSize="12" Text="Give each one a day this week so it shows up above and on the calendar." />
+        <ItemsControl ItemsSource="{Binding Unplanned}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:UnplannedTaskViewModel">
+              <DockPanel Margin="0,0,0,6">
+                <ComboBox DockPanel.Dock="Right" Width="150" PlaceholderText="Plan for…" IsVisible="{Binding CanPlan}"
+                          ItemsSource="{Binding Days}" SelectedItem="{Binding PlanFor}" />
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>
