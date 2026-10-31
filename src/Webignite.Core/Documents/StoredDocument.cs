@@ -38,6 +38,12 @@ public sealed record StoredDocument
     public string? XeroSent { get; init; }
 
     public IReadOnlyList<string> XeroProblems { get; init; } = [];
+
+    /// <summary>When Eddie approved it in Xero from here (invoices become AUTHORISED).</summary>
+    public DateTimeOffset? Approved { get; init; }
+
+    /// <summary>When it was last emailed to the customer from Webignite's own mailbox.</summary>
+    public DateTimeOffset? Emailed { get; init; }
     public DateTimeOffset Created { get; init; }
     public DateTimeOffset Updated { get; init; }
 

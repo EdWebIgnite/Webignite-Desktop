@@ -39,6 +39,13 @@ public sealed class AppServices(LocalStore store) : IDisposable
         set => Store.SetSetting("tasks", value);
     }
 
+    /// <summary>The invoice and quote email wording, pasted from Xero.</summary>
+    public EmailTemplates EmailTemplates
+    {
+        get => Store.GetSetting<EmailTemplates>("email-templates") ?? new EmailTemplates();
+        set => Store.SetSetting("email-templates", value);
+    }
+
     public XeroSettings XeroSettings
     {
         get => Store.GetSetting<XeroSettings>("xero") ?? new XeroSettings();
@@ -75,6 +82,15 @@ public sealed class AppServices(LocalStore store) : IDisposable
         XeroApi is { } api
             ? new Webignite.Xero.XeroDrafts(api, Store.Save, () => Store.List().Select(d => d.XeroId).OfType<string>().ToHashSet())
             : null;
+
+    /// <summary>Approves, fetches Xero's PDF and marks documents sent, for emailing from Webignite's own mailbox.</summary>
+    public Webignite.Xero.XeroSending? XeroSending => XeroApi is { } api ? new Webignite.Xero.XeroSending(api, Store.Save) : null;
+
+    /// <summary>
+    /// Set by the main window: opens a prepared mail in the Mail page, with a note shown above it. The action
+    /// runs after it was sent. Returns false when another mail with changes is still open.
+    /// </summary>
+    public Func<Webignite.Core.Mail.OutgoingMail, string?, Func<Task>?, bool>? ComposeMail { get; set; }
 
     /// <summary>
     /// Does what the calendar calls for since the app last looked: drafts retainer and renewal invoices that are due,

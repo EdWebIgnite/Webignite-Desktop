@@ -66,6 +66,41 @@
 
     <Border Classes="card">
       <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Invoice and quote emails" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Paste your Xero email templates here (in Xero: Settings, Email settings, Templates). They're sent from the mailbox ticked for invoices, with Xero's PDF attached." />
+        <TextBlock FontWeight="SemiBold" Text="Invoice" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding InvoiceSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding InvoiceBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="150" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding InvoicePlaceholders}" />
+        </StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="Quote" Margin="0,6,0,0" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding QuoteSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding QuoteBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding QuotePlaceholders}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="quiet" Content="Save" Command="{Binding SaveTemplatesCommand}" />
+          <Button Classes="link" Content="Use Xero's standard wording" Command="{Binding ResetTemplatesCommand}" />
+          <TextBlock Classes="muted" Text="{Binding TemplatesMessage}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="The mailbox signature goes under the message, picture included." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="New documents" />
         <StackPanel Orientation="Horizontal" Spacing="24">
           <StackPanel>

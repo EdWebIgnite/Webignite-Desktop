@@ -45,6 +45,18 @@ public partial class MainViewModel : ViewModelBase
             Selected = mailModule;
             Mail.OpenMessage(summary);
         };
+        services.ComposeMail = (mail, note, afterSent) =>
+        {
+            Selected = mailModule;
+            if (!Mail.Compose(mail, afterSent: afterSent))
+                return false;
+            if (note is not null && Mail.Composer is { } composer)
+            {
+                composer.Message = note;
+                composer.MessageIsProblem = true;
+            }
+            return true;
+        };
         services.WriteMail = to =>
         {
             Selected = mailModule;

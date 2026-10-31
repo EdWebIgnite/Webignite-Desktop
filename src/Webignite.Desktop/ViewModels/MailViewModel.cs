@@ -183,15 +183,17 @@ public partial class MailViewModel : ViewModelBase
             _ = Select(row);
     }
 
-    public void Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null)
+    public bool Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null, Func<Task>? afterSent = null)
     {
         if (Composer is { HasChanges: true } open)
         {
             open.Message = "Finish or close this mail before starting another.";
             open.MessageIsProblem = true;
-            return;
+            return false;
         }
-        Composer = new ComposeViewModel(services, this, accounts, mail, source, answering);
+        Reload();
+        Composer = new ComposeViewModel(services, this, accounts, mail, source, answering, afterSent);
+        return true;
     }
 
     internal void CloseComposer(ComposeViewModel composer)

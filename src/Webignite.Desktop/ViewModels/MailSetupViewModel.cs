@@ -35,6 +35,63 @@ public partial class MailSetupViewModel(AppServices services, Action<bool> done)
     [ObservableProperty] public partial bool IsChecking { get; set; }
     [ObservableProperty] public partial bool ConfirmingRemove { get; set; }
 
+    /// <summary>The signature picture, if one is chosen.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSignatureImage), nameof(SignaturePreview))]
+    public partial byte[]? SignatureImage { get; set; }
+
+    private string? signatureImageType;
+    public bool HasSignatureImage => SignatureImage is not null;
+
+    public Avalonia.Media.Imaging.Bitmap? SignaturePreview
+    {
+        get
+        {
+            if (SignatureImage is null)
+                return null;
+            try
+            {
+                using var stream = new MemoryStream(SignatureImage);
+                return new Avalonia.Media.Imaging.Bitmap(stream);
+            }
+            catch (Exception e) when (e is ArgumentException or InvalidOperationException or IOException)
+            {
+                return null;
+            }
+        }
+    }
+
+    /// <summary>Takes a picture file chosen in the file picker.</summary>
+    public void SetSignatureImage(string path)
+    {
+        byte[] bytes;
+        try
+        {
+            bytes = File.ReadAllBytes(path);
+        }
+        catch (IOException e)
+        {
+            Say("Couldn't read that picture: " + e.Message, true);
+            return;
+        }
+        var (type, problem) = SignatureImages.Check(bytes);
+        if (problem is not null)
+        {
+            Say(problem, true);
+            return;
+        }
+        signatureImageType = type;
+        SignatureImage = bytes;
+        Say("", false);
+    }
+
+    [RelayCommand]
+    private void RemoveSignatureImage()
+    {
+        SignatureImage = null;
+        signatureImageType = null;
+    }
+
     public bool IsEditing => editing is not null;
     public string PasswordHint => editing is null ? "The mailbox password" : "Leave empty to keep the saved password";
     public bool CanCancel => services.Store.ListMailAccounts().Count > 0;
@@ -55,6 +112,8 @@ public partial class MailSetupViewModel(AppServices services, Action<bool> done)
         IsOpen = true;
         Heading = services.Store.ListMailAccounts().Count == 0 ? "Add your first mailbox" : "Add a mailbox";
         Address = DisplayName = Password = Signature = Message = "";
+        SignatureImage = null;
+        signatureImageType = null;
         ImapHost = SmtpHost = "";
         ImapPort = "993";
         SmtpPort = "465";
@@ -78,6 +137,8 @@ public partial class MailSetupViewModel(AppServices services, Action<bool> done)
         SmtpHost = account.SmtpHost;
         SmtpPort = account.SmtpPort.ToString();
         Signature = account.Signature ?? "";
+        SignatureImage = account.SignatureImage;
+        signatureImageType = account.SignatureImageType;
         SendsInvoices = account.SendsInvoices;
         AssistantsMayRead = account.AssistantsMayRead;
         ShowServers = false;
@@ -121,6 +182,8 @@ public partial class MailSetupViewModel(AppServices services, Action<bool> done)
         SmtpHost = SmtpHost.Trim(),
         SmtpPort = int.TryParse(SmtpPort, out var smtp) ? smtp : 0,
         Signature = string.IsNullOrWhiteSpace(Signature) ? null : Signature.TrimEnd(),
+        SignatureImage = SignatureImage,
+        SignatureImageType = SignatureImage is null ? null : signatureImageType,
         SendsInvoices = SendsInvoices,
         AssistantsMayRead = AssistantsMayRead,
     };

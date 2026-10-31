@@ -20,9 +20,12 @@ public partial class ComposeViewModel : ViewModelBase
     private uint? draftUid;
     private string savedState;
 
+    private readonly Func<Task>? afterSent;
+
     public ComposeViewModel(AppServices services, MailViewModel owner, IReadOnlyList<MailAccount> accounts, OutgoingMail mail,
-        byte[]? source = null, MailSummary? answering = null)
+        byte[]? source = null, MailSummary? answering = null, Func<Task>? afterSent = null)
     {
+        this.afterSent = afterSent;
         this.services = services;
         this.owner = owner;
         this.source = source;
@@ -73,11 +76,43 @@ public partial class ComposeViewModel : ViewModelBase
     [ObservableProperty] public partial bool AskingToDiscard { get; set; }
 
     public bool HasMessage => Message.Length > 0;
+
+    private (string Id, Avalonia.Media.Imaging.Bitmap? Picture)? picture;
+
+    /// <summary>The From mailbox's signature picture, shown under the text while the signature is in it.</summary>
+    public Avalonia.Media.Imaging.Bitmap? SignaturePicture
+    {
+        get
+        {
+            if (From.SignatureImage is not { Length: > 0 } bytes)
+                return null;
+            if (picture is not { } cached || cached.Id != From.Id)
+            {
+                Avalonia.Media.Imaging.Bitmap? bitmap = null;
+                try
+                {
+                    using var stream = new MemoryStream(bytes);
+                    bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+                }
+                catch (Exception e) when (e is ArgumentException or InvalidOperationException or IOException)
+                {
+                }
+                picture = cached = (From.Id, bitmap);
+            }
+            return cached.Picture;
+        }
+    }
+
+    public bool ShowSignaturePicture => SignatureImages.Belongs(From, Body) && SignaturePicture is not null;
+
+    partial void OnBodyChanged(string value) => OnPropertyChanged(nameof(ShowSignaturePicture));
     partial void OnMessageChanged(string value) => OnPropertyChanged(nameof(HasMessage));
 
     /// <summary>Switching mailbox swaps the signature too, if it hasn't been edited away.</summary>
     partial void OnFromChanged(MailAccount oldValue, MailAccount newValue)
     {
+        OnPropertyChanged(nameof(SignaturePicture));
+        OnPropertyChanged(nameof(ShowSignaturePicture));
         if (oldValue?.Signature is { Length: > 0 } old && Body.TrimEnd().EndsWith(old.TrimEnd(), StringComparison.Ordinal))
             Body = Body.TrimEnd()[..^old.TrimEnd().Length].TrimEnd() + Replies.StartBody(newValue.Signature);
         else if (oldValue is not null && Body.Trim().Length == 0)
@@ -170,6 +205,17 @@ public partial class ComposeViewModel : ViewModelBase
         {
             var message = MailComposer.Build(mail, From, source);
             var note = await services.Mail.SendAsync(From, message, answering?.AccountId == From.Id ? answering : null, draftUid);
+            if (afterSent is not null)
+            {
+                try
+                {
+                    await afterSent();
+                }
+                catch (Exception e) when (e is Webignite.Xero.XeroException or HttpRequestException or InvalidOperationException)
+                {
+                    note = "Sent, but Xero wasn't told: " + e.Message + " Mark it as sent in Xero.";
+                }
+            }
             owner.Sent(this, note ?? $"Sent to {Recipients.Format(mail.To.Concat(mail.Cc).Concat(mail.Bcc).Select(p => p with { Name = null }))}.");
         }
         catch (MailException e)

@@ -118,6 +118,16 @@
                     IsVisible="{Binding OfferNewContact}" IsEnabled="{Binding !XeroBusy}" />
           </StackPanel>
         </Border>
+        <Border Classes="pending" IsVisible="{Binding ConfirmingApprove}">
+          <StackPanel Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="Approve it in Xero?" />
+            <TextBlock TextWrapping="Wrap" Text="{Binding ApproveQuestion}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="primary" Content="Approve and write the email" Command="{Binding ConfirmApproveCommand}" />
+              <Button Classes="quiet" Content="Not yet" Command="{Binding CancelApproveCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
         <Border Classes="pending" IsVisible="{Binding HasXeroMessage}">
           <TextBlock TextWrapping="Wrap" Text="{Binding XeroMessage}" Classes.problem="{Binding XeroMessageIsProblem}" />
         </Border>
@@ -170,6 +180,9 @@
                   Content="Check Xero" Command="{Binding CheckXeroCommand}" IsVisible="{Binding ShowCheck}" IsEnabled="{Binding !XeroBusy}" />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Start over (only if it isn't in Xero)" Command="{Binding StartOverCommand}" IsVisible="{Binding ShowStartOver}" IsEnabled="{Binding !XeroBusy}" />
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="{Binding EmailButtonText}" Command="{Binding StartEmailCommand}" IsVisible="{Binding ShowEmail}" IsEnabled="{Binding !XeroBusy}" />
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding EmailedText}" IsVisible="{Binding HasEmailedText}" />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Open in Xero" Command="{Binding OpenInXeroCommand}" IsVisible="{Binding HasXeroLink}" />
         </StackPanel>

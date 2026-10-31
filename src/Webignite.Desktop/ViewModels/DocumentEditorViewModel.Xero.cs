@@ -197,7 +197,10 @@ public partial class DocumentEditorViewModel
         XeroWriteState.Uncertain => "It isn't clear whether Xero got it. " + string.Join(" ", stored.XeroProblems),
         XeroWriteState.CreatedUnverified => $"In Xero as {stored.XeroNumber ?? "a draft"}, not compared yet. Use Check Xero.",
         XeroWriteState.Mismatch => $"In Xero as {stored.XeroNumber ?? "a draft"}, but it differs: " + string.Join(" ", stored.XeroProblems),
-        XeroWriteState.Verified => $"Draft {stored.XeroNumber} is in Xero and matches this document. Approve it in Xero when it's right.",
+        XeroWriteState.Verified when stored.Approved is not null => $"{stored.XeroNumber} is approved in Xero.",
+        XeroWriteState.Verified => Kind == DocumentKind.Quote
+            ? $"Draft {stored.XeroNumber} is in Xero and matches this document. Email it when it's right."
+            : $"Draft {stored.XeroNumber} is in Xero and matches this document. Use Approve and email when it's right.",
         _ => stored.XeroProblems.Count > 0 ? "Xero turned it down: " + string.Join(" ", stored.XeroProblems) : "",
     };
 
@@ -212,6 +215,7 @@ public partial class DocumentEditorViewModel
             nameof(ShowStartOver), nameof(HasXeroLink), nameof(XeroStatus), nameof(HasXeroStatus), nameof(XeroStatusIsProblem),
         })
             OnPropertyChanged(name);
+        RefreshEmail();
     }
 
     /// <summary>The first address saved on the matching client, used when a new Xero contact is made.</summary>
@@ -220,5 +224,115 @@ public partial class DocumentEditorViewModel
         var wanted = XeroRules.Normalise(customer);
         var client = services.Store.ListClients().FirstOrDefault(c => XeroRules.Normalise(c.Name) == wanted);
         return client?.Email?.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+    }
+}
+
+/// <summary>Emailing the document from Webignite's own invoice mailbox, with Xero's PDF attached.</summary>
+public partial class DocumentEditorViewModel
+{
+    [ObservableProperty]
+    public partial bool ConfirmingApprove { get; set; }
+
+    public bool ShowEmail => stored is not null && XeroSending.CannotSend(stored) is null;
+
+    public string EmailButtonText =>
+        stored?.Emailed is not null ? "Email again"
+        : Kind == DocumentKind.Quote ? "Email the quote"
+        : stored?.Approved is null ? "Approve and email" : "Email the invoice";
+
+    public string EmailedText => stored?.Emailed is { } when ? $"Emailed on {when.ToLocalTime():d MMM} at {when.ToLocalTime():HH:mm}." : "";
+    public bool HasEmailedText => EmailedText.Length > 0;
+
+    public string ApproveQuestion =>
+        $"This approves {stored?.XeroNumber ?? "the invoice"} in Xero, so it counts as owed, then opens the email from your invoice mailbox with Xero's PDF attached. Nothing is sent until you press Send.";
+
+    [RelayCommand]
+    private Task StartEmail()
+    {
+        if (Kind == DocumentKind.Invoice && stored?.Approved is null)
+        {
+            ConfirmingApprove = true;
+            return Task.CompletedTask;
+        }
+        return PrepareEmail();
+    }
+
+    [RelayCommand]
+    private Task ConfirmApprove()
+    {
+        ConfirmingApprove = false;
+        return PrepareEmail();
+    }
+
+    [RelayCommand]
+    private void CancelApprove() => ConfirmingApprove = false;
+
+    private async Task PrepareEmail()
+    {
+        if (stored is null || services.XeroSending is not { } sending)
+        {
+            ShowXero("Connect Xero in Settings first.", problem: true);
+            return;
+        }
+        if (services.Store.ListMailAccounts().FirstOrDefault(a => a.SendsInvoices) is not { } mailbox)
+        {
+            ShowXero("No mailbox is set up to send invoices. In Mail, Manage mailboxes, tick \"Invoices are sent from this mailbox\" on accounts@.", problem: true);
+            return;
+        }
+
+        XeroBusy = true;
+        ShowXero(Kind == DocumentKind.Invoice && stored.Approved is null ? "Approving in Xero and fetching the PDF…" : "Fetching the PDF from Xero…", problem: false);
+        try
+        {
+            var ready = await sending.PrepareAsync(stored, services.XeroSettings.TenantName ?? "Webignite");
+            stored = ready.Stored;
+            var folder = Path.Combine(Webignite.Data.DataPaths.Root(), "outgoing");
+            Directory.CreateDirectory(folder);
+            var pdf = Path.Combine(folder, string.Join("_", ready.PdfName.Split(Path.GetInvalidFileNameChars())));
+            await File.WriteAllBytesAsync(pdf, ready.Pdf);
+
+            var filled = DocumentEmail.Fill(services.EmailTemplates.For(Kind), ready.Values);
+            var to = Webignite.Core.Mail.Recipients.Parse(ready.ContactEmail);
+            var mail = new Webignite.Core.Mail.OutgoingMail
+            {
+                AccountId = mailbox.Id,
+                To = to.People,
+                Subject = filled.Subject,
+                Body = filled.Body + Webignite.Core.Mail.Replies.StartBody(mailbox.Signature),
+                Attachments = [new Webignite.Core.Mail.OutgoingAttachment(ready.PdfName, ready.Pdf.Length, FilePath: pdf)],
+            };
+            var notes = new List<string>();
+            if (to.People.Count == 0)
+                notes.Add($"Xero has no email address for {ready.Values.ContactName}. Type it in To.");
+            if (filled.Unfilled.Count > 0)
+                notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
+
+            var stamped = stored;
+            var opened = services.ComposeMail?.Invoke(mail, notes.Count > 0 ? string.Join(" ", notes) : null, async () =>
+            {
+                stored = await sending.MarkSentAsync(stamped);
+                RefreshXero();
+                RefreshEmail();
+            }) ?? false;
+            ShowXero(opened ? "" : "Another mail is open in Mail with changes. Send or close it first, then try again.", problem: !opened);
+        }
+        catch (Exception e) when (e is XeroException or HttpRequestException or IOException or TaskCanceledException or InvalidOperationException)
+        {
+            if (services.Store.Get(stored.Id) is { } latest)
+                stored = latest;
+            ShowXero("Couldn't get it ready: " + e.Message, problem: true);
+        }
+        finally
+        {
+            XeroBusy = false;
+            RefreshXero();
+            RefreshEmail();
+        }
+    }
+
+    private void RefreshEmail()
+    {
+        foreach (var name in new[] { nameof(ShowEmail), nameof(XeroStatus), nameof(EmailButtonText), nameof(EmailedText), nameof(HasEmailedText), nameof(ApproveQuestion) })
+            OnPropertyChanged(name);
     }
 }

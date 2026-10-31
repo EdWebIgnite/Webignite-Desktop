@@ -22,6 +22,12 @@ public sealed record MailAccount
 
     public string? Signature { get; init; }
 
+    /// <summary>A logo or banner shown under the signature in the HTML version of mail sent from here.</summary>
+    public byte[]? SignatureImage { get; init; }
+
+    /// <summary>The picture's type, e.g. image/png.</summary>
+    public string? SignatureImageType { get; init; }
+
     /// <summary>Whether invoices and quotes are sent from this mailbox.</summary>
     public bool SendsInvoices { get; init; }
 
@@ -72,4 +78,32 @@ public static class MailAccounts
             problems.Add("Ports are numbers from 1 to 65535.");
         return problems;
     }
+}
+
+public static class SignatureImages
+{
+    /// <summary>Big enough for a logo or banner; small enough not to bloat every mail.</summary>
+    public const int MaxBytes = 300 * 1024;
+
+    /// <summary>The picture's type from its first bytes (PNG, JPEG or GIF), or a problem to show.</summary>
+    public static (string? Type, string? Problem) Check(byte[] bytes)
+    {
+        if (bytes.Length > MaxBytes)
+            return (null, $"That picture is {bytes.Length / 1024} KB. Use one under {MaxBytes / 1024} KB, for example a logo saved at about 400 pixels wide.");
+        if (bytes is [0x89, (byte)'P', (byte)'N', (byte)'G', ..])
+            return ("image/png", null);
+        if (bytes is [0xFF, 0xD8, 0xFF, ..])
+            return ("image/jpeg", null);
+        if (bytes is [(byte)'G', (byte)'I', (byte)'F', ..])
+            return ("image/gif", null);
+        return (null, "Use a PNG, JPG or GIF picture.");
+    }
+
+    /// <summary>
+    /// Whether the picture goes under this mail: when the mailbox has one and the signature text is
+    /// still in the mail (deleting the signature drops the picture too).
+    /// </summary>
+    public static bool Belongs(MailAccount account, string body) =>
+        account.SignatureImage is { Length: > 0 }
+        && (string.IsNullOrWhiteSpace(account.Signature) || body.Contains(account.Signature.Trim(), StringComparison.Ordinal));
 }

@@ -30,11 +30,15 @@ public static class MailComposer
         if (mail.Quote is not null)
             message.Headers.Add(QuoteHeader, mail.Quote.IsForward ? "forward" : "reply");
 
-        var builder = new BodyBuilder
+        var builder = new BodyBuilder { TextBody = Replies.TextPart(mail) };
+        string? imageId = null;
+        if (SignatureImages.Belongs(from, mail.Body))
         {
-            TextBody = Replies.TextPart(mail),
-            HtmlBody = Replies.HtmlPart(mail),
-        };
+            var image = builder.LinkedResources.Add("signature" + (from.SignatureImageType == "image/png" ? ".png" : from.SignatureImageType == "image/gif" ? ".gif" : ".jpg"),
+                from.SignatureImage!, ContentType.Parse(from.SignatureImageType ?? "image/png"));
+            image.ContentId = imageId = MimeUtils.GenerateMessageId();
+        }
+        builder.HtmlBody = Replies.HtmlPart(mail, imageId);
         var original = source is null ? null : MailReader.Parse(source).Attachments.ToList();
         foreach (var attachment in mail.Attachments)
         {

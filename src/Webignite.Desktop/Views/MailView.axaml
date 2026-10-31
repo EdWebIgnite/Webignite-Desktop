@@ -117,6 +117,17 @@
             <TextBlock Classes="label" Text="Signature" />
             <TextBox Text="{Binding Signature}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" PlaceholderText="Added under mail you write from this mailbox" />
           </StackPanel>
+          <StackPanel Spacing="6">
+            <TextBlock Classes="label" Text="Signature picture (optional)" />
+            <Image Source="{Binding SignaturePreview}" MaxHeight="90" MaxWidth="400" HorizontalAlignment="Left" Stretch="Uniform"
+                   IsVisible="{Binding HasSignatureImage}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="quiet" Content="Choose a picture…" Click="ChooseSignatureImage" />
+              <Button Classes="link" Content="Remove picture" Command="{Binding RemoveSignatureImageCommand}" IsVisible="{Binding HasSignatureImage}" />
+            </StackPanel>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="A logo or banner, PNG or JPG, under 300 KB. It goes under your signature on mail sent from this mailbox." />
+          </StackPanel>
           <CheckBox Content="Invoices are sent from this mailbox" IsChecked="{Binding SendsInvoices}" />
           <CheckBox Content="Claude and ChatGPT may read this mailbox and draft replies (they can never send)" IsChecked="{Binding AssistantsMayRead}" />
 

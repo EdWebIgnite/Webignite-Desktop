@@ -20,6 +20,44 @@ public partial class SettingsViewModel : ViewModelBase
         ClientId = xero.ClientId ?? "";
         UpdateXeroStatus();
         UpdateAssistantStatus();
+        LoadTemplates(services.EmailTemplates);
+    }
+
+    // Invoice and quote emails
+
+    [ObservableProperty] public partial string InvoiceSubject { get; set; } = "";
+    [ObservableProperty] public partial string InvoiceBody { get; set; } = "";
+    [ObservableProperty] public partial string QuoteSubject { get; set; } = "";
+    [ObservableProperty] public partial string QuoteBody { get; set; } = "";
+    [ObservableProperty] public partial string TemplatesMessage { get; set; } = "";
+
+    public string InvoicePlaceholders => string.Join("  ", DocumentEmail.Placeholders(DocumentKind.Invoice));
+    public string QuotePlaceholders => string.Join("  ", DocumentEmail.Placeholders(DocumentKind.Quote));
+
+    private void LoadTemplates(EmailTemplates templates)
+    {
+        InvoiceSubject = templates.Invoice.Subject;
+        InvoiceBody = templates.Invoice.Body;
+        QuoteSubject = templates.Quote.Subject;
+        QuoteBody = templates.Quote.Body;
+    }
+
+    [RelayCommand]
+    private void SaveTemplates()
+    {
+        services.EmailTemplates = new EmailTemplates
+        {
+            Invoice = new EmailTemplate(InvoiceSubject.Trim(), InvoiceBody.Replace("\r", "").TrimEnd()),
+            Quote = new EmailTemplate(QuoteSubject.Trim(), QuoteBody.Replace("\r", "").TrimEnd()),
+        };
+        TemplatesMessage = $"Saved at {DateTime.Now:HH:mm}.";
+    }
+
+    [RelayCommand]
+    private void ResetTemplates()
+    {
+        LoadTemplates(new EmailTemplates());
+        TemplatesMessage = "Xero's standard wording is back. Save to keep it.";
     }
 
     // Claude and ChatGPT

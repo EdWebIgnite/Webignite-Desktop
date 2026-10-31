@@ -153,10 +153,12 @@ public static class Replies
     }
 
     /// <summary>The HTML version: the new text, then the earlier message in a quote block.</summary>
-    public static string HtmlPart(OutgoingMail mail)
+    public static string HtmlPart(OutgoingMail mail, string? signatureImageId = null)
     {
         var html = new StringBuilder("<div style=\"font-family: Arial, sans-serif; font-size: 10.5pt\">");
         html.Append(MailHtml.FromText(mail.Body.TrimEnd()));
+        if (signatureImageId is not null)
+            html.Append("<p><img src=\"cid:").Append(signatureImageId).Append("\" alt=\"\" style=\"max-width:400px\"></p>");
         if (mail.Quote is { } quote)
         {
             html.Append("<br><div>").Append(WebUtility.HtmlEncode(quote.Header).Replace("\n", "<br>")).Append("</div>");

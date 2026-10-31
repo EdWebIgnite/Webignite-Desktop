@@ -110,6 +110,12 @@
       </Border>
     </StackPanel>
 
+    <!-- The mailbox's signature picture, added under the text when it is sent -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="24,0,24,8" Spacing="4" IsVisible="{Binding ShowSignaturePicture}">
+      <Image Source="{Binding SignaturePicture}" MaxHeight="70" MaxWidth="300" HorizontalAlignment="Left" Stretch="Uniform" />
+      <TextBlock Classes="muted" FontSize="11" Text="Your signature picture goes here when it is sent." />
+    </StackPanel>
+
     <!-- What you type -->
     <TextBox Margin="24,4,24,8" Text="{Binding Body}" AcceptsReturn="True" AcceptsTab="False" TextWrapping="Wrap"
              VerticalAlignment="Stretch" VerticalContentAlignment="Top" PlaceholderText="Write your mail" />

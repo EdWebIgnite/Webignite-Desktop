@@ -51,9 +51,16 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
     }
 
     /// <summary>Creates records. One attempt only.</summary>
-    public async Task<JsonObject> PutAsync(string path, JsonObject body, string idempotencyKey, CancellationToken cancel = default)
+    public Task<JsonObject> PutAsync(string path, JsonObject body, string idempotencyKey, CancellationToken cancel = default) =>
+        WriteAsync(HttpMethod.Put, path, body, idempotencyKey, cancel);
+
+    /// <summary>Changes a record, e.g. approves an invoice. One attempt only.</summary>
+    public Task<JsonObject> PostAsync(string path, JsonObject body, string idempotencyKey, CancellationToken cancel = default) =>
+        WriteAsync(HttpMethod.Post, path, body, idempotencyKey, cancel);
+
+    private async Task<JsonObject> WriteAsync(HttpMethod method, string path, JsonObject body, string idempotencyKey, CancellationToken cancel)
     {
-        using var request = await Request(HttpMethod.Put, path, cancel);
+        using var request = await Request(method, path, cancel);
         request.Headers.Add("Idempotency-Key", idempotencyKey);
         request.Content = JsonContent.Create(body);
         HttpResponseMessage response;

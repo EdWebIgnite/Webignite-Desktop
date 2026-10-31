@@ -77,6 +77,8 @@ var verified = store.Save(uncertain with { XeroState = Webignite.Core.Xero.XeroW
     Status = DocumentStatus.InXero, XeroProblems = [] });
 vm.Invoices.Editor = new DocumentEditorViewModel(verified, services, () => vm.Invoices.Editor = null);
 Save("invoice-in-xero");
+vm.Invoices.Editor.StartEmailCommand.Execute(null);
+Save("invoice-approve");
 vm.Invoices.Editor = null;
 
 Open("Settings");
@@ -200,6 +202,34 @@ Save("mail-all-inboxes");
 Open("Clients");
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
 Save("client-mail");
+
+// An invoice email as Approve and email prepares it, from accounts@ with the signature picture.
+var logo = File.ReadAllBytes(Path.Combine("src", "Webignite.Desktop", "Assets", "webignite-logo.png"));
+var invoiceBox = store.SaveMailAccount(store.ListMailAccounts().Single(a => a.SendsInvoices) with
+{
+    Signature = "Webignite Accounts\naccounts@webignite.co.za", SignatureImage = logo, SignatureImageType = "image/png",
+});
+var pdfPath = Path.Combine(data, "Invoice INV-0111.pdf");
+File.WriteAllBytes(pdfPath, new byte[48_000]);
+var filled = DocumentEmail.Fill(new EmailTemplates().Invoice, new DocumentEmailValues
+{
+    Kind = DocumentKind.Invoice, ContactName = "Karoo Coffee Roasters", FirstName = "Thandi", Number = "INV-0111", Total = 2725m, AmountDue = 2725m,
+    DueOrExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)), OnlineLink = "https://in.xero.com/7Hx2kQ", TradingName = "Webignite",
+});
+services.ComposeMail!(new Webignite.Core.Mail.OutgoingMail
+{
+    AccountId = invoiceBox.Id,
+    To = [new("Thandi Mokoena", "accounts@karoocoffee.co.za")],
+    Subject = filled.Subject,
+    Body = filled.Body + Webignite.Core.Mail.Replies.StartBody(invoiceBox.Signature),
+    Attachments = [new Webignite.Core.Mail.OutgoingAttachment("Invoice INV-0111.pdf", 48_000, FilePath: pdfPath)],
+}, null, null);
+Save("invoice-email");
+vm.Mail.Composer!.DiscardCommand.Execute(null);
+vm.Mail.ManageMailboxesCommand.Execute(null);
+vm.Mail.Setup.Edit(invoiceBox);
+Save("mail-signature-picture");
+vm.Mail.Setup.CancelCommand.Execute(null);
 vm.Clients.Detail!.BackCommand.Execute(null);
 Open("Overview");
 Save("overview");
