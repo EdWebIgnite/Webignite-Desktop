@@ -18,6 +18,8 @@ public partial class MainViewModel : ViewModelBase
             new Module("Clients", Clients),
             new Module("Quotes", Quotes),
             new Module("Invoices", Invoices),
+            new Module("Money", new MoneyViewModel(services)),
+            new Module("Reports", new ReportsViewModel(services)),
             new Module("To-do", Todo),
             new Module("Calendar", new CalendarViewModel(services)),
             new Module("Planner", new PlannerViewModel(services)),
@@ -50,6 +52,8 @@ public partial class MainViewModel : ViewModelBase
             case PlannerViewModel planner: planner.Refresh(); break;
             case OverviewViewModel overview: overview.Refresh(); break;
             case ClientsViewModel clients: clients.Refresh(); break;
+            case MoneyViewModel money: money.Refresh(); break;
+            case ReportsViewModel reports: reports.Refresh(); break;
         }
     }
 }

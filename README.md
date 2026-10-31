@@ -10,6 +10,8 @@ Native Windows software for Webignite's quotes and invoices, built to grow into 
 - Every document goes through the same checks that will apply to documents Claude and ChatGPT prepare: totals must add up to the cent, no VAT (Webignite is not VAT registered), and dates and lines must make sense.
 - **Quotes** and **Invoices** lists. Documents save to an encrypted database on this PC (`%LOCALAPPDATA%\Webignite`).
 - **Clients**: one page per client with contact details and notes, plus their quotes, invoices, to-dos and upcoming events. Names already on quotes and invoices can be saved as clients with one click.
+- **Money**: enter money received and expenses, month by month, with what is left over. Monthly expenses are set up once and added on their day.
+- **Reports**: the tax year so far (1 March to February), the last 12 months side by side, best clients and where the money went.
 - **To-do**: quick-add tasks grouped into Overdue, Today, Coming up and No date. Reminders appear by themselves to follow up quotes, chase overdue invoices and finish old drafts.
 - **Calendar**: month view with events you add, plus to-dos, quote expiry dates and invoice due dates filled in automatically. Kept on this PC only.
 - **Planner**: the week at a glance, with undated to-dos waiting to be given a day.

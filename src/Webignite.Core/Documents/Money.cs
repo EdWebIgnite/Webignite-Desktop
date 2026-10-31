@@ -16,4 +16,18 @@ public static class Money
         var fraction = ((abs - decimal.Truncate(abs)) * 100).ToString("00", System.Globalization.CultureInfo.InvariantCulture);
         return $"{sign}R {whole}.{fraction}";
     }
+
+    /// <summary>Reads an amount the way people type it: "R1 250", "1250,50" or "1,250.50". Null if it isn't a number.</summary>
+    public static decimal? Parse(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+        var cleaned = text.Trim().TrimStart('R', 'r').Replace(" ", "").Replace(" ", "");
+        // Accept a comma as the decimal mark when there is no dot, as many South Africans type it.
+        if (!cleaned.Contains('.') && cleaned.Count(c => c == ',') == 1)
+            cleaned = cleaned.Replace(',', '.');
+        else
+            cleaned = cleaned.Replace(",", "");
+        return decimal.TryParse(cleaned, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value) ? value : null;
+    }
 }

@@ -2,13 +2,14 @@ using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Webignite.Core.Calendar;
 using Webignite.Core.Clients;
+using Webignite.Core.Finance;
 using Webignite.Core.Documents;
 using Webignite.Core.Tasks;
 
 namespace Webignite.Data;
 
 /// <summary>
-/// The app's database on this PC. Only ids, kinds, statuses and timestamps are readable in the file;
+/// The app's database on this PC. Only ids, kinds, statuses, dates and timestamps are readable in the file;
 /// customers, amounts and everything else are encrypted by the <see cref="Vault"/>.
 /// </summary>
 public sealed class LocalStore : IDisposable
@@ -50,6 +51,19 @@ public sealed class LocalStore : IDisposable
             );
             CREATE INDEX IF NOT EXISTS events_date ON events (date);
             CREATE TABLE IF NOT EXISTS clients (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS entries (
+                id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL,
+                date TEXT NOT NULL,
+                recurring_key TEXT UNIQUE,
+                deleted INTEGER NOT NULL DEFAULT 0,
+                payload BLOB NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS entries_date ON entries (date);
+            CREATE TABLE IF NOT EXISTS recurring (
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
             );
@@ -237,6 +251,98 @@ public sealed class LocalStore : IDisposable
         while (reader.Read())
             list.Add(Open<Client>("client:" + reader.GetString(0), (byte[])reader[1]));
         return list.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    public MoneyEntry SaveEntry(MoneyEntry entry)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO entries (id, kind, date, recurring_key, payload) VALUES ($id, $kind, $date, $key, $payload)
+            ON CONFLICT (id) DO UPDATE SET kind = $kind, date = $date, payload = $payload, deleted = 0
+            """;
+        command.Parameters.AddWithValue("$id", entry.Id);
+        command.Parameters.AddWithValue("$kind", entry.Kind.ToString());
+        command.Parameters.AddWithValue("$date", entry.Date.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$key", (object?)entry.RecurringKey ?? DBNull.Value);
+        command.Parameters.AddWithValue("$payload", Seal("entry:" + entry.Id, entry));
+        command.ExecuteNonQuery();
+        return entry;
+    }
+
+    /// <summary>Removes an entry. One added by a monthly expense keeps a marker so it isn't added again.</summary>
+    public void DeleteEntry(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE entries SET deleted = 1, payload = x'' WHERE id = $id AND recurring_key IS NOT NULL;
+            DELETE FROM entries WHERE id = $id AND recurring_key IS NULL;
+            """;
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Entries dated from one day to another, both included, oldest first.</summary>
+    public IReadOnlyList<MoneyEntry> ListEntries(DateOnly from, DateOnly to)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, payload FROM entries WHERE deleted = 0 AND date >= $from AND date <= $to ORDER BY date, id";
+        command.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd"));
+        using var reader = command.ExecuteReader();
+        var list = new List<MoneyEntry>();
+        while (reader.Read())
+            list.Add(Open<MoneyEntry>("entry:" + reader.GetString(0), (byte[])reader[1]));
+        return list;
+    }
+
+    public IReadOnlySet<string> RecurringKeys()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT recurring_key FROM entries WHERE recurring_key IS NOT NULL";
+        using var reader = command.ExecuteReader();
+        var keys = new HashSet<string>();
+        while (reader.Read())
+            keys.Add(reader.GetString(0));
+        return keys;
+    }
+
+    public RecurringExpense SaveRecurring(RecurringExpense recurring)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO recurring (id, payload) VALUES ($id, $payload) ON CONFLICT (id) DO UPDATE SET payload = $payload";
+        command.Parameters.AddWithValue("$id", recurring.Id);
+        command.Parameters.AddWithValue("$payload", Seal("recurring:" + recurring.Id, recurring));
+        command.ExecuteNonQuery();
+        return recurring;
+    }
+
+    /// <summary>Stops a monthly expense. Entries it already added stay, as that money was spent.</summary>
+    public void DeleteRecurring(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM recurring WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public IReadOnlyList<RecurringExpense> ListRecurring()
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, payload FROM recurring";
+        using var reader = command.ExecuteReader();
+        var list = new List<RecurringExpense>();
+        while (reader.Read())
+            list.Add(Open<RecurringExpense>("recurring:" + reader.GetString(0), (byte[])reader[1]));
+        return list.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>Adds the expenses monthly items call for up to today. Returns how many were added.</summary>
+    public int AddRecurringExpenses(DateOnly today)
+    {
+        var due = RecurringExpenses.Due(ListRecurring(), RecurringKeys(), today, clock.GetUtcNow());
+        foreach (var entry in due)
+            SaveEntry(entry);
+        return due.Count;
     }
 
     public T? GetSetting<T>(string name)

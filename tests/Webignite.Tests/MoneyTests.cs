@@ -17,4 +17,17 @@ public class MoneyTests
     [Fact]
     public void Rand_shows_negative_amounts() =>
         Assert.Equal("-R 50.00", Money.Rand(-50m));
+
+    [Theory]
+    [InlineData("R1 250", "1250")]
+    [InlineData("1250,50", "1250.50")]
+    [InlineData("1,250.50", "1250.50")]
+    [InlineData(" r 99 ", "99")]
+    public void Parse_reads_amounts_as_people_type_them(string text, string expected) =>
+        Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), Money.Parse(text));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("abc")]
+    public void Parse_gives_null_for_non_numbers(string text) => Assert.Null(Money.Parse(text));
 }

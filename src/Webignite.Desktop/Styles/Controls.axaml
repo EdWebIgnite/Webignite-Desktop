@@ -31,6 +31,10 @@
     <Setter Property="Foreground" Value="{StaticResource Ink}" />
     <Setter Property="FontFeatures" Value="+tnum" />
   </Style>
+  <!-- More went out than came in -->
+  <Style Selector="TextBlock.short">
+    <Setter Property="Foreground" Value="{StaticResource Attention}" />
+  </Style>
   <Style Selector="TextBlock.amount">
     <Setter Property="FontFeatures" Value="+tnum" />
     <Setter Property="TextAlignment" Value="Right" />

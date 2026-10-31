@@ -34,6 +34,8 @@ var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();
 
+void Open(string title) => vm.Selected = vm.Modules.Single(m => m.Title == title);
+
 void Save(string name)
 {
     Dispatcher.UIThread.RunJobs();
@@ -45,7 +47,7 @@ void Save(string name)
 
 Save("overview");
 
-vm.Selected = vm.Modules[3];
+Open("Invoices");
 Save("invoices");
 
 vm.Invoices.NewCommand.Execute(null);
@@ -62,7 +64,7 @@ invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
 invoice.SaveCommand.Execute(null);
 Save("invoice-editor");
 
-vm.Selected = vm.Modules[9];
+Open("Settings");
 Save("settings");
 
 var today = DateOnly.FromDateTime(DateTime.Today);
@@ -74,16 +76,16 @@ var overdue = store.List(DocumentKind.Invoice).First(d => d.XeroNumber is not nu
 store.Save(overdue with { Document = overdue.Document with { Date = today.AddDays(-21), DueOrExpiryDate = today.AddDays(-14) } });
 var quote = store.List(DocumentKind.Quote)[0];
 store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031" });
-vm.Selected = vm.Modules[4];
+Open("To-do");
 Save("todo");
 
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e1", Title = "Kick-off with Bosveld Builders", Date = today, Start = new TimeOnly(10, 0), Location = "Teams" });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e2", Title = "Fynbos Physio photo shoot", Date = today.AddDays(2), Start = new TimeOnly(14, 30) });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e3", Title = "Public holiday", Date = today.AddDays(-5) });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t5", Title = "Write blog post on site speed", Created = DateTimeOffset.UtcNow });
-vm.Selected = vm.Modules[5];
+Open("Calendar");
 Save("calendar");
-vm.Selected = vm.Modules[6];
+Open("Planner");
 Save("planner");
 store.SaveClient(new Webignite.Core.Clients.Client
 {
@@ -93,12 +95,37 @@ store.SaveClient(new Webignite.Core.Clients.Client
 store.SaveClient(new Webignite.Core.Clients.Client { Id = "c2", Name = "Fynbos Physio", Email = "admin@fynbosphysio.co.za" });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t6", Title = "Get photos of finished projects", Customer = "Bosveld Builders", Due = today.AddDays(4), Created = DateTimeOffset.UtcNow });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e4", Title = "Sitemap review", Date = today.AddDays(1), Start = new TimeOnly(9, 0), Customer = "Bosveld Builders" });
-vm.Selected = vm.Modules[1];
+Open("Clients");
 Save("clients");
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Save("client");
 vm.Clients.Detail!.BackCommand.Execute(null);
-vm.Selected = vm.Modules[0];
+var month = new DateOnly(today.Year, today.Month, 1);
+void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>
+    store.SaveEntry(new Webignite.Core.Finance.MoneyEntry { Id = Webignite.Core.Finance.MoneyEntry.NewId(), Kind = kind, Date = date, Amount = amount, Party = party, Category = category, Note = note });
+var received = Webignite.Core.Finance.EntryKind.Received;
+var expense = Webignite.Core.Finance.EntryKind.Expense;
+for (var i = 1; i <= 11; i++)
+{
+    var m = month.AddMonths(-i);
+    Entry(received, m.AddDays(4), 2800m, "Fynbos Physio", note: "Monthly SEO");
+    Entry(received, m.AddDays(9), 450m + i * 35, "Karoo Coffee Roasters");
+    if (i % 3 == 0) Entry(received, m.AddDays(14), 8000m + i * 400, "Bosveld Builders", note: "Website deposit");
+    if (i % 4 == 1) Entry(received, m.AddDays(19), 3500m, "Kalahari Kitchens");
+    Entry(expense, m.AddDays(11), 400m + i * 20, "Takealot", "Equipment");
+    if (i % 5 == 0) Entry(expense, m.AddDays(16), 6200m, "Freelance designer", "Contractors");
+}
+Entry(received, month.AddDays(2), 2800m, "Fynbos Physio", note: "INV-0104");
+Entry(received, month.AddDays(5), 7250m, "Bosveld Builders", note: "Deposit, QU-0031");
+Entry(expense, month.AddDays(6), 349.99m, "Takealot", "Equipment", "USB-C hub");
+store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r1", Name = "xneelo dedicated server", Amount = 1899m, DayOfMonth = 1, Category = "Hosting and servers", Starts = month.AddMonths(-11) });
+store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r2", Name = "Adobe Creative Cloud", Amount = 1150m, DayOfMonth = 15, Category = "Software and subscriptions", Starts = month.AddMonths(-11) });
+store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r3", Name = "Fibre", Amount = 899m, DayOfMonth = 31, Category = "Internet and phone", Starts = month.AddMonths(-11) });
+Open("Money");
+Save("money");
+Open("Reports");
+Save("reports");
+Open("Overview");
 Save("overview");
 
 void Sample(string customer, DocumentKind kind, params (string Description, decimal Quantity, decimal Price)[] lines) =>

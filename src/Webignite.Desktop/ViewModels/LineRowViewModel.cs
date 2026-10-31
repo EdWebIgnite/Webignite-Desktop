@@ -47,8 +47,8 @@ public partial class LineRowViewModel : ViewModelBase
     {
         if (IsBlank)
             return null;
-        var quantity = ParseNumber(Quantity);
-        var price = ParseNumber(Price);
+        var quantity = Money.Parse(Quantity);
+        var price = Money.Parse(Price);
         var priced = quantity is not null || price is not null;
         return new Line
         {
@@ -56,18 +56,5 @@ public partial class LineRowViewModel : ViewModelBase
             Quantity = priced ? quantity : null,
             UnitPrice = priced ? price : null,
         };
-    }
-
-    internal static decimal? ParseNumber(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return null;
-        var cleaned = text.Trim().TrimStart('R', 'r').Replace(" ", "").Replace(" ", "");
-        // Accept a comma as the decimal mark when there is no dot, as many South Africans type it.
-        if (!cleaned.Contains('.') && cleaned.Count(c => c == ',') == 1)
-            cleaned = cleaned.Replace(',', '.');
-        else
-            cleaned = cleaned.Replace(",", "");
-        return decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) ? value : null;
     }
 }
