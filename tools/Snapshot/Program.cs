@@ -159,8 +159,88 @@ Open("Domains and hosting");
 Save("domains");
 Open("Reports");
 Save("reports");
+
+// Mail: the first-time setup, then two mailboxes with a few messages kept on this PC. No network is used.
+Open("Mail");
+vm.Mail.Setup.Address = "eddie@webignite.co.za";
+vm.Mail.Setup.DisplayName = "Eddie, Webignite";
+vm.Mail.Setup.ShowServers = true;
+Save("mail-setup");
+SeedMail();
+vm.Mail.Setup.CancelCommand.Execute(null);
+vm.Mail.Reload();
+vm.Mail.Status = "Up to date at 09:12";
+vm.Mail.StatusIsProblem = false;
+var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
+_ = vm.Mail.Select(opened);
+Save("mail");
+vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
+vm.Mail.Status = "Up to date at 09:12";
+Save("mail-all-inboxes");
 Open("Overview");
 Save("overview");
+
+void SeedMail()
+{
+    var now = DateTimeOffset.Now;
+    var work = store.SaveMailAccount(new Webignite.Core.Mail.MailAccount
+    {
+        Id = "m1", DisplayName = "Eddie, Webignite", Address = "eddie@webignite.co.za",
+        ImapHost = "mail.webignite.co.za", SmtpHost = "smtp.webignite.co.za", Created = now,
+    });
+    var accounts = store.SaveMailAccount(new Webignite.Core.Mail.MailAccount
+    {
+        Id = "m2", DisplayName = "Webignite Accounts", Address = "accounts@webignite.co.za",
+        ImapHost = "mail.webignite.co.za", SmtpHost = "smtp.webignite.co.za", SendsInvoices = true, Created = now,
+    });
+    void Folder(string account, string path, string name, Webignite.Core.Mail.FolderRole role, int unread = 0) =>
+        store.SaveMailFolder(new Webignite.Core.Mail.MailFolder { AccountId = account, Path = path, Name = name, Role = role, Unread = unread });
+    foreach (var id in new[] { work.Id, accounts.Id })
+    {
+        Folder(id, "INBOX", "Inbox", Webignite.Core.Mail.FolderRole.Inbox, id == work.Id ? 2 : 1);
+        Folder(id, "INBOX.Drafts", "Drafts", Webignite.Core.Mail.FolderRole.Drafts);
+        Folder(id, "INBOX.Sent", "Sent", Webignite.Core.Mail.FolderRole.Sent);
+        Folder(id, "INBOX.Archive", "Archive", Webignite.Core.Mail.FolderRole.Archive);
+        Folder(id, "INBOX.Junk", "Junk", Webignite.Core.Mail.FolderRole.Junk);
+        Folder(id, "INBOX.Trash", "Trash", Webignite.Core.Mail.FolderRole.Trash);
+    }
+    Folder(work.Id, "INBOX.Clients", "Clients", Webignite.Core.Mail.FolderRole.Other);
+    Folder(work.Id, "INBOX.Clients.Karoo", "Karoo", Webignite.Core.Mail.FolderRole.Other);
+
+    Webignite.Core.Mail.MailSummary Mail(string account, uint uid, string fromName, string from, string subject, string preview, TimeSpan ago, bool seen, bool attachments = false, bool flagged = false) => new()
+    {
+        AccountId = account, Folder = "INBOX", Uid = uid, Date = now - ago,
+        From = new(fromName, from), To = [new(null, account == work.Id ? work.Address : accounts.Address)],
+        Subject = subject, Preview = preview, Seen = seen, HasAttachments = attachments, Flagged = flagged,
+    };
+    store.SaveMailSummaries(
+    [
+        Mail(work.Id, 44, "Thandi Mokoena", "thandi@karoocoffee.co.za", "New product photos for the shop", "Hi Eddie, here are the new photos for the online shop. Could you swap them in before Friday?", TimeSpan.FromMinutes(25), false, attachments: true),
+        Mail(work.Id, 43, "Pieter van Wyk", "pieter@bosveldbuilders.co.za", "Re: Website quote", "Thanks, the quote looks good. Can we start in the first week of December?", TimeSpan.FromHours(2), false),
+        Mail(work.Id, 41, "Lerato Dlamini", "lerato@fynbosphysio.co.za", "Booking page not loading on phones", "Morning Eddie, a few patients say the booking page just spins on their phones.", TimeSpan.FromHours(5), true, attachments: true, flagged: true),
+        Mail(work.Id, 40, "xneelo", "noreply@xneelo.co.za", "Your hosting renewal for webignite.co.za", "Your hosting package renews on 15 December 2026.", TimeSpan.FromDays(2), true),
+        Mail(work.Id, 39, "Google Search Console", "sc-noreply@google.com", "New coverage issue for fynbosphysio.co.za", "Search Console has found a new issue on your site.", TimeSpan.FromDays(4), true),
+        Mail(accounts.Id, 12, "Karoo Coffee Roasters", "accounts@karoocoffee.co.za", "Proof of payment INV-0107", "Good day, please find attached proof of payment for INV-0107.", TimeSpan.FromHours(1), false, attachments: true),
+        Mail(accounts.Id, 11, "FNB", "inContact@fnb.co.za", "Your statement is ready", "Your monthly statement for account ending 4410 is ready.", TimeSpan.FromDays(3), true),
+    ]);
+
+    var message = new MimeKit.MimeMessage();
+    message.From.Add(new MimeKit.MailboxAddress("Lerato Dlamini", "lerato@fynbosphysio.co.za"));
+    message.To.Add(new MimeKit.MailboxAddress(null, work.Address));
+    message.Subject = "Booking page not loading on phones";
+    var body = new MimeKit.BodyBuilder
+    {
+        HtmlBody = "<p>Morning Eddie,</p><p>A few patients say the booking page just spins on their phones. It seems fine on my laptop. "
+            + "I've attached two screenshots one of them sent me.</p><p>Could you have a look today? We have a lot of bookings coming in for December.</p>"
+            + "<p>Thanks so much,<br/>Lerato<br/><span style=\"color:#666\">Fynbos Physio · <a href=\"https://fynbosphysio.co.za\">fynbosphysio.co.za</a></span></p>",
+    };
+    body.Attachments.Add("booking-phone-1.png", new byte[48_211], new MimeKit.ContentType("image", "png"));
+    body.Attachments.Add("booking-phone-2.png", new byte[51_877], new MimeKit.ContentType("image", "png"));
+    message.Body = body.ToMessageBody();
+    using var mime = new MemoryStream();
+    message.WriteTo(mime);
+    store.SaveMailBody(work.Id, "INBOX", 41, mime.ToArray());
+}
 
 void Sample(string customer, DocumentKind kind, params (string Description, decimal Quantity, decimal Price)[] lines) =>
     store.Save(new StoredDocument

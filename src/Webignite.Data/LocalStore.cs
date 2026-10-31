@@ -14,7 +14,7 @@ namespace Webignite.Data;
 /// The app's database on this PC. Only ids, kinds, statuses, dates and timestamps are readable in the file;
 /// customers, amounts and everything else are encrypted by the <see cref="Vault"/>.
 /// </summary>
-public sealed class LocalStore : IDisposable
+public sealed partial class LocalStore : IDisposable
 {
     private readonly SqliteConnection connection;
     private readonly Vault vault;
@@ -80,6 +80,32 @@ public sealed class LocalStore : IDisposable
             CREATE TABLE IF NOT EXISTS renewals (
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS mail_accounts (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS mail_folders (
+                account_id TEXT NOT NULL,
+                path TEXT NOT NULL,
+                payload BLOB NOT NULL,
+                PRIMARY KEY (account_id, path)
+            );
+            CREATE TABLE IF NOT EXISTS mail_messages (
+                account_id TEXT NOT NULL,
+                folder TEXT NOT NULL,
+                uid INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                payload BLOB NOT NULL,
+                PRIMARY KEY (account_id, folder, uid)
+            );
+            CREATE INDEX IF NOT EXISTS mail_messages_date ON mail_messages (account_id, folder, date DESC);
+            CREATE TABLE IF NOT EXISTS mail_bodies (
+                account_id TEXT NOT NULL,
+                folder TEXT NOT NULL,
+                uid INTEGER NOT NULL,
+                payload BLOB NOT NULL,
+                PRIMARY KEY (account_id, folder, uid)
             );
             CREATE TABLE IF NOT EXISTS settings (
                 name TEXT PRIMARY KEY,

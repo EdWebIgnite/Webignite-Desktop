@@ -16,6 +16,7 @@ public partial class MainViewModel : ViewModelBase
         Todo = new TodoViewModel(services);
         Overview = new OverviewViewModel(services);
         Clients = new ClientsViewModel(services);
+        Mail = new MailViewModel(services);
         Modules =
         [
             new Module("Overview", Overview),
@@ -31,8 +32,7 @@ public partial class MainViewModel : ViewModelBase
             new Module("Planner", new PlannerViewModel(services)),
             new Module("To approve", new ComingLaterViewModel("To approve",
                 "Quotes and invoices that Claude or ChatGPT prepare will wait here for your approval before anything goes to Xero.")),
-            new Module("Mail", new ComingLaterViewModel("Mail",
-                "Your mailbox, built in. Read and reply to client mail next to their quotes and invoices."), IsLater: true),
+            new Module("Mail", Mail, FullBleed: true),
             new Module("Settings", new SettingsViewModel(services)),
         ];
         Selected = Modules[0];
@@ -43,6 +43,7 @@ public partial class MainViewModel : ViewModelBase
     public TodoViewModel Todo { get; }
     public OverviewViewModel Overview { get; }
     public ClientsViewModel Clients { get; }
+    public MailViewModel Mail { get; }
     public IReadOnlyList<Module> Modules { get; }
 
     [ObservableProperty]
@@ -64,6 +65,7 @@ public partial class MainViewModel : ViewModelBase
             case ClientsViewModel clients: clients.Refresh(); break;
             case MoneyViewModel money: money.Refresh(); break;
             case ReportsViewModel reports: reports.Refresh(); break;
+            case MailViewModel mail: mail.Reload(); _ = mail.SyncAll(); break;
         }
     }
 }

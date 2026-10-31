@@ -19,10 +19,12 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Avalonia.HtmlRenderer" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Webignite.Core\Webignite.Core.csproj" />
     <ProjectReference Include="..\Webignite.Data\Webignite.Data.csproj" />
     <ProjectReference Include="..\Webignite.Xero\Webignite.Xero.csproj" />
+    <ProjectReference Include="..\Webignite.Mail\Webignite.Mail.csproj" />
   </ItemGroup>
 </Project>

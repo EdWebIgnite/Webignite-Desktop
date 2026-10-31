@@ -29,6 +29,7 @@
     <DataTemplate DataType="vm:CalendarViewModel"><v:CalendarView /></DataTemplate>
     <DataTemplate DataType="vm:PlannerViewModel"><v:PlannerView /></DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
+    <DataTemplate DataType="vm:MailViewModel"><v:MailView /></DataTemplate>
     <DataTemplate DataType="vm:ComingLaterViewModel"><v:ComingLaterView /></DataTemplate>
   </Application.DataTemplates>
 

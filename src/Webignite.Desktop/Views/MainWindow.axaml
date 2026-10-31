@@ -37,8 +37,9 @@
     </Border>
 
     <!-- Page -->
-    <ScrollViewer Grid.Column="1">
-      <ContentControl Content="{Binding Selected.Page}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
+    <ScrollViewer Grid.Column="1" IsVisible="{Binding Selected.Scrolls}">
+      <ContentControl Content="{Binding Selected.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
     </ScrollViewer>
+    <ContentControl Grid.Column="1" Content="{Binding Selected.FullPage}" IsVisible="{Binding Selected.FullBleed}" />
   </Grid>
 </Window>
