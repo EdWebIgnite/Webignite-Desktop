@@ -11,10 +11,8 @@ public sealed record ClientSummary(
     IReadOnlyList<TaskItem> OpenTasks,
     IReadOnlyList<CalendarEvent> UpcomingEvents)
 {
-    /// <summary>Invoices in Xero that haven't been marked paid. Payments from Xero come later.</summary>
-    public decimal Owed => Documents
-        .Where(d => d.Status == DocumentStatus.InXero && d.Document.Kind == DocumentKind.Invoice)
-        .Sum(d => d.Document.Total ?? 0);
+    /// <summary>What's still owed on this client's invoices, using Xero's payments when they've been read.</summary>
+    public decimal Owed => Receivables.Owed(Documents);
 
     public DateTimeOffset? LastActivity => Documents.Count == 0 ? null : Documents.Max(d => d.Updated);
 }

@@ -34,14 +34,14 @@ public static class Agenda
             items.Add(new AgendaItem(t.Due!.Value, AgendaKind.Task, t.Title, null, t.Id, t.Done));
 
         // Only documents that went to Xero carry real dates; drafts would just clutter the calendar.
-        foreach (var d in documents.Where(d => d.Status == DocumentStatus.InXero && d.Document.DueOrExpiryDate is { } date && InRange(date)))
+        foreach (var d in documents.Where(d => d.Status == DocumentStatus.InXero && d.Settled is null && d.Document.DueOrExpiryDate is { } date && InRange(date)))
         {
             var doc = d.Document;
             var name = d.XeroNumber ?? (doc.Kind == DocumentKind.Quote ? "Quote" : "Invoice");
             var customer = string.IsNullOrWhiteSpace(doc.Customer.Name) ? "" : $" ({doc.Customer.Name})";
             items.Add(doc.Kind == DocumentKind.Quote
                 ? new AgendaItem(doc.DueOrExpiryDate!.Value, AgendaKind.QuoteExpires, $"{name} expires{customer}", null, d.Id)
-                : new AgendaItem(doc.DueOrExpiryDate!.Value, AgendaKind.InvoiceDue, $"{name} due{customer}, {Money.Rand(doc.Total ?? 0)}", null, d.Id));
+                : new AgendaItem(doc.DueOrExpiryDate!.Value, AgendaKind.InvoiceDue, $"{name} due{customer}, {Money.Rand(Receivables.Outstanding(d) is > 0 and var left ? left : doc.Total ?? 0)}", null, d.Id));
         }
 
         return items.OrderBy(i => i.Date).ThenBy(i => i.SortKey).ToList();

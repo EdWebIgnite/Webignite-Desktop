@@ -33,7 +33,7 @@ public static class Chasers
                 if (days >= FollowUpAfterDays)
                     items.Add(new ChaseItem(stored, ChaseKind.FollowUp, days, Due: true));
             }
-            else if (stored.Status == DocumentStatus.InXero && doc.DueOrExpiryDate is { } due && due < today)
+            else if (Receivables.IsOverdue(stored, today) && doc.DueOrExpiryDate is { } due)
             {
                 var overdue = today.DayNumber - due.DayNumber;
                 var remind = stored.Chased is not { } last || today.DayNumber - Day(last).DayNumber >= RemindEveryDays;

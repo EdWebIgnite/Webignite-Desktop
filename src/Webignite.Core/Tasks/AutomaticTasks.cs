@@ -30,6 +30,9 @@ public static class AutomaticTasks
 
             switch (stored.Status, doc.Kind)
             {
+                case (DocumentStatus.InXero, _) when stored.Settled is not null:
+                    break;
+
                 case (DocumentStatus.InXero, DocumentKind.Quote):
                     var start = DateOnly.FromDateTime(stored.Updated.UtcDateTime);
                     var followUp = start.AddDays(settings.QuoteFollowUpDays);
@@ -37,8 +40,8 @@ public static class AutomaticTasks
                         Add($"quote-follow-up:{stored.Id}", $"Follow up {name}{For(customer)}", followUp);
                     break;
 
-                case (DocumentStatus.InXero, DocumentKind.Invoice) when doc.DueOrExpiryDate is { } due && due < today:
-                    Add($"invoice-overdue:{stored.Id}", $"Chase overdue {name}{For(customer)}, {Money.Rand(doc.Total ?? 0)}", today);
+                case (DocumentStatus.InXero, DocumentKind.Invoice) when Receivables.IsOverdue(stored, today):
+                    Add($"invoice-overdue:{stored.Id}", $"Chase overdue {name}{For(customer)}, {Money.Rand(Receivables.Outstanding(stored))}", today);
                     break;
 
                 case (DocumentStatus.Draft, _) when created.AddDays(settings.StaleDraftDays) <= today:

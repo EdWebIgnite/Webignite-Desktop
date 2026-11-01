@@ -14,17 +14,17 @@ public static class Statements
     public static bool IsStatementWeek(DateOnly today) => today.Day <= OfferDays;
 
     /// <summary>
-    /// Customers with invoices in Xero that aren't known to be paid, who haven't had a statement this month.
+    /// Customers with invoices in Xero that still have money owing, who haven't had a statement this month.
     /// The amounts here are from this PC; the statement itself is built from Xero when it's drafted.
     /// </summary>
     public static IReadOnlyList<(string Customer, decimal Open)> Due(IEnumerable<StoredDocument> documents, IReadOnlyDictionary<string, DateOnly> sent, DateOnly today)
     {
         var monthStart = new DateOnly(today.Year, today.Month, 1);
         return documents
-            .Where(d => d.Document.Kind == DocumentKind.Invoice && d.Status == DocumentStatus.InXero && d.XeroId is not null && d.Settled is null)
+            .Where(d => d.XeroId is not null && Receivables.Outstanding(d) > 0)
             .GroupBy(d => d.Document.Customer.Name.Trim(), StringComparer.OrdinalIgnoreCase)
             .Where(g => !(sent.TryGetValue(Key(g.Key), out var last) && last >= monthStart))
-            .Select(g => (g.Key, g.Sum(d => d.Document.Total ?? 0)))
+            .Select(g => (g.Key, g.Sum(Receivables.Outstanding)))
             .OrderByDescending(x => x.Item2)
             .ToList();
     }

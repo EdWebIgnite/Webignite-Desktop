@@ -77,7 +77,7 @@ public static class MorningSummary
         var reminders = chases.Where(c => c.Kind == ChaseKind.Reminder).ToList();
         foreach (var chase in reminders.Take(MaxChaseLines))
         {
-            var text = $"{chase.Number} for {chase.Customer} is {Days(chase.Days)} overdue ({Money.Rand(chase.Stored.Document.Total ?? 0)}).";
+            var text = $"{chase.Number} for {chase.Customer} is {Days(chase.Days)} overdue ({Money.Rand(Receivables.Outstanding(chase.Stored))}{(chase.Stored.XeroAmountPaid > 0 ? " still owed" : "")}).";
             lines.Add(chase.Due
                 ? new(text, SummaryTarget.Chase, Problem: true, Chase: chase)
                 : new($"{text} Reminder sent {Day(DateOnly.FromDateTime(chase.Stored.Chased!.Value.ToLocalTime().DateTime), today)}.",

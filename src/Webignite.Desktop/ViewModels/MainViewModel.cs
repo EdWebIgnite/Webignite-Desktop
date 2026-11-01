@@ -9,6 +9,24 @@ public partial class MainViewModel : ViewModelBase
     private readonly Avalonia.Threading.DispatcherTimer backupTimer;
     private readonly Avalonia.Threading.DispatcherTimer mailTimer;
     private readonly Avalonia.Threading.DispatcherTimer uptimeTimer;
+    private readonly Avalonia.Threading.DispatcherTimer paymentTimer;
+
+    /// <summary>Reads payments from Xero, refreshes the pages that show money owed and announces what came in.</summary>
+    public async Task CheckPaymentsAsync(bool byHand = false)
+    {
+        var (news, problem) = await PaymentWatch.RunAsync(services);
+        if (byHand && problem is not null)
+            services.ShowNote?.Invoke("Couldn't check payments", problem, null);
+        foreach (var payment in news.Take(3))
+            services.ShowNote?.Invoke(payment.Title, payment.Text, () => Selected = Modules.Single(m => m.Page == Invoices));
+        if (news.Count > 3)
+            services.ShowNote?.Invoke($"{news.Count - 3} more payments came in", "Open Invoices to see them.", () => Selected = Modules.Single(m => m.Page == Invoices));
+        if (byHand && problem is null && news.Count == 0)
+            services.ShowNote?.Invoke("Payments checked", "No new payments in Xero.", null);
+        Overview.Refresh();
+        Invoices.Refresh();
+        Quotes.Refresh();
+    }
 
     /// <summary>Shows a note for each site that went down, came back, or has a certificate about to run out.</summary>
     private void AnnounceSites(IReadOnlyList<Webignite.Core.Web.UptimeAlert> alerts)
@@ -115,6 +133,15 @@ public partial class MainViewModel : ViewModelBase
             SiteCheck.RefreshWatched();
         };
         uptimeTimer.Start();
+        // Payments are read from Xero when the app opens and every half hour after that.
+        Overview.CheckPayments = () => CheckPaymentsAsync(byHand: true);
+        paymentTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        paymentTimer.Tick += async (_, _) =>
+        {
+            if (services.XeroApi is not null && PaymentWatch.Due(DateTimeOffset.Now))
+                await CheckPaymentsAsync();
+        };
+        paymentTimer.Start();
         Markup = new MarkupViewModel(services);
         Modules =
         [

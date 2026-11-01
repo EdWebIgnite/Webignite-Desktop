@@ -14,7 +14,9 @@
         <StackPanel Spacing="6">
           <TextBlock Classes="label" Text="OWED TO YOU" />
           <TextBlock Classes="figure" Text="{Binding Owed}" />
-          <TextBlock Classes="muted" FontSize="12" Text="Invoices sent to Xero." />
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding PaymentsText}" TextWrapping="Wrap" />
+          <Button Classes="quiet" Content="Check payments now" Command="{Binding CheckPaymentsNowCommand}"
+                  IsEnabled="{Binding !CheckingPayments}" IsVisible="{Binding XeroConnected}" HorizontalAlignment="Left" Padding="0,2" FontSize="12" />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="6,0">

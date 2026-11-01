@@ -35,7 +35,7 @@
                     <TextBlock Grid.Column="0" Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" Margin="8,0" />
                     <TextBlock Grid.Column="1" Text="{Binding Customer}" Margin="8,0" TextTrimming="CharacterEllipsis" />
                     <TextBlock Grid.Column="2" Text="{Binding Date}" Margin="8,0" />
-                    <Border Grid.Column="3" Classes="status" Classes.done="{Binding IsInXero}" HorizontalAlignment="Left" Margin="8,0">
+                    <Border Grid.Column="3" Classes="status" Classes.done="{Binding IsDone}" Classes.problem="{Binding IsOverdue}" ToolTip.Tip="{Binding Owing}" HorizontalAlignment="Left" Margin="8,0">
                       <TextBlock Text="{Binding Status}" FontSize="12" />
                     </Border>
                     <TextBlock Grid.Column="4" Classes="amount" Text="{Binding Total}" Margin="8,0" />

@@ -30,6 +30,17 @@ AppBuilder.Configure<App>()
 Sample("Karoo Coffee Roasters", DocumentKind.Invoice, ("Website hosting, November", 1, 450m), ("Content updates (hours)", 3.5m, 650m));
 Sample("Fynbos Physio", DocumentKind.Invoice, ("Monthly SEO", 1, 2800m));
 store.Save(store.List(DocumentKind.Invoice)[0] with { Status = DocumentStatus.InXero, XeroNumber = "INV-0107" });
+Sample("Fynbos Physio", DocumentKind.Invoice, ("Monthly SEO, September", 1, 2800m));
+Sample("Bosveld Builders", DocumentKind.Invoice, ("Website deposit", 1, 7250m));
+{
+    var invoices = store.List(DocumentKind.Invoice).Where(d => d.Status == DocumentStatus.Draft).ToList();
+    var fynbos = invoices.First(d => d.Document.Lines[0].Description.Contains("September"));
+    store.Save(fynbos with { Status = DocumentStatus.InXero, XeroNumber = "INV-0103", XeroId = "x103", Document = fynbos.Document with { DueOrExpiryDate = DateOnly.FromDateTime(DateTime.Today).AddDays(-9) },
+        XeroStatus = "AUTHORISED", XeroAmountDue = 1300m, XeroAmountPaid = 1500m, XeroChecked = DateTimeOffset.Now });
+    var bosveldInvoice = invoices.First(d => d.Document.Customer.Name == "Bosveld Builders");
+    store.Save(bosveldInvoice with { Status = DocumentStatus.InXero, XeroNumber = "INV-0105", XeroId = "x105", XeroStatus = "PAID", XeroAmountDue = 0m, XeroAmountPaid = 7250m,
+        XeroChecked = DateTimeOffset.Now, Settled = DateTimeOffset.Now, SettledAs = "paid", PaidOn = DateOnly.FromDateTime(DateTime.Today) });
+}
 Sample("Bosveld Builders", DocumentKind.Quote, ("New website, 6 pages", 1, 14500m), ("Logo refresh", 1, 3200m));
 
 services.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "Website, 6 pages",
