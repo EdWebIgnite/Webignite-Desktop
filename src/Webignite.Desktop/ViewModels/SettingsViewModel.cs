@@ -25,11 +25,32 @@ public partial class SettingsViewModel : ViewModelBase
         UpdateAssistantStatus();
         LoadTemplates(services.EmailTemplates);
         UpdateBackupStatus();
+        LoadPrices();
         var mailCheck = services.MailCheckSettings;
         MailCheckMinutes = NewMail.MinuteChoices.Contains(mailCheck.Minutes) ? mailCheck.Minutes : 5;
         NotifyNewMail = mailCheck.Notify;
         if (App.RestoredAtStart)
             BackupMessage = "The backup was restored. If mail or Xero ask, sign in again: passwords aren't kept in backups.";
+    }
+
+    // Price list
+
+    public System.Collections.ObjectModel.ObservableCollection<PriceRow> Prices { get; } = [];
+    public bool HasPrices => Prices.Count > 0;
+
+    private void LoadPrices()
+    {
+        Prices.Clear();
+        foreach (var entry in services.PriceList)
+            Prices.Add(new PriceRow(entry));
+        OnPropertyChanged(nameof(HasPrices));
+    }
+
+    [RelayCommand]
+    private void DeletePrice(PriceRow row)
+    {
+        services.PriceList = PriceList.Remove(services.PriceList, row.Entry.Id);
+        LoadPrices();
     }
 
     // Mail checking
@@ -78,6 +99,7 @@ public partial class SettingsViewModel : ViewModelBase
     /// <summary>Looks again when the page is opened, as backups run in the background.</summary>
     public void Refresh()
     {
+        LoadPrices();
         UpdateAssistantStatus();
         UpdateBackupStatus();
     }
@@ -456,4 +478,12 @@ public partial class SettingsViewModel : ViewModelBase
             ? $"Connected to {xero.TenantName}. Webignite can create drafts only. Approving, sending and payments stay in your hands."
             : "Not connected.";
     }
+}
+
+/// <summary>One package on the Settings page.</summary>
+public sealed record PriceRow(PriceEntry Entry)
+{
+    public string Name => Entry.Name;
+    public string Summary => (Entry.Lines.Count == 1 ? "1 line, " : $"{Entry.Lines.Count} lines, ") + Money.Rand(Entry.Total);
+    public string LinesText => string.Join(" · ", Entry.Lines.Select(l => l.Description));
 }

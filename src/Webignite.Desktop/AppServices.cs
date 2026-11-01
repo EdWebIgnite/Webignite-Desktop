@@ -40,6 +40,13 @@ public sealed class AppServices(LocalStore store) : IDisposable
         set => Store.SetSetting("tasks", value);
     }
 
+    /// <summary>Standard packages and items, for filling in quotes and invoices with one click.</summary>
+    public IReadOnlyList<PriceEntry> PriceList
+    {
+        get => Store.GetSetting<List<PriceEntry>>("price-list") ?? [];
+        set => Store.SetSetting("price-list", value.ToList());
+    }
+
     /// <summary>The invoice and quote email wording, pasted from Xero.</summary>
     public EmailTemplates EmailTemplates
     {

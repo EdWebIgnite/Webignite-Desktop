@@ -32,6 +32,10 @@ Sample("Fynbos Physio", DocumentKind.Invoice, ("Monthly SEO", 1, 2800m));
 store.Save(store.List(DocumentKind.Invoice)[0] with { Status = DocumentStatus.InXero, XeroNumber = "INV-0107" });
 Sample("Bosveld Builders", DocumentKind.Quote, ("New website, 6 pages", 1, 14500m), ("Logo refresh", 1, 3200m));
 
+services.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "Website, 6 pages",
+    [new Line { Description = "Design and build, 6 pages", Quantity = 1, UnitPrice = 12500m }, new Line { Description = "Hosting, first year", Quantity = 1, UnitPrice = 2000m }]),
+    "Monthly SEO", [new Line { Description = "Monthly SEO", Quantity = 1, UnitPrice = 2800m }]),
+    "Hosting, yearly", [new Line { Description = "Website hosting, 12 months", Quantity = 1, UnitPrice = 2400m }]);
 var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();

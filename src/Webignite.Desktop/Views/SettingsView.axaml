@@ -2,7 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.SettingsView"
-             x:DataType="vm:SettingsViewModel">
+             x:DataType="vm:SettingsViewModel"
+             x:Name="Root">
   <StackPanel Spacing="18">
     <TextBlock Classes="h1" Text="Settings" />
 
@@ -171,6 +172,33 @@
         </StackPanel>
         <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
                    Text="The mailbox signature goes under the message, picture included." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Price list" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Your standard packages and items. To add one, fill in the lines on a quote or invoice and click &quot;Save these lines to the price list&quot;. Saving again under the same name updates it. Claude and ChatGPT can read this list when they prepare quotes." />
+        <TextBlock Classes="muted" Text="Nothing saved yet." IsVisible="{Binding !HasPrices}" />
+        <ItemsControl ItemsSource="{Binding Prices}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:PriceRow">
+              <DockPanel Margin="0,0,0,10">
+                <Button DockPanel.Dock="Right" Classes="link" Content="Remove" VerticalAlignment="Center"
+                        Command="{Binding #Root.((vm:SettingsViewModel)DataContext).DeletePriceCommand}" CommandParameter="{Binding}" />
+                <StackPanel>
+                  <TextBlock FontWeight="SemiBold">
+                    <Run Text="{Binding Name}" />
+                    <Run Text="  " />
+                    <Run Text="{Binding Summary}" FontWeight="Normal" Foreground="{StaticResource Muted}" />
+                  </TextBlock>
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding LinesText}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </Border>
 

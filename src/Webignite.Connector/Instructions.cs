@@ -13,7 +13,8 @@ internal static class Instructions
         - Write in plain South African English. Amounts are in Rand, written like R 1 234.56. Webignite is not
           VAT registered, so never add VAT.
         - Quotes and invoices you prepare wait under To approve in Webignite. They don't go to Xero or the customer
-          until Eddie approves them in the app. Check list_documents first so you don't prepare the same one twice.
+          until Eddie approves them in the app. Check list_documents first so you don't prepare the same one twice,
+          and list_price_list for Eddie's standard packages and prices.
         - accounts@ is for invoices, quotes and payments. Other work goes through Eddie's own mailbox.
         """;
 }
