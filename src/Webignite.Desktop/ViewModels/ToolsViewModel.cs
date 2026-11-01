@@ -16,6 +16,9 @@ public sealed partial class ToolsViewModel : ViewModelBase
         this.services = services;
         QrKindChoice = QrKinds[0];
         WifiKindChoice = WifiKinds[0];
+        ImageWidth = ImageWidths[1];
+        ImageFormatChoice = ImageFormats[0];
+        ImageResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasImageResults));
         NewPassword();
         OnColourInputChanged(ColourInput);
     }

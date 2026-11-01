@@ -270,7 +270,39 @@ vm.Tools.Sum = "2400 - 10%";
 vm.Tools.LineDescription = "Hosting, 12 months, returning client";
 Save("tools-calculator");
 vm.Tools.QrInput = "karoocoffee.co.za/menu";
-window.Height = 1300;
+// Website images: two made-up photos, shrunk for real so the sizes are true.
+var photos = Path.Combine(data, "photos");
+Directory.CreateDirectory(photos);
+foreach (var (name, w, h) in new[] { ("Shop Front (1).jpg", 4032, 3024), ("Team photo.png", 2400, 1600) })
+{
+    using var bmp = new SkiaSharp.SKBitmap(w, h);
+    using (var c = new SkiaSharp.SKCanvas(bmp))
+    using (var paint = new SkiaSharp.SKPaint { Shader = SkiaSharp.SKShader.CreateLinearGradient(new(0, 0), new(w, h),
+               [new SkiaSharp.SKColor(232, 89, 12), new SkiaSharp.SKColor(28, 29, 33)], SkiaSharp.SKShaderTileMode.Clamp) })
+    {
+        c.DrawRect(0, 0, w, h, paint);
+        var rng = new Random(4);
+        for (var i = 0; i < 4000; i++)
+            c.DrawCircle(rng.Next(w), rng.Next(h), rng.Next(2, 30), new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor((byte)rng.Next(256), (byte)rng.Next(256), (byte)rng.Next(256)) });
+    }
+    using var img = SkiaSharp.SKImage.FromBitmap(bmp);
+    using var encoded = img.Encode(name.EndsWith(".png") ? SkiaSharp.SKEncodedImageFormat.Png : SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
+    File.WriteAllBytes(Path.Combine(photos, name), encoded.ToArray());
+}
+long shrunkBefore = 0, shrunkAfter = 0;
+foreach (var photo in Directory.GetFiles(photos).Order())
+{
+    var shrunk = ImageShrinker.Shrink(photo, new Webignite.Core.Tools.ImageJob());
+    if (shrunk.Problem is not null)
+        throw new InvalidOperationException(shrunk.Problem);
+    Console.WriteLine($"Shrunk {Path.GetFileName(photo)} to {shrunk.Output} {shrunk.Width}x{shrunk.Height}");
+    shrunkBefore += shrunk.Before;
+    shrunkAfter += shrunk.After;
+    vm.Tools.ImageResults.Add(new ImageResultRow(shrunk));
+    vm.Tools.ImageFolder = Path.GetDirectoryName(shrunk.Output);
+}
+vm.Tools.ImageMessage = $"2 images saved in the web folder: {Webignite.Core.Tools.ImageRules.Saving(shrunkBefore, shrunkAfter)}.";
+window.Height = 1700;
 Save("tools-all");
 window.Height = 860;
 vm.Tools.AddToInvoiceCommand.Execute(null);

@@ -161,5 +161,45 @@
         </Border>
       </Grid>
     </Border>
+
+    <!-- Website images -->
+    <Border x:Name="ImageDrop" Classes="card" DragDrop.AllowDrop="True">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Website images" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Make photos small enough for a website. Drop images here or choose them. Copies go in a web folder beside the originals, which are left as they are. Photos are turned the right way up, and camera details such as GPS location are left out." />
+        <WrapPanel>
+          <StackPanel Margin="0,0,16,8">
+            <TextBlock Classes="label" Text="Size" />
+            <ComboBox ItemsSource="{Binding ImageWidths}" SelectedItem="{Binding ImageWidth}" MinWidth="260" />
+          </StackPanel>
+          <StackPanel Margin="0,0,16,8">
+            <TextBlock Classes="label" Text="Save as" />
+            <ComboBox ItemsSource="{Binding ImageFormats}" SelectedItem="{Binding ImageFormatChoice}" MinWidth="260" />
+          </StackPanel>
+          <StackPanel Margin="0,0,0,8" Width="220" IsVisible="{Binding ImageHasQuality}">
+            <TextBlock Classes="label" Text="{Binding ImageQualityText}" />
+            <Slider Minimum="50" Maximum="95" Value="{Binding ImageQuality}" TickFrequency="5" IsSnapToTickEnabled="True"
+                    ToolTip.Tip="80 is right for most photos. Lower is smaller but softer." />
+          </StackPanel>
+        </WrapPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Classes="primary" Content="Choose images" Click="ChooseImages" IsEnabled="{Binding !ImagesBusy}" />
+          <Button Classes="quiet" Content="Open the web folder" Command="{Binding OpenImageFolderCommand}" />
+        </StackPanel>
+        <TextBlock Classes="muted" Text="{Binding ImageMessage}" TextWrapping="Wrap"
+                   IsVisible="{Binding ImageMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <ItemsControl ItemsSource="{Binding ImageResults}" IsVisible="{Binding HasImageResults}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ImageResultRow">
+              <DockPanel Margin="0,3">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Width="260" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="muted" Classes.problem="{Binding Problem}" Text="{Binding Detail}" TextWrapping="Wrap" />
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
   </StackPanel>
 </UserControl>

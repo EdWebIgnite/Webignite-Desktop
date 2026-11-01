@@ -14,7 +14,46 @@ public partial class ToolsView : UserControl
     private string? colourBeforePicking;
     private DateTime pickingSince;
 
-    public ToolsView() => InitializeComponent();
+    public ToolsView()
+    {
+        InitializeComponent();
+        ImageDrop.AddHandler(DragDrop.DragOverEvent, ImagesOver);
+        ImageDrop.AddHandler(DragDrop.DropEvent, ImagesDropped);
+    }
+
+    private async void ChooseImages(object? sender, RoutedEventArgs e)
+    {
+        if (Tools is not { } tools || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose images to make smaller",
+            AllowMultiple = true,
+            FileTypeFilter = [new FilePickerFileType("Images") { Patterns = ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.gif", "*.bmp"] }],
+        });
+        await tools.ShrinkImagesAsync(files.Select(f => f.TryGetLocalPath()).OfType<string>());
+    }
+
+    private void ImagesOver(object? sender, DragEventArgs e) =>
+        e.DragEffects = e.DataTransfer.Contains(DataFormat.File) && Tools is { ImagesBusy: false } ? DragDropEffects.Copy : DragDropEffects.None;
+
+    private async void ImagesDropped(object? sender, DragEventArgs e)
+    {
+        if (Tools is not { ImagesBusy: false } tools || e.DataTransfer.TryGetFiles() is not { } items)
+            return;
+        // A dropped folder brings the images directly inside it.
+        var paths = new List<string>();
+        foreach (var item in items)
+        {
+            if (item.TryGetLocalPath() is not { } path)
+                continue;
+            if (Directory.Exists(path))
+                paths.AddRange(Directory.EnumerateFiles(path));
+            else
+                paths.Add(path);
+        }
+        await tools.ShrinkImagesAsync(paths);
+    }
 
     private ToolsViewModel? Tools => DataContext as ToolsViewModel;
 
