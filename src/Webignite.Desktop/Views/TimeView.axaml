@@ -1,0 +1,135 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.TimeView"
+             x:DataType="vm:TimeViewModel">
+  <StackPanel Spacing="18">
+    <DockPanel>
+      <ComboBox DockPanel.Dock="Right" ItemsSource="{x:Static vm:TimeViewModel.PeriodChoices}" SelectedItem="{Binding Period}"
+                Width="150" VerticalAlignment="Bottom" />
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="Time" />
+        <TextBlock Classes="muted" Text="Time for a client, one of their projects, or nobody at all, like admin or learning." />
+      </StackPanel>
+    </DockPanel>
+
+    <!-- What it's for, then either the timer or hours typed in -->
+    <Border Classes="card">
+      <StackPanel Spacing="14">
+        <Grid ColumnDefinitions="2*,12,*,12,*">
+          <StackPanel Grid.Column="0">
+            <TextBlock Classes="label" Text="What are you working on?" />
+            <TextBox Text="{Binding Note}" PlaceholderText="e.g. Homepage layout, or Bookkeeping" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Client" />
+            <ComboBox ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding ClientChoice}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+          <StackPanel Grid.Column="4" IsEnabled="{Binding HasProjects}">
+            <TextBlock Classes="label" Text="Project" />
+            <ComboBox ItemsSource="{Binding ProjectChoices}" SelectedItem="{Binding ProjectChoice}" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="Add projects on the client's page." />
+          </StackPanel>
+        </Grid>
+
+        <Border Height="1" Background="{DynamicResource Line}" />
+
+        <DockPanel>
+          <!-- Timer -->
+          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+            <Button Classes="primary" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <c:Icon Data="{StaticResource Icon.Play}" Size="16" VerticalAlignment="Center" />
+                <TextBlock Text="Start timer" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="primary" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <c:Icon Data="{StaticResource Icon.Stop}" Size="16" VerticalAlignment="Center" />
+                <TextBlock Text="Stop" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <TextBlock Classes="figure" FontSize="22" Text="{Binding Clock}" VerticalAlignment="Center" Classes.muted="{Binding !IsRunning}" />
+            <TextBlock Classes="muted" Text="{Binding RunningFor}" VerticalAlignment="Center" IsVisible="{Binding IsRunning}"
+                       TextTrimming="CharacterEllipsis" MaxWidth="220" />
+          </StackPanel>
+
+          <!-- By hand -->
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <TextBlock Classes="muted" Text="or add" VerticalAlignment="Center" />
+            <TextBox Text="{Binding Hours}" Width="90" PlaceholderText="1:30">
+              <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding AddCommand}" />
+              </TextBox.KeyBindings>
+            </TextBox>
+            <ComboBox ItemsSource="{Binding DayChoices}" SelectedItem="{Binding Day}" Width="140" />
+            <Button Classes="quiet" Content="Add" Command="{Binding AddCommand}" />
+          </StackPanel>
+        </DockPanel>
+
+        <TextBlock Text="{Binding Message}" IsVisible="{Binding HasMessage}" Classes="muted" Classes.problem="{Binding MessageIsProblem}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Time}" Title="No time logged in this period"
+                  Text="Start the timer when you begin, or type the time in afterwards, e.g. 1:30 for yesterday." />
+
+    <!-- Totals -->
+    <Border Classes="card" IsVisible="{Binding !IsEmpty}">
+      <StackPanel Spacing="10">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Classes="h2" Text="{Binding PeriodTotal}" />
+          <TextBlock Classes="h2" Text="Where the time went" />
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding Totals}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TimeTotalRow">
+              <Grid ColumnDefinitions="*,176,90" Margin="0,4">
+                <TextBlock Grid.Column="0" Text="{Binding Label}" TextTrimming="CharacterEllipsis" Classes.muted="{Binding IsProject}"
+                           Margin="{Binding IsProject, Converter={x:Static vm:TimeIndent.Instance}}" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Height="6" CornerRadius="3" Background="{DynamicResource Surface2}" HorizontalAlignment="Left" Width="160" VerticalAlignment="Center">
+                  <Border Height="6" CornerRadius="3" Background="{DynamicResource Primary}" HorizontalAlignment="Left" Width="{Binding BarWidth}"
+                          Opacity="{Binding IsProject, Converter={x:Static vm:TimeIndent.BarOpacity}}" />
+                </Border>
+                <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Time}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <!-- Entries by day -->
+    <ItemsControl ItemsSource="{Binding Days}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:TimeDayGroup">
+          <StackPanel Spacing="6" Margin="0,0,0,18">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Classes="section" Text="{Binding Total}" Margin="0,0,16,0" />
+              <TextBlock Classes="section" Text="{Binding Title}" />
+            </DockPanel>
+            <Border Classes="card" Padding="0">
+              <ItemsControl ItemsSource="{Binding Entries}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:TimeEntryRow">
+                    <Border Classes="taskrow">
+                      <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="link" Content="✕" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Time}" VerticalAlignment="Center" Margin="12,0" FontFeatures="+tnum" />
+                        <StackPanel VerticalAlignment="Center" Spacing="1">
+                          <TextBlock Text="{Binding Who}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Note}" IsVisible="{Binding HasNote}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </DockPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Border>
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>

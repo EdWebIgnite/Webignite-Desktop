@@ -27,7 +27,20 @@ public sealed record Client
     /// <summary>When onboarding was started, for "waiting since".</summary>
     public DateOnly? OnboardingStarted { get; init; }
 
+    /// <summary>Pieces of work for this client, e.g. "New website" or "Monthly SEO", for logging time against.</summary>
+    public IReadOnlyList<ClientProject> Projects { get; init; } = [];
+
     public DateTimeOffset Created { get; init; }
+
+    public static string NewId() => Guid.CreateVersion7().ToString("N");
+}
+
+/// <summary>A piece of work for a client. Finished projects are kept for their time but no longer offered.</summary>
+public sealed record ClientProject
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public bool Finished { get; init; }
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");
 }
