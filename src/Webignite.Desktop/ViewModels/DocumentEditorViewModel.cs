@@ -121,6 +121,30 @@ public partial class DocumentEditorViewModel : ViewModelBase
         Recalculate();
     }
 
+    public bool IsQuote => Kind == DocumentKind.Quote;
+
+    /// <summary>Copy and Make invoice need something to copy.</summary>
+    public bool CanCopy => HasContent;
+
+    /// <summary>Starts a new draft of the same kind with this one's customer, lines and notes.</summary>
+    [RelayCommand]
+    private void Copy() => OpenCopy(Kind);
+
+    /// <summary>Starts a draft invoice from this quote, for when the client says yes.</summary>
+    [RelayCommand]
+    private void MakeInvoice() => OpenCopy(DocumentKind.Invoice);
+
+    private void OpenCopy(DocumentKind kind)
+    {
+        if (!HasContent)
+            return;
+        if (IsEditable)
+            Save();
+        var source = stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = Build() };
+        var copy = services.Store.Save(DocumentCopies.Copy(source, kind, services.DocumentSettings, DateOnly.FromDateTime(DateTime.Today)));
+        services.OpenDocument?.Invoke(copy);
+    }
+
     /// <summary>Saves to this PC. Works even when the document isn't finished yet.</summary>
     [RelayCommand]
     private void Save()
@@ -169,6 +193,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         DueText = doc.DueOrExpiryDate?.ToString("d MMM yyyy") ?? "";
         SaveState = "";
 
+        OnPropertyChanged(nameof(CanCopy));
         Problems.Clear();
         foreach (var problem in DocumentValidator.Validate(doc))
             Problems.Add(problem);

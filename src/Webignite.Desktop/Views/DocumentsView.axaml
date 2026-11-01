@@ -17,7 +17,22 @@
       <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{Binding EmptyIcon, Converter={x:Static c:IconConverter.Instance}}"
                     Title="{Binding EmptyTitle}" Text="{Binding EmptyText}" ActionText="{Binding NewLabel}" Command="{Binding NewCommand}" />
 
-      <Border Classes="card" Padding="0" IsVisible="{Binding !IsEmpty}">
+      <!-- Search and filters -->
+      <DockPanel IsVisible="{Binding HasAny}">
+        <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding Summary}" VerticalAlignment="Center" Margin="12,0,0,0" />
+        <Button DockPanel.Dock="Right" Classes="link" Content="Clear" Command="{Binding ClearFiltersCommand}"
+                IsVisible="{Binding IsFiltered}" VerticalAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox Text="{Binding Search}" Width="300" PlaceholderText="Search by customer, number, line or amount" />
+          <ComboBox ItemsSource="{x:Static vm:DocumentsViewModel.ShowChoices}" SelectedItem="{Binding ShowChoice}" Width="160" />
+          <ComboBox ItemsSource="{x:Static vm:DocumentsViewModel.PeriodChoices}" SelectedItem="{Binding PeriodChoice}" Width="150" />
+        </StackPanel>
+      </DockPanel>
+
+      <c:EmptyState IsVisible="{Binding NoMatches}" Icon="{StaticResource Icon.Search}" Title="Nothing matches"
+                    Text="Try fewer words, or pick Everything and Any date." ActionText="Clear the filters" Command="{Binding ClearFiltersCommand}" />
+
+      <Border Classes="card" Padding="0" IsVisible="{Binding ShowTable}">
         <StackPanel>
           <!-- The heading row is padded like the rows below it, so each title sits over its column. -->
           <Border Background="{DynamicResource TableHead}" Height="36" Padding="12,0">

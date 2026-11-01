@@ -191,6 +191,12 @@ public partial class MainViewModel : ViewModelBase
             }
             return true;
         };
+        services.OpenDocument = stored =>
+        {
+            var list = stored.Document.Kind == DocumentKind.Quote ? Quotes : Invoices;
+            Selected = Modules.Single(m => m.Page == list);
+            list.OpenDocument(stored);
+        };
         services.OpenClient = client =>
         {
             Selected = Modules.Single(m => m.Title == "Clients");

@@ -216,6 +216,9 @@ public sealed class AppServices(LocalStore store) : IDisposable
         return addressBook;
     }
 
+    /// <summary>Opens a quote or invoice on its own page, e.g. a copy just made.</summary>
+    public Action<Webignite.Core.Documents.StoredDocument>? OpenDocument { get; set; }
+
     /// <summary>Opens a client's page.</summary>
     public Action<Webignite.Core.Clients.Client>? OpenClient { get; set; }
 
