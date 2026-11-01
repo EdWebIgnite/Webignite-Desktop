@@ -310,6 +310,32 @@ Save("tools-calculator-invoice");
 vm.Invoices.Editor!.Lines[0].Price = "3 x 650";
 Save("invoice-sum");
 
+// Site check, with made-up results (no network here)
+Open("Site check");
+vm.SiteCheck.Show("karoocoffee.co.za", Webignite.Core.Web.DomainReport.Build(new Webignite.Core.Web.DomainLookup
+{
+    Domain = "karoocoffee.co.za",
+    Today = DateOnly.FromDateTime(DateTime.Today),
+    Addresses = ["41.203.18.10"],
+    NameServers = ["ns1.host-h.net", "ns2.dns-h.com"],
+    MailServers = ["10 karoocoffee-co-za.mail.host-h.net"],
+    Txt = ["v=spf1 include:spf.host-h.net ~all"],
+    CertificateExpires = DateTimeOffset.Now.AddDays(9),
+    CertificateIssuer = "Let's Encrypt",
+    RdapJson = $$"""{"events":[{"eventAction":"expiration","eventDate":"{{DateTime.Today.AddDays(200):yyyy-MM-dd}}T00:00:00Z"}],"entities":[{"roles":["registrar"],"vcardArray":["vcard",[["fn",{},"text","xneelo (Pty) Ltd"]]]}]}""",
+}), "https://karoocoffee.co.za/", Webignite.Core.Web.SpeedReport.Parse("""
+    {"lighthouseResult":{"categories":{"performance":{"score":0.47}},"audits":{
+      "largest-contentful-paint":{"displayValue":"5.8 s","numericValue":5800},
+      "first-contentful-paint":{"displayValue":"1.6 s","numericValue":1600},
+      "total-blocking-time":{"displayValue":"280 ms","numericValue":280},
+      "cumulative-layout-shift":{"displayValue":"0.04","numericValue":0.04},
+      "speed-index":{"displayValue":"3.9 s","numericValue":3900},
+      "modern-image-formats":{"title":"Serve images in modern formats","details":{"type":"opportunity","overallSavingsMs":2400}},
+      "offscreen-images":{"title":"Defer offscreen images","details":{"type":"opportunity","overallSavingsMs":1100}},
+      "render-blocking-resources":{"title":"Eliminate render-blocking resources","details":{"type":"opportunity","overallSavingsMs":620}}}}}
+    """));
+Save("site-check");
+
 // Ctrl+K search
 vm.Search.Show();
 vm.Search.Query = "karoo";
