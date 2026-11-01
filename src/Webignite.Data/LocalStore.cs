@@ -107,6 +107,12 @@ public sealed partial class LocalStore : IDisposable
                 payload BLOB NOT NULL,
                 PRIMARY KEY (account_id, folder, uid)
             );
+            CREATE TABLE IF NOT EXISTS time_entries (
+                id TEXT PRIMARY KEY,
+                date TEXT NOT NULL,
+                payload BLOB NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS time_entries_date ON time_entries (date);
             CREATE TABLE IF NOT EXISTS settings (
                 name TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
@@ -565,6 +571,7 @@ public sealed partial class LocalStore : IDisposable
             ("SELECT id, payload FROM clients LIMIT 1", "client:"),
             ("SELECT id, payload FROM tasks LIMIT 1", "task:"),
             ("SELECT id, payload FROM entries LIMIT 1", "entry:"),
+            ("SELECT id, payload FROM time_entries LIMIT 1", "time:"),
         };
         foreach (var (sql, prefix) in samples)
         {

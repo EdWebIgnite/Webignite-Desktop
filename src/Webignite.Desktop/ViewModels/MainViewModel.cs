@@ -143,6 +143,7 @@ public partial class MainViewModel : ViewModelBase
         };
         paymentTimer.Start();
         Markup = new MarkupViewModel(services);
+        Time = new TimeViewModel(services);
         // The sidebar, in groups. Headings sit between the groups; the pages keep the order shown here.
         object[] nav =
         [
@@ -162,6 +163,7 @@ public partial class MainViewModel : ViewModelBase
             new Module("To-do", Todo, "Todo"),
             new Module("Calendar", new CalendarViewModel(services), "Calendar"),
             new Module("Planner", new PlannerViewModel(services), "Planner"),
+            new Module("Time", Time, "Time"),
             new NavHeading("WEB TOOLS"),
             new Module("Site check", SiteCheck, "SiteCheck"),
             new Module("Mark-up", Markup, "Markup"),
@@ -244,6 +246,9 @@ public partial class MainViewModel : ViewModelBase
 
     public QuickSearchViewModel Search { get; }
 
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void OpenTime() => Selected = Modules.Single(m => m.Page == Time);
+
     private void OpenHit(Webignite.Core.Search.SearchHit hit)
     {
         Module Page(string title) => Modules.Single(m => m.Title == title);
@@ -283,6 +288,7 @@ public partial class MainViewModel : ViewModelBase
     public ToolsViewModel Tools { get; }
     public SiteCheckViewModel SiteCheck { get; }
     public MarkupViewModel Markup { get; }
+    public TimeViewModel Time { get; }
     public IReadOnlyList<Module> Modules { get; }
 
     /// <summary>What the sidebar lists: the pages, with group headings between them.</summary>
@@ -317,6 +323,7 @@ public partial class MainViewModel : ViewModelBase
             case RetainersViewModel retainers: retainers.Refresh(); break;
             case RenewalsViewModel renewals: renewals.Refresh(); break;
             case TodoViewModel todo: todo.Refresh(); break;
+            case TimeViewModel time: time.Refresh(); break;
             case CalendarViewModel calendar: calendar.Refresh(); break;
             case PlannerViewModel planner: planner.Refresh(); break;
             case OverviewViewModel overview: overview.Refresh(); break;
