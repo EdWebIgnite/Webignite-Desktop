@@ -35,6 +35,18 @@ public partial class MainWindow : Window
             services.ShowNote = ShowNote;
     }
 
+    // Group headings in the sidebar are only labels: they can't be picked, hovered or reached with the arrow keys.
+    private void PrepareNavItem(object? sender, ContainerPreparedEventArgs e)
+    {
+        if (e.Container is not ListBoxItem item || DataContext is not MainViewModel main)
+            return;
+        var heading = main.NavItems[e.Index] is NavHeading;
+        item.Classes.Set("heading", heading);
+        item.Classes.Set("gap", main.NavItems[e.Index] is NavHeading { Title.Length: 0 });
+        item.IsEnabled = !heading;
+        item.Focusable = !heading;
+    }
+
     private QuickSearchViewModel? Search => (DataContext as MainViewModel)?.Search;
 
     private void SearchKeys(object? sender, KeyEventArgs e)

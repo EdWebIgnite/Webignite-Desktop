@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Webignite.Desktop.ViewModels"
         xmlns:search="using:Webignite.Core.Search"
+        xmlns:c="using:Webignite.Desktop.Controls"
         x:Class="Webignite.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/icon.png"
@@ -16,42 +17,49 @@
   <Grid ColumnDefinitions="232,*">
 
     <!-- Sidebar -->
-    <Border Grid.Column="0" Background="{StaticResource Nav}" Padding="14,18">
+    <Border Grid.Column="0" Background="{DynamicResource Nav}" Padding="14,18">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Margin="6,0,6,22" Spacing="2">
-          <TextBlock Text="Webignite" FontSize="20" FontWeight="Bold" Foreground="{StaticResource NavText}" />
-          <TextBlock Text="Quotes, invoices and more" FontSize="12" Foreground="{StaticResource NavMuted}" />
-          <Button Classes="navsearch" Margin="0,14,0,0" HorizontalAlignment="Stretch" Command="{Binding Search.ShowCommand}">
+        <StackPanel DockPanel.Dock="Top" Margin="6,0,6,12" Spacing="2">
+          <TextBlock Text="Webignite" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource NavText}" />
+          <TextBlock Text="Quotes, invoices and more" FontSize="12" Foreground="{DynamicResource NavMuted}" />
+          <Button Classes="navsearch" Margin="0,12,0,0" HorizontalAlignment="Stretch" Command="{Binding Search.ShowCommand}">
             <DockPanel>
-              <TextBlock DockPanel.Dock="Right" Text="Ctrl+K" FontSize="11" Foreground="{StaticResource NavMuted}" VerticalAlignment="Center" />
-              <TextBlock Text="Search" Foreground="{StaticResource NavMuted}" />
+              <TextBlock DockPanel.Dock="Right" Text="Ctrl+K" FontSize="11" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+              <c:Icon Classes="navicon" Data="{StaticResource Icon.Search}" Size="16" Foreground="{DynamicResource NavMuted}" Margin="0,0,10,0" VerticalAlignment="Center" />
+              <TextBlock Text="Search" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
             </DockPanel>
           </Button>
         </StackPanel>
 
-        <StackPanel DockPanel.Dock="Bottom" Margin="6,12,6,0" Spacing="6">
+        <StackPanel DockPanel.Dock="Bottom" Margin="6,8,6,0" Spacing="6">
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                  Background="{StaticResource NavSelected}" IsVisible="{Binding Updates.IsReady}"
+                  Background="{DynamicResource NavSelected}" IsVisible="{Binding Updates.IsReady}"
                   Command="{Binding Updates.RestartCommand}"
                   Content="{Binding Updates.ReadyVersion, StringFormat='Update to {0}: restart'}" />
-          <TextBlock FontSize="11" Foreground="{StaticResource NavMuted}" Text="Runs on this PC. Your data stays here." TextWrapping="Wrap" />
-          <TextBlock FontSize="11" Foreground="{StaticResource NavMuted}" Text="{Binding Updates.VersionText}" />
+          <TextBlock FontSize="11" Foreground="{DynamicResource NavMuted}" TextWrapping="Wrap"
+                     Text="{Binding Updates.VersionText, StringFormat='{}{0} · Data stays on this PC'}" />
         </StackPanel>
 
-        <ListBox Classes="nav" ItemsSource="{Binding Modules}" SelectedItem="{Binding Selected}">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:Module">
+        <ListBox x:Name="Nav" Classes="nav" ItemsSource="{Binding NavItems}" SelectedItem="{Binding SelectedNav}"
+                 ContainerPrepared="PrepareNavItem" ScrollViewer.VerticalScrollBarVisibility="Hidden">
+          <ListBox.DataTemplates>
+            <DataTemplate DataType="vm:NavHeading">
+              <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" />
+            </DataTemplate>
+            <DataTemplate DataType="vm:Module">
               <DockPanel>
                 <Border DockPanel.Dock="Right" Classes="tag" IsVisible="{Binding IsLater}">
-                  <TextBlock Text="Later" FontSize="11" Foreground="{StaticResource NavMuted}" />
+                  <TextBlock Text="Later" FontSize="11" Foreground="{DynamicResource NavMuted}" />
                 </Border>
                 <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasBadge}">
                   <TextBlock Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold" />
                 </Border>
+                <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
+                        Margin="0,0,12,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>
-          </ListBox.ItemTemplate>
+          </ListBox.DataTemplates>
         </ListBox>
       </DockPanel>
     </Border>
@@ -63,13 +71,13 @@
     <ContentControl Grid.Column="1" Content="{Binding Selected.FullPage}" IsVisible="{Binding Selected.FullBleed}" />
 
     <!-- Ctrl+K search, over everything -->
-    <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{StaticResource Scrim}" PointerPressed="CloseSearch">
+    <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{DynamicResource Scrim}" PointerPressed="CloseSearch">
       <Border Classes="card" Width="640" VerticalAlignment="Top" Margin="0,90,0,0" Padding="0" PointerPressed="KeepSearchOpen"
               BoxShadow="0 12 32 0 #401C1D21">
         <DockPanel>
           <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Classes="search" Text="{Binding Search.Query}" KeyDown="SearchKeys"
                    PlaceholderText="Find a client, quote, invoice, mail, to-do or domain" BorderThickness="0" Padding="18,14" FontSize="16" />
-          <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource Line}" />
+          <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource Line}" />
           <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="18,12" IsVisible="{Binding Search.ShowHint}"
                      Text="Type a name, an invoice number, a subject or a domain. Enter opens, Esc closes." TextWrapping="Wrap" />
           <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="18,12" IsVisible="{Binding Search.NothingFound}" Text="Nothing found." />

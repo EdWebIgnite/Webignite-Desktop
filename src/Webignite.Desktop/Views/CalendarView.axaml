@@ -17,7 +17,7 @@
     <!-- Month grid -->
     <Border Grid.Row="1" Grid.Column="0" Classes="card" Padding="0" ClipToBounds="True" VerticalAlignment="Top">
       <StackPanel>
-        <ItemsControl ItemsSource="{x:Static vm:CalendarViewModel.WeekdayNames}" Background="{StaticResource TableHead}">
+        <ItemsControl ItemsSource="{x:Static vm:CalendarViewModel.WeekdayNames}" Background="{DynamicResource TableHead}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>

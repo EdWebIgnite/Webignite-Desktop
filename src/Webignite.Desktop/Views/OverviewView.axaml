@@ -56,7 +56,7 @@
       <StackPanel Spacing="10">
         <DockPanel>
           <TextBlock DockPanel.Dock="Right" Text="{Binding OverdueText}" IsVisible="{Binding HasOverdue}"
-                     Foreground="{StaticResource Attention}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                     Foreground="{DynamicResource Attention}" FontWeight="SemiBold" VerticalAlignment="Center" />
           <TextBlock Classes="h2" Text="Today" />
         </DockPanel>
         <TextBlock Classes="muted" Text="Nothing booked or due today." IsVisible="{Binding TodayIsEmpty}" />

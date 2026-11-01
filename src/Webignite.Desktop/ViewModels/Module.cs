@@ -6,9 +6,12 @@ namespace Webignite.Desktop.ViewModels;
 /// One entry in the sidebar. The app is a shell of modules, so Mail and later tools slot in as
 /// another entry without touching the rest.
 /// </summary>
-public sealed partial class Module(string title, ViewModelBase page, bool isLater = false, bool fullBleed = false) : ObservableObject
+public sealed partial class Module(string title, ViewModelBase page, string icon, bool isLater = false, bool fullBleed = false) : ObservableObject
 {
     public string Title { get; } = title;
+
+    /// <summary>The key of its line icon in Styles/Icons.axaml, without the "Icon." in front.</summary>
+    public string Icon { get; } = icon;
     public ViewModelBase Page { get; } = page;
     public bool IsLater { get; } = isLater;
     public bool FullBleed { get; } = fullBleed;
@@ -27,3 +30,6 @@ public sealed partial class Module(string title, ViewModelBase page, bool isLate
     public ViewModelBase? ScrollingPage => FullBleed ? null : Page;
     public ViewModelBase? FullPage => FullBleed ? Page : null;
 }
+
+/// <summary>A small heading between groups of pages in the sidebar. It can't be picked.</summary>
+public sealed record NavHeading(string Title);

@@ -43,7 +43,7 @@
     <!-- Lines -->
     <Border Classes="card" Padding="0" IsEnabled="{Binding IsEditable}">
       <StackPanel>
-        <Grid ColumnDefinitions="*,90,130,130,44" Background="{StaticResource TableHead}" Height="36">
+        <Grid ColumnDefinitions="*,90,130,130,44" Background="{DynamicResource TableHead}" Height="36">
           <TextBlock Grid.Column="0" Classes="label" Text="Description" Margin="20,0,0,0" VerticalAlignment="Center" />
           <TextBlock Grid.Column="1" Classes="label" Text="Qty" Margin="8,0" VerticalAlignment="Center" />
           <TextBlock Grid.Column="2" Classes="label" Text="Price" Margin="8,0" VerticalAlignment="Center" />
@@ -155,7 +155,7 @@
           <TextBlock TextWrapping="Wrap" Text="{Binding XeroStatus}" Classes.problem="{Binding XeroStatusIsProblem}" />
         </Border>
         <Border Classes="ready" IsVisible="{Binding IsVerified}">
-          <TextBlock Foreground="{StaticResource Ok}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding XeroStatus}" />
+          <TextBlock Foreground="{DynamicResource Ok}" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding XeroStatus}" />
         </Border>
         <Border Classes="ready">
           <Border.IsVisible>
@@ -164,7 +164,7 @@
               <Binding Path="IsEditable" />
             </MultiBinding>
           </Border.IsVisible>
-          <TextBlock Foreground="{StaticResource Ok}" FontWeight="SemiBold" Text="Everything adds up. Ready for Xero." />
+          <TextBlock Foreground="{DynamicResource Ok}" FontWeight="SemiBold" Text="Everything adds up. Ready for Xero." />
         </Border>
       </StackPanel>
 
@@ -178,7 +178,7 @@
             <TextBlock Classes="muted" Text="VAT" />
             <TextBlock Classes="amount muted" Text="Not registered" />
           </DockPanel>
-          <Border Height="1" Background="{StaticResource Line}" />
+          <Border Height="1" Background="{DynamicResource Line}" />
           <DockPanel>
             <TextBlock FontWeight="SemiBold" Text="Total" />
             <TextBlock Classes="amount" FontSize="20" FontWeight="SemiBold" Text="{Binding Total}" />

@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.ReportsView"
              x:DataType="vm:ReportsViewModel">
   <StackPanel Spacing="18">
@@ -9,9 +10,8 @@
       <TextBlock Classes="muted" Text="Worked out from what you enter under Money." />
     </StackPanel>
 
-    <Border Classes="card" IsVisible="{Binding IsEmpty}">
-      <TextBlock Classes="muted" TextWrapping="Wrap" Text="Nothing to report yet. Add money received and expenses under Money, and the months fill in here." />
-    </Border>
+    <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Reports}" Title="Nothing to report yet"
+                  Text="Add money received and expenses under Money, and the months fill in here." />
 
     <StackPanel Spacing="18" IsVisible="{Binding !IsEmpty}">
       <Border Classes="card">
@@ -40,17 +40,17 @@
           <DockPanel Margin="20,16,20,10">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
               <StackPanel Orientation="Horizontal" Spacing="6">
-                <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource InvoiceTint}" />
+                <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource InvoiceTint}" />
                 <TextBlock Classes="muted" FontSize="12" Text="Received" />
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="6">
-                <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource Line2}" />
+                <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource Line2}" />
                 <TextBlock Classes="muted" FontSize="12" Text="Expenses" />
               </StackPanel>
             </StackPanel>
             <TextBlock Classes="h2" Text="Month by month" />
           </DockPanel>
-          <Border Background="{StaticResource TableHead}" Height="36" Padding="20,0">
+          <Border Background="{DynamicResource TableHead}" Height="36" Padding="20,0">
             <Grid ColumnDefinitions="80,240,*,*,*">
               <TextBlock Grid.Column="0" Classes="label" Text="Month" VerticalAlignment="Center" />
               <TextBlock Grid.Column="2" Classes="label" Text="Received" Margin="8,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
@@ -65,8 +65,8 @@
                   <Grid ColumnDefinitions="80,240,*,*,*">
                     <TextBlock Grid.Column="0" Text="{Binding Month}" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                      <Border Height="7" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding ReceivedBar}" Background="{StaticResource InvoiceTint}" />
-                      <Border Height="7" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding ExpensesBar}" Background="{StaticResource Line2}" />
+                      <Border Height="7" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding ReceivedBar}" Background="{DynamicResource InvoiceTint}" />
+                      <Border Height="7" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding ExpensesBar}" Background="{DynamicResource Line2}" />
                     </StackPanel>
                     <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Received}" Margin="8,0" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="3" Classes="amount" Text="{Binding Expenses}" Margin="8,0" VerticalAlignment="Center" />
@@ -92,7 +92,7 @@
                       <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
                       <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
-                    <Border Height="5" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding Bar}" Background="{StaticResource InvoiceTint}" />
+                    <Border Height="5" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding Bar}" Background="{DynamicResource InvoiceTint}" />
                   </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -111,7 +111,7 @@
                       <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
                       <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
-                    <Border Height="5" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding Bar}" Background="{StaticResource Line2}" />
+                    <Border Height="5" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding Bar}" Background="{DynamicResource Line2}" />
                   </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

@@ -1,39 +1,44 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Webignite.Desktop.Controls">
 
   <Style Selector="Window">
-    <Setter Property="Background" Value="{StaticResource Canvas}" />
-    <Setter Property="Foreground" Value="{StaticResource Text}" />
+    <Setter Property="Background" Value="{DynamicResource Canvas}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
     <Setter Property="FontSize" Value="14" />
   </Style>
 
   <Style Selector="TextBlock.h1">
     <Setter Property="FontSize" Value="24" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource Ink}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
   </Style>
   <Style Selector="TextBlock.h2">
     <Setter Property="FontSize" Value="16" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource Ink}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
   </Style>
   <Style Selector="TextBlock.muted">
-    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
   </Style>
   <Style Selector="TextBlock.label">
-    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+  <Style Selector="TextBlock.tablehead">
+    <Setter Property="Margin" Value="8,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="TextBlock.figure">
     <Setter Property="FontSize" Value="26" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource Ink}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
     <Setter Property="FontFeatures" Value="+tnum" />
   </Style>
   <!-- More went out than came in -->
   <Style Selector="TextBlock.short">
-    <Setter Property="Foreground" Value="{StaticResource Attention}" />
+    <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
   <Style Selector="TextBlock.amount">
     <Setter Property="FontFeatures" Value="+tnum" />
@@ -41,74 +46,98 @@
   </Style>
 
   <Style Selector="Border.card">
-    <Setter Property="Background" Value="{StaticResource Surface}" />
-    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Padding" Value="20" />
   </Style>
   <Style Selector="Border.pending">
-    <Setter Property="Background" Value="{StaticResource Surface2}" />
-    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="12,10" />
   </Style>
   <Style Selector="TextBlock.problem">
-    <Setter Property="Foreground" Value="{StaticResource Attention}" />
+    <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
   <Style Selector="Border.ready">
-    <Setter Property="Background" Value="{StaticResource OkSoft}" />
-    <Setter Property="BorderBrush" Value="{StaticResource OkLine}" />
+    <Setter Property="Background" Value="{DynamicResource OkSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource OkLine}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="12,10" />
   </Style>
   <Style Selector="Button.navsearch">
-    <Setter Property="Background" Value="{StaticResource NavHover}" />
+    <Setter Property="Background" Value="{DynamicResource NavHover}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="10,7" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
   </Style>
   <Style Selector="Button.navsearch:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="{StaticResource NavSelected}" />
+    <Setter Property="Background" Value="{DynamicResource NavSelected}" />
   </Style>
   <Style Selector="Border.badge">
-    <Setter Property="Background" Value="{StaticResource NavText}" />
+    <Setter Property="Background" Value="{DynamicResource NavText}" />
     <Setter Property="CornerRadius" Value="9" />
     <Setter Property="MinWidth" Value="20" />
     <Setter Property="Padding" Value="6,1" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.badge > TextBlock">
-    <Setter Property="Foreground" Value="{StaticResource Nav}" />
+    <Setter Property="Foreground" Value="{DynamicResource Nav}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.tag">
-    <Setter Property="Background" Value="{StaticResource NavHover}" />
+    <Setter Property="Background" Value="{DynamicResource NavHover}" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="6,1" />
   </Style>
 
   <!-- Buttons: one solid primary action per screen, everything else quiet. -->
   <Style Selector="Button.primary">
-    <Setter Property="Background" Value="{StaticResource Primary}" />
-    <Setter Property="Foreground" Value="{StaticResource OnPrimary}" />
+    <Setter Property="Background" Value="{DynamicResource Primary}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Padding" Value="16,8" />
     <Setter Property="CornerRadius" Value="6" />
   </Style>
   <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{StaticResource PrimaryHover}" />
-    <Setter Property="Foreground" Value="{StaticResource OnPrimary}" />
+    <Setter Property="Background" Value="{DynamicResource PrimaryHover}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Primary}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+  </Style>
+  <!-- A primary button that can't be pressed yet stays the same shape, just faded, so the screen doesn't jump. -->
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Primary}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+  </Style>
+  <Style Selector="Button.primary:disabled">
+    <Setter Property="Opacity" Value="0.4" />
   </Style>
   <Style Selector="Button.quiet">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="{StaticResource Line2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="12,6" />
     <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Button.quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Button.quiet:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TableHead}" />
+  </Style>
+  <Style Selector="Button.quiet:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
   </Style>
   <Style Selector="Button.format">
     <Setter Property="Padding" Value="10,3" />
@@ -117,8 +146,19 @@
   </Style>
   <Style Selector="Button.link">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
     <Setter Property="Padding" Value="6,2" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Button.link:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TableHead}" />
+  </Style>
+  <Style Selector="Button.link:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
   <!-- List rows that open a document -->
@@ -126,25 +166,25 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="CornerRadius" Value="0" />
     <Setter Property="Padding" Value="12,11" />
-    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
     <Setter Property="BorderThickness" Value="0,1,0,0" />
   </Style>
   <Style Selector="Button.row:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{StaticResource Surface2}" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
   </Style>
   <Style Selector="Border.status">
-    <Setter Property="Background" Value="{StaticResource Surface2}" />
-    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Padding" Value="8,1" />
   </Style>
   <Style Selector="Border.status.done">
-    <Setter Property="Background" Value="{StaticResource OkSoft}" />
-    <Setter Property="BorderBrush" Value="{StaticResource OkLine}" />
+    <Setter Property="Background" Value="{DynamicResource OkSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource OkLine}" />
   </Style>
   <Style Selector="Border.status.done TextBlock">
-    <Setter Property="Foreground" Value="{StaticResource Ok}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ok}" />
   </Style>
   <Style Selector="Border.status.problem">
     <Setter Property="Background" Value="{StaticResource AttentionSoft}" />
@@ -157,15 +197,80 @@
   <!-- To-do -->
   <Style Selector="Border.taskrow">
     <Setter Property="Padding" Value="16,8,8,8" />
-    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
   </Style>
   <Style Selector="Border.taskrow.done TextBlock.tasktitle">
-    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
     <Setter Property="TextDecorations" Value="Strikethrough" />
   </Style>
   <Style Selector="TextBlock.label.overdue">
-    <Setter Property="Foreground" Value="{StaticResource Attention}" />
+    <Setter Property="Foreground" Value="{DynamicResource Attention}" />
+  </Style>
+
+  <!-- Section headings inside a page, e.g. "Renew soon" or "Today" above a card. -->
+  <Style Selector="TextBlock.section">
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="2,0,0,0" />
+  </Style>
+  <Style Selector="TextBlock.section.overdue">
+    <Setter Property="Foreground" Value="{DynamicResource Attention}" />
+  </Style>
+
+  <!-- Typing boxes and pickers: soft grey edge, rounded like the buttons, a dark edge while typing. -->
+  <Style Selector="TextBox, ComboBox, NumericUpDown, DatePicker, TimePicker, CalendarDatePicker, AutoCompleteBox">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="MinHeight" Value="34" />
+  </Style>
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="TextBox.search /template/ Border#PART_BorderElement">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="TextBox.search:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ComboBox:pointerover /template/ Border#Background">
+    <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="CheckBox">
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <!-- Empty pages: a quiet icon in a soft circle, a heading, one line, and the button that adds the first one. -->
+  <Style Selector="c|EmptyState">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Classes="card" Padding="32,40">
+          <StackPanel HorizontalAlignment="Center" MaxWidth="440" Spacing="8">
+            <Border Width="52" Height="52" CornerRadius="26" Background="{DynamicResource Surface2}"
+                    BorderBrush="{DynamicResource Line}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,6"
+                    IsVisible="{TemplateBinding Icon, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <c:Icon Data="{TemplateBinding Icon}" Size="24" Foreground="{DynamicResource Muted}"
+                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Classes="h2" Text="{TemplateBinding Title}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock Classes="muted" Text="{TemplateBinding Text}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                       IsVisible="{TemplateBinding Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <Button Classes="primary" Content="{TemplateBinding ActionText}" Command="{TemplateBinding Command}"
+                    HorizontalAlignment="Center" Margin="0,10,0,0"
+                    IsVisible="{TemplateBinding ActionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
   </Style>
 
   <!-- Sidebar -->
@@ -173,20 +278,50 @@
     <Setter Property="Background" Value="Transparent" />
   </Style>
   <Style Selector="ListBox.nav ListBoxItem">
-    <Setter Property="Foreground" Value="{StaticResource NavText}" />
-    <Setter Property="Padding" Value="14,9" />
-    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="Foreground" Value="{DynamicResource NavText}" />
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
     <Setter Property="CornerRadius" Value="6" />
   </Style>
+  <Style Selector="ListBox.nav ListBoxItem.heading">
+    <Setter Property="Padding" Value="12,12,12,4" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+  <!-- A heading with no words is just a little space, e.g. above Settings. -->
+  <Style Selector="ListBox.nav ListBoxItem.gap">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Height" Value="12" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem.heading:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="c|Icon.navicon">
+    <Setter Property="Opacity" Value="0.75" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem:selected c|Icon.navicon">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <!-- Sidebar options for comparing looks: no icons, or no group headings. -->
+  <Style Selector="Window.nav-noicons c|Icon.navicon">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Window.nav-noheadings ListBox.nav ListBoxItem.heading">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Height" Value="10" />
+  </Style>
+  <Style Selector="Window.nav-noheadings ListBox.nav ListBoxItem.heading /template/ ContentPresenter">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
   <Style Selector="ListBox.nav ListBoxItem:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="{StaticResource NavHover}" />
-    <Setter Property="Foreground" Value="{StaticResource NavText}" />
+    <Setter Property="Background" Value="{DynamicResource NavHover}" />
+    <Setter Property="Foreground" Value="{DynamicResource NavText}" />
   </Style>
   <Style Selector="ListBox.nav ListBoxItem:selected /template/ ContentPresenter">
-    <Setter Property="Background" Value="{StaticResource NavSelected}" />
-    <Setter Property="Foreground" Value="{StaticResource NavText}" />
+    <Setter Property="Background" Value="{DynamicResource NavSelected}" />
+    <Setter Property="Foreground" Value="{DynamicResource NavText}" />
   </Style>
   <Style Selector="ListBox.nav ListBoxItem:selected:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="{StaticResource NavSelected}" />
+    <Setter Property="Background" Value="{DynamicResource NavSelected}" />
   </Style>
 </Styles>

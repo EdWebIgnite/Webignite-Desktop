@@ -64,6 +64,12 @@ void Save(string name)
 
 Save("overview");
 
+// Empty pages, before the sample data for them exists.
+Open("Retainers");
+Save("empty-retainers");
+Open("Domains and hosting");
+Save("empty-domains");
+
 Open("Invoices");
 Save("invoices");
 

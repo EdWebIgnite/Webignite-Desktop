@@ -20,9 +20,11 @@ public partial class DocumentsViewModel : ViewModelBase
     public DocumentKind Kind { get; }
     public string Title => Kind == DocumentKind.Quote ? "Quotes" : "Invoices";
     public string NewLabel => Kind == DocumentKind.Quote ? "New quote" : "New invoice";
+    public string EmptyTitle => Kind == DocumentKind.Quote ? "No quotes yet" : "No invoices yet";
     public string EmptyText => Kind == DocumentKind.Quote
-        ? "No quotes yet. Start one here, or ask Claude or ChatGPT to prepare one."
-        : "No invoices yet. Start one here, or ask Claude or ChatGPT to prepare one.";
+        ? "Start one here, or ask Claude or ChatGPT to prepare one. It waits on this PC until you send it to Xero."
+        : "Start one here, or ask Claude or ChatGPT to prepare one. It waits on this PC until you send it to Xero.";
+    public string EmptyIcon => Kind == DocumentKind.Quote ? "Quotes" : "Invoices";
 
     public ObservableCollection<DocumentRow> Rows { get; } = [];
 

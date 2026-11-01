@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.TodoView"
              x:DataType="vm:TodoViewModel">
   <StackPanel Spacing="18">
@@ -22,12 +23,14 @@
       </DockPanel>
     </Border>
 
+    <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Todo}" Title="Nothing to do"
+                  Text="Type a to-do above and press Enter. Overdue invoices and quotes waiting on a client show up here by themselves." />
+
     <ItemsControl ItemsSource="{Binding Groups}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:TaskGroupViewModel">
           <StackPanel Spacing="6" Margin="0,0,0,18">
-            <TextBlock Classes="label" Text="{Binding Title}" FontWeight="SemiBold"
-                       Classes.overdue="{Binding IsOverdue}" />
+            <TextBlock Classes="section" Text="{Binding Title}" Classes.overdue="{Binding IsOverdue}" />
             <Border Classes="card" Padding="0">
               <ItemsControl ItemsSource="{Binding Items}">
                 <ItemsControl.ItemTemplate>
