@@ -123,6 +123,16 @@ public sealed class AppServices(LocalStore store) : IDisposable
         }
     }
 
+    /// <summary>How often mail is checked in the background, and what was already announced.</summary>
+    public Webignite.Core.Mail.MailCheckSettings MailCheckSettings
+    {
+        get => Store.GetSetting<Webignite.Core.Mail.MailCheckSettings>("mail-check") ?? new Webignite.Core.Mail.MailCheckSettings();
+        set => Store.SetSetting("mail-check", value);
+    }
+
+    /// <summary>Set by the main window: shows a note in the corner. The action runs when the note is clicked.</summary>
+    public Action<string, string, Action?>? ShowNote { get; set; }
+
     /// <summary>Mailbox passwords. Windows Credential Manager on Windows; memory only elsewhere (tests and screenshots).</summary>
     public ISecretStore Secrets { get; init; } = OperatingSystem.IsWindows() ? new WindowsSecretStore() : new MemorySecretStore();
 

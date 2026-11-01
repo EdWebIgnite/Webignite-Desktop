@@ -98,6 +98,20 @@
 
     <Border Classes="card">
       <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Mail checking" />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="Check for new mail every" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding MailCheckChoices}" SelectedItem="{Binding MailCheckMinutes}" MinWidth="80" />
+          <TextBlock Text="minutes" VerticalAlignment="Center" />
+        </StackPanel>
+        <CheckBox IsChecked="{Binding NotifyNewMail}" Content="Show a note in the corner when new mail arrives" />
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="Mail is checked while Webignite is open, on any page. The taskbar button flashes when mail comes in while the app is behind other windows." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Claude and ChatGPT" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
                    Text="They can read the mailboxes you share (set per mailbox under Mail, Manage mailboxes) and save drafts in them. They can't send, delete or move mail. You read each draft and send it yourself." />

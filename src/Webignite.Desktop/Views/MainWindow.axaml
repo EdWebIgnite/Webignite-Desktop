@@ -34,6 +34,9 @@
                 <Border DockPanel.Dock="Right" Classes="tag" IsVisible="{Binding IsLater}">
                   <TextBlock Text="Later" FontSize="11" Foreground="{StaticResource NavMuted}" />
                 </Border>
+                <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasBadge}">
+                  <TextBlock Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold" />
+                </Border>
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>

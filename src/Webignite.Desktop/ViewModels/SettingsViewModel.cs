@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Backups;
 using Webignite.Core.Documents;
+using Webignite.Core.Mail;
 using Webignite.Data;
 using Webignite.Xero.Auth;
 
@@ -24,9 +25,24 @@ public partial class SettingsViewModel : ViewModelBase
         UpdateAssistantStatus();
         LoadTemplates(services.EmailTemplates);
         UpdateBackupStatus();
+        var mailCheck = services.MailCheckSettings;
+        MailCheckMinutes = NewMail.MinuteChoices.Contains(mailCheck.Minutes) ? mailCheck.Minutes : 5;
+        NotifyNewMail = mailCheck.Notify;
         if (App.RestoredAtStart)
             BackupMessage = "The backup was restored. If mail or Xero ask, sign in again: passwords aren't kept in backups.";
     }
+
+    // Mail checking
+
+    public IReadOnlyList<int> MailCheckChoices => NewMail.MinuteChoices;
+    [ObservableProperty] public partial int MailCheckMinutes { get; set; } = 5;
+    [ObservableProperty] public partial bool NotifyNewMail { get; set; } = true;
+
+    partial void OnMailCheckMinutesChanged(int value) =>
+        services.MailCheckSettings = services.MailCheckSettings with { Minutes = value };
+
+    partial void OnNotifyNewMailChanged(bool value) =>
+        services.MailCheckSettings = services.MailCheckSettings with { Notify = value };
 
     // Backups
 

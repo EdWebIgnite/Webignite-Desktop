@@ -256,6 +256,19 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 Open("Overview");
 Save("overview");
 
+// New mail while another page is open: a count beside Mail and a note in the corner.
+var mailIds = store.ListMailAccounts().Select(a => a.Id).ToList();
+services.MailCheckSettings = new Webignite.Core.Mail.MailCheckSettings { Announced = mailIds.ToDictionary(id => id, _ => 0u) };
+_ = vm.CheckMailAsync();
+// Let the note's fade-in finish before the picture.
+for (var tick = 0; tick < 40; tick++)
+{
+    Dispatcher.UIThread.RunJobs();
+    AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+    Thread.Sleep(15);
+}
+Save("mail-new-note");
+
 void SeedMail()
 {
     var now = DateTimeOffset.Now;

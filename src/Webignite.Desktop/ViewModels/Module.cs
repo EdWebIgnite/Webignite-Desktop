@@ -1,11 +1,25 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>
 /// One entry in the sidebar. The app is a shell of modules, so Mail and later tools slot in as
 /// another entry without touching the rest.
 /// </summary>
-public sealed record Module(string Title, ViewModelBase Page, bool IsLater = false, bool FullBleed = false)
+public sealed partial class Module(string title, ViewModelBase page, bool isLater = false, bool fullBleed = false) : ObservableObject
 {
+    public string Title { get; } = title;
+    public ViewModelBase Page { get; } = page;
+    public bool IsLater { get; } = isLater;
+    public bool FullBleed { get; } = fullBleed;
+
+    /// <summary>A count shown beside the name, e.g. unread mail. Zero hides it.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBadge))]
+    public partial int Badge { get; set; }
+
+    public bool HasBadge => Badge > 0;
+
     /// <summary>Most pages scroll inside a centred column; Mail fills the window with its own panes.</summary>
     public bool Scrolls => !FullBleed;
 

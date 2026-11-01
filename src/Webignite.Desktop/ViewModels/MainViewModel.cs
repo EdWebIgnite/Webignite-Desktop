@@ -7,6 +7,60 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly AppServices services;
     private readonly Avalonia.Threading.DispatcherTimer backupTimer;
+    private readonly Avalonia.Threading.DispatcherTimer mailTimer;
+    private DateTimeOffset lastMailCheck = DateTimeOffset.MinValue;
+    private bool checkingMail;
+    private readonly Module mailModule;
+
+    /// <summary>Set by the main window: whether it's the window in front, so a note isn't shown for mail already on screen.</summary>
+    public Func<bool>? WindowIsActive { get; set; }
+
+    /// <summary>Set by the main window: makes the taskbar button flash when new mail comes in while the app is behind.</summary>
+    public Action? FlashTaskbar { get; set; }
+
+    /// <summary>Unread mail across all inboxes, shown beside Mail in the sidebar.</summary>
+    public void UpdateMailBadge() =>
+        mailModule.Badge = services.Store.ListMailAccounts().Sum(a =>
+            services.Store.ListMailFolders(a.Id).FirstOrDefault(f => f.Role == Webignite.Core.Mail.FolderRole.Inbox)?.Unread ?? 0);
+
+    /// <summary>Fetches new mail, updates the unread count and announces mail that just arrived.</summary>
+    public async Task CheckMailAsync()
+    {
+        if (checkingMail)
+            return;
+        checkingMail = true;
+        lastMailCheck = DateTimeOffset.Now;
+        try
+        {
+            await Mail.SyncAll();
+            var settings = services.MailCheckSettings;
+            var inboxes = new List<(string, IReadOnlyList<Webignite.Core.Mail.MailSummary>)>();
+            foreach (var account in services.Store.ListMailAccounts())
+            {
+                if (services.Store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == Webignite.Core.Mail.FolderRole.Inbox) is { } inbox)
+                    inboxes.Add((account.Id, services.Store.ListMailSummaries(account.Id, inbox.Path, 200)));
+            }
+            UpdateMailBadge();
+
+            var found = Webignite.Core.Mail.NewMail.Find(settings.Announced, inboxes);
+            services.MailCheckSettings = settings with { Announced = found.Announced };
+            var active = WindowIsActive?.Invoke() == true;
+            if (found.Fresh.Count == 0 || (active && Selected == mailModule))
+                return;
+            if (!active)
+                FlashTaskbar?.Invoke();
+            if (settings.Notify)
+            {
+                var (title, text) = Webignite.Core.Mail.NewMail.Note(found.Fresh);
+                var first = found.Fresh[0];
+                services.ShowNote?.Invoke(title, text, () => services.OpenMail?.Invoke(first));
+            }
+        }
+        finally
+        {
+            checkingMail = false;
+        }
+    }
 
     public UpdateViewModel Updates { get; } = new();
 
@@ -20,6 +74,14 @@ public partial class MainViewModel : ViewModelBase
         backupTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(1) };
         backupTimer.Tick += (_, _) => _ = services.BackUpAsync();
         backupTimer.Start();
+        // Mail is checked in the background every few minutes (Settings), even when another page is open.
+        mailTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        mailTimer.Tick += (_, _) =>
+        {
+            if (DateTimeOffset.Now - lastMailCheck >= Webignite.Core.Mail.NewMail.Interval(services.MailCheckSettings))
+                _ = CheckMailAsync();
+        };
+        mailTimer.Start();
         Quotes = new DocumentsViewModel(DocumentKind.Quote, services);
         Invoices = new DocumentsViewModel(DocumentKind.Invoice, services);
         Todo = new TodoViewModel(services);
@@ -41,11 +103,12 @@ public partial class MainViewModel : ViewModelBase
             new Module("Calendar", new CalendarViewModel(services)),
             new Module("Planner", new PlannerViewModel(services)),
             new Module("To approve", Approvals),
-            new Module("Mail", Mail, FullBleed: true),
+            new Module("Mail", Mail, fullBleed: true),
             new Module("Settings", new SettingsViewModel(services)),
         ];
         Selected = Modules[0];
-        var mailModule = Modules.Single(m => m.Page == Mail);
+        mailModule = Modules.Single(m => m.Page == Mail);
+        _ = CheckMailAsync();
         services.OpenMail = summary =>
         {
             Selected = mailModule;
@@ -86,6 +149,8 @@ public partial class MainViewModel : ViewModelBase
     partial void OnSelectedChanged(Module value)
     {
         services.CatchUp();
+        if (mailModule is not null)
+            UpdateMailBadge();
         switch (value.Page)
         {
             case DocumentsViewModel documents: documents.Refresh(); break;

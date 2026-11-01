@@ -41,4 +41,9 @@
 
   <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
   <Color x:Key="SystemAccentColor">#1C1D21</Color>
+
+  <!-- Notes in the window corner (new mail): white card with a soft black strip, like the sidebar. -->
+  <SolidColorBrush x:Key="NotificationCardInformationBackgroundBrush" Color="#1C1D21" />
+  <SolidColorBrush x:Key="NotificationCardBackgroundBrush" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="NotificationCardForegroundBrush" Color="#0F1A16" />
 </ResourceDictionary>
