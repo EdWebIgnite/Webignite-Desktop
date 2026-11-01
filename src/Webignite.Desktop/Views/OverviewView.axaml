@@ -33,6 +33,22 @@
       </Border>
     </UniformGrid>
 
+    <Border Classes="card" IsVisible="{Binding HasSummary}">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="h2" Text="Needs you" />
+        <ItemsControl ItemsSource="{Binding Summary}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SummaryLineViewModel">
+              <DockPanel Margin="0,0,0,6">
+                <Button DockPanel.Dock="Right" Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" Classes.problem="{Binding Problem}" />
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
     <Border Classes="card">
       <StackPanel Spacing="10">
         <DockPanel>

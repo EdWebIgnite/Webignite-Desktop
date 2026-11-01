@@ -130,6 +130,9 @@ public sealed class AppServices(LocalStore store) : IDisposable
         set => Store.SetSetting("mail-check", value);
     }
 
+    /// <summary>Set by the main window: opens a page, or a mail, from the morning summary.</summary>
+    public Action<Webignite.Core.Overview.SummaryTarget, Webignite.Core.Mail.MailSummary?>? Navigate { get; set; }
+
     /// <summary>Set by the main window: shows a note in the corner. The action runs when the note is clicked.</summary>
     public Action<string, string, Action?>? ShowNote { get; set; }
 

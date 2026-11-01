@@ -126,6 +126,24 @@ public partial class MainViewModel : ViewModelBase
             }
             return true;
         };
+        services.Navigate = (target, mail) =>
+        {
+            if (target == Webignite.Core.Overview.SummaryTarget.Mail && mail is not null)
+            {
+                services.OpenMail?.Invoke(mail);
+                return;
+            }
+            var title = target switch
+            {
+                Webignite.Core.Overview.SummaryTarget.Invoices => "Invoices",
+                Webignite.Core.Overview.SummaryTarget.Approvals => "To approve",
+                Webignite.Core.Overview.SummaryTarget.Mail => "Mail",
+                Webignite.Core.Overview.SummaryTarget.Renewals => "Domains and hosting",
+                Webignite.Core.Overview.SummaryTarget.Money => "Money",
+                _ => "Settings",
+            };
+            Selected = Modules.Single(m => m.Title == title);
+        };
         services.WriteMail = to =>
         {
             Selected = mailModule;

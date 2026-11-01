@@ -2,6 +2,10 @@ using System.Collections.ObjectModel;
 using Webignite.Core.Calendar;
 using Webignite.Core.Documents;
 using Webignite.Core.Tasks;
+using Webignite.Core.Backups;
+using Webignite.Core.Mail;
+using Webignite.Core.Overview;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -27,6 +31,10 @@ public sealed class OverviewViewModel : ViewModelBase
     public string TodayText => DateTime.Today.ToString("dddd, d MMMM");
 
     public ObservableCollection<AgendaItemViewModel> Today { get; } = [];
+
+    /// <summary>The morning summary: what needs doing, then what's good to know.</summary>
+    public ObservableCollection<SummaryLineViewModel> Summary { get; } = [];
+    public bool HasSummary => Summary.Count > 0;
     public bool TodayIsEmpty => Today.Count == 0;
     public string OverdueText { get; private set; } = "";
     public bool HasOverdue => OverdueText.Length > 0;
@@ -55,6 +63,54 @@ public sealed class OverviewViewModel : ViewModelBase
             .Where(d => d.Status == DocumentStatus.InXero && d.Document.Kind == DocumentKind.Quote && !(d.Document.DueOrExpiryDate < today))
             .Sum(d => d.Document.Total ?? 0));
 
+        Summary.Clear();
+        foreach (var line in MorningSummary.Build(SummaryInput(today, documents)))
+            Summary.Add(new SummaryLineViewModel(line, services));
+
         OnPropertyChanged(string.Empty);
     }
+
+    private SummaryInput SummaryInput(DateOnly today, IReadOnlyList<StoredDocument> documents)
+    {
+        var accounts = services.Store.ListMailAccounts();
+        var inbox = new List<MailSummary>();
+        foreach (var account in accounts)
+        {
+            if (services.Store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == FolderRole.Inbox) is { } folder)
+                inbox.AddRange(services.Store.ListMailSummaries(account.Id, folder.Path, 300));
+        }
+        var hasPassword = services.HasBackupPassword;
+        return new SummaryInput
+        {
+            Today = today,
+            Documents = documents,
+            Renewals = services.Store.ListRenewals(),
+            Entries = services.Store.ListEntries(new DateOnly(today.Year, today.Month, 1), today),
+            Inbox = inbox,
+            Clients = services.Store.ListClients(),
+            OwnAddresses = accounts.Select(a => a.Address).ToList(),
+            BackupsOn = hasPassword,
+            BackupOverdue = BackupRules.Overdue(services.BackupSettings, hasPassword, DateTimeOffset.Now),
+        };
+    }
+}
+
+/// <summary>One summary line; clicking it opens the page it's about.</summary>
+public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices services) : ViewModelBase
+{
+    public string Text => line.Text;
+    public bool Problem => line.Problem;
+
+    public string Action => line.Target switch
+    {
+        SummaryTarget.Mail => "Open mail",
+        SummaryTarget.Approvals => "Review",
+        SummaryTarget.Invoices => "Invoices",
+        SummaryTarget.Renewals => "Renewals",
+        SummaryTarget.Money => "Money",
+        _ => "Settings",
+    };
+
+    [RelayCommand]
+    private void Open() => services.Navigate?.Invoke(line.Target, line.Mail);
 }
