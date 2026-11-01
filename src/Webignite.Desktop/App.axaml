@@ -42,6 +42,7 @@
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="/Styles/Controls.axaml" />
+    <StyleInclude Source="/Styles/Motion.axaml" />
     <StyleInclude Source="/Views/AgendaChips.axaml" />
   </Application.Styles>
 </Application>

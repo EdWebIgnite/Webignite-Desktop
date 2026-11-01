@@ -1,0 +1,91 @@
+<!--
+  Movement, switched by the Motion setting (Settings). The window gets the class motion-full or motion-reduced;
+  with Off it has neither, so nothing here applies and everything changes at once.
+  Full: colours ease, cards lift a little under the mouse, empty pages rise in.
+  Reduced: colours ease quickly, nothing moves.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Webignite.Desktop.Controls">
+
+  <!-- Buttons, sidebar entries and list rows ease between colours -->
+  <Style Selector="Window.motion-full Button /template/ ContentPresenter#PART_ContentPresenter, Window.motion-full ListBoxItem /template/ ContentPresenter">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Window.motion-reduced Button /template/ ContentPresenter#PART_ContentPresenter, Window.motion-reduced ListBoxItem /template/ ContentPresenter">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.08" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <!-- Buttons dip slightly when pressed -->
+  <Style Selector="Window.motion-full Button.primary, Window.motion-full Button.quiet">
+    <Setter Property="RenderTransform" Value="none" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+        <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Window.motion-full Button.primary:pressed, Window.motion-full Button.quiet:pressed">
+    <Setter Property="RenderTransform" Value="scale(0.97)" />
+  </Style>
+
+  <!-- Cards you can click lift a touch and their shadow deepens -->
+  <Style Selector="Window.motion-full Border.lift">
+    <Setter Property="RenderTransform" Value="none" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut" />
+        <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.18" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Window.motion-full Border.lift:pointerover">
+    <Setter Property="RenderTransform" Value="translateY(-2px)" />
+    <Setter Property="BoxShadow" Value="{DynamicResource CardShadowRaised}" />
+  </Style>
+  <Style Selector="Window.motion-reduced Border.lift:pointerover">
+    <Setter Property="BoxShadow" Value="{DynamicResource CardShadowRaised}" />
+  </Style>
+
+  <!-- Empty pages rise in when they appear -->
+  <Style Selector="Window.motion-full c|EmptyState[IsVisible=True]">
+    <Style.Animations>
+      <Animation Duration="0:0:0.32" Easing="CubicEaseOut" FillMode="Forward">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="0" />
+          <Setter Property="TranslateTransform.Y" Value="12" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+          <Setter Property="TranslateTransform.Y" Value="0" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <!-- The Ctrl+K search box drops in -->
+  <Style Selector="Window.motion-full Border.searchbox">
+    <Style.Animations>
+      <Animation Duration="0:0:0.18" Easing="CubicEaseOut" FillMode="Forward">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="0" />
+          <Setter Property="TranslateTransform.Y" Value="-8" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+          <Setter Property="TranslateTransform.Y" Value="0" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+</Styles>

@@ -32,7 +32,20 @@ public partial class MainWindow : Window
                 Dispatcher.UIThread.Post(() => SearchBox.Focus(), DispatcherPriority.Input);
         };
         if (App.Services is { } services)
+        {
             services.ShowNote = ShowNote;
+            ApplyAppearance(services.Appearance);
+            services.AppearanceChanged += ApplyAppearance;
+        }
+    }
+
+    /// <summary>Motion: the window's class switches the eased styles in Styles/Motion.axaml, and pages get their fade.</summary>
+    private void ApplyAppearance(AppearanceSettings appearance)
+    {
+        Classes.Set("motion-full", appearance.Motion == Motion.Full);
+        Classes.Set("motion-reduced", appearance.Motion == Motion.Reduced);
+        ScrollingHost.PageTransition = FadeRise.For(appearance.Motion);
+        FullHost.PageTransition = FadeRise.For(appearance.Motion);
     }
 
     // Group headings in the sidebar are only labels: they can't be picked, hovered or reached with the arrow keys.
