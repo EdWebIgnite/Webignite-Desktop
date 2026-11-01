@@ -369,6 +369,30 @@ vm.SiteCheck.Show("karoocoffee.co.za", Webignite.Core.Web.DomainReport.Build(new
       "render-blocking-resources":{"title":"Eliminate render-blocking resources","details":{"type":"opportunity","overallSavingsMs":620}}}}}
     """));
 Save("site-check");
+// Watched sites, with made-up visits.
+{
+    var now = DateTimeOffset.Now;
+    var day = DateOnly.FromDateTime(DateTime.Today);
+    var watch = services.UptimeSettings with { Extra = ["webignite.co.za", "fynbosphysio.co.za", "karoocoffee.co.za"] };
+    var sites = new Dictionary<string, Webignite.Core.Web.WatchedSite>();
+    void Visit(string domain, params Webignite.Core.Web.UptimePing[] pings)
+    {
+        Webignite.Core.Web.WatchedSite? site = new() { Domain = domain, Days = [new(day.AddDays(-3), 96, 96), new(day.AddDays(-2), 96, 95), new(day.AddDays(-1), 96, 96)] };
+        foreach (var ping in pings)
+            site = Webignite.Core.Web.Uptime.Record(site, domain, ping, day).Site;
+        sites[domain] = site!;
+    }
+    Visit("bosveldbuilders.co.za", new Webignite.Core.Web.UptimePing(now, true, 200, 380, now.AddDays(71)));
+    Visit("webignite.co.za", new Webignite.Core.Web.UptimePing(now, true, 200, 290, now.AddDays(44)));
+    Visit("fynbosphysio.co.za", new Webignite.Core.Web.UptimePing(now.AddMinutes(-30), false, 503, 900, now.AddDays(40), "The site answered with a server error (503)."),
+        new(now.AddMinutes(-15), false, null, 20000, null, "The site took longer than 20 seconds to answer."));
+    Visit("karoocoffee.co.za", new Webignite.Core.Web.UptimePing(now, true, 200, 6100, now.AddDays(9)));
+    services.UptimeSettings = watch with { Sites = sites };
+    vm.SiteCheck.RefreshWatched();
+    window.Height = 1500;
+    Save("site-watch");
+    window.Height = 860;
+}
 
 // Mark-up: a made-up client home page with notes on it
 {

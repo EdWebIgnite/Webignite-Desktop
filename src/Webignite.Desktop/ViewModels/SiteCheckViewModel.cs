@@ -6,10 +6,10 @@ using Webignite.Core.Web;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>Checks a client's domain (DNS, mail set-up, certificate, registration) and how fast the site loads.</summary>
-public sealed partial class SiteCheckViewModel : ViewModelBase
+public sealed partial class SiteCheckViewModel(AppServices services) : ViewModelBase
 {
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CheckDomainCommand), nameof(TestSpeedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CheckDomainCommand), nameof(TestSpeedCommand), nameof(WatchCommand))]
     public partial string Address { get; set; } = "";
 
     [ObservableProperty]

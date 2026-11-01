@@ -8,6 +8,18 @@ public partial class MainViewModel : ViewModelBase
     private readonly AppServices services;
     private readonly Avalonia.Threading.DispatcherTimer backupTimer;
     private readonly Avalonia.Threading.DispatcherTimer mailTimer;
+    private readonly Avalonia.Threading.DispatcherTimer uptimeTimer;
+
+    /// <summary>Shows a note for each site that went down, came back, or has a certificate about to run out.</summary>
+    private void AnnounceSites(IReadOnlyList<Webignite.Core.Web.UptimeAlert> alerts)
+    {
+        foreach (var alert in alerts.Take(3))
+            services.ShowNote?.Invoke(alert.Title, alert.Text, () => Selected = Modules.Single(m => m.Page == SiteCheck));
+        if (alerts.Count > 3)
+            services.ShowNote?.Invoke($"{alerts.Count - 3} more sites changed", "Open Site check to see them.", () => Selected = Modules.Single(m => m.Page == SiteCheck));
+        if (alerts.Any(a => a.Problem) && WindowIsActive?.Invoke() != true)
+            FlashTaskbar?.Invoke();
+    }
     private DateTimeOffset lastMailCheck = DateTimeOffset.MinValue;
     private bool checkingMail;
     private readonly Module mailModule;
@@ -90,7 +102,19 @@ public partial class MainViewModel : ViewModelBase
         Mail = new MailViewModel(services);
         Approvals = new ApprovalsViewModel(services);
         Tools = new ToolsViewModel(services);
-        SiteCheck = new SiteCheckViewModel();
+        SiteCheck = new SiteCheckViewModel(services);
+        SiteCheck.Announce = AnnounceSites;
+        SiteCheck.RefreshWatched();
+        // Client websites are visited every 15 minutes while the app is open.
+        uptimeTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        uptimeTimer.Tick += async (_, _) =>
+        {
+            if (!Webignite.Core.Web.Uptime.Due(services.UptimeSettings, UptimeWatch.LastRun, DateTimeOffset.Now))
+                return;
+            AnnounceSites(await UptimeWatch.RunAsync(services));
+            SiteCheck.RefreshWatched();
+        };
+        uptimeTimer.Start();
         Markup = new MarkupViewModel(services);
         Modules =
         [
@@ -164,6 +188,7 @@ public partial class MainViewModel : ViewModelBase
                 Webignite.Core.Overview.SummaryTarget.Renewals => "Domains and hosting",
                 Webignite.Core.Overview.SummaryTarget.Money => "Money",
                 Webignite.Core.Overview.SummaryTarget.Clients => "Clients",
+                Webignite.Core.Overview.SummaryTarget.SiteCheck => "Site check",
                 _ => "Settings",
             };
             Selected = Modules.Single(m => m.Title == title);

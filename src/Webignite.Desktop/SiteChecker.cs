@@ -137,4 +137,55 @@ public static class SiteChecker
                 : $"Google's test didn't work ({(int)response.StatusCode}). Try again later.");
         return SpeedReport.Parse(await response.Content.ReadAsStringAsync(cancel));
     }
+    /// <summary>
+    /// One visit to a site's home page for the uptime watch: did it answer, how fast, and when the certificate
+    /// runs out. A server error (500 and up) or no answer within 20 seconds counts as down.
+    /// </summary>
+    public static async Task<UptimePing> PingAsync(string domain, CancellationToken cancel = default)
+    {
+        DateTimeOffset? expires = null;
+        var trusted = true;
+        using var handler = new SocketsHttpHandler
+        {
+            AllowAutoRedirect = true,
+            MaxAutomaticRedirections = 5,
+            ConnectTimeout = TimeSpan.FromSeconds(15),
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = (_, certificate, _, errors) =>
+                {
+                    // Only the first certificate: that's the client's own domain, before any redirect elsewhere.
+                    if (certificate is not null && expires is null)
+                    {
+                        var notAfter = certificate is X509Certificate2 full ? full.NotAfter : new X509Certificate2(certificate).NotAfter;
+                        expires = new DateTimeOffset(notAfter.ToUniversalTime(), TimeSpan.Zero);
+                        trusted = errors == SslPolicyErrors.None;
+                    }
+                    return true;
+                },
+            },
+        };
+        using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Webignite-Uptime/1.0");
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        var at = DateTimeOffset.UtcNow;
+        try
+        {
+            using var response = await client.GetAsync("https://" + domain + "/", HttpCompletionOption.ResponseHeadersRead, cancel);
+            var ms = (int)started.ElapsedMilliseconds;
+            var status = (int)response.StatusCode;
+            if (status >= 500)
+                return new(at, false, status, ms, expires, $"The site answered with a server error ({status}).");
+            return new(at, true, status, ms, expires, trusted ? null : "Browsers don't trust the certificate.");
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException)
+        {
+            if (cancel.IsCancellationRequested)
+                throw;
+            var problem = e is TaskCanceledException ? "The site took longer than 20 seconds to answer."
+                : e.InnerException is SocketException { SocketErrorCode: SocketError.HostNotFound } ? "The domain doesn't point anywhere."
+                : "The site didn't answer.";
+            return new(at, false, null, (int)started.ElapsedMilliseconds, expires, problem);
+        }
+    }
 }

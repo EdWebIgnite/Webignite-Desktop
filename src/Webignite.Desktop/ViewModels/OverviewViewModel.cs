@@ -90,6 +90,8 @@ public sealed class OverviewViewModel : ViewModelBase
             Clients = services.Store.ListClients(),
             OwnAddresses = accounts.Select(a => a.Address).ToList(),
             StatementsSent = services.StatementsSent,
+            Sites = Webignite.Core.Web.Uptime.Domains(services.Store.ListClients(), services.UptimeSettings)
+                .Select(d => services.UptimeSettings.Sites.GetValueOrDefault(d.Domain)).OfType<Webignite.Core.Web.WatchedSite>().ToList(),
             BackupsOn = hasPassword,
             BackupOverdue = BackupRules.Overdue(services.BackupSettings, hasPassword, DateTimeOffset.Now),
         };
@@ -115,6 +117,7 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
         SummaryTarget.Renewals => "Renewals",
         SummaryTarget.Money => "Money",
         SummaryTarget.Clients => line.Client is null ? "Clients" : "Open client",
+        SummaryTarget.SiteCheck => "Site check",
         _ => "Settings",
     };
 

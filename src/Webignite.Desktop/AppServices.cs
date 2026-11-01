@@ -137,6 +137,13 @@ public sealed class AppServices(LocalStore store) : IDisposable
         }
     }
 
+    /// <summary>Which websites are watched for being down or an expiring certificate, and what was found.</summary>
+    public Webignite.Core.Web.UptimeSettings UptimeSettings
+    {
+        get => Store.GetSetting<Webignite.Core.Web.UptimeSettings>("uptime") ?? new Webignite.Core.Web.UptimeSettings();
+        set => Store.SetSetting("uptime", value);
+    }
+
     /// <summary>How often mail is checked in the background, and what was already announced.</summary>
     public Webignite.Core.Mail.MailCheckSettings MailCheckSettings
     {

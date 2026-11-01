@@ -4,11 +4,12 @@ using Webignite.Core.Documents;
 using Webignite.Core.Finance;
 using Webignite.Core.Mail;
 using Webignite.Core.Renewals;
+using Webignite.Core.Web;
 
 namespace Webignite.Core.Overview;
 
 /// <summary>Which page a summary line opens.</summary>
-public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings, Chase, Statement, Clients }
+public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings, Chase, Statement, Clients, SiteCheck }
 
 /// <summary>One line of the morning summary. A problem shows in red; the rest are plain.</summary>
 public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null, string? Customer = null, Client? Client = null);
@@ -24,6 +25,8 @@ public sealed record SummaryInput
     public IReadOnlyList<Client> Clients { get; init; } = [];
     public IReadOnlyCollection<string> OwnAddresses { get; init; } = [];
     public IReadOnlyDictionary<string, DateOnly> StatementsSent { get; init; } = new Dictionary<string, DateOnly>();
+    /// <summary>Watched websites, with what the last visits found.</summary>
+    public IReadOnlyList<WatchedSite> Sites { get; init; } = [];
     public bool BackupsOn { get; init; } = true;
     public bool BackupOverdue { get; init; }
 }
@@ -58,6 +61,17 @@ public static class MorningSummary
             lines.Add(new("Backups are off. Choose a backup password in Settings.", SummaryTarget.Settings, Problem: true));
         else if (input.BackupOverdue)
             lines.Add(new("The daily backup hasn't run for more than two days. Check Settings.", SummaryTarget.Settings, Problem: true));
+
+        foreach (var site in input.Sites.Where(Uptime.IsDown).OrderBy(s => s.DownSince))
+        {
+            var since = DateOnly.FromDateTime((site.DownSince ?? site.Last!.At).ToLocalTime().DateTime);
+            lines.Add(new(since == today
+                    ? $"{site.Domain} is down. It stopped answering at {(site.DownSince ?? site.Last!.At).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)}."
+                    : $"{site.Domain} has been down since {Day(since, today)}.",
+                SummaryTarget.SiteCheck, Problem: true));
+        }
+        foreach (var site in input.Sites.Where(s => !Uptime.IsDown(s) && Uptime.CertificateProblem(s, today)))
+            lines.Add(new($"{site.Domain}: {Uptime.Certificate(site, today)}", SummaryTarget.SiteCheck, Problem: true));
 
         var chases = Chasers.Find(input.Documents, today);
         var reminders = chases.Where(c => c.Kind == ChaseKind.Reminder).ToList();
