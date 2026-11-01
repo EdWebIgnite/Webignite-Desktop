@@ -143,7 +143,7 @@ public static class Replies
     /// <summary>The plain-text version of a mail: the new text, then the earlier message quoted.</summary>
     public static string TextPart(OutgoingMail mail)
     {
-        var body = mail.Body.TrimEnd();
+        var body = MailFormat.ToText(mail.Body.TrimEnd());
         if (mail.Quote is not { } quote)
             return body;
         var earlier = quote.IsForward
@@ -156,7 +156,7 @@ public static class Replies
     public static string HtmlPart(OutgoingMail mail, string? signatureImageId = null)
     {
         var html = new StringBuilder("<div style=\"font-family: Arial, sans-serif; font-size: 10.5pt\">");
-        html.Append(MailHtml.FromText(mail.Body.TrimEnd()));
+        html.Append(MailFormat.ToHtml(mail.Body.TrimEnd()));
         if (signatureImageId is not null)
             html.Append("<p><img src=\"cid:").Append(signatureImageId).Append("\" alt=\"\" style=\"max-width:400px\"></p>");
         if (mail.Quote is { } quote)

@@ -1,0 +1,187 @@
+using System.Globalization;
+using Webignite.Core.Clients;
+using Webignite.Core.Documents;
+using Webignite.Core.Finance;
+using Webignite.Core.Mail;
+using Webignite.Core.Renewals;
+using Webignite.Core.Web;
+
+namespace Webignite.Core.Overview;
+
+/// <summary>Which page a summary line opens.</summary>
+public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings, Chase, Statement, Clients, SiteCheck }
+
+/// <summary>One line of the morning summary. A problem shows in red; the rest are plain.</summary>
+public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null, string? Customer = null, Client? Client = null);
+
+/// <summary>Everything the summary looks at, read by the app from the database.</summary>
+public sealed record SummaryInput
+{
+    public required DateOnly Today { get; init; }
+    public IReadOnlyList<StoredDocument> Documents { get; init; } = [];
+    public IReadOnlyList<Renewal> Renewals { get; init; } = [];
+    public IReadOnlyList<MoneyEntry> Entries { get; init; } = [];
+    public IReadOnlyList<MailSummary> Inbox { get; init; } = [];
+    public IReadOnlyList<Client> Clients { get; init; } = [];
+    public IReadOnlyCollection<string> OwnAddresses { get; init; } = [];
+    public IReadOnlyDictionary<string, DateOnly> StatementsSent { get; init; } = new Dictionary<string, DateOnly>();
+    /// <summary>Watched websites, with what the last visits found.</summary>
+    public IReadOnlyList<WatchedSite> Sites { get; init; } = [];
+    public bool BackupsOn { get; init; } = true;
+    public bool BackupOverdue { get; init; }
+}
+
+/// <summary>
+/// What needs Eddie today, in one place: money in, overdue invoices, things to approve, clients waiting on a
+/// reply, renewals coming up and backups. Lines that need doing come first.
+/// </summary>
+public static class MorningSummary
+{
+    /// <summary>A client mail counts as waiting for this long; older ones are left to the inbox.</summary>
+    public const int ReplyDays = 14;
+
+    public const int RenewalDays = 14;
+    private const int MaxChaseLines = 5;
+
+    private static string Days(int days) => days == 1 ? "1 day" : $"{days} days";
+
+    // Shared mail services: matching on these domains would make every Gmail sender a client.
+    private static readonly HashSet<string> SharedDomains = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "yahoo.com", "icloud.com", "me.com",
+        "mweb.co.za", "telkomsa.net", "vodamail.co.za", "webmail.co.za", "iafrica.com", "absamail.co.za", "lantic.net",
+    };
+
+    public static IReadOnlyList<SummaryLine> Build(SummaryInput input)
+    {
+        var lines = new List<SummaryLine>();
+        var today = input.Today;
+
+        if (!input.BackupsOn)
+            lines.Add(new("Backups are off. Choose a backup password in Settings.", SummaryTarget.Settings, Problem: true));
+        else if (input.BackupOverdue)
+            lines.Add(new("The daily backup hasn't run for more than two days. Check Settings.", SummaryTarget.Settings, Problem: true));
+
+        foreach (var site in input.Sites.Where(Uptime.IsDown).OrderBy(s => s.DownSince))
+        {
+            var since = DateOnly.FromDateTime((site.DownSince ?? site.Last!.At).ToLocalTime().DateTime);
+            lines.Add(new(since == today
+                    ? $"{site.Domain} is down. It stopped answering at {(site.DownSince ?? site.Last!.At).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)}."
+                    : $"{site.Domain} has been down since {Day(since, today)}.",
+                SummaryTarget.SiteCheck, Problem: true));
+        }
+        foreach (var site in input.Sites.Where(s => !Uptime.IsDown(s) && Uptime.CertificateProblem(s, today)))
+            lines.Add(new($"{site.Domain}: {Uptime.Certificate(site, today)}", SummaryTarget.SiteCheck, Problem: true));
+
+        var chases = Chasers.Find(input.Documents, today);
+        var reminders = chases.Where(c => c.Kind == ChaseKind.Reminder).ToList();
+        foreach (var chase in reminders.Take(MaxChaseLines))
+        {
+            var text = $"{chase.Number} for {chase.Customer} is {Days(chase.Days)} overdue ({Money.Rand(chase.Stored.Document.Total ?? 0)}).";
+            lines.Add(chase.Due
+                ? new(text, SummaryTarget.Chase, Problem: true, Chase: chase)
+                : new($"{text} Reminder sent {Day(DateOnly.FromDateTime(chase.Stored.Chased!.Value.ToLocalTime().DateTime), today)}.",
+                    SummaryTarget.Invoices, Problem: true));
+        }
+        if (reminders.Count > MaxChaseLines)
+            lines.Add(new($"{reminders.Count - MaxChaseLines} more overdue invoices.", SummaryTarget.Invoices, Problem: true));
+
+        foreach (var renewal in input.Renewals.Where(r => r.RenewsOn < today).OrderBy(r => r.RenewsOn))
+            lines.Add(new($"{renewal.Name} was due for renewal {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals, Problem: true));
+
+        var waiting = Approvals.Waiting(input.Documents).Count;
+        if (waiting > 0)
+            lines.Add(new(waiting == 1 ? "1 quote or invoice is waiting for your approval." : $"{waiting} quotes and invoices are waiting for your approval.",
+                SummaryTarget.Approvals));
+
+        foreach (var chase in chases.Where(c => c.Kind == ChaseKind.FollowUp).Take(MaxChaseLines))
+            lines.Add(new($"{chase.Number} for {chase.Customer} was emailed {Days(chase.Days)} ago with no answer yet.", SummaryTarget.Chase, Chase: chase));
+
+        if (Statements.IsStatementWeek(today))
+        {
+            var due = Statements.Due(input.Documents, input.StatementsSent, today);
+            foreach (var (customer, open) in due.Take(MaxChaseLines))
+                lines.Add(new($"{customer} has {Money.Rand(open)} open. Send this month's statement.", SummaryTarget.Statement, Customer: customer));
+            if (due.Count > MaxChaseLines)
+                lines.Add(new($"{due.Count - MaxChaseLines} more clients are due a statement. Open a client to draft theirs.", SummaryTarget.Clients));
+        }
+
+        lines.AddRange(WaitingOnReply(input));
+
+        foreach (var (client, days) in Onboarding.Stalled(input.Clients, today).Take(MaxChaseLines))
+        {
+            var outstanding = Onboarding.Outstanding(client);
+            var list = string.Join(", ", outstanding.Take(3).Select(w => w.Split(" (")[0].ToLowerInvariant())) + (outstanding.Count > 3 ? $", and {outstanding.Count - 3} more" : "");
+            lines.Add(new($"Nothing in from {client.Name} for {Days(days)}. Still waiting on {list}.", SummaryTarget.Clients, Client: client));
+        }
+
+        foreach (var renewal in input.Renewals.Where(r => r.RenewsOn >= today && r.RenewsOn <= today.AddDays(RenewalDays)).OrderBy(r => r.RenewsOn))
+        {
+            var who = renewal.ClientName is { Length: > 0 } client ? $" for {client}" : "";
+            lines.Add(new($"{renewal.Name}{who} renews {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals));
+        }
+
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var received = input.Entries.Where(e => e.Kind == EntryKind.Received && e.Date >= monthStart && e.Date <= today).Sum(e => e.Amount);
+        if (received > 0)
+            lines.Add(new($"{Money.Rand(received)} has come in so far in {today.ToString("MMMM", CultureInfo.InvariantCulture)}.", SummaryTarget.Money));
+
+        return lines;
+    }
+
+    /// <summary>
+    /// Mail from clients in the last two weeks that hasn't been answered, one line per person, newest first.
+    /// A sender counts as a client when the address matches the client's email, or its own domain.
+    /// </summary>
+    public static IReadOnlyList<SummaryLine> WaitingOnReply(SummaryInput input)
+    {
+        var since = input.Today.AddDays(-ReplyDays);
+        var own = new HashSet<string>(input.OwnAddresses, StringComparer.OrdinalIgnoreCase);
+        var lines = new List<SummaryLine>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var mail in input.Inbox.Where(m => !m.Answered && m.From is not null && DateOnly.FromDateTime(m.Date.LocalDateTime) >= since)
+                     .OrderByDescending(m => m.Date))
+        {
+            var from = mail.From!;
+            if (own.Contains(from.Address) || !seen.Add(from.Address) || ClientFor(from.Address, input.Clients) is not { } client)
+                continue;
+            var who = string.Equals(from.Display, client.Name, StringComparison.OrdinalIgnoreCase) ? client.Name : $"{from.Display} ({client.Name})";
+            lines.Add(new($"{who} is waiting on a reply since {Day(DateOnly.FromDateTime(mail.Date.LocalDateTime), input.Today)}: {mail.Subject}",
+                SummaryTarget.Mail, Mail: mail));
+        }
+        return lines;
+    }
+
+    public static Client? ClientFor(string address, IEnumerable<Client> clients)
+    {
+        var domain = Domain(address);
+        Client? byDomain = null;
+        foreach (var client in clients)
+        {
+            if (client.Email is not { Length: > 0 } email)
+                continue;
+            if (string.Equals(email.Trim(), address, StringComparison.OrdinalIgnoreCase))
+                return client;
+            var clientDomain = Domain(email);
+            if (byDomain is null && domain.Length > 0 && !SharedDomains.Contains(domain) && string.Equals(clientDomain, domain, StringComparison.OrdinalIgnoreCase))
+                byDomain = client;
+        }
+        return byDomain;
+    }
+
+    private static string Domain(string address) => address.LastIndexOf('@') is var at and >= 0 ? address[(at + 1)..].Trim() : "";
+
+    /// <summary>"today", "yesterday", "tomorrow", a weekday within a week, otherwise "3 November".</summary>
+    public static string Day(DateOnly day, DateOnly today) => (today.DayNumber - day.DayNumber) switch
+    {
+        0 => "today",
+        1 => "yesterday",
+        -1 => "tomorrow",
+        > -7 and < 7 => day.ToString("dddd", CultureInfo.InvariantCulture),
+        _ => day.ToString("d MMMM", CultureInfo.InvariantCulture),
+    };
+
+    /// <summary>The same with "on" where English wants it: "on Thursday", but "tomorrow".</summary>
+    public static string On(DateOnly day, DateOnly today) =>
+        Math.Abs(today.DayNumber - day.DayNumber) <= 1 ? Day(day, today) : "on " + Day(day, today);
+}

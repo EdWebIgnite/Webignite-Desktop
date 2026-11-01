@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:web="using:Webignite.Core.Web"
+             x:Class="Webignite.Desktop.Views.SiteCheckView"
+             x:DataType="vm:SiteCheckViewModel">
+  <StackPanel Spacing="18">
+    <StackPanel Spacing="4">
+      <TextBlock Classes="h1" Text="Site check" />
+      <TextBlock Classes="muted" Text="Look over a client's domain and how fast their site loads, before they ask." />
+    </StackPanel>
+
+    <Border Classes="card">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0">
+          <Button Classes="primary" Content="Check domain" Command="{Binding CheckDomainCommand}" />
+          <Button Classes="quiet" Content="Test speed" Command="{Binding TestSpeedCommand}" />
+          <Button Classes="quiet" Content="Watch it" Command="{Binding WatchCommand}"
+                  ToolTip.Tip="Check it every 15 minutes and say when it goes down" />
+        </StackPanel>
+        <TextBox Text="{Binding Address}" PlaceholderText="A domain or web address, e.g. karoocoffee.co.za" FontSize="15">
+          <TextBox.KeyBindings>
+            <KeyBinding Gesture="Enter" Command="{Binding CheckDomainCommand}" />
+          </TextBox.KeyBindings>
+        </TextBox>
+      </DockPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding DomainTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+      <StackPanel Spacing="10">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Classes="muted" Classes.problem="{Binding DomainProblem}" Text="{Binding DomainMessage}" VerticalAlignment="Center" />
+          <TextBlock Classes="h2" Text="{Binding DomainTitle}" />
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding Findings}" IsVisible="{Binding HasDomain}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="web:DomainFinding">
+              <Grid ColumnDefinitions="180,*" Margin="0,5">
+                <TextBlock Grid.Column="0" Classes="label" Text="{Binding Label}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" Classes.problem="{Binding Problem}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding SpeedTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+      <StackPanel Spacing="12">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Classes="muted" Text="Google PageSpeed, mobile" VerticalAlignment="Center" />
+          <TextBlock Classes="h2" Text="{Binding SpeedTitle}" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+        <TextBlock Classes="muted" Classes.problem="{Binding SpeedMessageProblem}" Text="{Binding SpeedMessage}" TextWrapping="Wrap"
+                   IsVisible="{Binding SpeedMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <Grid ColumnDefinitions="140,24,*" IsVisible="{Binding HasSpeed}">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Text="{Binding SpeedScore}" FontSize="48" FontWeight="Bold" Classes.problem="{Binding SpeedIsProblem}" />
+            <TextBlock Classes="muted" Text="{Binding SpeedVerdict}" />
+            <TextBlock Classes="muted" FontSize="12" Text="out of 100. 90 and up is good." TextWrapping="Wrap" />
+            <TextBlock FontSize="12" Text="{Binding SpeedChange}" TextWrapping="Wrap" Margin="0,4,0,0"
+                       IsVisible="{Binding SpeedChange, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <Button Classes="link" Content="Copy for a report" Margin="0,6,0,0" Padding="0"
+                    Command="{Binding CopyReportCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
+          </StackPanel>
+          <ItemsControl Grid.Column="2" ItemsSource="{Binding Speed.Metrics}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="web:SpeedMetric">
+                <DockPanel Margin="0,4">
+                  <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontWeight="SemiBold" Classes.problem="{Binding Problem}" />
+                  <TextBlock Text="{Binding Label}" />
+                </DockPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Grid>
+        <StackPanel Spacing="6" IsVisible="{Binding HasFixes}">
+          <TextBlock FontWeight="SemiBold" Text="What would help most" />
+          <ItemsControl ItemsSource="{Binding Speed.Fixes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" Margin="0,2" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Images are usually the biggest win. The Website images tool under Tools makes them smaller." />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
+            <CheckBox Content="Watch sites" IsChecked="{Binding WatchOn}" VerticalAlignment="Center" />
+            <Button Classes="quiet" Content="Check now" Command="{Binding CheckAllCommand}" />
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <TextBlock Classes="h2" Text="Watched sites" />
+            <TextBlock Classes="muted" Classes.problem="{Binding WatchProblem}" Text="{Binding WatchSummary}" TextWrapping="Wrap" />
+          </StackPanel>
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding Watched}" IsVisible="{Binding HasWatched}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:WatchedSiteViewModel">
+              <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="0,8">
+                <Grid ColumnDefinitions="2*,2*,70,2*,Auto">
+                  <StackPanel Grid.Column="0" Spacing="1">
+                    <TextBlock Text="{Binding Domain}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Client}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Status}" Classes.problem="{Binding Down}" TextWrapping="Wrap" />
+                    <TextBlock Classes="problem" FontSize="12" Text="{Binding Note}" TextWrapping="Wrap"
+                               IsVisible="{Binding Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Classes="muted" Text="{Binding Percent}" VerticalAlignment="Center" ToolTip.Tip="Over the last 30 days" />
+                  <TextBlock Grid.Column="3" Classes="muted" Classes.problem="{Binding CertificateProblem}" Text="{Binding Certificate}"
+                             TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <Button Grid.Column="4" Classes="link" Content="Stop watching" Command="{Binding StopCommand}" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

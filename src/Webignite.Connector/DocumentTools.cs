@@ -23,6 +23,17 @@ public sealed class DocumentTools(AssistantDocuments documents)
         [Description("How many to return, 1 to 100. Default 20.")] int limit = 20) =>
         Json(documents.List(kind, customer, limit));
 
+    [McpServerTool(Name = "list_price_list", Title = "Eddie's price list", ReadOnly = true, OpenWorld = false)]
+    [Description("Eddie's standard packages and items, each with its usual lines (description, quantity, unit price in Rand). "
+        + "Use these lines and prices when preparing a quote for one of these packages, unless Eddie says otherwise.")]
+    public string ListPriceList() =>
+        Json(documents.Prices().Select(p => new
+        {
+            p.Name,
+            Total = p.Total,
+            Lines = p.Lines.Select(l => new { l.Description, l.Quantity, UnitPrice = l.UnitPrice }),
+        }));
+
     [McpServerTool(Name = "prepare_document", Title = "Prepare a quote or invoice", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Prepares a quote or invoice for Eddie to check under To approve in Webignite. It does not go to Xero and is not "
         + "sent to the customer; Eddie approves it in the app. Amounts are in Rand with no VAT (Webignite is not VAT registered). "

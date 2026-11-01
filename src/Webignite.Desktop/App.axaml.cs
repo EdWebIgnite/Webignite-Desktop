@@ -18,10 +18,35 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            Services ??= new AppServices(LocalStore.OpenDefault());
+            if (Services is null)
+            {
+                ApplyRestoredBackup();
+                Services = new AppServices(LocalStore.OpenDefault());
+            }
             desktop.MainWindow = new MainWindow { DataContext = new MainViewModel(Services) };
-            desktop.Exit += (_, _) => Services.Dispose();
+            desktop.Exit += (_, _) =>
+            {
+                Services.Dispose();
+                // The database is closed now, so the new copy of the app can swap in a restored backup.
+                if (RestartAfterExit && Environment.ProcessPath is { } exe)
+                    System.Diagnostics.Process.Start(exe);
+            };
         }
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>Starts the app again once this copy has closed its database.</summary>
+    public static bool RestartAfterExit { get; set; }
+
+    /// <summary>Set when a backup was swapped in at start-up, so Settings can say so.</summary>
+    public static bool RestoredAtStart { get; private set; }
+
+    // A restore is staged by Settings and only swapped in here, before the database is opened.
+    private static void ApplyRestoredBackup()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        var root = DataPaths.Root();
+        RestoredAtStart = Backups.ApplyPending(root, key => { if (OperatingSystem.IsWindows()) VaultKey.Save(root, key); }, DateTimeOffset.Now);
     }
 }

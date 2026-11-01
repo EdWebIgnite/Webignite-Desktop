@@ -1,12 +1,17 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Webignite.Desktop.ViewModels"
+        xmlns:search="using:Webignite.Core.Search"
         x:Class="Webignite.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/icon.png"
         Title="Webignite"
         Width="1200" Height="780" MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+K" Command="{Binding Search.ShowCommand}" />
+  </Window.KeyBindings>
 
   <Grid ColumnDefinitions="232,*">
 
@@ -16,6 +21,12 @@
         <StackPanel DockPanel.Dock="Top" Margin="6,0,6,22" Spacing="2">
           <TextBlock Text="Webignite" FontSize="20" FontWeight="Bold" Foreground="{StaticResource NavText}" />
           <TextBlock Text="Quotes, invoices and more" FontSize="12" Foreground="{StaticResource NavMuted}" />
+          <Button Classes="navsearch" Margin="0,14,0,0" HorizontalAlignment="Stretch" Command="{Binding Search.ShowCommand}">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="Ctrl+K" FontSize="11" Foreground="{StaticResource NavMuted}" VerticalAlignment="Center" />
+              <TextBlock Text="Search" Foreground="{StaticResource NavMuted}" />
+            </DockPanel>
+          </Button>
         </StackPanel>
 
         <StackPanel DockPanel.Dock="Bottom" Margin="6,12,6,0" Spacing="6">
@@ -34,6 +45,9 @@
                 <Border DockPanel.Dock="Right" Classes="tag" IsVisible="{Binding IsLater}">
                   <TextBlock Text="Later" FontSize="11" Foreground="{StaticResource NavMuted}" />
                 </Border>
+                <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasBadge}">
+                  <TextBlock Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold" />
+                </Border>
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>
@@ -47,5 +61,34 @@
       <ContentControl Content="{Binding Selected.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
     </ScrollViewer>
     <ContentControl Grid.Column="1" Content="{Binding Selected.FullPage}" IsVisible="{Binding Selected.FullBleed}" />
+
+    <!-- Ctrl+K search, over everything -->
+    <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{StaticResource Scrim}" PointerPressed="CloseSearch">
+      <Border Classes="card" Width="640" VerticalAlignment="Top" Margin="0,90,0,0" Padding="0" PointerPressed="KeepSearchOpen"
+              BoxShadow="0 12 32 0 #401C1D21">
+        <DockPanel>
+          <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Classes="search" Text="{Binding Search.Query}" KeyDown="SearchKeys"
+                   PlaceholderText="Find a client, quote, invoice, mail, to-do or domain" BorderThickness="0" Padding="18,14" FontSize="16" />
+          <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource Line}" />
+          <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="18,12" IsVisible="{Binding Search.ShowHint}"
+                     Text="Type a name, an invoice number, a subject or a domain. Enter opens, Esc closes." TextWrapping="Wrap" />
+          <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="18,12" IsVisible="{Binding Search.NothingFound}" Text="Nothing found." />
+          <ListBox ItemsSource="{Binding Search.Results}" SelectedItem="{Binding Search.Chosen}" MaxHeight="440"
+                   Background="Transparent" Margin="6" DoubleTapped="OpenSearchHit" Tapped="OpenSearchHit">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="search:SearchHit">
+                <DockPanel Margin="4,2">
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding KindLabel}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                  <StackPanel>
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </DockPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+    </Grid>
   </Grid>
 </Window>

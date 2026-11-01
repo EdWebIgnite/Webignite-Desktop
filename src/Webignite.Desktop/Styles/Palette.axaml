@@ -23,6 +23,8 @@
   <SolidColorBrush x:Key="NavText" Color="#FFFFFF" />
   <SolidColorBrush x:Key="NavMuted" Color="#A3A6AD" />
   <SolidColorBrush x:Key="NavActive" Color="#FFFFFF" />
+  <!-- Dims the page behind the Ctrl+K search box. -->
+  <SolidColorBrush x:Key="Scrim" Color="#661C1D21" />
 
   <SolidColorBrush x:Key="Primary" Color="#1C1D21" />
   <SolidColorBrush x:Key="PrimaryHover" Color="#3A3D44" />
@@ -39,6 +41,16 @@
   <SolidColorBrush x:Key="OkSoft" Color="#E9F5EE" />
   <SolidColorBrush x:Key="OkLine" Color="#CBE6D6" />
 
+  <!-- Mark-up pens, drawn on client screenshots. Red marks what needs fixing. -->
+  <Color x:Key="MarkRed">#E03131</Color>
+  <Color x:Key="MarkYellow">#FCC419</Color>
+  <Color x:Key="MarkBlue">#1971C2</Color>
+
   <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
   <Color x:Key="SystemAccentColor">#1C1D21</Color>
+
+  <!-- Notes in the window corner (new mail): white card with a soft black strip, like the sidebar. -->
+  <SolidColorBrush x:Key="NotificationCardInformationBackgroundBrush" Color="#1C1D21" />
+  <SolidColorBrush x:Key="NotificationCardBackgroundBrush" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="NotificationCardForegroundBrush" Color="#0F1A16" />
 </ResourceDictionary>

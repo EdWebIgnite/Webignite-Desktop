@@ -40,7 +40,53 @@ public sealed record EmailTemplates
         [Trading Name]
         """);
 
+    public EmailTemplate FollowUp { get; init; } = new(
+        "Following up: quote [Quote Number] from [Trading Name]",
+        """
+        Hi [Contact First Name],
+
+        I'm following up on quote [Quote Number] for [Quote Total]. Do you have any questions, or would you like to go ahead?
+
+        The quote is valid until [Expiry Date].
+
+        Thanks,
+        [Trading Name]
+        """);
+
+    public EmailTemplate Reminder { get; init; } = new(
+        "Reminder: invoice [Invoice Number] is overdue",
+        """
+        Hi [Contact First Name],
+
+        A friendly reminder that invoice [Invoice Number] for [Amount Due] was due on [Due Date], and is now [Days Overdue] overdue.
+
+        You can view and pay it online: [Online Invoice Link]
+
+        If you've already paid, please ignore this mail, and thank you.
+
+        Thanks,
+        [Trading Name]
+        """);
+
+    public EmailTemplate Statement { get; init; } = new(
+        "Statement from [Trading Name] for [Contact Name]",
+        """
+        Hi [Contact First Name],
+
+        Here's your statement as at [Statement Date]. [Amount Due] is outstanding:
+
+        [Statement Lines]
+
+        If you've already paid, thank you, and please ignore this.
+
+        Thanks,
+        [Trading Name]
+        """);
+
     public EmailTemplate For(DocumentKind kind) => kind == DocumentKind.Quote ? Quote : Invoice;
+
+    /// <summary>The follow-up for a quote, or the reminder for an invoice.</summary>
+    public EmailTemplate ChaserFor(DocumentKind kind) => kind == DocumentKind.Quote ? FollowUp : Reminder;
 }
 
 /// <summary>What fills the placeholders, mostly read back from Xero so the email matches the PDF.</summary>
@@ -58,6 +104,13 @@ public sealed record DocumentEmailValues
     public string? Reference { get; init; }
     public string? OnlineLink { get; init; }
     public required string TradingName { get; init; }
+
+    /// <summary>For reminders: how many days past the due date.</summary>
+    public int? DaysOverdue { get; init; }
+
+    /// <summary>For statements: the unpaid invoices as text, and the date it's made.</summary>
+    public string? StatementLines { get; init; }
+    public DateOnly? StatementDate { get; init; }
 }
 
 /// <summary>A filled-in email, and any placeholder that couldn't be filled.</summary>
@@ -69,7 +122,7 @@ public static partial class DocumentEmail
     public static IReadOnlyList<string> Placeholders(DocumentKind kind) => kind == DocumentKind.Quote
         ? ["[Contact Name]", "[Contact First Name]", "[Quote Number]", "[Quote Total]", "[Expiry Date]", "[Reference]", "[Trading Name]"]
         : ["[Contact Name]", "[Contact First Name]", "[Invoice Number]", "[Invoice Total]", "[Amount Due]", "[Due Date]", "[Reference]",
-            "[Online Invoice Link]", "[Trading Name]"];
+            "[Online Invoice Link]", "[Days Overdue]", "[Trading Name]"];
 
     public static FilledEmail Fill(EmailTemplate template, DocumentEmailValues values)
     {
@@ -97,6 +150,9 @@ public static partial class DocumentEmail
                 "reference" => v.Reference ?? "",
                 "online invoice link" or "online quote link" => v.OnlineLink,
                 "trading name" or "organisation name" => v.TradingName,
+                "statement lines" => v.StatementLines,
+                "statement date" => v.StatementDate?.ToString("d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture),
+                "days overdue" => v.DaysOverdue is { } days ? (days == 1 ? "1 day" : $"{days} days") : null,
                 _ => null,
             };
             if (value is null)

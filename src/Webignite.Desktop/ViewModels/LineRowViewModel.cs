@@ -1,10 +1,14 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Webignite.Core.Documents;
+using Webignite.Core.Tools;
 
 namespace Webignite.Desktop.ViewModels;
 
-/// <summary>One editable line. Numbers are typed as text and read leniently, e.g. "1 500,50" or "R1500.50".</summary>
+/// <summary>
+/// One editable line. Numbers are typed as text and read leniently, e.g. "1 500,50" or "R1500.50". A sum such as
+/// "3.5 x 650" works too, and is replaced by its answer when the box is left.
+/// </summary>
 public partial class LineRowViewModel : ViewModelBase
 {
     private readonly Action changed;
@@ -34,6 +38,15 @@ public partial class LineRowViewModel : ViewModelBase
         changed();
     }
 
+    /// <summary>Puts the answer in place of a sum, once the box is left.</summary>
+    public void Settle()
+    {
+        if (Calculator.LooksLikeSum(Quantity) && Calculator.Evaluate(Quantity) is { Ok: true } q)
+            Quantity = Calculator.Plain(q.Value!.Value);
+        if (Calculator.LooksLikeSum(Price) && Calculator.Evaluate(Price) is { Ok: true } p)
+            Price = Calculator.Plain(Money.Cents(p.Value!.Value));
+    }
+
     public static LineRowViewModel From(Line line, Action changed) => new(changed)
     {
         Description = line.Description,
@@ -47,8 +60,8 @@ public partial class LineRowViewModel : ViewModelBase
     {
         if (IsBlank)
             return null;
-        var quantity = Money.Parse(Quantity);
-        var price = Money.Parse(Price);
+        var quantity = Calculator.Amount(Quantity);
+        var price = Calculator.Amount(Price);
         var priced = quantity is not null || price is not null;
         return new Line
         {

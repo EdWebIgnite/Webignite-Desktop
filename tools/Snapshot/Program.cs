@@ -15,8 +15,10 @@ using Webignite.Xero.Auth;
 var output = args.Length > 0 ? args[0] : "screenshots";
 Directory.CreateDirectory(output);
 var data = Directory.CreateTempSubdirectory("webignite-snapshot-").FullName;
-var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
-var services = new AppServices(store) { TokenStore = new MemoryTokenStore() };
+var snapshotKey = RandomNumberGenerator.GetBytes(32);
+var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(snapshotKey));
+var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey };
+services.BackupSettings = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
 App.Services = services;
 
 AppBuilder.Configure<App>()
@@ -30,6 +32,10 @@ Sample("Fynbos Physio", DocumentKind.Invoice, ("Monthly SEO", 1, 2800m));
 store.Save(store.List(DocumentKind.Invoice)[0] with { Status = DocumentStatus.InXero, XeroNumber = "INV-0107" });
 Sample("Bosveld Builders", DocumentKind.Quote, ("New website, 6 pages", 1, 14500m), ("Logo refresh", 1, 3200m));
 
+services.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "Website, 6 pages",
+    [new Line { Description = "Design and build, 6 pages", Quantity = 1, UnitPrice = 12500m }, new Line { Description = "Hosting, first year", Quantity = 1, UnitPrice = 2000m }]),
+    "Monthly SEO", [new Line { Description = "Monthly SEO", Quantity = 1, UnitPrice = 2800m }]),
+    "Hosting, yearly", [new Line { Description = "Website hosting, 12 months", Quantity = 1, UnitPrice = 2400m }]);
 var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();
@@ -84,6 +90,15 @@ vm.Invoices.Editor = null;
 Open("Settings");
 Save("settings");
 
+// Run synchronously here: the headless dispatcher isn't pumped while this script waits.
+services.Secrets.Write(AppServices.BackupPasswordName, "a long sample password");
+var backupAt = DateTimeOffset.Now.AddMinutes(-20);
+var backupFile = Backups.Seal(Backups.Snapshot(store), snapshotKey, "a long sample password", services.BackupFolder, backupAt, "0.2.2", 1000);
+services.BackupSettings = services.BackupSettings with { LastBackup = backupAt, LastFile = backupFile };
+var settingsPage = (SettingsViewModel)vm.Selected.Page;
+settingsPage.Refresh();
+Save("settings-backups");
+
 var today = DateOnly.FromDateTime(DateTime.Today);
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t1", Title = "Send Bosveld the sitemap for sign-off", Due = today, Created = DateTimeOffset.UtcNow });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t2", Title = "Renew webignite.co.za SSL certificate", Due = today.AddDays(3), Created = DateTimeOffset.UtcNow });
@@ -112,10 +127,23 @@ store.SaveClient(new Webignite.Core.Clients.Client
 store.SaveClient(new Webignite.Core.Clients.Client { Id = "c2", Name = "Fynbos Physio", Email = "admin@fynbosphysio.co.za" });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t6", Title = "Get photos of finished projects", Customer = "Bosveld Builders", Due = today.AddDays(4), Created = DateTimeOffset.UtcNow });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e4", Title = "Sitemap review", Date = today.AddDays(1), Start = new TimeOnly(9, 0), Customer = "Bosveld Builders" });
+var bosveld = store.ListClients().First(c => c.Name == "Bosveld Builders");
+bosveld = Webignite.Core.Clients.Onboarding.Start(bosveld, today.AddDays(-12));
+foreach (var item in new[] { "Deposit paid", "Logo (SVG or large PNG)", "Brand colours and fonts", "Sitemap signed off" })
+    bosveld = Webignite.Core.Clients.Onboarding.Tick(bosveld, item, true, today.AddDays(-9));
+var brief = Path.Combine(data, "Bosveld website brief.pdf");
+File.WriteAllText(brief, "brief");
+bosveld = Webignite.Core.Clients.ClientRecords.AddFiles(bosveld, [brief, Path.Combine(data, "Old contract.docx")], today.AddDays(-12));
+bosveld = Webignite.Core.Clients.ClientRecords.AddNote(bosveld, "Kick-off with Pieter. Six pages to start, online booking for site visits in phase two. Budget agreed at R 17 700.", today.AddDays(-12));
+bosveld = Webignite.Core.Clients.ClientRecords.AddNote(bosveld, "Pieter sent the logo on WhatsApp. Asked for the photos again.", today.AddDays(-1));
+store.SaveClient(bosveld);
 Open("Clients");
 Save("clients");
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Save("client");
+window.Height = 1250;
+Save("client-tall");
+window.Height = 860;
 vm.Clients.Detail!.BackCommand.Execute(null);
 var month = new DateOnly(today.Year, today.Month, 1);
 void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>
@@ -225,6 +253,27 @@ services.ComposeMail!(new Webignite.Core.Mail.OutgoingMail
     Attachments = [new Webignite.Core.Mail.OutgoingAttachment("Invoice INV-0111.pdf", 48_000, FilePath: pdfPath)],
 }, null, null);
 Save("invoice-email");
+// Address suggestions: type in To and check the list fills in.
+{
+    var toBox = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Avalonia.Controls.TextBox>().First(b => b.Name == "ToBox");
+    toBox.Focus();
+    Dispatcher.UIThread.RunJobs();
+    toBox.Text = "Thandi Mokoena <accounts@karoocoffee.co.za>, pie";
+    for (var tick = 0; tick < 50 && !vm.Mail.Composer!.HasSuggestions; tick++)
+    {
+        Dispatcher.UIThread.RunJobs();
+        Thread.Sleep(20);
+    }
+    Console.WriteLine("Suggested: " + string.Join(" | ", vm.Mail.Composer!.Suggestions.Select(c => c.Display)));
+    vm.Mail.Composer.AcceptSuggestion();
+    Console.WriteLine("To is now: " + vm.Mail.Composer.To);
+}
+// Formatting: what's typed, then the preview.
+vm.Mail.Composer!.Body = "Hi Thandi,\n\nHere's what I still need **before Friday**:\n- your logo\n- three photos of the shop\n- the *new* opening hours\n\nThe draft site is up at [this link](https://karoo.webignite.co.za).\n" + Webignite.Core.Mail.Replies.StartBody(invoiceBox.Signature);
+Save("mail-format");
+vm.Mail.Composer.ShowPreview = true;
+Save("mail-preview");
+vm.Mail.Composer.ShowPreview = false;
 vm.Mail.Composer!.DiscardCommand.Execute(null);
 vm.Mail.ManageMailboxesCommand.Execute(null);
 vm.Mail.Setup.Edit(invoiceBox);
@@ -244,6 +293,177 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 
 Open("Overview");
 Save("overview");
+
+// Tools: the calculator, then its answer on an invoice
+Open("Tools");
+vm.Tools.Sum = "3.5 x 650";
+vm.Tools.WorkOutCommand.Execute(null);
+vm.Tools.Sum = "14 500 + 3 200";
+vm.Tools.WorkOutCommand.Execute(null);
+vm.Tools.Sum = "2400 - 10%";
+vm.Tools.LineDescription = "Hosting, 12 months, returning client";
+Save("tools-calculator");
+vm.Tools.QrInput = "karoocoffee.co.za/menu";
+// Website images: two made-up photos, shrunk for real so the sizes are true.
+var photos = Path.Combine(data, "photos");
+Directory.CreateDirectory(photos);
+foreach (var (name, w, h) in new[] { ("Shop Front (1).jpg", 4032, 3024), ("Team photo.png", 2400, 1600) })
+{
+    using var bmp = new SkiaSharp.SKBitmap(w, h);
+    using (var c = new SkiaSharp.SKCanvas(bmp))
+    using (var paint = new SkiaSharp.SKPaint { Shader = SkiaSharp.SKShader.CreateLinearGradient(new(0, 0), new(w, h),
+               [new SkiaSharp.SKColor(232, 89, 12), new SkiaSharp.SKColor(28, 29, 33)], SkiaSharp.SKShaderTileMode.Clamp) })
+    {
+        c.DrawRect(0, 0, w, h, paint);
+        var rng = new Random(4);
+        for (var i = 0; i < 4000; i++)
+            c.DrawCircle(rng.Next(w), rng.Next(h), rng.Next(2, 30), new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor((byte)rng.Next(256), (byte)rng.Next(256), (byte)rng.Next(256)) });
+    }
+    using var img = SkiaSharp.SKImage.FromBitmap(bmp);
+    using var encoded = img.Encode(name.EndsWith(".png") ? SkiaSharp.SKEncodedImageFormat.Png : SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
+    File.WriteAllBytes(Path.Combine(photos, name), encoded.ToArray());
+}
+long shrunkBefore = 0, shrunkAfter = 0;
+foreach (var photo in Directory.GetFiles(photos).Order())
+{
+    var shrunk = ImageShrinker.Shrink(photo, new Webignite.Core.Tools.ImageJob());
+    if (shrunk.Problem is not null)
+        throw new InvalidOperationException(shrunk.Problem);
+    Console.WriteLine($"Shrunk {Path.GetFileName(photo)} to {shrunk.Output} {shrunk.Width}x{shrunk.Height}");
+    shrunkBefore += shrunk.Before;
+    shrunkAfter += shrunk.After;
+    vm.Tools.ImageResults.Add(new ImageResultRow(shrunk));
+    vm.Tools.ImageFolder = Path.GetDirectoryName(shrunk.Output);
+}
+vm.Tools.ImageMessage = $"2 images saved in the web folder: {Webignite.Core.Tools.ImageRules.Saving(shrunkBefore, shrunkAfter)}.";
+window.Height = 1700;
+Save("tools-all");
+window.Height = 860;
+vm.Tools.AddToInvoiceCommand.Execute(null);
+Save("tools-calculator-invoice");
+vm.Invoices.Editor!.Lines[0].Price = "3 x 650";
+Save("invoice-sum");
+
+// Site check, with made-up results (no network here)
+Open("Site check");
+services.SpeedHistory = new Dictionary<string, IReadOnlyList<Webignite.Core.Web.SpeedRun>>
+{
+    ["karoocoffee.co.za"] = [new(DateOnly.FromDateTime(DateTime.Today.AddDays(-29)), 38, "7.9 s")],
+};
+vm.SiteCheck.Show("karoocoffee.co.za", Webignite.Core.Web.DomainReport.Build(new Webignite.Core.Web.DomainLookup
+{
+    Domain = "karoocoffee.co.za",
+    Today = DateOnly.FromDateTime(DateTime.Today),
+    Addresses = ["41.203.18.10"],
+    NameServers = ["ns1.host-h.net", "ns2.dns-h.com"],
+    MailServers = ["10 karoocoffee-co-za.mail.host-h.net"],
+    Txt = ["v=spf1 include:spf.host-h.net ~all"],
+    CertificateExpires = DateTimeOffset.Now.AddDays(9),
+    CertificateIssuer = "Let's Encrypt",
+    Dkim = new Dictionary<string, IReadOnlyList<string>> { ["default"] = ["v=DKIM1; k=rsa; p=MIIBIjANBg"], ["google"] = [] },
+    RdapJson = $$"""{"events":[{"eventAction":"expiration","eventDate":"{{DateTime.Today.AddDays(200):yyyy-MM-dd}}T00:00:00Z"}],"entities":[{"roles":["registrar"],"vcardArray":["vcard",[["fn",{},"text","xneelo (Pty) Ltd"]]]}]}""",
+}), "https://karoocoffee.co.za/", Webignite.Core.Web.SpeedReport.Parse("""
+    {"lighthouseResult":{"categories":{"performance":{"score":0.47}},"audits":{
+      "largest-contentful-paint":{"displayValue":"5.8 s","numericValue":5800},
+      "first-contentful-paint":{"displayValue":"1.6 s","numericValue":1600},
+      "total-blocking-time":{"displayValue":"280 ms","numericValue":280},
+      "cumulative-layout-shift":{"displayValue":"0.04","numericValue":0.04},
+      "speed-index":{"displayValue":"3.9 s","numericValue":3900},
+      "modern-image-formats":{"title":"Serve images in modern formats","details":{"type":"opportunity","overallSavingsMs":2400}},
+      "offscreen-images":{"title":"Defer offscreen images","details":{"type":"opportunity","overallSavingsMs":1100}},
+      "render-blocking-resources":{"title":"Eliminate render-blocking resources","details":{"type":"opportunity","overallSavingsMs":620}}}}}
+    """));
+Save("site-check");
+// Watched sites, with made-up visits.
+{
+    var now = DateTimeOffset.Now;
+    var day = DateOnly.FromDateTime(DateTime.Today);
+    var watch = services.UptimeSettings with { Extra = ["webignite.co.za", "fynbosphysio.co.za", "karoocoffee.co.za"] };
+    var sites = new Dictionary<string, Webignite.Core.Web.WatchedSite>();
+    void Visit(string domain, params Webignite.Core.Web.UptimePing[] pings)
+    {
+        Webignite.Core.Web.WatchedSite? site = new() { Domain = domain, Days = [new(day.AddDays(-3), 96, 96), new(day.AddDays(-2), 96, 95), new(day.AddDays(-1), 96, 96)] };
+        foreach (var ping in pings)
+            site = Webignite.Core.Web.Uptime.Record(site, domain, ping, day).Site;
+        sites[domain] = site!;
+    }
+    Visit("bosveldbuilders.co.za", new Webignite.Core.Web.UptimePing(now, true, 200, 380, now.AddDays(71)));
+    Visit("webignite.co.za", new Webignite.Core.Web.UptimePing(now, true, 200, 290, now.AddDays(44)));
+    Visit("fynbosphysio.co.za", new Webignite.Core.Web.UptimePing(now.AddMinutes(-30), false, 503, 900, now.AddDays(40), "The site answered with a server error (503)."),
+        new(now.AddMinutes(-15), false, null, 20000, null, "The site took longer than 20 seconds to answer."));
+    Visit("karoocoffee.co.za", new Webignite.Core.Web.UptimePing(now, true, 200, 6100, now.AddDays(9)));
+    services.UptimeSettings = watch with { Sites = sites };
+    vm.SiteCheck.RefreshWatched();
+    window.Height = 1500;
+    Save("site-watch");
+    window.Height = 860;
+}
+
+// Mark-up: a made-up client home page with notes on it
+{
+    const int w = 1440, h = 900;
+    using var site = new SkiaSharp.SKBitmap(w, h);
+    using (var c = new SkiaSharp.SKCanvas(site))
+    {
+        c.Clear(new SkiaSharp.SKColor(250, 247, 242));
+        using var dark = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(60, 40, 30) };
+        using var orange = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(200, 110, 50) };
+        using var grey = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(205, 198, 190) };
+        c.DrawRect(0, 0, w, 90, dark);
+        using var font = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.Default, 30);
+        using var big = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.Default, 64);
+        using var white = new SkiaSharp.SKPaint { Color = SkiaSharp.SKColors.White };
+        c.DrawText("Karoo Coffee Roasters", 40, 56, font, white);
+        foreach (var (label, x) in new[] { ("Menu", 900), ("Shop", 1020), ("Visit", 1140), ("Contact", 1260) })
+            c.DrawText(label, x, 56, font, white);
+        c.DrawText("Small-batch coffee", 80, 260, big, dark);
+        c.DrawText("from the Karoo", 80, 340, big, dark);
+        c.DrawRoundRect(80, 400, 260, 70, 12, 12, orange);
+        c.DrawText("Shop now", 140, 446, font, white);
+        c.DrawRect(760, 160, 600, 420, grey);
+        for (var i = 0; i < 3; i++)
+            c.DrawRect(80 + i * 440, 640, 400, 220, grey);
+    }
+    using var encoded = SkiaSharp.SKImage.FromBitmap(site).Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+    using var siteStream = new MemoryStream(encoded.ToArray());
+    Open("Mark-up");
+    vm.Markup.Show(new Avalonia.Media.Imaging.Bitmap(siteStream));
+    var R = Webignite.Core.Tools.MarkColour.Red;
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Box, R, [new(60, 220), new(720, 360)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Pin, R, [new(730, 215)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Arrow, R, [new(560, 520), new(360, 445)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Pin, R, [new(580, 530)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Highlight, Webignite.Core.Tools.MarkColour.Yellow, [new(880, 20), new(1400, 75)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Pin, Webignite.Core.Tools.MarkColour.Blue, [new(860, 50)]));
+    vm.Markup.Pins[0].Comment = "Make the heading one line on phones";
+    vm.Markup.Pins[1].Comment = "Button should go to the shop, not the menu";
+    vm.Markup.Pins[2].Comment = "Add WhatsApp to the top menu";
+    vm.Markup.LoadClients();
+    vm.Markup.Client = vm.Markup.Clients.FirstOrDefault();
+    vm.Markup.Page = "the home page";
+    Save("markup");
+    File.WriteAllBytes(Path.Combine(output, "markup-export.png"), vm.Markup.Png()!);
+    Console.WriteLine(Webignite.Core.Tools.Markup.Mail("Karoo Coffee Roasters", "Thandi", "the home page", vm.Markup.Marks, "Webignite").Body);
+}
+
+// Ctrl+K search
+vm.Search.Show();
+vm.Search.Query = "karoo";
+Save("search");
+vm.Search.Hide();
+
+// New mail while another page is open: a count beside Mail and a note in the corner.
+var mailIds = store.ListMailAccounts().Select(a => a.Id).ToList();
+services.MailCheckSettings = new Webignite.Core.Mail.MailCheckSettings { Announced = mailIds.ToDictionary(id => id, _ => 0u) };
+_ = vm.CheckMailAsync();
+// Let the note's fade-in finish before the picture.
+for (var tick = 0; tick < 40; tick++)
+{
+    Dispatcher.UIThread.RunJobs();
+    AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+    Thread.Sleep(15);
+}
+Save("mail-new-note");
 
 void SeedMail()
 {

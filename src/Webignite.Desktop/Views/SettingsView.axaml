@@ -2,7 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.SettingsView"
-             x:DataType="vm:SettingsViewModel">
+             x:DataType="vm:SettingsViewModel"
+             x:Name="Root">
   <StackPanel Spacing="18">
     <TextBlock Classes="h1" Text="Settings" />
 
@@ -32,6 +33,81 @@
           <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.short="{Binding AccountProblem}" Text="{Binding AccountMessage}" />
         </StackPanel>
         <Button Classes="quiet" Content="Disconnect Xero" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsConnected}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Backups" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Once a day Webignite saves an encrypted copy of everything to the folder below and keeps the last 14. Pick a folder in OneDrive or on another drive, so a broken PC doesn't take the backups with it." />
+        <Border Classes.ready="{Binding !BackupProblem}" Classes.pending="{Binding BackupProblem}">
+          <TextBlock Text="{Binding BackupStatus}" TextWrapping="Wrap" Classes.problem="{Binding BackupProblem}" />
+        </Border>
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="Backup folder" />
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" Margin="8,0,0,0">
+              <Button Classes="quiet" Content="Choose folder" Click="ChooseBackupFolder" />
+              <Button Classes="link" Content="Open" Command="{Binding OpenBackupFolderCommand}" />
+            </StackPanel>
+            <TextBox Text="{Binding BackupFolder, Mode=OneWay}" IsReadOnly="True" />
+          </DockPanel>
+        </StackPanel>
+
+        <StackPanel Spacing="8" IsVisible="{Binding ShowPasswordFields}">
+          <TextBlock FontWeight="SemiBold" Text="Backup password" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="It locks every backup, and you'll need it to restore on a new PC. Write it down somewhere safe. It stays on this PC in Windows Credential Manager." />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <TextBox Width="240" PasswordChar="•" Text="{Binding NewBackupPassword}" PlaceholderText="At least 10 characters" />
+            <TextBox Width="240" PasswordChar="•" Text="{Binding RepeatBackupPassword}" PlaceholderText="Type it again" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Classes="primary" Content="Save password" Command="{Binding SaveBackupPasswordCommand}" />
+            <Button Classes="link" Content="Cancel" Command="{Binding CancelPasswordCommand}" IsVisible="{Binding HasBackupPassword}" />
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding HasBackupPassword}">
+          <Button Classes="quiet" Content="Back up now" Command="{Binding BackUpNowCommand}" IsEnabled="{Binding !BackingUp}" />
+          <Button Classes="quiet" Content="Restore a backup" Click="ChooseRestoreFile" />
+          <Button Classes="link" Content="Change backup password" Command="{Binding ChangePasswordCommand}" IsVisible="{Binding !ChangingPassword}" />
+        </StackPanel>
+
+        <Border Classes="pending" IsVisible="{Binding ShowRestore}">
+          <StackPanel Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="{Binding RestoreFileName, StringFormat='Restore {0}'}" TextWrapping="Wrap" />
+            <TextBlock FontSize="12" TextWrapping="Wrap"
+                       Text="This replaces everything in Webignite with what's in the backup. Your current data is kept aside first, so nothing is lost." />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBox Width="240" PasswordChar="•" Text="{Binding RestorePassword}" PlaceholderText="Password of that backup" />
+              <Button Classes="primary" Content="Unlock backup" Command="{Binding RestoreCommand}" />
+              <Button Classes="link" Content="Cancel" Command="{Binding CancelRestoreCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <Button Classes="primary" Content="Restart and restore" Command="{Binding RestartToRestoreCommand}" IsVisible="{Binding RestoreReady}" />
+
+        <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding BackupMessageIsProblem}"
+                   Text="{Binding BackupMessage}" IsVisible="{Binding BackupMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="Mailbox passwords and the Xero sign-in aren't in backups. After restoring on a new PC, sign in to those again." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Mail checking" />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="Check for new mail every" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding MailCheckChoices}" SelectedItem="{Binding MailCheckMinutes}" MinWidth="80" />
+          <TextBlock Text="minutes" VerticalAlignment="Center" />
+        </StackPanel>
+        <CheckBox IsChecked="{Binding NotifyNewMail}" Content="Show a note in the corner when new mail arrives" />
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="Mail is checked while Webignite is open, on any page. The taskbar button flashes when mail comes in while the app is behind other windows." />
       </StackPanel>
     </Border>
 
@@ -89,6 +165,36 @@
           <TextBox Text="{Binding QuoteBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" />
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding QuotePlaceholders}" />
         </StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="Quote follow-up, a week after sending" Margin="0,6,0,0" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding FollowUpSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding FollowUpBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" />
+        </StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="Overdue invoice reminder" Margin="0,6,0,0" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding ReminderSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding ReminderBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="Reminders can also use [Days Overdue]." />
+        </StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="Monthly statement" Margin="0,6,0,0" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding StatementSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding StatementBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                     Text="Statements use [Statement Lines], [Statement Date] and [Amount Due] for the total still owed." />
+        </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="12">
           <Button Classes="quiet" Content="Save" Command="{Binding SaveTemplatesCommand}" />
           <Button Classes="link" Content="Use Xero's standard wording" Command="{Binding ResetTemplatesCommand}" />
@@ -96,6 +202,33 @@
         </StackPanel>
         <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
                    Text="The mailbox signature goes under the message, picture included." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Price list" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Your standard packages and items. To add one, fill in the lines on a quote or invoice and click &quot;Save these lines to the price list&quot;. Saving again under the same name updates it. Claude and ChatGPT can read this list when they prepare quotes." />
+        <TextBlock Classes="muted" Text="Nothing saved yet." IsVisible="{Binding !HasPrices}" />
+        <ItemsControl ItemsSource="{Binding Prices}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:PriceRow">
+              <DockPanel Margin="0,0,0,10">
+                <Button DockPanel.Dock="Right" Classes="link" Content="Remove" VerticalAlignment="Center"
+                        Command="{Binding #Root.((vm:SettingsViewModel)DataContext).DeletePriceCommand}" CommandParameter="{Binding}" />
+                <StackPanel>
+                  <TextBlock FontWeight="SemiBold">
+                    <Run Text="{Binding Name}" />
+                    <Run Text="  " />
+                    <Run Text="{Binding Summary}" FontWeight="Normal" Foreground="{StaticResource Muted}" />
+                  </TextBlock>
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding LinesText}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </Border>
 

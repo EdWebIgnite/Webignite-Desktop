@@ -41,6 +41,9 @@ public partial class ClientsViewModel : ViewModelBase
     [RelayCommand]
     private void Open(ClientRow row) => Detail = new ClientDetailViewModel(row.Client, isNew: false, services, Close);
 
+    /// <summary>Opens a client's page, e.g. from search.</summary>
+    public void OpenClient(Client client) => Detail = new ClientDetailViewModel(client, isNew: false, services, Close);
+
     [RelayCommand]
     private void AddSuggested(string name)
     {
@@ -101,6 +104,7 @@ public sealed record ClientRow(ClientSummary Summary)
             if (quotes > 0) parts.Add(quotes == 1 ? "1 quote" : $"{quotes} quotes");
             if (invoices > 0) parts.Add(invoices == 1 ? "1 invoice" : $"{invoices} invoices");
             if (Summary.OpenTasks.Count > 0) parts.Add(Summary.OpenTasks.Count == 1 ? "1 to-do" : $"{Summary.OpenTasks.Count} to-dos");
+            if (Onboarding.InProgress(Client)) parts.Add("new site: " + Onboarding.Progress(Client));
             return parts.Count == 0 ? "Nothing yet" : string.Join(", ", parts);
         }
     }

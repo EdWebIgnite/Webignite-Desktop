@@ -15,6 +15,7 @@ builder.Services.AddSingleton(_ => LocalStore.OpenDefault());
 builder.Services.AddSingleton<ISecretStore>(_ => OperatingSystem.IsWindows() ? new WindowsSecretStore() : new MemorySecretStore());
 builder.Services.AddSingleton(sp => new MailService(sp.GetRequiredService<LocalStore>(), sp.GetRequiredService<ISecretStore>()));
 builder.Services.AddSingleton(sp => new AssistantDocuments(sp.GetRequiredService<LocalStore>()));
+builder.Services.AddSingleton(sp => new AssistantTasks(sp.GetRequiredService<LocalStore>()));
 builder.Services.AddSingleton(sp => new AssistantTools(sp.GetRequiredService<LocalStore>(), sp.GetRequiredService<MailService>()));
 
 builder.Services
@@ -25,6 +26,7 @@ builder.Services
     })
     .WithStdioServerTransport()
     .WithTools<MailTools>()
-    .WithTools<DocumentTools>();
+    .WithTools<DocumentTools>()
+    .WithTools<TaskTools>();
 
 await builder.Build().RunAsync();

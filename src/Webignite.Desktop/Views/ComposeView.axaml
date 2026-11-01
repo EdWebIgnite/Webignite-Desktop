@@ -5,6 +5,7 @@
              xmlns:html="using:TheArtOfDev.HtmlRenderer.Avalonia"
              x:Class="Webignite.Desktop.Views.ComposeView"
              x:DataType="vm:ComposeViewModel">
+  <Panel x:Name="Root" DragDrop.AllowDrop="True" Background="Transparent">
   <DockPanel>
     <!-- Header and address fields -->
     <StackPanel DockPanel.Dock="Top" Margin="24,18,24,8" Spacing="8">
@@ -26,15 +27,15 @@
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="To" VerticalAlignment="Center" />
         <Button DockPanel.Dock="Right" Classes="link" Content="Cc and Bcc" Command="{Binding ToggleCcCommand}" IsVisible="{Binding !ShowCc}" />
-        <TextBox Text="{Binding To}" PlaceholderText="Addresses, separated by commas" />
+        <TextBox x:Name="ToBox" Text="{Binding To}" PlaceholderText="Type a name or address" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Cc" VerticalAlignment="Center" />
-        <TextBox Text="{Binding Cc}" />
+        <TextBox x:Name="CcBox" Text="{Binding Cc}" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Bcc" VerticalAlignment="Center" />
-        <TextBox Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
+        <TextBox x:Name="BccBox" Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
       </DockPanel>
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Subject" VerticalAlignment="Center" />
@@ -43,6 +44,8 @@
 
       <DockPanel>
         <Button DockPanel.Dock="Left" Classes="quiet" Content="Attach files" Click="OnAttach" VerticalAlignment="Top" Margin="0,0,10,0" />
+        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="11" Text="or drop files here" VerticalAlignment="Top" Margin="0,9,10,0"
+                   IsVisible="{Binding !HasAttachments}" />
         <ItemsControl ItemsSource="{Binding Attachments}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -116,8 +119,66 @@
       <TextBlock Classes="muted" FontSize="11" Text="Your signature picture goes here when it is sent." />
     </StackPanel>
 
-    <!-- What you type -->
-    <TextBox Margin="24,4,24,8" Text="{Binding Body}" AcceptsReturn="True" AcceptsTab="False" TextWrapping="Wrap"
-             VerticalAlignment="Stretch" VerticalContentAlignment="Top" PlaceholderText="Write your mail" />
+    <!-- What you type, with the format buttons above it -->
+    <DockPanel Margin="24,4,24,8">
+      <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,6">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="quiet format" Focusable="False" Command="{Binding TogglePreviewCommand}"
+                        ToolTip.Tip="See the mail the way it will arrive">
+            <Panel>
+              <TextBlock Text="Preview" IsVisible="{Binding !ShowPreview}" />
+              <TextBlock Text="Back to writing" IsVisible="{Binding ShowPreview}" />
+            </Panel>
+          </Button>
+          <StackPanel Orientation="Horizontal" Spacing="4" IsEnabled="{Binding !ShowPreview}">
+            <Button Classes="quiet format" Focusable="False" Tag="bold" Click="FormatClicked" ToolTip.Tip="Bold (Ctrl+B)">
+              <TextBlock Text="B" FontWeight="Bold" />
+            </Button>
+            <Button Classes="quiet format" Focusable="False" Tag="italic" Click="FormatClicked" ToolTip.Tip="Italic (Ctrl+I)">
+              <TextBlock Text="I" FontStyle="Italic" />
+            </Button>
+            <Button Classes="quiet format" Focusable="False" Tag="bullets" Click="FormatClicked" Content="• List" ToolTip.Tip="Bulleted list" />
+            <Button Classes="quiet format" Focusable="False" Tag="numbers" Click="FormatClicked" Content="1. List" ToolTip.Tip="Numbered list" />
+            <Button Classes="quiet format" Focusable="False" Click="LinkClicked" Content="Link" ToolTip.Tip="Link the selected words to a web page" />
+          </StackPanel>
+        </DockPanel>
+        <Border Classes="card" Padding="10,6" IsVisible="{Binding AskingForLink}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+              <Button Classes="primary" Content="Add link" Click="AddLinkClicked" />
+              <Button Classes="link" Content="Cancel" Click="CancelLinkClicked" />
+            </StackPanel>
+            <TextBlock DockPanel.Dock="Left" Classes="muted" Text="Link to" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBox x:Name="LinkBox" Text="{Binding LinkAddress}" PlaceholderText="www.example.co.za or an email address" />
+          </DockPanel>
+        </Border>
+      </StackPanel>
+      <Panel>
+        <TextBox x:Name="BodyBox" Text="{Binding Body}" AcceptsReturn="True" AcceptsTab="False" TextWrapping="Wrap"
+                 VerticalAlignment="Stretch" VerticalContentAlignment="Top" PlaceholderText="Write your mail"
+                 IsVisible="{Binding !ShowPreview}" />
+        <Border Classes="card" Padding="12" IsVisible="{Binding ShowPreview}">
+          <ScrollViewer>
+            <html:HtmlPanel Text="{Binding PreviewHtml}" Background="{StaticResource Surface}" />
+          </ScrollViewer>
+        </Border>
+      </Panel>
+    </DockPanel>
   </DockPanel>
+  <!-- Suggestions under whichever address box is being typed in -->
+  <Popup x:Name="SuggestionsPopup" IsOpen="{Binding HasSuggestions}" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False">
+    <Border Classes="card" Padding="4" MinWidth="320" BoxShadow="0 6 18 0 #331C1D21">
+      <ListBox x:Name="SuggestionList" ItemsSource="{Binding Suggestions}" SelectedItem="{Binding ChosenSuggestion}" Background="Transparent"
+               Tapped="SuggestionTapped">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="core:Contact">
+            <StackPanel Margin="2,1">
+              <TextBlock Text="{Binding Display}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+  </Popup>
+  </Panel>
 </UserControl>

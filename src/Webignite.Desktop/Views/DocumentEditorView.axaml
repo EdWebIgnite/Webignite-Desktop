@@ -55,8 +55,9 @@
             <DataTemplate x:DataType="vm:LineRowViewModel">
               <Grid ColumnDefinitions="*,90,130,130,44" Margin="12,8,4,0">
                 <TextBox Grid.Column="0" Text="{Binding Description}" PlaceholderText="What was done or sold" Margin="0,0,8,0" />
-                <TextBox Grid.Column="1" Text="{Binding Quantity}" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
-                <TextBox Grid.Column="2" Text="{Binding Price}" PlaceholderText="0.00" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
+                <TextBox Grid.Column="1" Text="{Binding Quantity}" LostFocus="SettleSum" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
+                <TextBox Grid.Column="2" Text="{Binding Price}" PlaceholderText="0.00" LostFocus="SettleSum"
+                         ToolTip.Tip="Type an amount, or a sum like 3.5 x 650" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
                 <TextBlock Grid.Column="3" Classes="amount" Text="{Binding AmountText}" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <Button Grid.Column="4" Classes="link" Content="✕" ToolTip.Tip="Remove line"
                         Command="{Binding #Root.((vm:DocumentEditorViewModel)DataContext).RemoveLineCommand}"
@@ -66,7 +67,20 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Button Classes="quiet" Content="+ Add line" Command="{Binding AddLineCommand}" Margin="12,12,0,16" />
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="12,12,12,16">
+          <Button Classes="quiet" Content="+ Add line" Command="{Binding AddLineCommand}" />
+          <ComboBox ItemsSource="{Binding PriceChoices}" SelectedItem="{Binding ChosenPrice}" MinWidth="240"
+                    PlaceholderText="Add from price list" IsVisible="{Binding HasPriceList}" />
+          <Button Classes="link" Content="Save these lines to the price list" Command="{Binding StartSavePackageCommand}"
+                  IsVisible="{Binding !SavingPackage}" />
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding SavingPackage}">
+            <TextBox Text="{Binding PackageName}" Width="220" PlaceholderText="Name, e.g. Website, 6 pages" />
+            <Button Classes="primary" Content="Save" Command="{Binding SavePackageCommand}" />
+            <Button Classes="link" Content="Cancel" Command="{Binding CancelSavePackageCommand}" />
+          </StackPanel>
+        </StackPanel>
+        <TextBlock FontSize="12" Classes="muted" Classes.problem="{Binding PackageProblem}" Text="{Binding PackageMessage}" Margin="20,0,20,14"
+                   IsVisible="{Binding PackageMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
     </Border>
 

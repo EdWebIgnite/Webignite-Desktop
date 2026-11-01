@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Webignite.Core.Backups;
 using Webignite.Core.Documents;
 using Webignite.Core.Tasks;
 using Webignite.Data;
@@ -39,6 +40,20 @@ public sealed class AppServices(LocalStore store) : IDisposable
         set => Store.SetSetting("tasks", value);
     }
 
+    /// <summary>Standard packages and items, for filling in quotes and invoices with one click.</summary>
+    public IReadOnlyList<PriceEntry> PriceList
+    {
+        get => Store.GetSetting<List<PriceEntry>>("price-list") ?? [];
+        set => Store.SetSetting("price-list", value.ToList());
+    }
+
+    /// <summary>When each customer last had a statement, so it's offered once a month.</summary>
+    public IReadOnlyDictionary<string, DateOnly> StatementsSent
+    {
+        get => Store.GetSetting<Dictionary<string, DateOnly>>("statements-sent") ?? [];
+        set => Store.SetSetting("statements-sent", new Dictionary<string, DateOnly>(value));
+    }
+
     /// <summary>The invoice and quote email wording, pasted from Xero.</summary>
     public EmailTemplates EmailTemplates
     {
@@ -56,6 +71,99 @@ public sealed class AppServices(LocalStore store) : IDisposable
             Store.SetSetting("xero", value);
         }
     }
+
+    // Backups
+
+    public const string BackupPasswordName = "Backup/password";
+
+    public BackupSettings BackupSettings
+    {
+        get => Store.GetSetting<BackupSettings>("backups") ?? new BackupSettings();
+        set => Store.SetSetting("backups", value);
+    }
+
+    /// <summary>The key that unlocks the database, needed inside each backup. Tests and screenshots pass their own.</summary>
+    public Func<byte[]> VaultKeySource { get; init; } = () => VaultKey.Load(DataPaths.Root());
+
+    public bool HasBackupPassword => Secrets.Read(BackupPasswordName) is { Length: > 0 };
+
+    /// <summary>OneDrive when it's set up on this PC, so backups leave the machine; otherwise Documents.</summary>
+    public static string DefaultBackupFolder()
+    {
+        var oneDrive = Environment.GetEnvironmentVariable("OneDrive");
+        var parent = oneDrive is { Length: > 0 } && Directory.Exists(oneDrive)
+            ? oneDrive
+            : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        return Path.Combine(parent, "Webignite backups");
+    }
+
+    public string BackupFolder => BackupSettings.Folder is { Length: > 0 } folder ? folder : DefaultBackupFolder();
+
+    private bool backingUp;
+
+    /// <summary>
+    /// Makes a backup when one is due (or now, when asked). Copies the database on this thread, then encrypts
+    /// in the background. Returns the problem, or null when it worked or wasn't needed.
+    /// </summary>
+    public async Task<string?> BackUpAsync(bool now = false)
+    {
+        if (backingUp || Secrets.Read(BackupPasswordName) is not { Length: > 0 } password)
+            return null;
+        var settings = BackupSettings;
+        var started = DateTimeOffset.Now;
+        if (!now && !BackupRules.IsDue(settings, started))
+            return null;
+        backingUp = true;
+        try
+        {
+            var snapshot = Backups.Snapshot(Store);
+            var key = VaultKeySource();
+            var folder = BackupFolder;
+            var version = typeof(AppServices).Assembly.GetName().Version?.ToString(3);
+            var file = await Task.Run(() => Backups.Seal(snapshot, key, password, folder, started, version));
+            BackupSettings = BackupSettings with { LastBackup = started, LastFile = file, LastProblem = null, LastProblemAt = null };
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException
+                                      or System.Security.Cryptography.CryptographicException or PlatformNotSupportedException)
+        {
+            var problem = e is UnauthorizedAccessException ? "Webignite can't write to the backup folder." : e.Message;
+            BackupSettings = BackupSettings with { LastProblem = problem, LastProblemAt = DateTimeOffset.Now };
+            return problem;
+        }
+        finally
+        {
+            backingUp = false;
+        }
+    }
+
+    /// <summary>Earlier speed tests per domain, for "up from 38" and client reports.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<Webignite.Core.Web.SpeedRun>> SpeedHistory
+    {
+        get => Store.GetSetting<Dictionary<string, List<Webignite.Core.Web.SpeedRun>>>("speed-history")?
+            .ToDictionary(h => h.Key, h => (IReadOnlyList<Webignite.Core.Web.SpeedRun>)h.Value) ?? [];
+        set => Store.SetSetting("speed-history", value.ToDictionary(h => h.Key, h => h.Value.ToList()));
+    }
+
+    /// <summary>Which websites are watched for being down or an expiring certificate, and what was found.</summary>
+    public Webignite.Core.Web.UptimeSettings UptimeSettings
+    {
+        get => Store.GetSetting<Webignite.Core.Web.UptimeSettings>("uptime") ?? new Webignite.Core.Web.UptimeSettings();
+        set => Store.SetSetting("uptime", value);
+    }
+
+    /// <summary>How often mail is checked in the background, and what was already announced.</summary>
+    public Webignite.Core.Mail.MailCheckSettings MailCheckSettings
+    {
+        get => Store.GetSetting<Webignite.Core.Mail.MailCheckSettings>("mail-check") ?? new Webignite.Core.Mail.MailCheckSettings();
+        set => Store.SetSetting("mail-check", value);
+    }
+
+    /// <summary>Set by the main window: opens a page, or a mail, from the morning summary.</summary>
+    public Action<Webignite.Core.Overview.SummaryTarget, Webignite.Core.Mail.MailSummary?>? Navigate { get; set; }
+
+    /// <summary>Set by the main window: shows a note in the corner. The action runs when the note is clicked.</summary>
+    public Action<string, string, Action?>? ShowNote { get; set; }
 
     /// <summary>Mailbox passwords. Windows Credential Manager on Windows; memory only elsewhere (tests and screenshots).</summary>
     public ISecretStore Secrets { get; init; } = OperatingSystem.IsWindows() ? new WindowsSecretStore() : new MemorySecretStore();
@@ -91,6 +199,28 @@ public sealed class AppServices(LocalStore store) : IDisposable
     /// runs after it was sent. Returns false when another mail with changes is still open.
     /// </summary>
     public Func<Webignite.Core.Mail.OutgoingMail, string?, Func<Task>?, bool>? ComposeMail { get; set; }
+
+    private IReadOnlyList<Webignite.Core.Mail.Contact>? addressBook;
+    private DateTime addressBookMade;
+
+    /// <summary>Suggestions for To, Cc and Bcc. Built from clients and cached mail, and refreshed every ten minutes.</summary>
+    public async Task<IReadOnlyList<Webignite.Core.Mail.Contact>> AddressBookAsync()
+    {
+        if (addressBook is { } book && DateTime.UtcNow - addressBookMade < TimeSpan.FromMinutes(10))
+            return book;
+        var accounts = Store.ListMailAccounts();
+        var clients = Store.ListClients();
+        var mail = await Task.Run(() => Store.FindMail(accounts.Select(a => a.Id), _ => true, 3000));
+        addressBook = Webignite.Core.Mail.AddressBook.Build(clients, mail, accounts.Select(a => a.Address), DateTimeOffset.Now);
+        addressBookMade = DateTime.UtcNow;
+        return addressBook;
+    }
+
+    /// <summary>Opens a client's page.</summary>
+    public Action<Webignite.Core.Clients.Client>? OpenClient { get; set; }
+
+    /// <summary>Puts an amount on the invoice being edited, or a new one, and opens it. Returns a problem, or null.</summary>
+    public Func<decimal, string, string?>? AddToInvoice { get; set; }
 
     /// <summary>
     /// Does what the calendar calls for since the app last looked: drafts retainer and renewal invoices that are due,

@@ -72,6 +72,9 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             + (problems.Count > 0 ? " It still needs: " + string.Join(" ", problems) : ""));
     }
 
+    /// <summary>Eddie's standard packages and items, with their usual lines and prices.</summary>
+    public IReadOnlyList<PriceEntry> Prices() => store.GetSetting<List<PriceEntry>>("price-list") ?? [];
+
     /// <summary>Quotes and invoices kept in Webignite, newest first.</summary>
     public IReadOnlyList<Listed> List(string? kind = null, string? customer = null, int limit = 20)
     {

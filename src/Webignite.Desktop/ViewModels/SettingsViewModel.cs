@@ -1,6 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Webignite.Core.Backups;
 using Webignite.Core.Documents;
+using Webignite.Core.Mail;
+using Webignite.Data;
 using Webignite.Xero.Auth;
 
 namespace Webignite.Desktop.ViewModels;
@@ -21,6 +24,202 @@ public partial class SettingsViewModel : ViewModelBase
         UpdateXeroStatus();
         UpdateAssistantStatus();
         LoadTemplates(services.EmailTemplates);
+        UpdateBackupStatus();
+        LoadPrices();
+        var mailCheck = services.MailCheckSettings;
+        MailCheckMinutes = NewMail.MinuteChoices.Contains(mailCheck.Minutes) ? mailCheck.Minutes : 5;
+        NotifyNewMail = mailCheck.Notify;
+        if (App.RestoredAtStart)
+            BackupMessage = "The backup was restored. If mail or Xero ask, sign in again: passwords aren't kept in backups.";
+    }
+
+    // Price list
+
+    public System.Collections.ObjectModel.ObservableCollection<PriceRow> Prices { get; } = [];
+    public bool HasPrices => Prices.Count > 0;
+
+    private void LoadPrices()
+    {
+        Prices.Clear();
+        foreach (var entry in services.PriceList)
+            Prices.Add(new PriceRow(entry));
+        OnPropertyChanged(nameof(HasPrices));
+    }
+
+    [RelayCommand]
+    private void DeletePrice(PriceRow row)
+    {
+        services.PriceList = PriceList.Remove(services.PriceList, row.Entry.Id);
+        LoadPrices();
+    }
+
+    // Mail checking
+
+    public IReadOnlyList<int> MailCheckChoices => NewMail.MinuteChoices;
+    [ObservableProperty] public partial int MailCheckMinutes { get; set; } = 5;
+    [ObservableProperty] public partial bool NotifyNewMail { get; set; } = true;
+
+    partial void OnMailCheckMinutesChanged(int value) =>
+        services.MailCheckSettings = services.MailCheckSettings with { Minutes = value };
+
+    partial void OnNotifyNewMailChanged(bool value) =>
+        services.MailCheckSettings = services.MailCheckSettings with { Notify = value };
+
+    // Backups
+
+    [ObservableProperty] public partial string BackupStatus { get; set; } = "";
+    [ObservableProperty] public partial bool BackupProblem { get; set; }
+    [ObservableProperty] public partial string BackupFolder { get; set; } = "";
+    [ObservableProperty] public partial bool HasBackupPassword { get; set; }
+    [ObservableProperty] public partial bool ChangingPassword { get; set; }
+    [ObservableProperty] public partial string NewBackupPassword { get; set; } = "";
+    [ObservableProperty] public partial string RepeatBackupPassword { get; set; } = "";
+    [ObservableProperty] public partial string BackupMessage { get; set; } = "";
+    [ObservableProperty] public partial bool BackupMessageIsProblem { get; set; }
+    [ObservableProperty] public partial bool BackingUp { get; set; }
+
+    [ObservableProperty] public partial string? RestoreFile { get; set; }
+    [ObservableProperty] public partial string RestorePassword { get; set; } = "";
+    [ObservableProperty] public partial bool RestoreReady { get; set; }
+
+    public bool ShowPasswordFields => ChangingPassword || !HasBackupPassword;
+    public bool ShowRestore => RestoreFile is not null && !RestoreReady;
+    public string RestoreFileName => RestoreFile is null ? "" : Path.GetFileName(RestoreFile);
+    public string PasswordButtonText => HasBackupPassword ? "Change backup password" : "";
+
+    partial void OnChangingPasswordChanged(bool value) => OnPropertyChanged(nameof(ShowPasswordFields));
+    partial void OnHasBackupPasswordChanged(bool value) => OnPropertyChanged(nameof(ShowPasswordFields));
+    partial void OnRestoreFileChanged(string? value)
+    {
+        OnPropertyChanged(nameof(ShowRestore));
+        OnPropertyChanged(nameof(RestoreFileName));
+    }
+    partial void OnRestoreReadyChanged(bool value) => OnPropertyChanged(nameof(ShowRestore));
+
+    /// <summary>Looks again when the page is opened, as backups run in the background.</summary>
+    public void Refresh()
+    {
+        LoadPrices();
+        UpdateAssistantStatus();
+        UpdateBackupStatus();
+    }
+
+    private void UpdateBackupStatus()
+    {
+        var settings = services.BackupSettings;
+        HasBackupPassword = services.HasBackupPassword;
+        BackupFolder = services.BackupFolder;
+        var now = DateTimeOffset.Now;
+        BackupStatus = BackupRules.Status(settings, HasBackupPassword, now);
+        BackupProblem = !HasBackupPassword || BackupStatus.StartsWith("The last backup failed", StringComparison.Ordinal)
+                        || BackupRules.Overdue(settings, HasBackupPassword, now);
+    }
+
+    private void Say(string message, bool problem = false)
+    {
+        BackupMessage = message;
+        BackupMessageIsProblem = problem;
+    }
+
+    [RelayCommand]
+    private async Task SaveBackupPassword()
+    {
+        if (BackupRules.PasswordProblem(NewBackupPassword, RepeatBackupPassword) is { } problem)
+        {
+            Say(problem, true);
+            return;
+        }
+        services.Secrets.Write(AppServices.BackupPasswordName, NewBackupPassword);
+        NewBackupPassword = RepeatBackupPassword = "";
+        ChangingPassword = false;
+        Say("Saved. Write this password down somewhere safe: without it, no backup can be opened.");
+        await BackUpNow();
+    }
+
+    [RelayCommand]
+    private void ChangePassword() => ChangingPassword = true;
+
+    [RelayCommand]
+    private void CancelPassword()
+    {
+        ChangingPassword = false;
+        NewBackupPassword = RepeatBackupPassword = "";
+    }
+
+    public void SetBackupFolder(string folder)
+    {
+        services.BackupSettings = services.BackupSettings with { Folder = folder };
+        UpdateBackupStatus();
+        Say("Backups will go to " + folder + ".");
+    }
+
+    [RelayCommand]
+    private async Task BackUpNow()
+    {
+        if (!services.HasBackupPassword)
+        {
+            Say("Choose a backup password first.", true);
+            return;
+        }
+        BackingUp = true;
+        var problem = await services.BackUpAsync(now: true);
+        BackingUp = false;
+        UpdateBackupStatus();
+        if (problem is not null)
+            Say(problem, true);
+        else if (!BackupMessage.StartsWith("Saved.", StringComparison.Ordinal))
+            Say("Backed up.");
+    }
+
+    [RelayCommand]
+    private void OpenBackupFolder()
+    {
+        Directory.CreateDirectory(BackupFolder);
+        AppServices.OpenFile(BackupFolder);
+    }
+
+    public void ChooseRestoreFile(string path)
+    {
+        RestoreFile = path;
+        RestorePassword = "";
+        RestoreReady = false;
+        Say("");
+    }
+
+    [RelayCommand]
+    private void CancelRestore()
+    {
+        RestoreFile = null;
+        RestorePassword = "";
+    }
+
+    [RelayCommand]
+    private async Task Restore()
+    {
+        if (RestoreFile is not { } file)
+            return;
+        var password = RestorePassword;
+        var root = DataPaths.Root();
+        try
+        {
+            var made = await Task.Run(() => Backups.Stage(file, password, root));
+            RestorePassword = "";
+            RestoreReady = true;
+            Say($"The backup from {made.ToLocalTime():d MMMM yyyy} at {made.ToLocalTime():HH:mm} is unlocked. Restart Webignite to switch to it. Your current data is kept in a \"before-restore\" folder.");
+        }
+        catch (Exception e) when (e is BackupPasswordException or InvalidDataException or IOException
+                                      or System.Security.Cryptography.CryptographicException)
+        {
+            Say(e.Message, true);
+        }
+    }
+
+    [RelayCommand]
+    private void RestartToRestore()
+    {
+        App.RestartAfterExit = true;
+        if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            desktop.Shutdown();
     }
 
     // Invoice and quote emails
@@ -29,6 +228,12 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] public partial string InvoiceBody { get; set; } = "";
     [ObservableProperty] public partial string QuoteSubject { get; set; } = "";
     [ObservableProperty] public partial string QuoteBody { get; set; } = "";
+    [ObservableProperty] public partial string FollowUpSubject { get; set; } = "";
+    [ObservableProperty] public partial string FollowUpBody { get; set; } = "";
+    [ObservableProperty] public partial string ReminderSubject { get; set; } = "";
+    [ObservableProperty] public partial string ReminderBody { get; set; } = "";
+    [ObservableProperty] public partial string StatementSubject { get; set; } = "";
+    [ObservableProperty] public partial string StatementBody { get; set; } = "";
     [ObservableProperty] public partial string TemplatesMessage { get; set; } = "";
 
     public string InvoicePlaceholders => string.Join("  ", DocumentEmail.Placeholders(DocumentKind.Invoice));
@@ -40,6 +245,12 @@ public partial class SettingsViewModel : ViewModelBase
         InvoiceBody = templates.Invoice.Body;
         QuoteSubject = templates.Quote.Subject;
         QuoteBody = templates.Quote.Body;
+        FollowUpSubject = templates.FollowUp.Subject;
+        FollowUpBody = templates.FollowUp.Body;
+        ReminderSubject = templates.Reminder.Subject;
+        ReminderBody = templates.Reminder.Body;
+        StatementSubject = templates.Statement.Subject;
+        StatementBody = templates.Statement.Body;
     }
 
     [RelayCommand]
@@ -49,6 +260,9 @@ public partial class SettingsViewModel : ViewModelBase
         {
             Invoice = new EmailTemplate(InvoiceSubject.Trim(), InvoiceBody.Replace("\r", "").TrimEnd()),
             Quote = new EmailTemplate(QuoteSubject.Trim(), QuoteBody.Replace("\r", "").TrimEnd()),
+            FollowUp = new EmailTemplate(FollowUpSubject.Trim(), FollowUpBody.Replace("\r", "").TrimEnd()),
+            Reminder = new EmailTemplate(ReminderSubject.Trim(), ReminderBody.Replace("\r", "").TrimEnd()),
+            Statement = new EmailTemplate(StatementSubject.Trim(), StatementBody.Replace("\r", "").TrimEnd()),
         };
         TemplatesMessage = $"Saved at {DateTime.Now:HH:mm}.";
     }
@@ -279,4 +493,12 @@ public partial class SettingsViewModel : ViewModelBase
             ? $"Connected to {xero.TenantName}. Webignite can create drafts only. Approving, sending and payments stay in your hands."
             : "Not connected.";
     }
+}
+
+/// <summary>One package on the Settings page.</summary>
+public sealed record PriceRow(PriceEntry Entry)
+{
+    public string Name => Entry.Name;
+    public string Summary => (Entry.Lines.Count == 1 ? "1 line, " : $"{Entry.Lines.Count} lines, ") + Money.Rand(Entry.Total);
+    public string LinesText => string.Join(" · ", Entry.Lines.Select(l => l.Description));
 }
