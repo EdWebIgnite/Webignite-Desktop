@@ -53,6 +53,17 @@ public sealed record StoredDocument
     public DateTimeOffset? Settled { get; init; }
     public string? SettledAs { get; init; }
 
+    /// <summary>What Xero last said: its status (AUTHORISED, PAID, ACCEPTED...), what's still due and what's been paid.</summary>
+    public string? XeroStatus { get; init; }
+    public decimal? XeroAmountDue { get; init; }
+    public decimal? XeroAmountPaid { get; init; }
+
+    /// <summary>The day Xero says the invoice was paid in full.</summary>
+    public DateOnly? PaidOn { get; init; }
+
+    /// <summary>When Xero was last read for this document's status and payments.</summary>
+    public DateTimeOffset? XeroChecked { get; init; }
+
     public DateTimeOffset Created { get; init; }
     public DateTimeOffset Updated { get; init; }
 

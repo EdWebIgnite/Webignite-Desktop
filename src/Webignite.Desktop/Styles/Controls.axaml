@@ -146,6 +146,13 @@
   <Style Selector="Border.status.done TextBlock">
     <Setter Property="Foreground" Value="{StaticResource Ok}" />
   </Style>
+  <Style Selector="Border.status.problem">
+    <Setter Property="Background" Value="{StaticResource AttentionSoft}" />
+    <Setter Property="BorderBrush" Value="{StaticResource AttentionLine}" />
+  </Style>
+  <Style Selector="Border.status.problem TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource Attention}" />
+  </Style>
 
   <!-- To-do -->
   <Style Selector="Border.taskrow">

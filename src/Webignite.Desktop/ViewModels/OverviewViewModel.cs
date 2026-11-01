@@ -9,7 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Webignite.Desktop.ViewModels;
 
-public sealed class OverviewViewModel : ViewModelBase
+public sealed partial class OverviewViewModel : ViewModelBase
 {
     private readonly AppServices services;
 
@@ -41,6 +41,30 @@ public sealed class OverviewViewModel : ViewModelBase
     public string Owed { get; private set; } = "";
     public string Overdue { get; private set; } = "";
     public string QuotesOut { get; private set; } = "";
+    public string PaymentsText { get; private set; } = "";
+    public bool XeroConnected => services.XeroApi is not null;
+
+    /// <summary>Set by the main window: reads payments from Xero now.</summary>
+    public Func<Task>? CheckPayments { get; set; }
+
+    [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]
+    public partial bool CheckingPayments { get; set; }
+
+    [RelayCommand]
+    private async Task CheckPaymentsNow()
+    {
+        if (CheckPayments is null || CheckingPayments)
+            return;
+        CheckingPayments = true;
+        try
+        {
+            await CheckPayments();
+        }
+        finally
+        {
+            CheckingPayments = false;
+        }
+    }
 
     public void Refresh()
     {
@@ -55,13 +79,12 @@ public sealed class OverviewViewModel : ViewModelBase
         var overdueTasks = tasks.Count(t => TaskGroups.Of(t, today) == TaskGroup.Overdue);
         OverdueText = overdueTasks switch { 0 => "", 1 => "1 overdue to-do", _ => $"{overdueTasks} overdue to-dos" };
 
-        // Until payments come from Xero, everything in Xero counts as open.
-        var invoices = documents.Where(d => d.Status == DocumentStatus.InXero && d.Document.Kind == DocumentKind.Invoice).ToList();
-        Owed = Money.Rand(invoices.Sum(d => d.Document.Total ?? 0));
-        Overdue = Money.Rand(invoices.Where(d => d.Document.DueOrExpiryDate < today).Sum(d => d.Document.Total ?? 0));
-        QuotesOut = Money.Rand(documents
-            .Where(d => d.Status == DocumentStatus.InXero && d.Document.Kind == DocumentKind.Quote && !(d.Document.DueOrExpiryDate < today))
-            .Sum(d => d.Document.Total ?? 0));
+        Owed = Money.Rand(Receivables.Owed(documents));
+        Overdue = Money.Rand(Receivables.Overdue(documents, today));
+        QuotesOut = Money.Rand(Receivables.QuotesOut(documents, today));
+        PaymentsText = PaymentWatch.LastRun is { } checkedAt
+            ? $"Payments from Xero, checked at {checkedAt.ToLocalTime():HH:mm}."
+            : services.XeroApi is null ? "Connect Xero to see payments." : "Checking Xero for payments.";
 
         Summary.Clear();
         foreach (var line in MorningSummary.Build(SummaryInput(today, documents)))
