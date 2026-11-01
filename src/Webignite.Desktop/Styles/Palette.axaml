@@ -41,6 +41,10 @@
   <SolidColorBrush x:Key="OkSoft" Color="#E9F5EE" />
   <SolidColorBrush x:Key="OkLine" Color="#CBE6D6" />
 
+  <!-- Depth: cards sit just above the page; cards you can click rise a little more under the mouse. -->
+  <BoxShadows x:Key="CardShadow">0 1 2 0 #0D1C1D21</BoxShadows>
+  <BoxShadows x:Key="CardShadowRaised">0 6 16 0 #1A1C1D21</BoxShadows>
+
   <!-- Mark-up pens, drawn on client screenshots. Red marks what needs fixing. -->
   <Color x:Key="MarkRed">#E03131</Color>
   <Color x:Key="MarkYellow">#FCC419</Color>

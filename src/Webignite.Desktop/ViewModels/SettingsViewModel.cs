@@ -26,6 +26,7 @@ public partial class SettingsViewModel : ViewModelBase
         LoadTemplates(services.EmailTemplates);
         UpdateBackupStatus();
         LoadPrices();
+        MotionChoice = MotionChoices.First(c => c.Value == services.Appearance.Motion);
         var mailCheck = services.MailCheckSettings;
         MailCheckMinutes = NewMail.MinuteChoices.Contains(mailCheck.Minutes) ? mailCheck.Minutes : 5;
         NotifyNewMail = mailCheck.Notify;
@@ -51,6 +52,23 @@ public partial class SettingsViewModel : ViewModelBase
     {
         services.PriceList = PriceList.Remove(services.PriceList, row.Entry.Id);
         LoadPrices();
+    }
+
+    // Motion
+
+    public static IReadOnlyList<Choice<Motion>> MotionChoices { get; } =
+    [
+        new("Full: pages fade and rise, buttons and cards ease in", Motion.Full),
+        new("Reduced: quick fades only, nothing slides", Motion.Reduced),
+        new("Off: everything changes at once", Motion.Off),
+    ];
+
+    [ObservableProperty] public partial Choice<Motion>? MotionChoice { get; set; }
+
+    partial void OnMotionChoiceChanged(Choice<Motion>? value)
+    {
+        if (value is not null && value.Value != services.Appearance.Motion)
+            services.Appearance = services.Appearance with { Motion = value.Value };
     }
 
     // Mail checking
