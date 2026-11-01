@@ -10,6 +10,8 @@
     <StackPanel Spacing="18" IsVisible="{Binding IsShowingClient}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+          <Button Classes="quiet" Content="Draft statement" Command="{Binding DraftStatementCommand}" IsVisible="{Binding HasOwed}"
+                  ToolTip.Tip="Lists their unpaid invoices from Xero in a mail for you to check and send" />
           <Button Classes="quiet" Content="New quote" Command="{Binding NewQuoteCommand}" />
           <Button Classes="primary" Content="New invoice" Command="{Binding NewInvoiceCommand}" />
         </StackPanel>

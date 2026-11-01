@@ -8,10 +8,10 @@ using Webignite.Core.Renewals;
 namespace Webignite.Core.Overview;
 
 /// <summary>Which page a summary line opens.</summary>
-public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings, Chase }
+public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings, Chase, Statement, Clients }
 
 /// <summary>One line of the morning summary. A problem shows in red; the rest are plain.</summary>
-public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null);
+public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null, string? Customer = null);
 
 /// <summary>Everything the summary looks at, read by the app from the database.</summary>
 public sealed record SummaryInput
@@ -23,6 +23,7 @@ public sealed record SummaryInput
     public IReadOnlyList<MailSummary> Inbox { get; init; } = [];
     public IReadOnlyList<Client> Clients { get; init; } = [];
     public IReadOnlyCollection<string> OwnAddresses { get; init; } = [];
+    public IReadOnlyDictionary<string, DateOnly> StatementsSent { get; init; } = new Dictionary<string, DateOnly>();
     public bool BackupsOn { get; init; } = true;
     public bool BackupOverdue { get; init; }
 }
@@ -81,6 +82,15 @@ public static class MorningSummary
 
         foreach (var chase in chases.Where(c => c.Kind == ChaseKind.FollowUp).Take(MaxChaseLines))
             lines.Add(new($"{chase.Number} for {chase.Customer} was emailed {Days(chase.Days)} ago with no answer yet.", SummaryTarget.Chase, Chase: chase));
+
+        if (Statements.IsStatementWeek(today))
+        {
+            var due = Statements.Due(input.Documents, input.StatementsSent, today);
+            foreach (var (customer, open) in due.Take(MaxChaseLines))
+                lines.Add(new($"{customer} has {Money.Rand(open)} open. Send this month's statement.", SummaryTarget.Statement, Customer: customer));
+            if (due.Count > MaxChaseLines)
+                lines.Add(new($"{due.Count - MaxChaseLines} more clients are due a statement. Open a client to draft theirs.", SummaryTarget.Clients));
+        }
 
         lines.AddRange(WaitingOnReply(input));
 

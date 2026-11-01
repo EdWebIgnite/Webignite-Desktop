@@ -232,6 +232,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] public partial string FollowUpBody { get; set; } = "";
     [ObservableProperty] public partial string ReminderSubject { get; set; } = "";
     [ObservableProperty] public partial string ReminderBody { get; set; } = "";
+    [ObservableProperty] public partial string StatementSubject { get; set; } = "";
+    [ObservableProperty] public partial string StatementBody { get; set; } = "";
     [ObservableProperty] public partial string TemplatesMessage { get; set; } = "";
 
     public string InvoicePlaceholders => string.Join("  ", DocumentEmail.Placeholders(DocumentKind.Invoice));
@@ -247,6 +249,8 @@ public partial class SettingsViewModel : ViewModelBase
         FollowUpBody = templates.FollowUp.Body;
         ReminderSubject = templates.Reminder.Subject;
         ReminderBody = templates.Reminder.Body;
+        StatementSubject = templates.Statement.Subject;
+        StatementBody = templates.Statement.Body;
     }
 
     [RelayCommand]
@@ -258,6 +262,7 @@ public partial class SettingsViewModel : ViewModelBase
             Quote = new EmailTemplate(QuoteSubject.Trim(), QuoteBody.Replace("\r", "").TrimEnd()),
             FollowUp = new EmailTemplate(FollowUpSubject.Trim(), FollowUpBody.Replace("\r", "").TrimEnd()),
             Reminder = new EmailTemplate(ReminderSubject.Trim(), ReminderBody.Replace("\r", "").TrimEnd()),
+            Statement = new EmailTemplate(StatementSubject.Trim(), StatementBody.Replace("\r", "").TrimEnd()),
         };
         TemplatesMessage = $"Saved at {DateTime.Now:HH:mm}.";
     }

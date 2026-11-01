@@ -47,6 +47,13 @@ public sealed class AppServices(LocalStore store) : IDisposable
         set => Store.SetSetting("price-list", value.ToList());
     }
 
+    /// <summary>When each customer last had a statement, so it's offered once a month.</summary>
+    public IReadOnlyDictionary<string, DateOnly> StatementsSent
+    {
+        get => Store.GetSetting<Dictionary<string, DateOnly>>("statements-sent") ?? [];
+        set => Store.SetSetting("statements-sent", new Dictionary<string, DateOnly>(value));
+    }
+
     /// <summary>The invoice and quote email wording, pasted from Xero.</summary>
     public EmailTemplates EmailTemplates
     {

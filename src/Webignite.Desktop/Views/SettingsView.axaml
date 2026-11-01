@@ -184,6 +184,17 @@
           <TextBox Text="{Binding ReminderBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" />
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="Reminders can also use [Days Overdue]." />
         </StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="Monthly statement" Margin="0,6,0,0" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding StatementSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding StatementBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                     Text="Statements use [Statement Lines], [Statement Date] and [Amount Due] for the total still owed." />
+        </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="12">
           <Button Classes="quiet" Content="Save" Command="{Binding SaveTemplatesCommand}" />
           <Button Classes="link" Content="Use Xero's standard wording" Command="{Binding ResetTemplatesCommand}" />

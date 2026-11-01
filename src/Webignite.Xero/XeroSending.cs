@@ -82,6 +82,44 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, StoredDocument
         return (ready, null);
     }
 
+    /// <summary>What a statement mail needs: the contact as Xero has it and their unpaid invoices.</summary>
+    public sealed record StatementReady(string ContactName, string? FirstName, string? Email, IReadOnlyList<StatementLine> Lines);
+
+    /// <summary>
+    /// Reads a customer's approved, unpaid invoices from Xero. Uses the linked contact when there is one,
+    /// otherwise finds the contact by name. Nothing in Xero is changed.
+    /// </summary>
+    public async Task<StatementReady> PrepareStatementAsync(string customer, string? contactId, CancellationToken cancel = default)
+    {
+        if (string.IsNullOrWhiteSpace(contactId))
+        {
+            var key = XeroRules.Normalise(customer);
+            var matches = (await api.ContactsAsync(cancel)).Where(c => XeroRules.Normalise(c.Name) == key).ToList();
+            if (matches.Count == 0)
+                throw new XeroException($"Couldn't find {customer} in Xero's contacts.");
+            if (matches.Count > 1)
+                throw new XeroException($"Xero has more than one contact called {customer}. Link the client to the right one first.");
+            contactId = matches[0].Id;
+        }
+        var contact = (await api.GetAsync($"Contacts/{contactId}", cancel))["Contacts"]?[0] as JsonObject
+            ?? throw new XeroException($"Couldn't read {customer} from Xero.");
+        var rows = await api.AllAsync("Invoices", "&ContactIDs=" + contactId + "&Statuses=AUTHORISED&where=" + Uri.EscapeDataString("Type==\"ACCREC\""), cancel);
+        var lines = rows.Select(r => new StatementLine(
+                XeroApi.Str(r["InvoiceNumber"]),
+                Date(r["DateString"]),
+                Date(r["DueDateString"]),
+                Amount(r["Total"]) ?? 0,
+                Amount(r["AmountDue"]) ?? 0,
+                XeroApi.Str(r["Reference"]) is { Length: > 0 } reference ? reference : null))
+            .Where(l => l.AmountDue > 0).ToList();
+        var email = XeroApi.Str(contact["EmailAddress"]);
+        return new StatementReady(
+            XeroApi.Str(contact["Name"]) is { Length: > 0 } name ? name : customer,
+            XeroApi.Str(contact["FirstName"]) is { Length: > 0 } first ? first : null,
+            email.Length > 0 ? email : null,
+            lines);
+    }
+
     /// <summary>After a reminder or follow-up went out. Kept on this PC only; Xero isn't changed.</summary>
     public StoredDocument MarkChased(StoredDocument stored) =>
         save(stored with { Chased = DateTimeOffset.UtcNow, ChaseCount = stored.ChaseCount + 1 });

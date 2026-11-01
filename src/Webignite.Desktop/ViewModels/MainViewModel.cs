@@ -140,6 +140,7 @@ public partial class MainViewModel : ViewModelBase
                 Webignite.Core.Overview.SummaryTarget.Mail => "Mail",
                 Webignite.Core.Overview.SummaryTarget.Renewals => "Domains and hosting",
                 Webignite.Core.Overview.SummaryTarget.Money => "Money",
+                Webignite.Core.Overview.SummaryTarget.Clients => "Clients",
                 _ => "Settings",
             };
             Selected = Modules.Single(m => m.Title == title);

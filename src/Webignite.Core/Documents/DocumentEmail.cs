@@ -68,6 +68,21 @@ public sealed record EmailTemplates
         [Trading Name]
         """);
 
+    public EmailTemplate Statement { get; init; } = new(
+        "Statement from [Trading Name] for [Contact Name]",
+        """
+        Hi [Contact First Name],
+
+        Here's your statement as at [Statement Date]. [Amount Due] is outstanding:
+
+        [Statement Lines]
+
+        If you've already paid, thank you, and please ignore this.
+
+        Thanks,
+        [Trading Name]
+        """);
+
     public EmailTemplate For(DocumentKind kind) => kind == DocumentKind.Quote ? Quote : Invoice;
 
     /// <summary>The follow-up for a quote, or the reminder for an invoice.</summary>
@@ -92,6 +107,10 @@ public sealed record DocumentEmailValues
 
     /// <summary>For reminders: how many days past the due date.</summary>
     public int? DaysOverdue { get; init; }
+
+    /// <summary>For statements: the unpaid invoices as text, and the date it's made.</summary>
+    public string? StatementLines { get; init; }
+    public DateOnly? StatementDate { get; init; }
 }
 
 /// <summary>A filled-in email, and any placeholder that couldn't be filled.</summary>
@@ -131,6 +150,8 @@ public static partial class DocumentEmail
                 "reference" => v.Reference ?? "",
                 "online invoice link" or "online quote link" => v.OnlineLink,
                 "trading name" or "organisation name" => v.TradingName,
+                "statement lines" => v.StatementLines,
+                "statement date" => v.StatementDate?.ToString("d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture),
                 "days overdue" => v.DaysOverdue is { } days ? (days == 1 ? "1 day" : $"{days} days") : null,
                 _ => null,
             };

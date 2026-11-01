@@ -77,6 +77,25 @@ public partial class ClientDetailViewModel : ViewModelBase
     [RelayCommand]
     private void WriteMail() => services.WriteMail?.Invoke(Recipients.Parse(Email).People);
 
+    /// <summary>Builds this month's statement from Xero and opens it in Mail.</summary>
+    [RelayCommand]
+    private async Task DraftStatement()
+    {
+        DraftingStatement = true;
+        try
+        {
+            var (message, problem) = await Statementing.DraftAsync(services, client.Name);
+            if (message is not null)
+                services.ShowNote?.Invoke(problem ? "Couldn't draft it" : "Nothing owed", message, null);
+        }
+        finally
+        {
+            DraftingStatement = false;
+        }
+    }
+
+    [ObservableProperty] public partial bool DraftingStatement { get; set; }
+
     [RelayCommand]
     private void OpenMail(ClientMailRow row) => services.OpenMail?.Invoke(row.Summary);
 

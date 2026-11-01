@@ -108,11 +108,12 @@ public sealed class MorningSummaryTests
             "Backups are off. Choose a backup password in Settings.",
             $"INV-0111 for Karoo Coffee Roasters is 5 days overdue ({Money.Rand(450m)}).",
             "webignite.co.za was due for renewal yesterday.",
+            $"Karoo Coffee Roasters has {Money.Rand(450m)} open. Send this month's statement.",
             "Lerato (Fynbos Physio) is waiting on a reply since yesterday: Booking page",
             "karoocoffee.co.za for Karoo Coffee Roasters renews on Thursday.",
             $"{Money.Rand(2800m)} has come in so far in November.",
         ], lines.Select(l => l.Text));
-        Assert.Equal([true, true, true, false, false, false], lines.Select(l => l.Problem));
+        Assert.Equal([true, true, true, false, false, false, false], lines.Select(l => l.Problem));
     }
 
     [Fact]

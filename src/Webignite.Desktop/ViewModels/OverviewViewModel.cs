@@ -89,6 +89,7 @@ public sealed class OverviewViewModel : ViewModelBase
             Inbox = inbox,
             Clients = services.Store.ListClients(),
             OwnAddresses = accounts.Select(a => a.Address).ToList(),
+            StatementsSent = services.StatementsSent,
             BackupsOn = hasPassword,
             BackupOverdue = BackupRules.Overdue(services.BackupSettings, hasPassword, DateTimeOffset.Now),
         };
@@ -107,18 +108,20 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
     public string Action => line.Target switch
     {
         SummaryTarget.Chase => line.Chase!.Kind == Webignite.Core.Documents.ChaseKind.Reminder ? "Draft reminder" : "Draft follow-up",
+        SummaryTarget.Statement => "Draft statement",
         SummaryTarget.Mail => "Open mail",
         SummaryTarget.Approvals => "Review",
         SummaryTarget.Invoices => "Invoices",
         SummaryTarget.Renewals => "Renewals",
         SummaryTarget.Money => "Money",
+        SummaryTarget.Clients => "Clients",
         _ => "Settings",
     };
 
     [RelayCommand]
     private async Task Open()
     {
-        if (line.Target != SummaryTarget.Chase)
+        if (line.Target is not (SummaryTarget.Chase or SummaryTarget.Statement))
         {
             services.Navigate?.Invoke(line.Target, line.Mail);
             return;
@@ -126,10 +129,11 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
         Busy = true;
         try
         {
-            var stored = services.Store.Get(line.Chase!.Stored.Id) ?? line.Chase.Stored;
-            var (message, problem) = await Webignite.Desktop.Chasing.DraftAsync(services, stored);
+            var (message, problem) = line.Target == SummaryTarget.Statement
+                ? await Webignite.Desktop.Statementing.DraftAsync(services, line.Customer!)
+                : await Webignite.Desktop.Chasing.DraftAsync(services, services.Store.Get(line.Chase!.Stored.Id) ?? line.Chase.Stored);
             if (message is not null)
-                services.ShowNote?.Invoke(problem ? "Couldn't draft it" : "Nothing to chase", message, null);
+                services.ShowNote?.Invoke(problem ? "Couldn't draft it" : line.Target == SummaryTarget.Statement ? "Nothing owed" : "Nothing to chase", message, null);
         }
         finally
         {
