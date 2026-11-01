@@ -40,7 +40,8 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:SummaryLineViewModel">
               <DockPanel Margin="0,0,0,6">
-                <Button DockPanel.Dock="Right" Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" VerticalAlignment="Center"
+                        IsEnabled="{Binding !Busy}" />
                 <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" Classes.problem="{Binding Problem}" />
               </DockPanel>
             </DataTemplate>

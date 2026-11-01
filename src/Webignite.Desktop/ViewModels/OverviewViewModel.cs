@@ -95,14 +95,18 @@ public sealed class OverviewViewModel : ViewModelBase
     }
 }
 
-/// <summary>One summary line; clicking it opens the page it's about.</summary>
+/// <summary>One summary line; clicking it opens the page it's about, or drafts the reminder or follow-up.</summary>
 public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices services) : ViewModelBase
 {
     public string Text => line.Text;
     public bool Problem => line.Problem;
 
+    [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]
+    public partial bool Busy { get; set; }
+
     public string Action => line.Target switch
     {
+        SummaryTarget.Chase => line.Chase!.Kind == Webignite.Core.Documents.ChaseKind.Reminder ? "Draft reminder" : "Draft follow-up",
         SummaryTarget.Mail => "Open mail",
         SummaryTarget.Approvals => "Review",
         SummaryTarget.Invoices => "Invoices",
@@ -112,5 +116,24 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
     };
 
     [RelayCommand]
-    private void Open() => services.Navigate?.Invoke(line.Target, line.Mail);
+    private async Task Open()
+    {
+        if (line.Target != SummaryTarget.Chase)
+        {
+            services.Navigate?.Invoke(line.Target, line.Mail);
+            return;
+        }
+        Busy = true;
+        try
+        {
+            var stored = services.Store.Get(line.Chase!.Stored.Id) ?? line.Chase.Stored;
+            var (message, problem) = await Webignite.Desktop.Chasing.DraftAsync(services, stored);
+            if (message is not null)
+                services.ShowNote?.Invoke(problem ? "Couldn't draft it" : "Nothing to chase", message, null);
+        }
+        finally
+        {
+            Busy = false;
+        }
+    }
 }

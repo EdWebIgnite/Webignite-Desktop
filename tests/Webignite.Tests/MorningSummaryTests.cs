@@ -81,6 +81,8 @@ public sealed class MorningSummaryTests
         {
             Id = "d1",
             Status = DocumentStatus.InXero,
+            XeroId = "x1",
+            XeroNumber = "INV-0111",
             Document = Samples.Completed(Samples.NewInvoice()) with { DueOrExpiryDate = Today.AddDays(-5) },
         };
         var lines = MorningSummary.Build(Input(Mail("lerato@fynbosphysio.co.za", "Lerato", 1)) with
@@ -104,7 +106,7 @@ public sealed class MorningSummaryTests
         Assert.Equal(
         [
             "Backups are off. Choose a backup password in Settings.",
-            $"1 invoice is overdue (Karoo Coffee Roasters, {Money.Rand(450m)}).",
+            $"INV-0111 for Karoo Coffee Roasters is 5 days overdue ({Money.Rand(450m)}).",
             "webignite.co.za was due for renewal yesterday.",
             "Lerato (Fynbos Physio) is waiting on a reply since yesterday: Booking page",
             "karoocoffee.co.za for Karoo Coffee Roasters renews on Thursday.",

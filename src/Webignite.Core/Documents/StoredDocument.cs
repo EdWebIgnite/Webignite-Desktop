@@ -44,6 +44,15 @@ public sealed record StoredDocument
 
     /// <summary>When it was last emailed to the customer from Webignite's own mailbox.</summary>
     public DateTimeOffset? Emailed { get; init; }
+
+    /// <summary>When a reminder (invoice) or follow-up (quote) last went out, and how many so far.</summary>
+    public DateTimeOffset? Chased { get; init; }
+    public int ChaseCount { get; init; }
+
+    /// <summary>When Xero said there's nothing left to chase: the invoice is paid, or the quote accepted or declined.</summary>
+    public DateTimeOffset? Settled { get; init; }
+    public string? SettledAs { get; init; }
+
     public DateTimeOffset Created { get; init; }
     public DateTimeOffset Updated { get; init; }
 

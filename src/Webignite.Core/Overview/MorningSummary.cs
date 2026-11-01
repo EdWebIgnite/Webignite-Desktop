@@ -8,10 +8,10 @@ using Webignite.Core.Renewals;
 namespace Webignite.Core.Overview;
 
 /// <summary>Which page a summary line opens.</summary>
-public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings }
+public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings, Chase }
 
 /// <summary>One line of the morning summary. A problem shows in red; the rest are plain.</summary>
-public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null);
+public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null);
 
 /// <summary>Everything the summary looks at, read by the app from the database.</summary>
 public sealed record SummaryInput
@@ -37,6 +37,9 @@ public static class MorningSummary
     public const int ReplyDays = 14;
 
     public const int RenewalDays = 14;
+    private const int MaxChaseLines = 5;
+
+    private static string Days(int days) => days == 1 ? "1 day" : $"{days} days";
 
     // Shared mail services: matching on these domains would make every Gmail sender a client.
     private static readonly HashSet<string> SharedDomains = new(StringComparer.OrdinalIgnoreCase)
@@ -55,16 +58,18 @@ public static class MorningSummary
         else if (input.BackupOverdue)
             lines.Add(new("The daily backup hasn't run for more than two days. Check Settings.", SummaryTarget.Settings, Problem: true));
 
-        var overdue = input.Documents
-            .Where(d => d.Status == DocumentStatus.InXero && d.Document.Kind == DocumentKind.Invoice && d.Document.DueOrExpiryDate < today)
-            .ToList();
-        if (overdue.Count > 0)
+        var chases = Chasers.Find(input.Documents, today);
+        var reminders = chases.Where(c => c.Kind == ChaseKind.Reminder).ToList();
+        foreach (var chase in reminders.Take(MaxChaseLines))
         {
-            var amount = Money.Rand(overdue.Sum(d => d.Document.Total ?? 0));
-            lines.Add(new(overdue.Count == 1
-                ? $"1 invoice is overdue ({overdue[0].Document.Customer.Name}, {amount})."
-                : $"{overdue.Count} invoices are overdue, {amount} in all.", SummaryTarget.Invoices, Problem: true));
+            var text = $"{chase.Number} for {chase.Customer} is {Days(chase.Days)} overdue ({Money.Rand(chase.Stored.Document.Total ?? 0)}).";
+            lines.Add(chase.Due
+                ? new(text, SummaryTarget.Chase, Problem: true, Chase: chase)
+                : new($"{text} Reminder sent {Day(DateOnly.FromDateTime(chase.Stored.Chased!.Value.ToLocalTime().DateTime), today)}.",
+                    SummaryTarget.Invoices, Problem: true));
         }
+        if (reminders.Count > MaxChaseLines)
+            lines.Add(new($"{reminders.Count - MaxChaseLines} more overdue invoices.", SummaryTarget.Invoices, Problem: true));
 
         foreach (var renewal in input.Renewals.Where(r => r.RenewsOn < today).OrderBy(r => r.RenewsOn))
             lines.Add(new($"{renewal.Name} was due for renewal {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals, Problem: true));
@@ -73,6 +78,9 @@ public static class MorningSummary
         if (waiting > 0)
             lines.Add(new(waiting == 1 ? "1 quote or invoice is waiting for your approval." : $"{waiting} quotes and invoices are waiting for your approval.",
                 SummaryTarget.Approvals));
+
+        foreach (var chase in chases.Where(c => c.Kind == ChaseKind.FollowUp).Take(MaxChaseLines))
+            lines.Add(new($"{chase.Number} for {chase.Customer} was emailed {Days(chase.Days)} ago with no answer yet.", SummaryTarget.Chase, Chase: chase));
 
         lines.AddRange(WaitingOnReply(input));
 

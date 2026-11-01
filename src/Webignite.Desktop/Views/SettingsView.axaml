@@ -165,6 +165,25 @@
           <TextBox Text="{Binding QuoteBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" />
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding QuotePlaceholders}" />
         </StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="Quote follow-up, a week after sending" Margin="0,6,0,0" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding FollowUpSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding FollowUpBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" />
+        </StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="Overdue invoice reminder" Margin="0,6,0,0" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding ReminderSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding ReminderBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="Reminders can also use [Days Overdue]." />
+        </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="12">
           <Button Classes="quiet" Content="Save" Command="{Binding SaveTemplatesCommand}" />
           <Button Classes="link" Content="Use Xero's standard wording" Command="{Binding ResetTemplatesCommand}" />

@@ -54,6 +54,41 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, StoredDocument
             stored = save(stored with { Approved = DateTimeOffset.UtcNow });
         }
 
+        return await GatherAsync(stored, record, tradingName, cancel);
+    }
+
+    /// <summary>
+    /// For a reminder or follow-up: reads the document from Xero first. When Xero says it's paid, accepted or
+    /// declined, nothing is fetched; the document is marked settled and the reason returned instead.
+    /// </summary>
+    public async Task<(Ready? Ready, string? Settled)> PrepareChaserAsync(StoredDocument stored, string tradingName, CancellationToken cancel = default)
+    {
+        if (CannotSend(stored) is { } reason)
+            throw new XeroException(reason);
+        var record = await ReadAsync(stored, cancel);
+        if (Chasers.SettledBy(stored.Document.Kind, XeroApi.Str(record["Status"]), Amount(record["AmountDue"])) is { } settled)
+        {
+            save(stored with { Settled = DateTimeOffset.UtcNow, SettledAs = settled });
+            return (null, settled);
+        }
+        if (!IsQuote(stored) && XeroApi.Str(record["Status"]) is not "AUTHORISED")
+            throw new XeroException("It isn't approved in Xero yet, so there's nothing to remind about.");
+        var ready = await GatherAsync(stored, record, tradingName, cancel);
+        if (ready.Values.DueOrExpiryDate is { } due && !IsQuote(stored))
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            ready = ready with { Values = ready.Values with { DaysOverdue = Math.Max(0, today.DayNumber - due.DayNumber) } };
+        }
+        return (ready, null);
+    }
+
+    /// <summary>After a reminder or follow-up went out. Kept on this PC only; Xero isn't changed.</summary>
+    public StoredDocument MarkChased(StoredDocument stored) =>
+        save(stored with { Chased = DateTimeOffset.UtcNow, ChaseCount = stored.ChaseCount + 1 });
+
+    // The PDF, online link, contact and amounts, all as Xero has them now.
+    private async Task<Ready> GatherAsync(StoredDocument stored, JsonObject record, string tradingName, CancellationToken cancel)
+    {
         string? link = null;
         if (!IsQuote(stored))
         {
