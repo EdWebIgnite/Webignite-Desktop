@@ -116,26 +116,34 @@ public partial class MainViewModel : ViewModelBase
         };
         uptimeTimer.Start();
         Markup = new MarkupViewModel(services);
-        Modules =
+        // The sidebar, in groups. Headings sit between the groups; the pages keep the order shown here.
+        object[] nav =
         [
-            new Module("Overview", Overview),
-            new Module("Clients", Clients),
-            new Module("Quotes", Quotes),
-            new Module("Invoices", Invoices),
-            new Module("Retainers", new RetainersViewModel(services)),
-            new Module("Domains and hosting", new RenewalsViewModel(services)),
-            new Module("Money", new MoneyViewModel(services)),
-            new Module("Reports", new ReportsViewModel(services)),
-            new Module("To-do", Todo),
-            new Module("Calendar", new CalendarViewModel(services)),
-            new Module("Planner", new PlannerViewModel(services)),
-            new Module("To approve", Approvals),
-            new Module("Mail", Mail, fullBleed: true),
-            new Module("Site check", SiteCheck),
-            new Module("Mark-up", Markup),
-            new Module("Tools", Tools),
-            new Module("Settings", new SettingsViewModel(services)),
+            new Module("Overview", Overview, "Overview"),
+            new Module("To approve", Approvals, "Approve"),
+            new Module("Mail", Mail, "Mail", fullBleed: true),
+            new NavHeading("CLIENT WORK"),
+            new Module("Clients", Clients, "Clients"),
+            new Module("Retainers", new RetainersViewModel(services), "Retainers"),
+            new Module("Domains and hosting", new RenewalsViewModel(services), "Domains"),
+            new NavHeading("BILLING"),
+            new Module("Quotes", Quotes, "Quotes"),
+            new Module("Invoices", Invoices, "Invoices"),
+            new Module("Money", new MoneyViewModel(services), "Money"),
+            new Module("Reports", new ReportsViewModel(services), "Reports"),
+            new NavHeading("PLANNING"),
+            new Module("To-do", Todo, "Todo"),
+            new Module("Calendar", new CalendarViewModel(services), "Calendar"),
+            new Module("Planner", new PlannerViewModel(services), "Planner"),
+            new NavHeading("WEB TOOLS"),
+            new Module("Site check", SiteCheck, "SiteCheck"),
+            new Module("Mark-up", Markup, "Markup"),
+            new Module("Tools", Tools, "Tools"),
+            new NavHeading(""),
+            new Module("Settings", new SettingsViewModel(services), "Settings"),
         ];
+        NavItems = nav;
+        Modules = [.. nav.OfType<Module>()];
         Selected = Modules[0];
         mailModule = Modules.Single(m => m.Page == Mail);
         _ = CheckMailAsync();
@@ -244,8 +252,25 @@ public partial class MainViewModel : ViewModelBase
     public MarkupViewModel Markup { get; }
     public IReadOnlyList<Module> Modules { get; }
 
+    /// <summary>What the sidebar lists: the pages, with group headings between them.</summary>
+    public IReadOnlyList<object> NavItems { get; }
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedNav))]
     public partial Module Selected { get; set; }
+
+    /// <summary>The sidebar's selection. Headings can't be picked, so anything that isn't a page is ignored.</summary>
+    public object? SelectedNav
+    {
+        get => Selected;
+        set
+        {
+            if (value is Module module)
+                Selected = module;
+            else
+                OnPropertyChanged();
+        }
+    }
 
     // These pages show things other pages change, so they look again whenever they're opened.
     partial void OnSelectedChanged(Module value)

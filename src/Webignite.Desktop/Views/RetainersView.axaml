@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.RetainersView"
              x:DataType="vm:RetainersViewModel">
   <Panel>
@@ -18,6 +19,10 @@
       <Border Classes="ready" IsVisible="{Binding HasMessage}">
         <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
       </Border>
+
+      <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Retainers}" Title="No retainers yet"
+                    Text="Set up a monthly fee once, and the invoice is drafted on this PC each month for you to check and send."
+                    ActionText="New retainer" Command="{Binding NewCommand}" />
 
       <Border Classes="card" Padding="0" IsVisible="{Binding !IsEmpty}">
         <ItemsControl ItemsSource="{Binding Rows}">

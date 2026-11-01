@@ -19,7 +19,7 @@
         <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding From}" HorizontalAlignment="Stretch">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="core:MailAccount">
-              <TextBlock><Run Text="{Binding DisplayName}" /><Run Text="  " /><Run Text="{Binding Address}" Foreground="{StaticResource Muted}" /></TextBlock>
+              <TextBlock><Run Text="{Binding DisplayName}" /><Run Text="  " /><Run Text="{Binding Address}" Foreground="{DynamicResource Muted}" /></TextBlock>
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
@@ -66,7 +66,7 @@
     </StackPanel>
 
     <!-- Send bar -->
-    <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="24,12">
+    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="24,12">
       <StackPanel Spacing="8">
         <Border Classes="card" Padding="12,8" IsVisible="{Binding AskingAboutAttachment}">
           <DockPanel>
@@ -108,7 +108,7 @@
       </Button>
       <Border Classes="card" Padding="12" MaxHeight="260" IsVisible="{Binding ShowQuote}">
         <ScrollViewer>
-          <html:HtmlPanel Text="{Binding QuoteHtml}" Background="{StaticResource Surface}" />
+          <html:HtmlPanel Text="{Binding QuoteHtml}" Background="{DynamicResource Surface}" />
         </ScrollViewer>
       </Border>
     </StackPanel>
@@ -159,7 +159,7 @@
                  IsVisible="{Binding !ShowPreview}" />
         <Border Classes="card" Padding="12" IsVisible="{Binding ShowPreview}">
           <ScrollViewer>
-            <html:HtmlPanel Text="{Binding PreviewHtml}" Background="{StaticResource Surface}" />
+            <html:HtmlPanel Text="{Binding PreviewHtml}" Background="{DynamicResource Surface}" />
           </ScrollViewer>
         </Border>
       </Panel>

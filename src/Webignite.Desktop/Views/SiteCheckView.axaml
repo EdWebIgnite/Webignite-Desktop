@@ -103,7 +103,7 @@
         <ItemsControl ItemsSource="{Binding Watched}" IsVisible="{Binding HasWatched}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:WatchedSiteViewModel">
-              <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="0,8">
+              <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="0,8">
                 <Grid ColumnDefinitions="2*,2*,70,2*,Auto">
                   <StackPanel Grid.Column="0" Spacing="1">
                     <TextBlock Text="{Binding Domain}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

@@ -27,7 +27,7 @@
             <Button Classes="quiet" Content="Copy answer" Command="{Binding CopyAnswerCommand}"
                     CommandParameter="{Binding $parent[TopLevel]}" IsEnabled="{Binding HasAnswer}" />
           </StackPanel>
-          <Border Height="1" Background="{StaticResource Line}" Margin="0,4" />
+          <Border Height="1" Background="{DynamicResource Line}" Margin="0,4" />
           <TextBlock FontWeight="SemiBold" Text="Put it on an invoice" />
           <DockPanel>
             <Button DockPanel.Dock="Right" Classes="primary" Content="Add to invoice" Margin="8,0,0,0"
@@ -153,7 +153,7 @@
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
                      Text="PNG for print and documents, SVG for websites or a printer that wants artwork." />
         </StackPanel>
-        <Border Grid.Column="2" Width="220" Height="220" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Line}">
+        <Border Grid.Column="2" Width="220" Height="220" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource Line}">
           <Panel>
             <Image Source="{Binding QrImage}" Stretch="Uniform" Margin="6" IsVisible="{Binding HasQr}" />
             <TextBlock Classes="muted" Text="The code shows here." HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasQr}" />

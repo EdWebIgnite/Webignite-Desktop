@@ -31,6 +31,9 @@ public partial class TodoViewModel : ViewModelBase
     public IReadOnlyList<DueChoice> DueChoices { get; }
     public ObservableCollection<TaskGroupViewModel> Groups { get; } = [];
 
+    /// <summary>No to-dos at all, open or done.</summary>
+    public bool IsEmpty => Groups.Count == 0;
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand))]
     public partial string NewTitle { get; set; } = "";
@@ -82,6 +85,7 @@ public partial class TodoViewModel : ViewModelBase
             var items = group.Key == TaskGroup.Done ? group.Take(20) : group;
             Groups.Add(new TaskGroupViewModel(group.Key, items.Select(t => new TaskRowViewModel(t, this)).ToList()));
         }
+        OnPropertyChanged(nameof(IsEmpty));
         var open = tasks.Count(t => !t.Done);
         var overdue = tasks.Count(t => TaskGroups.Of(t, Today) == TaskGroup.Overdue);
         Summary = open == 0 ? "Nothing to do. Nice." : overdue > 0 ? $"{open} open, {overdue} overdue" : $"{open} open";

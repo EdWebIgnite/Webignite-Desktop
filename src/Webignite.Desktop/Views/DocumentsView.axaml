@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.DocumentsView"
              x:DataType="vm:DocumentsViewModel"
              x:Name="Root">
@@ -13,19 +14,21 @@
         <TextBlock Classes="h1" Text="{Binding Title}" />
       </DockPanel>
 
-      <Border Classes="card" IsVisible="{Binding IsEmpty}">
-        <TextBlock Classes="muted" Text="{Binding EmptyText}" TextWrapping="Wrap" />
-      </Border>
+      <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{Binding EmptyIcon, Converter={x:Static c:IconConverter.Instance}}"
+                    Title="{Binding EmptyTitle}" Text="{Binding EmptyText}" ActionText="{Binding NewLabel}" Command="{Binding NewCommand}" />
 
       <Border Classes="card" Padding="0" IsVisible="{Binding !IsEmpty}">
         <StackPanel>
-          <Grid ColumnDefinitions="150,*,130,120,140" Background="{StaticResource TableHead}" Height="36">
-            <TextBlock Grid.Column="0" Classes="label" Text="Number" Margin="20,0,0,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="1" Classes="label" Text="Customer" Margin="8,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="2" Classes="label" Text="Date" Margin="8,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="3" Classes="label" Text="Status" Margin="8,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="4" Classes="label" Text="Total" Margin="8,0,20,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
-          </Grid>
+          <!-- The heading row is padded like the rows below it, so each title sits over its column. -->
+          <Border Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
+            <Grid ColumnDefinitions="150,*,130,120,140">
+              <TextBlock Grid.Column="0" Classes="label tablehead" Text="Number" />
+              <TextBlock Grid.Column="1" Classes="label tablehead" Text="Customer" />
+              <TextBlock Grid.Column="2" Classes="label tablehead" Text="Date" />
+              <TextBlock Grid.Column="3" Classes="label tablehead" Text="Status" />
+              <TextBlock Grid.Column="4" Classes="label tablehead" Text="Total" HorizontalAlignment="Right" />
+            </Grid>
+          </Border>
           <ItemsControl ItemsSource="{Binding Rows}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:DocumentRow">

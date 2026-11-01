@@ -221,7 +221,7 @@
                   <TextBlock FontWeight="SemiBold">
                     <Run Text="{Binding Name}" />
                     <Run Text="  " />
-                    <Run Text="{Binding Summary}" FontWeight="Normal" Foreground="{StaticResource Muted}" />
+                    <Run Text="{Binding Summary}" FontWeight="Normal" Foreground="{DynamicResource Muted}" />
                   </TextBlock>
                   <TextBlock Classes="muted" FontSize="12" Text="{Binding LinesText}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>

@@ -1,12 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.RenewalsView"
              x:DataType="vm:RenewalsViewModel">
   <UserControl.Resources>
     <DataTemplate x:Key="RenewalRow" x:DataType="vm:RenewalRowViewModel">
       <Border Classes="taskrow" Padding="20,12,12,12">
-        <Grid ColumnDefinitions="*,200,Auto">
+        <Grid ColumnDefinitions="*,210,230">
           <StackPanel Grid.Column="0" Spacing="2">
             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
             <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" />
@@ -15,7 +16,7 @@
             <TextBlock Text="{Binding When}" Classes.short="{Binding IsOverdue}" />
             <TextBlock Classes="muted" FontSize="12" Text="{Binding Amounts}" />
           </StackPanel>
-          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Right">
             <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !ConfirmingRemove}">
               <Button Classes="quiet" Content="Renewed" Command="{Binding RenewedCommand}" IsVisible="{Binding !IsFine}"
                       ToolTip.Tip="Moves it to the next date and adds the cost to expenses." />
@@ -101,19 +102,19 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card" IsVisible="{Binding IsEmpty}">
-      <TextBlock Classes="muted" TextWrapping="Wrap" Text="Nothing here yet. Add your clients' domains and hosting, and Webignite's own." />
-    </Border>
+    <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Domains}" Title="No domains or hosting yet"
+                  Text="Add your clients' domains and hosting, and Webignite's own. You get a to-do before each one renews."
+                  ActionText="Add domain or hosting" Command="{Binding NewCommand}" />
 
     <StackPanel Spacing="8" IsVisible="{Binding HasSoon}">
-      <TextBlock Classes="label" Text="RENEW SOON" />
+      <TextBlock Classes="section" Text="Renew soon" />
       <Border Classes="card" Padding="0">
         <ItemsControl ItemsSource="{Binding Soon}" ItemTemplate="{StaticResource RenewalRow}" />
       </Border>
     </StackPanel>
 
     <StackPanel Spacing="8" IsVisible="{Binding HasLater}">
-      <TextBlock Classes="label" Text="LATER" />
+      <TextBlock Classes="section" Text="Later" />
       <Border Classes="card" Padding="0">
         <ItemsControl ItemsSource="{Binding Later}" ItemTemplate="{StaticResource RenewalRow}" />
       </Border>

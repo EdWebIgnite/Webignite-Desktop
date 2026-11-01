@@ -35,7 +35,7 @@
 
     <Border Classes="card" Padding="0">
       <StackPanel>
-        <Grid ColumnDefinitions="*,90,130,130,44" Background="{StaticResource TableHead}" Height="36">
+        <Grid ColumnDefinitions="*,90,130,130,44" Background="{DynamicResource TableHead}" Height="36">
           <TextBlock Grid.Column="0" Classes="label" Text="Description" Margin="20,0,0,0" VerticalAlignment="Center" />
           <TextBlock Grid.Column="1" Classes="label" Text="Qty" Margin="8,0" VerticalAlignment="Center" />
           <TextBlock Grid.Column="2" Classes="label" Text="Price" Margin="8,0" VerticalAlignment="Center" />

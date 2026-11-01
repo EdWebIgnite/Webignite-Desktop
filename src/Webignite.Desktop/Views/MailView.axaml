@@ -14,36 +14,36 @@
       <Setter Property="CornerRadius" Value="6" />
     </Style>
     <Style Selector="Button.folder.current">
-      <Setter Property="Background" Value="{StaticResource TableHead}" />
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
     </Style>
     <Style Selector="Button.folder.current TextBlock.name">
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Button.mailrow">
-      <Setter Property="Background" Value="{StaticResource Surface}" />
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="CornerRadius" Value="0" />
       <Setter Property="Padding" Value="16,10" />
-      <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="0,0,0,1" />
     </Style>
     <Style Selector="Button.mailrow.selected">
-      <Setter Property="Background" Value="{StaticResource TableHead}" />
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
     </Style>
     <Style Selector="Button.mailrow.unread TextBlock.who, Button.mailrow.unread TextBlock.subject">
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{StaticResource Ink}" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
     </Style>
     <Style Selector="Border.unreaddot">
       <Setter Property="Width" Value="7" />
       <Setter Property="Height" Value="7" />
       <Setter Property="CornerRadius" Value="4" />
-      <Setter Property="Background" Value="{StaticResource InvoiceTint}" />
+      <Setter Property="Background" Value="{DynamicResource InvoiceTint}" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Border.mailtag">
-      <Setter Property="Background" Value="{StaticResource InvoiceSoft}" />
+      <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
       <Setter Property="CornerRadius" Value="4" />
       <Setter Property="Padding" Value="6,1" />
     </Style>
@@ -157,7 +157,7 @@
     <!-- The mail itself: folders, messages, the open message -->
     <Grid ColumnDefinitions="240,380,*" IsVisible="{Binding ShowMail}">
       <!-- Folders -->
-      <Border Grid.Column="0" Background="{StaticResource Canvas}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+      <Border Grid.Column="0" Background="{DynamicResource Canvas}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>
           <StackPanel DockPanel.Dock="Bottom" Margin="12">
             <Button Classes="link" Content="Manage mailboxes" Command="{Binding ManageMailboxesCommand}" />
@@ -195,7 +195,7 @@
       </Border>
 
       <!-- Message list -->
-      <Border Grid.Column="1" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+      <Border Grid.Column="1" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>
           <StackPanel DockPanel.Dock="Top" Margin="16,16,16,10" Spacing="10">
             <DockPanel>
@@ -208,7 +208,7 @@
             <TextBox Text="{Binding Search}" PlaceholderText="Search all mail by sender, subject or words" />
             <TextBlock FontSize="12" Classes="muted" Classes.short="{Binding StatusIsProblem}" Text="{Binding Status}" TextWrapping="Wrap" />
           </StackPanel>
-          <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="12,8">
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,8">
             <Button Classes="link" Content="Load older mail" Command="{Binding LoadOlderCommand}" HorizontalAlignment="Center" />
           </Border>
           <Grid>
@@ -229,7 +229,7 @@
                           </DockPanel>
                           <DockPanel>
                             <Border DockPanel.Dock="Right" Classes="mailtag" Margin="6,0,0,0" IsVisible="{Binding ShowMailbox}">
-                              <TextBlock FontSize="11" Text="{Binding MailboxTag}" Foreground="{StaticResource InvoiceTint}" />
+                              <TextBlock FontSize="11" Text="{Binding MailboxTag}" Foreground="{DynamicResource InvoiceTint}" />
                             </Border>
                             <TextBlock Classes="subject" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
                           </DockPanel>
@@ -246,7 +246,7 @@
       </Border>
 
       <!-- The open message -->
-      <Grid Grid.Column="2" Background="{StaticResource Surface}">
+      <Grid Grid.Column="2" Background="{DynamicResource Surface}">
         <TextBlock Classes="muted" Text="Pick a message to read it." HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowNothing}" />
         <Panel IsVisible="{Binding HasComposer}">
           <v:ComposeView DataContext="{Binding Composer}" />
@@ -278,7 +278,7 @@
               <Button Classes="quiet" Content="Delete" Command="{Binding DeleteCommand}" />
             </WrapPanel>
 
-            <Border Classes="card" Padding="12,8" IsVisible="{Binding HasDraftedBy}" Background="{StaticResource InvoiceSoft}">
+            <Border Classes="card" Padding="12,8" IsVisible="{Binding HasDraftedBy}" Background="{DynamicResource InvoiceSoft}">
               <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
             </Border>
 
@@ -318,11 +318,11 @@
             </StackPanel>
           </StackPanel>
 
-          <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+          <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
             <Grid>
               <TextBlock Classes="muted" Margin="24" Text="Opening…" IsVisible="{Binding IsLoading}" />
               <TextBlock Classes="short" Margin="24" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
-              <html:HtmlPanel x:Name="Body" Text="{Binding Html}" Margin="24,16" Background="{StaticResource Surface}" />
+              <html:HtmlPanel x:Name="Body" Text="{Binding Html}" Margin="24,16" Background="{DynamicResource Surface}" />
             </Grid>
           </Border>
         </DockPanel>
