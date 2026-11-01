@@ -24,7 +24,8 @@ public static class SiteChecker
         var dmarc = DnsAsync("_dmarc." + domain, "TXT", 16, cancel);
         var rdap = RdapAsync(domain, cancel);
         var cert = CertificateAsync(domain, cancel);
-        await Task.WhenAll(a, ns, mx, txt, dmarc, rdap, cert);
+        var dkim = DkimAsync(domain, cancel);
+        await Task.WhenAll(a, ns, mx, txt, dmarc, rdap, cert, dkim);
 
         return DomainReport.Build(new DomainLookup
         {
@@ -40,7 +41,25 @@ public static class SiteChecker
             CertificateExpires = cert.Result.Expires,
             CertificateIssuer = cert.Result.Issuer,
             CertificateProblem = cert.Result.Problem,
+            Dkim = dkim.Result,
         });
+    }
+
+    // Tries the usual DKIM selector names. A failed lookup just counts as nothing found there.
+    private static async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> DkimAsync(string domain, CancellationToken cancel)
+    {
+        var lookups = DomainReport.DkimSelectors.Select(async selector =>
+        {
+            try
+            {
+                return (selector, await DnsAsync($"{selector}._domainkey.{domain}", "TXT", 16, cancel));
+            }
+            catch (HttpRequestException)
+            {
+                return (selector, (IReadOnlyList<string>)[]);
+            }
+        });
+        return (await Task.WhenAll(lookups)).ToDictionary(r => r.selector, r => r.Item2);
     }
 
     // A subdomain usually has no NS records of its own, so walk up until some are found.

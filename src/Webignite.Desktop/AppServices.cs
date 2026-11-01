@@ -137,6 +137,14 @@ public sealed class AppServices(LocalStore store) : IDisposable
         }
     }
 
+    /// <summary>Earlier speed tests per domain, for "up from 38" and client reports.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<Webignite.Core.Web.SpeedRun>> SpeedHistory
+    {
+        get => Store.GetSetting<Dictionary<string, List<Webignite.Core.Web.SpeedRun>>>("speed-history")?
+            .ToDictionary(h => h.Key, h => (IReadOnlyList<Webignite.Core.Web.SpeedRun>)h.Value) ?? [];
+        set => Store.SetSetting("speed-history", value.ToDictionary(h => h.Key, h => h.Value.ToList()));
+    }
+
     /// <summary>Which websites are watched for being down or an expiring certificate, and what was found.</summary>
     public Webignite.Core.Web.UptimeSettings UptimeSettings
     {

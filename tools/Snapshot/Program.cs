@@ -346,6 +346,10 @@ Save("invoice-sum");
 
 // Site check, with made-up results (no network here)
 Open("Site check");
+services.SpeedHistory = new Dictionary<string, IReadOnlyList<Webignite.Core.Web.SpeedRun>>
+{
+    ["karoocoffee.co.za"] = [new(DateOnly.FromDateTime(DateTime.Today.AddDays(-29)), 38, "7.9 s")],
+};
 vm.SiteCheck.Show("karoocoffee.co.za", Webignite.Core.Web.DomainReport.Build(new Webignite.Core.Web.DomainLookup
 {
     Domain = "karoocoffee.co.za",
@@ -356,6 +360,7 @@ vm.SiteCheck.Show("karoocoffee.co.za", Webignite.Core.Web.DomainReport.Build(new
     Txt = ["v=spf1 include:spf.host-h.net ~all"],
     CertificateExpires = DateTimeOffset.Now.AddDays(9),
     CertificateIssuer = "Let's Encrypt",
+    Dkim = new Dictionary<string, IReadOnlyList<string>> { ["default"] = ["v=DKIM1; k=rsa; p=MIIBIjANBg"], ["google"] = [] },
     RdapJson = $$"""{"events":[{"eventAction":"expiration","eventDate":"{{DateTime.Today.AddDays(200):yyyy-MM-dd}}T00:00:00Z"}],"entities":[{"roles":["registrar"],"vcardArray":["vcard",[["fn",{},"text","xneelo (Pty) Ltd"]]]}]}""",
 }), "https://karoocoffee.co.za/", Webignite.Core.Web.SpeedReport.Parse("""
     {"lighthouseResult":{"categories":{"performance":{"score":0.47}},"audits":{

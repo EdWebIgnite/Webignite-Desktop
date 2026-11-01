@@ -58,6 +58,10 @@
             <TextBlock Text="{Binding SpeedScore}" FontSize="48" FontWeight="Bold" Classes.problem="{Binding SpeedIsProblem}" />
             <TextBlock Classes="muted" Text="{Binding SpeedVerdict}" />
             <TextBlock Classes="muted" FontSize="12" Text="out of 100. 90 and up is good." TextWrapping="Wrap" />
+            <TextBlock FontSize="12" Text="{Binding SpeedChange}" TextWrapping="Wrap" Margin="0,4,0,0"
+                       IsVisible="{Binding SpeedChange, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <Button Classes="link" Content="Copy for a report" Margin="0,6,0,0" Padding="0"
+                    Command="{Binding CopyReportCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
           </StackPanel>
           <ItemsControl Grid.Column="2" ItemsSource="{Binding Speed.Metrics}">
             <ItemsControl.ItemTemplate>

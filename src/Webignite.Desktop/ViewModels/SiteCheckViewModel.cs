@@ -24,6 +24,9 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
     public partial SpeedReport? Speed { get; set; }
 
     [ObservableProperty] public partial string SpeedTitle { get; set; } = "";
+    [ObservableProperty] public partial string SpeedChange { get; set; } = "";
+    private SpeedRun? previousRun;
+    private string speedDomain = "";
     [ObservableProperty] public partial string SpeedMessage { get; set; } = "";
     [ObservableProperty] public partial bool SpeedMessageProblem { get; set; }
 
@@ -70,12 +73,15 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         if (SpeedReport.Address(Address) is not { } address)
             return;
         Speed = null;
+        SpeedChange = "";
         SpeedTitle = address;
         SpeedMessage = "Google is loading the site the way a phone would. This takes up to a minute...";
         SpeedMessageProblem = false;
         try
         {
-            Speed = await SiteChecker.SpeedAsync(address);
+            var report = await SiteChecker.SpeedAsync(address);
+            Remember(address, report);
+            Speed = report;
             SpeedMessage = "";
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or KeyNotFoundException)
@@ -84,6 +90,28 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
             SpeedMessageProblem = true;
         }
         OnPropertyChanged(nameof(HasFixes));
+    }
+
+    // Keeps the score, and says how it compares with the last test of the same site.
+    private void Remember(string address, SpeedReport report)
+    {
+        speedDomain = DomainReport.Normalise(address) ?? address;
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var history = services.SpeedHistory;
+        previousRun = SpeedHistory.Previous(history, speedDomain, today);
+        SpeedChange = SpeedHistory.Compare(previousRun, report.Score);
+        services.SpeedHistory = SpeedHistory.Add(history, speedDomain, report, today);
+    }
+
+    [RelayCommand]
+    private async Task CopyReport(Avalonia.Controls.TopLevel? top)
+    {
+        if (Speed is not { } report || top?.Clipboard is not { } clipboard)
+            return;
+        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard,
+            SpeedHistory.ReportText(speedDomain, report, previousRun, DateOnly.FromDateTime(DateTime.Today)));
+        SpeedMessage = "Copied. Paste it into a mail or report.";
+        SpeedMessageProblem = false;
     }
 
     /// <summary>For the screenshot tool: shows results without the network.</summary>
@@ -98,6 +126,7 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         DomainMessage = problems == 0 ? "Nothing needs fixing." : problems == 1 ? "1 thing needs a look." : $"{problems} things need a look.";
         DomainProblem = problems > 0;
         SpeedTitle = address;
+        Remember(address, speed);
         Speed = speed;
         OnPropertyChanged(nameof(HasDomain));
         OnPropertyChanged(nameof(HasFixes));

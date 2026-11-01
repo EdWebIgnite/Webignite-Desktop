@@ -21,6 +21,8 @@ public sealed record DomainLookup
     public DateTimeOffset? CertificateExpires { get; init; }
     public string? CertificateIssuer { get; init; }
     public string? CertificateProblem { get; init; }
+    /// <summary>TXT records found at each DKIM selector tried (selector._domainkey.domain). Null when not looked up.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>>? Dkim { get; init; }
 }
 
 /// <summary>
@@ -115,12 +117,13 @@ public static class DomainReport
             findings.Add(new("Mail", "Goes to " + string.Join(", ", servers) + Host(servers)));
         }
 
-        findings.AddRange(MailAuth(look.Txt, look.DmarcTxt, look.MailServers.Count > 0));
+        findings.AddRange(MailAuth(look.Txt, look.DmarcTxt, look.MailServers.Count > 0, look.Dkim));
         return findings;
     }
 
     /// <summary>SPF and DMARC: what decides whether this domain's mail is trusted or sent to spam.</summary>
-    public static IReadOnlyList<DomainFinding> MailAuth(IReadOnlyList<string> txt, IReadOnlyList<string> dmarcTxt, bool hasMail)
+    public static IReadOnlyList<DomainFinding> MailAuth(IReadOnlyList<string> txt, IReadOnlyList<string> dmarcTxt, bool hasMail,
+        IReadOnlyDictionary<string, IReadOnlyList<string>>? dkim = null)
     {
         var findings = new List<DomainFinding>();
         var spf = txt.Where(t => t.StartsWith("v=spf1", StringComparison.OrdinalIgnoreCase)).ToList();
@@ -143,6 +146,9 @@ public static class DomainReport
                 findings.Add(new("SPF", record));
         }
 
+        if (dkim is not null)
+            findings.Add(Dkim(dkim, hasMail));
+
         var dmarc = dmarcTxt.FirstOrDefault(t => t.StartsWith("v=DMARC1", StringComparison.OrdinalIgnoreCase));
         if (dmarc is null)
             findings.Add(new("DMARC", hasMail ? "Missing. Gmail and Outlook trust mail more with one. Start with v=DMARC1; p=none" : "None.", hasMail));
@@ -158,6 +164,33 @@ public static class DomainReport
         }
         return findings;
     }
+
+    /// <summary>
+    /// The DKIM selectors worth trying. DKIM keys sit under a name only the mail host knows, so the usual
+    /// names for Google, Microsoft 365, cPanel hosts like xneelo, and the bulk mail services are tried.
+    /// </summary>
+    public static readonly IReadOnlyList<string> DkimSelectors =
+        ["default", "google", "selector1", "selector2", "k1", "k2", "s1", "s2", "dkim", "mail", "smtp", "mx", "zoho"];
+
+    /// <summary>What the DKIM lookups found. Not finding one isn't proof there is none, so that isn't shown as a problem.</summary>
+    public static DomainFinding Dkim(IReadOnlyDictionary<string, IReadOnlyList<string>> found, bool hasMail)
+    {
+        var keys = found.Where(f => f.Value.Any(IsDkimKey)).ToList();
+        var live = keys.Where(f => f.Value.Any(v => IsDkimKey(v) && KeyValue(v) is not { Length: 0 })).Select(f => f.Key).Order(StringComparer.Ordinal).ToList();
+        if (live.Count > 0)
+            return new("DKIM", $"Set up. Found under {string.Join(", ", live)}.");
+        if (keys.Count > 0)
+            return new("DKIM", $"Found under {string.Join(", ", keys.Select(k => k.Key).Order(StringComparer.Ordinal))}, but the key is empty, so mail isn't signed. Switch DKIM on again at the mail host.", true);
+        return new("DKIM", hasMail
+            ? "None found under the usual names. It may use a name only the mail host knows; if not, ask them to switch DKIM on."
+            : "None.");
+    }
+
+    private static bool IsDkimKey(string record) =>
+        record.StartsWith("v=DKIM1", StringComparison.OrdinalIgnoreCase) || record.Split(';').Any(p => p.Trim().StartsWith("p=", StringComparison.OrdinalIgnoreCase));
+
+    private static string? KeyValue(string record) =>
+        record.Split(';').Select(p => p.Trim()).FirstOrDefault(p => p.StartsWith("p=", StringComparison.OrdinalIgnoreCase))?[2..].Trim();
 
     private static IEnumerable<DomainFinding> Registration(DomainLookup look)
     {
