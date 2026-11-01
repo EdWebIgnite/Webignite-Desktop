@@ -41,6 +41,9 @@ public partial class ClientsViewModel : ViewModelBase
     [RelayCommand]
     private void Open(ClientRow row) => Detail = new ClientDetailViewModel(row.Client, isNew: false, services, Close);
 
+    /// <summary>Opens a client's page, e.g. from search.</summary>
+    public void OpenClient(Client client) => Detail = new ClientDetailViewModel(client, isNew: false, services, Close);
+
     [RelayCommand]
     private void AddSuggested(string name)
     {

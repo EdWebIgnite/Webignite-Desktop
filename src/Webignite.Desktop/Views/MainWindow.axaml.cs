@@ -1,6 +1,9 @@
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
@@ -23,9 +26,36 @@ public partial class MainWindow : Window
             return;
         main.WindowIsActive = () => IsActive && WindowState != WindowState.Minimized;
         main.FlashTaskbar = Flash;
+        main.Search.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(QuickSearchViewModel.IsOpen) && main.Search.IsOpen)
+                Dispatcher.UIThread.Post(() => SearchBox.Focus(), DispatcherPriority.Input);
+        };
         if (App.Services is { } services)
             services.ShowNote = ShowNote;
     }
+
+    private QuickSearchViewModel? Search => (DataContext as MainViewModel)?.Search;
+
+    private void SearchKeys(object? sender, KeyEventArgs e)
+    {
+        if (Search is not { } search)
+            return;
+        switch (e.Key)
+        {
+            case Key.Down: search.Move(1); e.Handled = true; break;
+            case Key.Up: search.Move(-1); e.Handled = true; break;
+            case Key.Enter: search.OpenChosen(); e.Handled = true; break;
+            case Key.Escape: search.Hide(); e.Handled = true; break;
+        }
+    }
+
+    private void OpenSearchHit(object? sender, RoutedEventArgs e) => Search?.OpenChosen();
+
+    private void CloseSearch(object? sender, PointerPressedEventArgs e) => Search?.Hide();
+
+    // Clicks inside the box shouldn't reach the dimmed background and close it.
+    private void KeepSearchOpen(object? sender, PointerPressedEventArgs e) => e.Handled = true;
 
     /// <summary>A note in the bottom corner of the window. It fades after a few seconds; clicking it runs the action.</summary>
     private void ShowNote(string title, string text, Action? onClick)

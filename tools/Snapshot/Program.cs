@@ -256,6 +256,12 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 Open("Overview");
 Save("overview");
 
+// Ctrl+K search
+vm.Search.Show();
+vm.Search.Query = "karoo";
+Save("search");
+vm.Search.Hide();
+
 // New mail while another page is open: a count beside Mail and a note in the corner.
 var mailIds = store.ListMailAccounts().Select(a => a.Id).ToList();
 services.MailCheckSettings = new Webignite.Core.Mail.MailCheckSettings { Announced = mailIds.ToDictionary(id => id, _ => 0u) };

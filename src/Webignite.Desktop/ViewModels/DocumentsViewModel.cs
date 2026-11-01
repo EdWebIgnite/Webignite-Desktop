@@ -41,6 +41,9 @@ public partial class DocumentsViewModel : ViewModelBase
     [RelayCommand]
     private void Open(DocumentRow row) => Editor = new DocumentEditorViewModel(row.Stored, services, Close);
 
+    /// <summary>Opens a quote or invoice, e.g. from search.</summary>
+    public void OpenDocument(StoredDocument stored) => Editor = new DocumentEditorViewModel(services.Store.Get(stored.Id) ?? stored, services, Close);
+
     private void Close()
     {
         Editor = null;

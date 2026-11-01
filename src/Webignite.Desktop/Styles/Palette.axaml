@@ -23,6 +23,8 @@
   <SolidColorBrush x:Key="NavText" Color="#FFFFFF" />
   <SolidColorBrush x:Key="NavMuted" Color="#A3A6AD" />
   <SolidColorBrush x:Key="NavActive" Color="#FFFFFF" />
+  <!-- Dims the page behind the Ctrl+K search box. -->
+  <SolidColorBrush x:Key="Scrim" Color="#661C1D21" />
 
   <SolidColorBrush x:Key="Primary" Color="#1C1D21" />
   <SolidColorBrush x:Key="PrimaryHover" Color="#3A3D44" />

@@ -144,11 +144,43 @@ public partial class MainViewModel : ViewModelBase
             };
             Selected = Modules.Single(m => m.Title == title);
         };
+        Search = new QuickSearchViewModel(services, OpenHit);
         services.WriteMail = to =>
         {
             Selected = mailModule;
             Mail.WriteTo(to);
         };
+    }
+
+    public QuickSearchViewModel Search { get; }
+
+    private void OpenHit(Webignite.Core.Search.SearchHit hit)
+    {
+        Module Page(string title) => Modules.Single(m => m.Title == title);
+        switch (hit.Kind)
+        {
+            case Webignite.Core.Search.HitKind.Client:
+                Selected = Page("Clients");
+                Clients.OpenClient(hit.Client!);
+                break;
+            case Webignite.Core.Search.HitKind.Quote:
+                Selected = Page("Quotes");
+                Quotes.OpenDocument(hit.Document!);
+                break;
+            case Webignite.Core.Search.HitKind.Invoice:
+                Selected = Page("Invoices");
+                Invoices.OpenDocument(hit.Document!);
+                break;
+            case Webignite.Core.Search.HitKind.Mail:
+                services.OpenMail?.Invoke(hit.Mail!);
+                break;
+            case Webignite.Core.Search.HitKind.Todo:
+                Selected = Page("To-do");
+                break;
+            default:
+                Selected = Page("Domains and hosting");
+                break;
+        }
     }
 
     public DocumentsViewModel Quotes { get; }
