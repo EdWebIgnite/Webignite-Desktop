@@ -6,6 +6,7 @@ namespace Webignite.Desktop.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     private readonly AppServices services;
+    private readonly Avalonia.Threading.DispatcherTimer backupTimer;
 
     public UpdateViewModel Updates { get; } = new();
 
@@ -14,6 +15,11 @@ public partial class MainViewModel : ViewModelBase
         this.services = services;
         services.CatchUp();
         _ = Updates.CheckAsync();
+        _ = services.BackUpAsync();
+        // Once an hour, check whether the daily backup is due, for when the app stays open for days.
+        backupTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(1) };
+        backupTimer.Tick += (_, _) => _ = services.BackUpAsync();
+        backupTimer.Start();
         Quotes = new DocumentsViewModel(DocumentKind.Quote, services);
         Invoices = new DocumentsViewModel(DocumentKind.Invoice, services);
         Todo = new TodoViewModel(services);
@@ -94,7 +100,7 @@ public partial class MainViewModel : ViewModelBase
             case ReportsViewModel reports: reports.Refresh(); break;
             case ApprovalsViewModel approvals: approvals.Refresh(); break;
             case MailViewModel mail: mail.Reload(); _ = mail.SyncAll(); break;
-            case SettingsViewModel settings: settings.UpdateAssistantStatus(); break;
+            case SettingsViewModel settings: settings.Refresh(); break;
         }
     }
 }

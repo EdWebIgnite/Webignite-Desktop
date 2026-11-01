@@ -25,6 +25,17 @@ public static class VaultKey
         return LoadWithDpapi(Path.Combine(dataDirectory, "vault.key"));
     }
 
+    /// <summary>Replaces the key, e.g. after restoring a backup. Only on Windows; tests pass their own.</summary>
+    [SupportedOSPlatform("windows")]
+    public static void Save(string dataDirectory, byte[] key)
+    {
+        if (key.Length != 32)
+            throw new ArgumentException("The vault key must be 32 bytes.", nameof(key));
+        var path = Path.Combine(dataDirectory, "vault.key");
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllBytes(path, ProtectedData.Protect(key, Entropy, DataProtectionScope.CurrentUser));
+    }
+
     [SupportedOSPlatform("windows")]
     private static byte[] LoadWithDpapi(string path)
     {

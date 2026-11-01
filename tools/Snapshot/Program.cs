@@ -15,8 +15,10 @@ using Webignite.Xero.Auth;
 var output = args.Length > 0 ? args[0] : "screenshots";
 Directory.CreateDirectory(output);
 var data = Directory.CreateTempSubdirectory("webignite-snapshot-").FullName;
-var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
-var services = new AppServices(store) { TokenStore = new MemoryTokenStore() };
+var snapshotKey = RandomNumberGenerator.GetBytes(32);
+var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(snapshotKey));
+var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey };
+services.BackupSettings = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
 App.Services = services;
 
 AppBuilder.Configure<App>()
@@ -83,6 +85,15 @@ vm.Invoices.Editor = null;
 
 Open("Settings");
 Save("settings");
+
+// Run synchronously here: the headless dispatcher isn't pumped while this script waits.
+services.Secrets.Write(AppServices.BackupPasswordName, "a long sample password");
+var backupAt = DateTimeOffset.Now.AddMinutes(-20);
+var backupFile = Backups.Seal(Backups.Snapshot(store), snapshotKey, "a long sample password", services.BackupFolder, backupAt, "0.2.2", 1000);
+services.BackupSettings = services.BackupSettings with { LastBackup = backupAt, LastFile = backupFile };
+var settingsPage = (SettingsViewModel)vm.Selected.Page;
+settingsPage.Refresh();
+Save("settings-backups");
 
 var today = DateOnly.FromDateTime(DateTime.Today);
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t1", Title = "Send Bosveld the sitemap for sign-off", Due = today, Created = DateTimeOffset.UtcNow });

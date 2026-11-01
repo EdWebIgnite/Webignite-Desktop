@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Webignite.Core.Backups;
 using Webignite.Core.Documents;
 using Webignite.Core.Tasks;
 using Webignite.Data;
@@ -54,6 +55,71 @@ public sealed class AppServices(LocalStore store) : IDisposable
             if (value.ClientId != XeroSettings.ClientId)
                 xero = null;
             Store.SetSetting("xero", value);
+        }
+    }
+
+    // Backups
+
+    public const string BackupPasswordName = "Backup/password";
+
+    public BackupSettings BackupSettings
+    {
+        get => Store.GetSetting<BackupSettings>("backups") ?? new BackupSettings();
+        set => Store.SetSetting("backups", value);
+    }
+
+    /// <summary>The key that unlocks the database, needed inside each backup. Tests and screenshots pass their own.</summary>
+    public Func<byte[]> VaultKeySource { get; init; } = () => VaultKey.Load(DataPaths.Root());
+
+    public bool HasBackupPassword => Secrets.Read(BackupPasswordName) is { Length: > 0 };
+
+    /// <summary>OneDrive when it's set up on this PC, so backups leave the machine; otherwise Documents.</summary>
+    public static string DefaultBackupFolder()
+    {
+        var oneDrive = Environment.GetEnvironmentVariable("OneDrive");
+        var parent = oneDrive is { Length: > 0 } && Directory.Exists(oneDrive)
+            ? oneDrive
+            : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        return Path.Combine(parent, "Webignite backups");
+    }
+
+    public string BackupFolder => BackupSettings.Folder is { Length: > 0 } folder ? folder : DefaultBackupFolder();
+
+    private bool backingUp;
+
+    /// <summary>
+    /// Makes a backup when one is due (or now, when asked). Copies the database on this thread, then encrypts
+    /// in the background. Returns the problem, or null when it worked or wasn't needed.
+    /// </summary>
+    public async Task<string?> BackUpAsync(bool now = false)
+    {
+        if (backingUp || Secrets.Read(BackupPasswordName) is not { Length: > 0 } password)
+            return null;
+        var settings = BackupSettings;
+        var started = DateTimeOffset.Now;
+        if (!now && !BackupRules.IsDue(settings, started))
+            return null;
+        backingUp = true;
+        try
+        {
+            var snapshot = Backups.Snapshot(Store);
+            var key = VaultKeySource();
+            var folder = BackupFolder;
+            var version = typeof(AppServices).Assembly.GetName().Version?.ToString(3);
+            var file = await Task.Run(() => Backups.Seal(snapshot, key, password, folder, started, version));
+            BackupSettings = BackupSettings with { LastBackup = started, LastFile = file, LastProblem = null, LastProblemAt = null };
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException
+                                      or System.Security.Cryptography.CryptographicException or PlatformNotSupportedException)
+        {
+            var problem = e is UnauthorizedAccessException ? "Webignite can't write to the backup folder." : e.Message;
+            BackupSettings = BackupSettings with { LastProblem = problem, LastProblemAt = DateTimeOffset.Now };
+            return problem;
+        }
+        finally
+        {
+            backingUp = false;
         }
     }
 

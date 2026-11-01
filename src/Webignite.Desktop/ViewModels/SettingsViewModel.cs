@@ -1,6 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Webignite.Core.Backups;
 using Webignite.Core.Documents;
+using Webignite.Data;
 using Webignite.Xero.Auth;
 
 namespace Webignite.Desktop.ViewModels;
@@ -21,6 +23,165 @@ public partial class SettingsViewModel : ViewModelBase
         UpdateXeroStatus();
         UpdateAssistantStatus();
         LoadTemplates(services.EmailTemplates);
+        UpdateBackupStatus();
+        if (App.RestoredAtStart)
+            BackupMessage = "The backup was restored. If mail or Xero ask, sign in again: passwords aren't kept in backups.";
+    }
+
+    // Backups
+
+    [ObservableProperty] public partial string BackupStatus { get; set; } = "";
+    [ObservableProperty] public partial bool BackupProblem { get; set; }
+    [ObservableProperty] public partial string BackupFolder { get; set; } = "";
+    [ObservableProperty] public partial bool HasBackupPassword { get; set; }
+    [ObservableProperty] public partial bool ChangingPassword { get; set; }
+    [ObservableProperty] public partial string NewBackupPassword { get; set; } = "";
+    [ObservableProperty] public partial string RepeatBackupPassword { get; set; } = "";
+    [ObservableProperty] public partial string BackupMessage { get; set; } = "";
+    [ObservableProperty] public partial bool BackupMessageIsProblem { get; set; }
+    [ObservableProperty] public partial bool BackingUp { get; set; }
+
+    [ObservableProperty] public partial string? RestoreFile { get; set; }
+    [ObservableProperty] public partial string RestorePassword { get; set; } = "";
+    [ObservableProperty] public partial bool RestoreReady { get; set; }
+
+    public bool ShowPasswordFields => ChangingPassword || !HasBackupPassword;
+    public bool ShowRestore => RestoreFile is not null && !RestoreReady;
+    public string RestoreFileName => RestoreFile is null ? "" : Path.GetFileName(RestoreFile);
+    public string PasswordButtonText => HasBackupPassword ? "Change backup password" : "";
+
+    partial void OnChangingPasswordChanged(bool value) => OnPropertyChanged(nameof(ShowPasswordFields));
+    partial void OnHasBackupPasswordChanged(bool value) => OnPropertyChanged(nameof(ShowPasswordFields));
+    partial void OnRestoreFileChanged(string? value)
+    {
+        OnPropertyChanged(nameof(ShowRestore));
+        OnPropertyChanged(nameof(RestoreFileName));
+    }
+    partial void OnRestoreReadyChanged(bool value) => OnPropertyChanged(nameof(ShowRestore));
+
+    /// <summary>Looks again when the page is opened, as backups run in the background.</summary>
+    public void Refresh()
+    {
+        UpdateAssistantStatus();
+        UpdateBackupStatus();
+    }
+
+    private void UpdateBackupStatus()
+    {
+        var settings = services.BackupSettings;
+        HasBackupPassword = services.HasBackupPassword;
+        BackupFolder = services.BackupFolder;
+        var now = DateTimeOffset.Now;
+        BackupStatus = BackupRules.Status(settings, HasBackupPassword, now);
+        BackupProblem = !HasBackupPassword || BackupStatus.StartsWith("The last backup failed", StringComparison.Ordinal)
+                        || BackupRules.Overdue(settings, HasBackupPassword, now);
+    }
+
+    private void Say(string message, bool problem = false)
+    {
+        BackupMessage = message;
+        BackupMessageIsProblem = problem;
+    }
+
+    [RelayCommand]
+    private async Task SaveBackupPassword()
+    {
+        if (BackupRules.PasswordProblem(NewBackupPassword, RepeatBackupPassword) is { } problem)
+        {
+            Say(problem, true);
+            return;
+        }
+        services.Secrets.Write(AppServices.BackupPasswordName, NewBackupPassword);
+        NewBackupPassword = RepeatBackupPassword = "";
+        ChangingPassword = false;
+        Say("Saved. Write this password down somewhere safe: without it, no backup can be opened.");
+        await BackUpNow();
+    }
+
+    [RelayCommand]
+    private void ChangePassword() => ChangingPassword = true;
+
+    [RelayCommand]
+    private void CancelPassword()
+    {
+        ChangingPassword = false;
+        NewBackupPassword = RepeatBackupPassword = "";
+    }
+
+    public void SetBackupFolder(string folder)
+    {
+        services.BackupSettings = services.BackupSettings with { Folder = folder };
+        UpdateBackupStatus();
+        Say("Backups will go to " + folder + ".");
+    }
+
+    [RelayCommand]
+    private async Task BackUpNow()
+    {
+        if (!services.HasBackupPassword)
+        {
+            Say("Choose a backup password first.", true);
+            return;
+        }
+        BackingUp = true;
+        var problem = await services.BackUpAsync(now: true);
+        BackingUp = false;
+        UpdateBackupStatus();
+        if (problem is not null)
+            Say(problem, true);
+        else if (!BackupMessage.StartsWith("Saved.", StringComparison.Ordinal))
+            Say("Backed up.");
+    }
+
+    [RelayCommand]
+    private void OpenBackupFolder()
+    {
+        Directory.CreateDirectory(BackupFolder);
+        AppServices.OpenFile(BackupFolder);
+    }
+
+    public void ChooseRestoreFile(string path)
+    {
+        RestoreFile = path;
+        RestorePassword = "";
+        RestoreReady = false;
+        Say("");
+    }
+
+    [RelayCommand]
+    private void CancelRestore()
+    {
+        RestoreFile = null;
+        RestorePassword = "";
+    }
+
+    [RelayCommand]
+    private async Task Restore()
+    {
+        if (RestoreFile is not { } file)
+            return;
+        var password = RestorePassword;
+        var root = DataPaths.Root();
+        try
+        {
+            var made = await Task.Run(() => Backups.Stage(file, password, root));
+            RestorePassword = "";
+            RestoreReady = true;
+            Say($"The backup from {made.ToLocalTime():d MMMM yyyy} at {made.ToLocalTime():HH:mm} is unlocked. Restart Webignite to switch to it. Your current data is kept in a \"before-restore\" folder.");
+        }
+        catch (Exception e) when (e is BackupPasswordException or InvalidDataException or IOException
+                                      or System.Security.Cryptography.CryptographicException)
+        {
+            Say(e.Message, true);
+        }
+    }
+
+    [RelayCommand]
+    private void RestartToRestore()
+    {
+        App.RestartAfterExit = true;
+        if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            desktop.Shutdown();
     }
 
     // Invoice and quote emails

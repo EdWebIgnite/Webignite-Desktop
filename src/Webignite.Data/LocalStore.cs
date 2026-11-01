@@ -546,6 +546,36 @@ public sealed partial class LocalStore : IDisposable
         command.ExecuteNonQuery();
     }
 
+    /// <summary>Writes a consistent copy of the whole database to a new file, while the app keeps using it.</summary>
+    public void CopyTo(string path)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "VACUUM INTO $path";
+        command.Parameters.AddWithValue("$path", path);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Unlocks a sample of every kind of record. Throws when the key doesn't match the data.</summary>
+    public void Check()
+    {
+        var samples = new[]
+        {
+            ("SELECT name, payload FROM settings LIMIT 1", "setting:"),
+            ("SELECT id, payload FROM documents LIMIT 1", "document:"),
+            ("SELECT id, payload FROM clients LIMIT 1", "client:"),
+            ("SELECT id, payload FROM tasks LIMIT 1", "task:"),
+            ("SELECT id, payload FROM entries LIMIT 1", "entry:"),
+        };
+        foreach (var (sql, prefix) in samples)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = sql;
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+                vault.Decrypt((byte[])reader[1], prefix + reader.GetString(0));
+        }
+    }
+
     public void Dispose() => connection.Dispose();
 
     private byte[] Seal<T>(string context, T value) =>
