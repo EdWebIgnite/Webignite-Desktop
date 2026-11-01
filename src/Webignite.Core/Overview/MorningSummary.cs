@@ -11,7 +11,7 @@ namespace Webignite.Core.Overview;
 public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings, Chase, Statement, Clients }
 
 /// <summary>One line of the morning summary. A problem shows in red; the rest are plain.</summary>
-public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null, string? Customer = null);
+public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null, string? Customer = null, Client? Client = null);
 
 /// <summary>Everything the summary looks at, read by the app from the database.</summary>
 public sealed record SummaryInput
@@ -93,6 +93,13 @@ public static class MorningSummary
         }
 
         lines.AddRange(WaitingOnReply(input));
+
+        foreach (var (client, days) in Onboarding.Stalled(input.Clients, today).Take(MaxChaseLines))
+        {
+            var outstanding = Onboarding.Outstanding(client);
+            var list = string.Join(", ", outstanding.Take(3).Select(w => w.Split(" (")[0].ToLowerInvariant())) + (outstanding.Count > 3 ? $", and {outstanding.Count - 3} more" : "");
+            lines.Add(new($"Nothing in from {client.Name} for {Days(days)}. Still waiting on {list}.", SummaryTarget.Clients, Client: client));
+        }
 
         foreach (var renewal in input.Renewals.Where(r => r.RenewsOn >= today && r.RenewsOn <= today.AddDays(RenewalDays)).OrderBy(r => r.RenewsOn))
         {

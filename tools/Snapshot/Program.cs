@@ -127,6 +127,11 @@ store.SaveClient(new Webignite.Core.Clients.Client
 store.SaveClient(new Webignite.Core.Clients.Client { Id = "c2", Name = "Fynbos Physio", Email = "admin@fynbosphysio.co.za" });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t6", Title = "Get photos of finished projects", Customer = "Bosveld Builders", Due = today.AddDays(4), Created = DateTimeOffset.UtcNow });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e4", Title = "Sitemap review", Date = today.AddDays(1), Start = new TimeOnly(9, 0), Customer = "Bosveld Builders" });
+var bosveld = store.ListClients().First(c => c.Name == "Bosveld Builders");
+bosveld = Webignite.Core.Clients.Onboarding.Start(bosveld, today.AddDays(-12));
+foreach (var item in new[] { "Deposit paid", "Logo (SVG or large PNG)", "Brand colours and fonts", "Sitemap signed off" })
+    bosveld = Webignite.Core.Clients.Onboarding.Tick(bosveld, item, true, today.AddDays(-9));
+store.SaveClient(bosveld);
 Open("Clients");
 Save("clients");
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);

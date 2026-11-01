@@ -15,6 +15,12 @@ public sealed record Client
     /// <summary>The matching contact in Xero, once known.</summary>
     public string? XeroContactId { get; init; }
 
+    /// <summary>What's still needed from them for a new site. Empty until onboarding is started.</summary>
+    public IReadOnlyList<OnboardingItem> Onboarding { get; init; } = [];
+
+    /// <summary>When onboarding was started, for "waiting since".</summary>
+    public DateOnly? OnboardingStarted { get; init; }
+
     public DateTimeOffset Created { get; init; }
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");

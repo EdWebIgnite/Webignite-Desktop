@@ -89,6 +89,46 @@
         </Border>
 
         <StackPanel Grid.Column="2" Spacing="18">
+          <!-- New site checklist -->
+          <Border Classes="card" IsVisible="{Binding IsSaved}">
+            <StackPanel Spacing="10">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding OnboardingProgress}" VerticalAlignment="Center" IsVisible="{Binding HasOnboarding}" />
+                <TextBlock Classes="h2" Text="New site checklist" />
+              </DockPanel>
+              <StackPanel Spacing="8" IsVisible="{Binding CanStartOnboarding}">
+                <TextBlock Classes="muted" TextWrapping="Wrap"
+                           Text="For a new website: the logo, content, photos, domain and hosting access you need from them, ticked off as each comes in." />
+                <Button Classes="quiet" Content="Start the checklist" Command="{Binding StartOnboardingCommand}" HorizontalAlignment="Left" />
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding OnboardingItems}" IsVisible="{Binding HasOnboarding}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:OnboardingRow">
+                    <DockPanel Margin="0,1">
+                      <Button DockPanel.Dock="Right" Classes="link" Content="×" Padding="6,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Not needed for this client" />
+                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0" />
+                      <CheckBox IsChecked="{Binding Done}" Content="{Binding Name}" />
+                    </DockPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <DockPanel IsVisible="{Binding HasOnboarding}">
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Margin="8,0,0,0" Command="{Binding AddOnboardingItemCommand}" />
+                <TextBox Text="{Binding NewOnboardingItem}" PlaceholderText="Something else they need to send">
+                  <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding AddOnboardingItemCommand}" />
+                  </TextBox.KeyBindings>
+                </TextBox>
+              </DockPanel>
+              <DockPanel IsVisible="{Binding HasOnboarding}">
+                <Button DockPanel.Dock="Right" Classes="link" Content="Remove the checklist" Command="{Binding ClearOnboardingCommand}" />
+                <Button Classes="quiet" Content="Draft a reminder" ToolTip.Tip="A mail to them listing what's still outstanding, for you to check and send" Command="{Binding DraftOnboardingReminderCommand}"
+                        IsVisible="{Binding OnboardingOutstanding}" HorizontalAlignment="Left" />
+              </DockPanel>
+              <TextBlock Classes="muted" Text="{Binding OnboardingMessage}" TextWrapping="Wrap"
+                         IsVisible="{Binding OnboardingMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+          </Border>
           <!-- Quotes and invoices -->
           <Border Classes="card" Padding="0">
             <StackPanel>

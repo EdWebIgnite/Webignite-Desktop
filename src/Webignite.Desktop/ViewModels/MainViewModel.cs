@@ -130,6 +130,11 @@ public partial class MainViewModel : ViewModelBase
             }
             return true;
         };
+        services.OpenClient = client =>
+        {
+            Selected = Modules.Single(m => m.Title == "Clients");
+            Clients.OpenClient(services.Store.ListClients().FirstOrDefault(c => c.Id == client.Id) ?? client);
+        };
         services.AddToInvoice = (amount, description) =>
         {
             if (Invoices.Editor is { } open && !open.AddAmount(amount, description))

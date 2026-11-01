@@ -143,6 +143,7 @@ public partial class ClientDetailViewModel : ViewModelBase
             : "Saved.";
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(IsSaved));
+        OnPropertyChanged(nameof(CanStartOnboarding));
         Refresh();
         return true;
     }
@@ -222,6 +223,7 @@ public partial class ClientDetailViewModel : ViewModelBase
 
     public void Refresh()
     {
+        LoadOnboarding();
         Documents.Clear();
         Tasks.Clear();
         Events.Clear();

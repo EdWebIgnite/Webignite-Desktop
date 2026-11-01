@@ -114,13 +114,18 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
         SummaryTarget.Invoices => "Invoices",
         SummaryTarget.Renewals => "Renewals",
         SummaryTarget.Money => "Money",
-        SummaryTarget.Clients => "Clients",
+        SummaryTarget.Clients => line.Client is null ? "Clients" : "Open client",
         _ => "Settings",
     };
 
     [RelayCommand]
     private async Task Open()
     {
+        if (line.Target == SummaryTarget.Clients && line.Client is { } client)
+        {
+            services.OpenClient?.Invoke(client);
+            return;
+        }
         if (line.Target is not (SummaryTarget.Chase or SummaryTarget.Statement))
         {
             services.Navigate?.Invoke(line.Target, line.Mail);

@@ -185,6 +185,9 @@ public sealed class AppServices(LocalStore store) : IDisposable
     /// </summary>
     public Func<Webignite.Core.Mail.OutgoingMail, string?, Func<Task>?, bool>? ComposeMail { get; set; }
 
+    /// <summary>Opens a client's page.</summary>
+    public Action<Webignite.Core.Clients.Client>? OpenClient { get; set; }
+
     /// <summary>Puts an amount on the invoice being edited, or a new one, and opens it. Returns a problem, or null.</summary>
     public Func<decimal, string, string?>? AddToInvoice { get; set; }
 
