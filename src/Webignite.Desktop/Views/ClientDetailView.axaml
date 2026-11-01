@@ -24,7 +24,8 @@
 
       <Grid ColumnDefinitions="*,24,*">
         <!-- Details -->
-        <Border Grid.Column="0" Classes="card" VerticalAlignment="Top">
+        <StackPanel Grid.Column="0" Spacing="18">
+        <Border Classes="card" VerticalAlignment="Top">
           <StackPanel Spacing="12">
             <TextBlock Classes="h2" Text="Details" />
             <StackPanel>
@@ -87,6 +88,54 @@
             </DockPanel>
           </StackPanel>
         </Border>
+
+        <!-- Notes and files -->
+        <Border x:Name="FilesDrop" Classes="card" IsVisible="{Binding IsSaved}" DragDrop.AllowDrop="True">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Notes and files" />
+            <TextBox Text="{Binding NewLogText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64"
+                     PlaceholderText="What was said or decided, e.g. Call with Pieter: wants the shop in phase two" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="quiet" Content="Add note" Command="{Binding AddLogEntryCommand}" />
+              <Button Classes="quiet" Content="Link a file" Click="LinkFiles" ToolTip.Tip="Contracts, briefs, logos. The file stays where it is" />
+            </StackPanel>
+            <TextBlock Classes="muted" FontSize="12" Text="{Binding RecordsMessage}" TextWrapping="Wrap"
+                       IsVisible="{Binding RecordsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+            <ItemsControl ItemsSource="{Binding FileRows}" IsVisible="{Binding HasFiles}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ClientFileRow">
+                  <DockPanel Margin="0,3">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+                      <Button Classes="link" Content="Folder" Padding="6,2" Command="{Binding ShowInFolderCommand}" IsVisible="{Binding !Missing}" />
+                      <Button Classes="link" Content="×" Padding="6,2" Command="{Binding RemoveCommand}" ToolTip.Tip="Unlink. The file itself isn't deleted" />
+                    </StackPanel>
+                    <StackPanel>
+                      <Button Classes="link" Content="{Binding Name}" Padding="0,2" Command="{Binding OpenCommand}" IsVisible="{Binding !Missing}" HorizontalAlignment="Left" />
+                      <TextBlock Text="{Binding Name}" Margin="0,2" IsVisible="{Binding Missing}" TextDecorations="Strikethrough" />
+                      <TextBlock Classes="muted" FontSize="12" Classes.problem="{Binding Missing}" Text="{Binding Detail}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </DockPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ItemsControl ItemsSource="{Binding LogEntries}" IsVisible="{Binding HasLog}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ClientNoteRow">
+                  <DockPanel Margin="0,6,0,0">
+                    <Button DockPanel.Dock="Right" Classes="link" Content="×" Padding="6,0" VerticalAlignment="Top" Command="{Binding RemoveCommand}" ToolTip.Tip="Delete this note" />
+                    <TextBlock DockPanel.Dock="Top" Classes="label" Text="{Binding Day}" />
+                    <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                  </DockPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !HasFiles}"
+                       Text="Drop files on this card to link them. Keep them in OneDrive so they're backed up too." />
+          </StackPanel>
+        </Border>
+        </StackPanel>
 
         <StackPanel Grid.Column="2" Spacing="18">
           <!-- New site checklist -->

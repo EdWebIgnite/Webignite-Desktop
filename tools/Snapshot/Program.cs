@@ -131,11 +131,19 @@ var bosveld = store.ListClients().First(c => c.Name == "Bosveld Builders");
 bosveld = Webignite.Core.Clients.Onboarding.Start(bosveld, today.AddDays(-12));
 foreach (var item in new[] { "Deposit paid", "Logo (SVG or large PNG)", "Brand colours and fonts", "Sitemap signed off" })
     bosveld = Webignite.Core.Clients.Onboarding.Tick(bosveld, item, true, today.AddDays(-9));
+var brief = Path.Combine(data, "Bosveld website brief.pdf");
+File.WriteAllText(brief, "brief");
+bosveld = Webignite.Core.Clients.ClientRecords.AddFiles(bosveld, [brief, Path.Combine(data, "Old contract.docx")], today.AddDays(-12));
+bosveld = Webignite.Core.Clients.ClientRecords.AddNote(bosveld, "Kick-off with Pieter. Six pages to start, online booking for site visits in phase two. Budget agreed at R 17 700.", today.AddDays(-12));
+bosveld = Webignite.Core.Clients.ClientRecords.AddNote(bosveld, "Pieter sent the logo on WhatsApp. Asked for the photos again.", today.AddDays(-1));
 store.SaveClient(bosveld);
 Open("Clients");
 Save("clients");
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Save("client");
+window.Height = 1250;
+Save("client-tall");
+window.Height = 860;
 vm.Clients.Detail!.BackCommand.Execute(null);
 var month = new DateOnly(today.Year, today.Month, 1);
 void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>

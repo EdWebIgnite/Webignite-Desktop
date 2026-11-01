@@ -144,6 +144,7 @@ public partial class ClientDetailViewModel : ViewModelBase
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(IsSaved));
         OnPropertyChanged(nameof(CanStartOnboarding));
+        AddLogEntryCommand.NotifyCanExecuteChanged();
         Refresh();
         return true;
     }
@@ -224,6 +225,7 @@ public partial class ClientDetailViewModel : ViewModelBase
     public void Refresh()
     {
         LoadOnboarding();
+        LoadRecords();
         Documents.Clear();
         Tasks.Clear();
         Events.Clear();
