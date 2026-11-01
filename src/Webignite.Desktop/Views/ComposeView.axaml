@@ -5,6 +5,7 @@
              xmlns:html="using:TheArtOfDev.HtmlRenderer.Avalonia"
              x:Class="Webignite.Desktop.Views.ComposeView"
              x:DataType="vm:ComposeViewModel">
+  <Panel>
   <DockPanel>
     <!-- Header and address fields -->
     <StackPanel DockPanel.Dock="Top" Margin="24,18,24,8" Spacing="8">
@@ -26,15 +27,15 @@
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="To" VerticalAlignment="Center" />
         <Button DockPanel.Dock="Right" Classes="link" Content="Cc and Bcc" Command="{Binding ToggleCcCommand}" IsVisible="{Binding !ShowCc}" />
-        <TextBox Text="{Binding To}" PlaceholderText="Addresses, separated by commas" />
+        <TextBox x:Name="ToBox" Text="{Binding To}" PlaceholderText="Type a name or address" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Cc" VerticalAlignment="Center" />
-        <TextBox Text="{Binding Cc}" />
+        <TextBox x:Name="CcBox" Text="{Binding Cc}" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Bcc" VerticalAlignment="Center" />
-        <TextBox Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
+        <TextBox x:Name="BccBox" Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
       </DockPanel>
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Subject" VerticalAlignment="Center" />
@@ -120,4 +121,20 @@
     <TextBox Margin="24,4,24,8" Text="{Binding Body}" AcceptsReturn="True" AcceptsTab="False" TextWrapping="Wrap"
              VerticalAlignment="Stretch" VerticalContentAlignment="Top" PlaceholderText="Write your mail" />
   </DockPanel>
+  <!-- Suggestions under whichever address box is being typed in -->
+  <Popup x:Name="SuggestionsPopup" IsOpen="{Binding HasSuggestions}" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False">
+    <Border Classes="card" Padding="4" MinWidth="320" BoxShadow="0 6 18 0 #331C1D21">
+      <ListBox x:Name="SuggestionList" ItemsSource="{Binding Suggestions}" SelectedItem="{Binding ChosenSuggestion}" Background="Transparent"
+               Tapped="SuggestionTapped">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="core:Contact">
+            <StackPanel Margin="2,1">
+              <TextBlock Text="{Binding Display}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+  </Popup>
+  </Panel>
 </UserControl>

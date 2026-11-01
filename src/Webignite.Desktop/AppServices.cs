@@ -185,6 +185,22 @@ public sealed class AppServices(LocalStore store) : IDisposable
     /// </summary>
     public Func<Webignite.Core.Mail.OutgoingMail, string?, Func<Task>?, bool>? ComposeMail { get; set; }
 
+    private IReadOnlyList<Webignite.Core.Mail.Contact>? addressBook;
+    private DateTime addressBookMade;
+
+    /// <summary>Suggestions for To, Cc and Bcc. Built from clients and cached mail, and refreshed every ten minutes.</summary>
+    public async Task<IReadOnlyList<Webignite.Core.Mail.Contact>> AddressBookAsync()
+    {
+        if (addressBook is { } book && DateTime.UtcNow - addressBookMade < TimeSpan.FromMinutes(10))
+            return book;
+        var accounts = Store.ListMailAccounts();
+        var clients = Store.ListClients();
+        var mail = await Task.Run(() => Store.FindMail(accounts.Select(a => a.Id), _ => true, 3000));
+        addressBook = Webignite.Core.Mail.AddressBook.Build(clients, mail, accounts.Select(a => a.Address), DateTimeOffset.Now);
+        addressBookMade = DateTime.UtcNow;
+        return addressBook;
+    }
+
     /// <summary>Opens a client's page.</summary>
     public Action<Webignite.Core.Clients.Client>? OpenClient { get; set; }
 

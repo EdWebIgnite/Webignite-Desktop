@@ -253,6 +253,21 @@ services.ComposeMail!(new Webignite.Core.Mail.OutgoingMail
     Attachments = [new Webignite.Core.Mail.OutgoingAttachment("Invoice INV-0111.pdf", 48_000, FilePath: pdfPath)],
 }, null, null);
 Save("invoice-email");
+// Address suggestions: type in To and check the list fills in.
+{
+    var toBox = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Avalonia.Controls.TextBox>().First(b => b.Name == "ToBox");
+    toBox.Focus();
+    Dispatcher.UIThread.RunJobs();
+    toBox.Text = "Thandi Mokoena <accounts@karoocoffee.co.za>, pie";
+    for (var tick = 0; tick < 50 && !vm.Mail.Composer!.HasSuggestions; tick++)
+    {
+        Dispatcher.UIThread.RunJobs();
+        Thread.Sleep(20);
+    }
+    Console.WriteLine("Suggested: " + string.Join(" | ", vm.Mail.Composer!.Suggestions.Select(c => c.Display)));
+    vm.Mail.Composer.AcceptSuggestion();
+    Console.WriteLine("To is now: " + vm.Mail.Composer.To);
+}
 vm.Mail.Composer!.DiscardCommand.Execute(null);
 vm.Mail.ManageMailboxesCommand.Execute(null);
 vm.Mail.Setup.Edit(invoiceBox);
