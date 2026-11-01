@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Webignite.Connector</RootNamespace>
+    <AssemblyName>Webignite.Connector</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="ModelContextProtocol" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Webignite.Core\Webignite.Core.csproj" />
+    <ProjectReference Include="..\Webignite.Data\Webignite.Data.csproj" />
+    <ProjectReference Include="..\Webignite.Mail\Webignite.Mail.csproj" />
+  </ItemGroup>
+</Project>

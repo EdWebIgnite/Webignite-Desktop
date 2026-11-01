@@ -1,0 +1,123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <StackPanel Spacing="18">
+    <TextBlock Classes="h1" Text="Settings" />
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Xero" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Sign-in happens in your own browser on Xero's site. Webignite never sees your Xero password, and the sign-in is kept in Windows Credential Manager." />
+        <StackPanel IsVisible="{Binding !IsConnected}" Spacing="10">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Client ID from your app at developer.xero.com" />
+            <TextBox Text="{Binding ClientId}" MaxWidth="420" HorizontalAlignment="Left" Width="420" PlaceholderText="32 letters and numbers" />
+          </StackPanel>
+          <Button Classes="primary" Content="Connect Xero" Command="{Binding ConnectCommand}" />
+        </StackPanel>
+        <Border Classes.ready="{Binding IsConnected}" Classes.pending="{Binding !IsConnected}">
+          <TextBlock Text="{Binding XeroStatus}" TextWrapping="Wrap" />
+        </Border>
+        <StackPanel Spacing="8" IsVisible="{Binding IsConnected}">
+          <TextBlock FontWeight="SemiBold" Text="Sales account" Margin="0,6,0,0" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding AccountText}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="quiet" Content="Choose from Xero" Command="{Binding LoadAccountsCommand}" IsVisible="{Binding !HasAccounts}" />
+            <ComboBox ItemsSource="{Binding SalesAccounts}" SelectedItem="{Binding ChosenAccount}" MinWidth="280" IsVisible="{Binding HasAccounts}" />
+            <Button Classes="primary" Content="Use this account" Command="{Binding SaveAccountCommand}" IsVisible="{Binding HasAccounts}" />
+          </StackPanel>
+          <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.short="{Binding AccountProblem}" Text="{Binding AccountMessage}" />
+        </StackPanel>
+        <Button Classes="quiet" Content="Disconnect Xero" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsConnected}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Claude and ChatGPT" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="They can read the mailboxes you share (set per mailbox under Mail, Manage mailboxes) and save drafts in them. They can't send, delete or move mail. You read each draft and send it yourself." />
+
+        <TextBlock FontWeight="SemiBold" Text="Claude Desktop" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="primary" Content="Connect Claude Desktop" Command="{Binding ConnectClaudeCommand}" IsVisible="{Binding !ClaudeConnected}" />
+          <Button Classes="quiet" Content="Connect again" Command="{Binding ConnectClaudeCommand}" IsVisible="{Binding ClaudeConnected}" />
+        </StackPanel>
+        <Border Classes.ready="{Binding ClaudeConnected}" Classes.pending="{Binding !ClaudeConnected}">
+          <TextBlock Text="{Binding ClaudeStatus}" TextWrapping="Wrap" Classes.short="{Binding ClaudeProblem}" />
+        </Border>
+
+        <TextBlock FontWeight="SemiBold" Text="ChatGPT" Margin="0,6,0,0" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="ChatGPT reaches this PC through OpenAI's Secure MCP Tunnel, which runs on your PC and connects out to OpenAI. Set up the tunnel with this as the MCP command, then add a connector in ChatGPT with Connection: Tunnel." />
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" Margin="8,0,0,0">
+            <Button Classes="quiet" Content="Copy" Command="{Binding CopyCommandCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
+            <Button Classes="link" Content="OpenAI's guide" Command="{Binding OpenTunnelGuideCommand}" />
+          </StackPanel>
+          <TextBox Text="{Binding ConnectorCommand, Mode=OneWay}" IsReadOnly="True" />
+        </DockPanel>
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding CopyMessage}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Invoice and quote emails" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Paste your Xero email templates here (in Xero: Settings, Email settings, Templates). They're sent from the mailbox ticked for invoices, with Xero's PDF attached." />
+        <TextBlock FontWeight="SemiBold" Text="Invoice" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding InvoiceSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding InvoiceBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="150" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding InvoicePlaceholders}" />
+        </StackPanel>
+        <TextBlock FontWeight="SemiBold" Text="Quote" Margin="0,6,0,0" />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Subject" />
+          <TextBox Text="{Binding QuoteSubject}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Message" />
+          <TextBox Text="{Binding QuoteBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding QuotePlaceholders}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="quiet" Content="Save" Command="{Binding SaveTemplatesCommand}" />
+          <Button Classes="link" Content="Use Xero's standard wording" Command="{Binding ResetTemplatesCommand}" />
+          <TextBlock Classes="muted" Text="{Binding TemplatesMessage}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="The mailbox signature goes under the message, picture included." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="New documents" />
+        <StackPanel Orientation="Horizontal" Spacing="24">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Invoices due after (days)" />
+            <TextBox Text="{Binding InvoiceDueDays}" Width="120" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Quotes expire after (days)" />
+            <TextBox Text="{Binding QuoteExpiryDays}" Width="120" HorizontalAlignment="Left" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="quiet" Content="Save" Command="{Binding SaveDefaultsCommand}" />
+          <TextBlock Classes="muted" Text="{Binding DefaultsMessage}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Classes="muted" FontSize="12" Text="Currency is ZAR and there is no VAT, as Webignite is not VAT registered." />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

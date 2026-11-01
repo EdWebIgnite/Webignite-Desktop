@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Webignite.Core.Documents" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Webignite.Core\Webignite.Core.csproj" />
+    <ProjectReference Include="..\..\src\Webignite.Xero\Webignite.Xero.csproj" />
+    <ProjectReference Include="..\..\src\Webignite.Data\Webignite.Data.csproj" />
+    <ProjectReference Include="..\..\src\Webignite.Mail\Webignite.Mail.csproj" />
+  </ItemGroup>
+</Project>

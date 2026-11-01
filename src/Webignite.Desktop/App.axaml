@@ -1,0 +1,42 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:v="using:Webignite.Desktop.Views"
+             x:Class="Webignite.Desktop.App"
+             RequestedThemeVariant="Light">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="/Styles/Palette.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <!-- Each module's view model is shown with its view. Listed by hand so nothing relies on reflection. -->
+  <Application.DataTemplates>
+    <DataTemplate DataType="vm:OverviewViewModel"><v:OverviewView /></DataTemplate>
+    <DataTemplate DataType="vm:ClientsViewModel"><v:ClientsView /></DataTemplate>
+    <DataTemplate DataType="vm:ClientDetailViewModel"><v:ClientDetailView /></DataTemplate>
+    <DataTemplate DataType="vm:DocumentsViewModel"><v:DocumentsView /></DataTemplate>
+    <DataTemplate DataType="vm:DocumentEditorViewModel"><v:DocumentEditorView /></DataTemplate>
+    <DataTemplate DataType="vm:RetainersViewModel"><v:RetainersView /></DataTemplate>
+    <DataTemplate DataType="vm:RetainerEditorViewModel"><v:RetainerEditorView /></DataTemplate>
+    <DataTemplate DataType="vm:RenewalsViewModel"><v:RenewalsView /></DataTemplate>
+    <DataTemplate DataType="vm:MoneyViewModel"><v:MoneyView /></DataTemplate>
+    <DataTemplate DataType="vm:ReportsViewModel"><v:ReportsView /></DataTemplate>
+    <DataTemplate DataType="vm:TodoViewModel"><v:TodoView /></DataTemplate>
+    <DataTemplate DataType="vm:CalendarViewModel"><v:CalendarView /></DataTemplate>
+    <DataTemplate DataType="vm:PlannerViewModel"><v:PlannerView /></DataTemplate>
+    <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
+    <DataTemplate DataType="vm:MailViewModel"><v:MailView /></DataTemplate>
+    <DataTemplate DataType="vm:ApprovalsViewModel"><v:ApprovalsView /></DataTemplate>
+    <DataTemplate DataType="vm:ComingLaterViewModel"><v:ComingLaterView /></DataTemplate>
+  </Application.DataTemplates>
+
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="/Styles/Controls.axaml" />
+    <StyleInclude Source="/Views/AgendaChips.axaml" />
+  </Application.Styles>
+</Application>

@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Webignite.Connector/Webignite.Connector.csproj" />
+    <Project Path="src/Webignite.Core/Webignite.Core.csproj" />
+    <Project Path="src/Webignite.Data/Webignite.Data.csproj" />
+    <Project Path="src/Webignite.Desktop/Webignite.Desktop.csproj" />
+    <Project Path="src/Webignite.Mail/Webignite.Mail.csproj" />
+    <Project Path="src/Webignite.Xero/Webignite.Xero.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Webignite.Tests/Webignite.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Snapshot/Snapshot.csproj" />
+  </Folder>
+</Solution>

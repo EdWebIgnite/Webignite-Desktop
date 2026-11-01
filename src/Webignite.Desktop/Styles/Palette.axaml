@@ -1,0 +1,44 @@
+<!--
+  Colour tokens. Soft black sidebar with a light page, as Eddie chose on 2026-10-31. To try another palette,
+  change only this file: every screen reads its colours from these names.
+  Rule of thumb: 60% canvas and surfaces, 30% navigation and text, 10% primary. Red and green mean
+  "needs attention" and "done" only, never decoration.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="Canvas" Color="#F2F4F3" />
+  <SolidColorBrush x:Key="Surface" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Surface2" Color="#F7F9F8" />
+  <SolidColorBrush x:Key="TableHead" Color="#EFF3F1" />
+  <SolidColorBrush x:Key="Line" Color="#E1E6E3" />
+  <SolidColorBrush x:Key="Line2" Color="#CBD3CF" />
+  <SolidColorBrush x:Key="Text" Color="#1F2A26" />
+  <SolidColorBrush x:Key="Ink" Color="#0F1A16" />
+  <SolidColorBrush x:Key="Muted" Color="#5F6B66" />
+
+  <!-- Sidebar: a soft black, not pure black and not grey, with white text. -->
+  <SolidColorBrush x:Key="Nav" Color="#1C1D21" />
+  <SolidColorBrush x:Key="NavHover" Color="#27292E" />
+  <SolidColorBrush x:Key="NavSelected" Color="#33363C" />
+  <SolidColorBrush x:Key="NavText" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="NavMuted" Color="#A3A6AD" />
+  <SolidColorBrush x:Key="NavActive" Color="#FFFFFF" />
+
+  <SolidColorBrush x:Key="Primary" Color="#1C1D21" />
+  <SolidColorBrush x:Key="PrimaryHover" Color="#3A3D44" />
+  <SolidColorBrush x:Key="OnPrimary" Color="#FFFFFF" />
+
+  <SolidColorBrush x:Key="Attention" Color="#B4462F" />
+  <SolidColorBrush x:Key="AttentionSoft" Color="#FBEFEC" />
+  <SolidColorBrush x:Key="AttentionLine" Color="#F2D3CB" />
+  <SolidColorBrush x:Key="InvoiceTint" Color="#2F6F8F" />
+  <SolidColorBrush x:Key="InvoiceSoft" Color="#EAF3F6" />
+  <SolidColorBrush x:Key="QuoteTint" Color="#6A4C93" />
+  <SolidColorBrush x:Key="QuoteSoft" Color="#F3EFF8" />
+  <SolidColorBrush x:Key="Ok" Color="#1E7A4C" />
+  <SolidColorBrush x:Key="OkSoft" Color="#E9F5EE" />
+  <SolidColorBrush x:Key="OkLine" Color="#CBE6D6" />
+
+  <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
+  <Color x:Key="SystemAccentColor">#1C1D21</Color>
+</ResourceDictionary>

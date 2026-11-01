@@ -1,0 +1,83 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.RetainerEditorView"
+             x:DataType="vm:RetainerEditorViewModel"
+             x:Name="Root">
+  <StackPanel Spacing="18">
+    <StackPanel Spacing="4">
+      <Button Classes="link" Content="← Back to retainers" Command="{Binding CancelCommand}" Padding="0,2" Margin="0,0,0,6" />
+      <TextBlock Classes="h1" Text="{Binding Heading}" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Each month an invoice is drafted on this PC on the day you choose. Nothing goes to Xero or the client until you send it." />
+    </StackPanel>
+
+    <Border Classes="card">
+      <Grid ColumnDefinitions="2*,16,2*,16,90,16,*">
+        <StackPanel Grid.Column="0">
+          <TextBlock Classes="label" Text="Client" />
+          <AutoCompleteBox Text="{Binding ClientName}" ItemsSource="{Binding ClientNames}" FilterMode="ContainsOrdinal" PlaceholderText="Who pays it" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock Classes="label" Text="Name" />
+          <TextBox Text="{Binding RetainerTitle}" PlaceholderText="e.g. Monthly SEO" />
+        </StackPanel>
+        <StackPanel Grid.Column="4">
+          <TextBlock Classes="label" Text="Day of month" />
+          <TextBox Text="{Binding Day}" ToolTip.Tip="31 means the last day of the month." />
+        </StackPanel>
+        <StackPanel Grid.Column="6" IsVisible="{Binding IsNew}">
+          <TextBlock Classes="label" Text="Starts" />
+          <ComboBox ItemsSource="{Binding StartChoices}" SelectedItem="{Binding Start}" HorizontalAlignment="Stretch" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border Classes="card" Padding="0">
+      <StackPanel>
+        <Grid ColumnDefinitions="*,90,130,130,44" Background="{StaticResource TableHead}" Height="36">
+          <TextBlock Grid.Column="0" Classes="label" Text="Description" Margin="20,0,0,0" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Classes="label" Text="Qty" Margin="8,0" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Classes="label" Text="Price" Margin="8,0" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="3" Classes="label" Text="Amount" Margin="8,0,12,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Lines}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:LineRowViewModel">
+              <Grid ColumnDefinitions="*,90,130,130,44" Margin="12,8,4,0">
+                <TextBox Grid.Column="0" Text="{Binding Description}" PlaceholderText="What it covers" Margin="0,0,8,0" />
+                <TextBox Grid.Column="1" Text="{Binding Quantity}" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
+                <TextBox Grid.Column="2" Text="{Binding Price}" PlaceholderText="0.00" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
+                <TextBlock Grid.Column="3" Classes="amount" Text="{Binding AmountText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <Button Grid.Column="4" Classes="link" Content="✕" ToolTip.Tip="Remove line"
+                        Command="{Binding #Root.((vm:RetainerEditorViewModel)DataContext).RemoveLineCommand}" CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <DockPanel Margin="12,12,20,16">
+          <TextBlock DockPanel.Dock="Right" Classes="figure" FontSize="18" Text="{Binding Total}" VerticalAlignment="Center" />
+          <Button Classes="quiet" Content="+ Add line" Command="{Binding AddLineCommand}" />
+        </DockPanel>
+        <TextBlock Classes="muted" FontSize="12" Margin="20,0,20,16" TextWrapping="Wrap"
+                   Text="Type [Month] in a description and it becomes the month, so &quot;Hosting, [Month]&quot; reads &quot;Hosting, November 2026&quot;." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="pending" IsVisible="{Binding HasProblems}">
+      <ItemsControl ItemsSource="{Binding Problems}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <TextBlock Classes="muted" Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <Button Classes="primary" Content="Save retainer" Command="{Binding SaveCommand}" />
+      <Button Classes="quiet" Content="Cancel" Command="{Binding CancelCommand}" />
+      <TextBlock Classes="muted" Text="{Binding Preview}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="560" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

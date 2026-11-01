@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.TodoView"
+             x:DataType="vm:TodoViewModel">
+  <StackPanel Spacing="18">
+    <DockPanel>
+      <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding Summary}" VerticalAlignment="Bottom" />
+      <TextBlock Classes="h1" Text="To-do" />
+    </DockPanel>
+
+    <!-- Quick add: type, pick when, press Enter -->
+    <Border Classes="card" Padding="12">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding AddCommand}" Margin="8,0,0,0" />
+        <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding DueChoices}" SelectedItem="{Binding NewDue}" Width="130" Margin="8,0,0,0" />
+        <TextBox Text="{Binding NewTitle}" PlaceholderText="What needs doing? e.g. Call Karoo about the logo">
+          <TextBox.KeyBindings>
+            <KeyBinding Gesture="Enter" Command="{Binding AddCommand}" />
+          </TextBox.KeyBindings>
+        </TextBox>
+      </DockPanel>
+    </Border>
+
+    <ItemsControl ItemsSource="{Binding Groups}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:TaskGroupViewModel">
+          <StackPanel Spacing="6" Margin="0,0,0,18">
+            <TextBlock Classes="label" Text="{Binding Title}" FontWeight="SemiBold"
+                       Classes.overdue="{Binding IsOverdue}" />
+            <Border Classes="card" Padding="0">
+              <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:TaskRowViewModel">
+                    <Border Classes="taskrow" Classes.done="{Binding IsDone}">
+                      <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="link" Content="✕" ToolTip.Tip="Delete" Command="{Binding DeleteCommand}" />
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding DueText}" VerticalAlignment="Center" Margin="12,0" />
+                        <Border DockPanel.Dock="Right" Classes="status" IsVisible="{Binding HasSource}" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding SourceLabel}" FontSize="11" />
+                        </Border>
+                        <CheckBox IsChecked="{Binding IsDone}" VerticalAlignment="Center">
+                          <TextBlock Classes="tasktitle" Text="{Binding Title}" TextWrapping="Wrap" />
+                        </CheckBox>
+                      </DockPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Border>
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>

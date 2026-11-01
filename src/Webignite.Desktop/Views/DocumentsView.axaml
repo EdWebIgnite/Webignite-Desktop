@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.DocumentsView"
+             x:DataType="vm:DocumentsViewModel"
+             x:Name="Root">
+  <Panel>
+    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsListing}" />
+
+    <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="primary" Content="{Binding NewLabel}" Command="{Binding NewCommand}" VerticalAlignment="Center" />
+        <TextBlock Classes="h1" Text="{Binding Title}" />
+      </DockPanel>
+
+      <Border Classes="card" IsVisible="{Binding IsEmpty}">
+        <TextBlock Classes="muted" Text="{Binding EmptyText}" TextWrapping="Wrap" />
+      </Border>
+
+      <Border Classes="card" Padding="0" IsVisible="{Binding !IsEmpty}">
+        <StackPanel>
+          <Grid ColumnDefinitions="150,*,130,120,140" Background="{StaticResource TableHead}" Height="36">
+            <TextBlock Grid.Column="0" Classes="label" Text="Number" Margin="20,0,0,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Classes="label" Text="Customer" Margin="8,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Classes="label" Text="Date" Margin="8,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3" Classes="label" Text="Status" Margin="8,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="4" Classes="label" Text="Total" Margin="8,0,20,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Rows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DocumentRow">
+                <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
+                  <Grid ColumnDefinitions="150,*,130,120,140">
+                    <TextBlock Grid.Column="0" Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" Margin="8,0" />
+                    <TextBlock Grid.Column="1" Text="{Binding Customer}" Margin="8,0" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="2" Text="{Binding Date}" Margin="8,0" />
+                    <Border Grid.Column="3" Classes="status" Classes.done="{Binding IsInXero}" HorizontalAlignment="Left" Margin="8,0">
+                      <TextBlock Text="{Binding Status}" FontSize="12" />
+                    </Border>
+                    <TextBlock Grid.Column="4" Classes="amount" Text="{Binding Total}" Margin="8,0" />
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Panel>
+</UserControl>

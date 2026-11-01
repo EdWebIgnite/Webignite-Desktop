@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.OverviewView"
+             x:DataType="vm:OverviewViewModel">
+  <StackPanel Spacing="22">
+    <StackPanel Spacing="4">
+      <TextBlock Classes="h1" Text="{Binding Greeting}" />
+      <TextBlock Classes="muted" Text="{Binding TodayText}" />
+    </StackPanel>
+
+    <UniformGrid Columns="3">
+      <Border Classes="card" Margin="0,0,12,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="OWED TO YOU" />
+          <TextBlock Classes="figure" Text="{Binding Owed}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Invoices sent to Xero." />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Margin="6,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="OVERDUE" />
+          <TextBlock Classes="figure" Text="{Binding Overdue}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Past the due date." />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Margin="12,0,0,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="QUOTES OUT" />
+          <TextBlock Classes="figure" Text="{Binding QuotesOut}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Quotes waiting on a client." />
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Text="{Binding OverdueText}" IsVisible="{Binding HasOverdue}"
+                     Foreground="{StaticResource Attention}" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Classes="h2" Text="Today" />
+        </DockPanel>
+        <TextBlock Classes="muted" Text="Nothing booked or due today." IsVisible="{Binding TodayIsEmpty}" />
+        <ItemsControl ItemsSource="{Binding Today}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:AgendaItemViewModel">
+              <Border Classes="chip" Classes.task="{Binding IsTask}" Classes.quote="{Binding IsQuote}"
+                      Classes.invoice="{Binding IsInvoice}" Padding="10,7" Margin="0,0,0,6">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding KindLabel}" VerticalAlignment="Center" />
+                  <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="52" IsVisible="{Binding HasTime}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

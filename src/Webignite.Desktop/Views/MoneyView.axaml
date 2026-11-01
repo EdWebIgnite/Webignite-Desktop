@@ -1,0 +1,167 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.MoneyView"
+             x:DataType="vm:MoneyViewModel">
+  <StackPanel Spacing="18">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <Button Classes="quiet" Content="This month" Command="{Binding ThisMonthCommand}" IsVisible="{Binding !IsThisMonth}" />
+        <Button Classes="quiet" Content="‹" Command="{Binding PreviousMonthCommand}" ToolTip.Tip="Previous month" />
+        <TextBlock Text="{Binding MonthTitle}" FontWeight="SemiBold" MinWidth="130" TextAlignment="Center" VerticalAlignment="Center" />
+        <Button Classes="quiet" Content="›" Command="{Binding NextMonthCommand}" ToolTip.Tip="Next month" />
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="Money" />
+        <TextBlock Classes="muted" Text="What came in and what went out. Kept on this PC, nothing goes to Xero." />
+      </StackPanel>
+    </DockPanel>
+
+    <UniformGrid Columns="3">
+      <Border Classes="card" Margin="0,0,12,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="RECEIVED" />
+          <TextBlock Classes="figure" Text="{Binding Received}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Before expenses." />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Margin="6,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="EXPENSES" />
+          <TextBlock Classes="figure" Text="{Binding Expenses}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Including monthly ones." />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Margin="12,0,0,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="LEFT OVER" />
+          <TextBlock Classes="figure" Classes.short="{Binding IsShort}" Text="{Binding LeftOver}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Received less expenses." />
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+
+    <Grid ColumnDefinitions="*,24,*">
+      <!-- Received -->
+      <Border Grid.Column="0" Classes="card" Padding="0" VerticalAlignment="Top">
+        <StackPanel>
+          <TextBlock Classes="h2" Text="Money received" Margin="20,16,20,12" />
+          <Grid ColumnDefinitions="140,8,*" RowDefinitions="Auto,8,Auto,8,Auto" Margin="20,0,20,12">
+            <CalendarDatePicker Grid.Row="0" Grid.Column="0" SelectedDate="{Binding InDate}" HorizontalAlignment="Stretch"
+                                SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
+            <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding InAmount}" PlaceholderText="Amount, e.g. 2800" />
+            <AutoCompleteBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding InFrom}" ItemsSource="{Binding ClientNames}"
+                             FilterMode="ContainsOrdinal" PlaceholderText="From which client" />
+            <DockPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3">
+              <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding AddReceivedCommand}" Margin="8,0,0,0" />
+              <TextBox Text="{Binding InNote}" PlaceholderText="Note, e.g. INV-0107" />
+            </DockPanel>
+          </Grid>
+          <TextBlock Classes="label short" Text="{Binding InMessage}" Margin="20,0,20,8" IsVisible="{Binding InMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="muted" Text="Nothing received this month yet." Margin="20,4,20,16" IsVisible="{Binding !HasReceived}" />
+          <ItemsControl ItemsSource="{Binding ReceivedRows}" Margin="0,0,0,8">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:EntryRowViewModel">
+                <Border Classes="taskrow">
+                  <Grid ColumnDefinitions="56,*,Auto,32">
+                    <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Party}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0" />
+                    <Button Grid.Column="3" Classes="link" Content="✕" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Expenses -->
+      <Border Grid.Column="2" Classes="card" Padding="0" VerticalAlignment="Top">
+        <StackPanel>
+          <TextBlock Classes="h2" Text="Expenses" Margin="20,16,20,12" />
+          <Grid ColumnDefinitions="140,8,*" RowDefinitions="Auto,8,Auto,8,Auto" Margin="20,0,20,12">
+            <CalendarDatePicker Grid.Row="0" Grid.Column="0" SelectedDate="{Binding OutDate}" HorizontalAlignment="Stretch"
+                                SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
+            <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding OutAmount}" PlaceholderText="Amount, e.g. 349,99" />
+            <TextBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding OutTo}" PlaceholderText="Paid to, e.g. Takealot" />
+            <DockPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3">
+              <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding AddExpenseCommand}" Margin="8,0,0,0" />
+              <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding OutCategory}" HorizontalAlignment="Stretch" />
+            </DockPanel>
+          </Grid>
+          <TextBlock Classes="label short" Text="{Binding OutMessage}" Margin="20,0,20,8" IsVisible="{Binding OutMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="muted" Text="No expenses this month yet." Margin="20,4,20,16" IsVisible="{Binding !HasExpenses}" />
+          <ItemsControl ItemsSource="{Binding ExpenseRows}" Margin="0,0,0,8">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:EntryRowViewModel">
+                <Border Classes="taskrow">
+                  <Grid ColumnDefinitions="56,*,Auto,32">
+                    <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Party}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0" />
+                    <Button Grid.Column="3" Classes="link" Content="✕" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Monthly expenses -->
+    <Border Classes="card" Padding="0">
+      <StackPanel>
+        <StackPanel Margin="20,16,20,12" Spacing="4">
+          <TextBlock Classes="h2" Text="Monthly expenses" />
+          <TextBlock Classes="muted" Text="{Binding RecurringSummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <ItemsControl ItemsSource="{Binding RecurringRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:RecurringRowViewModel">
+              <Border Classes="taskrow">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                  <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Name}" Classes.muted="{Binding IsPaused}" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Classes="amount" Classes.muted="{Binding IsPaused}" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0,16,0" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !ConfirmingStop}">
+                      <Button Classes="link" Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" />
+                      <Button Classes="link" Content="Stop" Command="{Binding AskStopCommand}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding ConfirmingStop}">
+                      <TextBlock Classes="muted" FontSize="12" Text="Past months stay." VerticalAlignment="Center" />
+                      <Button Classes="quiet" Content="Stop it" Command="{Binding StopCommand}" />
+                      <Button Classes="link" Content="Keep" Command="{Binding CancelStopCommand}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Grid ColumnDefinitions="*,8,130,8,80,8,200,8,Auto" Margin="20,12,20,8">
+          <TextBox Grid.Column="0" Text="{Binding RecName}" PlaceholderText="What it is, e.g. xneelo server" />
+          <TextBox Grid.Column="2" Text="{Binding RecAmount}" PlaceholderText="Amount" />
+          <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6">
+            <TextBox Text="{Binding RecDay}" Width="48" ToolTip.Tip="Day of the month. 31 means the last day." />
+            <TextBlock Classes="muted" Text="day" VerticalAlignment="Center" />
+          </StackPanel>
+          <ComboBox Grid.Column="6" ItemsSource="{Binding Categories}" SelectedItem="{Binding RecCategory}" HorizontalAlignment="Stretch" />
+          <Button Grid.Column="8" Classes="quiet" Content="Add" Command="{Binding AddRecurringCommand}" />
+        </Grid>
+        <TextBlock Classes="label short" Text="{Binding RecMessage}" Margin="20,0,20,8" IsVisible="{Binding RecMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <Border Height="8" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

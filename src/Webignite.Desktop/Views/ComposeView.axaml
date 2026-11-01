@@ -1,0 +1,123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:core="using:Webignite.Core.Mail"
+             xmlns:html="using:TheArtOfDev.HtmlRenderer.Avalonia"
+             x:Class="Webignite.Desktop.Views.ComposeView"
+             x:DataType="vm:ComposeViewModel">
+  <DockPanel>
+    <!-- Header and address fields -->
+    <StackPanel DockPanel.Dock="Top" Margin="24,18,24,8" Spacing="8">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="link" Content="Close" Command="{Binding CloseCommand}" />
+        <TextBlock Classes="h2" Text="{Binding Heading}" />
+      </DockPanel>
+
+      <DockPanel IsVisible="{Binding ManyAccounts}">
+        <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="From" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding From}" HorizontalAlignment="Stretch">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="core:MailAccount">
+              <TextBlock><Run Text="{Binding DisplayName}" /><Run Text="  " /><Run Text="{Binding Address}" Foreground="{StaticResource Muted}" /></TextBlock>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </DockPanel>
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="To" VerticalAlignment="Center" />
+        <Button DockPanel.Dock="Right" Classes="link" Content="Cc and Bcc" Command="{Binding ToggleCcCommand}" IsVisible="{Binding !ShowCc}" />
+        <TextBox Text="{Binding To}" PlaceholderText="Addresses, separated by commas" />
+      </DockPanel>
+      <DockPanel IsVisible="{Binding ShowCc}">
+        <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Cc" VerticalAlignment="Center" />
+        <TextBox Text="{Binding Cc}" />
+      </DockPanel>
+      <DockPanel IsVisible="{Binding ShowCc}">
+        <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Bcc" VerticalAlignment="Center" />
+        <TextBox Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
+      </DockPanel>
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Subject" VerticalAlignment="Center" />
+        <TextBox Text="{Binding Subject}" />
+      </DockPanel>
+
+      <DockPanel>
+        <Button DockPanel.Dock="Left" Classes="quiet" Content="Attach files" Click="OnAttach" VerticalAlignment="Top" Margin="0,0,10,0" />
+        <ItemsControl ItemsSource="{Binding Attachments}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ComposeAttachmentViewModel">
+              <Border Classes="card" Padding="10,4" Margin="0,0,8,6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding Name}" MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  <TextBlock Classes="muted" FontSize="11" Text="{Binding Size}" VerticalAlignment="Center" />
+                  <Button Classes="link" Content="Remove" Command="{Binding RemoveCommand}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </DockPanel>
+    </StackPanel>
+
+    <!-- Send bar -->
+    <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="24,12">
+      <StackPanel Spacing="8">
+        <Border Classes="card" Padding="12,8" IsVisible="{Binding AskingAboutAttachment}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+              <Button Classes="quiet" Content="Send without" Command="{Binding SendAnywayCommand}" />
+              <Button Classes="link" Content="I'll attach it" Command="{Binding AddAttachmentFirstCommand}" />
+            </StackPanel>
+            <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="The mail mentions an attachment, but nothing is attached." />
+          </DockPanel>
+        </Border>
+        <Border Classes="card" Padding="12,8" IsVisible="{Binding AskingToDiscard}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+              <Button Classes="quiet" Content="Save draft" Command="{Binding SaveAndCloseCommand}" />
+              <Button Classes="quiet" Content="Throw away" Command="{Binding DiscardCommand}" />
+              <Button Classes="link" Content="Keep writing" Command="{Binding KeepWritingCommand}" />
+            </StackPanel>
+            <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="Keep this as a draft?" />
+          </DockPanel>
+        </Border>
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary" Content="Send" Command="{Binding SendCommand}" IsEnabled="{Binding !IsWorking}" />
+            <Button Classes="quiet" Content="Save draft" Command="{Binding SaveDraftCommand}" IsEnabled="{Binding !IsWorking}" />
+          </StackPanel>
+          <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap"
+                     Classes="muted" Classes.short="{Binding MessageIsProblem}" Text="{Binding Message}" />
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- The earlier message, folded away until asked for -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="24,0,24,8" IsVisible="{Binding HasQuote}" Spacing="6">
+      <Button Classes="link" Command="{Binding ToggleQuoteCommand}" HorizontalAlignment="Left">
+        <Panel>
+          <TextBlock Text="Show the earlier message (it goes with the mail)" IsVisible="{Binding !ShowQuote}" />
+          <TextBlock Text="Hide the earlier message" IsVisible="{Binding ShowQuote}" />
+        </Panel>
+      </Button>
+      <Border Classes="card" Padding="12" MaxHeight="260" IsVisible="{Binding ShowQuote}">
+        <ScrollViewer>
+          <html:HtmlPanel Text="{Binding QuoteHtml}" Background="{StaticResource Surface}" />
+        </ScrollViewer>
+      </Border>
+    </StackPanel>
+
+    <!-- The mailbox's signature picture, added under the text when it is sent -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="24,0,24,8" Spacing="4" IsVisible="{Binding ShowSignaturePicture}">
+      <Image Source="{Binding SignaturePicture}" MaxHeight="70" MaxWidth="300" HorizontalAlignment="Left" Stretch="Uniform" />
+      <TextBlock Classes="muted" FontSize="11" Text="Your signature picture goes here when it is sent." />
+    </StackPanel>
+
+    <!-- What you type -->
+    <TextBox Margin="24,4,24,8" Text="{Binding Body}" AcceptsReturn="True" AcceptsTab="False" TextWrapping="Wrap"
+             VerticalAlignment="Stretch" VerticalContentAlignment="Top" PlaceholderText="Write your mail" />
+  </DockPanel>
+</UserControl>

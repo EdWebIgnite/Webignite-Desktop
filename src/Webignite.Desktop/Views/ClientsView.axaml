@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.ClientsView"
+             x:DataType="vm:ClientsViewModel"
+             x:Name="Root">
+  <Panel>
+    <ContentControl Content="{Binding Detail}" IsVisible="{Binding !IsListing}" />
+
+    <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="primary" Content="New client" Command="{Binding NewCommand}" VerticalAlignment="Center" />
+        <TextBlock Classes="h1" Text="Clients" />
+      </DockPanel>
+
+      <Border Classes="pending" IsVisible="{Binding HasSuggestions}">
+        <StackPanel Spacing="8">
+          <TextBlock FontWeight="SemiBold" Text="On your quotes and invoices but not saved as clients" />
+          <ItemsControl ItemsSource="{Binding Suggestions}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Button Classes="quiet" Margin="0,0,8,8" Content="{Binding StringFormat='+ {0}'}"
+                        Command="{Binding #Root.((vm:ClientsViewModel)DataContext).AddSuggestedCommand}" CommandParameter="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" IsVisible="{Binding IsEmpty}">
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="No clients yet. Add one here, or pick a name above from your existing quotes and invoices." />
+      </Border>
+
+      <StackPanel Spacing="12" IsVisible="{Binding !IsEmpty}">
+        <TextBox Text="{Binding Search}" PlaceholderText="Search by name, person, email or phone" MaxWidth="420" HorizontalAlignment="Left" Width="420" />
+
+        <Border Classes="card" IsVisible="{Binding NoMatches}">
+          <TextBlock Classes="muted" Text="No client matches that search." />
+        </Border>
+
+        <Border Classes="card" Padding="0" IsVisible="{Binding !NoMatches}">
+          <StackPanel>
+            <Grid ColumnDefinitions="*,220,160" Background="{StaticResource TableHead}" Height="36">
+              <TextBlock Grid.Column="0" Classes="label" Text="Client" Margin="20,0,0,0" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Classes="label" Text="Work" Margin="8,0" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Classes="label" Text="Owed" Margin="8,0,20,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+            </Grid>
+            <ItemsControl ItemsSource="{Binding Rows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ClientRow">
+                  <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                          Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
+                    <Grid ColumnDefinitions="*,220,160">
+                      <StackPanel Grid.Column="0" Margin="8,0" Spacing="2">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Contact}" IsVisible="{Binding HasContact}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Work}" Margin="8,0" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Owed}" Margin="8,0" VerticalAlignment="Center" />
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </Panel>
+</UserControl>

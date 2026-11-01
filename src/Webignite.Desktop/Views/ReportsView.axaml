@@ -1,0 +1,124 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.ReportsView"
+             x:DataType="vm:ReportsViewModel">
+  <StackPanel Spacing="18">
+    <StackPanel Spacing="4">
+      <TextBlock Classes="h1" Text="Reports" />
+      <TextBlock Classes="muted" Text="Worked out from what you enter under Money." />
+    </StackPanel>
+
+    <Border Classes="card" IsVisible="{Binding IsEmpty}">
+      <TextBlock Classes="muted" TextWrapping="Wrap" Text="Nothing to report yet. Add money received and expenses under Money, and the months fill in here." />
+    </Border>
+
+    <StackPanel Spacing="18" IsVisible="{Binding !IsEmpty}">
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="{Binding TaxYearTitle}" />
+          <UniformGrid Columns="3">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="label" Text="RECEIVED" />
+              <TextBlock Classes="figure" Text="{Binding TaxYearReceived}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Classes="label" Text="EXPENSES" />
+              <TextBlock Classes="figure" Text="{Binding TaxYearExpenses}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Classes="label" Text="LEFT OVER" />
+              <TextBlock Classes="figure" Classes.short="{Binding TaxYearShort}" Text="{Binding TaxYearLeftOver}" />
+            </StackPanel>
+          </UniformGrid>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding AverageReceived}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" Padding="0">
+        <StackPanel>
+          <DockPanel Margin="20,16,20,10">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource InvoiceTint}" />
+                <TextBlock Classes="muted" FontSize="12" Text="Received" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource Line2}" />
+                <TextBlock Classes="muted" FontSize="12" Text="Expenses" />
+              </StackPanel>
+            </StackPanel>
+            <TextBlock Classes="h2" Text="Month by month" />
+          </DockPanel>
+          <Border Background="{StaticResource TableHead}" Height="36" Padding="20,0">
+            <Grid ColumnDefinitions="80,240,*,*,*">
+              <TextBlock Grid.Column="0" Classes="label" Text="Month" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Classes="label" Text="Received" Margin="8,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+              <TextBlock Grid.Column="3" Classes="label" Text="Expenses" Margin="8,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+              <TextBlock Grid.Column="4" Classes="label" Text="Left over" Margin="8,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
+            </Grid>
+          </Border>
+          <ItemsControl ItemsSource="{Binding Months}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:MonthRowViewModel">
+                <Border Classes="taskrow" Padding="20,6">
+                  <Grid ColumnDefinitions="80,240,*,*,*">
+                    <TextBlock Grid.Column="0" Text="{Binding Month}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                      <Border Height="7" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding ReceivedBar}" Background="{StaticResource InvoiceTint}" />
+                      <Border Height="7" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding ExpensesBar}" Background="{StaticResource Line2}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Received}" Margin="8,0" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Classes="amount" Text="{Binding Expenses}" Margin="8,0" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="4" Classes="amount" Classes.short="{Binding IsShort}" Text="{Binding LeftOver}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Grid ColumnDefinitions="*,24,*">
+        <Border Grid.Column="0" Classes="card" VerticalAlignment="Top">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Best clients, last 12 months" />
+            <TextBlock Classes="muted" Text="No money received yet." IsVisible="{Binding !HasPayers}" />
+            <ItemsControl ItemsSource="{Binding Payers}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:TotalRowViewModel">
+                  <StackPanel Spacing="3" Margin="0,4">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
+                      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                    <Border Height="5" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding Bar}" Background="{StaticResource InvoiceTint}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="2" Classes="card" VerticalAlignment="Top">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Where the money went, last 12 months" />
+            <TextBlock Classes="muted" Text="No expenses yet." IsVisible="{Binding !HasCategories}" />
+            <ItemsControl ItemsSource="{Binding Categories}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:TotalRowViewModel">
+                  <StackPanel Spacing="3" Margin="0,4">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
+                      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                    <Border Height="5" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding Bar}" Background="{StaticResource Line2}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

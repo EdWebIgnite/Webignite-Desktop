@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.RetainersView"
+             x:DataType="vm:RetainersViewModel">
+  <Panel>
+    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsListing}" />
+
+    <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="primary" Content="New retainer" Command="{Binding NewCommand}" VerticalAlignment="Center" />
+        <StackPanel Spacing="4">
+          <TextBlock Classes="h1" Text="Retainers" />
+          <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" />
+        </StackPanel>
+      </DockPanel>
+
+      <Border Classes="ready" IsVisible="{Binding HasMessage}">
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+      </Border>
+
+      <Border Classes="card" Padding="0" IsVisible="{Binding !IsEmpty}">
+        <ItemsControl ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:RetainerRowViewModel">
+              <Border Classes="taskrow" Padding="20,12,12,12">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                  <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="{Binding Client}" FontWeight="SemiBold" Classes.muted="{Binding IsPaused}" />
+                    <TextBlock Text="{Binding Title}" Classes.muted="{Binding IsPaused}" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Schedule}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Classes="amount" Classes.muted="{Binding IsPaused}" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0,16,0" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !ConfirmingStop}">
+                      <Button Classes="link" Content="Change" Command="{Binding EditCommand}" />
+                      <Button Classes="link" Content="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" />
+                      <Button Classes="link" Content="Stop" Command="{Binding AskStopCommand}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding ConfirmingStop}">
+                      <TextBlock Classes="muted" FontSize="12" Text="Drafted invoices stay." VerticalAlignment="Center" />
+                      <Button Classes="quiet" Content="Stop it" Command="{Binding StopCommand}" />
+                      <Button Classes="link" Content="Keep" Command="{Binding CancelStopCommand}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+    </StackPanel>
+  </Panel>
+</UserControl>
