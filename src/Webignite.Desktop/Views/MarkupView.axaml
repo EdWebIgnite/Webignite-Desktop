@@ -1,0 +1,105 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:clients="using:Webignite.Core.Clients"
+             x:Class="Webignite.Desktop.Views.MarkupView"
+             x:DataType="vm:MarkupViewModel">
+  <StackPanel Spacing="18">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+        <Button x:Name="SnipButton" Classes="primary" Content="Take a screenshot" Click="TakeScreenshot"
+                ToolTip.Tip="Opens the Windows snipping bar. Drag over the part of the site you want." />
+        <Button Classes="quiet" Content="Paste" Click="PasteImage" ToolTip.Tip="Ctrl+V. Paste a screenshot you've already copied" />
+        <Button Classes="quiet" Content="Open an image" Click="OpenImage" />
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="Mark-up" />
+        <TextBlock Classes="muted" Text="Mark up a client's site with numbered notes, then mail it to them." />
+      </StackPanel>
+    </DockPanel>
+
+    <Grid ColumnDefinitions="*,18,300">
+      <Border Grid.Column="0" Classes="card" Padding="8" Height="620">
+        <Panel>
+          <c:MarkupCanvas x:Name="Canvas" Image="{Binding Image}" Marks="{Binding Marks}" Tool="{Binding Tool}" Pen="{Binding Pen}" />
+          <StackPanel IsVisible="{Binding !HasImage}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6" MaxWidth="420">
+            <TextBlock Classes="h2" Text="No screenshot yet" HorizontalAlignment="Center" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center"
+                       Text="Click Take a screenshot and drag over the site, or press Win+Shift+S yourself and then Paste here. You can also drop an image file on this box." />
+          </StackPanel>
+        </Panel>
+      </Border>
+
+      <StackPanel Grid.Column="2" Spacing="14">
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="label" Text="DRAW" />
+            <ListBox ItemsSource="{Binding Tools}" SelectedItem="{Binding ChosenTool}" Classes="choices">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ToolChoice">
+                  <TextBlock Text="{Binding Label}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <ListBox ItemsSource="{Binding Pens}" SelectedItem="{Binding ChosenPen}">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:PenChoice">
+                  <Border Width="26" Height="26" CornerRadius="13" Background="{Binding Brush}" ToolTip.Tip="{Binding Label}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="quiet" Content="Undo" Command="{Binding UndoCommand}" />
+              <Button Classes="link" Content="Clear all" Command="{Binding ClearMarksCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card" IsVisible="{Binding HasImage}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="label" Text="NOTES" />
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !HasPins}"
+                       Text="Click on the picture with Numbered note chosen, then write what each number means here." />
+            <ItemsControl ItemsSource="{Binding Pins}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PinRow">
+                  <DockPanel Margin="0,0,0,6">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Number}" FontWeight="Bold" Width="22" Margin="0,6,0,0" VerticalAlignment="Top" />
+                    <Button DockPanel.Dock="Right" Classes="link" Content="×" Padding="6,4" VerticalAlignment="Top" Command="{Binding RemoveCommand}" ToolTip.Tip="Remove this note" />
+                    <TextBox Text="{Binding Comment}" AcceptsReturn="True" TextWrapping="Wrap" PlaceholderText="What needs changing here" />
+                  </DockPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card" IsVisible="{Binding HasImage}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="label" Text="SEND IT" />
+            <ComboBox ItemsSource="{Binding Clients}" SelectedItem="{Binding Client}" PlaceholderText="Which client" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="clients:Client">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBox Text="{Binding Page}" PlaceholderText="Which page, e.g. the home page" />
+            <Button Classes="primary" Content="Email it" Command="{Binding EmailCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="quiet" Content="Copy picture" Command="{Binding CopyImageCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
+              <Button Classes="quiet" Content="Save as PNG" Click="SavePng" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Classes="muted" Classes.problem="{Binding MessageProblem}" Text="{Binding Message}" TextWrapping="Wrap"
+                   IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </Grid>
+  </StackPanel>
+</UserControl>

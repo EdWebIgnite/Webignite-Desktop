@@ -91,6 +91,7 @@ public partial class MainViewModel : ViewModelBase
         Approvals = new ApprovalsViewModel(services);
         Tools = new ToolsViewModel(services);
         SiteCheck = new SiteCheckViewModel();
+        Markup = new MarkupViewModel(services);
         Modules =
         [
             new Module("Overview", Overview),
@@ -107,6 +108,7 @@ public partial class MainViewModel : ViewModelBase
             new Module("To approve", Approvals),
             new Module("Mail", Mail, fullBleed: true),
             new Module("Site check", SiteCheck),
+            new Module("Mark-up", Markup),
             new Module("Tools", Tools),
             new Module("Settings", new SettingsViewModel(services)),
         ];
@@ -214,6 +216,7 @@ public partial class MainViewModel : ViewModelBase
     public ApprovalsViewModel Approvals { get; }
     public ToolsViewModel Tools { get; }
     public SiteCheckViewModel SiteCheck { get; }
+    public MarkupViewModel Markup { get; }
     public IReadOnlyList<Module> Modules { get; }
 
     [ObservableProperty]

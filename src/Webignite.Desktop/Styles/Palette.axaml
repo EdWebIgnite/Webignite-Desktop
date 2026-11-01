@@ -41,6 +41,11 @@
   <SolidColorBrush x:Key="OkSoft" Color="#E9F5EE" />
   <SolidColorBrush x:Key="OkLine" Color="#CBE6D6" />
 
+  <!-- Mark-up pens, drawn on client screenshots. Red marks what needs fixing. -->
+  <Color x:Key="MarkRed">#E03131</Color>
+  <Color x:Key="MarkYellow">#FCC419</Color>
+  <Color x:Key="MarkBlue">#1971C2</Color>
+
   <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
   <Color x:Key="SystemAccentColor">#1C1D21</Color>
 

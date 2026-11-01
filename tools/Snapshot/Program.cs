@@ -341,6 +341,53 @@ vm.SiteCheck.Show("karoocoffee.co.za", Webignite.Core.Web.DomainReport.Build(new
     """));
 Save("site-check");
 
+// Mark-up: a made-up client home page with notes on it
+{
+    const int w = 1440, h = 900;
+    using var site = new SkiaSharp.SKBitmap(w, h);
+    using (var c = new SkiaSharp.SKCanvas(site))
+    {
+        c.Clear(new SkiaSharp.SKColor(250, 247, 242));
+        using var dark = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(60, 40, 30) };
+        using var orange = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(200, 110, 50) };
+        using var grey = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(205, 198, 190) };
+        c.DrawRect(0, 0, w, 90, dark);
+        using var font = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.Default, 30);
+        using var big = new SkiaSharp.SKFont(SkiaSharp.SKTypeface.Default, 64);
+        using var white = new SkiaSharp.SKPaint { Color = SkiaSharp.SKColors.White };
+        c.DrawText("Karoo Coffee Roasters", 40, 56, font, white);
+        foreach (var (label, x) in new[] { ("Menu", 900), ("Shop", 1020), ("Visit", 1140), ("Contact", 1260) })
+            c.DrawText(label, x, 56, font, white);
+        c.DrawText("Small-batch coffee", 80, 260, big, dark);
+        c.DrawText("from the Karoo", 80, 340, big, dark);
+        c.DrawRoundRect(80, 400, 260, 70, 12, 12, orange);
+        c.DrawText("Shop now", 140, 446, font, white);
+        c.DrawRect(760, 160, 600, 420, grey);
+        for (var i = 0; i < 3; i++)
+            c.DrawRect(80 + i * 440, 640, 400, 220, grey);
+    }
+    using var encoded = SkiaSharp.SKImage.FromBitmap(site).Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+    using var siteStream = new MemoryStream(encoded.ToArray());
+    Open("Mark-up");
+    vm.Markup.Show(new Avalonia.Media.Imaging.Bitmap(siteStream));
+    var R = Webignite.Core.Tools.MarkColour.Red;
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Box, R, [new(60, 220), new(720, 360)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Pin, R, [new(730, 215)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Arrow, R, [new(560, 520), new(360, 445)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Pin, R, [new(580, 530)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Highlight, Webignite.Core.Tools.MarkColour.Yellow, [new(880, 20), new(1400, 75)]));
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Pin, Webignite.Core.Tools.MarkColour.Blue, [new(860, 50)]));
+    vm.Markup.Pins[0].Comment = "Make the heading one line on phones";
+    vm.Markup.Pins[1].Comment = "Button should go to the shop, not the menu";
+    vm.Markup.Pins[2].Comment = "Add WhatsApp to the top menu";
+    vm.Markup.LoadClients();
+    vm.Markup.Client = vm.Markup.Clients.FirstOrDefault();
+    vm.Markup.Page = "the home page";
+    Save("markup");
+    File.WriteAllBytes(Path.Combine(output, "markup-export.png"), vm.Markup.Png()!);
+    Console.WriteLine(Webignite.Core.Tools.Markup.Mail("Karoo Coffee Roasters", "Thandi", "the home page", vm.Markup.Marks, "Webignite").Body);
+}
+
 // Ctrl+K search
 vm.Search.Show();
 vm.Search.Query = "karoo";
