@@ -6,9 +6,20 @@ using Webignite.Core.Tools;
 
 namespace Webignite.Desktop.ViewModels;
 
-/// <summary>Small everyday tools in one place: the calculator first, more to come.</summary>
-public sealed partial class ToolsViewModel(AppServices services) : ViewModelBase
+/// <summary>Small everyday tools in one place: calculator, passwords, QR codes and colours.</summary>
+public sealed partial class ToolsViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public ToolsViewModel(AppServices services)
+    {
+        this.services = services;
+        QrKindChoice = QrKinds[0];
+        WifiKindChoice = WifiKinds[0];
+        NewPassword();
+        OnColourInputChanged(ColourInput);
+    }
+
     // Calculator
 
     [ObservableProperty]

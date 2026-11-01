@@ -60,5 +60,106 @@
         </StackPanel>
       </Grid>
     </Border>
+
+    <Grid ColumnDefinitions="*,18,*">
+      <!-- Password generator -->
+      <Border Grid.Column="0" Classes="card" VerticalAlignment="Top">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="Password generator" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Content="Copy" Margin="8,0,0,0"
+                    Command="{Binding CopyPasswordCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
+            <Button DockPanel.Dock="Right" Classes="quiet" Content="New" Margin="8,0,0,0" Command="{Binding NewPasswordCommand}" />
+            <TextBox Text="{Binding Password}" IsReadOnly="True" FontFamily="Consolas, Menlo, monospace" FontSize="15" />
+          </DockPanel>
+          <TextBlock Classes="muted" Text="{Binding PasswordStrength}" />
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding PasswordLengthText}" Width="110" TextAlignment="Right" VerticalAlignment="Center" />
+            <Slider Minimum="{Binding PasswordMin}" Maximum="{Binding PasswordMax}" Value="{Binding PasswordLength}"
+                    TickFrequency="1" IsSnapToTickEnabled="True" />
+          </DockPanel>
+          <WrapPanel>
+            <CheckBox Content="Numbers" IsChecked="{Binding PasswordNumbers}" Margin="0,0,16,0" />
+            <CheckBox Content="Symbols" IsChecked="{Binding PasswordSymbols}" Margin="0,0,16,0" />
+            <CheckBox Content="Leave out I, l, 1, O and 0" IsChecked="{Binding PasswordAvoidLookalikes}" />
+          </WrapPanel>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="{Binding PasswordMessage, TargetNullValue=''}" IsVisible="{Binding PasswordMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Made on this PC and never saved. Put it in the client's password manager or hosting panel straight away." />
+        </StackPanel>
+      </Border>
+
+      <!-- Colour picker -->
+      <Border Grid.Column="2" Classes="card" VerticalAlignment="Top">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="Colours" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="quiet" Content="Pick from screen" Margin="8,0,0,0" Click="PickFromScreen"
+                    IsVisible="{Binding CanPickFromScreen}" ToolTip.Tip="Point at any colour on the screen, then press Enter" />
+            <TextBox Text="{Binding ColourInput}" PlaceholderText="#E8590C or rgb(232, 89, 12)" />
+          </DockPanel>
+          <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding Picking}" TextWrapping="Wrap"
+                     Text="Point at a colour anywhere on the screen. Enter keeps it, Esc stops." />
+          <Grid ColumnDefinitions="96,16,*" IsVisible="{Binding HasColour}">
+            <Border Grid.Column="0" Height="96" CornerRadius="8" Background="{Binding ColourBrush}" />
+            <StackPanel Grid.Column="2" Spacing="2">
+              <Button Classes="link" Padding="0,1" Content="{Binding ColourHex}" Command="{Binding CopyHexCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
+              <Button Classes="link" Padding="0,1" Content="{Binding ColourRgb}" Command="{Binding CopyRgbCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
+              <Button Classes="link" Padding="0,1" Content="{Binding ColourHsl}" Command="{Binding CopyHslCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
+              <TextBlock Classes="muted" FontSize="12" Text="{Binding OnWhite}" TextWrapping="Wrap" Margin="0,4,0,0" />
+              <TextBlock Classes="muted" FontSize="12" Text="{Binding OnBlack}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Shades}" IsVisible="{Binding HasColour}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ShadeRow">
+                <Button Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Hex}"
+                        Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
+                  <Border Height="28" CornerRadius="4" Background="{Binding Brush}" />
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding ColourMessage}" TextWrapping="Wrap"
+                     IsVisible="{Binding ColourMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- QR codes -->
+    <Border Classes="card">
+      <Grid ColumnDefinitions="*,24,220">
+        <StackPanel Grid.Column="0" Spacing="12">
+          <TextBlock Classes="h2" Text="QR code" />
+          <StackPanel>
+            <TextBlock Classes="label" Text="What it opens" />
+            <ComboBox ItemsSource="{Binding QrKinds}" SelectedItem="{Binding QrKindChoice}" MinWidth="220" />
+          </StackPanel>
+          <TextBox Text="{Binding QrInput}" PlaceholderText="{Binding QrPlaceholder}" />
+          <StackPanel Spacing="8" IsVisible="{Binding IsWifi}">
+            <ComboBox ItemsSource="{Binding WifiKinds}" SelectedItem="{Binding WifiKindChoice}" MinWidth="220" />
+            <TextBox Text="{Binding WifiPassword}" PlaceholderText="Wi-Fi password" IsVisible="{Binding WifiNeedsPassword}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary" Content="Save as PNG" Click="SaveQrPng" IsEnabled="{Binding HasQr}" />
+            <Button Classes="quiet" Content="Save as SVG" Click="SaveQrSvg" IsEnabled="{Binding HasQr}" />
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding QrMessage}" TextWrapping="Wrap"
+                     IsVisible="{Binding QrMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="PNG for print and documents, SVG for websites or a printer that wants artwork." />
+        </StackPanel>
+        <Border Grid.Column="2" Width="220" Height="220" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Line}">
+          <Panel>
+            <Image Source="{Binding QrImage}" Stretch="Uniform" Margin="6" IsVisible="{Binding HasQr}" />
+            <TextBlock Classes="muted" Text="The code shows here." HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasQr}" />
+          </Panel>
+        </Border>
+      </Grid>
+    </Border>
   </StackPanel>
 </UserControl>
