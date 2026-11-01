@@ -89,6 +89,7 @@ public partial class MainViewModel : ViewModelBase
         Clients = new ClientsViewModel(services);
         Mail = new MailViewModel(services);
         Approvals = new ApprovalsViewModel(services);
+        Tools = new ToolsViewModel(services);
         Modules =
         [
             new Module("Overview", Overview),
@@ -104,6 +105,7 @@ public partial class MainViewModel : ViewModelBase
             new Module("Planner", new PlannerViewModel(services)),
             new Module("To approve", Approvals),
             new Module("Mail", Mail, fullBleed: true),
+            new Module("Tools", Tools),
             new Module("Settings", new SettingsViewModel(services)),
         ];
         Selected = Modules[0];
@@ -125,6 +127,18 @@ public partial class MainViewModel : ViewModelBase
                 composer.MessageIsProblem = true;
             }
             return true;
+        };
+        services.AddToInvoice = (amount, description) =>
+        {
+            if (Invoices.Editor is { } open && !open.AddAmount(amount, description))
+                return "The open invoice is already in Xero, so it can't be changed here. Close it first, then try again.";
+            if (Invoices.Editor is null)
+            {
+                Invoices.NewCommand.Execute(null);
+                Invoices.Editor!.AddAmount(amount, description);
+            }
+            Selected = Modules.Single(m => m.Title == "Invoices");
+            return null;
         };
         services.Navigate = (target, mail) =>
         {
@@ -191,6 +205,7 @@ public partial class MainViewModel : ViewModelBase
     public ClientsViewModel Clients { get; }
     public MailViewModel Mail { get; }
     public ApprovalsViewModel Approvals { get; }
+    public ToolsViewModel Tools { get; }
     public IReadOnlyList<Module> Modules { get; }
 
     [ObservableProperty]

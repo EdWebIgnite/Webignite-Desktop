@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.ToolsView"
+             x:DataType="vm:ToolsViewModel">
+  <StackPanel Spacing="18">
+    <StackPanel Spacing="4">
+      <TextBlock Classes="h1" Text="Tools" />
+      <TextBlock Classes="muted" Text="Small things you'd otherwise open another program for." />
+    </StackPanel>
+
+    <Border Classes="card">
+      <Grid ColumnDefinitions="*,24,280">
+        <StackPanel Grid.Column="0" Spacing="12">
+          <TextBlock Classes="h2" Text="Calculator" />
+          <TextBox x:Name="SumBox" Text="{Binding Sum}" FontSize="18" Padding="12,10"
+                   PlaceholderText="3.5 x 650, or 2 400 + 15%">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding WorkOutCommand}" />
+              <KeyBinding Gesture="Escape" Command="{Binding ClearSumCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+          <TextBlock Classes="figure" Text="{Binding AnswerText}" IsVisible="{Binding HasAnswer}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Enter keeps the answer and carries on from it. Esc clears. + 15% adds 15% of what's before it; x and × both multiply." />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="quiet" Content="Copy answer" Command="{Binding CopyAnswerCommand}"
+                    CommandParameter="{Binding $parent[TopLevel]}" IsEnabled="{Binding HasAnswer}" />
+          </StackPanel>
+          <Border Height="1" Background="{StaticResource Line}" Margin="0,4" />
+          <TextBlock FontWeight="SemiBold" Text="Put it on an invoice" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Content="Add to invoice" Margin="8,0,0,0"
+                    Command="{Binding AddToInvoiceCommand}" IsEnabled="{Binding HasAnswer}" />
+            <TextBox Text="{Binding LineDescription}" PlaceholderText="What the line is for, e.g. Content updates, 3.5 hours" />
+          </DockPanel>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Goes on the invoice you have open, or a new one. Price boxes on quotes and invoices take sums too." />
+          <TextBlock Classes="muted" Classes.problem="{Binding CalcProblem}" Text="{Binding CalcMessage}" TextWrapping="Wrap"
+                     IsVisible="{Binding CalcMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Spacing="8">
+          <TextBlock Classes="label" Text="EARLIER" />
+          <TextBlock Classes="muted" Text="Sums you work out show here." IsVisible="{Binding !Tape.Count}" />
+          <ItemsControl ItemsSource="{Binding Tape}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:CalcTapeRow">
+                <Button Classes="link" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,4"
+                        Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseTapeCommand}" CommandParameter="{Binding}"
+                        ToolTip.Tip="Use this answer">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding AnswerText}" FontWeight="SemiBold" Margin="8,0,0,0" />
+                    <TextBlock Classes="muted" Text="{Binding Sum}" TextTrimming="CharacterEllipsis" />
+                  </DockPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </StackPanel>
+</UserControl>

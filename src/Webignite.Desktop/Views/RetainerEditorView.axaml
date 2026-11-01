@@ -46,8 +46,9 @@
             <DataTemplate x:DataType="vm:LineRowViewModel">
               <Grid ColumnDefinitions="*,90,130,130,44" Margin="12,8,4,0">
                 <TextBox Grid.Column="0" Text="{Binding Description}" PlaceholderText="What it covers" Margin="0,0,8,0" />
-                <TextBox Grid.Column="1" Text="{Binding Quantity}" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
-                <TextBox Grid.Column="2" Text="{Binding Price}" PlaceholderText="0.00" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
+                <TextBox Grid.Column="1" Text="{Binding Quantity}" LostFocus="SettleSum" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
+                <TextBox Grid.Column="2" Text="{Binding Price}" PlaceholderText="0.00" LostFocus="SettleSum"
+                         ToolTip.Tip="Type an amount, or a sum like 3.5 x 650" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
                 <TextBlock Grid.Column="3" Classes="amount" Text="{Binding AmountText}" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <Button Grid.Column="4" Classes="link" Content="✕" ToolTip.Tip="Remove line"
                         Command="{Binding #Root.((vm:RetainerEditorViewModel)DataContext).RemoveLineCommand}" CommandParameter="{Binding}" />

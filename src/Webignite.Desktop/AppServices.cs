@@ -185,6 +185,9 @@ public sealed class AppServices(LocalStore store) : IDisposable
     /// </summary>
     public Func<Webignite.Core.Mail.OutgoingMail, string?, Func<Task>?, bool>? ComposeMail { get; set; }
 
+    /// <summary>Puts an amount on the invoice being edited, or a new one, and opens it. Returns a problem, or null.</summary>
+    public Func<decimal, string, string?>? AddToInvoice { get; set; }
+
     /// <summary>
     /// Does what the calendar calls for since the app last looked: drafts retainer and renewal invoices that are due,
     /// adds monthly expenses and renewal reminders. All of it stays on this PC and safe to run any number of times.

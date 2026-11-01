@@ -94,6 +94,24 @@ public partial class DocumentEditorViewModel : ViewModelBase
         Recalculate();
     }
 
+    /// <summary>Puts an amount from the calculator on the first empty line, or a new one. False when it can't be changed.</summary>
+    public bool AddAmount(decimal amount, string description)
+    {
+        if (!IsEditable)
+            return false;
+        var row = Lines.FirstOrDefault(r => r.IsBlank);
+        if (row is null)
+        {
+            row = NewRow();
+            Lines.Add(row);
+        }
+        row.Description = description;
+        row.Quantity = "1";
+        row.Price = Webignite.Core.Tools.Calculator.Plain(Money.Cents(amount));
+        Recalculate();
+        return true;
+    }
+
     [RelayCommand]
     private void RemoveLine(LineRowViewModel row)
     {

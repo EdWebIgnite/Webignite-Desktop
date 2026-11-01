@@ -260,6 +260,20 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 Open("Overview");
 Save("overview");
 
+// Tools: the calculator, then its answer on an invoice
+Open("Tools");
+vm.Tools.Sum = "3.5 x 650";
+vm.Tools.WorkOutCommand.Execute(null);
+vm.Tools.Sum = "14 500 + 3 200";
+vm.Tools.WorkOutCommand.Execute(null);
+vm.Tools.Sum = "2400 - 10%";
+vm.Tools.LineDescription = "Hosting, 12 months, returning client";
+Save("tools-calculator");
+vm.Tools.AddToInvoiceCommand.Execute(null);
+Save("tools-calculator-invoice");
+vm.Invoices.Editor!.Lines[0].Price = "3 x 650";
+Save("invoice-sum");
+
 // Ctrl+K search
 vm.Search.Show();
 vm.Search.Query = "karoo";
