@@ -4,6 +4,7 @@
     <RootNamespace>Webignite.Desktop</RootNamespace>
     <AssemblyName>Webignite</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\webignite.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>

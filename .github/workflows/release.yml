@@ -41,5 +41,5 @@ jobs:
           $v = "0.2.${{ github.run_number }}"
           $repo = "https://github.com/${{ github.repository }}"
           vpk download github --repoUrl $repo --token $env:GH_TOKEN
-          vpk pack --packId WebigniteDesktop --packVersion $v --packDir publish --mainExe Webignite.exe --packTitle Webignite --packAuthors Webignite
+          vpk pack --packId WebigniteDesktop --packVersion $v --packDir publish --mainExe Webignite.exe --packTitle Webignite --packAuthors Webignite --icon src/Webignite.Desktop/Assets/webignite.ico
           vpk upload github --repoUrl $repo --token $env:GH_TOKEN --publish --releaseName "Webignite $v" --tag "v$v" --targetCommitish "${{ github.sha }}"
