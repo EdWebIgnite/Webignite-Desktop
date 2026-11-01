@@ -268,6 +268,12 @@ Save("invoice-email");
     vm.Mail.Composer.AcceptSuggestion();
     Console.WriteLine("To is now: " + vm.Mail.Composer.To);
 }
+// Formatting: what's typed, then the preview.
+vm.Mail.Composer!.Body = "Hi Thandi,\n\nHere's what I still need **before Friday**:\n- your logo\n- three photos of the shop\n- the *new* opening hours\n\nThe draft site is up at [this link](https://karoo.webignite.co.za).\n" + Webignite.Core.Mail.Replies.StartBody(invoiceBox.Signature);
+Save("mail-format");
+vm.Mail.Composer.ShowPreview = true;
+Save("mail-preview");
+vm.Mail.Composer.ShowPreview = false;
 vm.Mail.Composer!.DiscardCommand.Execute(null);
 vm.Mail.ManageMailboxesCommand.Execute(null);
 vm.Mail.Setup.Edit(invoiceBox);

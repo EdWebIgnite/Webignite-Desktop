@@ -110,6 +110,11 @@
     <Setter Property="Padding" Value="12,6" />
     <Setter Property="CornerRadius" Value="6" />
   </Style>
+  <Style Selector="Button.format">
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="MinWidth" Value="32" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
   <Style Selector="Button.link">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{StaticResource Muted}" />
