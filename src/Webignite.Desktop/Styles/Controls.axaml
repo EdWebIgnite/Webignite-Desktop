@@ -139,6 +139,34 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
   </Style>
+  <!-- A row of choices where one is on, e.g. Bars / Filled / Lines -->
+  <Style Selector="Border.segments">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="Padding" Value="2" />
+  </Style>
+  <Style Selector="Button.segment">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+  </Style>
+  <Style Selector="Button.segment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Button.segment.on">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.segment.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
   <Style Selector="Button.format">
     <Setter Property="Padding" Value="10,3" />
     <Setter Property="MinWidth" Value="32" />

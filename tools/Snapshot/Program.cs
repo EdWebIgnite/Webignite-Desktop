@@ -219,6 +219,24 @@ Renewal("n4", "Fynbos Physio hosting", Webignite.Core.Renewals.RenewalKind.Hosti
 Renewal("n5", "fynbosphysio.co.za", domain, "Fynbos Physio", "domains.co.za", today.AddDays(200), 99m, 250m);
 Open("Domains and hosting");
 Save("domains");
+
+// Income projection, once retainers and renewals exist, in each chart style and with typed-in amounts.
+Open("Money");
+var moneyPage = (MoneyViewModel)vm.Selected.Page;
+moneyPage.Refresh();
+window.Height = 1180;
+Save("income-bars");
+moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Filled);
+Save("income-filled");
+moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Lines);
+Save("income-lines");
+moneyPage.UseManualCommand.Execute(null);
+foreach (var row in moneyPage.IncomeRows.Take(10))
+    row.ManualText = "16000";
+Save("income-manual");
+moneyPage.UseAutoCommand.Execute(null);
+moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Bars);
+window.Height = 860;
 Open("Reports");
 Save("reports");
 
