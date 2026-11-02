@@ -215,6 +215,7 @@ public partial class MoneyViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasReceived));
         OnPropertyChanged(nameof(HasExpenses));
         OnPropertyChanged(nameof(HasRecurring));
+        LoadIncome();
     }
 
     internal static string Ordinal(int day) => day switch

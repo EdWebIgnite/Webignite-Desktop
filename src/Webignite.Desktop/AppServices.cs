@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Webignite.Core.Backups;
 using Webignite.Core.Documents;
+using Webignite.Core.Finance;
 using Webignite.Core.Tasks;
 using Webignite.Data;
 using Webignite.Mail;
@@ -59,6 +60,13 @@ public sealed class AppServices(LocalStore store) : IDisposable
     {
         get => Store.GetSetting<EmailTemplates>("email-templates") ?? new EmailTemplates();
         set => Store.SetSetting("email-templates", value);
+    }
+
+    /// <summary>How the income projection works out what is expected and what came in.</summary>
+    public IncomePlan IncomePlan
+    {
+        get => Store.GetSetting<IncomePlan>("income-plan") ?? new IncomePlan();
+        set => Store.SetSetting("income-plan", value);
     }
 
     public XeroSettings XeroSettings
