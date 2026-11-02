@@ -30,6 +30,7 @@
     <DataTemplate DataType="vm:MarkupViewModel"><v:MarkupView /></DataTemplate>
     <DataTemplate DataType="vm:ReportsViewModel"><v:ReportsView /></DataTemplate>
     <DataTemplate DataType="vm:TodoViewModel"><v:TodoView /></DataTemplate>
+    <DataTemplate DataType="vm:TimeViewModel"><v:TimeView /></DataTemplate>
     <DataTemplate DataType="vm:CalendarViewModel"><v:CalendarView /></DataTemplate>
     <DataTemplate DataType="vm:PlannerViewModel"><v:PlannerView /></DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>

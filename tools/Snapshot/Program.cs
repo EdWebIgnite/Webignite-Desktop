@@ -168,7 +168,33 @@ File.WriteAllText(brief, "brief");
 bosveld = Webignite.Core.Clients.ClientRecords.AddFiles(bosveld, [brief, Path.Combine(data, "Old contract.docx")], today.AddDays(-12));
 bosveld = Webignite.Core.Clients.ClientRecords.AddNote(bosveld, "Kick-off with Pieter. Six pages to start, online booking for site visits in phase two. Budget agreed at R 17 700.", today.AddDays(-12));
 bosveld = Webignite.Core.Clients.ClientRecords.AddNote(bosveld, "Pieter sent the logo on WhatsApp. Asked for the photos again.", today.AddDays(-1));
+bosveld = bosveld with { Projects = [new() { Id = "p1", Name = "New website" }, new() { Id = "p2", Name = "Logo refresh", Finished = true }] };
 store.SaveClient(bosveld);
+
+// Time: a few days of entries, for a client, a project and nobody, then a running timer.
+void Time(DateOnly date, int minutes, string note, string? client = null, string? project = null) =>
+    store.SaveTime(new Webignite.Core.Time.TimeEntry { Id = Webignite.Core.Time.TimeEntry.NewId(), Date = date, Minutes = minutes, Note = note,
+        ClientId = client, ProjectId = project, Created = DateTimeOffset.Now.AddMinutes(-minutes) });
+var weekStart = Webignite.Core.Time.TimeRules.WeekStart(today);
+Time(today, 95, "Homepage layout", "c1", "p1");
+Time(today, 30, "Bookkeeping");
+Time(today.AddDays(-1) < weekStart ? today : today.AddDays(-1), 140, "Services pages", "c1", "p1");
+Time(today.AddDays(-1) < weekStart ? today : today.AddDays(-1), 45, "Booking page fix on phones", "c2");
+Time(today.AddDays(-2) < weekStart ? today : today.AddDays(-2), 60, "Logo options", "c1", "p2");
+Time(today.AddDays(-2) < weekStart ? today : today.AddDays(-2), 40, "Learning: Avalonia animations");
+vm.Time.Refresh();
+Open("Time");
+Save("time");
+vm.Time.ClientChoice = vm.Time.ClientChoices.First(c => c.Label == "Bosveld Builders");
+vm.Time.Note = "Contact form";
+vm.Time.StartCommand.Execute(null);
+var started = store.RunningTimer! with { Started = DateTimeOffset.Now.AddMinutes(-23).AddSeconds(-14) };
+store.SetRunningTimer(started);
+vm.Time.Running = started;
+Save("time-running");
+store.SetRunningTimer(null);
+vm.Time.Running = null;
+vm.Time.Note = "";
 Open("Clients");
 Save("clients");
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);

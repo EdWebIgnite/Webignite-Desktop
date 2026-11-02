@@ -178,6 +178,36 @@
                          IsVisible="{Binding OnboardingMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </StackPanel>
           </Border>
+          <!-- Projects and time -->
+          <Border Classes="card" IsVisible="{Binding IsSaved}">
+            <StackPanel Spacing="10">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding TimeSummary}" VerticalAlignment="Center" />
+                <TextBlock Classes="h2" Text="Projects and time" />
+              </DockPanel>
+              <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasProjects}"
+                         Text="Add a project, like New website or Monthly SEO, to log time against it on the Time page." />
+              <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding HasProjects}" Text="Tick a project when it's finished. Its time is kept." />
+              <ItemsControl ItemsSource="{Binding ProjectRows}" IsVisible="{Binding HasProjects}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ClientProjectRow">
+                    <DockPanel Margin="0,1">
+                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Time}" VerticalAlignment="Center" Margin="8,0" />
+                      <CheckBox IsChecked="{Binding Finished}" Content="{Binding Name}" ToolTip.Tip="Tick when finished. Its time is kept." />
+                    </DockPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Margin="8,0,0,0" Command="{Binding AddProjectCommand}" />
+                <TextBox Text="{Binding NewProjectName}" PlaceholderText="New project, e.g. New website">
+                  <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding AddProjectCommand}" />
+                  </TextBox.KeyBindings>
+                </TextBox>
+              </DockPanel>
+            </StackPanel>
+          </Border>
           <!-- Quotes and invoices -->
           <Border Classes="card" Padding="0">
             <StackPanel>

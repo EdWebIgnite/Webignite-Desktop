@@ -226,6 +226,7 @@ public partial class ClientDetailViewModel : ViewModelBase
     {
         LoadOnboarding();
         LoadRecords();
+        LoadProjects();
         Documents.Clear();
         Tasks.Clear();
         Events.Clear();
