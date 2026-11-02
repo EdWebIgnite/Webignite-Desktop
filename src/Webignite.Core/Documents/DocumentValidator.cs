@@ -62,16 +62,16 @@ public static partial class DocumentValidator
         Amount(doc.BalanceDue, "Balance due", 2, errors, nonNegative: true);
 
         if (doc.TaxTotal != 0)
-            errors.Add("Only non-VAT sales are supported. Do not remove tax to force a document through.");
+            errors.Add("Webignite isn't VAT registered, so documents can't carry VAT. Don't take the tax off just to get one through.");
         if (doc.DocumentDiscountAmount is not null && doc.DocumentDiscountPercent is not null)
             errors.Add("Use a document discount amount or a percentage, not both.");
         if (doc.Discount() > doc.Subtotal)
             errors.Add("The document discount is more than the subtotal.");
         if (Money.Cents(doc.LinesTotal()) != Money.Cents(doc.Subtotal.Value)
             || Money.Cents(doc.NetSubtotal() + doc.TaxTotal.Value) != Money.Cents(doc.Total.Value))
-            errors.Add("Line totals, subtotal, tax and total do not add up exactly.");
+            errors.Add("The line totals, subtotal, tax and total don't add up exactly.");
         if (doc.AmountPaid is { } paid && doc.BalanceDue is { } balance && Money.Cents(paid + balance) != Money.Cents(doc.Total.Value))
-            errors.Add("Amount paid and balance due do not add up to the total.");
+            errors.Add("The amount paid and the balance due don't add up to the total.");
 
         return errors;
     }
@@ -102,7 +102,7 @@ public static partial class DocumentValidator
         if (line.DiscountPercent is not null && line.DiscountAmount is not null)
             errors.Add($"{label}: use a discount percentage or an amount, never both.");
         if (line.Quantity is null && (line.DiscountPercent is not null || line.DiscountAmount is not null || line.SourceLineTotal is not null))
-            errors.Add($"{label}: a text-only line cannot have amounts or discounts.");
+            errors.Add($"{label}: a text-only line can't have amounts or discounts.");
 
         Amount(line.Quantity, $"{label} quantity", 4, errors);
         Amount(line.UnitPrice, $"{label} unit price", 4, errors);
@@ -111,7 +111,7 @@ public static partial class DocumentValidator
         Amount(line.SourceLineTotal, $"{label} source total", 2, errors);
 
         if (line.SourceLineTotal is { } source && Money.Cents(source) != line.Amount())
-            errors.Add($"{label}: amount does not match the line total on the source document.");
+            errors.Add($"{label}: the amount doesn't match the line total on the original document.");
     }
 
     private static void Text(string? value, int max, string field, List<string> errors)
@@ -125,7 +125,7 @@ public static partial class DocumentValidator
         if (value is not { } v)
             return;
         if (nonNegative && v < 0)
-            errors.Add($"{field} cannot be negative.");
+            errors.Add($"{field} can't be less than zero.");
         if (Math.Abs(v) > MaxAmount)
             errors.Add($"{field} is too large.");
         if (DecimalPlaces(v) > places)

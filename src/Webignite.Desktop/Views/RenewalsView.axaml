@@ -92,7 +92,7 @@
         </Grid>
         <StackPanel>
           <TextBlock Classes="label" Text="Notes" />
-          <TextBox Text="{Binding FormNotes}" PlaceholderText="Login hints (no passwords), DNS details, anything to remember" />
+          <TextBox Text="{Binding FormNotes}" PlaceholderText="Sign-in hints (no passwords), DNS details, anything to remember" />
         </StackPanel>
         <TextBlock Classes="label short" Text="{Binding FormMessage}" IsVisible="{Binding HasFormMessage}" />
         <StackPanel Orientation="Horizontal" Spacing="8">

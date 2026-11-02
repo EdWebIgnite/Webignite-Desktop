@@ -49,7 +49,7 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         Findings.Clear();
         OnPropertyChanged(nameof(HasDomain));
         DomainTitle = domain;
-        DomainMessage = "Looking it up...";
+        DomainMessage = "Looking it up…";
         DomainProblem = false;
         try
         {
@@ -75,7 +75,7 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         Speed = null;
         SpeedChange = "";
         SpeedTitle = address;
-        SpeedMessage = "Google is loading the site the way a phone would. This takes up to a minute...";
+        SpeedMessage = "Google is loading the site the way a phone would. This takes up to a minute…";
         SpeedMessageProblem = false;
         try
         {
