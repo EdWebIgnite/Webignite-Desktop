@@ -40,6 +40,13 @@ public sealed class AppServices(LocalStore store) : IDisposable
         set => Store.SetSetting("tasks", value);
     }
 
+    /// <summary>Window size, position and last page, saved when the app closes.</summary>
+    public WindowPlacement? WindowPlacement
+    {
+        get => Store.GetSetting<WindowPlacement>("window");
+        set => Store.SetSetting("window", value);
+    }
+
     /// <summary>Standard packages and items, for filling in quotes and invoices with one click.</summary>
     public IReadOnlyList<PriceEntry> PriceList
     {
@@ -59,13 +66,6 @@ public sealed class AppServices(LocalStore store) : IDisposable
     {
         get => Store.GetSetting<EmailTemplates>("email-templates") ?? new EmailTemplates();
         set => Store.SetSetting("email-templates", value);
-    }
-
-    /// <summary>Window size, position and last page, saved when the app closes.</summary>
-    public WindowPlacement? WindowPlacement
-    {
-        get => Store.GetSetting<WindowPlacement>("window");
-        set => Store.SetSetting("window", value);
     }
 
     public XeroSettings XeroSettings
