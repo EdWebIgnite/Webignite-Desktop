@@ -14,7 +14,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Reads payments from Xero, refreshes the pages that show money owed and announces what came in.</summary>
     public async Task CheckPaymentsAsync(bool byHand = false)
     {
-        var (news, problem) = await PaymentWatch.RunAsync(services);
+        var (news, problem) = await services.Work.Run("Checking Xero for payments", () => PaymentWatch.RunAsync(services));
         if (byHand && problem is not null)
             services.ShowNote?.Invoke("Couldn't check payments", problem, null);
         foreach (var payment in news.Take(3))
@@ -62,7 +62,8 @@ public partial class MainViewModel : ViewModelBase
         lastMailCheck = DateTimeOffset.Now;
         try
         {
-            await Mail.SyncAll();
+            using (services.Work.Start("Checking mail"))
+                await Mail.SyncAll();
             var settings = services.MailCheckSettings;
             var inboxes = new List<(string, IReadOnlyList<Webignite.Core.Mail.MailSummary>)>();
             foreach (var account in services.Store.ListMailAccounts())
@@ -93,6 +94,8 @@ public partial class MainViewModel : ViewModelBase
     }
 
     public UpdateViewModel Updates { get; } = new();
+
+    public WorkInProgress Work => services.Work;
 
     public MainViewModel(AppServices services)
     {

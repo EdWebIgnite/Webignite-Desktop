@@ -28,6 +28,9 @@ public sealed class AppServices(LocalStore store) : IDisposable
 
     public LocalStore Store { get; } = store;
 
+    /// <summary>Background jobs, shown with a spinner in the sidebar.</summary>
+    public WorkInProgress Work { get; } = new();
+
     public DocumentSettings DocumentSettings
     {
         get => Store.GetSetting<DocumentSettings>("documents") ?? new DocumentSettings();
@@ -114,6 +117,7 @@ public sealed class AppServices(LocalStore store) : IDisposable
         if (!now && !BackupRules.IsDue(settings, started))
             return null;
         backingUp = true;
+        using var working = Work.Start("Backing up");
         try
         {
             var snapshot = Backups.Snapshot(Store);

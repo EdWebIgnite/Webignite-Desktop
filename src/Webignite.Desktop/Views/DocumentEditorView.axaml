@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:xero="using:Webignite.Core.Xero"
              x:Class="Webignite.Desktop.Views.DocumentEditorView"
@@ -147,7 +148,10 @@
           </StackPanel>
         </Border>
         <Border Classes="pending" IsVisible="{Binding HasXeroMessage}">
-          <TextBlock TextWrapping="Wrap" Text="{Binding XeroMessage}" Classes.problem="{Binding XeroMessageIsProblem}" />
+          <DockPanel>
+            <c:Spinner DockPanel.Dock="Left" IsVisible="{Binding XeroBusy}" Foreground="{DynamicResource Text}" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <TextBlock TextWrapping="Wrap" Text="{Binding XeroMessage}" Classes.problem="{Binding XeroMessageIsProblem}" />
+          </DockPanel>
         </Border>
         <Border Classes="pending">
           <Border.IsVisible>
