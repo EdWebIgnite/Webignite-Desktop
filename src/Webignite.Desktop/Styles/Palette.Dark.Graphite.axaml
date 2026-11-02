@@ -1,0 +1,58 @@
+<!--
+  Dark palette "Graphite". Same names as Palette.axaml, so every screen picks these up when dark mode is on.
+  Graphite: neutral dark grey, light buttons. Red and green still mean "needs attention" and "done" only, a shade lighter so they read on dark.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="Canvas" Color="#16171A" />
+  <SolidColorBrush x:Key="Surface" Color="#1F2024" />
+  <SolidColorBrush x:Key="Surface2" Color="#26282C" />
+  <SolidColorBrush x:Key="TableHead" Color="#2A2C31" />
+  <SolidColorBrush x:Key="Line" Color="#33363C" />
+  <SolidColorBrush x:Key="Line2" Color="#454850" />
+  <SolidColorBrush x:Key="Text" Color="#E6E7EA" />
+  <SolidColorBrush x:Key="Ink" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Muted" Color="#9EA2AA" />
+
+  <!-- Sidebar: a little darker than the page. -->
+  <SolidColorBrush x:Key="Nav" Color="#0F1012" />
+  <SolidColorBrush x:Key="NavHover" Color="#1B1C20" />
+  <SolidColorBrush x:Key="NavSelected" Color="#2A2C31" />
+  <SolidColorBrush x:Key="NavText" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="NavMuted" Color="#8D9099" />
+  <SolidColorBrush x:Key="NavActive" Color="#FFFFFF" />
+  <!-- Dims the page behind the Ctrl+K search box. -->
+  <SolidColorBrush x:Key="Scrim" Color="#99000000" />
+
+  <SolidColorBrush x:Key="Primary" Color="#E6E7EA" />
+  <SolidColorBrush x:Key="PrimaryHover" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="OnPrimary" Color="#16171A" />
+
+  <SolidColorBrush x:Key="Attention" Color="#F0907A" />
+  <SolidColorBrush x:Key="AttentionSoft" Color="#3B231E" />
+  <SolidColorBrush x:Key="AttentionLine" Color="#5C3329" />
+  <SolidColorBrush x:Key="InvoiceTint" Color="#73B6D8" />
+  <SolidColorBrush x:Key="InvoiceSoft" Color="#1A2C35" />
+  <SolidColorBrush x:Key="QuoteTint" Color="#B79DE2" />
+  <SolidColorBrush x:Key="QuoteSoft" Color="#2A2339" />
+  <SolidColorBrush x:Key="Ok" Color="#62C593" />
+  <SolidColorBrush x:Key="OkSoft" Color="#18301F" />
+  <SolidColorBrush x:Key="OkLine" Color="#255238" />
+
+  <!-- Depth: cards sit just above the page; cards you can click rise a little more under the mouse. -->
+  <BoxShadows x:Key="CardShadow">0 1 2 0 #40000000</BoxShadows>
+  <BoxShadows x:Key="CardShadowRaised">0 8 20 0 #73000000</BoxShadows>
+
+  <!-- Mark-up pens, drawn on client screenshots. Red marks what needs fixing. -->
+  <Color x:Key="MarkRed">#E03131</Color>
+  <Color x:Key="MarkYellow">#FCC419</Color>
+  <Color x:Key="MarkBlue">#1971C2</Color>
+
+  <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
+  <Color x:Key="SystemAccentColor">#E6E7EA</Color>
+
+  <!-- Notes in the window corner: a raised dark card with a strip in the button colour. -->
+  <SolidColorBrush x:Key="NotificationCardInformationBackgroundBrush" Color="#E6E7EA" />
+  <SolidColorBrush x:Key="NotificationCardBackgroundBrush" Color="#26282C" />
+  <SolidColorBrush x:Key="NotificationCardForegroundBrush" Color="#FFFFFF" />
+</ResourceDictionary>

@@ -18,6 +18,24 @@ public enum Motion
 public sealed record AppearanceSettings
 {
     public Motion Motion { get; init; } = Motion.Full;
+    public Theme Theme { get; init; } = Theme.Light;
+    public DarkPalette DarkPalette { get; init; } = DarkPalette.Graphite;
+}
+
+/// <summary>Light, dark, or whatever Windows is set to.</summary>
+public enum Theme
+{
+    Light,
+    Dark,
+    FollowWindows,
+}
+
+/// <summary>The three dark looks, in Styles/Palette.Dark.*.axaml.</summary>
+public enum DarkPalette
+{
+    Graphite,
+    Midnight,
+    Warm,
 }
 
 /// <summary>

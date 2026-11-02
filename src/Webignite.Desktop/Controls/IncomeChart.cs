@@ -29,6 +29,9 @@ public sealed class IncomeChart : Control
         AffectsRender<IncomeChart>(MonthsProperty, ChartStyleProperty);
     }
 
+    // Dark mode swaps the palette: draw again with the new colours.
+    public IncomeChart() => ResourcesChanged += (_, _) => InvalidateVisual();
+
     public IReadOnlyList<ProjectionMonth>? Months { get => GetValue(MonthsProperty); set => SetValue(MonthsProperty, value); }
     public ChartStyle ChartStyle { get => GetValue(ChartStyleProperty); set => SetValue(ChartStyleProperty, value); }
 
