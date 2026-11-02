@@ -8,7 +8,7 @@ using Webignite.Xero.Auth;
 
 namespace Webignite.Desktop.ViewModels;
 
-public partial class SettingsViewModel : ViewModelBase
+public partial class SettingsViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
     private CancellationTokenSource? signIn;

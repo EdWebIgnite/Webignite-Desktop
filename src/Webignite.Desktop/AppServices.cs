@@ -61,6 +61,13 @@ public sealed class AppServices(LocalStore store) : IDisposable
         set => Store.SetSetting("email-templates", value);
     }
 
+    /// <summary>Window size, position and last page, saved when the app closes.</summary>
+    public WindowPlacement? WindowPlacement
+    {
+        get => Store.GetSetting<WindowPlacement>("window");
+        set => Store.SetSetting("window", value);
+    }
+
     public XeroSettings XeroSettings
     {
         get => Store.GetSetting<XeroSettings>("xero") ?? new XeroSettings();
@@ -178,6 +185,9 @@ public sealed class AppServices(LocalStore store) : IDisposable
 
     /// <summary>Set by the main window: shows a note in the corner. The action runs when the note is clicked.</summary>
     public Action<string, string, Action?>? ShowNote { get; set; }
+
+    /// <summary>After something is removed: a note that puts it back when clicked.</summary>
+    public void OfferUndo(string what, Action putBack) => ShowNote?.Invoke(what, "Click here to undo.", putBack);
 
     /// <summary>Mailbox passwords. Windows Credential Manager on Windows; memory only elsewhere (tests and screenshots).</summary>
     public ISecretStore Secrets { get; init; } = OperatingSystem.IsWindows() ? new WindowsSecretStore() : new MemorySecretStore();

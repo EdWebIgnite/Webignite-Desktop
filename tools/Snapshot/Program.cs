@@ -65,6 +65,9 @@ void Save(string name)
 }
 
 Save("overview");
+vm.ToggleShortcutsCommand.Execute(null);
+Save("shortcuts");
+vm.HideShortcutsCommand.Execute(null);
 
 // Empty pages, before the sample data for them exists.
 Open("Retainers");

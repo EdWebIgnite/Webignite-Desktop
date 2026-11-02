@@ -12,6 +12,18 @@
 
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+K" Command="{Binding Search.ShowCommand}" />
+    <KeyBinding Gesture="Ctrl+N" Command="{Binding NewCommand}" />
+    <KeyBinding Gesture="F5" Command="{Binding RefreshPageCommand}" />
+    <KeyBinding Gesture="F1" Command="{Binding ToggleShortcutsCommand}" />
+    <KeyBinding Gesture="Ctrl+D1" Command="{Binding GoToCommand}" CommandParameter="1" />
+    <KeyBinding Gesture="Ctrl+D2" Command="{Binding GoToCommand}" CommandParameter="2" />
+    <KeyBinding Gesture="Ctrl+D3" Command="{Binding GoToCommand}" CommandParameter="3" />
+    <KeyBinding Gesture="Ctrl+D4" Command="{Binding GoToCommand}" CommandParameter="4" />
+    <KeyBinding Gesture="Ctrl+D5" Command="{Binding GoToCommand}" CommandParameter="5" />
+    <KeyBinding Gesture="Ctrl+D6" Command="{Binding GoToCommand}" CommandParameter="6" />
+    <KeyBinding Gesture="Ctrl+D7" Command="{Binding GoToCommand}" CommandParameter="7" />
+    <KeyBinding Gesture="Ctrl+D8" Command="{Binding GoToCommand}" CommandParameter="8" />
+    <KeyBinding Gesture="Ctrl+D9" Command="{Binding GoToCommand}" CommandParameter="9" />
   </Window.KeyBindings>
 
   <Grid ColumnDefinitions="232,*">
@@ -105,6 +117,30 @@
             </ListBox.ItemTemplate>
           </ListBox>
         </DockPanel>
+      </Border>
+    </Grid>
+    <!-- F1: the keyboard shortcuts. Click anywhere or press Esc to close. -->
+    <Grid Grid.ColumnSpan="2" IsVisible="{Binding ShowingShortcuts}" Background="{DynamicResource Scrim}" PointerPressed="CloseShortcuts">
+      <Border Classes="card searchbox" Width="520" VerticalAlignment="Top" Margin="0,90,0,0" BoxShadow="0 12 32 0 #401C1D21">
+        <StackPanel Spacing="12">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="link" Content="Close" Command="{Binding HideShortcutsCommand}" />
+            <TextBlock Classes="h2" Text="Keyboard shortcuts" />
+          </DockPanel>
+          <ItemsControl ItemsSource="{x:Static vm:MainViewModel.Shortcuts}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:MainViewModel+Shortcut">
+                <Grid ColumnDefinitions="150,*" Margin="0,5">
+                  <Border Grid.Column="0" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Line2}" BorderThickness="1"
+                          CornerRadius="5" Padding="7,2" HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <TextBlock Text="{Binding Keys}" FontSize="12" FontWeight="SemiBold" />
+                  </Border>
+                  <TextBlock Grid.Column="1" Text="{Binding What}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
       </Border>
     </Grid>
   </Grid>

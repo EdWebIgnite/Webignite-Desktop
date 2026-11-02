@@ -8,7 +8,7 @@ using Webignite.Core.Retainers;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>The Retainers module: clients billed the same every month, with the invoice drafted for you.</summary>
-public partial class RetainersViewModel : ViewModelBase
+public partial class RetainersViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
 
@@ -63,6 +63,11 @@ public partial class RetainersViewModel : ViewModelBase
     {
         services.Store.DeleteRetainer(retainer.Id);
         Refresh();
+        services.OfferUndo($"Stopped {retainer.Title} for {retainer.ClientName}", () =>
+        {
+            services.Store.SaveRetainer(retainer);
+            Refresh();
+        });
     }
 
     public void Refresh()

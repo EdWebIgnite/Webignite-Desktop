@@ -6,7 +6,7 @@ using Webignite.Core.Calendar;
 
 namespace Webignite.Desktop.ViewModels;
 
-public partial class CalendarViewModel : ViewModelBase
+public partial class CalendarViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
     private DateOnly month;

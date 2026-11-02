@@ -7,7 +7,7 @@ using Webignite.Core.Tasks;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>A week at a glance: what's on each day, and the undated to-dos waiting for a slot.</summary>
-public partial class PlannerViewModel : ViewModelBase
+public partial class PlannerViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
     private DateOnly weekStart;

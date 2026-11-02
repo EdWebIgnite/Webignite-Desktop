@@ -7,7 +7,7 @@ using Webignite.Core.Documents;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>The Clients module: a searchable list, and one client's page when one is open.</summary>
-public partial class ClientsViewModel : ViewModelBase
+public partial class ClientsViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
     private List<ClientRow> all = [];

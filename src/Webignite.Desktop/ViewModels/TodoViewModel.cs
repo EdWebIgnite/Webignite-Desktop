@@ -10,7 +10,7 @@ public sealed record DueChoice(string Label, Func<DateOnly, DateOnly?> Pick)
     public override string ToString() => Label;
 }
 
-public partial class TodoViewModel : ViewModelBase
+public partial class TodoViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
 
@@ -72,6 +72,11 @@ public partial class TodoViewModel : ViewModelBase
     {
         services.Store.DeleteTask(task.Id);
         Refresh();
+        services.OfferUndo($"Removed \"{task.Title}\"", () =>
+        {
+            services.Store.SaveTask(task);
+            Refresh();
+        });
     }
 
     /// <summary>Raises any new automatic reminders, then rebuilds the groups.</summary>

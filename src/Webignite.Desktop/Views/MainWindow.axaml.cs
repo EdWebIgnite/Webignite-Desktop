@@ -34,9 +34,54 @@ public partial class MainWindow : Window
         if (App.Services is { } services)
         {
             services.ShowNote = ShowNote;
+            Restore(services.WindowPlacement, main);
             ApplyAppearance(services.Appearance);
             services.AppearanceChanged += ApplyAppearance;
         }
+    }
+
+    /// <summary>Opens the window where it was last time, at the same size and on the same page.</summary>
+    private void Restore(WindowPlacement? placement, MainViewModel main)
+    {
+        if (placement is null)
+            return;
+        Width = Math.Max(MinWidth, placement.Width);
+        Height = Math.Max(MinHeight, placement.Height);
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Position = new Avalonia.PixelPoint(placement.X, placement.Y);
+        if (placement.Maximized)
+            WindowState = WindowState.Maximized;
+        if (main.Modules.FirstOrDefault(m => m.Title == placement.LastPage) is { } page)
+            main.Selected = page;
+    }
+
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        // A screen that was there last time may be unplugged now: bring the window back into view.
+        if (Screens.ScreenFromPoint(Position + new Avalonia.PixelPoint(40, 20)) is null && Screens.Primary is { } screen)
+            Position = new Avalonia.PixelPoint(
+                screen.WorkingArea.X + Math.Max(0, (screen.WorkingArea.Width - (int)(Width * screen.Scaling)) / 2),
+                screen.WorkingArea.Y + Math.Max(0, (screen.WorkingArea.Height - (int)(Height * screen.Scaling)) / 2));
+    }
+
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        if (e.Cancel || App.Services is not { } services || DataContext is not MainViewModel main)
+            return;
+        var before = services.WindowPlacement;
+        var normal = WindowState == WindowState.Normal;
+        services.WindowPlacement = new WindowPlacement
+        {
+            // Maximised or minimised: keep the normal size from last time so un-maximising still looks right.
+            X = normal ? Position.X : before?.X ?? Position.X,
+            Y = normal ? Position.Y : before?.Y ?? Position.Y,
+            Width = normal ? Width : before?.Width ?? Width,
+            Height = normal ? Height : before?.Height ?? Height,
+            Maximized = WindowState == WindowState.Maximized,
+            LastPage = main.Selected.Title,
+        };
     }
 
     /// <summary>Motion: the window's class switches the eased styles in Styles/Motion.axaml, and pages get their fade.</summary>
@@ -73,6 +118,23 @@ public partial class MainWindow : Window
             case Key.Enter: search.OpenChosen(); e.Handled = true; break;
             case Key.Escape: search.Hide(); e.Handled = true; break;
         }
+    }
+
+    private void CloseShortcuts(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is MainViewModel main)
+            main.ShowingShortcuts = false;
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && DataContext is MainViewModel { ShowingShortcuts: true } main)
+        {
+            main.ShowingShortcuts = false;
+            e.Handled = true;
+            return;
+        }
+        base.OnKeyDown(e);
     }
 
     private void OpenSearchHit(object? sender, RoutedEventArgs e) => Search?.OpenChosen();
