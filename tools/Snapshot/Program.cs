@@ -72,6 +72,21 @@ Save("empty-domains");
 
 Open("Invoices");
 Save("invoices");
+vm.Invoices.Search = "karoo";
+vm.Invoices.ShowChoice = DocumentsViewModel.ShowChoices[1];
+Save("invoices-filtered");
+vm.Invoices.Search = "nothing like this";
+Save("invoices-no-match");
+vm.Invoices.ClearFiltersCommand.Execute(null);
+Open("Quotes");
+vm.Quotes.OpenDocument(store.List(DocumentKind.Quote)[0]);
+Save("quote-editor");
+vm.Quotes.Editor!.MakeInvoiceCommand.Execute(null);
+Save("invoice-from-quote");
+vm.Invoices.Editor = null;
+vm.Quotes.Editor = null;
+store.DeleteDocument(store.List(DocumentKind.Invoice).First(d => d.Document.Customer.Name == "Bosveld Builders").Id);
+Open("Invoices");
 
 vm.Invoices.NewCommand.Execute(null);
 var invoice = vm.Invoices.Editor!;

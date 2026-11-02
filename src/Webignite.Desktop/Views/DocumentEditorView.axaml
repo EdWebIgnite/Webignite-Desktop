@@ -9,6 +9,10 @@
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
         <TextBlock Classes="muted" FontSize="12" Text="{Binding SaveState}" VerticalAlignment="Center" />
+        <Button Classes="quiet" Content="Make invoice" Command="{Binding MakeInvoiceCommand}" IsVisible="{Binding IsQuote}"
+                IsEnabled="{Binding CanCopy}" ToolTip.Tip="Starts a draft invoice with this quote's customer and lines." />
+        <Button Classes="quiet" Content="Copy" Command="{Binding CopyCommand}" IsEnabled="{Binding CanCopy}"
+                ToolTip.Tip="Starts a new draft with the same customer, lines and notes." />
         <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" IsVisible="{Binding IsEditable}" />
       </StackPanel>
       <StackPanel Spacing="4">
