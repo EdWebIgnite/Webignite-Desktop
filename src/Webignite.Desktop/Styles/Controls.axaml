@@ -49,8 +49,9 @@
     <Setter Property="Background" Value="{DynamicResource Surface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Padding" Value="20" />
+    <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
   </Style>
   <Style Selector="Border.pending">
     <Setter Property="Background" Value="{DynamicResource Surface2}" />

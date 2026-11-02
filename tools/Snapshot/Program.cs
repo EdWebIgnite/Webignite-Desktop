@@ -47,6 +47,8 @@ services.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "Website, 
     [new Line { Description = "Design and build, 6 pages", Quantity = 1, UnitPrice = 12500m }, new Line { Description = "Hosting, first year", Quantity = 1, UnitPrice = 2000m }]),
     "Monthly SEO", [new Line { Description = "Monthly SEO", Quantity = 1, UnitPrice = 2800m }]),
     "Hosting, yearly", [new Line { Description = "Website hosting, 12 months", Quantity = 1, UnitPrice = 2400m }]);
+// Pages change at once here: the script doesn't wait for fades to finish.
+services.Appearance = new AppearanceSettings { Motion = Motion.Off };
 var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();

@@ -99,6 +99,15 @@
 
     <Border Classes="card">
       <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Motion" />
+        <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.MotionChoices}" SelectedItem="{Binding MotionChoice}" MinWidth="380" />
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="Reduced or Off is easier on the eyes and on older PCs. It changes straight away." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Mail checking" />
         <StackPanel Orientation="Horizontal" Spacing="10">
           <TextBlock Text="Check for new mail every" VerticalAlignment="Center" />

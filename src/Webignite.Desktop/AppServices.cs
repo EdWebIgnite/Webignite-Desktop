@@ -152,6 +152,20 @@ public sealed class AppServices(LocalStore store) : IDisposable
         set => Store.SetSetting("uptime", value);
     }
 
+    /// <summary>How much the app moves, and other look settings.</summary>
+    public AppearanceSettings Appearance
+    {
+        get => Store.GetSetting<AppearanceSettings>("appearance") ?? new AppearanceSettings();
+        set
+        {
+            Store.SetSetting("appearance", value);
+            AppearanceChanged?.Invoke(value);
+        }
+    }
+
+    /// <summary>The main window listens, so a change in Settings shows straight away.</summary>
+    public event Action<AppearanceSettings>? AppearanceChanged;
+
     /// <summary>How often mail is checked in the background, and what was already announced.</summary>
     public Webignite.Core.Mail.MailCheckSettings MailCheckSettings
     {

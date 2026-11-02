@@ -40,7 +40,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:ApprovalRowViewModel">
-            <Border Classes="card" Padding="18,14">
+            <Border Classes="card lift" Padding="18,14">
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Spacing="8" VerticalAlignment="Center" Margin="16,0,0,0">
                   <TextBlock Classes="amount" FontSize="16" FontWeight="SemiBold" Text="{Binding Total}" />

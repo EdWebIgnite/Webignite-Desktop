@@ -75,13 +75,13 @@
 
     <!-- Page -->
     <ScrollViewer Grid.Column="1" IsVisible="{Binding Selected.Scrolls}">
-      <ContentControl Content="{Binding Selected.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
+      <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Selected.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
     </ScrollViewer>
-    <ContentControl Grid.Column="1" Content="{Binding Selected.FullPage}" IsVisible="{Binding Selected.FullBleed}" />
+    <TransitioningContentControl x:Name="FullHost" Grid.Column="1" Content="{Binding Selected.FullPage}" IsVisible="{Binding Selected.FullBleed}" />
 
     <!-- Ctrl+K search, over everything -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{DynamicResource Scrim}" PointerPressed="CloseSearch">
-      <Border Classes="card" Width="640" VerticalAlignment="Top" Margin="0,90,0,0" Padding="0" PointerPressed="KeepSearchOpen"
+      <Border Classes="card searchbox" Width="640" VerticalAlignment="Top" Margin="0,90,0,0" Padding="0" PointerPressed="KeepSearchOpen"
               BoxShadow="0 12 32 0 #401C1D21">
         <DockPanel>
           <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Classes="search" Text="{Binding Search.Query}" KeyDown="SearchKeys"
