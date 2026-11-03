@@ -142,7 +142,11 @@ var backupFile = Backups.Seal(Backups.Snapshot(store), snapshotKey, "a long samp
 services.Settings.Backups = services.Settings.Backups with { LastBackup = backupAt, LastFile = backupFile };
 var settingsPage = (SettingsViewModel)vm.Selected.Page;
 settingsPage.Refresh();
+settingsPage.Open("backups");
 Save("settings-backups");
+settingsPage.Open("emails");
+Save("settings-emails");
+settingsPage.Open("xero");
 
 var today = DateOnly.FromDateTime(DateTime.Today);
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t1", Title = "Send Bosveld the sitemap for sign-off", Due = today, Created = DateTimeOffset.UtcNow });
@@ -308,8 +312,9 @@ Open(Page.Settings);
 Save("dark-settings");
 services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Light };
 Open(Page.Settings);
-window.Height = 1500;
+settingsPage.Open("look");
 Save("settings-looks");
+settingsPage.Open("xero");
 window.Height = 860;
 Open(Page.Reports);
 Save("reports");
