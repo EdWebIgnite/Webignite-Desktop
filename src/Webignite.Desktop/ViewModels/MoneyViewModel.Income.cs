@@ -53,7 +53,7 @@ public partial class MoneyViewModel
     private void ChangePlan(IncomePlan changed, bool rows = true)
     {
         plan = changed;
-        services.IncomePlan = changed;
+        services.Settings.IncomePlan = changed;
         UpdateIncome(rows);
     }
 
@@ -61,13 +61,13 @@ public partial class MoneyViewModel
     internal void SetManual(DateOnly month, decimal? amount)
     {
         plan = Projection.SetManual(plan, month, amount);
-        services.IncomePlan = plan;
+        services.Settings.IncomePlan = plan;
         UpdateIncome(rows: false);
     }
 
     private void LoadIncome()
     {
-        plan = services.IncomePlan;
+        plan = services.Settings.IncomePlan;
         UpdateIncome(rows: true);
     }
 

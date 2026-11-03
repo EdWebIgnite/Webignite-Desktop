@@ -18,9 +18,9 @@ public partial class MainViewModel : ViewModelBase
         if (byHand && problem is not null)
             services.ShowNote?.Invoke("Couldn't check payments", problem, null);
         foreach (var payment in news.Take(3))
-            services.ShowNote?.Invoke(payment.Title, payment.Text, () => Selected = Modules.Single(m => m.Page == Invoices));
+            services.ShowNote?.Invoke(payment.Title, payment.Text, () => Selected = this[Page.Invoices]);
         if (news.Count > 3)
-            services.ShowNote?.Invoke($"{news.Count - 3} more payments came in", "Open Invoices to see them.", () => Selected = Modules.Single(m => m.Page == Invoices));
+            services.ShowNote?.Invoke($"{news.Count - 3} more payments came in", "Open Invoices to see them.", () => Selected = this[Page.Invoices]);
         if (byHand && problem is null && news.Count == 0)
             services.ShowNote?.Invoke("Payments checked", "No new payments in Xero.", null);
         Overview.Refresh();
@@ -32,9 +32,9 @@ public partial class MainViewModel : ViewModelBase
     private void AnnounceSites(IReadOnlyList<Webignite.Core.Web.UptimeAlert> alerts)
     {
         foreach (var alert in alerts.Take(3))
-            services.ShowNote?.Invoke(alert.Title, alert.Text, () => Selected = Modules.Single(m => m.Page == SiteCheck));
+            services.ShowNote?.Invoke(alert.Title, alert.Text, () => Selected = this[Page.SiteCheck]);
         if (alerts.Count > 3)
-            services.ShowNote?.Invoke($"{alerts.Count - 3} more sites changed", "Open Site check to see them.", () => Selected = Modules.Single(m => m.Page == SiteCheck));
+            services.ShowNote?.Invoke($"{alerts.Count - 3} more sites changed", "Open Site check to see them.", () => Selected = this[Page.SiteCheck]);
         if (alerts.Any(a => a.Problem) && WindowIsActive?.Invoke() != true)
             FlashTaskbar?.Invoke();
     }
@@ -64,7 +64,7 @@ public partial class MainViewModel : ViewModelBase
         {
             using (services.Work.Start("Checking mail"))
                 await Mail.SyncAll();
-            var settings = services.MailCheckSettings;
+            var settings = services.Settings.MailCheck;
             var inboxes = new List<(string, IReadOnlyList<Webignite.Core.Mail.MailSummary>)>();
             foreach (var account in services.Store.ListMailAccounts())
             {
@@ -74,7 +74,7 @@ public partial class MainViewModel : ViewModelBase
             UpdateMailBadge();
 
             var found = Webignite.Core.Mail.NewMail.Find(settings.Announced, inboxes);
-            services.MailCheckSettings = settings with { Announced = found.Announced };
+            services.Settings.MailCheck = settings with { Announced = found.Announced };
             var active = WindowIsActive?.Invoke() == true;
             if (found.Fresh.Count == 0 || (active && Selected == mailModule))
                 return;
@@ -84,7 +84,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 var (title, text) = Webignite.Core.Mail.NewMail.Note(found.Fresh);
                 var first = found.Fresh[0];
-                services.ShowNote?.Invoke(title, text, () => services.OpenMail?.Invoke(first));
+                services.ShowNote?.Invoke(title, text, () => services.Go.Mail(first));
             }
         }
         finally
@@ -111,7 +111,7 @@ public partial class MainViewModel : ViewModelBase
         mailTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         mailTimer.Tick += (_, _) =>
         {
-            if (DateTimeOffset.Now - lastMailCheck >= Webignite.Core.Mail.NewMail.Interval(services.MailCheckSettings))
+            if (DateTimeOffset.Now - lastMailCheck >= Webignite.Core.Mail.NewMail.Interval(services.Settings.MailCheck))
                 CheckMailAsync().Forget("Checking mail");
         };
         mailTimer.Start();
@@ -130,7 +130,7 @@ public partial class MainViewModel : ViewModelBase
         uptimeTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         uptimeTimer.Tick += async (_, _) =>
         {
-            if (!Webignite.Core.Web.Uptime.Due(services.UptimeSettings, UptimeWatch.LastRun, DateTimeOffset.Now))
+            if (!Webignite.Core.Web.Uptime.Due(services.Settings.Uptime, UptimeWatch.LastRun, DateTimeOffset.Now))
                 return;
             AnnounceSites(await UptimeWatch.RunAsync(services));
             SiteCheck.RefreshWatched();
@@ -150,41 +150,50 @@ public partial class MainViewModel : ViewModelBase
         // The sidebar, in groups. Headings sit between the groups; the pages keep the order shown here.
         object[] nav =
         [
-            new Module("Overview", Overview, "Overview"),
-            new Module("To approve", Approvals, "Approve"),
-            new Module("Mail", Mail, "Mail", fullBleed: true),
+            new Module(Page.Overview, "Overview", Overview, "Overview"),
+            new Module(Page.Approvals, "To approve", Approvals, "Approve"),
+            new Module(Page.Mail, "Mail", Mail, "Mail", fullBleed: true),
             new NavHeading("CLIENT WORK"),
-            new Module("Clients", Clients, "Clients"),
-            new Module("Retainers", new RetainersViewModel(services), "Retainers"),
-            new Module("Domains and hosting", new RenewalsViewModel(services), "Domains"),
+            new Module(Page.Clients, "Clients", Clients, "Clients"),
+            new Module(Page.Retainers, "Retainers", new RetainersViewModel(services), "Retainers"),
+            new Module(Page.Renewals, "Domains and hosting", new RenewalsViewModel(services), "Domains"),
             new NavHeading("BILLING"),
-            new Module("Quotes", Quotes, "Quotes"),
-            new Module("Invoices", Invoices, "Invoices"),
-            new Module("Money", new MoneyViewModel(services), "Money"),
-            new Module("Reports", new ReportsViewModel(services), "Reports"),
+            new Module(Page.Quotes, "Quotes", Quotes, "Quotes"),
+            new Module(Page.Invoices, "Invoices", Invoices, "Invoices"),
+            new Module(Page.Money, "Money", new MoneyViewModel(services), "Money"),
+            new Module(Page.Reports, "Reports", new ReportsViewModel(services), "Reports"),
             new NavHeading("PLANNING"),
-            new Module("To-do", Todo, "Todo"),
-            new Module("Calendar", new CalendarViewModel(services), "Calendar"),
-            new Module("Planner", new PlannerViewModel(services), "Planner"),
-            new Module("Time", Time, "Time"),
+            new Module(Page.Todo, "To-do", Todo, "Todo"),
+            new Module(Page.Calendar, "Calendar", new CalendarViewModel(services), "Calendar"),
+            new Module(Page.Planner, "Planner", new PlannerViewModel(services), "Planner"),
+            new Module(Page.Time, "Time", Time, "Time"),
             new NavHeading("WEB TOOLS"),
-            new Module("Site check", SiteCheck, "SiteCheck"),
-            new Module("Mark-up", Markup, "Markup"),
-            new Module("Tools", Tools, "Tools"),
+            new Module(Page.SiteCheck, "Site check", SiteCheck, "SiteCheck"),
+            new Module(Page.Markup, "Mark-up", Markup, "Markup"),
+            new Module(Page.Tools, "Tools", Tools, "Tools"),
             new NavHeading(""),
-            new Module("Settings", new SettingsViewModel(services), "Settings"),
+            new Module(Page.Settings, "Settings", new SettingsViewModel(services), "Settings"),
         ];
         NavItems = nav;
         Modules = [.. nav.OfType<Module>()];
         Selected = Modules[0];
-        mailModule = Modules.Single(m => m.Page == Mail);
+        mailModule = this[Page.Mail];
         CheckMailAsync().Forget("Checking mail");
-        services.OpenMail = summary =>
+
+        // How other pages get here. Each one lands on the right page first, then opens the thing.
+        var go = services.Go;
+        go.OpenPage = page => Selected = this[page];
+        go.OpenMailAction = summary =>
         {
             Selected = mailModule;
             Mail.OpenMessage(summary);
         };
-        services.ComposeMail = (mail, note, afterSent) =>
+        go.WriteMailAction = to =>
+        {
+            Selected = mailModule;
+            Mail.WriteTo(to);
+        };
+        go.ComposeMailAction = (mail, note, afterSent) =>
         {
             Selected = mailModule;
             if (!Mail.Compose(mail, afterSent: afterSent))
@@ -196,18 +205,18 @@ public partial class MainViewModel : ViewModelBase
             }
             return true;
         };
-        services.OpenDocument = stored =>
+        go.OpenDocumentAction = stored =>
         {
             var list = stored.Document.Kind == DocumentKind.Quote ? Quotes : Invoices;
-            Selected = Modules.Single(m => m.Page == list);
+            Selected = this[stored.Document.Kind == DocumentKind.Quote ? Page.Quotes : Page.Invoices];
             list.OpenDocument(stored);
         };
-        services.OpenClient = client =>
+        go.OpenClientAction = client =>
         {
-            Selected = Modules.Single(m => m.Title == "Clients");
+            Selected = this[Page.Clients];
             Clients.OpenClient(services.Store.ListClients().FirstOrDefault(c => c.Id == client.Id) ?? client);
         };
-        services.AddToInvoice = (amount, description) =>
+        go.AddToInvoiceAction = (amount, description) =>
         {
             if (Invoices.Editor is { } open && !open.AddAmount(amount, description))
                 return "The open invoice is already in Xero, so it can't be changed here. Close it first, then try again.";
@@ -216,67 +225,39 @@ public partial class MainViewModel : ViewModelBase
                 Invoices.NewCommand.Execute(null);
                 Invoices.Editor!.AddAmount(amount, description);
             }
-            Selected = Modules.Single(m => m.Title == "Invoices");
+            Selected = this[Page.Invoices];
             return null;
         };
-        services.Navigate = (target, mail) =>
-        {
-            if (target == Webignite.Core.Overview.SummaryTarget.Mail && mail is not null)
-            {
-                services.OpenMail?.Invoke(mail);
-                return;
-            }
-            var title = target switch
-            {
-                Webignite.Core.Overview.SummaryTarget.Invoices => "Invoices",
-                Webignite.Core.Overview.SummaryTarget.Approvals => "To approve",
-                Webignite.Core.Overview.SummaryTarget.Mail => "Mail",
-                Webignite.Core.Overview.SummaryTarget.Renewals => "Domains and hosting",
-                Webignite.Core.Overview.SummaryTarget.Money => "Money",
-                Webignite.Core.Overview.SummaryTarget.Clients => "Clients",
-                Webignite.Core.Overview.SummaryTarget.SiteCheck => "Site check",
-                _ => "Settings",
-            };
-            Selected = Modules.Single(m => m.Title == title);
-        };
         Search = new QuickSearchViewModel(services, OpenHit);
-        services.WriteMail = to =>
-        {
-            Selected = mailModule;
-            Mail.WriteTo(to);
-        };
     }
+
+    /// <summary>The sidebar entry for a page.</summary>
+    public Module this[Page page] => Modules.Single(m => m.Key == page);
 
     public QuickSearchViewModel Search { get; }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
-    private void OpenTime() => Selected = Modules.Single(m => m.Page == Time);
+    private void OpenTime() => Selected = this[Page.Time];
 
     private void OpenHit(Webignite.Core.Search.SearchHit hit)
     {
-        Module Page(string title) => Modules.Single(m => m.Title == title);
         switch (hit.Kind)
         {
             case Webignite.Core.Search.HitKind.Client:
-                Selected = Page("Clients");
-                Clients.OpenClient(hit.Client!);
+                services.Go.Client(hit.Client!);
                 break;
             case Webignite.Core.Search.HitKind.Quote:
-                Selected = Page("Quotes");
-                Quotes.OpenDocument(hit.Document!);
-                break;
             case Webignite.Core.Search.HitKind.Invoice:
-                Selected = Page("Invoices");
-                Invoices.OpenDocument(hit.Document!);
+                services.Go.Document(hit.Document!);
                 break;
             case Webignite.Core.Search.HitKind.Mail:
-                services.OpenMail?.Invoke(hit.Mail!);
+                services.Go.Mail(hit.Mail!);
                 break;
             case Webignite.Core.Search.HitKind.Todo:
-                Selected = Page("To-do");
+                services.Go.To(Page.Todo);
                 break;
             default:
-                Selected = Page("Domains and hosting");
+                services.Go.To(Page.Renewals);
                 break;
         }
     }

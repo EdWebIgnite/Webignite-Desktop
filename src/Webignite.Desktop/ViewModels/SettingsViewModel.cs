@@ -16,19 +16,19 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     public SettingsViewModel(AppServices services)
     {
         this.services = services;
-        var documents = services.DocumentSettings;
+        var documents = services.Settings.Documents;
         InvoiceDueDays = documents.InvoiceDueDays.ToString();
         QuoteExpiryDays = documents.QuoteExpiryDays.ToString();
-        var xero = services.XeroSettings;
+        var xero = services.Settings.Xero;
         ClientId = xero.ClientId ?? "";
         UpdateXeroStatus();
         UpdateAssistantStatus();
-        LoadTemplates(services.EmailTemplates);
+        LoadTemplates(services.Settings.EmailTemplates);
         UpdateBackupStatus();
         LoadPrices();
-        MotionChoice = MotionChoices.First(c => c.Value == services.Appearance.Motion);
-        services.AppearanceChanged += LookChanged;
-        var mailCheck = services.MailCheckSettings;
+        MotionChoice = MotionChoices.First(c => c.Value == services.Settings.Appearance.Motion);
+        services.Settings.AppearanceChanged += LookChanged;
+        var mailCheck = services.Settings.MailCheck;
         MailCheckMinutes = NewMail.MinuteChoices.Contains(mailCheck.Minutes) ? mailCheck.Minutes : 5;
         NotifyNewMail = mailCheck.Notify;
         if (App.RestoredAtStart)
@@ -43,7 +43,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     private void LoadPrices()
     {
         Prices.Clear();
-        foreach (var entry in services.PriceList)
+        foreach (var entry in services.Settings.PriceList)
             Prices.Add(new PriceRow(entry));
         OnPropertyChanged(nameof(HasPrices));
     }
@@ -51,7 +51,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     [RelayCommand]
     private void DeletePrice(PriceRow row)
     {
-        services.PriceList = PriceList.Remove(services.PriceList, row.Entry.Id);
+        services.Settings.PriceList = PriceList.Remove(services.Settings.PriceList, row.Entry.Id);
         LoadPrices();
     }
 
@@ -68,24 +68,24 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
 
     partial void OnMotionChoiceChanged(Choice<Motion>? value)
     {
-        if (value is not null && value.Value != services.Appearance.Motion)
-            services.Appearance = services.Appearance with { Motion = value.Value };
+        if (value is not null && value.Value != services.Settings.Appearance.Motion)
+            services.Settings.Appearance = services.Settings.Appearance with { Motion = value.Value };
     }
 
     // Light and dark
 
-    public bool IsLight => services.Appearance.Theme == Theme.Light;
-    public bool IsDark => services.Appearance.Theme == Theme.Dark;
-    public bool IsFollowingWindows => services.Appearance.Theme == Theme.FollowWindows;
-    public bool IsGraphite => services.Appearance.DarkPalette == DarkPalette.Graphite;
-    public bool IsMidnight => services.Appearance.DarkPalette == DarkPalette.Midnight;
-    public bool IsWarm => services.Appearance.DarkPalette == DarkPalette.Warm;
+    public bool IsLight => services.Settings.Appearance.Theme == Theme.Light;
+    public bool IsDark => services.Settings.Appearance.Theme == Theme.Dark;
+    public bool IsFollowingWindows => services.Settings.Appearance.Theme == Theme.FollowWindows;
+    public bool IsGraphite => services.Settings.Appearance.DarkPalette == DarkPalette.Graphite;
+    public bool IsMidnight => services.Settings.Appearance.DarkPalette == DarkPalette.Midnight;
+    public bool IsWarm => services.Settings.Appearance.DarkPalette == DarkPalette.Warm;
 
     [RelayCommand]
     private void UseTheme(string theme)
     {
         if (Enum.TryParse<Theme>(theme, out var value))
-            SetLook(services.Appearance with { Theme = value });
+            SetLook(services.Settings.Appearance with { Theme = value });
     }
 
     /// <summary>Picking a dark look while the app is light switches it to dark, so the choice shows straight away.</summary>
@@ -93,14 +93,14 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     private void UseDarkPalette(string palette)
     {
         if (Enum.TryParse<DarkPalette>(palette, out var value))
-            SetLook(services.Appearance with
+            SetLook(services.Settings.Appearance with
             {
                 DarkPalette = value,
-                Theme = services.Appearance.Theme == Theme.Light ? Theme.Dark : services.Appearance.Theme,
+                Theme = services.Settings.Appearance.Theme == Theme.Light ? Theme.Dark : services.Settings.Appearance.Theme,
             });
     }
 
-    private void SetLook(AppearanceSettings look) => services.Appearance = look;
+    private void SetLook(AppearanceSettings look) => services.Settings.Appearance = look;
 
     private void LookChanged(AppearanceSettings look)
     {
@@ -115,10 +115,10 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     [ObservableProperty] public partial bool NotifyNewMail { get; set; } = true;
 
     partial void OnMailCheckMinutesChanged(int value) =>
-        services.MailCheckSettings = services.MailCheckSettings with { Minutes = value };
+        services.Settings.MailCheck = services.Settings.MailCheck with { Minutes = value };
 
     partial void OnNotifyNewMailChanged(bool value) =>
-        services.MailCheckSettings = services.MailCheckSettings with { Notify = value };
+        services.Settings.MailCheck = services.Settings.MailCheck with { Notify = value };
 
     // Backups
 
@@ -161,7 +161,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
 
     private void UpdateBackupStatus()
     {
-        var settings = services.BackupSettings;
+        var settings = services.Settings.Backups;
         HasBackupPassword = services.HasBackupPassword;
         BackupFolder = services.BackupFolder;
         var now = DateTimeOffset.Now;
@@ -203,7 +203,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
 
     public void SetBackupFolder(string folder)
     {
-        services.BackupSettings = services.BackupSettings with { Folder = folder };
+        services.Settings.Backups = services.Settings.Backups with { Folder = folder };
         UpdateBackupStatus();
         Say("Backups will go to " + folder + ".");
     }
@@ -318,7 +318,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     [RelayCommand]
     private void SaveTemplates()
     {
-        services.EmailTemplates = new EmailTemplates
+        services.Settings.EmailTemplates = new EmailTemplates
         {
             Invoice = new EmailTemplate(InvoiceSubject.Trim(), InvoiceBody.Replace("\r", "").TrimEnd()),
             Quote = new EmailTemplate(QuoteSubject.Trim(), QuoteBody.Replace("\r", "").TrimEnd()),
@@ -427,7 +427,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
             DefaultsMessage = "Use whole days between 0 and 365.";
             return;
         }
-        services.DocumentSettings = services.DocumentSettings with { InvoiceDueDays = due, QuoteExpiryDays = expiry };
+        services.Settings.Documents = services.Settings.Documents with { InvoiceDueDays = due, QuoteExpiryDays = expiry };
         DefaultsMessage = "Saved. New documents will use these.";
     }
 
@@ -442,7 +442,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
             XeroStatus = "That doesn't look like a Xero Client ID. It's 32 letters and numbers, from your app at developer.xero.com.";
             return;
         }
-        services.XeroSettings = services.XeroSettings with { ClientId = clientId };
+        services.Settings.Xero = services.Settings.Xero with { ClientId = clientId };
 
         IsConnecting = true;
         XeroStatus = "Finish signing in to Xero in your browser. This page updates by itself.";
@@ -457,7 +457,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
             }
             // Use the first organisation for now. A picker comes if more than one is ever shared.
             var tenant = tenants[0];
-            services.XeroSettings = services.XeroSettings with { TenantId = tenant.TenantId, TenantName = tenant.TenantName };
+            services.Settings.Xero = services.Settings.Xero with { TenantId = tenant.TenantId, TenantName = tenant.TenantName };
             UpdateXeroStatus();
         }
         catch (OperationCanceledException)
@@ -489,8 +489,8 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     [ObservableProperty] public partial string AccountMessage { get; set; } = "";
     [ObservableProperty] public partial bool AccountProblem { get; set; }
 
-    public string AccountText => services.XeroSettings.AccountCode is { } code
-        ? $"Quotes and invoices go to {code} {services.XeroSettings.AccountName}, with no VAT."
+    public string AccountText => services.Settings.Xero.AccountCode is { } code
+        ? $"Quotes and invoices go to {code} {services.Settings.Xero.AccountName}, with no VAT."
         : "Choose the Xero account your sales go to before creating drafts.";
 
     public bool HasAccounts => SalesAccounts.Count > 0;
@@ -512,7 +512,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
                     SalesAccounts.Add(new SalesAccount(code, Str(a["Name"])));
             OnPropertyChanged(nameof(HasAccounts));
             var noVat = (taxes["TaxRates"] as System.Text.Json.Nodes.JsonArray ?? []).Any(t => Str(t?["TaxType"]) == "NONE");
-            ChosenAccount = SalesAccounts.FirstOrDefault(a => a.Code == services.XeroSettings.AccountCode)
+            ChosenAccount = SalesAccounts.FirstOrDefault(a => a.Code == services.Settings.Xero.AccountCode)
                 ?? SalesAccounts.FirstOrDefault(a => a.Code == "200") ?? SalesAccounts.FirstOrDefault();
             AccountMessage = SalesAccounts.Count == 0 ? "Xero has no active sales accounts with a code."
                 : !noVat ? "Xero has no \"No VAT\" tax rate (NONE), which drafts need. Check the tax rates in Xero."
@@ -531,7 +531,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     {
         if (ChosenAccount is not { } account)
             return;
-        services.XeroSettings = services.XeroSettings with { AccountCode = account.Code, AccountName = account.Name };
+        services.Settings.Xero = services.Settings.Xero with { AccountCode = account.Code, AccountName = account.Name };
         AccountMessage = "Saved.";
         AccountProblem = false;
         OnPropertyChanged(nameof(AccountText));
@@ -543,13 +543,13 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     private void Disconnect()
     {
         services.Xero?.SignOut();
-        services.XeroSettings = services.XeroSettings with { TenantId = null, TenantName = null };
+        services.Settings.Xero = services.Settings.Xero with { TenantId = null, TenantName = null };
         UpdateXeroStatus();
     }
 
     private void UpdateXeroStatus()
     {
-        var xero = services.XeroSettings;
+        var xero = services.Settings.Xero;
         IsConnected = xero.TenantId is not null && services.Xero?.HasSavedSignIn == true;
         XeroStatus = IsConnected
             ? $"Connected to {xero.TenantName}. Webignite can create drafts only. Approving, sending and payments stay in your hands."

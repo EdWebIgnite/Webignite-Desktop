@@ -16,10 +16,10 @@ public sealed partial class SiteCheckViewModel
 
     public bool WatchOn
     {
-        get => services.UptimeSettings.On;
+        get => services.Settings.Uptime.On;
         set
         {
-            services.UptimeSettings = services.UptimeSettings with { On = value };
+            services.Settings.Uptime = services.Settings.Uptime with { On = value };
             OnPropertyChanged();
         }
     }
@@ -27,7 +27,7 @@ public sealed partial class SiteCheckViewModel
     /// <summary>Rebuilds the list from the settings, after a round of visits or a change.</summary>
     public void RefreshWatched()
     {
-        var settings = services.UptimeSettings;
+        var settings = services.Settings.Uptime;
         var now = DateTimeOffset.Now;
         var today = DateOnly.FromDateTime(DateTime.Today);
         Watched.Clear();
@@ -51,7 +51,7 @@ public sealed partial class SiteCheckViewModel
     {
         if (DomainReport.Normalise(Address) is not { } domain)
             return;
-        services.UptimeSettings = Uptime.Add(services.UptimeSettings, domain, services.Store.ListClients());
+        services.Settings.Uptime = Uptime.Add(services.Settings.Uptime, domain, services.Store.ListClients());
         RefreshWatched();
         await CheckAll();
     }
@@ -70,7 +70,7 @@ public sealed partial class SiteCheckViewModel
 
     internal void StopWatching(string domain)
     {
-        services.UptimeSettings = Uptime.Remove(services.UptimeSettings, domain, services.Store.ListClients());
+        services.Settings.Uptime = Uptime.Remove(services.Settings.Uptime, domain, services.Store.ListClients());
         RefreshWatched();
     }
 

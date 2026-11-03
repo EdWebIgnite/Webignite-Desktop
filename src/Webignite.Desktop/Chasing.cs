@@ -20,7 +20,7 @@ public static class Chasing
             return ("No mailbox is set up to send invoices. In Mail, Manage mailboxes, tick \"Invoices are sent from this mailbox\" on accounts@.", true);
         try
         {
-            var (ready, settled) = await sending.PrepareChaserAsync(stored, services.XeroSettings.TenantName ?? "Webignite");
+            var (ready, settled) = await sending.PrepareChaserAsync(stored, services.Settings.Xero.TenantName ?? "Webignite");
             if (ready is null)
                 return ($"Xero says {stored.XeroNumber ?? "it"} is {settled}, so there's nothing to chase.", false);
 
@@ -29,7 +29,7 @@ public static class Chasing
             var pdf = Path.Combine(folder, string.Join("_", ready.PdfName.Split(Path.GetInvalidFileNameChars())));
             await File.WriteAllBytesAsync(pdf, ready.Pdf);
 
-            var filled = DocumentEmail.Fill(services.EmailTemplates.ChaserFor(stored.Document.Kind), ready.Values);
+            var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.ChaserFor(stored.Document.Kind), ready.Values);
             var to = Recipients.Parse(ready.ContactEmail);
             var mail = new OutgoingMail
             {
@@ -45,11 +45,11 @@ public static class Chasing
             if (filled.Unfilled.Count > 0)
                 notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
 
-            var opened = services.ComposeMail?.Invoke(mail, notes.Count > 0 ? string.Join(" ", notes) : null, () =>
+            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, () =>
             {
                 sending.MarkChased(services.Store.Get(stored.Id) ?? ready.Stored);
                 return Task.CompletedTask;
-            }) ?? false;
+            });
             return opened ? (null, false) : ("Another mail is open in Mail with changes. Send or close it first, then try again.", true);
         }
         catch (Exception e) when (e is XeroException or HttpRequestException or IOException or TaskCanceledException or InvalidOperationException)

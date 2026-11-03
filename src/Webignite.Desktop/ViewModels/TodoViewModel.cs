@@ -82,7 +82,7 @@ public partial class TodoViewModel : ViewModelBase, IRefreshable
     /// <summary>Raises any new automatic reminders, then rebuilds the groups.</summary>
     public void Refresh()
     {
-        services.Store.RaiseAutomaticTasks(services.TaskSettings, Today);
+        services.Store.RaiseAutomaticTasks(services.Settings.Tasks, Today);
         var tasks = TaskGroups.Sort(services.Store.ListTasks()).ToList();
         Groups.Clear();
         foreach (var group in tasks.GroupBy(t => TaskGroups.Of(t, Today)).OrderBy(g => g.Key))

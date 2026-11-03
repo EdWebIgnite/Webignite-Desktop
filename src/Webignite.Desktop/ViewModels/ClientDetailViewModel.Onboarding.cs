@@ -71,7 +71,7 @@ public partial class ClientDetailViewModel
             OnboardingMessage = "Add a mailbox under Mail first.";
             return;
         }
-        var (subject, body) = Onboarding.Reminder(client, services.XeroSettings.TenantName ?? "Webignite");
+        var (subject, body) = Onboarding.Reminder(client, services.Settings.Xero.TenantName ?? "Webignite");
         var to = Recipients.Parse(client.Email);
         var mail = new OutgoingMail
         {
@@ -80,7 +80,7 @@ public partial class ClientDetailViewModel
             Subject = subject,
             Body = body + Replies.StartBody(mailbox.Signature),
         };
-        var opened = services.ComposeMail?.Invoke(mail, to.People.Count == 0 ? "This client has no email address. Type it in To." : null, null) ?? false;
+        var opened = services.Go.ComposeMail(mail, to.People.Count == 0 ? "This client has no email address. Type it in To." : null, null);
         OnboardingMessage = opened ? "" : "Another mail is open in Mail with changes. Send or close it first.";
     }
 }

@@ -97,10 +97,10 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
     {
         speedDomain = DomainReport.Normalise(address) ?? address;
         var today = DateOnly.FromDateTime(DateTime.Today);
-        var history = services.SpeedHistory;
+        var history = services.Settings.SpeedHistory;
         previousRun = SpeedHistory.Previous(history, speedDomain, today);
         SpeedChange = SpeedHistory.Compare(previousRun, report.Score);
-        services.SpeedHistory = SpeedHistory.Add(history, speedDomain, report, today);
+        services.Settings.SpeedHistory = SpeedHistory.Add(history, speedDomain, report, today);
     }
 
     [RelayCommand]

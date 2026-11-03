@@ -7,8 +7,8 @@ namespace Webignite.Desktop.ViewModels;
 // The price list in the editor: add a standard package's lines, or save this document's lines as one.
 public partial class DocumentEditorViewModel
 {
-    public IReadOnlyList<PriceEntryChoice> PriceChoices => services.PriceList.Select(e => new PriceEntryChoice(e)).ToList();
-    public bool HasPriceList => services.PriceList.Count > 0;
+    public IReadOnlyList<PriceEntryChoice> PriceChoices => services.Settings.PriceList.Select(e => new PriceEntryChoice(e)).ToList();
+    public bool HasPriceList => services.Settings.PriceList.Count > 0;
 
     [ObservableProperty] public partial PriceEntryChoice? ChosenPrice { get; set; }
     [ObservableProperty] public partial bool SavingPackage { get; set; }
@@ -46,7 +46,7 @@ public partial class DocumentEditorViewModel
     {
         try
         {
-            services.PriceList = PriceList.Save(services.PriceList, PackageName, Lines.Select(row => row.ToLine()).OfType<Line>());
+            services.Settings.PriceList = PriceList.Save(services.Settings.PriceList, PackageName, Lines.Select(row => row.ToLine()).OfType<Line>());
             SavingPackage = false;
             PackageMessage = $"Saved \"{PackageName.Trim()}\" to the price list.";
             PackageProblem = false;
