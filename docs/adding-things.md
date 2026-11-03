@@ -13,20 +13,30 @@ View models call the rule and show the result. If a view model starts to contain
 1. View model: `src/Webignite.Desktop/ViewModels/ThingViewModel.cs`, `partial class ThingViewModel : ViewModelBase`, taking `AppServices` in its constructor. Use `[ObservableProperty]` and `[RelayCommand]` from CommunityToolkit.Mvvm. Give it a `Refresh()` if it shows data other pages change.
 2. View: `src/Webignite.Desktop/Views/ThingView.axaml` with `x:DataType="vm:ThingViewModel"`. Bindings are compiled, so a typo fails the build. Use the existing classes (`h1`, `h2`, `card`, `muted`, `quiet`, `link`) and `EmptyState` for the empty case. Never a literal colour: everything comes from `Styles/Palette.axaml` through `DynamicResource`.
 3. Icon: a Lucide path in `Styles/Icons.axaml`, keyed `Icon.Thing`.
-4. Sidebar: one `new Module("Thing", Thing, "Thing")` in the `nav` array in `MainViewModel`, under the right heading. Add a `case ThingViewModel thing: thing.Refresh(); break;` in `OnSelectedChanged` if it has a `Refresh()`.
-5. Screenshot: a `Save("thing")` block in `tools/Snapshot/Program.cs`, then `dotnet run --project tools/Snapshot -- shots` and look at the PNG. Never await an async command inside the snapshot tool; the headless dispatcher isn't pumped.
+4. Name: add `Thing` to the `Page` enum in `Navigator.cs`. Pages are known by this key, never by their title, so the title can change without breaking the jumps to it.
+5. Sidebar: one `new Module(Page.Thing, "Thing", Thing, "Thing")` in the `nav` array in `MainViewModel`, under the right heading. Add a `case ThingViewModel thing: thing.Refresh(); break;` in `OnSelectedChanged` if it has a `Refresh()`.
+6. Jumping there from another page: `services.Go.To(Page.Thing)`. If other pages need to open a particular thing, add a method to `Navigator` (as `Go.Client(client)` and `Go.Document(stored)` do) rather than a callback on `AppServices`.
+7. Screenshot: a `Save("thing")` block in `tools/Snapshot/Program.cs`, then `dotnet run --project tools/Snapshot -- shots` and look at the PNG. Never await an async command inside the snapshot tool; the headless dispatcher isn't pumped.
 
 Pages that fill the window with their own panes (Mail) pass `fullBleed: true`.
 
+## Panes the person can drag, move and hide
+
+Mail is the example. The rules (show, hide but never the last one, move, resize, match a saved layout to the panes the page has now) are in `Core.Layout.Panels`, with tests in `PanelsTests.cs`.
+
+1. In the view model: `Panels = new PanelsViewModel(services.Settings, "thing", [("list", "List"), ("detail", "Detail")], spine: "list")`. The first string is the name the layout is saved under; `spine` is a pane that can never be hidden.
+2. In the view: a `<c:PanelGrid Layout="{Binding Panels.Layout}" Resized="PaneResized">` with each pane as a child carrying `c:PanelGrid.Pane="list"` and `c:PanelGrid.DefaultWidth="380"`. The last visible pane takes what is left. The code-behind passes the drag on: `void PaneResized(string pane, double width) => (DataContext as ThingViewModel)?.Panels.Resized(pane, width);`.
+3. A panels button with a `MenuFlyout`: a `CheckBox` per pane bound to `Panels[list].IsShown`, "Move left" and "Move right" bound to `MoveLeftCommand` and `MoveRightCommand`, and "Put the panes back" bound to `Panels.ResetCommand`. Copy the one in `MailView.axaml`.
+
 ## A setting
 
-Settings are records saved as JSON under a name. Add a property to an existing settings record in Core (`DocumentSettings`, `TaskSettings`, `BackupSettings`, `AppearanceSettings`) or make a new record, then expose it on `AppServices`:
+Settings are records saved as JSON under a name. Add a property to an existing settings record in Core (`DocumentSettings`, `TaskSettings`, `BackupSettings`, `AppearanceSettings`) or make a new record, then expose it on `AppSettings` (reached as `services.Settings`):
 
 ```csharp
-public ThingSettings ThingSettings
+public ThingSettings Thing
 {
-    get => Store.GetSetting<ThingSettings>("thing") ?? new ThingSettings();
-    set => Store.SetSetting("thing", value);
+    get => store.GetSetting<ThingSettings>("thing") ?? new ThingSettings();
+    set => store.SetSetting("thing", value);
 }
 ```
 
@@ -44,7 +54,7 @@ Backups copy the whole database, so a new table is in the next backup without an
 
 ## A check that runs in the background
 
-The pattern is in `PaymentWatch`, `UptimeWatch` and `CheckMailAsync`: a `DispatcherTimer` in `MainViewModel` that ticks every minute and asks a `Due(settings, lastRun, now)` rule in Core whether it is time. The work itself is an `async Task` that returns what it found; announcing goes through `services.ShowNote`. Start it with `.Forget("Checking things")`, never `_ =`, so a failure lands in the log. Show it in the sidebar with `services.Work.Run("Checking things", ...)` so the spinner appears.
+The pattern is `PaymentWatch` and `UptimeWatch` in `src/Webignite.Services`: a class that takes what it needs in its constructor (the store, a way to Xero, a settings getter, the network call itself) so a test can hand it fakes, a `Due(now)` that says whether it is time, and a `RunAsync` that returns what it found. `AppServices` owns one of each. A `DispatcherTimer` in `MainViewModel` ticks every minute, asks `Due`, and runs it; announcing goes through `services.ShowNote`. Tests go in `ServicesTests.cs` against a fake `HttpMessageHandler` and a fixed clock. Start it with `.Forget("Checking things")`, never `_ =`, so a failure lands in the log. Show it in the sidebar with `services.Work.Run("Checking things", ...)` so the spinner appears.
 
 ## An assistant tool
 
