@@ -52,8 +52,11 @@
   <SolidColorBrush x:Key="Important" Color="#E07B00" />
 
   <!-- Depth: cards sit just above the page; cards you can click rise a little more under the mouse. -->
-  <BoxShadows x:Key="CardShadow">0 1 2 0 #0D1C1D21</BoxShadows>
-  <BoxShadows x:Key="CardShadowRaised">0 6 16 0 #1A1C1D21</BoxShadows>
+  <!-- Two layers: a tight edge and a soft spread, so cards sit on the page rather than float. -->
+  <BoxShadows x:Key="CardShadow">0 1 2 0 #0F1C1D21, 0 4 14 0 #0A1C1D21</BoxShadows>
+  <BoxShadows x:Key="CardShadowRaised">0 2 4 0 #0F1C1D21, 0 10 24 0 #1F1C1D21</BoxShadows>
+  <!-- Under a table heading pinned at the top while its rows scroll. -->
+  <BoxShadows x:Key="HeadShadow">0 3 8 0 #241C1D21</BoxShadows>
 
   <!-- Mark-up pens, drawn on client screenshots. Red marks what needs fixing. -->
   <Color x:Key="MarkRed">#E03131</Color>

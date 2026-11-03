@@ -50,8 +50,9 @@
   <SolidColorBrush x:Key="Important" Color="#FFA733" />
 
   <!-- Depth: cards sit just above the page; cards you can click rise a little more under the mouse. -->
-  <BoxShadows x:Key="CardShadow">0 1 2 0 #40000000</BoxShadows>
-  <BoxShadows x:Key="CardShadowRaised">0 8 20 0 #73000000</BoxShadows>
+  <BoxShadows x:Key="CardShadow">0 1 2 0 #40000000, 0 4 14 0 #33000000</BoxShadows>
+  <BoxShadows x:Key="CardShadowRaised">0 2 4 0 #4D000000, 0 10 24 0 #80000000</BoxShadows>
+  <BoxShadows x:Key="HeadShadow">0 3 8 0 #73000000</BoxShadows>
 
   <!-- Mark-up pens, drawn on client screenshots. Red marks what needs fixing. -->
   <Color x:Key="MarkRed">#E03131</Color>

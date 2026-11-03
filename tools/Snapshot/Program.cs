@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Webignite.Core.Documents;
 using Webignite.Data;
 using Webignite.Desktop;
@@ -309,6 +310,18 @@ foreach (var row in moneyPage.IncomeRows.Take(10))
 Save("income-manual");
 moneyPage.UseAutoCommand.Execute(null);
 moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Bars);
+window.Height = 860;
+
+// A short window scrolled down Invoices: the column titles stay at the top with a shadow under them.
+Open(Page.Invoices);
+window.MinHeight = 0;
+window.Height = 400;
+Dispatcher.UIThread.RunJobs();
+var pageScroller = window.GetVisualDescendants().OfType<Avalonia.Controls.TransitioningContentControl>()
+    .First(c => c.Name == "ScrollingHost").FindAncestorOfType<Avalonia.Controls.ScrollViewer>()!;
+pageScroller.Offset = new Vector(0, 260);
+Save("invoices-scrolled");
+pageScroller.Offset = default;
 window.Height = 860;
 
 // Dark mode: each dark look on Overview, Money and Settings, then back to light.

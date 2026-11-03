@@ -53,6 +53,10 @@
     <Setter Property="Padding" Value="20" />
     <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
   </Style>
+  <!-- A table's column titles, pinned while the rows scroll under them (Controls/Sticky.cs). -->
+  <Style Selector="Border.stickyhead:stuck">
+    <Setter Property="BoxShadow" Value="{DynamicResource HeadShadow}" />
+  </Style>
   <Style Selector="Border.pending">
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />

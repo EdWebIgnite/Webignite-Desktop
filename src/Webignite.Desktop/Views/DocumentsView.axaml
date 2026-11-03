@@ -54,7 +54,7 @@
       <Border Classes="card" Padding="0" IsVisible="{Binding ShowTable}">
         <StackPanel>
           <!-- The heading row is padded like the rows below it, so each title sits over its column. -->
-          <Border Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
+          <Border Classes="stickyhead" c:Sticky.IsEnabled="True" Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
             <Grid ColumnDefinitions="150,*,130,130,140,28">
               <TextBlock Grid.Column="0" Classes="label tablehead" Text="Number" />
               <TextBlock Grid.Column="1" Classes="label tablehead" Text="Customer" />

@@ -50,7 +50,7 @@
             </StackPanel>
             <TextBlock Classes="h2" Text="Month by month" />
           </DockPanel>
-          <Border Background="{DynamicResource TableHead}" Height="36" Padding="20,0">
+          <Border Classes="stickyhead" c:Sticky.IsEnabled="True" Background="{DynamicResource TableHead}" Height="36" Padding="20,0">
             <Grid ColumnDefinitions="80,240,*,*,*">
               <TextBlock Grid.Column="0" Classes="label" Text="Month" VerticalAlignment="Center" />
               <TextBlock Grid.Column="2" Classes="label" Text="Received" Margin="8,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
