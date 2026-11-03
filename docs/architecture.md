@@ -275,7 +275,7 @@ sequenceDiagram
     Rules->>Store: save as a draft on this PC
     App->>Store: next refresh
     App-->>Eddie: waits under To approve
-    Eddie->>App: checks and approves it himself
+    Eddie->>App: checks it and approves it
 ```
 
 ### Payments and sites are checked in the background
