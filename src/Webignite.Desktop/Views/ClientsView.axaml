@@ -10,7 +10,8 @@
     <Border c:PanelGrid.Pane="list" c:PanelGrid.DefaultWidth="400" Background="{DynamicResource Canvas}"
             BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
       <ScrollViewer>
-        <StackPanel Spacing="16" Margin="24,30,24,30">
+        <!-- Down and Up move between clients, Enter opens one. Esc closing it is in MainViewModel.GoBack. -->
+        <StackPanel Spacing="16" Margin="24,30,24,30" c:ListKeys.IsEnabled="True">
           <DockPanel>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
               <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panes: show, hide and move them">

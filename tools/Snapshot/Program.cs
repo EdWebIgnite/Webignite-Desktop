@@ -92,6 +92,22 @@ Save("invoices-filtered");
 vm.Invoices.Search = "nothing like this";
 Save("invoices-no-match");
 vm.Invoices.ClearFiltersCommand.Execute(null);
+
+// Keys on the list: Down twice from the search box, then Enter opens the row and Esc goes back.
+{
+    Dispatcher.UIThread.RunJobs();
+    var searchBox = window.GetVisualDescendants().OfType<Avalonia.Controls.TextBox>().First(t => t.IsEffectivelyVisible);
+    searchBox.Focus();
+    window.KeyPress(Avalonia.Input.Key.Down, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.ArrowDown, null);
+    window.KeyPress(Avalonia.Input.Key.Down, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.ArrowDown, null);
+    Save("invoices-keys");
+    window.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+    Dispatcher.UIThread.RunJobs();
+    Console.WriteLine("Enter opened a row: " + !vm.Invoices.IsListing);
+    window.KeyPress(Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null);
+    Dispatcher.UIThread.RunJobs();
+    Console.WriteLine("Esc went back: " + vm.Invoices.IsListing);
+}
 Open(Page.Quotes);
 Save("quotes");
 vm.Quotes.OpenDocument(store.List(DocumentKind.Quote)[0]);
