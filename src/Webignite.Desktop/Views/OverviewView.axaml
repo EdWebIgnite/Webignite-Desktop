@@ -13,7 +13,10 @@
     <UniformGrid Columns="3">
       <Border Classes="card" Margin="0,0,12,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="OWED TO YOU" />
+          <DockPanel>
+            <c:Icon DockPanel.Dock="Right" Classes="cardicon" Data="{StaticResource Icon.Money}" />
+            <TextBlock Classes="label" Text="OWED TO YOU" VerticalAlignment="Center" />
+          </DockPanel>
           <TextBlock Classes="figure" Text="{Binding Owed}" />
           <TextBlock Classes="muted" FontSize="12" Text="{Binding PaymentsText}" TextWrapping="Wrap" />
           <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding XeroConnected}">
@@ -25,14 +28,20 @@
       </Border>
       <Border Classes="card" Margin="6,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="OVERDUE" />
+          <DockPanel>
+            <c:Icon DockPanel.Dock="Right" Classes="cardicon" Data="{StaticResource Icon.Alert}" />
+            <TextBlock Classes="label" Text="OVERDUE" VerticalAlignment="Center" />
+          </DockPanel>
           <TextBlock Classes="figure" Text="{Binding Overdue}" />
           <TextBlock Classes="muted" FontSize="12" Text="Past the due date." />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="12,0,0,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="QUOTES OUT" />
+          <DockPanel>
+            <c:Icon DockPanel.Dock="Right" Classes="cardicon" Data="{StaticResource Icon.Quotes}" />
+            <TextBlock Classes="label" Text="QUOTES OUT" VerticalAlignment="Center" />
+          </DockPanel>
           <TextBlock Classes="figure" Text="{Binding QuotesOut}" />
           <TextBlock Classes="muted" FontSize="12" Text="Quotes waiting on a client." />
         </StackPanel>
@@ -41,7 +50,10 @@
 
     <Border Classes="card" IsVisible="{Binding HasSummary}">
       <StackPanel Spacing="8">
-        <TextBlock Classes="h2" Text="Needs you" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <c:Icon Classes="cardicon" Data="{StaticResource Icon.Bell}" />
+          <TextBlock Classes="h2" Text="Needs you" VerticalAlignment="Center" />
+        </StackPanel>
         <ItemsControl ItemsSource="{Binding Summary}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:SummaryLineViewModel">
@@ -49,6 +61,7 @@
                 <Button DockPanel.Dock="Right" Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" VerticalAlignment="Center"
                         IsEnabled="{Binding !Busy}" />
                 <c:Spinner DockPanel.Dock="Right" IsVisible="{Binding Busy}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="8,0" />
+                <Ellipse DockPanel.Dock="Left" Classes="dot" Classes.problem="{Binding Problem}" Margin="2,0,12,0" />
                 <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" Classes.problem="{Binding Problem}" />
               </DockPanel>
             </DataTemplate>
@@ -62,7 +75,10 @@
         <DockPanel>
           <TextBlock DockPanel.Dock="Right" Text="{Binding OverdueText}" IsVisible="{Binding HasOverdue}"
                      Foreground="{DynamicResource Attention}" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <TextBlock Classes="h2" Text="Today" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Classes="cardicon" Data="{StaticResource Icon.Calendar}" />
+            <TextBlock Classes="h2" Text="Today" VerticalAlignment="Center" />
+          </StackPanel>
         </DockPanel>
         <TextBlock Classes="muted" Text="Nothing booked or due today." IsVisible="{Binding TodayIsEmpty}" />
         <ItemsControl ItemsSource="{Binding Today}">

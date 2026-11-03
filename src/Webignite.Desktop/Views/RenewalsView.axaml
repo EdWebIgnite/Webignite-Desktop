@@ -35,7 +35,12 @@
 
   <StackPanel Spacing="18">
     <DockPanel>
-      <Button DockPanel.Dock="Right" Classes="primary" Content="Add domain or hosting" Command="{Binding NewCommand}" VerticalAlignment="Center" />
+      <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
+            <TextBlock Text="Add domain or hosting" />
+          </StackPanel>
+        </Button>
       <StackPanel Spacing="4">
         <TextBlock Classes="h1" Text="Domains and hosting" />
         <TextBlock Classes="muted" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left"

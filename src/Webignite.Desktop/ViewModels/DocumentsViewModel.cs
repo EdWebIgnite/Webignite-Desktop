@@ -14,6 +14,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
     {
         Kind = kind;
         this.services = services;
+        ShowChips = ShowChoices(kind).Select(c => new FilterChip(c.Label, () => Show = c.Value) { IsOn = c.Value == DocumentShow.All }).ToList();
         Refresh();
     }
 
@@ -40,12 +41,25 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
 
     public bool ShowTable => Rows.Count > 0;
 
-    public static IReadOnlyList<Choice<DocumentShow>> ShowChoices { get; } =
-    [
-        new("Everything", DocumentShow.All),
-        new("Not in Xero yet", DocumentShow.NotInXero),
-        new("In Xero", DocumentShow.InXero),
-    ];
+    /// <summary>The quick filters above the list. Quotes are never overdue, and are accepted rather than paid.</summary>
+    public static IReadOnlyList<Choice<DocumentShow>> ShowChoices(DocumentKind kind) => kind == DocumentKind.Quote
+        ?
+        [
+            new("All", DocumentShow.All),
+            new("Not in Xero yet", DocumentShow.NotInXero),
+            new("In Xero", DocumentShow.InXero),
+            new("Accepted", DocumentShow.Settled),
+        ]
+        :
+        [
+            new("All", DocumentShow.All),
+            new("Not in Xero yet", DocumentShow.NotInXero),
+            new("In Xero", DocumentShow.InXero),
+            new("Overdue", DocumentShow.Overdue),
+            new("Paid", DocumentShow.Settled),
+        ];
+
+    public IReadOnlyList<FilterChip> ShowChips { get; }
 
     public static IReadOnlyList<Choice<DocumentPeriod>> PeriodChoices { get; } =
     [
@@ -59,7 +73,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
     public partial string Search { get; set; } = "";
 
     [ObservableProperty]
-    public partial Choice<DocumentShow> ShowChoice { get; set; } = ShowChoices[0];
+    public partial DocumentShow Show { get; set; } = DocumentShow.All;
 
     [ObservableProperty]
     public partial Choice<DocumentPeriod> PeriodChoice { get; set; } = PeriodChoices[0];
@@ -68,19 +82,29 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
     [ObservableProperty]
     public partial string Summary { get; set; } = "";
 
+    /// <summary>The line under the title: "4 invoices, R 5 600.00 owed, 1 overdue".</summary>
+    [ObservableProperty]
+    public partial string Headline { get; set; } = "";
+
     public bool IsFiltered => Filter.IsActive;
 
-    private DocumentFilter Filter => new(Search, ShowChoice?.Value ?? DocumentShow.All, PeriodChoice?.Value ?? DocumentPeriod.AllTime);
+    private DocumentFilter Filter => new(Search, Show, PeriodChoice?.Value ?? DocumentPeriod.AllTime);
 
     partial void OnSearchChanged(string value) => Refresh();
-    partial void OnShowChoiceChanged(Choice<DocumentShow> value) => Refresh();
+    partial void OnShowChanged(DocumentShow value)
+    {
+        var choices = ShowChoices(Kind);
+        for (var i = 0; i < ShowChips.Count; i++)
+            ShowChips[i].IsOn = choices[i].Value == value;
+        Refresh();
+    }
     partial void OnPeriodChoiceChanged(Choice<DocumentPeriod> value) => Refresh();
 
     [RelayCommand]
     private void ClearFilters()
     {
         Search = "";
-        ShowChoice = ShowChoices[0];
+        Show = DocumentShow.All;
         PeriodChoice = PeriodChoices[0];
     }
 
@@ -109,13 +133,14 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
     public void Refresh()
     {
         var all = services.Store.List(Kind);
-        var shown = Filter.Apply(all, DateOnly.FromDateTime(DateTime.Today));
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var shown = Filter.Apply(all, today);
         Rows.Clear();
         foreach (var stored in shown)
-            Rows.Add(new DocumentRow(stored));
+            Rows.Add(new DocumentRow(stored, today));
         IsEmpty = all.Count == 0;
-        var total = Money.Rand(shown.Sum(d => d.Document.Total ?? 0));
-        Summary = Filter.IsActive ? $"{shown.Count} of {all.Count}, {total}" : $"{all.Count} in all, {total}";
+        Headline = DocumentHeadline.For(Kind, all, today);
+        Summary = Filter.IsActive ? $"{shown.Count} of {all.Count}, {Money.Rand(shown.Sum(d => d.Document.Total ?? 0))}" : "";
         OnPropertyChanged(nameof(NoMatches));
         OnPropertyChanged(nameof(ShowTable));
         OnPropertyChanged(nameof(IsFiltered));

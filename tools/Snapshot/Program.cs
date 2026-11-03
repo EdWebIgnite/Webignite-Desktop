@@ -86,7 +86,7 @@ Save("empty-domains");
 Open(Page.Invoices);
 Save("invoices");
 vm.Invoices.Search = "karoo";
-vm.Invoices.ShowChoice = DocumentsViewModel.ShowChoices[1];
+vm.Invoices.Show = DocumentShow.NotInXero;
 Save("invoices-filtered");
 vm.Invoices.Search = "nothing like this";
 Save("invoices-no-match");

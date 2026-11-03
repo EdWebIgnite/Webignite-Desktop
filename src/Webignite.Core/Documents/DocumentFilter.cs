@@ -11,6 +11,12 @@ public enum DocumentShow
     NotInXero,
 
     InXero,
+
+    /// <summary>Invoices past their due date with money still owed.</summary>
+    Overdue,
+
+    /// <summary>Paid invoices, or quotes the client accepted.</summary>
+    Settled,
 }
 
 /// <summary>Which dates the list shows.</summary>
@@ -41,6 +47,8 @@ public sealed record DocumentFilter(string Text = "", DocumentShow Show = Docume
         {
             DocumentShow.NotInXero => stored.Status != DocumentStatus.InXero,
             DocumentShow.InXero => stored.Status == DocumentStatus.InXero,
+            DocumentShow.Overdue => Receivables.IsOverdue(stored, today),
+            DocumentShow.Settled => stored.SettledAs is "paid" or "accepted" or "invoiced",
             _ => true,
         };
         return shows && InPeriod(stored.Document.Date, today) && Words().All(word => Found(stored, word));

@@ -9,7 +9,12 @@
 
     <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Classes="primary" Content="New retainer" Command="{Binding NewCommand}" VerticalAlignment="Center" />
+        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
+            <TextBlock Text="New retainer" />
+          </StackPanel>
+        </Button>
         <StackPanel Spacing="4">
           <TextBlock Classes="h1" Text="Retainers" />
           <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" />
@@ -30,10 +35,13 @@
             <DataTemplate x:DataType="vm:RetainerRowViewModel">
               <Border Classes="taskrow" Padding="20,12,12,12">
                 <Grid ColumnDefinitions="*,Auto,Auto">
-                  <StackPanel Grid.Column="0" Spacing="2">
-                    <TextBlock Text="{Binding Client}" FontWeight="SemiBold" Classes.muted="{Binding IsPaused}" />
-                    <TextBlock Text="{Binding Title}" Classes.muted="{Binding IsPaused}" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Schedule}" />
+                  <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                    <c:Monogram Text="{Binding Client}" Size="34" VerticalAlignment="Top" Margin="0,2,0,0" Classes.dim="{Binding IsPaused}" />
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding Client}" FontWeight="SemiBold" Classes.muted="{Binding IsPaused}" />
+                      <TextBlock Text="{Binding Title}" Classes.muted="{Binding IsPaused}" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Schedule}" />
+                    </StackPanel>
                   </StackPanel>
                   <TextBlock Grid.Column="1" Classes="amount" Classes.muted="{Binding IsPaused}" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0,16,0" />
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
