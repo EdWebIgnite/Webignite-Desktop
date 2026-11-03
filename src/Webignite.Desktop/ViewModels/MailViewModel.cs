@@ -150,7 +150,7 @@ public partial class MailViewModel : ViewModelBase
         {
             await Run(() => services.Mail.SetSeenAsync(row.Account, row.Summary, true), quiet: true);
             row.MarkSeen();
-            RefreshCounts();
+            RefreshCount(row.Summary);
         }
     }
 
@@ -281,7 +281,7 @@ public partial class MailViewModel : ViewModelBase
         if (row is not null)
             Messages.Remove(row);
         OnPropertyChanged(nameof(NoMessages));
-        RefreshCounts();
+        RefreshCount(summary);
     }
 
     internal void Changed(MailSummary updated)
@@ -289,14 +289,15 @@ public partial class MailViewModel : ViewModelBase
         var index = Messages.ToList().FindIndex(r => r.Summary.AccountId == updated.AccountId && r.Summary.Folder == updated.Folder && r.Summary.Uid == updated.Uid);
         if (index >= 0)
             Messages[index] = new MailRowViewModel(updated, Messages[index].Account, Messages[index].ShowMailbox, this) { IsSelected = Messages[index].IsSelected };
-        RefreshCounts();
+        RefreshCount(updated);
     }
 
-    private void RefreshCounts()
+    // Only the folder the message is in: counting every folder meant reading thousands of messages per click.
+    private void RefreshCount(MailSummary changed)
     {
-        foreach (var mailbox in Mailboxes)
-            foreach (var folder in mailbox.Folders.Where(f => !f.IsAllInboxes))
-                folder.Unread = services.Store.ListMailSummaries(folder.Mailbox.Id, folder.Path).Count(s => !s.Seen);
+        foreach (var folder in Mailboxes.SelectMany(m => m.Folders)
+                     .Where(f => !f.IsAllInboxes && f.Mailbox.Id == changed.AccountId && f.Path == changed.Folder))
+            folder.Unread = services.Store.ListMailSummaries(folder.Mailbox.Id, folder.Path).Count(s => !s.Seen);
         if (Mailboxes.FirstOrDefault()?.Folders.FirstOrDefault() is { IsAllInboxes: true } all)
             all.Unread = Mailboxes.SelectMany(m => m.Folders).Where(f => !f.IsAllInboxes && f.Role == FolderRole.Inbox).Sum(f => f.Unread);
     }
