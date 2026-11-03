@@ -11,6 +11,9 @@ public sealed record MonthTotals(int Year, int Month, decimal Received, decimal 
 
 public sealed record NamedTotal(string Name, decimal Amount);
 
+/// <summary>One client's part of the money that came in: amount, percentage of the whole, and size next to the biggest.</summary>
+public sealed record ClientShare(string Name, decimal Amount, string Percent, double OfBiggest);
+
 public static class Ledger
 {
     public static DateOnly MonthOf(DateOnly date) => new(date.Year, date.Month, 1);
@@ -48,6 +51,20 @@ public static class Ledger
             .OrderByDescending(t => t.Amount)
             .Take(take)
             .ToList();
+
+    /// <summary>
+    /// What each client brought in between two dates, biggest first, every client: the amount, its part of the
+    /// whole as a percentage ("38%"), and how it compares to the biggest (0 to 1) for the bar behind it.
+    /// </summary>
+    public static IReadOnlyList<ClientShare> ByClient(IEnumerable<MoneyEntry> entries, DateOnly from, DateOnly to)
+    {
+        var totals = TopPayers(entries, from, to, int.MaxValue);
+        var whole = totals.Sum(t => t.Amount);
+        var biggest = totals.Count == 0 ? 0 : totals[0].Amount;
+        return totals.Select(t => new ClientShare(t.Name, t.Amount,
+            whole == 0 ? "" : Math.Round(t.Amount / whole * 100, MidpointRounding.AwayFromZero).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "%",
+            biggest == 0 ? 0 : (double)(t.Amount / biggest))).ToList();
+    }
 
     /// <summary>Expenses between two dates by category, biggest first.</summary>
     public static IReadOnlyList<NamedTotal> ByCategory(IEnumerable<MoneyEntry> entries, DateOnly from, DateOnly to) =>

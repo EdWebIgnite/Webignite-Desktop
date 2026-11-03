@@ -1,3 +1,5 @@
+using Webignite.Core.Clients;
+using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Webignite.Core.Documents;
@@ -20,7 +22,6 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
     public ObservableCollection<MonthRowViewModel> Months { get; } = [];
-    public ObservableCollection<TotalRowViewModel> Payers { get; } = [];
     public ObservableCollection<TotalRowViewModel> Categories { get; } = [];
 
     [ObservableProperty] public partial string TaxYearTitle { get; set; } = "";
@@ -34,7 +35,25 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
     [ObservableProperty] public partial string TaxYearChange { get; set; } = "";
     [ObservableProperty] public partial bool IsEmpty { get; set; }
 
-    public bool HasPayers => Payers.Count > 0;
+
+    /// <summary>Clients by what they brought in, this tax year or the last 12 months.</summary>
+    public ObservableCollection<ClientShareRowViewModel> ClientShares { get; } = [];
+    public bool HasClientShares => ClientShares.Count > 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ClientsTitle), nameof(ClientsLastYear))]
+    public partial bool ClientsTaxYear { get; set; } = true;
+
+    public bool ClientsLastYear => !ClientsTaxYear;
+    public string ClientsTitle => ClientsTaxYear ? "Clients, this tax year" : "Clients, last 12 months";
+
+    [RelayCommand]
+    private void ShowTaxYear() => ClientsTaxYear = true;
+
+    [RelayCommand]
+    private void ShowLastYear() => ClientsTaxYear = false;
+
+    partial void OnClientsTaxYearChanged(bool value) => Refresh();
     public bool HasCategories => Categories.Count > 0;
 
     public void Refresh()
@@ -67,15 +86,15 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
         var fullMonths = months.Take(11).Where(m => m.Received > 0 || m.Expenses > 0).ToList();
         AverageReceived = fullMonths.Count == 0 ? "" : $"On average {Money.Rand(fullMonths.Average(m => m.Received))} a month came in over the last {fullMonths.Count} full months.";
 
-        Payers.Clear();
-        var payers = Ledger.TopPayers(lastYear, from, Today, 8);
-        foreach (var p in payers)
-            Payers.Add(new TotalRowViewModel(p, (double)(p.Amount / Math.Max(1m, payers[0].Amount))));
+        ClientShares.Clear();
+        var known = services.Store.ListClients();
+        foreach (var share in Ledger.ByClient(entries, ClientsTaxYear ? taxStart : from, Today))
+            ClientShares.Add(new ClientShareRowViewModel(share, known.FirstOrDefault(c => ClientDirectory.Matches(c, share.Name)), services));
         Categories.Clear();
         var categories = Ledger.ByCategory(lastYear, from, Today);
         foreach (var c in categories)
             Categories.Add(new TotalRowViewModel(c, (double)(c.Amount / Math.Max(1m, categories[0].Amount))));
-        OnPropertyChanged(nameof(HasPayers));
+        OnPropertyChanged(nameof(HasClientShares));
         OnPropertyChanged(nameof(HasCategories));
     }
 }
@@ -97,4 +116,21 @@ public sealed class TotalRowViewModel(NamedTotal total, double share)
     public string Name => total.Name;
     public string Amount => Money.Rand(total.Amount);
     public double Share => share;
+}
+
+/// <summary>One client in the Reports list: what they brought in, their share, and a way to open their page.</summary>
+public sealed partial class ClientShareRowViewModel(ClientShare share, Client? client, AppServices services)
+{
+    public string Name => share.Name;
+    public string Amount => Money.Rand(share.Amount);
+    public string Percent => share.Percent;
+    public double Share => share.OfBiggest;
+    public bool CanOpen => client is not null;
+
+    [RelayCommand]
+    private void Open()
+    {
+        if (client is not null)
+            services.Go.Client(client);
+    }
 }
