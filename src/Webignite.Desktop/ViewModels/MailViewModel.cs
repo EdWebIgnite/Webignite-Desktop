@@ -68,6 +68,30 @@ public partial class MailViewModel : ViewModelBase
 
     [ObservableProperty] public partial MailFilter Filter { get; set; } = MailFilter.All;
 
+    /// <summary>"All clients", then each client with an address or website, for showing only one client's mail.</summary>
+    public IReadOnlyList<Choice<Webignite.Core.Clients.Client?>> ClientChoices { get; private set; } = [];
+    public bool HasClientChoices => ClientChoices.Count > 1;
+
+    [ObservableProperty] public partial Choice<Webignite.Core.Clients.Client?>? ClientFilter { get; set; }
+
+    partial void OnClientFilterChanged(Choice<Webignite.Core.Clients.Client?>? value)
+    {
+        OnPropertyChanged(nameof(EmptyText));
+        ShowMessages();
+    }
+
+    private void LoadClientChoices()
+    {
+        var keep = ClientFilter?.Value?.Id;
+        ClientChoices = [new("All clients", null), .. services.Store.ListClients()
+            .Where(c => !new ClientMail(c).IsEmpty)
+            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(c => new Choice<Webignite.Core.Clients.Client?>(c.Name, c))];
+        OnPropertyChanged(nameof(ClientChoices));
+        OnPropertyChanged(nameof(HasClientChoices));
+        ClientFilter = ClientChoices.FirstOrDefault(c => c.Value?.Id == keep) ?? ClientChoices[0];
+    }
+
     public bool HasComposer => Composer is not null;
     public bool ShowReader => Reader is not null && Composer is null && SelectedCount <= 1;
     public bool ShowMany => SelectedCount > 1 && Composer is null;
@@ -92,7 +116,8 @@ public partial class MailViewModel : ViewModelBase
     public bool NoMessages => Messages.Count == 0;
     public bool HasCategories => Categories.Count > 0;
 
-    public string EmptyText => Search.Trim().Length > 0 ? "Nothing matches that search."
+    public string EmptyText => ClientFilter?.Value is { } client ? $"No mail from or to {client.Name} in this list."
+        : Search.Trim().Length > 0 ? "Nothing matches that search."
         : CurrentCategory is not null && Filter == MailFilter.All ? "No mail in this category yet. Right-click a message to add it, or drag it here."
         : CurrentFolder is { Kind: FolderKind.Important } && Filter == MailFilter.All ? "Nothing is marked important."
         : MailFilters.Empty(Filter);
@@ -158,6 +183,7 @@ public partial class MailViewModel : ViewModelBase
         foreach (var account in accounts)
             Mailboxes.Add(new MailboxNodeViewModel(account, services.Store.ListMailFolders(account.Id), this));
         LoadCategories();
+        LoadClientChoices();
 
         var folders = Mailboxes.SelectMany(m => m.Folders).ToList();
         CurrentCategory = Categories.FirstOrDefault(c => c.Key == currentKey);
@@ -246,6 +272,12 @@ public partial class MailViewModel : ViewModelBase
 
         var showMailbox = accounts.Count > 1 && (Search.Trim().Length > 0 || CurrentCategory is not null || CurrentFolder is { Kind: not FolderKind.Folder });
         var kept = list.Where(s => MailFilters.Keep(s, Filter));
+        if (ClientFilter?.Value is { } onlyClient)
+        {
+            var theirs = new ClientMail(onlyClient);
+            kept = kept.Where(theirs.Matches);
+        }
+        var clientOf = ClientMail.Finder(services.Store.ListClients());
         var arrival = Arrival();
         var threads = Conversations ? MailThreads.Group(kept, arrival) : MailThreads.Single(kept, arrival);
         rebuilding = true;
@@ -256,7 +288,11 @@ public partial class MailViewModel : ViewModelBase
             {
                 if (accounts.FirstOrDefault(a => a.Id == thread.Latest.AccountId) is not { } account)
                     continue;
-                Messages.Add(new MailRowViewModel(thread.Latest, account, showMailbox, this) { Thread = thread.Messages });
+                Messages.Add(new MailRowViewModel(thread.Latest, account, showMailbox, this)
+                {
+                    Thread = thread.Messages,
+                    Client = clientOf(thread.Latest) ?? thread.Messages.Select(clientOf).FirstOrDefault(c => c is not null),
+                });
             }
             for (var i = 0; i < Messages.Count; i++)
                 if (Messages[i].Thread.Any(m => picked.Contains(Key(m))))
@@ -763,6 +799,11 @@ public partial class MailRowViewModel(MailSummary summary, MailAccount account, 
 
     /// <summary>All the mail in this row's conversation, oldest first. Just the one mail when conversations are off.</summary>
     public IReadOnlyList<MailSummary> Thread { get; internal set; } = [summary];
+
+    /// <summary>The client this mail is from or to, for the badge on the row. Null for everyone else.</summary>
+    public Webignite.Core.Clients.Client? Client { get; internal set; }
+    public bool HasClient => Client is not null;
+    public string ClientName => Client?.Name ?? "";
 
     /// <summary>How many mails the conversation holds, shown beside the sender when more than one.</summary>
     public int Count => Thread.Count;

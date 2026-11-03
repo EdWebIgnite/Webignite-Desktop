@@ -90,3 +90,32 @@ public sealed class MailThreadTests
         Assert.Equal(3, MailThreads.Single([Mail("Re: x", 0), Mail("Re: x", 1), Mail("y", 2)]).Count);
     }
 }
+
+/// <summary>Which client a mail row belongs to, for its badge and the client filter.</summary>
+public sealed class MailClientTests
+{
+    private static readonly Webignite.Core.Clients.Client Karoo = new() { Id = "c1", Name = "Karoo Coffee Roasters", Email = "thandi@karoocoffee.co.za" };
+    private static readonly Webignite.Core.Clients.Client Fynbos = new() { Id = "c2", Name = "Fynbos Physio", Website = "https://fynbosphysio.co.za" };
+    private static readonly Webignite.Core.Clients.Client NoAddress = new() { Id = "c3", Name = "Bosveld Builders" };
+
+    private static MailSummary Mail(string from, string to = "eddie@webignite.co.za") => new()
+    {
+        AccountId = "work", Folder = "INBOX", Uid = 1, From = new MailPerson(null, from), To = [new MailPerson(null, to)],
+    };
+
+    [Fact]
+    public void The_sender_decides_the_client_then_who_it_went_to()
+    {
+        var find = ClientMail.Finder([NoAddress, Karoo, Fynbos]);
+        Assert.Equal(Karoo, find(Mail("accounts@karoocoffee.co.za")));
+        Assert.Equal(Fynbos, find(Mail("lerato@fynbosphysio.co.za")));
+        Assert.Equal(Karoo, find(Mail("eddie@webignite.co.za", to: "thandi@karoocoffee.co.za")));
+        Assert.Null(find(Mail("noreply@xneelo.co.za")));
+    }
+
+    [Fact]
+    public void No_clients_with_addresses_means_no_badges()
+    {
+        Assert.Null(ClientMail.Finder([NoAddress])(Mail("someone@bosveld.co.za")));
+    }
+}
