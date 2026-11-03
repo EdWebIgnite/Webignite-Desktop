@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Webignite.Core.Calendar;
 using Webignite.Core.Documents;
+using Webignite.Core.Finance;
 using Webignite.Core.Tasks;
 using Webignite.Core.Backups;
 using Webignite.Core.Mail;
@@ -42,6 +43,20 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
     public string Overdue { get; private set; } = "";
     public string QuotesOut { get; private set; } = "";
     public string PaymentsText { get; private set; } = "";
+
+    /// <summary>What each figure is made of, e.g. "2 invoices, the oldest 14 days late."</summary>
+    public string OwedLine { get; private set; } = "";
+    public string OverdueLine { get; private set; } = "";
+    public string QuotesLine { get; private set; } = "";
+
+    /// <summary>Money received this month so far, from the Money page.</summary>
+    public string CameIn { get; private set; } = "";
+
+    /// <summary>"R 2 800.00 more than by 3 Oct.", or a plain line when there is nothing to compare.</summary>
+    public string CameInLine { get; private set; } = "";
+
+    /// <summary>Received in each of the last six months, this one so far last, for the trend line.</summary>
+    public IReadOnlyList<double> CameInTrend { get; private set; } = [];
     public bool XeroConnected => services.XeroApi is not null;
 
     /// <summary>Set by the main window: reads payments from Xero now.</summary>
@@ -82,6 +97,14 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
         Owed = Money.Rand(Receivables.Owed(documents));
         Overdue = Money.Rand(Receivables.Overdue(documents, today));
         QuotesOut = Money.Rand(Receivables.QuotesOut(documents, today));
+        OwedLine = OverviewCards.Owed(documents);
+        OverdueLine = OverviewCards.Overdue(documents, today);
+        QuotesLine = OverviewCards.QuotesOut(documents, today);
+
+        var entries = services.Store.ListEntries(Ledger.MonthOf(today).AddMonths(-5), today);
+        CameIn = Money.Rand(Trends.ReceivedThisMonth(entries, today));
+        CameInLine = Trends.AgainstLastMonth(entries, today) ?? "Add money received under Money to see it here.";
+        CameInTrend = Trends.ReceivedByMonth(entries, today).Select(m => (double)m).ToList();
         PaymentsText = services.Payments.LastRun is { } checkedAt
             ? $"Payments from Xero, checked at {checkedAt.ToLocalTime():HH:mm}."
             : services.XeroApi is null ? "Connect Xero to see payments." : "Checking Xero for payments.";

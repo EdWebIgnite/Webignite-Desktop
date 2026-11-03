@@ -29,6 +29,9 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
     [ObservableProperty] public partial string TaxYearLeftOver { get; set; } = "";
     [ObservableProperty] public partial bool TaxYearShort { get; set; }
     [ObservableProperty] public partial string AverageReceived { get; set; } = "";
+
+    /// <summary>"R 12 000.00 more than by this date last tax year." Empty when there is nothing to compare.</summary>
+    [ObservableProperty] public partial string TaxYearChange { get; set; } = "";
     [ObservableProperty] public partial bool IsEmpty { get; set; }
 
     public bool HasPayers => Payers.Count > 0;
@@ -39,10 +42,11 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
         services.Store.AddRecurringExpenses(Today);
         var from = Ledger.MonthOf(Today).AddMonths(-11);
         var taxStart = Ledger.TaxYearStart(Today);
-        var start = taxStart < from ? taxStart : from;
+        // Back to the start of last tax year, so this tax year can be set against it.
+        var start = taxStart.AddYears(-1) < from ? taxStart.AddYears(-1) : from;
         var entries = services.Store.ListEntries(start, Today.AddYears(1));
         var lastYear = entries.Where(e => e.Date >= from).ToList();
-        IsEmpty = entries.Count == 0;
+        IsEmpty = !entries.Any(e => e.Date >= from || e.Date >= taxStart);
 
         var months = Ledger.Months(lastYear, Today, 12);
         var max = Math.Max(1m, months.Max(m => Math.Max(m.Received, m.Expenses)));
@@ -58,6 +62,7 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
         TaxYearExpenses = Money.Rand(expenses);
         TaxYearLeftOver = Money.Rand(received - expenses);
         TaxYearShort = received < expenses;
+        TaxYearChange = Trends.AgainstLastTaxYear(entries, Today) ?? "";
 
         var fullMonths = months.Take(11).Where(m => m.Received > 0 || m.Expenses > 0).ToList();
         AverageReceived = fullMonths.Count == 0 ? "" : $"On average {Money.Rand(fullMonths.Average(m => m.Received))} a month came in over the last {fullMonths.Count} full months.";
@@ -65,11 +70,11 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
         Payers.Clear();
         var payers = Ledger.TopPayers(lastYear, from, Today, 8);
         foreach (var p in payers)
-            Payers.Add(new TotalRowViewModel(p, (double)(p.Amount / Math.Max(1m, payers[0].Amount)) * BarWidth));
+            Payers.Add(new TotalRowViewModel(p, (double)(p.Amount / Math.Max(1m, payers[0].Amount))));
         Categories.Clear();
         var categories = Ledger.ByCategory(lastYear, from, Today);
         foreach (var c in categories)
-            Categories.Add(new TotalRowViewModel(c, (double)(c.Amount / Math.Max(1m, categories[0].Amount)) * BarWidth));
+            Categories.Add(new TotalRowViewModel(c, (double)(c.Amount / Math.Max(1m, categories[0].Amount))));
         OnPropertyChanged(nameof(HasPayers));
         OnPropertyChanged(nameof(HasCategories));
     }
@@ -86,9 +91,10 @@ public sealed class MonthRowViewModel(MonthTotals totals, double receivedBar, do
     public double ExpensesBar => expensesBar;
 }
 
-public sealed class TotalRowViewModel(NamedTotal total, double bar)
+/// <summary>A row in the clients or costs list. Share is this amount against the biggest in the list, 0 to 1.</summary>
+public sealed class TotalRowViewModel(NamedTotal total, double share)
 {
     public string Name => total.Name;
     public string Amount => Money.Rand(total.Amount);
-    public double Bar => bar;
+    public double Share => share;
 }
