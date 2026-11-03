@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Webignite.Core.Backups;
 using Webignite.Data;
 using Webignite.Mail;
+using Webignite.Services;
 using Webignite.Xero.Auth;
 
 namespace Webignite.Desktop;
@@ -20,7 +21,18 @@ public sealed class AppServices : IDisposable
         Store = store;
         Settings = new AppSettings(store);
         Settings.XeroClientChanged += () => xero = null;
+        Payments = new PaymentWatch(store, () => XeroApi);
+        SiteWatch = new UptimeWatch(store.ListClients, () => Settings.Uptime, s => Settings.Uptime = s);
     }
+
+    /// <summary>Reads payments from Xero every half hour.</summary>
+    public PaymentWatch Payments { get; }
+
+    /// <summary>Visits watched websites every 15 minutes.</summary>
+    public UptimeWatch SiteWatch { get; }
+
+    /// <summary>Domain, certificate and speed checks for the Site check page.</summary>
+    public SiteChecker SiteChecker { get; init; } = SiteChecker.Default;
 
     public LocalStore Store { get; }
 

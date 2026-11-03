@@ -39,7 +39,7 @@ public sealed partial class SiteCheckViewModel
         WatchSummary = Watched.Count == 0 ? "Add a website to a client page, or watch one from the box above."
             : down > 0 ? (down == 1 ? "1 site is down." : $"{down} sites are down.")
             : certificates > 0 ? (certificates == 1 ? "1 certificate runs out soon." : $"{certificates} certificates run out soon.")
-            : UptimeWatch.LastRun is { } last ? $"All up. Last checked at {last:HH:mm}." : "Checked every 15 minutes while Webignite is open.";
+            : services.SiteWatch.LastRun is { } last ? $"All up. Last checked at {last:HH:mm}." : "Checked every 15 minutes while Webignite is open.";
         OnPropertyChanged(nameof(HasWatched));
         OnPropertyChanged(nameof(WatchOn));
     }
@@ -59,11 +59,11 @@ public sealed partial class SiteCheckViewModel
     [RelayCommand]
     private async Task CheckAll()
     {
-        if (UptimeWatch.Running)
+        if (services.SiteWatch.Running)
             return;
         WatchSummary = "Checking…";
         WatchProblem = false;
-        var alerts = await UptimeWatch.RunAsync(services);
+        var alerts = await services.SiteWatch.RunAsync();
         Announce?.Invoke(alerts);
         RefreshWatched();
     }
