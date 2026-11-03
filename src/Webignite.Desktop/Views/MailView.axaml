@@ -239,8 +239,18 @@
           </Border>
           <Grid>
             <TextBlock Classes="muted" Margin="16" Text="{Binding EmptyText}" IsVisible="{Binding NoMessages}" />
-            <ScrollViewer>
-              <ItemsControl ItemsSource="{Binding Messages}">
+            <!-- Only the rows on screen are built, so a folder of 500 messages costs what 15 do. -->
+            <ItemsControl ItemsSource="{Binding Messages}">
+                <ItemsControl.Template>
+                  <ControlTemplate TargetType="ItemsControl">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                      <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                    </ScrollViewer>
+                  </ControlTemplate>
+                </ItemsControl.Template>
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MailRowViewModel">
                     <Button Classes="mailrow" Classes.selected="{Binding IsSelected}" Classes.unread="{Binding IsUnread}" Command="{Binding OpenCommand}">
@@ -249,8 +259,8 @@
                         <StackPanel Grid.Column="1" Spacing="2">
                           <DockPanel>
                             <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="8,0,0,0" Text="{Binding When}" />
-                            <TextBlock DockPanel.Dock="Right" Text="📎" FontSize="12" Margin="6,0,0,0" IsVisible="{Binding HasAttachments}" ToolTip.Tip="Has attachments" />
-                            <TextBlock DockPanel.Dock="Right" Text="⚑" FontSize="12" Margin="6,0,0,0" IsVisible="{Binding IsFlagged}" ToolTip.Tip="Flagged" />
+                            <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Paperclip}" Size="13" Foreground="{DynamicResource Muted}" Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding HasAttachments}" ToolTip.Tip="Has attachments" />
+                            <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Flag}" Size="13" Foreground="{DynamicResource Text}" Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding IsFlagged}" ToolTip.Tip="Flagged" />
                             <TextBlock Classes="who" Text="{Binding Who}" TextTrimming="CharacterEllipsis" />
                           </DockPanel>
                           <DockPanel>
@@ -265,8 +275,7 @@
                     </Button>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </ScrollViewer>
+            </ItemsControl>
           </Grid>
         </DockPanel>
       </Border>
