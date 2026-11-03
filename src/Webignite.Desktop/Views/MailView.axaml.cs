@@ -16,7 +16,7 @@ public partial class MailView : UserControl
         {
             e.Event.Handled = true;
             if (Uri.TryCreate(e.Event.Link, UriKind.Absolute, out var url) && url.Scheme is "http" or "https" or "mailto")
-                _ = AppServices.OpenInBrowser(url);
+                AppServices.OpenInBrowser(url).Forget("Opening a link");
         };
     }
 
