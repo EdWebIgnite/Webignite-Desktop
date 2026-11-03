@@ -40,7 +40,7 @@ public ThingSettings Thing
 }
 ```
 
-Records are `sealed record` types with `init` properties and sensible defaults, so an older database without the new field reads as the default. Removing or renaming a property is safe too: `StoredJson` skips what it doesn't know. The Settings page (`SettingsViewModel` and `SettingsView.axaml`) is one card per area; add a card or a row to the right one.
+Records are `sealed record` types with `init` properties and sensible defaults, so an older database without the new field reads as the default. Removing or renaming a property is safe too: `StoredJson` skips what it doesn't know. The Settings page (`SettingsViewModel` and `SettingsView.axaml`) has a side menu of sections (`SettingsViewModel.Sections`) and one or more cards per section, each card with `IsVisible="{Binding ShowThing}"`. Add a row to the right card, or a new section: an entry in `Sections`, a `ShowThing` flag in `SettingsViewModel.Sections.cs`, and a card bound to it.
 
 ## A table in the database
 

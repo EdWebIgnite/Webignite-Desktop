@@ -7,8 +7,19 @@
              x:Name="Root">
   <StackPanel Spacing="18">
     <TextBlock Classes="h1" Text="Settings" />
+    <Grid ColumnDefinitions="208,*" ColumnSpacing="28">
+      <!-- The side menu: one section at a time, so nothing has to be hunted for. -->
+      <ListBox Grid.Column="0" Classes="sections" ItemsSource="{x:Static vm:SettingsViewModel.Sections}" SelectedItem="{Binding Current}"
+               VerticalAlignment="Top">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:SettingsViewModel+Section">
+            <TextBlock Text="{Binding Title}" />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <StackPanel Grid.Column="1" Spacing="18">
 
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowXero}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Xero" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -37,7 +48,7 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowBackups}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Backups" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -101,7 +112,7 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowLook}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Light and dark" />
         <Border Classes="segments" HorizontalAlignment="Left">
@@ -217,7 +228,7 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowLook}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Motion" />
         <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.MotionChoices}" SelectedItem="{Binding MotionChoice}" MinWidth="380" />
@@ -226,7 +237,7 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowMail}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Mail checking" />
         <StackPanel Orientation="Horizontal" Spacing="10">
@@ -240,7 +251,7 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowAssistants}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Claude and ChatGPT" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -269,7 +280,7 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowEmails}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Invoice and quote emails" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -334,7 +345,28 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowDocuments}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="New documents" />
+        <StackPanel Orientation="Horizontal" Spacing="24">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Invoices due after (days)" />
+            <TextBox Text="{Binding InvoiceDueDays}" Width="120" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Quotes expire after (days)" />
+            <TextBox Text="{Binding QuoteExpiryDays}" Width="120" HorizontalAlignment="Left" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="quiet" Content="Save" Command="{Binding SaveDefaultsCommand}" />
+          <TextBlock Classes="muted" Text="{Binding DefaultsMessage}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Classes="muted" FontSize="12" Text="Currency is ZAR and there is no VAT, as Webignite is not VAT registered." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding ShowDocuments}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Price list" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -361,28 +393,7 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card">
-      <StackPanel Spacing="12">
-        <TextBlock Classes="h2" Text="New documents" />
-        <StackPanel Orientation="Horizontal" Spacing="24">
-          <StackPanel>
-            <TextBlock Classes="label" Text="Invoices due after (days)" />
-            <TextBox Text="{Binding InvoiceDueDays}" Width="120" HorizontalAlignment="Left" />
-          </StackPanel>
-          <StackPanel>
-            <TextBlock Classes="label" Text="Quotes expire after (days)" />
-            <TextBox Text="{Binding QuoteExpiryDays}" Width="120" HorizontalAlignment="Left" />
-          </StackPanel>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="12">
-          <Button Classes="quiet" Content="Save" Command="{Binding SaveDefaultsCommand}" />
-          <TextBlock Classes="muted" Text="{Binding DefaultsMessage}" VerticalAlignment="Center" />
-        </StackPanel>
-        <TextBlock Classes="muted" FontSize="12" Text="Currency is ZAR and there is no VAT, as Webignite is not VAT registered." />
-      </StackPanel>
-    </Border>
-
-    <Border Classes="card">
+    <Border Classes="card" IsVisible="{Binding ShowHelp}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="If something goes wrong" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -390,5 +401,7 @@
         <Button Classes="quiet" Content="Open log folder" Command="{Binding OpenLogFolderCommand}" HorizontalAlignment="Left" />
       </StackPanel>
     </Border>
+      </StackPanel>
+    </Grid>
   </StackPanel>
 </UserControl>
