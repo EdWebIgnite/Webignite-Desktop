@@ -341,17 +341,36 @@
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="CornerRadius" Value="6" />
   </Style>
+  <!-- Group headings: clicking one folds its pages up or opens them out. They never look selected. -->
   <Style Selector="ListBox.nav ListBoxItem.heading">
     <Setter Property="Padding" Value="12,12,12,4" />
-    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem.heading:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem.heading:pointerover c|Icon.fold">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="c|Icon.fold">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+  <!-- The button that tucks the sidebar away, and the one on the thin strip that brings it back. -->
+  <Style Selector="Button.navtoggle">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Foreground" Value="{DynamicResource NavMuted}" />
+  </Style>
+  <Style Selector="Button.navtoggle:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NavHover}" />
+    <Setter Property="Foreground" Value="{DynamicResource NavText}" />
   </Style>
   <!-- A heading with no words is just a little space, e.g. above Settings. -->
   <Style Selector="ListBox.nav ListBoxItem.gap">
     <Setter Property="Padding" Value="0" />
     <Setter Property="Height" Value="12" />
-  </Style>
-  <Style Selector="ListBox.nav ListBoxItem.heading:disabled /template/ ContentPresenter">
-    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="Arrow" />
   </Style>
   <Style Selector="c|Icon.navicon">
     <Setter Property="Opacity" Value="0.75" />

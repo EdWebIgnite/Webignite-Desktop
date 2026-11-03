@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -19,6 +20,32 @@ public sealed partial class Module(Page key, string title, ViewModelBase page, s
     public bool IsLater { get; } = isLater;
     public bool FullBleed { get; } = fullBleed;
 
+    /// <summary>The heading this page sits under, if any. Folding the group takes the page off the list.</summary>
+    public NavGroup? Group { get; internal set; }
+
+    internal SidebarViewModel? Sidebar { get; set; }
+
+    public bool CanMoveUp => Sidebar?.CanMove(this, -1) == true;
+    public bool CanMoveDown => Sidebar?.CanMove(this, +1) == true;
+
+    [RelayCommand(CanExecute = nameof(CanMoveUp))]
+    private void MoveUp() => Sidebar?.Move(this, -1);
+
+    [RelayCommand(CanExecute = nameof(CanMoveDown))]
+    private void MoveDown() => Sidebar?.Move(this, +1);
+
+    /// <summary>The sidebar's right-click menu: put everything back.</summary>
+    public IRelayCommand? ResetSidebarCommand => Sidebar?.ResetCommand;
+
+    internal void Changed()
+    {
+        OnPropertyChanged(nameof(CanMoveUp));
+        OnPropertyChanged(nameof(CanMoveDown));
+        OnPropertyChanged(nameof(ResetSidebarCommand));
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
+    }
+
     /// <summary>A count shown beside the name, e.g. unread mail. Zero hides it.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasBadge))]
@@ -34,5 +61,54 @@ public sealed partial class Module(Page key, string title, ViewModelBase page, s
     public ViewModelBase? FullPage => FullBleed ? Page : null;
 }
 
-/// <summary>A small heading between groups of pages in the sidebar. It can't be picked.</summary>
-public sealed record NavHeading(string Title);
+/// <summary>
+/// A heading between groups of pages in the sidebar. Clicking it folds the group up to the heading or opens
+/// it out again. A heading with no words is only a little space, e.g. above Settings, and can't fold.
+/// </summary>
+public sealed partial class NavGroup(string key, string title) : ObservableObject
+{
+    /// <summary>What the folded state is saved under, so the title can change freely.</summary>
+    public string Key { get; } = key;
+    public string Title { get; } = title;
+    public bool CanFold => Title.Length > 0;
+
+    internal SidebarViewModel? Owner { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFolded))]
+    public partial bool IsOpen { get; set; } = true;
+
+    public bool IsFolded => !IsOpen;
+
+    public void Toggle()
+    {
+        if (CanFold)
+            Owner?.Fold(this, !IsOpen);
+    }
+
+    [RelayCommand]
+    private void ToggleFold() => Toggle();
+
+    public bool CanMoveUp => Owner?.CanMove(this, -1) == true;
+    public bool CanMoveDown => Owner?.CanMove(this, +1) == true;
+
+    [RelayCommand(CanExecute = nameof(CanMoveUp))]
+    private void MoveUp() => Owner?.Move(this, -1);
+
+    [RelayCommand(CanExecute = nameof(CanMoveDown))]
+    private void MoveDown() => Owner?.Move(this, +1);
+
+    public IRelayCommand? ResetSidebarCommand => Owner?.ResetCommand;
+
+    public string FoldText => IsOpen ? "Fold up" : "Open out";
+
+    internal void Changed()
+    {
+        OnPropertyChanged(nameof(CanMoveUp));
+        OnPropertyChanged(nameof(CanMoveDown));
+        OnPropertyChanged(nameof(ResetSidebarCommand));
+        OnPropertyChanged(nameof(FoldText));
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
+    }
+}

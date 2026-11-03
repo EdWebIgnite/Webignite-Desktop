@@ -18,7 +18,7 @@ View models call the rule and show the result. If a view model starts to contain
 6. Jumping there from another page: `services.Go.To(Page.Thing)`. If other pages need to open a particular thing, add a method to `Navigator` (as `Go.Client(client)` and `Go.Document(stored)` do) rather than a callback on `AppServices`.
 7. Screenshot: a `Save("thing")` block in `tools/Snapshot/Program.cs`, then `dotnet run --project tools/Snapshot -- shots` and look at the PNG. Never await an async command inside the snapshot tool; the headless dispatcher isn't pumped.
 
-Pages that fill the window with their own panes (Mail) pass `fullBleed: true`.
+Pages that fill the window with their own panes (Mail) pass `fullBleed: true`. The sidebar's order, folded groups and hidden state are the person's (`Core.Layout.Sidebar`, saved under "sidebar"); a new page slots in after the one it follows in the `nav` array, whatever order the person has.
 
 ## Panes the person can drag, move and hide
 

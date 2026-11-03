@@ -13,6 +13,7 @@ public partial class MainViewModel
         new("Ctrl+K", "Search clients, quotes, invoices and mail"),
         new("Ctrl+N", "New on this page: quote, invoice, client, retainer, domain or mail"),
         new("Ctrl+1 to Ctrl+9", "Jump to a page, in sidebar order"),
+        new("Ctrl+B", "Tuck the sidebar away or bring it back"),
         new("F5", "Read this page again, or check for mail on Mail"),
         new("F1", "Show or hide this list"),
         new("Esc", "Close this list or the search box"),
@@ -30,8 +31,8 @@ public partial class MainViewModel
     [RelayCommand]
     private void GoTo(string number)
     {
-        if (int.TryParse(number, out var n) && n >= 1 && n <= Modules.Count)
-            Selected = Modules[n - 1];
+        if (int.TryParse(number, out var n) && n >= 1 && n <= Sidebar.Pages.Count)
+            Selected = Sidebar.Pages[n - 1];
     }
 
     /// <summary>Ctrl+N: starts something new on pages that make things.</summary>
