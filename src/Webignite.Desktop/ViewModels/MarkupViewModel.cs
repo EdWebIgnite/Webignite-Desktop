@@ -157,7 +157,7 @@ public sealed partial class MarkupViewModel : ViewModelBase
         var path = Path.Combine(folder, name);
         await File.WriteAllBytesAsync(path, png);
 
-        var (subject, body) = Markup.Mail(Client?.Name, Client?.ContactPerson, Page, Marks, services.XeroSettings.TenantName ?? "Webignite");
+        var (subject, body) = Markup.Mail(Client?.Name, Client?.ContactPerson, Page, Marks, services.Settings.Xero.TenantName ?? "Webignite");
         var to = Recipients.Parse(Client?.Email);
         var mail = new OutgoingMail
         {
@@ -169,7 +169,7 @@ public sealed partial class MarkupViewModel : ViewModelBase
         };
         var unwritten = Marks.Count(m => m.Kind == MarkKind.Pin && string.IsNullOrWhiteSpace(m.Comment));
         var note = to.People.Count == 0 ? "Type who it goes to in To." : unwritten > 0 ? $"{unwritten} numbered note(s) have nothing written, so they're not in the list." : null;
-        var opened = services.ComposeMail?.Invoke(mail, note, null) ?? false;
+        var opened = services.Go.ComposeMail(mail, note, null);
         if (!opened)
             Say("Another mail is open in Mail with changes. Send or close it first.", problem: true);
     }

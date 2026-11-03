@@ -1,104 +1,59 @@
 using System.Diagnostics;
 using Webignite.Core.Backups;
-using Webignite.Core.Documents;
-using Webignite.Core.Finance;
-using Webignite.Core.Tasks;
 using Webignite.Data;
 using Webignite.Mail;
+using Webignite.Services;
 using Webignite.Xero.Auth;
 
 namespace Webignite.Desktop;
 
-/// <summary>Saved Xero connection details. None of this is secret; the refresh token lives in Credential Manager.</summary>
-public sealed record XeroSettings
-{
-    public string? ClientId { get; init; }
-    public string? TenantId { get; init; }
-    public string? TenantName { get; init; }
-
-    /// <summary>The Xero sales account documents are coded to, e.g. 200 Sales.</summary>
-    public string? AccountCode { get; init; }
-    public string? AccountName { get; init; }
-}
-
-/// <summary>What the screens share: the local database, settings and the Xero sign-in.</summary>
-public sealed class AppServices(LocalStore store) : IDisposable
+/// <summary>
+/// What the screens share: the local database, the settings, the Xero and mail connections, and the way
+/// from one page to another. Rules live in Core; this only holds the pieces together.
+/// </summary>
+public sealed class AppServices : IDisposable
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(60) };
     private XeroSession? xero;
 
-    public LocalStore Store { get; } = store;
+    public AppServices(LocalStore store)
+    {
+        Store = store;
+        Settings = new AppSettings(store);
+        Settings.XeroClientChanged += () => xero = null;
+        Payments = new PaymentWatch(store, () => XeroApi);
+        SiteWatch = new UptimeWatch(store.ListClients, () => Settings.Uptime, s => Settings.Uptime = s);
+    }
+
+    /// <summary>Reads payments from Xero every half hour.</summary>
+    public PaymentWatch Payments { get; }
+
+    /// <summary>Visits watched websites every 15 minutes.</summary>
+    public UptimeWatch SiteWatch { get; }
+
+    /// <summary>Domain, certificate and speed checks for the Site check page.</summary>
+    public SiteChecker SiteChecker { get; init; } = SiteChecker.Default;
+
+    public LocalStore Store { get; }
+
+    /// <summary>Everything the person has set up, by area.</summary>
+    public AppSettings Settings { get; }
+
+    /// <summary>Opens pages, clients, documents and mail from anywhere. Wired by the main window.</summary>
+    public Navigator Go { get; } = new();
 
     /// <summary>Background jobs, shown with a spinner in the sidebar.</summary>
     public WorkInProgress Work { get; } = new();
 
-    public DocumentSettings DocumentSettings
-    {
-        get => Store.GetSetting<DocumentSettings>("documents") ?? new DocumentSettings();
-        set => Store.SetSetting("documents", value);
-    }
+    /// <summary>Set by the main window: shows a note in the corner. The action runs when the note is clicked.</summary>
+    public Action<string, string, Action?>? ShowNote { get; set; }
 
-    public TaskSettings TaskSettings
-    {
-        get => Store.GetSetting<TaskSettings>("tasks") ?? new TaskSettings();
-        set => Store.SetSetting("tasks", value);
-    }
-
-    /// <summary>Window size, position and last page, saved when the app closes.</summary>
-    public WindowPlacement? WindowPlacement
-    {
-        get => Store.GetSetting<WindowPlacement>("window");
-        set => Store.SetSetting("window", value);
-    }
-
-    /// <summary>Standard packages and items, for filling in quotes and invoices with one click.</summary>
-    public IReadOnlyList<PriceEntry> PriceList
-    {
-        get => Store.GetSetting<List<PriceEntry>>("price-list") ?? [];
-        set => Store.SetSetting("price-list", value.ToList());
-    }
-
-    /// <summary>When each customer last had a statement, so it's offered once a month.</summary>
-    public IReadOnlyDictionary<string, DateOnly> StatementsSent
-    {
-        get => Store.GetSetting<Dictionary<string, DateOnly>>("statements-sent") ?? [];
-        set => Store.SetSetting("statements-sent", new Dictionary<string, DateOnly>(value));
-    }
-
-    /// <summary>The invoice and quote email wording, pasted from Xero.</summary>
-    public EmailTemplates EmailTemplates
-    {
-        get => Store.GetSetting<EmailTemplates>("email-templates") ?? new EmailTemplates();
-        set => Store.SetSetting("email-templates", value);
-    }
-
-    /// <summary>How the income projection works out what is expected and what came in.</summary>
-    public IncomePlan IncomePlan
-    {
-        get => Store.GetSetting<IncomePlan>("income-plan") ?? new IncomePlan();
-        set => Store.SetSetting("income-plan", value);
-    }
-
-    public XeroSettings XeroSettings
-    {
-        get => Store.GetSetting<XeroSettings>("xero") ?? new XeroSettings();
-        set
-        {
-            if (value.ClientId != XeroSettings.ClientId)
-                xero = null;
-            Store.SetSetting("xero", value);
-        }
-    }
+    /// <summary>After something is removed: a note that puts it back when clicked.</summary>
+    public void OfferUndo(string what, Action putBack) => ShowNote?.Invoke(what, "Click here to undo.", putBack);
 
     // Backups
 
     public const string BackupPasswordName = "Backup/password";
-
-    public BackupSettings BackupSettings
-    {
-        get => Store.GetSetting<BackupSettings>("backups") ?? new BackupSettings();
-        set => Store.SetSetting("backups", value);
-    }
 
     /// <summary>The key that unlocks the database, needed inside each backup. Tests and screenshots pass their own.</summary>
     public Func<byte[]> VaultKeySource { get; init; } = () => VaultKey.Load(DataPaths.Root());
@@ -115,7 +70,7 @@ public sealed class AppServices(LocalStore store) : IDisposable
         return Path.Combine(parent, "Webignite backups");
     }
 
-    public string BackupFolder => BackupSettings.Folder is { Length: > 0 } folder ? folder : DefaultBackupFolder();
+    public string BackupFolder => Settings.Backups.Folder is { Length: > 0 } folder ? folder : DefaultBackupFolder();
 
     private bool backingUp;
 
@@ -127,7 +82,7 @@ public sealed class AppServices(LocalStore store) : IDisposable
     {
         if (backingUp || Secrets.Read(BackupPasswordName) is not { Length: > 0 } password)
             return null;
-        var settings = BackupSettings;
+        var settings = Settings.Backups;
         var started = DateTimeOffset.Now;
         if (!now && !BackupRules.IsDue(settings, started))
             return null;
@@ -140,14 +95,14 @@ public sealed class AppServices(LocalStore store) : IDisposable
             var folder = BackupFolder;
             var version = typeof(AppServices).Assembly.GetName().Version?.ToString(3);
             var file = await Task.Run(() => Backups.Seal(snapshot, key, password, folder, started, version));
-            BackupSettings = BackupSettings with { LastBackup = started, LastFile = file, LastProblem = null, LastProblemAt = null };
+            Settings.Backups = Settings.Backups with { LastBackup = started, LastFile = file, LastProblem = null, LastProblemAt = null };
             return null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException
                                       or System.Security.Cryptography.CryptographicException or PlatformNotSupportedException)
         {
             var problem = e is UnauthorizedAccessException ? "Webignite can't write to the backup folder." : e.Message;
-            BackupSettings = BackupSettings with { LastProblem = problem, LastProblemAt = DateTimeOffset.Now };
+            Settings.Backups = Settings.Backups with { LastProblem = problem, LastProblemAt = DateTimeOffset.Now };
             return problem;
         }
         finally
@@ -156,85 +111,13 @@ public sealed class AppServices(LocalStore store) : IDisposable
         }
     }
 
-    /// <summary>Earlier speed tests per domain, for "up from 38" and client reports.</summary>
-    public IReadOnlyDictionary<string, IReadOnlyList<Webignite.Core.Web.SpeedRun>> SpeedHistory
-    {
-        get => Store.GetSetting<Dictionary<string, List<Webignite.Core.Web.SpeedRun>>>("speed-history")?
-            .ToDictionary(h => h.Key, h => (IReadOnlyList<Webignite.Core.Web.SpeedRun>)h.Value) ?? [];
-        set => Store.SetSetting("speed-history", value.ToDictionary(h => h.Key, h => h.Value.ToList()));
-    }
-
-    /// <summary>Which websites are watched for being down or an expiring certificate, and what was found.</summary>
-    public Webignite.Core.Web.UptimeSettings UptimeSettings
-    {
-        get => Store.GetSetting<Webignite.Core.Web.UptimeSettings>("uptime") ?? new Webignite.Core.Web.UptimeSettings();
-        set => Store.SetSetting("uptime", value);
-    }
-
-    /// <summary>How much the app moves, and other look settings.</summary>
-    public AppearanceSettings Appearance
-    {
-        get => Store.GetSetting<AppearanceSettings>("appearance") ?? new AppearanceSettings();
-        set
-        {
-            Store.SetSetting("appearance", value);
-            AppearanceChanged?.Invoke(value);
-        }
-    }
-
-    /// <summary>The main window listens, so a change in Settings shows straight away.</summary>
-    public event Action<AppearanceSettings>? AppearanceChanged;
-
-    /// <summary>How often mail is checked in the background, and what was already announced.</summary>
-    public Webignite.Core.Mail.MailCheckSettings MailCheckSettings
-    {
-        get => Store.GetSetting<Webignite.Core.Mail.MailCheckSettings>("mail-check") ?? new Webignite.Core.Mail.MailCheckSettings();
-        set => Store.SetSetting("mail-check", value);
-    }
-
-    /// <summary>Set by the main window: opens a page, or a mail, from the morning summary.</summary>
-    public Action<Webignite.Core.Overview.SummaryTarget, Webignite.Core.Mail.MailSummary?>? Navigate { get; set; }
-
-    /// <summary>Set by the main window: shows a note in the corner. The action runs when the note is clicked.</summary>
-    public Action<string, string, Action?>? ShowNote { get; set; }
-
-    /// <summary>After something is removed: a note that puts it back when clicked.</summary>
-    public void OfferUndo(string what, Action putBack) => ShowNote?.Invoke(what, "Click here to undo.", putBack);
+    // Mail
 
     /// <summary>Mailbox passwords. Windows Credential Manager on Windows; memory only elsewhere (tests and screenshots).</summary>
     public ISecretStore Secrets { get; init; } = OperatingSystem.IsWindows() ? new WindowsSecretStore() : new MemorySecretStore();
 
-    /// <summary>Set by the main window, so other pages can open a mail or start one in the Mail page.</summary>
-    public Action<Webignite.Core.Mail.MailSummary>? OpenMail { get; set; }
-
-    public Action<IReadOnlyList<Webignite.Core.Mail.MailPerson>>? WriteMail { get; set; }
-
     private MailService? mail;
     public MailService Mail => mail ??= new MailService(Store, Secrets);
-
-    public ITokenStore TokenStore { get; init; } = OperatingSystem.IsWindows() ? new WindowsCredentialStore() : new MemoryTokenStore();
-
-    public XeroSession? Xero =>
-        xero ??= XeroSettings.ClientId is { Length: > 0 } id ? new XeroSession(new XeroOptions { ClientId = id }, Http, TokenStore) : null;
-
-    /// <summary>Xero's accounting API for the connected organisation, or null when Xero isn't connected.</summary>
-    public Webignite.Xero.XeroApi? XeroApi =>
-        Xero is { HasSavedSignIn: true } session && XeroSettings.TenantId is { Length: > 0 } tenant ? new Webignite.Xero.XeroApi(session, Http, tenant) : null;
-
-    /// <summary>Creates Xero drafts, saving each step to this PC as it goes.</summary>
-    public Webignite.Xero.XeroDrafts? XeroDrafts =>
-        XeroApi is { } api
-            ? new Webignite.Xero.XeroDrafts(api, Store.Save, () => Store.List().Select(d => d.XeroId).OfType<string>().ToHashSet())
-            : null;
-
-    /// <summary>Approves, fetches Xero's PDF and marks documents sent, for emailing from Webignite's own mailbox.</summary>
-    public Webignite.Xero.XeroSending? XeroSending => XeroApi is { } api ? new Webignite.Xero.XeroSending(api, Store.Save) : null;
-
-    /// <summary>
-    /// Set by the main window: opens a prepared mail in the Mail page, with a note shown above it. The action
-    /// runs after it was sent. Returns false when another mail with changes is still open.
-    /// </summary>
-    public Func<Webignite.Core.Mail.OutgoingMail, string?, Func<Task>?, bool>? ComposeMail { get; set; }
 
     private IReadOnlyList<Webignite.Core.Mail.Contact>? addressBook;
     private DateTime addressBookMade;
@@ -252,14 +135,27 @@ public sealed class AppServices(LocalStore store) : IDisposable
         return addressBook;
     }
 
-    /// <summary>Opens a quote or invoice on its own page, e.g. a copy just made.</summary>
-    public Action<Webignite.Core.Documents.StoredDocument>? OpenDocument { get; set; }
+    // Xero
 
-    /// <summary>Opens a client's page.</summary>
-    public Action<Webignite.Core.Clients.Client>? OpenClient { get; set; }
+    public ITokenStore TokenStore { get; init; } = OperatingSystem.IsWindows() ? new WindowsCredentialStore() : new MemoryTokenStore();
 
-    /// <summary>Puts an amount on the invoice being edited, or a new one, and opens it. Returns a problem, or null.</summary>
-    public Func<decimal, string, string?>? AddToInvoice { get; set; }
+    public XeroSession? Xero =>
+        xero ??= Settings.Xero.ClientId is { Length: > 0 } id ? new XeroSession(new XeroOptions { ClientId = id }, Http, TokenStore) : null;
+
+    /// <summary>Xero's accounting API for the connected organisation, or null when Xero isn't connected.</summary>
+    public Webignite.Xero.XeroApi? XeroApi =>
+        Xero is { HasSavedSignIn: true } session && Settings.Xero.TenantId is { Length: > 0 } tenant ? new Webignite.Xero.XeroApi(session, Http, tenant) : null;
+
+    /// <summary>Creates Xero drafts, saving each step to this PC as it goes.</summary>
+    public Webignite.Xero.XeroDrafts? XeroDrafts =>
+        XeroApi is { } api
+            ? new Webignite.Xero.XeroDrafts(api, Store.Save, () => Store.List().Select(d => d.XeroId).OfType<string>().ToHashSet())
+            : null;
+
+    /// <summary>Approves, fetches Xero's PDF and marks documents sent, for emailing from Webignite's own mailbox.</summary>
+    public Webignite.Xero.XeroSending? XeroSending => XeroApi is { } api ? new Webignite.Xero.XeroSending(api, Store.Save) : null;
+
+    // The PC
 
     /// <summary>
     /// Does what the calendar calls for since the app last looked: drafts retainer and renewal invoices that are due,
@@ -268,9 +164,10 @@ public sealed class AppServices(LocalStore store) : IDisposable
     public void CatchUp()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
-        Store.DraftRetainerInvoices(DocumentSettings, today);
+        var documents = Settings.Documents;
+        Store.DraftRetainerInvoices(documents, today);
         Store.AddRecurringExpenses(today);
-        Store.RaiseRenewals(DocumentSettings, today);
+        Store.RaiseRenewals(documents, today);
     }
 
     /// <summary>Opens a link in the person's own default browser. Nothing is embedded in the app.</summary>
@@ -278,12 +175,6 @@ public sealed class AppServices(LocalStore store) : IDisposable
     {
         Process.Start(new ProcessStartInfo(url.ToString()) { UseShellExecute = true });
         return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        mail?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(3));
-        Store.Dispose();
     }
 
     /// <summary>Opens a file with whatever Windows uses for it, e.g. a PDF reader.</summary>
@@ -295,5 +186,11 @@ public sealed class AppServices(LocalStore store) : IDisposable
         var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
         Directory.CreateDirectory(folder);
         return folder;
+    }
+
+    public void Dispose()
+    {
+        mail?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(3));
+        Store.Dispose();
     }
 }

@@ -141,8 +141,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
         if (IsEditable)
             Save();
         var source = stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = Build() };
-        var copy = services.Store.Save(DocumentCopies.Copy(source, kind, services.DocumentSettings, DateOnly.FromDateTime(DateTime.Today)));
-        services.OpenDocument?.Invoke(copy);
+        var copy = services.Store.Save(DocumentCopies.Copy(source, kind, services.Settings.Documents, DateOnly.FromDateTime(DateTime.Today)));
+        services.Go.Document(copy);
     }
 
     /// <summary>Saves to this PC. Works even when the document isn't finished yet.</summary>
@@ -178,7 +178,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         Date = stored?.Document.Date,
         DueOrExpiryDate = stored?.Document.DueOrExpiryDate,
         Lines = Lines.Select(row => row.ToLine()).OfType<Line>().ToList(),
-    }, services.DocumentSettings, DateOnly.FromDateTime(DateTime.Today));
+    }, services.Settings.Documents, DateOnly.FromDateTime(DateTime.Today));
 
     private LineRowViewModel NewRow() => new(Recalculate);
 

@@ -177,7 +177,7 @@ public partial class RenewalsViewModel : ViewModelBase, IRefreshable
 
     public void Refresh()
     {
-        services.Store.RaiseRenewals(services.DocumentSettings, Today);
+        services.Store.RaiseRenewals(services.Settings.Documents, Today);
         Soon.Clear();
         Later.Clear();
         foreach (var renewal in services.Store.ListRenewals())

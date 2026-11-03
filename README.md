@@ -52,9 +52,10 @@ To add a page, a setting, a table, a background check, an assistant tool or a te
 | `src/Webignite.Data` | The local SQLite database (`LocalStore`), encryption (`Vault`, key under DPAPI), backups, secrets, the app log, and what assistants are allowed to read and write. |
 | `src/Webignite.Xero` | Xero sign-in (PKCE), the accounting API calls, draft creation and the check that Xero saved what was sent. |
 | `src/Webignite.Mail` | IMAP and SMTP through MailKit, syncing into the local store, sending, and the assistant mail tools. |
+| `src/Webignite.Services` | The checks that run on their own: payments read from Xero, client sites visited for uptime, domain and speed checks. No UI; each takes its connections in its constructor so tests can hand it fakes. |
 | `src/Webignite.Desktop` | The Avalonia app. View models under `ViewModels`, views under `Views`, custom controls under `Controls`, colours and styles under `Styles`. Each sidebar entry is a `Module`. |
 | `src/Webignite.Connector` | The MCP server Claude Desktop and ChatGPT start. Talks over stdin and stdout; logs go to stderr. |
-| `tests/Webignite.Tests` | xUnit tests for Core, Data, Xero and Mail. Xero and mail are tested against fake HTTP handlers. |
+| `tests/Webignite.Tests` | xUnit tests for Core, Data, Xero, Mail and Services. Xero and mail are tested against fake HTTP handlers. |
 | `tools/Snapshot` | Renders every screen to PNG without opening a window, using a throwaway database with sample data. |
 
 Colours live in `src/Webignite.Desktop/Styles/Palette.axaml` and the three `Palette.Dark.*.axaml` files. Nothing else names a colour.

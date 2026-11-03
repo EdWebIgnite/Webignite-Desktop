@@ -20,8 +20,13 @@ public partial class MailViewModel : ViewModelBase
     {
         this.services = services;
         Setup = new MailSetupViewModel(services, OnSetupDone);
+        Panels = new PanelsViewModel(services.Settings, "mail",
+            [("folders", "Folders"), ("messages", "Messages"), ("reader", "Reading pane")], spine: "messages");
         Reload();
     }
+
+    /// <summary>Folders, messages and the reading pane: which show, in what order, how wide.</summary>
+    public PanelsViewModel Panels { get; }
 
     public ObservableCollection<MailboxNodeViewModel> Mailboxes { get; } = [];
     public ObservableCollection<MailRowViewModel> Messages { get; } = [];

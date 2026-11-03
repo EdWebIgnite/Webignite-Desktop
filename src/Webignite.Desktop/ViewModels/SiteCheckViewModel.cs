@@ -53,7 +53,7 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         DomainProblem = false;
         try
         {
-            foreach (var finding in await SiteChecker.DomainAsync(domain))
+            foreach (var finding in await services.SiteChecker.DomainAsync(domain))
                 Findings.Add(finding);
             var problems = Findings.Count(f => f.Problem);
             DomainMessage = problems == 0 ? "Nothing needs fixing." : problems == 1 ? "1 thing needs a look." : $"{problems} things need a look.";
@@ -79,7 +79,7 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         SpeedMessageProblem = false;
         try
         {
-            var report = await SiteChecker.SpeedAsync(address);
+            var report = await services.SiteChecker.SpeedAsync(address);
             Remember(address, report);
             Speed = report;
             SpeedMessage = "";
@@ -97,10 +97,10 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
     {
         speedDomain = DomainReport.Normalise(address) ?? address;
         var today = DateOnly.FromDateTime(DateTime.Today);
-        var history = services.SpeedHistory;
+        var history = services.Settings.SpeedHistory;
         previousRun = SpeedHistory.Previous(history, speedDomain, today);
         SpeedChange = SpeedHistory.Compare(previousRun, report.Score);
-        services.SpeedHistory = SpeedHistory.Add(history, speedDomain, report, today);
+        services.Settings.SpeedHistory = SpeedHistory.Add(history, speedDomain, report, today);
     }
 
     [RelayCommand]

@@ -47,7 +47,7 @@ public partial class DocumentEditorViewModel
     /// <summary>Why the Create button can't be used yet, or empty when it can.</summary>
     public string XeroHint =>
         services.XeroApi is null ? "Connect Xero in Settings first."
-        : services.XeroSettings.AccountCode is null ? "Pick the sales account in Settings first."
+        : services.Settings.Xero.AccountCode is null ? "Pick the sales account in Settings first."
         : !IsReady ? "Finish the document first."
         : "";
 
@@ -107,7 +107,7 @@ public partial class DocumentEditorViewModel
 
     private async Task Create(string? contactId, bool createContact)
     {
-        if (!CanCreate || services.XeroDrafts is not { } drafts || services.XeroSettings.AccountCode is not { } account)
+        if (!CanCreate || services.XeroDrafts is not { } drafts || services.Settings.Xero.AccountCode is not { } account)
             return;
         Save();
         var target = new XeroTarget(account);
@@ -284,14 +284,14 @@ public partial class DocumentEditorViewModel
         ShowXero(Kind == DocumentKind.Invoice && stored.Approved is null ? "Approving in Xero and fetching the PDF…" : "Fetching the PDF from Xero…", problem: false);
         try
         {
-            var ready = await sending.PrepareAsync(stored, services.XeroSettings.TenantName ?? "Webignite");
+            var ready = await sending.PrepareAsync(stored, services.Settings.Xero.TenantName ?? "Webignite");
             stored = ready.Stored;
             var folder = Path.Combine(Webignite.Data.DataPaths.Root(), "outgoing");
             Directory.CreateDirectory(folder);
             var pdf = Path.Combine(folder, string.Join("_", ready.PdfName.Split(Path.GetInvalidFileNameChars())));
             await File.WriteAllBytesAsync(pdf, ready.Pdf);
 
-            var filled = DocumentEmail.Fill(services.EmailTemplates.For(Kind), ready.Values);
+            var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.For(Kind), ready.Values);
             var to = Webignite.Core.Mail.Recipients.Parse(ready.ContactEmail);
             var mail = new Webignite.Core.Mail.OutgoingMail
             {
@@ -308,12 +308,12 @@ public partial class DocumentEditorViewModel
                 notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
 
             var stamped = stored;
-            var opened = services.ComposeMail?.Invoke(mail, notes.Count > 0 ? string.Join(" ", notes) : null, async () =>
+            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, async () =>
             {
                 stored = await sending.MarkSentAsync(stamped);
                 RefreshXero();
                 RefreshEmail();
-            }) ?? false;
+            });
             ShowXero(opened ? "" : "Another mail is open in Mail with changes. Send or close it first, then try again.", problem: !opened);
         }
         catch (Exception e) when (e is XeroException or HttpRequestException or IOException or TaskCanceledException or InvalidOperationException)

@@ -16,10 +16,10 @@ public sealed partial class SiteCheckViewModel
 
     public bool WatchOn
     {
-        get => services.UptimeSettings.On;
+        get => services.Settings.Uptime.On;
         set
         {
-            services.UptimeSettings = services.UptimeSettings with { On = value };
+            services.Settings.Uptime = services.Settings.Uptime with { On = value };
             OnPropertyChanged();
         }
     }
@@ -27,7 +27,7 @@ public sealed partial class SiteCheckViewModel
     /// <summary>Rebuilds the list from the settings, after a round of visits or a change.</summary>
     public void RefreshWatched()
     {
-        var settings = services.UptimeSettings;
+        var settings = services.Settings.Uptime;
         var now = DateTimeOffset.Now;
         var today = DateOnly.FromDateTime(DateTime.Today);
         Watched.Clear();
@@ -39,7 +39,7 @@ public sealed partial class SiteCheckViewModel
         WatchSummary = Watched.Count == 0 ? "Add a website to a client page, or watch one from the box above."
             : down > 0 ? (down == 1 ? "1 site is down." : $"{down} sites are down.")
             : certificates > 0 ? (certificates == 1 ? "1 certificate runs out soon." : $"{certificates} certificates run out soon.")
-            : UptimeWatch.LastRun is { } last ? $"All up. Last checked at {last:HH:mm}." : "Checked every 15 minutes while Webignite is open.";
+            : services.SiteWatch.LastRun is { } last ? $"All up. Last checked at {last:HH:mm}." : "Checked every 15 minutes while Webignite is open.";
         OnPropertyChanged(nameof(HasWatched));
         OnPropertyChanged(nameof(WatchOn));
     }
@@ -51,7 +51,7 @@ public sealed partial class SiteCheckViewModel
     {
         if (DomainReport.Normalise(Address) is not { } domain)
             return;
-        services.UptimeSettings = Uptime.Add(services.UptimeSettings, domain, services.Store.ListClients());
+        services.Settings.Uptime = Uptime.Add(services.Settings.Uptime, domain, services.Store.ListClients());
         RefreshWatched();
         await CheckAll();
     }
@@ -59,18 +59,18 @@ public sealed partial class SiteCheckViewModel
     [RelayCommand]
     private async Task CheckAll()
     {
-        if (UptimeWatch.Running)
+        if (services.SiteWatch.Running)
             return;
         WatchSummary = "Checking…";
         WatchProblem = false;
-        var alerts = await UptimeWatch.RunAsync(services);
+        var alerts = await services.SiteWatch.RunAsync();
         Announce?.Invoke(alerts);
         RefreshWatched();
     }
 
     internal void StopWatching(string domain)
     {
-        services.UptimeSettings = Uptime.Remove(services.UptimeSettings, domain, services.Store.ListClients());
+        services.Settings.Uptime = Uptime.Remove(services.Settings.Uptime, domain, services.Store.ListClients());
         RefreshWatched();
     }
 

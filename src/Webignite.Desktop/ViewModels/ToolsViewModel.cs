@@ -88,7 +88,7 @@ public sealed partial class ToolsViewModel : ViewModelBase
     {
         if (Answer is not { } answer)
             return;
-        var problem = services.AddToInvoice?.Invoke(answer, LineDescription.Trim());
+        var problem = services.Go.AddToInvoice(answer, LineDescription.Trim());
         CalcMessage = problem ?? "";
         CalcProblem = problem is not null;
         if (problem is null)

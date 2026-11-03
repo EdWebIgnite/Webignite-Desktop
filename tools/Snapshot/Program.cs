@@ -18,7 +18,7 @@ var data = Directory.CreateTempSubdirectory("webignite-snapshot-").FullName;
 var snapshotKey = RandomNumberGenerator.GetBytes(32);
 var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(snapshotKey));
 var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey };
-services.BackupSettings = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
+services.Settings.Backups = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
 App.Services = services;
 
 AppBuilder.Configure<App>()
@@ -43,17 +43,17 @@ Sample("Bosveld Builders", DocumentKind.Invoice, ("Website deposit", 1, 7250m));
 }
 Sample("Bosveld Builders", DocumentKind.Quote, ("New website, 6 pages", 1, 14500m), ("Logo refresh", 1, 3200m));
 
-services.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "Website, 6 pages",
+services.Settings.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "Website, 6 pages",
     [new Line { Description = "Design and build, 6 pages", Quantity = 1, UnitPrice = 12500m }, new Line { Description = "Hosting, first year", Quantity = 1, UnitPrice = 2000m }]),
     "Monthly SEO", [new Line { Description = "Monthly SEO", Quantity = 1, UnitPrice = 2800m }]),
     "Hosting, yearly", [new Line { Description = "Website hosting, 12 months", Quantity = 1, UnitPrice = 2400m }]);
 // Pages change at once here: the script doesn't wait for fades to finish.
-services.Appearance = new AppearanceSettings { Motion = Motion.Off };
+services.Settings.Appearance = new AppearanceSettings { Motion = Motion.Off };
 var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();
 
-void Open(string title) => vm.Selected = vm.Modules.Single(m => m.Title == title);
+void Open(Page page) => vm.Selected = vm[page];
 
 void Save(string name)
 {
@@ -78,12 +78,12 @@ using (services.Work.Start("Checking mail"))
 }
 
 // Empty pages, before the sample data for them exists.
-Open("Retainers");
+Open(Page.Retainers);
 Save("empty-retainers");
-Open("Domains and hosting");
+Open(Page.Renewals);
 Save("empty-domains");
 
-Open("Invoices");
+Open(Page.Invoices);
 Save("invoices");
 vm.Invoices.Search = "karoo";
 vm.Invoices.ShowChoice = DocumentsViewModel.ShowChoices[1];
@@ -91,7 +91,7 @@ Save("invoices-filtered");
 vm.Invoices.Search = "nothing like this";
 Save("invoices-no-match");
 vm.Invoices.ClearFiltersCommand.Execute(null);
-Open("Quotes");
+Open(Page.Quotes);
 vm.Quotes.OpenDocument(store.List(DocumentKind.Quote)[0]);
 Save("quote-editor");
 vm.Quotes.Editor!.MakeInvoiceCommand.Execute(null);
@@ -99,7 +99,7 @@ Save("invoice-from-quote");
 vm.Invoices.Editor = null;
 vm.Quotes.Editor = null;
 store.DeleteDocument(store.List(DocumentKind.Invoice).First(d => d.Document.Customer.Name == "Bosveld Builders").Id);
-Open("Invoices");
+Open(Page.Invoices);
 
 vm.Invoices.NewCommand.Execute(null);
 var invoice = vm.Invoices.Editor!;
@@ -132,14 +132,14 @@ vm.Invoices.Editor.StartEmailCommand.Execute(null);
 Save("invoice-approve");
 vm.Invoices.Editor = null;
 
-Open("Settings");
+Open(Page.Settings);
 Save("settings");
 
 // Run synchronously here: the headless dispatcher isn't pumped while this script waits.
 services.Secrets.Write(AppServices.BackupPasswordName, "a long sample password");
 var backupAt = DateTimeOffset.Now.AddMinutes(-20);
 var backupFile = Backups.Seal(Backups.Snapshot(store), snapshotKey, "a long sample password", services.BackupFolder, backupAt, "0.2.2", 1000);
-services.BackupSettings = services.BackupSettings with { LastBackup = backupAt, LastFile = backupFile };
+services.Settings.Backups = services.Settings.Backups with { LastBackup = backupAt, LastFile = backupFile };
 var settingsPage = (SettingsViewModel)vm.Selected.Page;
 settingsPage.Refresh();
 Save("settings-backups");
@@ -153,16 +153,16 @@ var overdue = store.List(DocumentKind.Invoice).First(d => d.XeroNumber is not nu
 store.Save(overdue with { Document = overdue.Document with { Date = today.AddDays(-21), DueOrExpiryDate = today.AddDays(-14) } });
 var quote = store.List(DocumentKind.Quote)[0];
 store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031" });
-Open("To-do");
+Open(Page.Todo);
 Save("todo");
 
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e1", Title = "Kick-off with Bosveld Builders", Date = today, Start = new TimeOnly(10, 0), Location = "Teams" });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e2", Title = "Fynbos Physio photo shoot", Date = today.AddDays(2), Start = new TimeOnly(14, 30) });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e3", Title = "Public holiday", Date = today.AddDays(-5) });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t5", Title = "Write blog post on site speed", Created = DateTimeOffset.UtcNow });
-Open("Calendar");
+Open(Page.Calendar);
 Save("calendar");
-Open("Planner");
+Open(Page.Planner);
 Save("planner");
 store.SaveClient(new Webignite.Core.Clients.Client
 {
@@ -196,7 +196,7 @@ Time(today.AddDays(-1) < weekStart ? today : today.AddDays(-1), 45, "Booking pag
 Time(today.AddDays(-2) < weekStart ? today : today.AddDays(-2), 60, "Logo options", "c1", "p2");
 Time(today.AddDays(-2) < weekStart ? today : today.AddDays(-2), 40, "Learning: Avalonia animations");
 vm.Time.Refresh();
-Open("Time");
+Open(Page.Time);
 Save("time");
 vm.Time.ClientChoice = vm.Time.ClientChoices.First(c => c.Label == "Bosveld Builders");
 vm.Time.Note = "Contact form";
@@ -208,7 +208,7 @@ Save("time-running");
 store.SetRunningTimer(null);
 vm.Time.Running = null;
 vm.Time.Note = "";
-Open("Clients");
+Open(Page.Clients);
 Save("clients");
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Save("client");
@@ -237,7 +237,7 @@ Entry(expense, month.AddDays(6), 349.99m, "Takealot", "Equipment", "USB-C hub");
 store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r1", Name = "xneelo dedicated server", Amount = 1899m, DayOfMonth = 1, Category = "Hosting and servers", Starts = month.AddMonths(-11) });
 store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r2", Name = "Adobe Creative Cloud", Amount = 1150m, DayOfMonth = 15, Category = "Software and subscriptions", Starts = month.AddMonths(-11) });
 store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r3", Name = "Fibre", Amount = 899m, DayOfMonth = 31, Category = "Internet and phone", Starts = month.AddMonths(-11) });
-Open("Money");
+Open(Page.Money);
 Save("money");
 
 Webignite.Core.Documents.Line Priced(string description, decimal price) => new() { Description = description, Quantity = 1, UnitPrice = price };
@@ -256,7 +256,7 @@ store.SaveRetainer(new Webignite.Core.Retainers.Retainer
     Id = "ret3", ClientName = "Kalahari Kitchens", Title = "Social media", DayOfMonth = 31, Starts = month, Paused = true,
     Lines = [Priced("Social media posts, [Month]", 3500m)],
 });
-Open("Retainers");
+Open(Page.Retainers);
 Save("retainers");
 var retainersPage = (RetainersViewModel)vm.Selected.Page;
 retainersPage.Edit(seo);
@@ -271,11 +271,11 @@ Renewal("n2", "bosveldbuilders.co.za", domain, "Bosveld Builders", "domains.co.z
 Renewal("n3", "webignite.co.za", domain, null, "xneelo", today.AddDays(140), 99m, null);
 Renewal("n4", "Fynbos Physio hosting", Webignite.Core.Renewals.RenewalKind.Hosting, "Fynbos Physio", "xneelo", today.AddDays(75), null, 1800m);
 Renewal("n5", "fynbosphysio.co.za", domain, "Fynbos Physio", "domains.co.za", today.AddDays(200), 99m, 250m);
-Open("Domains and hosting");
+Open(Page.Renewals);
 Save("domains");
 
 // Income projection, once retainers and renewals exist, in each chart style and with typed-in amounts.
-Open("Money");
+Open(Page.Money);
 var moneyPage = (MoneyViewModel)vm.Selected.Page;
 moneyPage.Refresh();
 window.Height = 1180;
@@ -295,27 +295,27 @@ window.Height = 860;
 // Dark mode: each dark look on Overview, Money and Settings, then back to light.
 foreach (var look in new[] { DarkPalette.Graphite, DarkPalette.Midnight, DarkPalette.Warm })
 {
-    services.Appearance = services.Appearance with { Theme = Theme.Dark, DarkPalette = look };
+    services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Dark, DarkPalette = look };
     var name = look.ToString().ToLowerInvariant();
-    Open("Overview");
+    Open(Page.Overview);
     Save($"dark-{name}-overview");
-    Open("Money");
+    Open(Page.Money);
     Save($"dark-{name}-money");
-    Open("Invoices");
+    Open(Page.Invoices);
     Save($"dark-{name}-invoices");
 }
-Open("Settings");
+Open(Page.Settings);
 Save("dark-settings");
-services.Appearance = services.Appearance with { Theme = Theme.Light };
-Open("Settings");
+services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Light };
+Open(Page.Settings);
 window.Height = 1500;
 Save("settings-looks");
 window.Height = 860;
-Open("Reports");
+Open(Page.Reports);
 Save("reports");
 
 // Mail: the first-time setup, then two mailboxes with a few messages kept on this PC. No network is used.
-Open("Mail");
+Open(Page.Mail);
 vm.Mail.Setup.Address = "eddie@webignite.co.za";
 vm.Mail.Setup.DisplayName = "Eddie, Webignite";
 vm.Mail.Setup.ShowServers = true;
@@ -336,7 +336,15 @@ vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Status = "Up to date at 09:12";
 Save("mail-all-inboxes");
-Open("Clients");
+vm.Mail.Panels.Show("folders", false);
+vm.Mail.Panels.Resized("messages", 460);
+_ = vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41));
+Save("mail-panels-no-folders");
+vm.Mail.Panels.Move("reader", -1);
+Save("mail-panels-reader-left");
+vm.Mail.Panels.ResetCommand.Execute(null);
+vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
+Open(Page.Clients);
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
 Save("client-mail");
 
@@ -353,7 +361,7 @@ var filled = DocumentEmail.Fill(new EmailTemplates().Invoice, new DocumentEmailV
     Kind = DocumentKind.Invoice, ContactName = "Karoo Coffee Roasters", FirstName = "Thandi", Number = "INV-0111", Total = 2725m, AmountDue = 2725m,
     DueOrExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)), OnlineLink = "https://in.xero.com/7Hx2kQ", TradingName = "Webignite",
 });
-services.ComposeMail!(new Webignite.Core.Mail.OutgoingMail
+services.Go.ComposeMail(new Webignite.Core.Mail.OutgoingMail
 {
     AccountId = invoiceBox.Id,
     To = [new("Thandi Mokoena", "accounts@karoocoffee.co.za")],
@@ -394,17 +402,17 @@ var assistant = new Webignite.Data.AssistantDocuments(store);
 assistant.Draft("quote", "Fynbos Physio", [new("Booking page rebuild", 1, 6500m), new("Mobile testing and fixes (hours)", 4, 650m)],
     DocumentSource.Claude, reference: "Booking page");
 assistant.Draft("invoice", "Bosveld Builders", [new("Deposit: new website, 50%", 1, 7250m)], DocumentSource.ChatGpt, reference: "Website deposit");
-Open("To approve");
+Open(Page.Approvals);
 Save("to-approve");
 vm.Approvals.Rows[1].OpenCommand.Execute(null);
 Save("to-approve-open");
 vm.Approvals.Editor!.BackCommand.Execute(null);
 
-Open("Overview");
+Open(Page.Overview);
 Save("overview");
 
 // Tools: the calculator, then its answer on an invoice
-Open("Tools");
+Open(Page.Tools);
 vm.Tools.Sum = "3.5 x 650";
 vm.Tools.WorkOutCommand.Execute(null);
 vm.Tools.Sum = "14 500 + 3 200";
@@ -454,8 +462,8 @@ vm.Invoices.Editor!.Lines[0].Price = "3 x 650";
 Save("invoice-sum");
 
 // Site check, with made-up results (no network here)
-Open("Site check");
-services.SpeedHistory = new Dictionary<string, IReadOnlyList<Webignite.Core.Web.SpeedRun>>
+Open(Page.SiteCheck);
+services.Settings.SpeedHistory = new Dictionary<string, IReadOnlyList<Webignite.Core.Web.SpeedRun>>
 {
     ["karoocoffee.co.za"] = [new(DateOnly.FromDateTime(DateTime.Today.AddDays(-29)), 38, "7.9 s")],
 };
@@ -487,7 +495,7 @@ Save("site-check");
 {
     var now = DateTimeOffset.Now;
     var day = DateOnly.FromDateTime(DateTime.Today);
-    var watch = services.UptimeSettings with { Extra = ["webignite.co.za", "fynbosphysio.co.za", "karoocoffee.co.za"] };
+    var watch = services.Settings.Uptime with { Extra = ["webignite.co.za", "fynbosphysio.co.za", "karoocoffee.co.za"] };
     var sites = new Dictionary<string, Webignite.Core.Web.WatchedSite>();
     void Visit(string domain, params Webignite.Core.Web.UptimePing[] pings)
     {
@@ -501,7 +509,7 @@ Save("site-check");
     Visit("fynbosphysio.co.za", new Webignite.Core.Web.UptimePing(now.AddMinutes(-30), false, 503, 900, now.AddDays(40), "The site answered with a server error (503)."),
         new(now.AddMinutes(-15), false, null, 20000, null, "The site took longer than 20 seconds to answer."));
     Visit("karoocoffee.co.za", new Webignite.Core.Web.UptimePing(now, true, 200, 6100, now.AddDays(9)));
-    services.UptimeSettings = watch with { Sites = sites };
+    services.Settings.Uptime = watch with { Sites = sites };
     vm.SiteCheck.RefreshWatched();
     window.Height = 1500;
     Save("site-watch");
@@ -535,7 +543,7 @@ Save("site-check");
     }
     using var encoded = SkiaSharp.SKImage.FromBitmap(site).Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
     using var siteStream = new MemoryStream(encoded.ToArray());
-    Open("Mark-up");
+    Open(Page.Markup);
     vm.Markup.Show(new Avalonia.Media.Imaging.Bitmap(siteStream));
     var R = Webignite.Core.Tools.MarkColour.Red;
     vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Box, R, [new(60, 220), new(720, 360)]));
@@ -563,7 +571,7 @@ vm.Search.Hide();
 
 // New mail while another page is open: a count beside Mail and a note in the corner.
 var mailIds = store.ListMailAccounts().Select(a => a.Id).ToList();
-services.MailCheckSettings = new Webignite.Core.Mail.MailCheckSettings { Announced = mailIds.ToDictionary(id => id, _ => 0u) };
+services.Settings.MailCheck = new Webignite.Core.Mail.MailCheckSettings { Announced = mailIds.ToDictionary(id => id, _ => 0u) };
 _ = vm.CheckMailAsync();
 // Let the note's fade-in finish before the picture.
 for (var tick = 0; tick < 40; tick++)

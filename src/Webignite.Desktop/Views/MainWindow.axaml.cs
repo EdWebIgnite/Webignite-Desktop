@@ -34,9 +34,9 @@ public partial class MainWindow : Window
         if (App.Services is { } services)
         {
             services.ShowNote = ShowNote;
-            Restore(services.WindowPlacement, main);
-            ApplyAppearance(services.Appearance);
-            services.AppearanceChanged += ApplyAppearance;
+            Restore(services.Settings.Window, main);
+            ApplyAppearance(services.Settings.Appearance);
+            services.Settings.AppearanceChanged += ApplyAppearance;
         }
     }
 
@@ -51,7 +51,7 @@ public partial class MainWindow : Window
         Position = new Avalonia.PixelPoint(placement.X, placement.Y);
         if (placement.Maximized)
             WindowState = WindowState.Maximized;
-        if (main.Modules.FirstOrDefault(m => m.Title == placement.LastPage) is { } page)
+        if (Enum.TryParse<Page>(placement.LastPage, out var key) && main.Modules.FirstOrDefault(m => m.Key == key) is { } page)
             main.Selected = page;
     }
 
@@ -70,9 +70,9 @@ public partial class MainWindow : Window
         base.OnClosing(e);
         if (e.Cancel || App.Services is not { } services || DataContext is not MainViewModel main)
             return;
-        var before = services.WindowPlacement;
+        var before = services.Settings.Window;
         var normal = WindowState == WindowState.Normal;
-        services.WindowPlacement = new WindowPlacement
+        services.Settings.Window = new WindowPlacement
         {
             // Maximised or minimised: keep the normal size from last time so un-maximising still looks right.
             X = normal ? Position.X : before?.X ?? Position.X,
@@ -80,7 +80,7 @@ public partial class MainWindow : Window
             Width = normal ? Width : before?.Width ?? Width,
             Height = normal ? Height : before?.Height ?? Height,
             Maximized = WindowState == WindowState.Maximized,
-            LastPage = main.Selected.Title,
+            LastPage = main.Selected.Key.ToString(),
         };
     }
 
