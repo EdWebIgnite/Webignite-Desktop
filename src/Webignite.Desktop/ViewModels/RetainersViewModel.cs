@@ -43,7 +43,7 @@ public partial class RetainersViewModel : ViewModelBase, IRefreshable
     private void Closed(bool saved)
     {
         Editor = null;
-        var drafted = saved ? services.Store.DraftRetainerInvoices(services.DocumentSettings, Today) : 0;
+        var drafted = saved ? services.Store.DraftRetainerInvoices(services.Settings.Documents, Today) : 0;
         Message = drafted switch
         {
             0 => "",
@@ -213,7 +213,7 @@ public partial class RetainerEditorViewModel : ViewModelBase
         Total = $"{Money.Rand(retainer.MonthlyAmount)} a month";
         var next = RetainerSchedule.NextDate(retainer, services.Store.DraftsMade().Keys.ToHashSet(), Today);
         Preview = next is { } date && RetainerSchedule.Check(retainer).Count == 0
-            ? $"Next draft dated {date:d MMM yyyy}, reference \"{RetainerSchedule.InvoiceFor(retainer, date, services.DocumentSettings).Reference}\"."
+            ? $"Next draft dated {date:d MMM yyyy}, reference \"{RetainerSchedule.InvoiceFor(retainer, date, services.Settings.Documents).Reference}\"."
               + (date <= Today ? " That day has passed, so it is drafted as soon as you save." : "")
             : "";
     }

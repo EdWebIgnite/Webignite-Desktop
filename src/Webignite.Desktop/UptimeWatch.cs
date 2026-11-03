@@ -19,7 +19,7 @@ public static class UptimeWatch
         LastRun = DateTimeOffset.Now;
         try
         {
-            var domains = Uptime.Domains(services.Store.ListClients(), services.UptimeSettings);
+            var domains = Uptime.Domains(services.Store.ListClients(), services.Settings.Uptime);
             using var gate = new SemaphoreSlim(4);
             var pings = await Task.WhenAll(domains.Select(async d =>
             {
@@ -35,7 +35,7 @@ public static class UptimeWatch
             }));
 
             // Read the settings again: a site may have been added or removed while the visits ran.
-            var settings = services.UptimeSettings;
+            var settings = services.Settings.Uptime;
             var still = Uptime.Domains(services.Store.ListClients(), settings).Select(d => d.Domain).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var sites = settings.Sites.Where(s => still.Contains(s.Key)).ToDictionary(s => s.Key, s => s.Value, StringComparer.OrdinalIgnoreCase);
             var alerts = new List<UptimeAlert>();
@@ -47,7 +47,7 @@ public static class UptimeWatch
                 if (alert is not null)
                     alerts.Add(alert);
             }
-            services.UptimeSettings = settings with { Sites = sites };
+            services.Settings.Uptime = settings with { Sites = sites };
             return alerts;
         }
         finally

@@ -69,7 +69,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
     public void Refresh()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
-        services.Store.RaiseAutomaticTasks(services.TaskSettings, today);
+        services.Store.RaiseAutomaticTasks(services.Settings.Tasks, today);
         var tasks = services.Store.ListTasks();
         var documents = services.Store.List();
 
@@ -112,11 +112,11 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
             Inbox = inbox,
             Clients = services.Store.ListClients(),
             OwnAddresses = accounts.Select(a => a.Address).ToList(),
-            StatementsSent = services.StatementsSent,
-            Sites = Webignite.Core.Web.Uptime.Domains(services.Store.ListClients(), services.UptimeSettings)
-                .Select(d => services.UptimeSettings.Sites.GetValueOrDefault(d.Domain)).OfType<Webignite.Core.Web.WatchedSite>().ToList(),
+            StatementsSent = services.Settings.StatementsSent,
+            Sites = Webignite.Core.Web.Uptime.Domains(services.Store.ListClients(), services.Settings.Uptime)
+                .Select(d => services.Settings.Uptime.Sites.GetValueOrDefault(d.Domain)).OfType<Webignite.Core.Web.WatchedSite>().ToList(),
             BackupsOn = hasPassword,
-            BackupOverdue = BackupRules.Overdue(services.BackupSettings, hasPassword, DateTimeOffset.Now),
+            BackupOverdue = BackupRules.Overdue(services.Settings.Backups, hasPassword, DateTimeOffset.Now),
         };
     }
 }
@@ -149,12 +149,12 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
     {
         if (line.Target == SummaryTarget.Clients && line.Client is { } client)
         {
-            services.OpenClient?.Invoke(client);
+            services.Go.Client(client);
             return;
         }
         if (line.Target is not (SummaryTarget.Chase or SummaryTarget.Statement))
         {
-            services.Navigate?.Invoke(line.Target, line.Mail);
+            services.Go.Summary(line.Target, line.Mail);
             return;
         }
         Busy = true;

@@ -24,7 +24,7 @@ public static class Statementing
             var ready = await sending.PrepareStatementAsync(customer, contactId);
             if (ready.Lines.Count == 0)
             {
-                services.StatementsSent = Statements.MarkSent(services.StatementsSent, customer, today);
+                services.Settings.StatementsSent = Statements.MarkSent(services.Settings.StatementsSent, customer, today);
                 return ($"Xero says {ready.ContactName} owes nothing, so there's no statement to send.", false);
             }
 
@@ -38,9 +38,9 @@ public static class Statementing
                 AmountDue = Statements.TotalDue(ready.Lines),
                 StatementLines = Statements.Lines(ready.Lines, today),
                 StatementDate = today,
-                TradingName = services.XeroSettings.TenantName ?? "Webignite",
+                TradingName = services.Settings.Xero.TenantName ?? "Webignite",
             };
-            var filled = DocumentEmail.Fill(services.EmailTemplates.Statement, values);
+            var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.Statement, values);
             var to = Recipients.Parse(ready.Email);
             var mail = new OutgoingMail
             {
@@ -55,11 +55,11 @@ public static class Statementing
             if (filled.Unfilled.Count > 0)
                 notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
 
-            var opened = services.ComposeMail?.Invoke(mail, notes.Count > 0 ? string.Join(" ", notes) : null, () =>
+            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, () =>
             {
-                services.StatementsSent = Statements.MarkSent(services.StatementsSent, customer, DateOnly.FromDateTime(DateTime.Today));
+                services.Settings.StatementsSent = Statements.MarkSent(services.Settings.StatementsSent, customer, DateOnly.FromDateTime(DateTime.Today));
                 return Task.CompletedTask;
-            }) ?? false;
+            });
             return opened ? (null, false) : ("Another mail is open in Mail with changes. Send or close it first, then try again.", true);
         }
         catch (Exception e) when (e is XeroException or HttpRequestException or TaskCanceledException or InvalidOperationException)

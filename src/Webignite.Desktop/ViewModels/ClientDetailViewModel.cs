@@ -75,7 +75,7 @@ public partial class ClientDetailViewModel : ViewModelBase
         : "No mail with them on this PC yet.";
 
     [RelayCommand]
-    private void WriteMail() => services.WriteMail?.Invoke(Recipients.Parse(Email).People);
+    private void WriteMail() => services.Go.WriteMail(Recipients.Parse(Email).People);
 
     /// <summary>Builds this month's statement from Xero and opens it in Mail.</summary>
     [RelayCommand]
@@ -97,7 +97,7 @@ public partial class ClientDetailViewModel : ViewModelBase
     [ObservableProperty] public partial bool DraftingStatement { get; set; }
 
     [RelayCommand]
-    private void OpenMail(ClientMailRow row) => services.OpenMail?.Invoke(row.Summary);
+    private void OpenMail(ClientMailRow row) => services.Go.Mail(row.Summary);
 
     public bool HasDocuments => Documents.Count > 0;
     public bool HasTasks => Tasks.Count > 0;

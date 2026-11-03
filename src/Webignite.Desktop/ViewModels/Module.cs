@@ -6,8 +6,11 @@ namespace Webignite.Desktop.ViewModels;
 /// One entry in the sidebar. The app is a shell of modules, so Mail and later tools slot in as
 /// another entry without touching the rest.
 /// </summary>
-public sealed partial class Module(string title, ViewModelBase page, string icon, bool isLater = false, bool fullBleed = false) : ObservableObject
+public sealed partial class Module(Page key, string title, ViewModelBase page, string icon, bool isLater = false, bool fullBleed = false) : ObservableObject
 {
+    /// <summary>Which page this is. Jumps from other pages use this, so a title can change freely.</summary>
+    public Page Key { get; } = key;
+
     public string Title { get; } = title;
 
     /// <summary>The key of its line icon in Styles/Icons.axaml, without the "Icon." in front.</summary>
