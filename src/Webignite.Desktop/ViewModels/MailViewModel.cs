@@ -107,6 +107,23 @@ public partial class MailViewModel : ViewModelBase
         }
         : "";
 
+    /// <summary>The key the open list is known by, for settings kept per list.</summary>
+    private string? ListKey => Search.Trim().Length > 0 ? null : CurrentCategory?.Key ?? CurrentFolder?.Key;
+
+    /// <summary>Replies grouped under the first mail, one row per conversation. Each list can switch it off; search never groups.</summary>
+    public bool Conversations => ListKey is { } key && services.Settings.MailView.ConversationsIn(key);
+    public bool CanGroup => ListKey is not null;
+
+    [RelayCommand]
+    private void ToggleConversations()
+    {
+        if (ListKey is not { } key)
+            return;
+        services.Settings.MailView = services.Settings.MailView.WithConversations(key, !Conversations);
+        OnPropertyChanged(nameof(Conversations));
+        ShowMessages();
+    }
+
     /// <summary>Older mail can only be fetched for a real folder, not for Important or a category.</summary>
     public bool CanLoadOlder => CurrentFolder is { Kind: FolderKind.Folder } && CurrentCategory is null;
 
@@ -228,18 +245,20 @@ public partial class MailViewModel : ViewModelBase
             list = [];
 
         var showMailbox = accounts.Count > 1 && (Search.Trim().Length > 0 || CurrentCategory is not null || CurrentFolder is { Kind: not FolderKind.Folder });
+        var kept = list.Where(s => MailFilters.Keep(s, Filter));
+        var threads = Conversations ? MailThreads.Group(kept) : MailThreads.Single(kept);
         rebuilding = true;
         try
         {
             Messages.Clear();
-            foreach (var summary in list.Where(s => MailFilters.Keep(s, Filter)))
+            foreach (var thread in threads)
             {
-                if (accounts.FirstOrDefault(a => a.Id == summary.AccountId) is not { } account)
+                if (accounts.FirstOrDefault(a => a.Id == thread.Latest.AccountId) is not { } account)
                     continue;
-                Messages.Add(new MailRowViewModel(summary, account, showMailbox, this));
+                Messages.Add(new MailRowViewModel(thread.Latest, account, showMailbox, this) { Thread = thread.Messages });
             }
             for (var i = 0; i < Messages.Count; i++)
-                if (picked.Contains(Key(Messages[i].Summary)))
+                if (Messages[i].Thread.Any(m => picked.Contains(Key(m))))
                     Selection.Select(i);
         }
         finally
@@ -249,6 +268,8 @@ public partial class MailViewModel : ViewModelBase
         SelectedCount = Selection.SelectedItems.Count;
         OnPropertyChanged(nameof(NoMessages));
         OnPropertyChanged(nameof(EmptyText));
+        OnPropertyChanged(nameof(Conversations));
+        OnPropertyChanged(nameof(CanGroup));
     }
 
     private HashSet<(string, string)>? bins;
@@ -300,16 +321,22 @@ public partial class MailViewModel : ViewModelBase
         await Show(row);
     }
 
-    private async Task Show(MailRowViewModel row)
+    private Task Show(MailRowViewModel row) => ShowInThread(row.Summary, row.Account, row.Thread);
+
+    /// <summary>
+    /// Opens one mail in the reader, with the rest of its conversation stacked above it. Opening a conversation
+    /// marks all of it read.
+    /// </summary>
+    internal async Task ShowInThread(MailSummary summary, MailAccount account, IReadOnlyList<MailSummary> thread)
     {
-        var reader = new MailReaderViewModel(row.Summary, row.Account, services, this);
+        var reader = new MailReaderViewModel(summary, account, services, this) { Thread = thread };
         Reader = reader;
         await reader.Load();
-        if (!row.Summary.Seen && Reader == reader)
+        var unread = thread.Where(m => !m.Seen).ToList();
+        if (unread.Count > 0 && Reader == reader)
         {
-            var account = row.Account;
             var seen = new List<MailSummary>();
-            await Run(async () => seen.AddRange(await services.Mail.MarkAsync(account, [row.Summary], MailMark.Read, true)), quiet: true);
+            await Run(async () => seen.AddRange(await services.Mail.MarkAsync(account, unread, MailMark.Read, true)), quiet: true);
             Updated(seen);
         }
     }
@@ -435,7 +462,14 @@ public partial class MailViewModel : ViewModelBase
     internal void Removed(IReadOnlyCollection<MailSummary> gone)
     {
         var keys = gone.Select(Key).ToHashSet();
-        var rows = Messages.Where(r => keys.Contains(Key(r.Summary))).ToList();
+        // A conversation goes when all its mail has gone; otherwise it keeps what is left.
+        foreach (var row in Messages.Where(r => r.Thread.Count > 1 && r.Thread.Any(m => keys.Contains(Key(m)))).ToList())
+        {
+            var left = row.Thread.Where(m => !keys.Contains(Key(m))).ToList();
+            if (left.Count > 0)
+                row.SetThread(left);
+        }
+        var rows = Messages.Where(r => r.Thread.All(m => keys.Contains(Key(m)))).ToList();
         var next = rows.Count == 0 ? -1 : Messages.IndexOf(rows[0]);
         rebuilding = true;
         try
@@ -464,8 +498,8 @@ public partial class MailViewModel : ViewModelBase
             return;
         var byKey = changed.ToDictionary(Key);
         foreach (var row in Messages)
-            if (byKey.TryGetValue(Key(row.Summary), out var updated))
-                row.Update(updated);
+            if (row.Thread.Any(m => byKey.ContainsKey(Key(m))))
+                row.Update(byKey);
         if (Reader is { } reader && byKey.TryGetValue(Key(reader.Summary), out var open))
             reader.Update(open);
         RefreshCounts(changed);
@@ -719,7 +753,15 @@ public partial class CategoryNodeViewModel(MailCategory category, MailViewModel 
 
 public partial class MailRowViewModel(MailSummary summary, MailAccount account, bool showMailbox, MailViewModel owner) : ViewModelBase
 {
+    /// <summary>The mail the row shows: the newest in its conversation.</summary>
     public MailSummary Summary { get; private set; } = summary;
+
+    /// <summary>All the mail in this row's conversation, oldest first. Just the one mail when conversations are off.</summary>
+    public IReadOnlyList<MailSummary> Thread { get; internal set; } = [summary];
+
+    /// <summary>How many mails the conversation holds, shown beside the sender when more than one.</summary>
+    public int Count => Thread.Count;
+    public bool IsConversation => Thread.Count > 1;
     public MailAccount Account => account;
     public bool ShowMailbox => showMailbox;
 
@@ -732,9 +774,9 @@ public partial class MailRowViewModel(MailSummary summary, MailAccount account, 
 
     public string Subject => string.IsNullOrWhiteSpace(Summary.Subject) ? "(no subject)" : Summary.Subject;
     public string Preview => Summary.Preview;
-    public bool IsUnread => !Summary.Seen;
-    public bool IsImportant => Summary.Flagged;
-    public bool HasAttachments => Summary.HasAttachments;
+    public bool IsUnread => Thread.Any(m => !m.Seen);
+    public bool IsImportant => Thread.Any(m => m.Flagged);
+    public bool HasAttachments => Thread.Any(m => m.HasAttachments);
     public string MailboxTag => account.Address.Split('@')[0];
 
     /// <summary>The categories this mail is in, shown as coloured dots.</summary>
@@ -755,12 +797,22 @@ public partial class MailRowViewModel(MailSummary summary, MailAccount account, 
         }
     }
 
-    internal void Update(MailSummary updated)
+    internal void Update(MailSummary updated) => Update(new Dictionary<(string, string, uint), MailSummary> { [MailViewModel.Key(updated)] = updated });
+
+    internal void Update(IReadOnlyDictionary<(string, string, uint), MailSummary> changed)
     {
-        Summary = updated;
+        Thread = Thread.Select(m => changed.GetValueOrDefault(MailViewModel.Key(m), m)).ToList();
+        Summary = changed.GetValueOrDefault(MailViewModel.Key(Summary), Summary);
         OnPropertyChanged(nameof(IsUnread));
         OnPropertyChanged(nameof(IsImportant));
         RefreshDots();
+    }
+
+    internal void SetThread(IReadOnlyList<MailSummary> thread)
+    {
+        Thread = thread;
+        Summary = thread[^1];
+        OnPropertyChanged(string.Empty);
     }
 
     internal void RefreshDots()
