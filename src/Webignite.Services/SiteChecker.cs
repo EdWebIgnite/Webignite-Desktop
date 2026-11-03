@@ -5,17 +5,18 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Webignite.Core.Web;
 
-namespace Webignite.Desktop;
+namespace Webignite.Services;
 
 /// <summary>
 /// The network side of the site check: DNS over HTTPS, the registry's RDAP record, the live certificate,
-/// and Google's PageSpeed test. Read-only; nothing is changed anywhere.
+/// and Google's PageSpeed test. Read-only; nothing is changed anywhere. Tests hand in their own
+/// <see cref="HttpClient"/> over a fake handler; the app uses <see cref="Default"/>.
 /// </summary>
-public static class SiteChecker
+public sealed class SiteChecker(HttpClient http)
 {
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(100) };
+    public static SiteChecker Default { get; } = new(new HttpClient { Timeout = TimeSpan.FromSeconds(100) });
 
-    public static async Task<IReadOnlyList<DomainFinding>> DomainAsync(string domain, CancellationToken cancel = default)
+    public async Task<IReadOnlyList<DomainFinding>> DomainAsync(string domain, CancellationToken cancel = default)
     {
         var a = DnsAsync(domain, "A", 1, cancel);
         var ns = NameServersAsync(domain, cancel);
@@ -46,7 +47,7 @@ public static class SiteChecker
     }
 
     // Tries the usual DKIM selector names. A failed lookup just counts as nothing found there.
-    private static async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> DkimAsync(string domain, CancellationToken cancel)
+    private async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> DkimAsync(string domain, CancellationToken cancel)
     {
         var lookups = DomainReport.DkimSelectors.Select(async selector =>
         {
@@ -63,7 +64,7 @@ public static class SiteChecker
     }
 
     // A subdomain usually has no NS records of its own, so walk up until some are found.
-    private static async Task<IReadOnlyList<string>> NameServersAsync(string domain, CancellationToken cancel)
+    private async Task<IReadOnlyList<string>> NameServersAsync(string domain, CancellationToken cancel)
     {
         for (var name = domain; name.Count(c => c == '.') >= 1; name = name[(name.IndexOf('.') + 1)..])
         {
@@ -74,7 +75,7 @@ public static class SiteChecker
         return [];
     }
 
-    private static async Task<IReadOnlyList<string>> DnsAsync(string name, string type, int code, CancellationToken cancel)
+    private async Task<IReadOnlyList<string>> DnsAsync(string name, string type, int code, CancellationToken cancel)
     {
         foreach (var server in new[] { "https://cloudflare-dns.com/dns-query", "https://dns.google/resolve" })
         {
@@ -82,7 +83,7 @@ public static class SiteChecker
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, $"{server}?name={Uri.EscapeDataString(name)}&type={type}");
                 request.Headers.Accept.ParseAdd("application/dns-json");
-                using var response = await Http.SendAsync(request, cancel);
+                using var response = await http.SendAsync(request, cancel);
                 if (response.IsSuccessStatusCode)
                     return DomainReport.DnsAnswers(await response.Content.ReadAsStringAsync(cancel), code);
             }
@@ -94,11 +95,11 @@ public static class SiteChecker
         throw new HttpRequestException("Couldn't look up the domain. Check the internet connection.");
     }
 
-    private static async Task<(string? Json, string? Problem)> RdapAsync(string domain, CancellationToken cancel)
+    private async Task<(string? Json, string? Problem)> RdapAsync(string domain, CancellationToken cancel)
     {
         try
         {
-            using var response = await Http.GetAsync("https://rdap.org/domain/" + Uri.EscapeDataString(domain), cancel);
+            using var response = await http.GetAsync("https://rdap.org/domain/" + Uri.EscapeDataString(domain), cancel);
             if (response.StatusCode == HttpStatusCode.NotFound)
                 return (null, "The registry for this domain ending doesn't publish expiry dates. Check with the registrar.");
             if (!response.IsSuccessStatusCode)
@@ -144,10 +145,10 @@ public static class SiteChecker
     }
 
     /// <summary>Google's PageSpeed test, as a phone on mobile data sees the site. Takes up to a minute.</summary>
-    public static async Task<SpeedReport> SpeedAsync(string address, CancellationToken cancel = default)
+    public async Task<SpeedReport> SpeedAsync(string address, CancellationToken cancel = default)
     {
         var url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?strategy=mobile&category=performance&url=" + Uri.EscapeDataString(address);
-        using var response = await Http.GetAsync(url, cancel);
+        using var response = await http.GetAsync(url, cancel);
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
             throw new HttpRequestException("Google is busy with too many tests. Try again in a minute.");
         if (!response.IsSuccessStatusCode)

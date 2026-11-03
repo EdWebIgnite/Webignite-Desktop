@@ -14,7 +14,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Reads payments from Xero, refreshes the pages that show money owed and announces what came in.</summary>
     public async Task CheckPaymentsAsync(bool byHand = false)
     {
-        var (news, problem) = await services.Work.Run("Checking Xero for payments", () => PaymentWatch.RunAsync(services));
+        var (news, problem) = await services.Work.Run("Checking Xero for payments", () => services.Payments.RunAsync());
         if (byHand && problem is not null)
             services.ShowNote?.Invoke("Couldn't check payments", problem, null);
         foreach (var payment in news.Take(3))
@@ -130,9 +130,9 @@ public partial class MainViewModel : ViewModelBase
         uptimeTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         uptimeTimer.Tick += async (_, _) =>
         {
-            if (!Webignite.Core.Web.Uptime.Due(services.Settings.Uptime, UptimeWatch.LastRun, DateTimeOffset.Now))
+            if (!services.SiteWatch.Due(DateTimeOffset.Now))
                 return;
-            AnnounceSites(await UptimeWatch.RunAsync(services));
+            AnnounceSites(await services.SiteWatch.RunAsync());
             SiteCheck.RefreshWatched();
         };
         uptimeTimer.Start();
@@ -141,7 +141,7 @@ public partial class MainViewModel : ViewModelBase
         paymentTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         paymentTimer.Tick += async (_, _) =>
         {
-            if (services.XeroApi is not null && PaymentWatch.Due(DateTimeOffset.Now))
+            if (services.XeroApi is not null && services.Payments.Due(DateTimeOffset.Now))
                 await CheckPaymentsAsync();
         };
         paymentTimer.Start();

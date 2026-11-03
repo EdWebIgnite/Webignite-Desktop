@@ -82,7 +82,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
         Owed = Money.Rand(Receivables.Owed(documents));
         Overdue = Money.Rand(Receivables.Overdue(documents, today));
         QuotesOut = Money.Rand(Receivables.QuotesOut(documents, today));
-        PaymentsText = PaymentWatch.LastRun is { } checkedAt
+        PaymentsText = services.Payments.LastRun is { } checkedAt
             ? $"Payments from Xero, checked at {checkedAt.ToLocalTime():HH:mm}."
             : services.XeroApi is null ? "Connect Xero to see payments." : "Checking Xero for payments.";
 
