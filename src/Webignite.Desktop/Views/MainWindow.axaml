@@ -45,6 +45,11 @@
                   Background="{DynamicResource NavSelected}" IsVisible="{Binding Updates.IsReady}"
                   Command="{Binding Updates.RestartCommand}"
                   Content="{Binding Updates.ReadyVersion, StringFormat='Update to {0}: restart'}" />
+          <!-- Background work, e.g. checking mail, so it's clear something is happening. -->
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,0" IsVisible="{Binding Work.IsWorking}">
+            <c:Spinner Size="12" Foreground="{DynamicResource NavText}" VerticalAlignment="Center" />
+            <TextBlock FontSize="12" Foreground="{DynamicResource NavText}" Text="{Binding Work.Text}" VerticalAlignment="Center" />
+          </StackPanel>
           <TextBlock FontSize="11" Foreground="{DynamicResource NavMuted}" TextWrapping="Wrap"
                      Text="{Binding Updates.VersionText, StringFormat='{}{0} · Data stays on this PC'}" />
         </StackPanel>

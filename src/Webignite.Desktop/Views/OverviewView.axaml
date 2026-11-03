@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.OverviewView"
              x:DataType="vm:OverviewViewModel">
@@ -15,8 +16,11 @@
           <TextBlock Classes="label" Text="OWED TO YOU" />
           <TextBlock Classes="figure" Text="{Binding Owed}" />
           <TextBlock Classes="muted" FontSize="12" Text="{Binding PaymentsText}" TextWrapping="Wrap" />
-          <Button Classes="quiet" Content="Check payments now" Command="{Binding CheckPaymentsNowCommand}"
-                  IsEnabled="{Binding !CheckingPayments}" IsVisible="{Binding XeroConnected}" HorizontalAlignment="Left" Padding="0,2" FontSize="12" />
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding XeroConnected}">
+            <Button Classes="quiet" Content="Check payments now" Command="{Binding CheckPaymentsNowCommand}"
+                    IsEnabled="{Binding !CheckingPayments}" HorizontalAlignment="Left" Padding="0,2" FontSize="12" />
+            <c:Spinner IsVisible="{Binding CheckingPayments}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
+          </StackPanel>
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="6,0">
@@ -44,6 +48,7 @@
               <DockPanel Margin="0,0,0,6">
                 <Button DockPanel.Dock="Right" Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" VerticalAlignment="Center"
                         IsEnabled="{Binding !Busy}" />
+                <c:Spinner DockPanel.Dock="Right" IsVisible="{Binding Busy}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="8,0" />
                 <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" Classes.problem="{Binding Problem}" />
               </DockPanel>
             </DataTemplate>

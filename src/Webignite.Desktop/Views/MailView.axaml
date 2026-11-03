@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:v="using:Webignite.Desktop.Views"
              xmlns:html="using:TheArtOfDev.HtmlRenderer.Avalonia"
@@ -200,6 +201,8 @@
           <StackPanel DockPanel.Dock="Top" Margin="16,16,16,10" Spacing="10">
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                <c:Spinner IsVisible="{Binding IsBusy}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,4,0"
+                           ToolTip.Tip="Talking to the mail server" />
                 <Button Classes="quiet" Content="Check for mail" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
                 <Button Classes="primary" Content="Write" Command="{Binding WriteCommand}" />
               </StackPanel>

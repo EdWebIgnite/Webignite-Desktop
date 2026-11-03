@@ -44,6 +44,7 @@ public partial class MainWindow : Window
     {
         Classes.Set("motion-full", appearance.Motion == Motion.Full);
         Classes.Set("motion-reduced", appearance.Motion == Motion.Reduced);
+        Controls.Spinner.Still = appearance.Motion == Motion.Off;
         ScrollingHost.PageTransition = FadeRise.For(appearance.Motion);
         FullHost.PageTransition = FadeRise.For(appearance.Motion);
     }

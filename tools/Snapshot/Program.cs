@@ -66,6 +66,14 @@ void Save(string name)
 
 Save("overview");
 
+// Working states: a background job in the sidebar and the payments check on Overview.
+using (services.Work.Start("Checking mail"))
+{
+    vm.Overview.CheckingPayments = true;
+    Save("working");
+    vm.Overview.CheckingPayments = false;
+}
+
 // Empty pages, before the sample data for them exists.
 Open("Retainers");
 Save("empty-retainers");

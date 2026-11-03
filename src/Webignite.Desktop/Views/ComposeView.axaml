@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:core="using:Webignite.Core.Mail"
              xmlns:html="using:TheArtOfDev.HtmlRenderer.Avalonia"
@@ -91,6 +92,7 @@
           <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
             <Button Classes="primary" Content="Send" Command="{Binding SendCommand}" IsEnabled="{Binding !IsWorking}" />
             <Button Classes="quiet" Content="Save draft" Command="{Binding SaveDraftCommand}" IsEnabled="{Binding !IsWorking}" />
+            <c:Spinner IsVisible="{Binding IsWorking}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="4,0,0,0" />
           </StackPanel>
           <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap"
                      Classes="muted" Classes.short="{Binding MessageIsProblem}" Text="{Binding Message}" />

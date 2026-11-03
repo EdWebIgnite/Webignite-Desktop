@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel"
@@ -71,7 +72,10 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding HasBackupPassword}">
-          <Button Classes="quiet" Content="Back up now" Command="{Binding BackUpNowCommand}" IsEnabled="{Binding !BackingUp}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="quiet" Content="Back up now" Command="{Binding BackUpNowCommand}" IsEnabled="{Binding !BackingUp}" />
+            <c:Spinner IsVisible="{Binding BackingUp}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
+          </StackPanel>
           <Button Classes="quiet" Content="Restore a backup" Click="ChooseRestoreFile" />
           <Button Classes="link" Content="Change backup password" Command="{Binding ChangePasswordCommand}" IsVisible="{Binding !ChangingPassword}" />
         </StackPanel>
