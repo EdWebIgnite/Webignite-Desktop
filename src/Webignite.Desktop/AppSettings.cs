@@ -150,6 +150,13 @@ public sealed class AppSettings(LocalStore store)
         store.SetSetting("panels", all);
     }
 
+    /// <summary>Mail set to send later, waiting as drafts.</summary>
+    public SendLaterSettings SendLater
+    {
+        get => store.GetSetting<SendLaterSettings>("mail-send-later") ?? new SendLaterSettings();
+        set => store.SetSetting("mail-send-later", value);
+    }
+
     /// <summary>Text written often, put into a mail from the editor.</summary>
     public IReadOnlyList<SavedReply> SavedReplies
     {

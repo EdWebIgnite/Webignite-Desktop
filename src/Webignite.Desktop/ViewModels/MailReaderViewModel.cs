@@ -131,8 +131,26 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     [RelayCommand]
     private void EditDraft()
     {
-        if (mime is not null)
-            owner.Compose(MailComposer.FromDraft(mime, account, Summary.Uid), source: mime);
+        if (mime is null)
+            return;
+        // Saving the edited draft makes a new one, so a send set for this one would find nothing: it is taken off.
+        if (Scheduled is not null)
+            owner.Unschedule(account.Id, Summary.Uid);
+        owner.Compose(MailComposer.FromDraft(mime, account, Summary.Uid), source: mime);
+    }
+
+    /// <summary>The send set for this draft, if it is one waiting to go later.</summary>
+    public ScheduledSend? Scheduled => IsDraft ? SendLater.For(services.Settings.SendLater.Scheduled, account.Id, Summary.Uid) : null;
+    public bool IsScheduled => Scheduled is not null;
+    public string ScheduledText => Scheduled is { } s ? $"Set to send {SendLater.When(s.SendAt, DateTimeOffset.Now)}. Editing it takes it off, so set the time again when you send." : "";
+
+    [RelayCommand]
+    private void DontSend()
+    {
+        owner.Unschedule(account.Id, Summary.Uid);
+        OnPropertyChanged(nameof(Scheduled));
+        OnPropertyChanged(nameof(IsScheduled));
+        OnPropertyChanged(nameof(ScheduledText));
     }
 
     [RelayCommand]

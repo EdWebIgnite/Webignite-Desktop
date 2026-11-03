@@ -177,10 +177,18 @@ public partial class ComposeViewModel : ViewModelBase
     [RelayCommand]
     private void AddAttachmentFirst() => AskingAboutAttachment = false;
 
-    private async Task SendNow(bool checkAttachment)
+    /// <summary>Checks the mail, then hands it to the Mail page, which sends it after a few seconds unless Undo is clicked.</summary>
+    private Task SendNow(bool checkAttachment)
     {
-        if (IsWorking)
-            return;
+        if (IsWorking || Ready(checkAttachment) is not { } mail)
+            return Task.CompletedTask;
+        owner.QueueSend(this, Recipients.Short(mail.To.Concat(mail.Cc).Concat(mail.Bcc).ToList()), () => Deliver(mail));
+        return Task.CompletedTask;
+    }
+
+    /// <summary>The mail as it stands when it is fit to send, else null with the problem shown or the attachment question asked.</summary>
+    private OutgoingMail? Ready(bool checkAttachment)
+    {
         var (mail, bad) = Current();
         var problems = OutgoingRules.CheckForSending(mail, bad).ToList();
         if (mail.Attachments.FirstOrDefault(a => a.FilePath is not null && !File.Exists(a.FilePath)) is { } missing)
@@ -188,17 +196,20 @@ public partial class ComposeViewModel : ViewModelBase
         if (problems.Count > 0)
         {
             Say(string.Join(" ", problems), true);
-            return;
+            return null;
         }
         if (checkAttachment && OutgoingRules.MentionsMissingAttachment(mail))
         {
             AskingAboutAttachment = true;
-            return;
+            return null;
         }
         AskingAboutAttachment = false;
-        if (string.IsNullOrWhiteSpace(mail.Subject))
-            mail = mail with { Subject = "" };
+        return string.IsNullOrWhiteSpace(mail.Subject) ? mail with { Subject = "" } : mail;
+    }
 
+    /// <summary>Sends the mail now. When the server says no, the editor comes back with the reason.</summary>
+    internal async Task Deliver(OutgoingMail mail)
+    {
         IsWorking = true;
         Say("Sending…", false);
         try
@@ -220,11 +231,13 @@ public partial class ComposeViewModel : ViewModelBase
         }
         catch (MailException e)
         {
-            Say(e.Message, true);
+            owner.Reopen(this);
+            Say("Not sent: " + e.Message, true);
         }
         catch (IOException e)
         {
-            Say("Couldn't read an attachment: " + e.Message, true);
+            owner.Reopen(this);
+            Say("Not sent. Couldn't read an attachment: " + e.Message, true);
         }
         finally
         {

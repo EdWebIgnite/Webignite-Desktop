@@ -422,6 +422,7 @@ public partial class MailViewModel : ViewModelBase
                 }
                 await Run(() => services.Mail.SyncAccountAsync(account), quiet: true, onError: e => failed.Add($"{account.Address}: {e}"));
             }
+            await SendScheduled();
             await WakeSnoozed();
             await RunRulesOnArrival();
             if (CurrentFolder is { Kind: FolderKind.Folder } folder && folder.Role is not (FolderRole.Inbox or FolderRole.Sent or FolderRole.Drafts))

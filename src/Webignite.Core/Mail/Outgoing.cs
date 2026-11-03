@@ -42,6 +42,15 @@ public static class Recipients
     /// Reads what was typed in a To, Cc or Bcc box: addresses split by commas or semicolons, with or
     /// without a name, e.g. "Thandi Mokoena &lt;thandi@karoocoffee.co.za&gt;, pieter@bosveld.co.za".
     /// </summary>
+    /// <summary>Who a mail goes to, short: "Thandi Mokoena", "Thandi Mokoena and Pieter" or "Thandi Mokoena and 2 others".</summary>
+    public static string Short(IReadOnlyList<MailPerson> people) => people.Count switch
+    {
+        0 => "nobody",
+        1 => people[0].Display,
+        2 => $"{people[0].Display} and {people[1].Display}",
+        _ => $"{people[0].Display} and {people.Count - 1} others",
+    };
+
     public static (IReadOnlyList<MailPerson> People, IReadOnlyList<string> Bad) Parse(string? text)
     {
         var people = new List<MailPerson>();
