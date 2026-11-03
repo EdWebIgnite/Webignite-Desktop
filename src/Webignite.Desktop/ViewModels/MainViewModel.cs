@@ -154,7 +154,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Approvals, "To approve", Approvals, "Approve"),
             new Module(Page.Mail, "Mail", Mail, "Mail", fullBleed: true),
             new NavGroup("client-work", "CLIENT WORK"),
-            new Module(Page.Clients, "Clients", Clients, "Clients"),
+            new Module(Page.Clients, "Clients", Clients, "Clients", fullBleed: true),
             new Module(Page.Retainers, "Retainers", new RetainersViewModel(services), "Retainers"),
             new Module(Page.Renewals, "Domains and hosting", new RenewalsViewModel(services), "Domains"),
             new NavGroup("billing", "BILLING"),

@@ -156,15 +156,18 @@ public partial class ClientDetailViewModel : ViewModelBase
     [RelayCommand]
     private void Back()
     {
-        // A brand new client with nothing typed is simply dropped.
-        if (isNew && string.IsNullOrWhiteSpace(Name))
-        {
-            close();
-            return;
-        }
-        if (TrySave())
+        if (Leave())
             close();
     }
+
+    /// <summary>
+    /// Gets ready to close or switch to another client: saves what was typed. A brand new client with nothing
+    /// typed is simply dropped. Returns false when something needs fixing first; the problems are showing.
+    /// </summary>
+    internal bool Leave() => (isNew && string.IsNullOrWhiteSpace(Name)) || TrySave();
+
+    /// <summary>The client this page is for, so the list can mark it as the open one.</summary>
+    internal string ClientId => client.Id;
 
     [RelayCommand]
     private void AskDelete() => ConfirmingDelete = true;
