@@ -19,7 +19,9 @@ public partial class ClientDetailView : UserControl
         });
     }
 
-    private async void LinkFiles(object? sender, RoutedEventArgs e)
+    private void LinkFiles(object? sender, RoutedEventArgs e) => LinkFilesAsync(sender, e).Forget("Linking files", tell: true);
+
+    private async Task LinkFilesAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ClientDetailViewModel client || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
             return;

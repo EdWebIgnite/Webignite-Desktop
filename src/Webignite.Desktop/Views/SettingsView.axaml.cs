@@ -16,7 +16,9 @@ public partial class SettingsView : UserControl
         PreviewWarm.Resources.MergedDictionaries.Add(Palettes.Load(DarkPalette.Warm));
     }
 
-    private async void ChooseBackupFolder(object? sender, RoutedEventArgs e)
+    private void ChooseBackupFolder(object? sender, RoutedEventArgs e) => ChooseBackupFolderAsync(sender, e).Forget("Choosing the backup folder", tell: true);
+
+    private async Task ChooseBackupFolderAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not SettingsViewModel settings || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
             return;
@@ -25,7 +27,9 @@ public partial class SettingsView : UserControl
             settings.SetBackupFolder(path);
     }
 
-    private async void ChooseRestoreFile(object? sender, RoutedEventArgs e)
+    private void ChooseRestoreFile(object? sender, RoutedEventArgs e) => ChooseRestoreFileAsync(sender, e).Forget("Choosing a backup to restore", tell: true);
+
+    private async Task ChooseRestoreFileAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not SettingsViewModel settings || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
             return;

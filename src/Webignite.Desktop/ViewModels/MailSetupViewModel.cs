@@ -211,8 +211,15 @@ public partial class MailSetupViewModel(AppServices services, Action<bool> done)
             IsChecking = true;
             Say("Checking with the mail server…", false);
             var password = Password.Length > 0 ? Password : services.Secrets.Read(MailService.SecretName(editing!)) ?? "";
-            var error = await MailService.TestAsync(account, password);
-            IsChecking = false;
+            string? error;
+            try
+            {
+                error = await MailService.TestAsync(account, password);
+            }
+            finally
+            {
+                IsChecking = false; // a surprise error still frees the Save button
+            }
             if (error is not null)
             {
                 Say(error, true);

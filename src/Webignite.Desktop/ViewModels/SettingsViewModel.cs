@@ -217,8 +217,15 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
             return;
         }
         BackingUp = true;
-        var problem = await services.BackUpAsync(now: true);
-        BackingUp = false;
+        string? problem;
+        try
+        {
+            problem = await services.BackUpAsync(now: true);
+        }
+        finally
+        {
+            BackingUp = false; // a surprise error still frees the Back up now button
+        }
         UpdateBackupStatus();
         if (problem is not null)
             Say(problem, true);

@@ -67,6 +67,7 @@ void Save(string name)
 }
 
 Save("overview");
+
 vm.ToggleShortcutsCommand.Execute(null);
 Save("shortcuts");
 vm.HideShortcutsCommand.Execute(null);
@@ -822,6 +823,21 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
             Lines = lines.Select(l => new Line { Description = l.Description, Quantity = l.Quantity, UnitPrice = l.Price }).ToList(),
         }, new DocumentSettings(), DateOnly.FromDateTime(DateTime.Today)),
     });
+
+// Last, as its note stays on screen while the snapshot clock stands still.
+// An error on the screen's thread is logged and shown as a note; the app keeps going. Exits with an error if not.
+{
+    Webignite.Data.AppLog.UseRoot(data);
+    Background.CatchUnhandled();
+    Dispatcher.UIThread.Post(() => throw new InvalidOperationException("A test problem from the snapshot tool."));
+    Dispatcher.UIThread.RunJobs();
+    var logged = File.Exists(Webignite.Data.AppLog.CurrentFile(DateTimeOffset.Now))
+        && File.ReadAllText(Webignite.Data.AppLog.CurrentFile(DateTimeOffset.Now)).Contains("A test problem from the snapshot tool.");
+    Console.WriteLine("An error on the screen's thread was caught and logged: " + logged);
+    Save("problem-note");
+    if (!logged)
+        Environment.Exit(1);
+}
 
 // A small, real PDF for the attachment preview: one A4 page with three lines of text.
 static byte[] SamplePdf(params string[] lines)

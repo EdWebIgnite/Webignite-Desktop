@@ -36,7 +36,8 @@ internal sealed class Program
 
     /// <summary>
     /// Anything that would otherwise close the app without a word is written to the log, and the person is told
-    /// where to look. Background tasks nobody awaited are logged too, so a failed check leaves a trace.
+    /// where to look. Background tasks nobody awaited are logged too, so a failed check leaves a trace. Errors on
+    /// the screen's thread don't close the app at all: see <see cref="Background.CatchUnhandled"/>.
     /// </summary>
     private static void WatchForCrashes()
     {
@@ -51,6 +52,9 @@ internal sealed class Program
             AppLog.Write("A background task failed and nobody was waiting for it", e.Exception);
             e.SetObserved();
         };
+        // An error on the screen's thread (a button, a timer, a handler) is logged and shown, and the app carries on.
+        // Only an error outside it, or before the window exists, still closes the app with the message below.
+        Background.CatchUnhandled();
     }
 
     private static bool crashReported;
