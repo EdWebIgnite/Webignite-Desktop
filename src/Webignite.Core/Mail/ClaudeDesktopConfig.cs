@@ -36,6 +36,39 @@ public static class ClaudeDesktopConfig
         return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
+    public const string FileName = "claude_desktop_config.json";
+
+    /// <summary>
+    /// Every place Claude Desktop may keep its settings file on Windows, given the roaming and local app data
+    /// folders (%APPDATA% and %LOCALAPPDATA%):
+    /// <list type="bullet">
+    /// <item>%APPDATA%\Claude, the classic install.</item>
+    /// <item>%LOCALAPPDATA%\Claude-Data\&lt;each folder&gt;, the packaged install from claude.ai (for example
+    /// Claude-Data\claude_pzs8sxrjxfjjc). This is the file Claude's own "Edit config" opens.</item>
+    /// <item>%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude, the Microsoft Store version.</item>
+    /// </list>
+    /// Folders that aren't there are skipped, except the classic one, which is always listed. Empty arguments are ignored.
+    /// </summary>
+    public static IReadOnlyList<string> Paths(string? roaming, string? local)
+    {
+        var paths = new List<string>();
+        if (!string.IsNullOrEmpty(roaming))
+            paths.Add(Path.Combine(roaming, "Claude", FileName));
+        if (string.IsNullOrEmpty(local))
+            return paths;
+
+        var data = Path.Combine(local, "Claude-Data");
+        if (Directory.Exists(data))
+            paths.AddRange(Directory.GetDirectories(data).Order(StringComparer.OrdinalIgnoreCase)
+                .Select(folder => Path.Combine(folder, FileName)));
+
+        var packages = Path.Combine(local, "Packages");
+        if (Directory.Exists(packages))
+            paths.AddRange(Directory.GetDirectories(packages, "Claude_*").Order(StringComparer.OrdinalIgnoreCase)
+                .Select(folder => Path.Combine(folder, "LocalCache", "Roaming", "Claude", FileName)));
+        return paths;
+    }
+
     public static bool HasConnector(string? existing, string command)
     {
         try

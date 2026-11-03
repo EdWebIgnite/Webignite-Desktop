@@ -11,19 +11,10 @@ public static class AssistantSetup
 
     public static bool ConnectorInstalled() => File.Exists(ConnectorPath());
 
-    /// <summary>Claude Desktop's settings file. The Microsoft Store version keeps it in its package folder.</summary>
-    public static IReadOnlyList<string> ClaudeConfigPaths()
-    {
-        var paths = new List<string>();
-        var roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        if (roaming.Length > 0)
-            paths.Add(Path.Combine(roaming, "Claude", "claude_desktop_config.json"));
-        var packages = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages");
-        if (Directory.Exists(packages))
-            paths.AddRange(Directory.GetDirectories(packages, "Claude_*")
-                .Select(p => Path.Combine(p, "LocalCache", "Roaming", "Claude", "claude_desktop_config.json")));
-        return paths;
-    }
+    /// <summary>Every place Claude Desktop may keep its settings file on this PC (rules in ClaudeDesktopConfig.Paths).</summary>
+    public static IReadOnlyList<string> ClaudeConfigPaths() => ClaudeDesktopConfig.Paths(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
 
     public static bool ClaudeConnected() =>
         ClaudeConfigPaths().Any(p => File.Exists(p) && ClaudeDesktopConfig.HasConnector(File.ReadAllText(p), ConnectorPath()));
