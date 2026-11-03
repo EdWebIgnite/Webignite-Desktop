@@ -372,6 +372,11 @@ var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 _ = vm.Mail.Select(opened);
 Save("mail");
 
+// Snooze until a picked day: the small form above the list.
+_ = vm.Mail.SnoozeMenu().Last().Run!(); // finishes at once: it only opens the form
+Save("mail-snooze-pick");
+vm.Mail.CancelSnoozePickCommand.Execute(null);
+
 // Mail rules: two rules, then the page with the form.
 {
     var work = services.Store.ListMailAccounts().First(a => a.Address.StartsWith("eddie"));

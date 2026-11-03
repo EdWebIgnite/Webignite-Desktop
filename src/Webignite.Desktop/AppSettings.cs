@@ -150,6 +150,13 @@ public sealed class AppSettings(LocalStore store)
         store.SetSetting("panels", all);
     }
 
+    /// <summary>Snoozed mail waiting in the Snoozed folder, and mail that came back from snooze lately.</summary>
+    public SnoozeSettings Snooze
+    {
+        get => store.GetSetting<SnoozeSettings>("mail-snooze") ?? new SnoozeSettings();
+        set => store.SetSetting("mail-snooze", value);
+    }
+
     /// <summary>Mail rules and how far through each inbox they have looked.</summary>
     public MailRuleSettings MailRules
     {

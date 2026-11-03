@@ -210,6 +210,7 @@ public partial class MailViewModel
         items.Add(new(important ? "Not important" : "Mark important", () => Mark(MailMark.Important, !important)) { Icon = "Flag", Gesture = "I" });
         items.Add(new("Categories") { Icon = "Tag", Items = CategoryMenu() });
         items.Add(new("Move to") { Icon = "FolderMove", Items = MoveMenu() });
+        items.Add(new("Snooze") { Icon = "Snooze", Items = SnoozeMenu() });
         items.Add(new("Archive", () => Do(ArchiveCommand)) { Icon = "Archive", Gesture = "E" });
         items.Add(MailMenuItem.Separator);
         items.Add(new("Delete", () => Do(DeleteCommand)) { Icon = "Trash", Gesture = "Delete" });

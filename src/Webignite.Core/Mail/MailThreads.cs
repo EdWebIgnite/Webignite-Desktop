@@ -56,8 +56,10 @@ public static class MailThreads
         Prefixes.Any(p => (subject ?? "").TrimStart().StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>The mail grouped into conversations, newest conversation first. Each keeps its mail oldest first.</summary>
-    public static IReadOnlyList<MailThread> Group(IEnumerable<MailSummary> mail)
+    /// <param name="arrived">When each mail counts as arriving, for the order of the list; its date unless given.</param>
+    public static IReadOnlyList<MailThread> Group(IEnumerable<MailSummary> mail, Func<MailSummary, DateTimeOffset>? arrived = null)
     {
+        arrived ??= m => m.Date;
         var list = mail.OrderBy(m => m.Date).ToList();
         var parent = Enumerable.Range(0, list.Count).ToArray();
         int Root(int i) => parent[i] == i ? i : parent[i] = Root(parent[i]);
@@ -82,11 +84,11 @@ public static class MailThreads
         return list.Select((m, i) => (Mail: m, Root: Root(i)))
             .GroupBy(x => x.Root)
             .Select(g => new MailThread(g.Select(x => x.Mail).ToList()))
-            .OrderByDescending(t => t.Latest.Date)
+            .OrderByDescending(t => t.Messages.Max(arrived))
             .ToList();
     }
 
     /// <summary>Each mail as a conversation of its own, for folders with conversations switched off.</summary>
-    public static IReadOnlyList<MailThread> Single(IEnumerable<MailSummary> mail) =>
-        mail.OrderByDescending(m => m.Date).Select(m => new MailThread([m])).ToList();
+    public static IReadOnlyList<MailThread> Single(IEnumerable<MailSummary> mail, Func<MailSummary, DateTimeOffset>? arrived = null) =>
+        mail.OrderByDescending(arrived ?? (m => m.Date)).Select(m => new MailThread([m])).ToList();
 }

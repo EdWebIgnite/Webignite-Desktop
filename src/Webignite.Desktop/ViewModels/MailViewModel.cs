@@ -246,7 +246,8 @@ public partial class MailViewModel : ViewModelBase
 
         var showMailbox = accounts.Count > 1 && (Search.Trim().Length > 0 || CurrentCategory is not null || CurrentFolder is { Kind: not FolderKind.Folder });
         var kept = list.Where(s => MailFilters.Keep(s, Filter));
-        var threads = Conversations ? MailThreads.Group(kept) : MailThreads.Single(kept);
+        var arrival = Arrival();
+        var threads = Conversations ? MailThreads.Group(kept, arrival) : MailThreads.Single(kept, arrival);
         rebuilding = true;
         try
         {
@@ -421,6 +422,7 @@ public partial class MailViewModel : ViewModelBase
                 }
                 await Run(() => services.Mail.SyncAccountAsync(account), quiet: true, onError: e => failed.Add($"{account.Address}: {e}"));
             }
+            await WakeSnoozed();
             await RunRulesOnArrival();
             if (CurrentFolder is { Kind: FolderKind.Folder } folder && folder.Role is not (FolderRole.Inbox or FolderRole.Sent or FolderRole.Drafts))
                 await Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path), quiet: true, onError: e => failed.Add(e));
@@ -584,6 +586,7 @@ public partial class MailboxNodeViewModel : ViewModelBase
         Folders = (folders.Count == 0
                 ? [new MailFolder { AccountId = account.Id, Path = "INBOX", Name = "Inbox", Role = FolderRole.Inbox }]
                 : folders)
+            .Where(f => !Snooze.IsSnoozeFolder(f)) // the Snoozed folder stays out of sight
             .Select(f => new FolderNodeViewModel(f, account, owner))
             .ToList();
     }
