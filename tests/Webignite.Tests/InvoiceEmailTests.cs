@@ -92,8 +92,10 @@ public sealed class InvoiceEmailTests
         await sending.PrepareAsync(ready.Stored, "Webignite", TestContext.Current.CancellationToken);
         Assert.Single(xero.Posts);
 
-        var sent = await sending.MarkSentAsync(ready.Stored, TestContext.Current.CancellationToken);
+        var sent = await sending.MarkSentAsync(ready.Stored, [new Webignite.Core.Mail.MailPerson("Thandi Mokoena", "thandi@karoocoffee.co.za")],
+            TestContext.Current.CancellationToken);
         Assert.NotNull(sent.Emailed);
+        Assert.Equal("Thandi Mokoena", sent.EmailedTo);
         Assert.True(xero.Posts[^1].Body["SentToContact"]!.GetValue<bool>());
     }
 
@@ -105,7 +107,7 @@ public sealed class InvoiceEmailTests
         var ready = await sending.PrepareAsync(Stored(DocumentKind.Quote), "Webignite", TestContext.Current.CancellationToken);
         Assert.Empty(xero.Posts);
         Assert.Null(ready.Values.OnlineLink);
-        await sending.MarkSentAsync(ready.Stored, TestContext.Current.CancellationToken);
+        await sending.MarkSentAsync(ready.Stored, cancel: TestContext.Current.CancellationToken);
         Assert.Equal("SENT", Assert.Single(xero.Posts).Body["Status"]!.GetValue<string>());
     }
 

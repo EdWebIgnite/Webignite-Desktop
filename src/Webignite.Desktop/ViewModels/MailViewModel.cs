@@ -412,7 +412,7 @@ public partial class MailViewModel : ViewModelBase
             Select(row).Forget("Opening a mail");
     }
 
-    public bool Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null, Func<Task>? afterSent = null)
+    public bool Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null, Func<IReadOnlyList<MailPerson>, Task>? afterSent = null)
     {
         if (Composer is { HasChanges: true } open)
         {

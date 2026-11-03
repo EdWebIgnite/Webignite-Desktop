@@ -160,9 +160,13 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, StoredDocument
     /// After the mail went out: marks an invoice as sent in Xero, or a quote as SENT. A failure here is
     /// reported, not retried; the mail itself has already gone.
     /// </summary>
-    public async Task<StoredDocument> MarkSentAsync(StoredDocument stored, CancellationToken cancel = default)
+    public async Task<StoredDocument> MarkSentAsync(StoredDocument stored, IReadOnlyList<Webignite.Core.Mail.MailPerson>? sentTo = null, CancellationToken cancel = default)
     {
-        stored = save(stored with { Emailed = DateTimeOffset.UtcNow });
+        stored = save(stored with
+        {
+            Emailed = DateTimeOffset.UtcNow,
+            EmailedTo = sentTo is { Count: > 0 } ? Webignite.Core.Mail.Recipients.Short(sentTo) : stored.EmailedTo,
+        });
         if (IsQuote(stored))
         {
             var record = await ReadAsync(stored, cancel);

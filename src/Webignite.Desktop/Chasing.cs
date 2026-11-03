@@ -45,7 +45,7 @@ public static class Chasing
             if (filled.Unfilled.Count > 0)
                 notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
 
-            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, () =>
+            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, _ =>
             {
                 sending.MarkChased(services.Store.Get(stored.Id) ?? ready.Stored);
                 return Task.CompletedTask;

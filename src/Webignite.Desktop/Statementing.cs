@@ -55,7 +55,7 @@ public static class Statementing
             if (filled.Unfilled.Count > 0)
                 notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
 
-            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, () =>
+            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, _ =>
             {
                 services.Settings.StatementsSent = Statements.MarkSent(services.Settings.StatementsSent, customer, DateOnly.FromDateTime(DateTime.Today));
                 return Task.CompletedTask;
