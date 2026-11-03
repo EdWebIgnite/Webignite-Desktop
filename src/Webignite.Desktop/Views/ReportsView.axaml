@@ -31,6 +31,8 @@
               <TextBlock Classes="figure" Classes.short="{Binding TaxYearShort}" Text="{Binding TaxYearLeftOver}" />
             </StackPanel>
           </UniformGrid>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding TaxYearChange}" TextWrapping="Wrap"
+                     IsVisible="{Binding TaxYearChange, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <TextBlock Classes="muted" FontSize="12" Text="{Binding AverageReceived}" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
@@ -87,13 +89,13 @@
             <ItemsControl ItemsSource="{Binding Payers}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:TotalRowViewModel">
-                  <StackPanel Spacing="3" Margin="0,4">
-                    <DockPanel>
+                  <Panel Margin="0,2">
+                    <c:ShareBar Fraction="{Binding Share}" Fill="{DynamicResource InvoiceSoft}" />
+                    <DockPanel Margin="10,7">
                       <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
                       <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
-                    <Border Height="5" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding Bar}" Background="{DynamicResource InvoiceTint}" />
-                  </StackPanel>
+                  </Panel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -106,13 +108,13 @@
             <ItemsControl ItemsSource="{Binding Categories}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:TotalRowViewModel">
-                  <StackPanel Spacing="3" Margin="0,4">
-                    <DockPanel>
+                  <Panel Margin="0,2">
+                    <c:ShareBar Fraction="{Binding Share}" Fill="{DynamicResource TableHead}" />
+                    <DockPanel Margin="10,7">
                       <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
                       <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
-                    <Border Height="5" CornerRadius="2" HorizontalAlignment="Left" Width="{Binding Bar}" Background="{DynamicResource Line2}" />
-                  </StackPanel>
+                  </Panel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>

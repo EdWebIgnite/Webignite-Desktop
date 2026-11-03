@@ -351,6 +351,9 @@ settingsPage.Open("xero");
 window.Height = 860;
 Open(Page.Reports);
 Save("reports");
+window.Height = 1300;
+Save("reports-tall");
+window.Height = 860;
 
 // Mail: the first-time setup, then two mailboxes with a few messages kept on this PC. No network is used.
 Open(Page.Mail);
