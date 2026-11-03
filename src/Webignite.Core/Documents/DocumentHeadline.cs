@@ -70,10 +70,23 @@ public static class DocumentHeadline
                 parts.Add($"{word} {Day(due)}");
         }
 
-        if (parts.Count > 1)
-            parts[1] = char.ToLowerInvariant(parts[1][0]) + parts[1][1..];
+        if (Emailed(stored) is { } emailed)
+            parts.Add(emailed);
+
+        for (var i = 1; i < parts.Count; i++)
+            parts[i] = char.ToLowerInvariant(parts[i][0]) + parts[i][1..];
         return string.Join(", ", parts);
     }
+
+    /// <summary>
+    /// "Emailed to Thandi Mokoena 3 Nov" or, for mail sent before names were kept, "Emailed 3 Nov". Null when it
+    /// hasn't been emailed from Webignite.
+    /// </summary>
+    public static string? Emailed(StoredDocument stored) => stored.Emailed is not { } when ? null
+        : string.IsNullOrWhiteSpace(stored.EmailedTo) ? $"Emailed {Short(when)}"
+        : $"Emailed to {stored.EmailedTo.Trim()} {Short(when)}";
+
+    private static string Short(DateTimeOffset when) => when.ToLocalTime().ToString("d MMM", CultureInfo.InvariantCulture);
 
     /// <summary>
     /// The line under a short list: the most useful next step. Overdue money first, then what is still on this

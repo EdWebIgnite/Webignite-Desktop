@@ -20,10 +20,10 @@ public partial class ComposeViewModel : ViewModelBase
     private uint? draftUid;
     private string savedState;
 
-    private readonly Func<Task>? afterSent;
+    private readonly Func<IReadOnlyList<MailPerson>, Task>? afterSent;
 
     public ComposeViewModel(AppServices services, MailViewModel owner, IReadOnlyList<MailAccount> accounts, OutgoingMail mail,
-        byte[]? source = null, MailSummary? answering = null, Func<Task>? afterSent = null)
+        byte[]? source = null, MailSummary? answering = null, Func<IReadOnlyList<MailPerson>, Task>? afterSent = null)
     {
         this.afterSent = afterSent;
         this.services = services;
@@ -220,7 +220,7 @@ public partial class ComposeViewModel : ViewModelBase
             {
                 try
                 {
-                    await afterSent();
+                    await afterSent([.. mail.To, .. mail.Cc]);
                 }
                 catch (Exception e) when (e is Webignite.Xero.XeroException or HttpRequestException or InvalidOperationException)
                 {

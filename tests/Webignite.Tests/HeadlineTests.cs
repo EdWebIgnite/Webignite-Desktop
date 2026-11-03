@@ -142,3 +142,31 @@ public sealed class HeadlineTests
         Assert.Equal($"2 clients, {Money.Rand(3250m)} owed by 1, 1 new site underway", ClientDirectory.Headline(summaries));
     }
 }
+
+/// <summary>Who a quote or invoice was emailed to and when, on its row.</summary>
+public sealed class EmailedLineTests
+{
+    private static readonly DateOnly Today = Samples.Today;
+
+    private static StoredDocument Invoice(DateTimeOffset? emailed = null, string? to = null, string? reference = null) => new()
+    {
+        Id = StoredDocument.NewId(),
+        Status = DocumentStatus.InXero,
+        Emailed = emailed,
+        EmailedTo = to,
+        Document = Samples.Completed(Samples.NewInvoice()) with { DueOrExpiryDate = new DateOnly(2026, 11, 17), Reference = reference },
+    };
+
+    private static readonly DateTimeOffset Sent = new(2026, 11, 3, 10, 0, 0, TimeSpan.FromHours(2));
+
+    [Fact]
+    public void The_row_says_who_it_went_to_and_when()
+    {
+        var when = Sent.ToLocalTime().ToString("d MMM", System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal($"Website phase 2, due 17 Nov 2026, emailed to Thandi Mokoena {when}",
+            DocumentHeadline.Detail(Invoice(Sent, "Thandi Mokoena", "Website phase 2"), Today));
+        Assert.Equal($"Due 17 Nov 2026, emailed {when}", DocumentHeadline.Detail(Invoice(Sent), Today));
+        Assert.Equal("Due 17 Nov 2026", DocumentHeadline.Detail(Invoice(), Today));
+        Assert.Null(DocumentHeadline.Emailed(Invoice()));
+    }
+}

@@ -240,7 +240,9 @@ public partial class DocumentEditorViewModel
         : Kind == DocumentKind.Quote ? "Email the quote"
         : stored?.Approved is null ? "Approve and email" : "Email the invoice";
 
-    public string EmailedText => stored?.Emailed is { } when ? $"Emailed on {when.ToLocalTime():d MMM} at {when.ToLocalTime():HH:mm}." : "";
+    public string EmailedText => stored?.Emailed is { } when
+        ? (string.IsNullOrWhiteSpace(stored.EmailedTo) ? "Emailed" : $"Emailed to {stored.EmailedTo}") + $" on {when.ToLocalTime():d MMM} at {when.ToLocalTime():HH:mm}."
+        : "";
     public bool HasEmailedText => EmailedText.Length > 0;
 
     public string ApproveQuestion =>
@@ -308,9 +310,9 @@ public partial class DocumentEditorViewModel
                 notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
 
             var stamped = stored;
-            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, async () =>
+            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, async sentTo =>
             {
-                stored = await sending.MarkSentAsync(stamped);
+                stored = await sending.MarkSentAsync(stamped, sentTo);
                 RefreshXero();
                 RefreshEmail();
             });

@@ -26,7 +26,7 @@ public sealed class Navigator
     internal Action<Page>? OpenPage { get; set; }
     internal Action<MailSummary>? OpenMailAction { get; set; }
     internal Action<IReadOnlyList<MailPerson>>? WriteMailAction { get; set; }
-    internal Func<OutgoingMail, string?, Func<Task>?, bool>? ComposeMailAction { get; set; }
+    internal Func<OutgoingMail, string?, Func<IReadOnlyList<MailPerson>, Task>?, bool>? ComposeMailAction { get; set; }
     internal Action<StoredDocument>? OpenDocumentAction { get; set; }
     internal Action<Client>? OpenClientAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
@@ -41,10 +41,11 @@ public sealed class Navigator
     public void WriteMail(IReadOnlyList<MailPerson> to) => WriteMailAction?.Invoke(to);
 
     /// <summary>
-    /// Opens a prepared mail in the Mail page, with a note shown above it. The action runs after it was sent.
+    /// Opens a prepared mail in the Mail page, with a note shown above it. The action runs after it was sent,
+    /// given who it went to.
     /// Returns false when another mail with changes is still open.
     /// </summary>
-    public bool ComposeMail(OutgoingMail mail, string? note, Func<Task>? afterSent) =>
+    public bool ComposeMail(OutgoingMail mail, string? note, Func<IReadOnlyList<MailPerson>, Task>? afterSent) =>
         ComposeMailAction?.Invoke(mail, note, afterSent) ?? false;
 
     /// <summary>Opens a quote or invoice on its own page, e.g. a copy just made.</summary>

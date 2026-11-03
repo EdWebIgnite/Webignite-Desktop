@@ -45,6 +45,9 @@ public sealed record StoredDocument
     /// <summary>When it was last emailed to the customer from Webignite's own mailbox.</summary>
     public DateTimeOffset? Emailed { get; init; }
 
+    /// <summary>Who it was last emailed to, as shown: "Thandi Mokoena" or "Thandi Mokoena and Pieter".</summary>
+    public string? EmailedTo { get; init; }
+
     /// <summary>When a reminder (invoice) or follow-up (quote) last went out, and how many so far.</summary>
     public DateTimeOffset? Chased { get; init; }
     public int ChaseCount { get; init; }
