@@ -63,6 +63,51 @@ public partial class ComposeView : UserControl
         BodyBox.CaretIndex = edit.SelectionEnd;
     }
 
+    /// <summary>Fills the Saved replies menu: each reply, then save the selected text, then remove one.</summary>
+    private void RepliesOpening(object? sender, EventArgs e)
+    {
+        if (Compose is not { } compose || sender is not MenuFlyout flyout)
+            return;
+        var caret = BodyBox.CaretIndex;
+        var (start, end) = (Math.Min(BodyBox.SelectionStart, BodyBox.SelectionEnd), Math.Max(BodyBox.SelectionStart, BodyBox.SelectionEnd));
+        var selected = end > start ? compose.Body[start..Math.Min(end, compose.Body.Length)] : "";
+        flyout.Items.Clear();
+        foreach (var reply in compose.SavedReplyList)
+        {
+            var item = new MenuItem { Header = reply.Name };
+            ToolTip.SetTip(item, compose.Fill(reply));
+            item.Click += (_, _) =>
+            {
+                var after = compose.Insert(reply, caret);
+                BodyBox.Text = compose.Body;
+                BodyBox.Focus();
+                BodyBox.CaretIndex = after;
+            };
+            flyout.Items.Add(item);
+        }
+        if (compose.SavedReplyList.Count == 0)
+            flyout.Items.Add(new MenuItem { Header = "No saved replies yet", IsEnabled = false });
+        flyout.Items.Add(new Separator());
+        var save = new MenuItem { Header = selected.Length > 0 ? "Save the selected text as a reply…" : "Select some text to save it as a reply", IsEnabled = selected.Length > 0 };
+        save.Click += (_, _) =>
+        {
+            compose.StartSaveReply(selected);
+            Dispatcher.UIThread.Post(() => ReplyNameBox.Focus());
+        };
+        flyout.Items.Add(save);
+        if (compose.SavedReplyList.Count > 0)
+        {
+            var remove = new MenuItem { Header = "Remove a saved reply" };
+            foreach (var reply in compose.SavedReplyList)
+            {
+                var item = new MenuItem { Header = reply.Name };
+                item.Click += (_, _) => compose.RemoveReply(reply);
+                remove.Items.Add(item);
+            }
+            flyout.Items.Add(remove);
+        }
+    }
+
     private void LinkClicked(object? sender, RoutedEventArgs e)
     {
         if (Compose is not { } compose)
