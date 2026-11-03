@@ -54,6 +54,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("window", value);
     }
 
+    /// <summary>The mail categories you made, with their colours. The mail itself carries them as keywords on the server.</summary>
+    public IReadOnlyList<MailCategory> MailCategories
+    {
+        get => store.GetSetting<List<MailCategory>>("mail-categories") ?? [];
+        set => store.SetSetting("mail-categories", value.ToList());
+    }
+
     /// <summary>Standard packages and items, for filling in quotes and invoices with one click.</summary>
     public IReadOnlyList<PriceEntry> PriceList
     {

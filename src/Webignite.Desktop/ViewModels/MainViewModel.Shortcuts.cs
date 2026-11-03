@@ -17,6 +17,7 @@ public partial class MainViewModel
         new("F5", "Read this page again, or check for mail on Mail"),
         new("F1", "Show or hide this list"),
         new("Esc", "Close this list or the search box"),
+        .. MailViewModel.ListKeys.Select(k => new Shortcut(k.Keys, "Mail list: " + k.What)),
     ];
 
     [ObservableProperty] public partial bool ShowingShortcuts { get; set; }

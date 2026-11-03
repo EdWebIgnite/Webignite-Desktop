@@ -20,16 +20,15 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     public string Cc => string.Join(", ", Summary.Cc.Select(p => p.ToString()));
     public bool HasCc => Summary.Cc.Count > 0;
     public string Date => Summary.Date.ToLocalTime().ToString("dddd, d MMMM yyyy, HH:mm");
-    public string FlagLabel => Summary.Flagged ? "Unflag" : "Flag";
+    public bool IsImportant => Summary.Flagged;
+    public IReadOnlyList<MailCategory> Categories => MailCategories.Of(owner.CategoryList, Summary);
+    public bool HasCategories => Categories.Count > 0;
     public bool IsDraft => services.Store.ListMailFolders(account.Id).Any(f => f.Path == Summary.Folder && f.Role == FolderRole.Drafts);
     public bool IsNotDraft => !IsDraft;
     public bool CanWrite => mime is not null;
 
     public ObservableCollection<AttachmentViewModel> Attachments { get; } = [];
     public bool HasAttachments => Attachments.Count > 0;
-
-    public IReadOnlyList<MoveTarget> MoveTargets { get; } =
-        services.Store.ListMailFolders(account.Id).Where(f => f.Path != summary.Folder).Select(f => new MoveTarget(f.Name, f.Path)).ToList();
 
     [ObservableProperty] public partial string Html { get; set; } = "";
     [ObservableProperty] public partial bool IsLoading { get; set; } = true;
@@ -40,7 +39,6 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     public bool HasDraftedBy => DraftedBy.Length > 0;
     partial void OnDraftedByChanged(string value) => OnPropertyChanged(nameof(HasDraftedBy));
     [ObservableProperty] public partial string AttachmentMessage { get; set; } = "";
-    [ObservableProperty] public partial MoveTarget? MoveTo { get; set; }
 
     public bool HasProblem => Problem.Length > 0;
     public bool HasAttachmentMessage => AttachmentMessage.Length > 0;
@@ -85,48 +83,18 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     [RelayCommand]
     private void ShowImages() => Show(allowImages: true);
 
-    [RelayCommand]
-    private async Task ToggleFlag()
+    /// <summary>Called when the open mail's marks or categories change.</summary>
+    internal void Update(MailSummary updated)
     {
-        var flagged = !Summary.Flagged;
-        if (await owner.Run(() => services.Mail.SetFlaggedAsync(account, Summary, flagged), quiet: true))
-        {
-            Summary = Summary with { Flagged = flagged };
-            OnPropertyChanged(nameof(FlagLabel));
-            owner.Changed(Summary);
-        }
+        Summary = updated;
+        OnPropertyChanged(nameof(IsImportant));
+        RefreshCategories();
     }
 
-    [RelayCommand]
-    private async Task MarkUnread()
+    internal void RefreshCategories()
     {
-        if (await owner.Run(() => services.Mail.SetSeenAsync(account, Summary, false), quiet: true))
-        {
-            Summary = Summary with { Seen = false };
-            owner.Changed(Summary);
-        }
-    }
-
-    [RelayCommand]
-    private async Task Delete()
-    {
-        if (await owner.Run(() => services.Mail.DeleteAsync(account, Summary), quiet: true))
-            owner.Removed(Summary);
-    }
-
-    partial void OnMoveToChanged(MoveTarget? value)
-    {
-        if (value is not null)
-            Move(value).Forget("Moving a mail");
-    }
-
-    private async Task Move(MoveTarget target)
-    {
-        if (await owner.Run(() => services.Mail.MoveAsync(account, Summary, target.Path), quiet: true))
-        {
-            owner.Removed(Summary);
-            owner.SetStatus($"Moved to {target.Name}.", false);
-        }
+        OnPropertyChanged(nameof(Categories));
+        OnPropertyChanged(nameof(HasCategories));
     }
 
     [RelayCommand]
@@ -185,11 +153,6 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
             path = Path.Combine(folder, $"{stem} ({i}){extension}");
         return path;
     }
-}
-
-public sealed record MoveTarget(string Name, string Path)
-{
-    public override string ToString() => Name;
 }
 
 public partial class AttachmentViewModel(MailAttachment attachment, MailReaderViewModel reader) : ViewModelBase
