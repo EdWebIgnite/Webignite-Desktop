@@ -14,6 +14,7 @@
                 IsEnabled="{Binding CanCopy}" ToolTip.Tip="Starts a draft invoice with this quote's customer and lines." />
         <Button Classes="quiet" Content="Copy" Command="{Binding CopyCommand}" IsEnabled="{Binding CanCopy}"
                 ToolTip.Tip="Starts a new draft with the same customer, lines and notes." />
+        <c:SavedNote Stamp="{Binding SavedStamp}" Margin="4,0" />
         <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" IsVisible="{Binding IsEditable}" />
       </StackPanel>
       <StackPanel Spacing="4">

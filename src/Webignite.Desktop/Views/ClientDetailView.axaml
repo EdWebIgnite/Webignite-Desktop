@@ -102,6 +102,7 @@
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="12">
                 <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" />
+                <c:SavedNote Stamp="{Binding SavedStamp}" />
                 <TextBlock Classes="muted" FontSize="12" Text="{Binding SaveState}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
               </StackPanel>
             </DockPanel>

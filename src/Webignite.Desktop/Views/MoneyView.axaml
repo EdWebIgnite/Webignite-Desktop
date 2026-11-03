@@ -178,7 +178,7 @@
           <ItemsControl ItemsSource="{Binding ReceivedRows}" Margin="0,0,0,8">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:EntryRowViewModel">
-                <Border Classes="taskrow">
+                <Border Classes="taskrow" Classes.leaving="{Binding IsLeaving}">
                   <Grid ColumnDefinitions="56,*,Auto,32">
                     <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">

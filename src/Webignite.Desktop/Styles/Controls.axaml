@@ -431,6 +431,29 @@
     </Setter>
   </Style>
 
+  <!-- A short "Saved" beside a Save button, shown for a moment after each save (Controls/SavedNote.cs). -->
+  <Style Selector="c|SavedNote">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <c:Icon Data="{StaticResource Icon.Check}" Size="14" Foreground="{DynamicResource Ok}" VerticalAlignment="Center" />
+          <TextBlock Text="Saved" FontSize="12" Foreground="{DynamicResource Ok}" VerticalAlignment="Center" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="c|SavedNote.shown">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+
+  <!-- A row on its way out can't be clicked again. -->
+  <Style Selector="Border.taskrow.leaving">
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
   <!-- The side menu on a page, e.g. the sections of Settings. -->
   <Style Selector="ListBox.sections">
     <Setter Property="Background" Value="Transparent" />

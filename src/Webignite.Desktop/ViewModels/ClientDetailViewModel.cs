@@ -44,6 +44,9 @@ public partial class ClientDetailViewModel : ViewModelBase
     [ObservableProperty] public partial string Address { get; set; } = "";
     [ObservableProperty] public partial string Notes { get; set; } = "";
     [ObservableProperty] public partial string SaveState { get; set; } = "";
+
+    /// <summary>Counts up on each save, so the short "Saved" note shows again.</summary>
+    [ObservableProperty] public partial int SavedStamp { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasOwed))]
     public partial string Owed { get; set; } = "";
@@ -139,8 +142,9 @@ public partial class ClientDetailViewModel : ViewModelBase
         client = services.Store.SaveClient(edited);
         isNew = false;
         SaveState = renamed
-            ? "Saved. Quotes and invoices are matched by name, so older ones under the old name no longer show here."
-            : "Saved.";
+            ? "Quotes and invoices are matched by name, so older ones under the old name no longer show here."
+            : "";
+        SavedStamp++;
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(IsSaved));
         OnPropertyChanged(nameof(CanStartOnboarding));

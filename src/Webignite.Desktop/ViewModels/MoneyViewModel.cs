@@ -156,6 +156,9 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
         Refresh();
     }
 
+    /// <summary>How much the app moves, for the fade on a removed row.</summary>
+    internal Motion Motion => services.Settings.Appearance.Motion;
+
     public void Delete(MoneyEntry entry)
     {
         services.Store.DeleteEntry(entry.Id);
@@ -247,8 +250,12 @@ public partial class EntryRowViewModel(MoneyEntry entry, MoneyViewModel owner) :
     public bool HasDetail => Detail.Length > 0;
     public string Amount => Money.Rand(entry.Amount);
 
+    /// <summary>On its way out after Delete: the row fades before it is removed.</summary>
+    [ObservableProperty]
+    public partial bool IsLeaving { get; set; }
+
     [RelayCommand]
-    private void Delete() => owner.Delete(entry);
+    private void Delete() => Feedback.Leave(owner.Motion, () => IsLeaving = true, () => owner.Delete(entry));
 }
 
 public partial class RecurringRowViewModel(RecurringExpense recurring, MoneyViewModel owner) : ViewModelBase

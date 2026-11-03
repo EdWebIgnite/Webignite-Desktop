@@ -70,14 +70,19 @@ public partial class TodoViewModel : ViewModelBase, IRefreshable
         Refresh();
     }
 
+    private Motion Motion => services.Settings.Appearance.Motion;
+
+    /// <summary>Saves at once. A to-do just ticked off stays where it is a moment, so the tick can be seen, then moves to Done.</summary>
     public void Toggle(TaskItem task, bool done)
     {
         services.Store.SaveTask(task with { Done = done, DoneAt = done ? DateTimeOffset.UtcNow : null });
-        Refresh();
+        Feedback.After(done ? Feedback.DoneTime(Motion) : TimeSpan.Zero, Refresh);
     }
 
-    public void Delete(TaskItem task)
+    /// <summary>The row fades out, then the to-do is removed, with a note to undo it.</summary>
+    public void Delete(TaskRowViewModel row) => Feedback.Leave(Motion, () => row.IsLeaving = true, () =>
     {
+        var task = row.Task;
         services.Store.DeleteTask(task.Id);
         Refresh();
         services.OfferUndo($"Removed \"{task.Title}\"", () =>
@@ -85,7 +90,7 @@ public partial class TodoViewModel : ViewModelBase, IRefreshable
             services.Store.SaveTask(task);
             Refresh();
         });
-    }
+    });
 
     /// <summary>Raises any new automatic reminders, then rebuilds the groups.</summary>
     public void Refresh()
@@ -172,11 +177,21 @@ public partial class TaskRowViewModel : ViewModelBase
         get => isDone;
         set
         {
-            if (SetProperty(ref isDone, value))
-                owner.Toggle(Task, value);
+            if (!SetProperty(ref isDone, value))
+                return;
+            JustDone = value;
+            owner.Toggle(Task, value);
         }
     }
 
+    /// <summary>Ticked off a moment ago: the tick pops while the row waits to move to Done.</summary>
+    [ObservableProperty]
+    public partial bool JustDone { get; set; }
+
+    /// <summary>On its way out after Delete: the row fades before it is removed.</summary>
+    [ObservableProperty]
+    public partial bool IsLeaving { get; set; }
+
     [RelayCommand]
-    private void Delete() => owner.Delete(Task);
+    private void Delete() => owner.Delete(this);
 }
