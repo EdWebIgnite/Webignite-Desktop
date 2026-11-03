@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sys="using:System"
              xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:core="using:Webignite.Core.Mail"
@@ -78,6 +79,22 @@
             <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="The mail mentions an attachment, but nothing is attached." />
           </DockPanel>
         </Border>
+        <Border Classes="card" Padding="12,8" IsVisible="{Binding PickingSendTime}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Send on" VerticalAlignment="Center" />
+            <CalendarDatePicker SelectedDate="{Binding SendDay}" DisplayDateStart="{x:Static sys:DateTime.Today}" Width="160"
+                                SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
+            <ComboBox ItemsSource="{x:Static vm:MailViewModel.SnoozeHours}" SelectedItem="{Binding SendHour}" Width="100">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="x:Int32">
+                  <TextBlock Text="{Binding StringFormat='{}{0:00}:00'}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Classes="primary" Content="Set" Command="{Binding ConfirmSendLaterCommand}" />
+            <Button Classes="link" Content="Cancel" Command="{Binding CancelSendLaterCommand}" />
+          </StackPanel>
+        </Border>
         <Border Classes="card" Padding="12,8" IsVisible="{Binding AskingToDiscard}">
           <DockPanel>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
@@ -91,6 +108,15 @@
         <DockPanel>
           <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
             <Button Classes="primary" Content="Send" Command="{Binding SendCommand}" IsEnabled="{Binding !IsWorking}" />
+            <Button Classes="quiet" IsEnabled="{Binding !IsWorking}" IsVisible="{Binding CanSendLater}" ToolTip.Tip="Send at a time you pick">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="Send later" />
+                <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout Placement="TopEdgeAlignedLeft" Opening="SendLaterOpening" />
+              </Button.Flyout>
+            </Button>
             <Button Classes="quiet" Content="Save draft" Command="{Binding SaveDraftCommand}" IsEnabled="{Binding !IsWorking}" />
             <c:Spinner IsVisible="{Binding IsWorking}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="4,0,0,0" />
           </StackPanel>

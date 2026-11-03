@@ -408,6 +408,10 @@ vm.Mail.Composer.StartSaveReply("Thanks for letting me know.");
 vm.Mail.Composer.ReplyName = "Thanks for letting me know";
 Save("mail-save-reply");
 vm.Mail.Composer.CancelSaveReplyCommand.Execute(null);
+// Send: the mail waits ten seconds with Undo. The headless clock doesn't tick, so it waits until Undo here.
+vm.Mail.Composer.SendCommand.Execute(null);
+Save("mail-undo-send");
+vm.Mail.UndoSendCommand.Execute(null);
 vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Status = "Up to date at 09:12";

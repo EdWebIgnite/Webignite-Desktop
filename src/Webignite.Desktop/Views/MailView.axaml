@@ -539,6 +539,13 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+            <!-- A mail just sent, still waiting a few seconds so it can be taken back -->
+            <Border Classes="pending" IsVisible="{Binding HasPendingSend}" Padding="10,6">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="Undo" Command="{Binding UndoSendCommand}" Margin="8,0,0,0" />
+                <TextBlock Text="{Binding PendingSendText}" VerticalAlignment="Center" TextWrapping="Wrap" />
+              </DockPanel>
+            </Border>
             <!-- Snooze until a picked day and hour -->
             <Border Classes="pending" IsVisible="{Binding PickingSnooze}" Padding="10">
               <StackPanel Spacing="8">
@@ -733,6 +740,12 @@
                 <Button Classes="primary" Content="Edit draft" Command="{Binding EditDraftCommand}" IsVisible="{Binding IsDraft}" IsEnabled="{Binding CanWrite}" />
               </WrapPanel>
 
+              <Border Classes="card" Padding="12,8" IsVisible="{Binding IsScheduled}" Background="{DynamicResource InvoiceSoft}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Don't send it" Command="{Binding DontSendCommand}" Margin="8,0,0,0" />
+                  <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding ScheduledText}" VerticalAlignment="Center" />
+                </DockPanel>
+              </Border>
               <Border Classes="card" Padding="12,8" IsVisible="{Binding HasDraftedBy}" Background="{DynamicResource InvoiceSoft}">
                 <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
               </Border>

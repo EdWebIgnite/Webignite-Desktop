@@ -63,6 +63,24 @@ public partial class ComposeView : UserControl
         BodyBox.CaretIndex = edit.SelectionEnd;
     }
 
+    /// <summary>Fills the Send later menu: the quick times, then pick a day and hour.</summary>
+    private void SendLaterOpening(object? sender, EventArgs e)
+    {
+        if (Compose is not { } compose || sender is not MenuFlyout flyout)
+            return;
+        flyout.Items.Clear();
+        foreach (var (label, when) in compose.SendLaterChoices())
+        {
+            var item = new MenuItem { Header = label };
+            item.Click += (_, _) => compose.SendAt(when).Forget("Setting a mail to send later");
+            flyout.Items.Add(item);
+        }
+        flyout.Items.Add(new Separator());
+        var pick = new MenuItem { Header = "Pick a day and time…" };
+        pick.Click += (_, _) => compose.StartPickSendTime();
+        flyout.Items.Add(pick);
+    }
+
     /// <summary>Fills the Saved replies menu: each reply, then save the selected text, then remove one.</summary>
     private void RepliesOpening(object? sender, EventArgs e)
     {
