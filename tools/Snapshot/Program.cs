@@ -395,9 +395,19 @@ vm.Mail.CancelSnoozePickCommand.Execute(null);
     services.Settings.MailRules = new Webignite.Core.Mail.MailRuleSettings();
 }
 vm.Mail.Reader!.ReplyCommand.Execute(null);
-vm.Mail.Composer!.Body = "Hi Lerato,\n\nThanks for letting me know. I'm looking at it now and will come back to you before lunch." + vm.Mail.Composer.Body;
+// The reply's opening comes from a saved reply, with Lerato's name filled in.
+services.Settings.SavedReplies =
+[
+    new Webignite.Core.Mail.SavedReply("sr1", "Looking into it", "Hi {name},\n\nThanks for letting me know. I'm looking at it now and will come back to you before lunch."),
+    new Webignite.Core.Mail.SavedReply("sr2", "Payment received", "Hi {name},\n\nThank you, the payment from {client} came through."),
+];
+vm.Mail.Composer!.Insert(services.Settings.SavedReplies[0], 0);
 vm.Mail.Composer.ShowQuote = true;
 Save("mail-reply");
+vm.Mail.Composer.StartSaveReply("Thanks for letting me know.");
+vm.Mail.Composer.ReplyName = "Thanks for letting me know";
+Save("mail-save-reply");
+vm.Mail.Composer.CancelSaveReplyCommand.Execute(null);
 vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Status = "Up to date at 09:12";

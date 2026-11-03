@@ -150,6 +150,13 @@ public sealed class AppSettings(LocalStore store)
         store.SetSetting("panels", all);
     }
 
+    /// <summary>Text written often, put into a mail from the editor.</summary>
+    public IReadOnlyList<SavedReply> SavedReplies
+    {
+        get => store.GetSetting<List<SavedReply>>("mail-saved-replies") ?? [];
+        set => store.SetSetting("mail-saved-replies", value.ToList());
+    }
+
     /// <summary>Snoozed mail waiting in the Snoozed folder, and mail that came back from snooze lately.</summary>
     public SnoozeSettings Snooze
     {

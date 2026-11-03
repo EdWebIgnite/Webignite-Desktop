@@ -125,14 +125,14 @@
     <DockPanel Margin="24,4,24,8">
       <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,6">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Classes="quiet format" Focusable="False" Command="{Binding TogglePreviewCommand}"
+          <Button DockPanel.Dock="Right" Classes="quiet format" Focusable="False" Command="{Binding TogglePreviewCommand}" VerticalAlignment="Top" Margin="8,0,0,0"
                         ToolTip.Tip="See the mail the way it will arrive">
             <Panel>
               <TextBlock Text="Preview" IsVisible="{Binding !ShowPreview}" />
               <TextBlock Text="Back to writing" IsVisible="{Binding ShowPreview}" />
             </Panel>
           </Button>
-          <StackPanel Orientation="Horizontal" Spacing="4" IsEnabled="{Binding !ShowPreview}">
+          <WrapPanel ItemSpacing="4" LineSpacing="4" IsEnabled="{Binding !ShowPreview}">
             <Button Classes="quiet format" Focusable="False" Tag="bold" Click="FormatClicked" ToolTip.Tip="Bold (Ctrl+B)">
               <TextBlock Text="B" FontWeight="Bold" />
             </Button>
@@ -142,8 +142,30 @@
             <Button Classes="quiet format" Focusable="False" Tag="bullets" Click="FormatClicked" Content="• List" ToolTip.Tip="Bulleted list" />
             <Button Classes="quiet format" Focusable="False" Tag="numbers" Click="FormatClicked" Content="1. List" ToolTip.Tip="Numbered list" />
             <Button Classes="quiet format" Focusable="False" Click="LinkClicked" Content="Link" ToolTip.Tip="Link the selected words to a web page" />
-          </StackPanel>
+            <Button Classes="quiet format" Focusable="False" ToolTip.Tip="Text you write often, with the client's name filled in">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="Saved replies" />
+                <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="RepliesOpening" />
+              </Button.Flyout>
+            </Button>
+          </WrapPanel>
         </DockPanel>
+        <Border Classes="card" Padding="10,6" IsVisible="{Binding AskingReplyName}">
+          <StackPanel Spacing="4">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+                <Button Classes="primary" Content="Save reply" Command="{Binding SaveReplyCommand}" />
+                <Button Classes="link" Content="Cancel" Command="{Binding CancelSaveReplyCommand}" />
+              </StackPanel>
+              <TextBlock DockPanel.Dock="Left" Classes="muted" Text="Call it" VerticalAlignment="Center" Margin="0,0,8,0" />
+              <TextBox x:Name="ReplyNameBox" Text="{Binding ReplyName}" PlaceholderText="e.g. Payment received" />
+            </DockPanel>
+            <TextBlock Classes="problem" FontSize="12" Text="{Binding ReplyProblem}" IsVisible="{Binding HasReplyProblem}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
         <Border Classes="card" Padding="10,6" IsVisible="{Binding AskingForLink}">
           <DockPanel>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
