@@ -221,6 +221,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         foreach (var client in clients)
             ClientChoices.Add(new ClientChoice(client.Name, client));
         ClientChoice = ClientChoices.FirstOrDefault(c => c.Client?.Id == keepClient) ?? ClientChoices[0];
+        LoadInvoiceChoices(clients);
 
         var (from, to) = Range();
         var entries = services.Store.ListTime(from, to);

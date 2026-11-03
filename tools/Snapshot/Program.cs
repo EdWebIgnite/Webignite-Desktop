@@ -244,6 +244,19 @@ Time(today.AddDays(-2) < weekStart ? today : today.AddDays(-2), 40, "Learning: A
 vm.Time.Refresh();
 Open(Page.Time);
 Save("time");
+// A draft invoice from Bosveld's time this month, then take it away so later shots are unchanged.
+{
+    var before = store.List(DocumentKind.Invoice).Select(d => d.Id).ToHashSet();
+    vm.Time.InvoiceClient = vm.Time.InvoiceClients.First(c => c.Label == "Bosveld Builders");
+    vm.Time.InvoiceMonth = vm.Time.InvoiceMonths[0];
+    vm.Time.DraftInvoiceCommand.Execute(null);
+    Save("invoice-from-time");
+    vm.Invoices.Editor?.BackCommand.Execute(null);
+    foreach (var made in store.List(DocumentKind.Invoice).Where(d => !before.Contains(d.Id)))
+        store.DeleteDocument(made.Id);
+    Open(Page.Time);
+    vm.Time.Refresh();
+}
 vm.Time.ClientChoice = vm.Time.ClientChoices.First(c => c.Label == "Bosveld Builders");
 vm.Time.Note = "Contact form";
 vm.Time.StartCommand.Execute(null);
