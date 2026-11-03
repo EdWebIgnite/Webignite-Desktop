@@ -55,15 +55,32 @@ public sealed class PanelGrid : Grid
 
     private IEnumerable<Control> Panes => Children.Where(c => c is not GridSplitter && GetPane(c) is not null);
 
+    private List<string> shown = [];
+
     private void Rebuild()
     {
-        foreach (var splitter in splitters)
-            Children.Remove(splitter);
-        splitters.Clear();
-
         var panes = Panes.ToDictionary(c => GetPane(c)!, c => c);
         var layout = Panels.Reconcile(Layout, [.. panes.Keys]);
         var visible = Panels.Visible(layout);
+
+        // Only widths changed, as after a drag: set the columns and leave the splitters where they are.
+        if (visible.SequenceEqual(shown))
+        {
+            foreach (var (pane, control) in panes)
+            {
+                if (!control.IsVisible || !layout.Widths.TryGetValue(pane, out var width))
+                    continue;
+                var column = ColumnDefinitions[GetColumn(control)];
+                if (!column.Width.IsStar)
+                    column.Width = new GridLength(width, GridUnitType.Pixel);
+            }
+            return;
+        }
+        shown = visible;
+
+        foreach (var splitter in splitters)
+            Children.Remove(splitter);
+        splitters.Clear();
 
         ColumnDefinitions.Clear();
         foreach (var (pane, control) in panes)
@@ -100,13 +117,15 @@ public sealed class PanelGrid : Grid
     }
 
     // Every pane with a pixel column: the last one is whatever is left, so it has no width to remember.
+    // The widths are gathered first: reporting one changes the layout, which must not happen mid-walk.
     private void ReportWidths()
     {
-        foreach (var control in Panes.Where(c => c.IsVisible))
-        {
-            var column = ColumnDefinitions[GetColumn(control)];
-            if (!column.Width.IsStar)
-                Resized?.Invoke(GetPane(control)!, column.ActualWidth);
-        }
+        var widths = Panes.Where(c => c.IsVisible)
+            .Select(c => (Pane: GetPane(c)!, Column: ColumnDefinitions[GetColumn(c)]))
+            .Where(p => !p.Column.Width.IsStar)
+            .Select(p => (p.Pane, p.Column.ActualWidth))
+            .ToList();
+        foreach (var (pane, width) in widths)
+            Resized?.Invoke(pane, width);
     }
 }
