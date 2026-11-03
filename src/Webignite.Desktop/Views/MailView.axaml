@@ -179,6 +179,81 @@
   </UserControl.Styles>
 
   <Grid>
+    <!-- Mail rules: sort new mail as it arrives -->
+    <ScrollViewer IsVisible="{Binding ShowRules}">
+      <Border Classes="card" Margin="36,30" MaxWidth="760" HorizontalAlignment="Left" VerticalAlignment="Top"
+              DataContext="{Binding RulesPage}" x:DataType="vm:MailRulesViewModel">
+        <StackPanel Spacing="16">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="quiet" Content="Done" Command="{Binding CloseCommand}" VerticalAlignment="Top" />
+            <StackPanel Spacing="4">
+              <TextBlock Classes="h1" Text="Mail rules" />
+              <TextBlock Classes="muted" TextWrapping="Wrap"
+                         Text="Rules sort new inbox mail as it arrives: move it, give it a category, mark it Important or mark it read. They are kept on this PC, so they work while Webignite is open." />
+            </StackPanel>
+          </DockPanel>
+
+          <StackPanel Spacing="6" IsVisible="{Binding HasRules}">
+            <ItemsControl ItemsSource="{Binding Rules}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MailRuleRowViewModel">
+                  <Border Classes="taskrow">
+                    <DockPanel>
+                      <Button DockPanel.Dock="Right" Classes="link" Content="Remove" Command="{Binding RemoveCommand}" />
+                      <CheckBox IsChecked="{Binding On}" ToolTip.Tip="On or off">
+                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                      </CheckBox>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Classes="quiet" Content="{Binding RunLabel}" Command="{Binding RunNowCommand}" IsVisible="{Binding CanRun}" HorizontalAlignment="Left"
+                    ToolTip.Tip="Runs every rule once on the mail already in the folder you had open." />
+          </StackPanel>
+          <TextBlock Classes="muted" Text="No rules yet. Add the first one below." IsVisible="{Binding !HasRules}" />
+
+          <Border Classes="pending">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="h2" Text="Add a rule" />
+              <Grid ColumnDefinitions="220,12,*">
+                <ComboBox ItemsSource="{x:Static vm:MailRulesViewModel.MatchChoices}" SelectedItem="{Binding Match}" HorizontalAlignment="Stretch" />
+                <TextBox Grid.Column="2" Text="{Binding Text}" PlaceholderText="{Binding Placeholder}" />
+              </Grid>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="label" Text="In" VerticalAlignment="Center" Width="60" />
+                <ComboBox ItemsSource="{Binding MailboxChoices}" SelectedItem="{Binding Mailbox}" MinWidth="260" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="label" Text="Move to" VerticalAlignment="Center" Width="60" />
+                <ComboBox ItemsSource="{Binding FolderChoices}" SelectedItem="{Binding Folder}" MinWidth="260" IsEnabled="{Binding CanMove}"
+                          ToolTip.Tip="Pick one mailbox above to move mail into one of its folders." />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="label" Text="Category" VerticalAlignment="Center" Width="60" />
+                <ComboBox ItemsSource="{Binding CategoryChoices}" SelectedItem="{Binding Category}" MinWidth="260" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="18" Margin="68,0,0,0">
+                <CheckBox Content="Mark Important" IsChecked="{Binding MarkImportant}" />
+                <CheckBox Content="Mark read" IsChecked="{Binding MarkRead}" />
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding Problems}" IsVisible="{Binding HasProblems}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Classes="problem" Text="{Binding}" TextWrapping="Wrap" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Classes="primary" Content="Add rule" Command="{Binding AddCommand}" />
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" VerticalAlignment="Center" TextWrapping="Wrap" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
+    </ScrollViewer>
+
     <!-- Adding or changing a mailbox -->
     <ScrollViewer IsVisible="{Binding ShowSetup}">
       <Border Classes="card" Margin="36,30" MaxWidth="720" HorizontalAlignment="Left" VerticalAlignment="Top" DataContext="{Binding Setup}" x:DataType="vm:MailSetupViewModel">
@@ -335,7 +410,10 @@
                 </StackPanel>
               </StackPanel>
             </Border>
-            <Button Classes="link" Content="Manage mailboxes" Command="{Binding ManageMailboxesCommand}" />
+            <StackPanel Orientation="Horizontal" Spacing="14">
+              <Button Classes="link" Content="Manage mailboxes" Command="{Binding ManageMailboxesCommand}" />
+              <Button Classes="link" Content="Rules" Command="{Binding ManageRulesCommand}" ToolTip.Tip="Sort new mail by sender, domain or subject" />
+            </StackPanel>
           </StackPanel>
           <ScrollViewer>
             <StackPanel Margin="8,16,8,8">
