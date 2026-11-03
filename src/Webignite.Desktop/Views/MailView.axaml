@@ -38,7 +38,7 @@
       <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="ListBox.messages ListBoxItem">
-      <Setter Property="Padding" Value="16,10" />
+      <Setter Property="Padding" Value="0" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="0,0,0,1" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -50,6 +50,21 @@
       <Setter Property="Background" Value="{DynamicResource TableHead}" />
     </Style>
     <Style Selector="ListBox.messages ListBoxItem:selected:focus-within /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
+    </Style>
+    <!-- The open message sits a little above the rows round it. -->
+    <Style Selector="ListBox.messages ListBoxItem:selected">
+      <Setter Property="ZIndex" Value="1" />
+      <Setter Property="ClipToBounds" Value="False" />
+    </Style>
+    <Style Selector="ListBox.messages ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="ClipToBounds" Value="False" />
+    </Style>
+    <Style Selector="ListBox.messages ListBoxItem:selected Border.mailcard">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource CardShadowRaised}" />
+    </Style>
+    <Style Selector="ListBox.messages ListBoxItem:selected:focus-within Border.mailcard">
       <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
     </Style>
     <Style Selector="Grid.mailrow.unread TextBlock.who, Grid.mailrow.unread TextBlock.subject">
@@ -420,37 +435,39 @@
               </ListBox.ContextMenu>
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:MailRowViewModel">
-                  <Grid ColumnDefinitions="14,*" Classes="mailrow" Classes.unread="{Binding IsUnread}" Background="Transparent">
-                    <Border Grid.Column="0" Classes="unreaddot" IsVisible="{Binding IsUnread}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,6,0,0" />
-                    <StackPanel Grid.Column="1" Spacing="2">
-                      <DockPanel>
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="8,0,0,0" Text="{Binding When}" />
-                        <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Paperclip}" Size="13" Margin="6,0,0,0" Foreground="{DynamicResource Muted}"
-                                IsVisible="{Binding HasAttachments}" ToolTip.Tip="Has attachments" />
-                        <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Flag}" Size="13" Margin="6,0,0,0" Foreground="{DynamicResource Important}"
-                                IsVisible="{Binding IsImportant}" ToolTip.Tip="Important" />
-                        <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding Dots}" IsVisible="{Binding HasDots}" Margin="6,0,0,0"
-                                      VerticalAlignment="Center" ToolTip.Tip="{Binding DotsTip}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="core:MailCategory">
-                              <c:CategoryDot Colour="{Binding Colour}" Size="8" />
-                            </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Classes="who" Text="{Binding Who}" TextTrimming="CharacterEllipsis" />
-                      </DockPanel>
-                      <DockPanel>
-                        <Border DockPanel.Dock="Right" Classes="mailtag" Margin="6,0,0,0" IsVisible="{Binding ShowMailbox}">
-                          <TextBlock FontSize="11" Text="{Binding MailboxTag}" Foreground="{DynamicResource InvoiceTint}" />
-                        </Border>
-                        <TextBlock Classes="subject" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
-                      </DockPanel>
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Preview}" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                    </StackPanel>
-                  </Grid>
+                  <Border Classes="mailcard" Padding="16,10">
+                    <Grid ColumnDefinitions="14,*" Classes="mailrow" Classes.unread="{Binding IsUnread}" Background="Transparent">
+                      <Border Grid.Column="0" Classes="unreaddot" IsVisible="{Binding IsUnread}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,6,0,0" />
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <DockPanel>
+                          <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="8,0,0,0" Text="{Binding When}" />
+                          <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Paperclip}" Size="13" Margin="6,0,0,0" Foreground="{DynamicResource Muted}"
+                                  IsVisible="{Binding HasAttachments}" ToolTip.Tip="Has attachments" />
+                          <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Flag}" Size="13" Margin="6,0,0,0" Foreground="{DynamicResource Important}"
+                                  IsVisible="{Binding IsImportant}" ToolTip.Tip="Important" />
+                          <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding Dots}" IsVisible="{Binding HasDots}" Margin="6,0,0,0"
+                                        VerticalAlignment="Center" ToolTip.Tip="{Binding DotsTip}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="core:MailCategory">
+                                <c:CategoryDot Colour="{Binding Colour}" Size="8" />
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <TextBlock Classes="who" Text="{Binding Who}" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                        <DockPanel>
+                          <Border DockPanel.Dock="Right" Classes="mailtag" Margin="6,0,0,0" IsVisible="{Binding ShowMailbox}">
+                            <TextBlock FontSize="11" Text="{Binding MailboxTag}" Foreground="{DynamicResource InvoiceTint}" />
+                          </Border>
+                          <TextBlock Classes="subject" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Preview}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>

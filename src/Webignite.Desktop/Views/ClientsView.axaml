@@ -51,7 +51,7 @@
 
         <Border Classes="card" Padding="0" IsVisible="{Binding !NoMatches}">
           <StackPanel>
-            <Border Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
+            <Border Classes="stickyhead" c:Sticky.IsEnabled="True" Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
               <Grid ColumnDefinitions="*,280,140,28">
                 <TextBlock Grid.Column="0" Classes="label tablehead" Text="Client" />
                 <TextBlock Grid.Column="1" Classes="label tablehead" Text="Work" />

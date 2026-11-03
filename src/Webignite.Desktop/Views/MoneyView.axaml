@@ -104,7 +104,7 @@
       <Border Grid.Column="0" Classes="card" Padding="0" VerticalAlignment="Top">
         <StackPanel>
           <TextBlock Classes="h2" Text="Month by month" Margin="20,16,20,10" />
-          <Border Background="{DynamicResource TableHead}" Height="36" Padding="16,0,8,0">
+          <Border Classes="stickyhead" c:Sticky.IsEnabled="True" Background="{DynamicResource TableHead}" Height="36" Padding="16,0,8,0">
             <Grid ColumnDefinitions="90,*,*,*">
               <TextBlock Grid.Column="0" Classes="label tablehead" Text="Month" />
               <TextBlock Grid.Column="1" Classes="label tablehead" Text="Expected" HorizontalAlignment="Right" />
