@@ -37,6 +37,16 @@ public static class ClientRecords
 
     public static Client RemoveNote(Client client, string id) => client with { Log = client.Log.Where(n => n.Id != id).ToList() };
 
+    /// <summary>Puts a removed note back where it was by date, for Undo. A note already there is left alone.</summary>
+    public static Client PutBack(Client client, ClientNote note) => client.Log.Any(n => n.Id == note.Id)
+        ? client
+        : client with { Log = [.. client.Log.Append(note).OrderByDescending(n => n.Date)] };
+
+    /// <summary>Puts a removed file link back, for Undo. A link already there is left alone.</summary>
+    public static Client PutBack(Client client, ClientFile file) => client.Files.Any(f => string.Equals(f.Path, file.Path, StringComparison.OrdinalIgnoreCase))
+        ? client
+        : client with { Files = [.. client.Files.Append(file).OrderByDescending(f => f.Added).ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase)] };
+
     /// <summary>Adds files, skipping any already linked (same path, ignoring case). Newest first, then by name.</summary>
     public static Client AddFiles(Client client, IEnumerable<string> paths, DateOnly today)
     {

@@ -58,7 +58,17 @@ public partial class ClientDetailViewModel
         }
     }
 
-    internal void RemoveLogEntry(string id) => SaveRecords(ClientRecords.RemoveNote(client, id));
+    /// <summary>Removes a note at once, with a note in the corner to undo it.</summary>
+    internal void RemoveLogEntry(string id)
+    {
+        if (client.Log.FirstOrDefault(n => n.Id == id) is not { } note)
+            return;
+        SaveRecords(ClientRecords.RemoveNote(client, id));
+        services.OfferUndo("Removed a note", () => SaveRecords(ClientRecords.PutBack(Current(), note)));
+    }
+
+    /// <summary>The client as saved now, so an Undo later doesn't bring back older edits with it.</summary>
+    private Client Current() => services.Store.ListClients().FirstOrDefault(c => c.Id == client.Id) ?? client;
 
     /// <summary>Links files to the client. They stay where they are; only the link is kept.</summary>
     public void AddFiles(IEnumerable<string> paths)
@@ -75,7 +85,14 @@ public partial class ClientDetailViewModel
         RecordsMessage = "";
     }
 
-    internal void RemoveFile(string path) => SaveRecords(ClientRecords.RemoveFile(client, path));
+    /// <summary>Unlinks a file at once (the file itself stays), with a note in the corner to undo it.</summary>
+    internal void RemoveFile(string path)
+    {
+        if (client.Files.FirstOrDefault(f => string.Equals(f.Path, path, StringComparison.OrdinalIgnoreCase)) is not { } file)
+            return;
+        SaveRecords(ClientRecords.RemoveFile(client, path));
+        services.OfferUndo($"Unlinked {file.Name}", () => SaveRecords(ClientRecords.PutBack(Current(), file)));
+    }
 
     internal void Say(string message) => RecordsMessage = message;
 }

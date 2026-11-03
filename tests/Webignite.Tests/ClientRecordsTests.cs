@@ -43,3 +43,33 @@ public sealed class ClientRecordsTests
         Assert.Equal("3 Mar 2025", ClientRecords.Day(new DateOnly(2025, 3, 3), Today));
     }
 }
+
+/// <summary>Undo after removing a note or a file link.</summary>
+public sealed class ClientRecordsUndoTests
+{
+    private static readonly DateOnly Today = Samples.Today;
+
+    [Fact]
+    public void A_removed_note_goes_back_in_its_place_by_date_once()
+    {
+        var client = new Webignite.Core.Clients.Client { Id = "c1", Name = "Karoo" };
+        client = Webignite.Core.Clients.ClientRecords.AddNote(client, "First call", Today.AddDays(-5));
+        client = Webignite.Core.Clients.ClientRecords.AddNote(client, "Logo arrived", Today.AddDays(-2));
+        client = Webignite.Core.Clients.ClientRecords.AddNote(client, "Sitemap signed off", Today);
+        var middle = client.Log[1];
+        var removed = Webignite.Core.Clients.ClientRecords.RemoveNote(client, middle.Id);
+        var back = Webignite.Core.Clients.ClientRecords.PutBack(removed, middle);
+        Assert.Equal(["Sitemap signed off", "Logo arrived", "First call"], back.Log.Select(n => n.Text));
+        Assert.Same(back, Webignite.Core.Clients.ClientRecords.PutBack(back, middle));
+    }
+
+    [Fact]
+    public void A_removed_file_link_goes_back_once()
+    {
+        var client = Webignite.Core.Clients.ClientRecords.AddFiles(new Webignite.Core.Clients.Client { Id = "c1", Name = "Karoo" }, [@"C:\Work\brief.pdf", @"C:\Work\logo.svg"], Today);
+        var file = client.Files[0];
+        var back = Webignite.Core.Clients.ClientRecords.PutBack(Webignite.Core.Clients.ClientRecords.RemoveFile(client, file.Path), file);
+        Assert.Equal(client.Files, back.Files);
+        Assert.Same(back, Webignite.Core.Clients.ClientRecords.PutBack(back, file));
+    }
+}

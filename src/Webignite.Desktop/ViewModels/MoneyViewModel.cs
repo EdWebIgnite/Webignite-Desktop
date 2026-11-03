@@ -180,7 +180,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
     {
         services.Store.DeleteRecurring(recurring.Id);
         Refresh();
-        services.OfferUndo($"Stopped {recurring.Name}", () =>
+        services.OfferUndo($"Stopped {recurring.Name}. Past months stay", () =>
         {
             services.Store.SaveRecurring(recurring);
             Refresh();
@@ -268,16 +268,8 @@ public partial class RecurringRowViewModel(RecurringExpense recurring, MoneyView
     public string PauseLabel => recurring.Paused ? "Resume" : "Pause";
     public bool IsPaused => recurring.Paused;
 
-    [ObservableProperty] public partial bool ConfirmingStop { get; set; }
-
     [RelayCommand]
     private void TogglePause() => owner.SetPaused(recurring, !recurring.Paused);
-
-    [RelayCommand]
-    private void AskStop() => ConfirmingStop = true;
-
-    [RelayCommand]
-    private void CancelStop() => ConfirmingStop = false;
 
     [RelayCommand]
     private void Stop() => owner.Stop(recurring);
