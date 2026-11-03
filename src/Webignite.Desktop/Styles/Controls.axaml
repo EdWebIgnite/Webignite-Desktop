@@ -121,6 +121,14 @@
   <Style Selector="Button.primary:disabled">
     <Setter Property="Opacity" Value="0.4" />
   </Style>
+  <!-- The drag handle between panes: invisible until the pointer is over it. -->
+  <Style Selector="GridSplitter.panes">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="GridSplitter.panes:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Line2}" />
+  </Style>
+
   <Style Selector="Button.quiet">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />

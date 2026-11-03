@@ -20,6 +20,8 @@ public partial class MailView : UserControl
         };
     }
 
+    private void PaneResized(string pane, double width) => (DataContext as MailViewModel)?.Panels.Resized(pane, width);
+
     private async void ChooseSignatureImage(object? sender, RoutedEventArgs e)
     {
         if ((sender as Control)?.DataContext is not MailSetupViewModel setup || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)

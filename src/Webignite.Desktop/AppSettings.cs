@@ -1,6 +1,7 @@
 using Webignite.Core.Backups;
 using Webignite.Core.Documents;
 using Webignite.Core.Finance;
+using Webignite.Core.Layout;
 using Webignite.Core.Mail;
 using Webignite.Core.Tasks;
 using Webignite.Core.Web;
@@ -123,6 +124,17 @@ public sealed class AppSettings(LocalStore store)
 
     /// <summary>The main window listens, so a change in Settings shows straight away.</summary>
     public event Action<AppearanceSettings>? AppearanceChanged;
+
+    /// <summary>How the panes of a page are arranged, by page, for pages that have panes.</summary>
+    public PanelLayout? PanelLayout(string page) =>
+        store.GetSetting<Dictionary<string, PanelLayout>>("panels")?.GetValueOrDefault(page);
+
+    public void SetPanelLayout(string page, PanelLayout layout)
+    {
+        var all = store.GetSetting<Dictionary<string, PanelLayout>>("panels") ?? [];
+        all[page] = layout;
+        store.SetSetting("panels", all);
+    }
 
     /// <summary>How often mail is checked in the background, and what was already announced.</summary>
     public MailCheckSettings MailCheck
