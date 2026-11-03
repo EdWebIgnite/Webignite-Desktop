@@ -144,6 +144,8 @@ Save("sidebar-folded");
 vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "billing").Toggle();
 vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "web-tools").Toggle();
 vm.Sidebar.Toggle();
+Save("sidebar-icons");
+vm.Sidebar.Toggle();
 Save("sidebar-hidden");
 vm.Sidebar.Toggle();
 vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "planning").MoveUpCommand.Execute(null);

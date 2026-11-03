@@ -25,7 +25,7 @@ public sealed partial class SidebarViewModel : ObservableObject
         defaults = [.. all.Select(Key)];
         var groups = all.OfType<NavGroup>().Where(g => g.CanFold).ToList();
         layout = Sidebar.Reconcile(settings.Sidebar, [.. groups.Select(g => g.Key)]);
-        IsHidden = layout.Hidden;
+        ShowMode(layout.Mode);
         foreach (var item in all)
         {
             switch (item)
@@ -48,6 +48,26 @@ public sealed partial class SidebarViewModel : ObservableObject
 
     /// <summary>True when the sidebar is tucked away to a thin strip. Ctrl+B or the button at the top switches it.</summary>
     [ObservableProperty] public partial bool IsHidden { get; private set; }
+
+    /// <summary>True when the sidebar is folded to a strip of page icons, names on hover.</summary>
+    [ObservableProperty] public partial bool IsIcons { get; private set; }
+
+    /// <summary>True when the sidebar shows the names of the pages.</summary>
+    [ObservableProperty] public partial bool IsFull { get; private set; } = true;
+
+    /// <summary>What the button at the top does next, for its tip.</summary>
+    public string ToggleTip => IsFull ? "Fold the sidebar to icons (Ctrl+B)" : IsIcons ? "Tuck the sidebar away (Ctrl+B)" : "Show the sidebar (Ctrl+B)";
+
+    /// <summary>Every page for the icon strip, folded groups or not.</summary>
+    public ObservableCollection<Module> IconPages { get; } = [];
+
+    private void ShowMode(SidebarMode mode)
+    {
+        IsHidden = mode == SidebarMode.Hidden;
+        IsIcons = mode == SidebarMode.Icons;
+        IsFull = mode == SidebarMode.Open;
+        OnPropertyChanged(nameof(ToggleTip));
+    }
 
     /// <summary>What the list shows now: headings, and the pages of groups that are open.</summary>
     public ObservableCollection<object> Items { get; }
@@ -74,7 +94,7 @@ public sealed partial class SidebarViewModel : ObservableObject
             return;
         layout = changed;
         settings.Sidebar = layout;
-        IsHidden = layout.Hidden;
+        ShowMode(layout.Mode);
         Apply();
     }
 
@@ -102,6 +122,12 @@ public sealed partial class SidebarViewModel : ObservableObject
             }
         }
         Rebuild(wanted);
+        if (!IconPages.SequenceEqual(Pages))
+        {
+            IconPages.Clear();
+            foreach (var page in Pages)
+                IconPages.Add(page);
+        }
         foreach (var item in byKey.Values)
         {
             if (item is Module module)

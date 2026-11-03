@@ -6,13 +6,24 @@ namespace Webignite.Tests;
 public sealed class SidebarTests
 {
     [Fact]
-    public void The_sidebar_hides_and_shows()
+    public void The_button_goes_from_open_to_icons_to_hidden_and_back()
     {
         var layout = new SidebarLayout();
-        Assert.False(layout.Hidden);
+        Assert.Equal(SidebarMode.Open, layout.Mode);
         layout = Sidebar.Toggle(layout);
-        Assert.True(layout.Hidden);
-        Assert.False(Sidebar.Toggle(layout).Hidden);
+        Assert.Equal(SidebarMode.Icons, layout.Mode);
+        layout = Sidebar.Toggle(layout);
+        Assert.Equal(SidebarMode.Hidden, layout.Mode);
+        Assert.False(layout.Icons);
+        Assert.Equal(SidebarMode.Open, Sidebar.Toggle(layout).Mode);
+    }
+
+    [Fact]
+    public void A_layout_saved_before_icons_existed_still_reads_as_hidden()
+    {
+        var old = JsonSerializer.Deserialize<SidebarLayout>("""{"hidden":true}""", DocumentJson.Options)!;
+        Assert.Equal(SidebarMode.Hidden, old.Mode);
+        Assert.Equal(SidebarMode.Icons, Sidebar.Show(old, SidebarMode.Icons).Mode);
     }
 
     [Fact]
@@ -43,7 +54,7 @@ public sealed class SidebarTests
     [Fact]
     public void Layouts_round_trip_through_json()
     {
-        var layout = Sidebar.Fold(Sidebar.Toggle(new SidebarLayout()), "planning", open: false);
+        var layout = Sidebar.Fold(Sidebar.Show(new SidebarLayout(), SidebarMode.Hidden), "planning", open: false);
         var json = JsonSerializer.Serialize(layout, DocumentJson.Options);
         var back = JsonSerializer.Deserialize<SidebarLayout>(json, DocumentJson.Options)!;
         Assert.True(back.Hidden);
@@ -108,7 +119,7 @@ public sealed class SidebarOrderTests
     [Fact]
     public void Reset_puts_the_order_back_and_opens_every_group_but_keeps_hidden()
     {
-        var layout = Sidebar.Fold(Sidebar.Toggle(Sidebar.Move(new SidebarLayout(), Defaults, "Mail", -1)), "billing", open: false);
+        var layout = Sidebar.Fold(Sidebar.Show(Sidebar.Move(new SidebarLayout(), Defaults, "Mail", -1), SidebarMode.Hidden), "billing", open: false);
         var reset = Sidebar.Reset(layout);
         Assert.Empty(reset.Order);
         Assert.Empty(reset.Folded);

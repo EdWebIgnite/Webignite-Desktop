@@ -6,7 +6,13 @@ namespace Webignite.Core.Layout;
 /// </summary>
 public sealed record SidebarLayout
 {
+    /// <summary>Tucked away to a thin strip with only the button that brings it back.</summary>
     public bool Hidden { get; init; }
+
+    /// <summary>Folded to a narrow strip of page icons, names on hover. Hidden wins when both are set.</summary>
+    public bool Icons { get; init; }
+
+    public SidebarMode Mode => Hidden ? SidebarMode.Hidden : Icons ? SidebarMode.Icons : SidebarMode.Open;
 
     /// <summary>Groups folded up to just their heading.</summary>
     public IReadOnlyList<string> Folded { get; init; } = [];
@@ -18,6 +24,14 @@ public sealed record SidebarLayout
     public IReadOnlyList<string> Order { get; init; } = [];
 
     public bool IsOpen(string group) => !Folded.Contains(group, StringComparer.Ordinal);
+}
+
+/// <summary>The three ways the sidebar can be: open with names, folded to icons, or tucked away.</summary>
+public enum SidebarMode
+{
+    Open,
+    Icons,
+    Hidden,
 }
 
 /// <summary>
@@ -32,7 +46,16 @@ public static class Sidebar
     public static string Heading(string group) => HeadingMark + group;
     public static bool IsHeading(string key) => key.StartsWith(HeadingMark, StringComparison.Ordinal);
 
-    public static SidebarLayout Toggle(SidebarLayout layout) => layout with { Hidden = !layout.Hidden };
+    /// <summary>The button and Ctrl+B go round the three: open, then icons only, then tucked away, then open again.</summary>
+    public static SidebarLayout Toggle(SidebarLayout layout) => Show(layout, layout.Mode switch
+    {
+        SidebarMode.Open => SidebarMode.Icons,
+        SidebarMode.Icons => SidebarMode.Hidden,
+        _ => SidebarMode.Open,
+    });
+
+    public static SidebarLayout Show(SidebarLayout layout, SidebarMode mode) =>
+        layout with { Hidden = mode == SidebarMode.Hidden, Icons = mode == SidebarMode.Icons };
 
     /// <summary>Folds a group up or opens it out. A group not on the sidebar is left alone.</summary>
     public static SidebarLayout Fold(SidebarLayout layout, string group, bool open)

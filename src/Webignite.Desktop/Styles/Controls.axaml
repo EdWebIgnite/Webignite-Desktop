@@ -498,6 +498,11 @@
     <Setter Property="CornerRadius" Value="6" />
   </Style>
   <!-- Group headings: clicking one folds its pages up or opens them out. They never look selected. -->
+  <!-- The sidebar folded to icons: square items, the icon in the middle. -->
+  <Style Selector="ListBox.nav.icons ListBoxItem">
+    <Setter Property="Padding" Value="0,10" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
   <Style Selector="ListBox.nav ListBoxItem.heading">
     <Setter Property="Padding" Value="12,12,12,4" />
     <Setter Property="Cursor" Value="Hand" />
