@@ -20,21 +20,93 @@
     <Style Selector="Button.folder.current TextBlock.name">
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
-    <Style Selector="Button.mailrow">
+    <Style Selector="Button.folder.drop">
+      <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
+    </Style>
+    <Style Selector="Button.folder c|Icon.foldericon">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="Button.folder.important c|Icon.foldericon">
+      <Setter Property="Foreground" Value="{DynamicResource Important}" />
+    </Style>
+    <Style Selector="Button.newfolder">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <!-- The message list: rows edge to edge with a line between, like a mail app. -->
+    <Style Selector="ListBox.messages">
       <Setter Property="Background" Value="{DynamicResource Surface}" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.messages ListBoxItem">
       <Setter Property="Padding" Value="16,10" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     </Style>
-    <Style Selector="Button.mailrow.selected">
+    <Style Selector="ListBox.messages ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="ListBox.messages ListBoxItem:selected /template/ ContentPresenter, ListBox.messages ListBoxItem:selected:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource TableHead}" />
     </Style>
-    <Style Selector="Button.mailrow.unread TextBlock.who, Button.mailrow.unread TextBlock.subject">
+    <Style Selector="ListBox.messages ListBoxItem:selected:focus-within /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
+    </Style>
+    <Style Selector="Grid.mailrow.unread TextBlock.who, Grid.mailrow.unread TextBlock.subject">
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
+    <!-- Quick filters above the list -->
+    <Style Selector="Button.filterchip">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="10,3" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="Button.filterchip.chosen">
+      <Setter Property="Background" Value="{DynamicResource Primary}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+    </Style>
+    <Style Selector="Button.filterchip.chosen:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource PrimaryHover}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+    </Style>
+    <!-- The icon buttons above the open message -->
+    <Style Selector="Button.tool">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="Rectangle.toolgap">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Height" Value="18" />
+      <Setter Property="Margin" Value="6,0" />
+      <Setter Property="Fill" Value="{DynamicResource Line}" />
+    </Style>
+    <Style Selector="Button.swatch">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="3" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.swatch.chosen">
+      <Setter Property="BorderBrush" Value="{DynamicResource Ink}" />
+    </Style>
+    <Style Selector="Border.categorytag">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="8,2" />
+    </Style>
+    <Style Selector="Border.editor">
+      <Setter Property="Padding" Value="12" />
     </Style>
     <Style Selector="Border.unreaddot">
       <Setter Property="Width" Value="7" />
@@ -157,40 +229,130 @@
 
     <!-- The mail itself: folders, messages, the open message -->
     <c:PanelGrid Layout="{Binding Panels.Layout}" Resized="PaneResized" IsVisible="{Binding ShowMail}">
-      <!-- Folders -->
+      <!-- Folders and categories -->
       <Border c:PanelGrid.Pane="folders" c:PanelGrid.DefaultWidth="240" Background="{DynamicResource Canvas}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>
-          <StackPanel DockPanel.Dock="Bottom" Margin="12">
+          <StackPanel DockPanel.Dock="Bottom" Margin="12" Spacing="10">
+            <!-- A new or renamed folder -->
+            <Border Classes="card editor" IsVisible="{Binding HasFolderEditor}">
+              <StackPanel Spacing="8" DataContext="{Binding FolderEditor}" x:DataType="vm:FolderEditorViewModel">
+                <TextBlock FontWeight="SemiBold" Text="{Binding Heading}" TextWrapping="Wrap" />
+                <TextBox Text="{Binding Name}" PlaceholderText="Folder name" IsVisible="{Binding AsksName}" x:Name="FolderName" />
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding Note}" TextWrapping="Wrap" />
+                <TextBlock Classes="short" FontSize="12" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Button Classes="primary" Content="{Binding SaveLabel}" Command="{Binding SaveCommand}" IsDefault="True" />
+                  <Button Classes="link" Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <!-- A new or changed category -->
+            <Border Classes="card editor" IsVisible="{Binding HasCategoryEditor}">
+              <StackPanel Spacing="8" DataContext="{Binding CategoryEditor}" x:DataType="vm:CategoryEditorViewModel">
+                <TextBlock FontWeight="SemiBold" Text="{Binding Heading}" TextWrapping="Wrap" />
+                <TextBox Text="{Binding Name}" PlaceholderText="e.g. Waiting on client" x:Name="CategoryName" />
+                <ItemsControl ItemsSource="{Binding Colours}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel ItemSpacing="2" LineSpacing="2" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ColourChoiceViewModel">
+                      <Button Classes="swatch" Classes.chosen="{Binding IsChosen}" Command="{Binding PickCommand}" ToolTip.Tip="{Binding Tip}">
+                        <c:CategoryDot Colour="{Binding Colour}" Size="13" />
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="short" FontSize="12" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
+                <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !ConfirmingRemove}">
+                  <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsDefault="True" />
+                  <Button Classes="link" Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
+                  <Button Classes="link" Content="Remove" Command="{Binding AskRemoveCommand}" IsVisible="{Binding IsEditing}" />
+                </StackPanel>
+                <StackPanel Spacing="6" IsVisible="{Binding ConfirmingRemove}">
+                  <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                             Text="The category goes from this list. Mail keeps it on the server, so making it again brings the mail back." />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Classes="quiet" Content="Remove it" Command="{Binding RemoveCommand}" />
+                    <Button Classes="link" Content="Keep" Command="{Binding KeepItCommand}" />
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </Border>
             <Button Classes="link" Content="Manage mailboxes" Command="{Binding ManageMailboxesCommand}" />
           </StackPanel>
           <ScrollViewer>
-            <ItemsControl ItemsSource="{Binding Mailboxes}" Margin="8,16,8,8">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:MailboxNodeViewModel">
-                  <StackPanel Margin="0,0,0,14">
-                    <DockPanel Margin="10,0,4,4" IsVisible="{Binding HasTitle}">
-                      <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Content="Edit" Command="{Binding EditCommand}" />
-                      <StackPanel>
-                        <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Address}" TextTrimming="CharacterEllipsis" />
+            <StackPanel Margin="8,16,8,8">
+              <ItemsControl ItemsSource="{Binding Mailboxes}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MailboxNodeViewModel">
+                    <StackPanel Margin="0,0,0,14">
+                      <DockPanel Margin="10,0,4,4" IsVisible="{Binding HasTitle}">
+                        <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Content="Edit" Command="{Binding EditCommand}" />
+                        <StackPanel>
+                          <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Address}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </DockPanel>
+                      <ItemsControl ItemsSource="{Binding Folders}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:FolderNodeViewModel">
+                            <Button Classes="folder" Classes.current="{Binding IsCurrent}" Classes.drop="{Binding IsDropTarget}" Classes.important="{Binding IsImportant}"
+                                    Padding="{Binding Indent}" Command="{Binding OpenCommand}"
+                                    DragDrop.AllowDrop="True" DragDrop.DragOver="FolderDragOver" DragDrop.DragLeave="FolderDragLeave" DragDrop.Drop="FolderDrop">
+                              <Button.ContextMenu>
+                                <ContextMenu IsVisible="{Binding IsRealFolder}">
+                                  <MenuItem Header="New folder inside" Command="{Binding NewFolderCommand}" IsEnabled="{Binding IsRealFolder}" />
+                                  <MenuItem Header="Rename" Command="{Binding RenameCommand}" IsEnabled="{Binding CanChange}" />
+                                  <MenuItem Header="Remove" Command="{Binding RemoveCommand}" IsEnabled="{Binding CanChange}" />
+                                </ContextMenu>
+                              </Button.ContextMenu>
+                              <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding UnreadText}" />
+                                <c:Icon Classes="foldericon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="15" Margin="0,0,8,0" />
+                                <TextBlock Classes="name" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                              </DockPanel>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Button Classes="folder newfolder" Padding="10,5" Command="{Binding NewFolderCommand}" IsVisible="{Binding HasTitle}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <c:Icon Data="{StaticResource Icon.FolderPlus}" Size="15" />
+                          <TextBlock Text="New folder" />
+                        </StackPanel>
+                      </Button>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <!-- Categories: your own, each with its colour dot -->
+              <DockPanel Margin="10,0,4,4">
+                <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Content="New" Command="{Binding NewCategoryCommand}" ToolTip.Tip="Make a category" />
+                <TextBlock FontWeight="SemiBold" Text="Categories" />
+              </DockPanel>
+              <TextBlock Classes="muted" FontSize="12" Margin="10,0,8,6" TextWrapping="Wrap" IsVisible="{Binding !HasCategories}"
+                         Text="Make your own, like Waiting or Accounts, each with a colour. They show as dots on the mail." />
+              <ItemsControl ItemsSource="{Binding Categories}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:CategoryNodeViewModel">
+                    <Button Classes="folder" Classes.current="{Binding IsCurrent}" Classes.drop="{Binding IsDropTarget}" Padding="10,6" Command="{Binding OpenCommand}"
+                            DragDrop.AllowDrop="True" DragDrop.DragOver="CategoryDragOver" DragDrop.DragLeave="CategoryDragLeave" DragDrop.Drop="CategoryDrop">
+                      <Button.ContextMenu>
+                        <ContextMenu>
+                          <MenuItem Header="Rename or change colour" Command="{Binding EditCommand}" />
+                        </ContextMenu>
+                      </Button.ContextMenu>
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <c:CategoryDot Colour="{Binding Colour}" Size="10" Margin="2,0,1,0" />
+                        <TextBlock Classes="name" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                       </StackPanel>
-                    </DockPanel>
-                    <ItemsControl ItemsSource="{Binding Folders}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:FolderNodeViewModel">
-                          <Button Classes="folder" Classes.current="{Binding IsCurrent}" Padding="{Binding Indent}" Command="{Binding OpenCommand}">
-                            <DockPanel>
-                              <TextBlock DockPanel.Dock="Right" FontWeight="SemiBold" Text="{Binding UnreadText}" />
-                              <TextBlock Classes="name" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                            </DockPanel>
-                          </Button>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
           </ScrollViewer>
         </DockPanel>
       </Border>
@@ -198,7 +360,7 @@
       <!-- Message list -->
       <Border c:PanelGrid.Pane="messages" c:PanelGrid.DefaultWidth="380" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>
-          <StackPanel DockPanel.Dock="Top" Margin="16,16,16,10" Spacing="10">
+          <StackPanel DockPanel.Dock="Top" Margin="16,16,16,8" Spacing="10">
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
                 <c:Spinner IsVisible="{Binding IsBusy}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,4,0"
@@ -232,137 +394,205 @@
               <TextBlock Classes="h2" Text="{Binding ListTitle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
             <TextBox Text="{Binding Search}" PlaceholderText="Search all mail by sender, subject or words" />
-            <TextBlock FontSize="12" Classes="muted" Classes.short="{Binding StatusIsProblem}" Text="{Binding Status}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding Filters}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FilterChipViewModel">
+                  <Button Classes="filterchip" Classes.chosen="{Binding IsChosen}" Content="{Binding Label}" Command="{Binding PickCommand}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock FontSize="12" Classes="muted" Classes.short="{Binding StatusIsProblem}" Text="{Binding Status}" TextWrapping="Wrap"
+                       IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
-          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,8">
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,8" IsVisible="{Binding CanLoadOlder}">
             <Button Classes="link" Content="Load older mail" Command="{Binding LoadOlderCommand}" HorizontalAlignment="Center" />
           </Border>
           <Grid>
-            <TextBlock Classes="muted" Margin="16" Text="{Binding EmptyText}" IsVisible="{Binding NoMessages}" />
-            <!-- Only the rows on screen are built, so a folder of 500 messages costs what 15 do. -->
-            <ItemsControl ItemsSource="{Binding Messages}">
-                <ItemsControl.Template>
-                  <ControlTemplate TargetType="ItemsControl">
-                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                      <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
-                    </ScrollViewer>
-                  </ControlTemplate>
-                </ItemsControl.Template>
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:MailRowViewModel">
-                    <Button Classes="mailrow" Classes.selected="{Binding IsSelected}" Classes.unread="{Binding IsUnread}" Command="{Binding OpenCommand}">
-                      <Grid ColumnDefinitions="14,*">
-                        <Border Grid.Column="0" Classes="unreaddot" IsVisible="{Binding IsUnread}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,6,0,0" />
-                        <StackPanel Grid.Column="1" Spacing="2">
-                          <DockPanel>
-                            <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="8,0,0,0" Text="{Binding When}" />
-                            <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Paperclip}" Size="13" Foreground="{DynamicResource Muted}" Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding HasAttachments}" ToolTip.Tip="Has attachments" />
-                            <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Flag}" Size="13" Foreground="{DynamicResource Text}" Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding IsFlagged}" ToolTip.Tip="Flagged" />
-                            <TextBlock Classes="who" Text="{Binding Who}" TextTrimming="CharacterEllipsis" />
-                          </DockPanel>
-                          <DockPanel>
-                            <Border DockPanel.Dock="Right" Classes="mailtag" Margin="6,0,0,0" IsVisible="{Binding ShowMailbox}">
-                              <TextBlock FontSize="11" Text="{Binding MailboxTag}" Foreground="{DynamicResource InvoiceTint}" />
-                            </Border>
-                            <TextBlock Classes="subject" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
-                          </DockPanel>
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Preview}" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                        </StackPanel>
-                      </Grid>
-                    </Button>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <TextBlock Classes="muted" Margin="16" Text="{Binding EmptyText}" IsVisible="{Binding NoMessages}" TextWrapping="Wrap" />
+            <!-- A ListBox builds only the rows on screen and reuses them while scrolling. -->
+            <ListBox x:Name="MessageList" Classes="messages" ItemsSource="{Binding Messages}" Selection="{Binding Selection}" SelectionMode="Multiple"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" IsTextSearchEnabled="False" KeyDown="MessageKeyDown">
+              <ListBox.ContextMenu>
+                <ContextMenu Opening="MessageMenuOpening" />
+              </ListBox.ContextMenu>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:MailRowViewModel">
+                  <Grid ColumnDefinitions="14,*" Classes="mailrow" Classes.unread="{Binding IsUnread}" Background="Transparent">
+                    <Border Grid.Column="0" Classes="unreaddot" IsVisible="{Binding IsUnread}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,6,0,0" />
+                    <StackPanel Grid.Column="1" Spacing="2">
+                      <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="8,0,0,0" Text="{Binding When}" />
+                        <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Paperclip}" Size="13" Margin="6,0,0,0" Foreground="{DynamicResource Muted}"
+                                IsVisible="{Binding HasAttachments}" ToolTip.Tip="Has attachments" />
+                        <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Flag}" Size="13" Margin="6,0,0,0" Foreground="{DynamicResource Important}"
+                                IsVisible="{Binding IsImportant}" ToolTip.Tip="Important" />
+                        <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding Dots}" IsVisible="{Binding HasDots}" Margin="6,0,0,0"
+                                      VerticalAlignment="Center" ToolTip.Tip="{Binding DotsTip}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="core:MailCategory">
+                              <c:CategoryDot Colour="{Binding Colour}" Size="8" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Classes="who" Text="{Binding Who}" TextTrimming="CharacterEllipsis" />
+                      </DockPanel>
+                      <DockPanel>
+                        <Border DockPanel.Dock="Right" Classes="mailtag" Margin="6,0,0,0" IsVisible="{Binding ShowMailbox}">
+                          <TextBlock FontSize="11" Text="{Binding MailboxTag}" Foreground="{DynamicResource InvoiceTint}" />
+                        </Border>
+                        <TextBlock Classes="subject" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
+                      </DockPanel>
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Preview}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
           </Grid>
         </DockPanel>
       </Border>
 
-      <!-- The open message -->
-      <Grid c:PanelGrid.Pane="reader" c:PanelGrid.DefaultWidth="560" Background="{DynamicResource Surface}">
-        <TextBlock Classes="muted" Text="Pick a message to read it." HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowNothing}" />
-        <Panel IsVisible="{Binding HasComposer}">
-          <v:ComposeView DataContext="{Binding Composer}" />
-        </Panel>
-        <Panel IsVisible="{Binding ShowReader}">
-        <DockPanel DataContext="{Binding Reader}" x:DataType="vm:MailReaderViewModel">
-          <StackPanel DockPanel.Dock="Top" Margin="24,18,24,10" Spacing="10">
-            <TextBlock Classes="h2" Text="{Binding Subject}" TextWrapping="Wrap" />
-            <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Spacing="2">
-                <TextBlock FontWeight="SemiBold" Text="{Binding From}" TextWrapping="Wrap" />
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap">
-                  <Run Text="To " /><Run Text="{Binding To}" />
-                </TextBlock>
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding HasCc}">
-                  <Run Text="Cc " /><Run Text="{Binding Cc}" />
-                </TextBlock>
-              </StackPanel>
-              <TextBlock Grid.Column="1" Classes="muted" FontSize="12" Margin="12,0,0,0" Text="{Binding Date}" />
-            </Grid>
-            <WrapPanel ItemSpacing="6" LineSpacing="6">
-              <Button Classes="primary" Content="Reply" Command="{Binding ReplyCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
-              <Button Classes="quiet" Content="Reply all" Command="{Binding ReplyAllCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
-              <Button Classes="quiet" Content="Forward" Command="{Binding ForwardCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
-              <Button Classes="primary" Content="Edit draft" Command="{Binding EditDraftCommand}" IsVisible="{Binding IsDraft}" IsEnabled="{Binding CanWrite}" />
-              <Button Classes="quiet" Content="{Binding FlagLabel}" Command="{Binding ToggleFlagCommand}" />
-              <Button Classes="quiet" Content="Mark unread" Command="{Binding MarkUnreadCommand}" />
-              <ComboBox PlaceholderText="Move to…" ItemsSource="{Binding MoveTargets}" SelectedItem="{Binding MoveTo}" MinWidth="140" />
-              <Button Classes="quiet" Content="Delete" Command="{Binding DeleteCommand}" />
-            </WrapPanel>
-
-            <Border Classes="card" Padding="12,8" IsVisible="{Binding HasDraftedBy}" Background="{DynamicResource InvoiceSoft}">
-              <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
-            </Border>
-
-            <Border Classes="card" Padding="12,8" IsVisible="{Binding CanShowImages}">
+      <!-- The open message, or what to do with several -->
+      <DockPanel c:PanelGrid.Pane="reader" c:PanelGrid.DefaultWidth="560" Background="{DynamicResource Surface}">
+        <!-- What you can do to the picked mail. The same buttons work for one message or many. -->
+        <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="16,8" IsVisible="{Binding ShowActions}">
+          <StackPanel Orientation="Horizontal" Spacing="2">
+            <Button Classes="tool" Command="{Binding ArchiveCommand}" ToolTip.Tip="Archive (E)">
+              <c:Icon Data="{StaticResource Icon.Archive}" Size="17" />
+            </Button>
+            <Button Classes="tool" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete (Delete key)">
+              <c:Icon Data="{StaticResource Icon.Trash}" Size="17" />
+            </Button>
+            <Rectangle Classes="toolgap" />
+            <Button Classes="tool" Command="{Binding ToggleImportantCommand}" ToolTip.Tip="Important on or off (I)">
+              <c:Icon Data="{StaticResource Icon.Flag}" Size="17" />
+            </Button>
+            <Button Classes="tool" Command="{Binding ToggleReadCommand}" ToolTip.Tip="Read or unread (U)">
+              <c:Icon Data="{StaticResource Icon.MailOpen}" Size="17" />
+            </Button>
+            <Button Classes="tool" ToolTip.Tip="Categories">
+              <c:Icon Data="{StaticResource Icon.Tag}" Size="17" />
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="CategoryFlyoutOpening" />
+              </Button.Flyout>
+            </Button>
+            <Button Classes="tool" ToolTip.Tip="Move to a folder">
+              <c:Icon Data="{StaticResource Icon.FolderMove}" Size="17" />
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="MoveFlyoutOpening" />
+              </Button.Flyout>
+            </Button>
+          </StackPanel>
+        </Border>
+        <Grid>
+          <TextBlock Classes="muted" Text="Pick a message to read it." HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowNothing}" />
+          <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowMany}">
+            <c:Icon Data="{StaticResource Icon.Mail}" Size="32" Foreground="{DynamicResource Muted}" HorizontalAlignment="Center" />
+            <TextBlock Classes="h2" Text="{Binding ManyText}" HorizontalAlignment="Center" />
+            <TextBlock Classes="muted" Text="Use the buttons above, right-click, or drag them onto a folder or category." HorizontalAlignment="Center" />
+          </StackPanel>
+          <Panel IsVisible="{Binding HasComposer}">
+            <v:ComposeView DataContext="{Binding Composer}" />
+          </Panel>
+          <Panel IsVisible="{Binding ShowReader}">
+          <DockPanel DataContext="{Binding Reader}" x:DataType="vm:MailReaderViewModel">
+            <StackPanel DockPanel.Dock="Top" Margin="24,18,24,10" Spacing="10">
               <DockPanel>
-                <Button DockPanel.Dock="Right" Classes="link" Content="Show pictures" Command="{Binding ShowImagesCommand}" />
-                <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
-                           Text="Pictures from the internet are hidden so the sender can't tell you opened this." />
+                <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Flag}" Size="18" Margin="10,4,0,0" VerticalAlignment="Top"
+                        Foreground="{DynamicResource Important}" IsVisible="{Binding IsImportant}" ToolTip.Tip="Important" />
+                <TextBlock Classes="h2" Text="{Binding Subject}" TextWrapping="Wrap" />
               </DockPanel>
-            </Border>
-
-            <StackPanel Spacing="6" IsVisible="{Binding HasAttachments}">
-              <DockPanel>
-                <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Content="Save all to Downloads" Command="{Binding SaveAllCommand}" />
-                <TextBlock Classes="label" Text="Attachments" VerticalAlignment="Center" />
-              </DockPanel>
-              <ItemsControl ItemsSource="{Binding Attachments}">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                  <TextBlock FontWeight="SemiBold" Text="{Binding From}" TextWrapping="Wrap" />
+                  <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap">
+                    <Run Text="To " /><Run Text="{Binding To}" />
+                  </TextBlock>
+                  <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding HasCc}">
+                    <Run Text="Cc " /><Run Text="{Binding Cc}" />
+                  </TextBlock>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Classes="muted" FontSize="12" Margin="12,0,0,0" Text="{Binding Date}" />
+              </Grid>
+              <ItemsControl ItemsSource="{Binding Categories}" IsVisible="{Binding HasCategories}">
                 <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                  <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:AttachmentViewModel">
-                    <Border Classes="card" Padding="10,6" Margin="0,0,8,8">
-                      <StackPanel Orientation="Horizontal" Spacing="10">
-                        <StackPanel>
-                          <TextBlock Text="{Binding Name}" MaxWidth="220" TextTrimming="CharacterEllipsis" />
-                          <TextBlock Classes="muted" FontSize="11" Text="{Binding Size}" />
-                        </StackPanel>
-                        <Button Classes="link" Content="Open" Command="{Binding OpenCommand}" VerticalAlignment="Center" />
-                        <Button Classes="link" Content="Save" Command="{Binding SaveCommand}" VerticalAlignment="Center" />
+                  <DataTemplate x:DataType="core:MailCategory">
+                    <Border Classes="categorytag">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:CategoryDot Colour="{Binding Colour}" Size="8" />
+                        <TextBlock FontSize="12" Text="{Binding Name}" />
                       </StackPanel>
                     </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding AttachmentMessage}" TextWrapping="Wrap" IsVisible="{Binding HasAttachmentMessage}" />
-            </StackPanel>
-          </StackPanel>
+              <WrapPanel ItemSpacing="6" LineSpacing="6">
+                <Button Classes="primary" Content="Reply" Command="{Binding ReplyCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                <Button Classes="quiet" Content="Reply all" Command="{Binding ReplyAllCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                <Button Classes="quiet" Content="Forward" Command="{Binding ForwardCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                <Button Classes="primary" Content="Edit draft" Command="{Binding EditDraftCommand}" IsVisible="{Binding IsDraft}" IsEnabled="{Binding CanWrite}" />
+              </WrapPanel>
 
-          <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
-            <Grid>
-              <TextBlock Classes="muted" Margin="24" Text="Opening…" IsVisible="{Binding IsLoading}" />
-              <TextBlock Classes="short" Margin="24" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
-              <html:HtmlPanel x:Name="Body" Text="{Binding Html}" Margin="24,16" Background="{DynamicResource Surface}" />
-            </Grid>
-          </Border>
-        </DockPanel>
-        </Panel>
-      </Grid>
+              <Border Classes="card" Padding="12,8" IsVisible="{Binding HasDraftedBy}" Background="{DynamicResource InvoiceSoft}">
+                <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
+              </Border>
+
+              <Border Classes="card" Padding="12,8" IsVisible="{Binding CanShowImages}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Show pictures" Command="{Binding ShowImagesCommand}" />
+                  <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
+                             Text="Pictures from the internet are hidden so the sender can't tell you opened this." />
+                </DockPanel>
+              </Border>
+
+              <StackPanel Spacing="6" IsVisible="{Binding HasAttachments}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Content="Save all to Downloads" Command="{Binding SaveAllCommand}" />
+                  <TextBlock Classes="label" Text="Attachments" VerticalAlignment="Center" />
+                </DockPanel>
+                <ItemsControl ItemsSource="{Binding Attachments}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AttachmentViewModel">
+                      <Border Classes="card" Padding="10,6" Margin="0,0,8,8">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                          <StackPanel>
+                            <TextBlock Text="{Binding Name}" MaxWidth="220" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Classes="muted" FontSize="11" Text="{Binding Size}" />
+                          </StackPanel>
+                          <Button Classes="link" Content="Open" Command="{Binding OpenCommand}" VerticalAlignment="Center" />
+                          <Button Classes="link" Content="Save" Command="{Binding SaveCommand}" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding AttachmentMessage}" TextWrapping="Wrap" IsVisible="{Binding HasAttachmentMessage}" />
+              </StackPanel>
+            </StackPanel>
+
+            <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
+              <Grid>
+                <TextBlock Classes="muted" Margin="24" Text="Opening…" IsVisible="{Binding IsLoading}" />
+                <TextBlock Classes="short" Margin="24" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
+                <html:HtmlPanel x:Name="Body" Text="{Binding Html}" Margin="24,16" Background="{DynamicResource Surface}" />
+              </Grid>
+            </Border>
+          </DockPanel>
+          </Panel>
+        </Grid>
+      </DockPanel>
     </c:PanelGrid>
   </Grid>
 </UserControl>

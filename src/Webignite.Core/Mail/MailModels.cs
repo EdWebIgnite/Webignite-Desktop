@@ -50,7 +50,13 @@ public sealed record MailSummary
     public string Subject { get; init; } = "";
     public string Preview { get; init; } = "";
     public bool Seen { get; init; }
+
+    /// <summary>The IMAP \Flagged mark, shown in the app as Important. Phones show it as a flag or a star.</summary>
     public bool Flagged { get; init; }
+
+    /// <summary>The IMAP keywords on the mail, which is where categories are kept.</summary>
+    public IReadOnlyList<string> Keywords { get; init; } = [];
+
     public bool Answered { get; init; }
     public bool HasAttachments { get; init; }
     public long Size { get; init; }

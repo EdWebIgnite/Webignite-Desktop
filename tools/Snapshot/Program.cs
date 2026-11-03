@@ -356,6 +356,25 @@ vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Status = "Up to date at 09:12";
 Save("mail-all-inboxes");
+// Organising: a category across both mailboxes, several messages picked, a quick filter, the editors.
+vm.Mail.Open(vm.Mail.Categories.First(c => c.Keyword == "clients"));
+Save("mail-category");
+vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
+foreach (var i in new[] { 3, 4, 5 })
+    vm.Mail.Selection.Select(i);
+Save("mail-many-picked");
+vm.Mail.Selection.Clear();
+vm.Mail.Filter = Webignite.Core.Mail.MailFilter.Unread;
+Save("mail-filter-unread");
+vm.Mail.Filter = Webignite.Core.Mail.MailFilter.All;
+vm.Mail.StartNewCategory([]);
+vm.Mail.CategoryEditor!.Name = "Later";
+Save("mail-new-category");
+vm.Mail.Mailboxes[1].NewFolderCommand.Execute(null);
+vm.Mail.FolderEditor!.Name = "Banking";
+Save("mail-new-folder");
+vm.Mail.FolderEditor.CancelCommand.Execute(null);
+vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Panels.Show("folders", false);
 vm.Mail.Panels.Resized("messages", 460);
 _ = vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41));
@@ -630,20 +649,26 @@ void SeedMail()
     Folder(work.Id, "INBOX.Clients", "Clients", Webignite.Core.Mail.FolderRole.Other);
     Folder(work.Id, "INBOX.Clients.Karoo", "Karoo", Webignite.Core.Mail.FolderRole.Other);
 
-    Webignite.Core.Mail.MailSummary Mail(string account, uint uid, string fromName, string from, string subject, string preview, TimeSpan ago, bool seen, bool attachments = false, bool flagged = false) => new()
+    services.Settings.MailCategories =
+    [
+        new Webignite.Core.Mail.MailCategory("clients", "Clients", "blue"),
+        new Webignite.Core.Mail.MailCategory("waiting", "Waiting on someone", "purple"),
+        new Webignite.Core.Mail.MailCategory("accounts", "Accounts", "orange"),
+    ];
+    Webignite.Core.Mail.MailSummary Mail(string account, uint uid, string fromName, string from, string subject, string preview, TimeSpan ago, bool seen, bool attachments = false, bool flagged = false, string[]? categories = null) => new()
     {
         AccountId = account, Folder = "INBOX", Uid = uid, Date = now - ago,
         From = new(fromName, from), To = [new(null, account == work.Id ? work.Address : accounts.Address)],
-        Subject = subject, Preview = preview, Seen = seen, HasAttachments = attachments, Flagged = flagged,
+        Subject = subject, Preview = preview, Seen = seen, HasAttachments = attachments, Flagged = flagged, Keywords = categories ?? [],
     };
     store.SaveMailSummaries(
     [
-        Mail(work.Id, 44, "Thandi Mokoena", "thandi@karoocoffee.co.za", "New product photos for the shop", "Hi Eddie, here are the new photos for the online shop. Could you swap them in before Friday?", TimeSpan.FromMinutes(25), false, attachments: true),
-        Mail(work.Id, 43, "Pieter van Wyk", "pieter@bosveldbuilders.co.za", "Re: Website quote", "Thanks, the quote looks good. Can we start in the first week of December?", TimeSpan.FromHours(2), false),
-        Mail(work.Id, 41, "Lerato Dlamini", "lerato@fynbosphysio.co.za", "Booking page not loading on phones", "Morning Eddie, a few patients say the booking page just spins on their phones.", TimeSpan.FromHours(5), true, attachments: true, flagged: true),
+        Mail(work.Id, 44, "Thandi Mokoena", "thandi@karoocoffee.co.za", "New product photos for the shop", "Hi Eddie, here are the new photos for the online shop. Could you swap them in before Friday?", TimeSpan.FromMinutes(25), false, attachments: true, categories: ["clients"]),
+        Mail(work.Id, 43, "Pieter van Wyk", "pieter@bosveldbuilders.co.za", "Re: Website quote", "Thanks, the quote looks good. Can we start in the first week of December?", TimeSpan.FromHours(2), false, categories: ["clients", "waiting"]),
+        Mail(work.Id, 41, "Lerato Dlamini", "lerato@fynbosphysio.co.za", "Booking page not loading on phones", "Morning Eddie, a few patients say the booking page just spins on their phones.", TimeSpan.FromHours(5), true, attachments: true, flagged: true, categories: ["clients"]),
         Mail(work.Id, 40, "xneelo", "noreply@xneelo.co.za", "Your hosting renewal for webignite.co.za", "Your hosting package renews on 15 December 2026.", TimeSpan.FromDays(2), true),
         Mail(work.Id, 39, "Google Search Console", "sc-noreply@google.com", "New coverage issue for fynbosphysio.co.za", "Search Console has found a new issue on your site.", TimeSpan.FromDays(4), true),
-        Mail(accounts.Id, 12, "Karoo Coffee Roasters", "accounts@karoocoffee.co.za", "Proof of payment INV-0107", "Good day, please find attached proof of payment for INV-0107.", TimeSpan.FromHours(1), false, attachments: true),
+        Mail(accounts.Id, 12, "Karoo Coffee Roasters", "accounts@karoocoffee.co.za", "Proof of payment INV-0107", "Good day, please find attached proof of payment for INV-0107.", TimeSpan.FromHours(1), false, attachments: true, categories: ["accounts"]),
         Mail(accounts.Id, 11, "FNB", "inContact@fnb.co.za", "Your statement is ready", "Your monthly statement for account ending 4410 is ready.", TimeSpan.FromDays(3), true),
     ]);
 

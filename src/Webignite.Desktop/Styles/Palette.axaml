@@ -41,6 +41,16 @@
   <SolidColorBrush x:Key="OkSoft" Color="#E9F5EE" />
   <SolidColorBrush x:Key="OkLine" Color="#CBE6D6" />
 
+  <!-- Mail categories and the Important mark: dots and flags only, never backgrounds. No red or green here. -->
+  <SolidColorBrush x:Key="CategoryBlue" Color="#2E7CF6" />
+  <SolidColorBrush x:Key="CategoryPurple" Color="#A55BD9" />
+  <SolidColorBrush x:Key="CategoryOrange" Color="#F28C1B" />
+  <SolidColorBrush x:Key="CategoryYellow" Color="#F2C200" />
+  <SolidColorBrush x:Key="CategoryTeal" Color="#2BA8BD" />
+  <SolidColorBrush x:Key="CategoryPink" Color="#E0559A" />
+  <SolidColorBrush x:Key="CategoryGrey" Color="#8E8E93" />
+  <SolidColorBrush x:Key="Important" Color="#E07B00" />
+
   <!-- Depth: cards sit just above the page; cards you can click rise a little more under the mouse. -->
   <BoxShadows x:Key="CardShadow">0 1 2 0 #0D1C1D21</BoxShadows>
   <BoxShadows x:Key="CardShadowRaised">0 6 16 0 #1A1C1D21</BoxShadows>

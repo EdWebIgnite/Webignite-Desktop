@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Controls.Selection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Mail;
@@ -7,14 +8,18 @@ using Webignite.Mail;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>
-/// The Mail module: mailboxes and folders on the left, messages in the middle, the open message on
+/// The Mail module: mailboxes, folders and categories on the left, messages in the middle, the open message on
 /// the right. Everything shown comes from the copy on this PC; the servers are checked in the background.
+/// What you can do to the selected mail (mark, move, archive, categories) is in MailViewModel.Actions.cs, and
+/// making folders and categories in MailViewModel.Editors.cs.
 /// </summary>
 public partial class MailViewModel : ViewModelBase
 {
     private readonly AppServices services;
     private IReadOnlyList<MailAccount> accounts = [];
+    private IReadOnlyList<MailCategory> categories = [];
     private bool syncing;
+    private bool rebuilding;
 
     public MailViewModel(AppServices services)
     {
@@ -22,6 +27,9 @@ public partial class MailViewModel : ViewModelBase
         Setup = new MailSetupViewModel(services, OnSetupDone);
         Panels = new PanelsViewModel(services.Settings, "mail",
             [("folders", "Folders"), ("messages", "Messages"), ("reader", "Reading pane")], spine: "messages");
+        Selection = new SelectionModel<MailRowViewModel> { SingleSelect = false, Source = Messages };
+        Selection.SelectionChanged += (_, _) => OnSelectionChanged();
+        Filters = Enum.GetValues<MailFilter>().Select(f => new FilterChipViewModel(f, this)).ToList();
         Reload();
     }
 
@@ -29,24 +37,46 @@ public partial class MailViewModel : ViewModelBase
     public PanelsViewModel Panels { get; }
 
     public ObservableCollection<MailboxNodeViewModel> Mailboxes { get; } = [];
+    public ObservableCollection<CategoryNodeViewModel> Categories { get; } = [];
     public ObservableCollection<MailRowViewModel> Messages { get; } = [];
+
+    /// <summary>Which messages are selected. A click selects one, Ctrl and Shift select more.</summary>
+    public SelectionModel<MailRowViewModel> Selection { get; }
+
+    public IReadOnlyList<FilterChipViewModel> Filters { get; }
     public MailSetupViewModel Setup { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ListTitle))]
+    [NotifyPropertyChangedFor(nameof(ListTitle), nameof(CanLoadOlder))]
     public partial FolderNodeViewModel? CurrentFolder { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasReader), nameof(ShowReader), nameof(ShowNothing))]
+    [NotifyPropertyChangedFor(nameof(ListTitle), nameof(CanLoadOlder))]
+    public partial CategoryNodeViewModel? CurrentCategory { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasReader), nameof(ShowReader), nameof(ShowNothing), nameof(HasTargets), nameof(ShowActions))]
     public partial MailReaderViewModel? Reader { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasComposer), nameof(ShowReader), nameof(ShowNothing))]
+    [NotifyPropertyChangedFor(nameof(HasComposer), nameof(ShowReader), nameof(ShowNothing), nameof(ShowMany), nameof(ShowActions))]
     public partial ComposeViewModel? Composer { get; set; }
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowMany), nameof(ShowNothing), nameof(ManyText), nameof(HasTargets), nameof(ShowActions))]
+    public partial int SelectedCount { get; set; }
+
+    [ObservableProperty] public partial MailFilter Filter { get; set; } = MailFilter.All;
+
     public bool HasComposer => Composer is not null;
-    public bool ShowReader => Reader is not null && Composer is null;
-    public bool ShowNothing => Reader is null && Composer is null;
+    public bool ShowReader => Reader is not null && Composer is null && SelectedCount <= 1;
+    public bool ShowMany => SelectedCount > 1 && Composer is null;
+    public bool ShowNothing => Reader is null && Composer is null && SelectedCount <= 1;
+    public string ManyText => $"{SelectedCount} messages selected";
+
+    /// <summary>Whether the buttons for marking, moving and deleting have something to work on.</summary>
+    public bool HasTargets => SelectedCount > 0 || Reader is not null;
+    public bool ShowActions => HasTargets && Composer is null;
 
     [ObservableProperty] public partial string Search { get; set; } = "";
     [ObservableProperty] public partial string Status { get; set; } = "";
@@ -60,13 +90,29 @@ public partial class MailViewModel : ViewModelBase
     public bool ShowMail => !ShowSetup;
     public bool HasReader => Reader is not null;
     public bool NoMessages => Messages.Count == 0;
-    public string EmptyText => Search.Trim().Length > 0 ? "Nothing matches that search." : "No mail in this folder.";
+    public bool HasCategories => Categories.Count > 0;
+
+    public string EmptyText => Search.Trim().Length > 0 ? "Nothing matches that search."
+        : CurrentCategory is not null && Filter == MailFilter.All ? "No mail in this category yet. Right-click a message to add it, or drag it here."
+        : CurrentFolder is { Kind: FolderKind.Important } && Filter == MailFilter.All ? "Nothing is marked important."
+        : MailFilters.Empty(Filter);
 
     public string ListTitle => Search.Trim().Length > 0 ? "Search results"
-        : CurrentFolder is { } f ? (f.IsAllInboxes ? "All inboxes" : $"{f.Name}  ·  {f.Mailbox.Address}")
+        : CurrentCategory is { } category ? category.Name
+        : CurrentFolder is { } f ? f.Kind switch
+        {
+            FolderKind.AllInboxes => "All inboxes",
+            FolderKind.Important => "Important",
+            _ => $"{f.Name}  ·  {f.Mailbox.Address}",
+        }
         : "";
 
+    /// <summary>Older mail can only be fetched for a real folder, not for Important or a category.</summary>
+    public bool CanLoadOlder => CurrentFolder is { Kind: FolderKind.Folder } && CurrentCategory is null;
+
     internal IReadOnlyList<MailAccount> Accounts => accounts;
+    internal IReadOnlyList<MailCategory> CategoryList => categories;
+    internal AppServices Services => services;
 
     partial void OnSearchChanged(string value)
     {
@@ -75,47 +121,103 @@ public partial class MailViewModel : ViewModelBase
         ShowMessages();
     }
 
-    /// <summary>Re-reads mailboxes and folders from this PC, keeping the open folder if it still exists.</summary>
+    partial void OnFilterChanged(MailFilter value)
+    {
+        foreach (var chip in Filters)
+            chip.IsChosen = chip.Filter == value;
+        OnPropertyChanged(nameof(EmptyText));
+        ShowMessages();
+    }
+
+    /// <summary>Re-reads mailboxes, folders and categories from this PC, keeping the open folder if it still exists.</summary>
     public void Reload()
     {
         accounts = services.Store.ListMailAccounts();
-        var current = CurrentFolder;
+        var currentKey = CurrentCategory?.Key ?? CurrentFolder?.Key;
         Mailboxes.Clear();
-        if (accounts.Count > 1)
-            Mailboxes.Add(MailboxNodeViewModel.AllInboxes(this, accounts.Sum(a => services.Store.ListMailFolders(a.Id).FirstOrDefault(f => f.Role == FolderRole.Inbox)?.Unread ?? 0)));
+        Mailboxes.Add(MailboxNodeViewModel.Smart(this, accounts.Count > 1
+            ? accounts.Sum(a => services.Store.ListMailFolders(a.Id).FirstOrDefault(f => f.Role == FolderRole.Inbox)?.Unread ?? 0)
+            : (int?)null));
         foreach (var account in accounts)
             Mailboxes.Add(new MailboxNodeViewModel(account, services.Store.ListMailFolders(account.Id), this));
+        LoadCategories();
 
         var folders = Mailboxes.SelectMany(m => m.Folders).ToList();
-        CurrentFolder = folders.FirstOrDefault(f => current is not null && f.Key == current.Key) ?? folders.FirstOrDefault();
-        foreach (var folder in folders)
-            folder.IsCurrent = folder == CurrentFolder;
+        CurrentCategory = Categories.FirstOrDefault(c => c.Key == currentKey);
+        CurrentFolder = CurrentCategory is not null ? null
+            : folders.FirstOrDefault(f => f.Key == currentKey)
+              ?? folders.FirstOrDefault(f => f.Kind == FolderKind.AllInboxes)
+              ?? folders.FirstOrDefault(f => f.Kind == FolderKind.Folder);
+        MarkCurrent();
         ShowSetup = accounts.Count == 0 || ShowSetup && Setup.IsOpen;
         if (accounts.Count == 0)
             Setup.StartNew();
         ShowMessages();
     }
 
+    private void LoadCategories()
+    {
+        categories = services.Settings.MailCategories;
+        Categories.Clear();
+        foreach (var category in categories)
+            Categories.Add(new CategoryNodeViewModel(category, this));
+        OnPropertyChanged(nameof(HasCategories));
+    }
+
+    private void MarkCurrent()
+    {
+        foreach (var f in Mailboxes.SelectMany(m => m.Folders))
+            f.IsCurrent = CurrentCategory is null && f == CurrentFolder;
+        foreach (var c in Categories)
+            c.IsCurrent = c == CurrentCategory;
+    }
+
     public void Open(FolderNodeViewModel folder)
     {
+        CurrentCategory = null;
         CurrentFolder = folder;
-        foreach (var f in Mailboxes.SelectMany(m => m.Folders))
-            f.IsCurrent = f == folder;
+        OpenView();
+        if (folder.Kind == FolderKind.Folder)
+            Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path)).Forget("Checking a mail folder");
+    }
+
+    /// <summary>Shows every mail in a category, from all mailboxes and folders except Trash and Junk.</summary>
+    public void Open(CategoryNodeViewModel category)
+    {
+        CurrentCategory = category;
+        CurrentFolder = null;
+        OpenView();
+    }
+
+    private void OpenView()
+    {
+        MarkCurrent();
+        rebuilding = true;
+        Selection.Clear();
+        rebuilding = false;
+        SelectedCount = 0;
         Search = "";
         Reader = null;
         ShowMessages();
-        if (!folder.IsAllInboxes)
-            Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path)).Forget("Checking a mail folder");
+        OnPropertyChanged(nameof(EmptyText));
     }
 
     private void ShowMessages()
     {
-        var selected = Reader?.Summary;
-        Messages.Clear();
+        var picked = Selection.SelectedItems.OfType<MailRowViewModel>().Select(r => Key(r.Summary)).ToHashSet();
+        if (picked.Count == 0 && Reader is { } reader)
+            picked.Add(Key(reader.Summary));
+
+        bins = null;
         IEnumerable<MailSummary> list;
+        var ids = accounts.Select(a => a.Id).ToList();
         if (Search.Trim().Length > 0)
-            list = services.Store.SearchMail(accounts.Select(a => a.Id), Search.Trim());
-        else if (CurrentFolder is { IsAllInboxes: true })
+            list = services.Store.SearchMail(ids, Search.Trim());
+        else if (CurrentCategory is { } category)
+            list = services.Store.FindMail(ids, s => MailCategories.Has(s, category.Keyword) && !InBin(s), 500);
+        else if (CurrentFolder is { Kind: FolderKind.Important })
+            list = services.Store.FindMail(ids, s => s.Flagged && !InBin(s), 500);
+        else if (CurrentFolder is { Kind: FolderKind.AllInboxes })
             list = accounts
                 .SelectMany(a => services.Store.ListMailFolders(a.Id).Where(f => f.Role == FolderRole.Inbox)
                     .SelectMany(f => services.Store.ListMailSummaries(a.Id, f.Path)))
@@ -125,32 +227,90 @@ public partial class MailViewModel : ViewModelBase
         else
             list = [];
 
-        var showMailbox = accounts.Count > 1 && (Search.Trim().Length > 0 || CurrentFolder?.IsAllInboxes == true);
-        foreach (var summary in list)
+        var showMailbox = accounts.Count > 1 && (Search.Trim().Length > 0 || CurrentCategory is not null || CurrentFolder is { Kind: not FolderKind.Folder });
+        rebuilding = true;
+        try
         {
-            var account = accounts.FirstOrDefault(a => a.Id == summary.AccountId);
-            if (account is null)
-                continue;
-            var row = new MailRowViewModel(summary, account, showMailbox, this);
-            row.IsSelected = selected is not null && selected.AccountId == summary.AccountId && selected.Folder == summary.Folder && selected.Uid == summary.Uid;
-            Messages.Add(row);
+            Messages.Clear();
+            foreach (var summary in list.Where(s => MailFilters.Keep(s, Filter)))
+            {
+                if (accounts.FirstOrDefault(a => a.Id == summary.AccountId) is not { } account)
+                    continue;
+                Messages.Add(new MailRowViewModel(summary, account, showMailbox, this));
+            }
+            for (var i = 0; i < Messages.Count; i++)
+                if (picked.Contains(Key(Messages[i].Summary)))
+                    Selection.Select(i);
         }
+        finally
+        {
+            rebuilding = false;
+        }
+        SelectedCount = Selection.SelectedItems.Count;
         OnPropertyChanged(nameof(NoMessages));
         OnPropertyChanged(nameof(EmptyText));
     }
 
+    private HashSet<(string, string)>? bins;
+
+    /// <summary>Whether a mail sits in Trash or Junk, which Important and the categories leave out.</summary>
+    private bool InBin(MailSummary mail)
+    {
+        bins ??= accounts.SelectMany(a => services.Store.ListMailFolders(a.Id)
+                .Where(f => f.Role is FolderRole.Trash or FolderRole.Junk).Select(f => (a.Id, f.Path)))
+            .ToHashSet();
+        return bins.Contains((mail.AccountId, mail.Folder));
+    }
+
+    internal static (string, string, uint) Key(MailSummary mail) => (mail.AccountId, mail.Folder, mail.Uid);
+
+    private void OnSelectionChanged()
+    {
+        if (rebuilding)
+            return;
+        var rows = Selection.SelectedItems.OfType<MailRowViewModel>().ToList();
+        SelectedCount = rows.Count;
+        if (rows.Count == 1)
+        {
+            if (Reader is null || Key(Reader.Summary) != Key(rows[0].Summary))
+                Show(rows[0]).Forget("Opening a mail");
+        }
+        else if (rows.Count > 1)
+        {
+            Reader = null;
+        }
+    }
+
+    /// <summary>Picks one message in the list and opens it.</summary>
     public async Task Select(MailRowViewModel row)
     {
-        foreach (var r in Messages)
-            r.IsSelected = r == row;
+        var index = Messages.IndexOf(row);
+        rebuilding = true;
+        try
+        {
+            Selection.Clear();
+            if (index >= 0)
+                Selection.Select(index);
+        }
+        finally
+        {
+            rebuilding = false;
+        }
+        SelectedCount = Selection.SelectedItems.Count;
+        await Show(row);
+    }
+
+    private async Task Show(MailRowViewModel row)
+    {
         var reader = new MailReaderViewModel(row.Summary, row.Account, services, this);
         Reader = reader;
         await reader.Load();
-        if (!row.Summary.Seen)
+        if (!row.Summary.Seen && Reader == reader)
         {
-            await Run(() => services.Mail.SetSeenAsync(row.Account, row.Summary, true), quiet: true);
-            row.MarkSeen();
-            RefreshCount(row.Summary);
+            var account = row.Account;
+            var seen = new List<MailSummary>();
+            await Run(async () => seen.AddRange(await services.Mail.MarkAsync(account, [row.Summary], MailMark.Read, true)), quiet: true);
+            Updated(seen);
         }
     }
 
@@ -163,7 +323,7 @@ public partial class MailViewModel : ViewModelBase
     {
         if (accounts.Count == 0)
             return;
-        var from = CurrentFolder is { IsAllInboxes: false } folder ? folder.Mailbox : accounts[0];
+        var from = CurrentFolder is { Kind: FolderKind.Folder } folder ? folder.Mailbox : accounts[0];
         Compose(new OutgoingMail { AccountId = from.Id, Body = Replies.StartBody(from.Signature) });
     }
 
@@ -179,9 +339,9 @@ public partial class MailViewModel : ViewModelBase
     /// <summary>Shows one mail, opening its folder first. Used from client pages.</summary>
     public void OpenMessage(MailSummary summary)
     {
-        if (Mailboxes.SelectMany(m => m.Folders).FirstOrDefault(f => !f.IsAllInboxes && f.Mailbox.Id == summary.AccountId && f.Path == summary.Folder) is { } folder)
+        if (Mailboxes.SelectMany(m => m.Folders).FirstOrDefault(f => f.Kind == FolderKind.Folder && f.Mailbox.Id == summary.AccountId && f.Path == summary.Folder) is { } folder)
             Open(folder);
-        var row = Messages.FirstOrDefault(r => r.Summary.AccountId == summary.AccountId && r.Summary.Folder == summary.Folder && r.Summary.Uid == summary.Uid);
+        var row = Messages.FirstOrDefault(r => Key(r.Summary) == Key(summary));
         if (row is null && accounts.FirstOrDefault(a => a.Id == summary.AccountId) is { } account)
             row = new MailRowViewModel(summary, account, false, this);
         if (row is not null)
@@ -232,11 +392,9 @@ public partial class MailViewModel : ViewModelBase
                     failed.Add($"{account.Address}: password not saved yet");
                     continue;
                 }
-                var ok = await Run(() => services.Mail.SyncAccountAsync(account), quiet: true, onError: e => failed.Add($"{account.Address}: {e}"));
-                if (!ok)
-                    continue;
+                await Run(() => services.Mail.SyncAccountAsync(account), quiet: true, onError: e => failed.Add($"{account.Address}: {e}"));
             }
-            if (CurrentFolder is { IsAllInboxes: false } folder && folder.Role is not (FolderRole.Inbox or FolderRole.Sent or FolderRole.Drafts))
+            if (CurrentFolder is { Kind: FolderKind.Folder } folder && folder.Role is not (FolderRole.Inbox or FolderRole.Sent or FolderRole.Drafts))
                 await Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path), quiet: true, onError: e => failed.Add(e));
             Reload();
             SetStatus(failed.Count == 0 ? $"Up to date at {DateTime.Now:HH:mm}" : string.Join("  ·  ", failed), failed.Count > 0);
@@ -248,7 +406,7 @@ public partial class MailViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private Task LoadOlder() => CurrentFolder is { IsAllInboxes: false } folder
+    private Task LoadOlder() => CurrentFolder is { Kind: FolderKind.Folder } folder && CurrentCategory is null
         ? Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path, older: true))
         : Task.CompletedTask;
 
@@ -273,33 +431,57 @@ public partial class MailViewModel : ViewModelBase
             SyncAll().Forget("Checking mail");
     }
 
-    /// <summary>Called by the reader after it moves or deletes a message.</summary>
-    internal void Removed(MailSummary summary)
+    /// <summary>Takes mail that was moved or deleted off the list, and opens the next one, as Apple Mail does.</summary>
+    internal void Removed(IReadOnlyCollection<MailSummary> gone)
     {
-        Reader = null;
-        var row = Messages.FirstOrDefault(r => r.Summary.AccountId == summary.AccountId && r.Summary.Folder == summary.Folder && r.Summary.Uid == summary.Uid);
-        if (row is not null)
-            Messages.Remove(row);
+        var keys = gone.Select(Key).ToHashSet();
+        var rows = Messages.Where(r => keys.Contains(Key(r.Summary))).ToList();
+        var next = rows.Count == 0 ? -1 : Messages.IndexOf(rows[0]);
+        rebuilding = true;
+        try
+        {
+            foreach (var row in rows)
+                Messages.Remove(row);
+        }
+        finally
+        {
+            rebuilding = false;
+        }
+        if (Reader is { } reader && keys.Contains(Key(reader.Summary)))
+            Reader = null;
         OnPropertyChanged(nameof(NoMessages));
-        RefreshCount(summary);
+        RefreshCounts(gone);
+        if (next >= 0 && Messages.Count > 0 && Selection.SelectedItems.Count == 0)
+            Select(Messages[Math.Min(next, Messages.Count - 1)]).Forget("Opening the next mail");
+        else
+            SelectedCount = Selection.SelectedItems.Count;
     }
 
-    internal void Changed(MailSummary updated)
+    /// <summary>Shows new marks and categories on mail that changed, without rebuilding the list.</summary>
+    internal void Updated(IReadOnlyCollection<MailSummary> changed)
     {
-        var index = Messages.ToList().FindIndex(r => r.Summary.AccountId == updated.AccountId && r.Summary.Folder == updated.Folder && r.Summary.Uid == updated.Uid);
-        if (index >= 0)
-            Messages[index] = new MailRowViewModel(updated, Messages[index].Account, Messages[index].ShowMailbox, this) { IsSelected = Messages[index].IsSelected };
-        RefreshCount(updated);
+        if (changed.Count == 0)
+            return;
+        var byKey = changed.ToDictionary(Key);
+        foreach (var row in Messages)
+            if (byKey.TryGetValue(Key(row.Summary), out var updated))
+                row.Update(updated);
+        if (Reader is { } reader && byKey.TryGetValue(Key(reader.Summary), out var open))
+            reader.Update(open);
+        RefreshCounts(changed);
+        // In a filtered list or the Important view, mail that no longer fits stays until the list is next shown,
+        // so it doesn't jump away under the mouse.
     }
 
-    // Only the folder the message is in: counting every folder meant reading thousands of messages per click.
-    private void RefreshCount(MailSummary changed)
+    // Only the folders that changed: counting every folder meant reading thousands of messages per click.
+    private void RefreshCounts(IEnumerable<MailSummary> changed)
     {
+        var touched = changed.Select(m => (m.AccountId, m.Folder)).ToHashSet();
         foreach (var folder in Mailboxes.SelectMany(m => m.Folders)
-                     .Where(f => !f.IsAllInboxes && f.Mailbox.Id == changed.AccountId && f.Path == changed.Folder))
+                     .Where(f => f.Kind == FolderKind.Folder && touched.Contains((f.Mailbox.Id, f.Path))))
             folder.Unread = services.Store.ListMailSummaries(folder.Mailbox.Id, folder.Path).Count(s => !s.Seen);
-        if (Mailboxes.FirstOrDefault()?.Folders.FirstOrDefault() is { IsAllInboxes: true } all)
-            all.Unread = Mailboxes.SelectMany(m => m.Folders).Where(f => !f.IsAllInboxes && f.Role == FolderRole.Inbox).Sum(f => f.Unread);
+        if (Mailboxes.SelectMany(m => m.Folders).FirstOrDefault(f => f.Kind == FolderKind.AllInboxes) is { } all)
+            all.Unread = Mailboxes.SelectMany(m => m.Folders).Where(f => f.Kind == FolderKind.Folder && f.Role == FolderRole.Inbox).Sum(f => f.Unread);
     }
 
     internal void SetStatus(string text, bool problem)
@@ -337,21 +519,32 @@ public partial class MailViewModel : ViewModelBase
     }
 }
 
+public partial class FilterChipViewModel(MailFilter filter, MailViewModel owner) : ViewModelBase
+{
+    public MailFilter Filter => filter;
+    public string Label => MailFilters.Label(filter);
+
+    [ObservableProperty] public partial bool IsChosen { get; set; } = filter == MailFilter.All;
+
+    [RelayCommand]
+    private void Pick() => owner.Filter = filter;
+}
+
+/// <summary>A heading in the folder list: one mailbox and its folders, or the top group with All inboxes and Important.</summary>
 public partial class MailboxNodeViewModel : ViewModelBase
 {
-    private MailboxNodeViewModel(string title, string address, IReadOnlyList<FolderNodeViewModel> folders, MailAccount? account, MailViewModel owner)
+    private readonly MailViewModel owner;
+
+    private MailboxNodeViewModel(string title, string address, MailAccount? account, MailViewModel owner)
     {
         Title = title;
         Address = address;
-        Folders = folders;
         Account = account;
         this.owner = owner;
     }
 
-    private readonly MailViewModel owner;
-
     public MailboxNodeViewModel(MailAccount account, IReadOnlyList<MailFolder> folders, MailViewModel owner)
-        : this(account.DisplayName, account.Address, [], account, owner)
+        : this(account.DisplayName, account.Address, account, owner)
     {
         Folders = (folders.Count == 0
                 ? [new MailFolder { AccountId = account.Id, Path = "INBOX", Name = "Inbox", Role = FolderRole.Inbox }]
@@ -360,10 +553,13 @@ public partial class MailboxNodeViewModel : ViewModelBase
             .ToList();
     }
 
-    public static MailboxNodeViewModel AllInboxes(MailViewModel owner, int unread)
+    /// <summary>All inboxes (when there is more than one mailbox) and Important.</summary>
+    public static MailboxNodeViewModel Smart(MailViewModel owner, int? allInboxesUnread)
     {
-        var node = new MailboxNodeViewModel("", "", [], null, owner);
-        node.Folders = [FolderNodeViewModel.AllInboxes(owner, unread)];
+        var node = new MailboxNodeViewModel("", "", null, owner);
+        node.Folders = allInboxesUnread is { } unread
+            ? [FolderNodeViewModel.SmartView(FolderKind.AllInboxes, owner, unread), FolderNodeViewModel.SmartView(FolderKind.Important, owner, 0)]
+            : [FolderNodeViewModel.SmartView(FolderKind.Important, owner, 0)];
         return node;
     }
 
@@ -371,7 +567,7 @@ public partial class MailboxNodeViewModel : ViewModelBase
     public string Address { get; }
     public MailAccount? Account { get; }
     public bool HasTitle => Account is not null;
-    public IReadOnlyList<FolderNodeViewModel> Folders { get; private set; }
+    public IReadOnlyList<FolderNodeViewModel> Folders { get; private set; } = [];
 
     [RelayCommand]
     private void Edit()
@@ -379,6 +575,21 @@ public partial class MailboxNodeViewModel : ViewModelBase
         if (Account is not null)
             owner.EditMailbox(Account);
     }
+
+    /// <summary>Starts a new folder inside this mailbox's Inbox.</summary>
+    [RelayCommand]
+    private void NewFolder()
+    {
+        if (Account is not null)
+            owner.StartNewFolder(Account, null);
+    }
+}
+
+public enum FolderKind
+{
+    Folder,
+    AllInboxes,
+    Important,
 }
 
 public partial class FolderNodeViewModel : ViewModelBase
@@ -389,6 +600,7 @@ public partial class FolderNodeViewModel : ViewModelBase
     {
         this.owner = owner;
         Mailbox = mailbox;
+        Folder = folder;
         Path = folder.Path;
         Name = folder.Name;
         Role = folder.Role;
@@ -396,27 +608,58 @@ public partial class FolderNodeViewModel : ViewModelBase
         Unread = folder.Unread;
     }
 
-    private FolderNodeViewModel(MailViewModel owner, int unread)
+    private FolderNodeViewModel(FolderKind kind, MailViewModel owner, int unread)
     {
         this.owner = owner;
         Mailbox = null!;
+        Folder = null!;
+        Kind = kind;
         Path = "";
-        Name = "All inboxes";
-        Role = FolderRole.Inbox;
-        IsAllInboxes = true;
+        Name = kind == FolderKind.AllInboxes ? "All inboxes" : "Important";
+        Role = kind == FolderKind.AllInboxes ? FolderRole.Inbox : FolderRole.Other;
         Unread = unread;
     }
 
-    public static FolderNodeViewModel AllInboxes(MailViewModel owner, int unread) => new(owner, unread);
+    public static FolderNodeViewModel SmartView(FolderKind kind, MailViewModel owner, int unread) => new(kind, owner, unread);
 
+    public FolderKind Kind { get; }
     public MailAccount Mailbox { get; }
+    public MailFolder Folder { get; }
     public string Path { get; }
     public string Name { get; }
     public FolderRole Role { get; }
-    public bool IsAllInboxes { get; }
+    public bool IsAllInboxes => Kind == FolderKind.AllInboxes;
+    public bool IsImportant => Kind == FolderKind.Important;
+    public bool IsRealFolder => Kind == FolderKind.Folder;
     public int Depth { get; }
     public Avalonia.Thickness Indent => new(10 + Depth * 14, 6, 10, 6);
-    public string Key => IsAllInboxes ? "*" : Mailbox.Id + "|" + Path;
+
+    public string Key => Kind switch
+    {
+        FolderKind.AllInboxes => "*",
+        FolderKind.Important => "!important",
+        _ => Mailbox.Id + "|" + Path,
+    };
+
+    /// <summary>The icon name from Styles/Icons.axaml for this folder's job.</summary>
+    public string Icon => Kind switch
+    {
+        FolderKind.AllInboxes => "Inbox",
+        FolderKind.Important => "Flag",
+        _ => Role switch
+        {
+            FolderRole.Inbox => "Inbox",
+            FolderRole.Drafts => "Draft",
+            FolderRole.Sent => "Send",
+            FolderRole.Archive => "Archive",
+            FolderRole.Junk => "Junk",
+            FolderRole.Trash => "Trash",
+            _ => "Folder",
+        },
+    };
+
+    /// <summary>Only folders you made can be renamed or removed.</summary>
+    public bool CanChange => Kind == FolderKind.Folder && FolderNames.CanChange(Folder);
 
     /// <summary>Unread counts only show where they help: inboxes and your own folders, not Sent or Trash.</summary>
     public string UnreadText => Unread > 0 && Role is not (FolderRole.Sent or FolderRole.Trash or FolderRole.Drafts or FolderRole.Junk) ? Unread.ToString() : "";
@@ -427,8 +670,51 @@ public partial class FolderNodeViewModel : ViewModelBase
 
     [ObservableProperty] public partial bool IsCurrent { get; set; }
 
+    /// <summary>Lit up while mail is dragged over it.</summary>
+    [ObservableProperty] public partial bool IsDropTarget { get; set; }
+
     [RelayCommand]
     private void Open() => owner.Open(this);
+
+    [RelayCommand]
+    private void NewFolder()
+    {
+        if (Kind == FolderKind.Folder)
+            owner.StartNewFolder(Mailbox, this);
+    }
+
+    [RelayCommand]
+    private void Rename()
+    {
+        if (CanChange)
+            owner.StartRenameFolder(this);
+    }
+
+    [RelayCommand]
+    private void Remove()
+    {
+        if (CanChange)
+            owner.StartRemoveFolder(this);
+    }
+}
+
+/// <summary>One of your categories in the folder list: its dot, its name, and the mail in it when clicked.</summary>
+public partial class CategoryNodeViewModel(MailCategory category, MailViewModel owner) : ViewModelBase
+{
+    public MailCategory Category => category;
+    public string Keyword => category.Keyword;
+    public string Name => category.Name;
+    public string Colour => category.Colour;
+    public string Key => "#" + category.Keyword;
+
+    [ObservableProperty] public partial bool IsCurrent { get; set; }
+    [ObservableProperty] public partial bool IsDropTarget { get; set; }
+
+    [RelayCommand]
+    private void Open() => owner.Open(this);
+
+    [RelayCommand]
+    private void Edit() => owner.StartEditCategory(category);
 }
 
 public partial class MailRowViewModel(MailSummary summary, MailAccount account, bool showMailbox, MailViewModel owner) : ViewModelBase
@@ -447,9 +733,14 @@ public partial class MailRowViewModel(MailSummary summary, MailAccount account, 
     public string Subject => string.IsNullOrWhiteSpace(Summary.Subject) ? "(no subject)" : Summary.Subject;
     public string Preview => Summary.Preview;
     public bool IsUnread => !Summary.Seen;
-    public bool IsFlagged => Summary.Flagged;
+    public bool IsImportant => Summary.Flagged;
     public bool HasAttachments => Summary.HasAttachments;
     public string MailboxTag => account.Address.Split('@')[0];
+
+    /// <summary>The categories this mail is in, shown as coloured dots.</summary>
+    public IReadOnlyList<MailCategory> Dots => MailCategories.Of(owner.CategoryList, Summary);
+    public bool HasDots => Dots.Count > 0;
+    public string DotsTip => string.Join(", ", Dots.Select(c => c.Name));
 
     public string When
     {
@@ -464,14 +755,18 @@ public partial class MailRowViewModel(MailSummary summary, MailAccount account, 
         }
     }
 
-    [ObservableProperty] public partial bool IsSelected { get; set; }
-
-    internal void MarkSeen()
+    internal void Update(MailSummary updated)
     {
-        Summary = Summary with { Seen = true };
+        Summary = updated;
         OnPropertyChanged(nameof(IsUnread));
+        OnPropertyChanged(nameof(IsImportant));
+        RefreshDots();
     }
 
-    [RelayCommand]
-    private Task Open() => owner.Select(this);
+    internal void RefreshDots()
+    {
+        OnPropertyChanged(nameof(Dots));
+        OnPropertyChanged(nameof(HasDots));
+        OnPropertyChanged(nameof(DotsTip));
+    }
 }

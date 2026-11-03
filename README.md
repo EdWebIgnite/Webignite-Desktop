@@ -14,7 +14,7 @@ Native Windows software for running Webignite: quotes, invoices, clients, mail a
 
 **Planning.** To-do, calendar, weekly planner and time tracking (a timer or typed-in hours, for a client, a project or nobody).
 
-**Mail.** Both mailboxes over IMAP and SMTP (MailKit), read in a native HTML viewer with scripts off and remote images blocked. Write with bold, lists, links, signature pictures and drag-and-drop attachments. Mail is checked in the background and new mail is announced. Address suggestions come from clients and past mail.
+**Mail.** Both mailboxes over IMAP and SMTP (MailKit), read in a native HTML viewer with scripts off and remote images blocked. Write with bold, lists, links, signature pictures and drag-and-drop attachments. Mail is checked in the background and new mail is announced. Address suggestions come from clients and past mail. Organise it with your own categories (coloured dots, kept on the server as IMAP keywords so Thunderbird and phones see them), an Important mark, quick filters, your own folders, Archive, a right-click menu, several messages at once, drag onto a folder, and keys.
 
 **Web tools.** Site check (DNS, MX, SPF, DKIM, DMARC, RDAP and a PageSpeed run, with results kept), uptime and certificate watch for client sites, a mark-up tool for screenshots, image resizing and WebP, calculator, password generator, colour picker and QR codes.
 

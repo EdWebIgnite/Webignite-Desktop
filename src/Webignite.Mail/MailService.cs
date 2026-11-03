@@ -11,6 +11,14 @@ using Webignite.Data;
 
 namespace Webignite.Mail;
 
+/// <summary>The marks a message can carry on the server, apart from categories.</summary>
+public enum MailMark
+{
+    Read,
+    Important,
+    Answered,
+}
+
 /// <summary>A mail problem worded for a person, e.g. a wrong password or no internet.</summary>
 public sealed class MailException(string message, Exception? inner = null) : Exception(message, inner);
 
@@ -136,11 +144,14 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
                     {
                         if (store.GetMailSummary(account.Id, path, f.UniqueId.Id) is not { } summary || f.Flags is not { } marks)
                             continue;
+                        var keywords = f.Keywords?.ToList() ?? [];
+                        var sameKeywords = MailCategories.SameKeywords(summary.Keywords, keywords);
                         var updated = summary with
                         {
                             Seen = marks.HasFlag(MessageFlags.Seen),
                             Flagged = marks.HasFlag(MessageFlags.Flagged),
                             Answered = marks.HasFlag(MessageFlags.Answered),
+                            Keywords = sameKeywords ? summary.Keywords : keywords,
                         };
                         if (updated != summary)
                             changed.Add(updated);
@@ -191,80 +202,218 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
     }
 
     public Task SetSeenAsync(MailAccount account, MailSummary summary, bool seen, CancellationToken cancel = default) =>
-        SetFlagAsync(account, summary, MessageFlags.Seen, seen, s => s with { Seen = seen }, cancel);
+        MarkAsync(account, [summary], MailMark.Read, seen, cancel);
 
     public Task SetFlaggedAsync(MailAccount account, MailSummary summary, bool flagged, CancellationToken cancel = default) =>
-        SetFlagAsync(account, summary, MessageFlags.Flagged, flagged, s => s with { Flagged = flagged }, cancel);
+        MarkAsync(account, [summary], MailMark.Important, flagged, cancel);
 
-    private async Task SetFlagAsync(MailAccount account, MailSummary summary, MessageFlags flag, bool on,
-        Func<MailSummary, MailSummary> local, CancellationToken cancel)
+    /// <summary>Marks mail from one mailbox read or unread, important or not, all in one go. Returns the mail as it is now.</summary>
+    public async Task<IReadOnlyList<MailSummary>> MarkAsync(MailAccount account, IReadOnlyList<MailSummary> mail, MailMark mark, bool on,
+        CancellationToken cancel = default)
     {
-        await WithImap(account, async imap =>
+        var flag = mark switch
         {
-            var folder = await imap.GetFolderAsync(summary.Folder, cancel);
-            await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
-            try
+            MailMark.Read => MessageFlags.Seen,
+            MailMark.Important => MessageFlags.Flagged,
+            _ => MessageFlags.Answered,
+        };
+        await StoreAsync(account, mail, new StoreFlagsRequest(on ? StoreAction.Add : StoreAction.Remove, flag) { Silent = true }, cancel);
+        var updated = mail.Select(s => mark switch
+        {
+            MailMark.Read => s with { Seen = on },
+            MailMark.Important => s with { Flagged = on },
+            _ => s with { Answered = on },
+        }).ToList();
+        store.SaveMailSummaries(updated);
+        return updated;
+    }
+
+    /// <summary>Puts mail from one mailbox in a category, or takes it out, by adding or removing the keyword on the server.</summary>
+    public async Task<IReadOnlyList<MailSummary>> SetCategoryAsync(MailAccount account, IReadOnlyList<MailSummary> mail, string keyword, bool on,
+        CancellationToken cancel = default)
+    {
+        await StoreAsync(account, mail, new StoreFlagsRequest(on ? StoreAction.Add : StoreAction.Remove, [keyword]) { Silent = true }, cancel);
+        var updated = mail.Select(s => MailCategories.With(s, keyword, on)).ToList();
+        store.SaveMailSummaries(updated);
+        return updated;
+    }
+
+    private Task StoreAsync(MailAccount account, IReadOnlyList<MailSummary> mail, StoreFlagsRequest request, CancellationToken cancel) =>
+        mail.Count == 0 ? Task.CompletedTask : WithImap(account, async imap =>
+        {
+            foreach (var group in mail.GroupBy(m => m.Folder))
             {
-                var request = new StoreFlagsRequest(on ? StoreAction.Add : StoreAction.Remove, flag) { Silent = true };
-                await folder.StoreAsync(new UniqueId(summary.Uid), request, cancel);
-            }
-            finally
-            {
-                await folder.CloseAsync(false, cancel);
+                var folder = await imap.GetFolderAsync(group.Key, cancel);
+                await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
+                try
+                {
+                    await folder.StoreAsync(Uids(group), request, cancel);
+                }
+                finally
+                {
+                    await folder.CloseAsync(false, cancel);
+                }
             }
             return true;
         }, cancel);
-        store.SaveMailSummaries([local(summary)]);
-    }
 
     /// <summary>Moves a message to another folder. The copy on this PC follows when that folder next syncs.</summary>
-    public async Task MoveAsync(MailAccount account, MailSummary summary, string target, CancellationToken cancel = default)
+    public Task MoveAsync(MailAccount account, MailSummary summary, string target, CancellationToken cancel = default) =>
+        MoveAsync(account, [summary], target, cancel);
+
+    /// <summary>Moves mail from one mailbox to another of its folders.</summary>
+    public async Task MoveAsync(MailAccount account, IReadOnlyList<MailSummary> mail, string target, CancellationToken cancel = default)
     {
-        if (target == summary.Folder)
+        var moving = mail.Where(m => m.Folder != target).ToList();
+        if (moving.Count == 0)
             return;
         await WithImap(account, async imap =>
         {
-            var folder = await imap.GetFolderAsync(summary.Folder, cancel);
             var destination = await imap.GetFolderAsync(target, cancel);
-            await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
-            try
+            foreach (var group in moving.GroupBy(m => m.Folder))
             {
-                await folder.MoveToAsync(new UniqueId(summary.Uid), destination, cancel);
-            }
-            finally
-            {
-                await folder.CloseAsync(true, cancel);
+                var folder = await imap.GetFolderAsync(group.Key, cancel);
+                await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
+                try
+                {
+                    await folder.MoveToAsync(Uids(group), destination, cancel);
+                }
+                finally
+                {
+                    await folder.CloseAsync(true, cancel);
+                }
             }
             return true;
         }, cancel);
-        store.DeleteMailMessages(account.Id, summary.Folder, [summary.Uid]);
+        foreach (var group in moving.GroupBy(m => m.Folder))
+            store.DeleteMailMessages(account.Id, group.Key, group.Select(m => m.Uid).ToList());
+    }
+
+    /// <summary>
+    /// Files mail in the mailbox's Archive folder, making one under Inbox if the mailbox has none yet.
+    /// Returns the folder's name.
+    /// </summary>
+    public async Task<string> ArchiveAsync(MailAccount account, IReadOnlyList<MailSummary> mail, CancellationToken cancel = default)
+    {
+        var archive = FolderNames.Archive(store.ListMailFolders(account.Id)) ?? await CreateFolderAsync(account, null, "Archive", cancel);
+        await MoveAsync(account, mail.Where(m => m.Folder != archive.Path).ToList(), archive.Path, cancel);
+        return archive.Name;
     }
 
     /// <summary>Deleting moves to Trash. Deleting from Trash removes it for good.</summary>
-    public async Task DeleteAsync(MailAccount account, MailSummary summary, CancellationToken cancel = default)
+    public Task DeleteAsync(MailAccount account, MailSummary summary, CancellationToken cancel = default) =>
+        DeleteAsync(account, [summary], cancel);
+
+    /// <summary>Mail from one mailbox goes to its Trash. What is already in Trash is removed for good.</summary>
+    public async Task DeleteAsync(MailAccount account, IReadOnlyList<MailSummary> mail, CancellationToken cancel = default)
     {
         var trash = store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == FolderRole.Trash);
-        if (trash is not null && trash.Path != summary.Folder)
-        {
-            await MoveAsync(account, summary, trash.Path, cancel);
+        var toTrash = trash is null ? [] : mail.Where(m => m.Folder != trash.Path).ToList();
+        if (toTrash.Count > 0)
+            await MoveAsync(account, toTrash, trash!.Path, cancel);
+        var forGood = mail.Except(toTrash).ToList();
+        if (forGood.Count == 0)
             return;
-        }
         await WithImap(account, async imap =>
         {
-            var folder = await imap.GetFolderAsync(summary.Folder, cancel);
-            await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
-            try
+            foreach (var group in forGood.GroupBy(m => m.Folder))
             {
-                await Expunge(imap, folder, new UniqueId(summary.Uid), cancel);
-            }
-            finally
-            {
-                await folder.CloseAsync(false, cancel);
+                var folder = await imap.GetFolderAsync(group.Key, cancel);
+                await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
+                try
+                {
+                    await Expunge(imap, folder, Uids(group), cancel);
+                }
+                finally
+                {
+                    await folder.CloseAsync(false, cancel);
+                }
             }
             return true;
         }, cancel);
-        store.DeleteMailMessages(account.Id, summary.Folder, [summary.Uid]);
+        foreach (var group in forGood.GroupBy(m => m.Folder))
+            store.DeleteMailMessages(account.Id, group.Key, group.Select(m => m.Uid).ToList());
     }
+
+    /// <summary>
+    /// Makes a folder of your own, inside another folder or, when none is given, inside Inbox. It is subscribed
+    /// so it shows in Thunderbird and on your phone too.
+    /// </summary>
+    public async Task<MailFolder> CreateFolderAsync(MailAccount account, string? parentPath, string name, CancellationToken cancel = default)
+    {
+        var made = await WithImap(account, async imap =>
+        {
+            var parent = parentPath is null ? imap.Inbox : await imap.GetFolderAsync(parentPath, cancel);
+            var folder = await parent.CreateAsync(name.Trim(), true, cancel)
+                ?? throw new MailException("The mail server didn't make the folder.");
+            await Subscribe(folder, cancel);
+            var role = MailFolders.Guess(folder.FullName, folder.DirectorySeparator);
+            return new MailFolder
+            {
+                AccountId = account.Id,
+                Path = folder.FullName,
+                Name = MailFolders.DisplayName(folder.FullName, folder.DirectorySeparator, role),
+                Role = role,
+            };
+        }, cancel);
+        store.SaveMailFolder(made);
+        return made;
+    }
+
+    /// <summary>Renames one of your own folders on the server, then reads the folder list again.</summary>
+    public async Task RenameFolderAsync(MailAccount account, string path, string name, CancellationToken cancel = default)
+    {
+        await WithImap(account, async imap =>
+        {
+            var folder = await imap.GetFolderAsync(path, cancel);
+            var parent = folder.ParentFolder ?? throw new MailException("This folder can't be renamed.");
+            await folder.RenameAsync(parent, name.Trim(), cancel);
+            await Subscribe(folder, cancel);
+            return true;
+        }, cancel);
+        await SyncAccountAsync(account, cancel);
+    }
+
+    /// <summary>Removes one of your own folders from the server. Only an empty folder with nothing inside it can go.</summary>
+    public async Task DeleteFolderAsync(MailAccount account, string path, CancellationToken cancel = default)
+    {
+        await WithImap(account, async imap =>
+        {
+            var folder = await imap.GetFolderAsync(path, cancel);
+            if ((await folder.GetSubfoldersAsync(false, cancel)).Count > 0)
+                throw new MailException("This folder has folders inside it. Remove those first.");
+            await folder.OpenAsync(FolderAccess.ReadOnly, cancel);
+            var count = folder.Count;
+            await folder.CloseAsync(false, cancel);
+            if (count > 0)
+                throw new MailException("There's still mail in this folder. Move or delete it first.");
+            try
+            {
+                await folder.UnsubscribeAsync(cancel);
+            }
+            catch (ImapCommandException)
+            {
+                // Not every server keeps subscriptions; the folder can still go.
+            }
+            await folder.DeleteAsync(cancel);
+            return true;
+        }, cancel);
+        store.KeepOnlyMailFolders(account.Id, store.ListMailFolders(account.Id).Where(f => f.Path != path).Select(f => f.Path).ToList());
+    }
+
+    private static async Task Subscribe(IMailFolder folder, CancellationToken cancel)
+    {
+        try
+        {
+            await folder.SubscribeAsync(cancel);
+        }
+        catch (ImapCommandException)
+        {
+            // Servers that don't keep subscriptions show every folder anyway.
+        }
+    }
+
+    private static List<UniqueId> Uids(IEnumerable<MailSummary> mail) => mail.Select(m => new UniqueId(m.Uid)).ToList();
 
     /// <summary>
     /// Sends a finished mail, then files a copy in Sent, marks the original as answered and removes the
@@ -310,7 +459,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
         }
         if (answering is not null)
         {
-            try { await SetFlagAsync(account, answering, MessageFlags.Answered, true, s => s with { Answered = true }, cancel); }
+            try { await MarkAsync(account, [answering], MailMark.Answered, true, cancel); }
             catch (MailException) { /* The answered mark is a nicety; the mail has gone. */ }
         }
         if (draftUid is { } uid)
@@ -346,7 +495,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
             await folder.OpenAsync(FolderAccess.ReadWrite, cancel);
             try
             {
-                await Expunge(imap, folder, new UniqueId(uid), cancel);
+                await Expunge(imap, folder, [new UniqueId(uid)], cancel);
             }
             finally
             {
@@ -375,11 +524,11 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
         }, cancel);
     }
 
-    private static async Task Expunge(ImapClient imap, IMailFolder folder, UniqueId uid, CancellationToken cancel)
+    private static async Task Expunge(ImapClient imap, IMailFolder folder, IList<UniqueId> uids, CancellationToken cancel)
     {
-        await folder.AddFlagsAsync(uid, MessageFlags.Deleted, true, cancel);
+        await folder.StoreAsync(uids, new StoreFlagsRequest(StoreAction.Add, MessageFlags.Deleted) { Silent = true }, cancel);
         if (imap.Capabilities.HasFlag(ImapCapabilities.UidPlus))
-            await folder.ExpungeAsync([uid], cancel);
+            await folder.ExpungeAsync(uids, cancel);
         else
             await folder.ExpungeAsync(cancel);
     }
@@ -403,6 +552,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
             Preview = MailText.Preview(s.PreviewText ?? ""),
             Seen = flags.HasFlag(MessageFlags.Seen),
             Flagged = flags.HasFlag(MessageFlags.Flagged),
+            Keywords = s.Keywords?.ToList() ?? [],
             Answered = flags.HasFlag(MessageFlags.Answered),
             HasAttachments = s.Attachments?.Any() == true,
             Size = s.Size ?? 0,

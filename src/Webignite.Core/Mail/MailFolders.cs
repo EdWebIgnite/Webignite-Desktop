@@ -39,6 +39,59 @@ public static class MailFolders
     };
 }
 
+public static class FolderNames
+{
+    public const int Longest = 40;
+
+    /// <summary>
+    /// What is wrong with a name for a folder you make or rename, or null when it is fine. Dots and slashes are
+    /// what servers use between folder levels, so they can't be part of a name.
+    /// </summary>
+    public static string? Check(string name, IEnumerable<string> siblings, string? renaming = null)
+    {
+        var trimmed = name.Trim();
+        if (trimmed.Length == 0)
+            return "Give the folder a name.";
+        if (trimmed.Length > Longest)
+            return $"Keep the name under {Longest} letters.";
+        if (trimmed.IndexOfAny(['.', '/', '\\', '*', '%', '"']) >= 0)
+            return "A folder name can't have a dot, slash, star, percent sign or quote in it.";
+        if (trimmed.Equals("INBOX", StringComparison.OrdinalIgnoreCase))
+            return "Inbox is taken. Pick another name.";
+        if (renaming is not null && trimmed == renaming)
+            return null;
+        if (siblings.Any(s => s.Equals(trimmed, StringComparison.OrdinalIgnoreCase)))
+            return "There is already a folder with that name here.";
+        return null;
+    }
+
+    /// <summary>The names of the folders directly inside a folder, e.g. inside "INBOX" for xneelo's "INBOX.Clients".</summary>
+    public static IReadOnlyList<string> Children(IEnumerable<MailFolder> folders, string parent) =>
+        folders.Where(f => f.Path.Length > parent.Length + 1
+                && f.Path.StartsWith(parent, StringComparison.OrdinalIgnoreCase)
+                && f.Path[parent.Length] is '.' or '/'
+                && f.Path.IndexOfAny(['.', '/'], parent.Length + 1) < 0)
+            .Select(f => f.Name)
+            .ToList();
+
+    /// <summary>The folder a folder sits in: "INBOX" for "INBOX.Clients", "" for a top-level one.</summary>
+    public static string Parent(string path)
+    {
+        var cut = path.LastIndexOfAny(['.', '/']);
+        return cut < 0 ? "" : path[..cut];
+    }
+
+    /// <summary>Only your own folders can be renamed or removed. Inbox, Sent, Drafts, Archive, Junk and Trash stay.</summary>
+    public static bool CanChange(MailFolder folder) => folder.Role == FolderRole.Other;
+
+    /// <summary>The Archive folder for one mailbox, if it has one.</summary>
+    public static MailFolder? Archive(IEnumerable<MailFolder> folders) => folders.FirstOrDefault(f => f.Role == FolderRole.Archive);
+
+    /// <summary>Folders a message can be moved to from where it is now: every other folder except Drafts.</summary>
+    public static IReadOnlyList<MailFolder> MoveTargets(IEnumerable<MailFolder> folders, string from) =>
+        folders.Where(f => f.Path != from && f.Role != FolderRole.Drafts).ToList();
+}
+
 public static class MailSearch
 {
     public static bool Matches(MailSummary summary, string word) =>
