@@ -170,6 +170,9 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         Refresh();
     }
 
+    /// <summary>How much the app moves, for the fade on a removed row.</summary>
+    internal Motion Motion => services.Settings.Appearance.Motion;
+
     public void Delete(TimeEntry entry)
     {
         services.Store.DeleteTime(entry.Id);
@@ -250,15 +253,19 @@ public sealed record TimeTotalRow(TimeTotal Total, int PeriodMinutes)
 
 public sealed record TimeDayGroup(string Title, string Total, IReadOnlyList<TimeEntryRow> Entries);
 
-public sealed partial class TimeEntryRow(TimeEntry entry, string who, TimeViewModel owner)
+public sealed partial class TimeEntryRow(TimeEntry entry, string who, TimeViewModel owner) : ViewModelBase
 {
     public string Who => who;
     public string Note => entry.Note;
     public bool HasNote => entry.Note.Length > 0;
     public string Time => TimeRules.Format(entry.Minutes);
 
+    /// <summary>On its way out after Delete: the row fades before it is removed.</summary>
+    [ObservableProperty]
+    public partial bool IsLeaving { get; set; }
+
     [RelayCommand]
-    private void Delete() => owner.Delete(entry);
+    private void Delete() => Feedback.Leave(owner.Motion, () => IsLeaving = true, () => owner.Delete(entry));
 }
 
 /// <summary>Projects sit indented under their client in the totals, with a lighter bar.</summary>

@@ -154,8 +154,13 @@ public partial class DocumentEditorViewModel : ViewModelBase
         stored = services.Store.Save((stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = Build() })
             with { Document = Build() });
         SaveState = $"Saved on this PC at {stored.Updated.ToLocalTime():HH:mm}";
+        SavedStamp++;
         OnPropertyChanged(nameof(Title));
     }
+
+    /// <summary>Counts up on each save, so the short "Saved" note beside the Save button shows again.</summary>
+    [ObservableProperty]
+    public partial int SavedStamp { get; set; }
 
     [RelayCommand]
     private void Back()

@@ -88,4 +88,48 @@
       </Animation>
     </Style.Animations>
   </Style>
+
+  <!-- "Saved" fades in quickly and out slowly -->
+  <Style Selector="Window.motion-full c|SavedNote, Window.motion-reduced c|SavedNote">
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.35" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <!-- A removed row fades and slides a little to the right before it goes (Feedback.Leave) -->
+  <Style Selector="Window.motion-full Border.taskrow.leaving">
+    <Style.Animations>
+      <Animation Duration="0:0:0.22" Easing="CubicEaseIn" FillMode="Forward">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="1" />
+          <Setter Property="TranslateTransform.X" Value="0" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="0" />
+          <Setter Property="TranslateTransform.X" Value="24" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+  <Style Selector="Window.motion-reduced Border.taskrow.leaving">
+    <Style.Animations>
+      <Animation Duration="0:0:0.12" FillMode="Forward">
+        <KeyFrame Cue="0%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+        <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0" /></KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <!-- A to-do ticked off: the box pops, then the row moves to Done (Feedback.DoneTime) -->
+  <Style Selector="Window.motion-full Border.taskrow.justdone CheckBox /template/ Border#NormalRectangle">
+    <Style.Animations>
+      <Animation Duration="0:0:0.32" Easing="CubicEaseOut" FillMode="Forward">
+        <KeyFrame Cue="0%"><Setter Property="ScaleTransform.ScaleX" Value="0.6" /><Setter Property="ScaleTransform.ScaleY" Value="0.6" /></KeyFrame>
+        <KeyFrame Cue="60%"><Setter Property="ScaleTransform.ScaleX" Value="1.25" /><Setter Property="ScaleTransform.ScaleY" Value="1.25" /></KeyFrame>
+        <KeyFrame Cue="100%"><Setter Property="ScaleTransform.ScaleX" Value="1" /><Setter Property="ScaleTransform.ScaleY" Value="1" /></KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
 </Styles>

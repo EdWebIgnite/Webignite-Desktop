@@ -178,6 +178,7 @@ var overdue = store.List(DocumentKind.Invoice).First(d => d.XeroNumber is not nu
 store.Save(overdue with { Document = overdue.Document with { Date = today.AddDays(-21), DueOrExpiryDate = today.AddDays(-14) } });
 var quote = store.List(DocumentKind.Quote)[0];
 store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031" });
+Open(Page.Overview); // away and back, so To-do reads the sample to-dos above
 Open(Page.Todo);
 Save("todo");
 
