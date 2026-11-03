@@ -62,6 +62,10 @@
                 <TextBox Text="{Binding Phone}" PlaceholderText="Optional" />
               </StackPanel>
             </Grid>
+            <StackPanel>
+              <TextBlock Classes="label" Text="Hourly rate (R)" />
+              <TextBox Text="{Binding HourlyRate}" PlaceholderText="e.g. 650, so Time shows what the hours are worth" />
+            </StackPanel>
             <Grid ColumnDefinitions="*,12,*">
               <StackPanel Grid.Column="0">
                 <TextBlock Classes="label" Text="Email" />
@@ -223,10 +227,18 @@
               <ItemsControl ItemsSource="{Binding ProjectRows}" IsVisible="{Binding HasProjects}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ClientProjectRow">
-                    <DockPanel Margin="0,1">
-                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Time}" VerticalAlignment="Center" Margin="8,0" />
-                      <CheckBox IsChecked="{Binding Finished}" Content="{Binding Name}" ToolTip.Tip="Tick when finished. Its time is kept." />
-                    </DockPanel>
+                    <StackPanel Margin="0,2" Spacing="2">
+                      <CheckBox IsChecked="{Binding Finished}" ToolTip.Tip="Tick when finished. Its time is kept.">
+                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
+                      </CheckBox>
+                      <!-- Time logged, and the project's own rate when it differs from the client's. -->
+                      <StackPanel Orientation="Horizontal" Spacing="8" Margin="32,0,0,0">
+                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Time}" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding Rate, UpdateSourceTrigger=LostFocus}" Width="96" MinHeight="0" FontSize="12" Padding="6,2"
+                                 PlaceholderText="Own rate, R" Classes.problem="{Binding RateProblem}"
+                                 ToolTip.Tip="This project's own hourly rate. Leave it empty to use the client's rate." />
+                      </StackPanel>
+                    </StackPanel>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>

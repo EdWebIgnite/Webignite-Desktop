@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Calendar;
 using Webignite.Core.Clients;
+using Webignite.Core.Time;
 using Webignite.Core.Documents;
 using Webignite.Core.Mail;
 using Webignite.Core.Tasks;
@@ -30,8 +31,12 @@ public partial class ClientDetailViewModel : ViewModelBase
         Website = client.Website ?? "";
         Address = client.Address ?? "";
         Notes = client.Notes ?? "";
+        HourlyRate = client.HourlyRate is { } rate ? rate.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "";
         Refresh();
     }
+
+    /// <summary>The client's hourly rate as typed, e.g. "650". Blank means none.</summary>
+    [ObservableProperty] public partial string HourlyRate { get; set; } = "";
 
     public string Title => isNew ? "New client" : client.Name;
     public bool IsSaved => !isNew;
@@ -117,6 +122,7 @@ public partial class ClientDetailViewModel : ViewModelBase
         Website = Blank(Website),
         Address = Blank(Address),
         Notes = Blank(Notes),
+        HourlyRate = TimeRules.TryParseRate(HourlyRate, out var rate) ? rate : client.HourlyRate,
         Created = client.Created == default ? DateTimeOffset.UtcNow : client.Created,
     };
 
@@ -131,6 +137,8 @@ public partial class ClientDetailViewModel : ViewModelBase
         Problems.Clear();
         foreach (var problem in ClientDirectory.Check(edited, services.Store.ListClients()))
             Problems.Add(problem);
+        if (!TimeRules.TryParseRate(HourlyRate, out _))
+            Problems.Add("The hourly rate doesn't look right. Type it in Rand, e.g. 650, or leave it empty.");
         OnPropertyChanged(nameof(HasProblems));
         if (Problems.Count > 0)
         {

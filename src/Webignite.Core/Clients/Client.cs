@@ -15,6 +15,9 @@ public sealed record Client
     /// <summary>The matching contact in Xero, once known.</summary>
     public string? XeroContactId { get; init; }
 
+    /// <summary>What an hour of work for this client is charged at, in Rand. Projects can set their own.</summary>
+    public decimal? HourlyRate { get; init; }
+
     /// <summary>Dated notes: calls, meetings, decisions. Newest first.</summary>
     public IReadOnlyList<ClientNote> Log { get; init; } = [];
 
@@ -41,6 +44,9 @@ public sealed record ClientProject
     public required string Id { get; init; }
     public required string Name { get; init; }
     public bool Finished { get; init; }
+
+    /// <summary>The hourly rate for this project when it differs from the client's, in Rand.</summary>
+    public decimal? HourlyRate { get; init; }
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");
 }

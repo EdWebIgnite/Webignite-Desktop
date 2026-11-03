@@ -210,7 +210,7 @@ File.WriteAllText(brief, "brief");
 bosveld = Webignite.Core.Clients.ClientRecords.AddFiles(bosveld, [brief, Path.Combine(data, "Old contract.docx")], today.AddDays(-12));
 bosveld = Webignite.Core.Clients.ClientRecords.AddNote(bosveld, "Kick-off with Pieter. Six pages to start, online booking for site visits in phase two. Budget agreed at R 17 700.", today.AddDays(-12));
 bosveld = Webignite.Core.Clients.ClientRecords.AddNote(bosveld, "Pieter sent the logo on WhatsApp. Asked for the photos again.", today.AddDays(-1));
-bosveld = bosveld with { Projects = [new() { Id = "p1", Name = "New website" }, new() { Id = "p2", Name = "Logo refresh", Finished = true }] };
+bosveld = bosveld with { HourlyRate = 650m, Projects = [new() { Id = "p1", Name = "New website" }, new() { Id = "p2", Name = "Logo refresh", Finished = true, HourlyRate = 800m }] };
 store.SaveClient(bosveld);
 
 // Time: a few days of entries, for a client, a project and nobody, then a running timer.

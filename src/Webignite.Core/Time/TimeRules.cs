@@ -5,7 +5,8 @@ using Webignite.Core.Clients;
 namespace Webignite.Core.Time;
 
 /// <summary>One line of a time summary: who or what, and how long.</summary>
-public sealed record TimeTotal(string Label, int Minutes, string? ClientId, string? ProjectId);
+/// <summary>One line of the time totals. Value is the time at its hourly rate, or null when no rate is set for any of it.</summary>
+public sealed record TimeTotal(string Label, int Minutes, string? ClientId, string? ProjectId, decimal? Value = null);
 
 /// <summary>Reading typed times, showing them, stopping the timer and adding up a week or month.</summary>
 public static partial class TimeRules
@@ -93,11 +94,11 @@ public static partial class TimeRules
         {
             var known = byId.GetValueOrDefault(client.Key);
             var name = known?.Name ?? "A removed client";
-            lines.Add(new TimeTotal(name, client.Sum(e => e.Minutes), client.Key, null));
+            lines.Add(new TimeTotal(name, client.Sum(e => e.Minutes), client.Key, null, Worth(client, clients).Value));
             foreach (var project in client.Where(e => e.ProjectId is not null).GroupBy(e => e.ProjectId!).OrderByDescending(g => g.Sum(e => e.Minutes)))
             {
                 var projectName = known?.Projects.FirstOrDefault(p => p.Id == project.Key)?.Name ?? "A removed project";
-                lines.Add(new TimeTotal($"{name}: {projectName}", project.Sum(e => e.Minutes), client.Key, project.Key));
+                lines.Add(new TimeTotal($"{name}: {projectName}", project.Sum(e => e.Minutes), client.Key, project.Key, Worth(project, clients).Value));
             }
         }
         var loose = list.Where(e => e.ClientId is null).Sum(e => e.Minutes);

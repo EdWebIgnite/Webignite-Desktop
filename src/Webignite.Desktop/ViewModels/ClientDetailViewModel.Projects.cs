@@ -50,6 +50,16 @@ public partial class ClientDetailViewModel
         NewProjectName = "";
     }
 
+    /// <summary>Sets or clears a project's own hourly rate. Returns false when the text isn't an amount.</summary>
+    internal bool SetProjectRate(ClientProject project, string text)
+    {
+        if (!TimeRules.TryParseRate(text, out var rate))
+            return false;
+        if (rate != project.HourlyRate)
+            SaveProjects(client.Projects.Select(p => p.Id == project.Id ? p with { HourlyRate = rate } : p).ToList());
+        return true;
+    }
+
     internal void SetProjectFinished(ClientProject project, bool finished) =>
         SaveProjects(client.Projects.Select(p => p.Id == project.Id ? p with { Finished = finished } : p).ToList());
 }
@@ -72,6 +82,15 @@ public sealed partial class ClientProjectRow : ObservableObject
 
     public string Name => project.Name;
     public string Time { get; }
+
+    /// <summary>The project's own hourly rate as typed; blank uses the client's rate. Saved when the box loses focus.</summary>
+    public string Rate
+    {
+        get => project.HourlyRate is { } rate ? rate.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "";
+        set => RateProblem = !owner.SetProjectRate(project, value);
+    }
+
+    [ObservableProperty] public partial bool RateProblem { get; set; }
 
     public bool Finished
     {

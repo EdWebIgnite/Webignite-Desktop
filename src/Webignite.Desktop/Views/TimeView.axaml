@@ -80,19 +80,23 @@
       <StackPanel Spacing="10">
         <DockPanel>
           <TextBlock DockPanel.Dock="Right" Classes="h2" Text="{Binding PeriodTotal}" />
-          <TextBlock Classes="h2" Text="Where the time went" />
+          <StackPanel Spacing="2">
+            <TextBlock Classes="h2" Text="Where the time went" />
+            <TextBlock Classes="muted" FontSize="12" Text="{Binding PeriodValue}" IsVisible="{Binding PeriodValue, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
         </DockPanel>
         <ItemsControl ItemsSource="{Binding Totals}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:TimeTotalRow">
-              <Grid ColumnDefinitions="*,176,90" Margin="0,4">
+              <Grid ColumnDefinitions="*,176,110,90" Margin="0,4">
                 <TextBlock Grid.Column="0" Text="{Binding Label}" TextTrimming="CharacterEllipsis" Classes.muted="{Binding IsProject}"
                            Margin="{Binding IsProject, Converter={x:Static vm:TimeIndent.Instance}}" VerticalAlignment="Center" />
                 <Border Grid.Column="1" Height="6" CornerRadius="3" Background="{DynamicResource Surface2}" HorizontalAlignment="Left" Width="160" VerticalAlignment="Center">
                   <Border Height="6" CornerRadius="3" Background="{DynamicResource Primary}" HorizontalAlignment="Left" Width="{Binding BarWidth}"
                           Opacity="{Binding IsProject, Converter={x:Static vm:TimeIndent.BarOpacity}}" />
                 </Border>
-                <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Time}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Classes="amount muted" Text="{Binding Value}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="3" Classes="amount" Text="{Binding Time}" VerticalAlignment="Center" />
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
