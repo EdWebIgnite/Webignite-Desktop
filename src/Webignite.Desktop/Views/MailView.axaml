@@ -567,6 +567,8 @@
                 </StackPanel>
               </StackPanel>
             </Border>
+            <ComboBox ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding ClientFilter}" IsVisible="{Binding HasClientChoices}"
+                      HorizontalAlignment="Stretch" ToolTip.Tip="Show only one client's mail in this list" />
             <CheckBox Content="Group into conversations" IsChecked="{Binding Conversations, Mode=OneWay}" Command="{Binding ToggleConversationsCommand}"
                       IsVisible="{Binding CanGroup}" FontSize="12" ToolTip.Tip="Replies sit under the first mail. Switched on or off for this list only." />
             <TextBlock FontSize="12" Classes="muted" Classes.short="{Binding StatusIsProblem}" Text="{Binding Status}" TextWrapping="Wrap"
@@ -610,6 +612,8 @@
                                   ToolTip.Tip="Mails in this conversation">
                             <TextBlock Text="{Binding Count}" FontSize="11" />
                           </Border>
+                          <c:Monogram DockPanel.Dock="Left" Text="{Binding ClientName}" Size="18" Margin="0,0,6,0" IsVisible="{Binding HasClient}"
+                                      ToolTip.Tip="{Binding ClientName}" VerticalAlignment="Center" />
                           <TextBlock Classes="who" Text="{Binding Who}" TextTrimming="CharacterEllipsis" />
                         </DockPanel>
                         <DockPanel>

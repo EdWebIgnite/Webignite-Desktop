@@ -376,6 +376,12 @@ var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 _ = vm.Mail.Select(opened);
 Save("mail");
 
+// Only one client's mail.
+vm.Mail.ClientFilter = vm.Mail.ClientChoices.First(c => c.Label == "Fynbos Physio");
+Save("mail-client-filter");
+vm.Mail.ClientFilter = vm.Mail.ClientChoices[0];
+_ = vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41));
+
 // Snooze until a picked day: the small form above the list.
 _ = vm.Mail.SnoozeMenu().Last().Run!(); // finishes at once: it only opens the form
 Save("mail-snooze-pick");

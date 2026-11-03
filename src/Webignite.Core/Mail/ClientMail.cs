@@ -37,6 +37,20 @@ public sealed class ClientMail
     public bool Matches(MailSummary mail) =>
         !IsEmpty && (mail.From is { } from ? [from] : Array.Empty<MailPerson>()).Concat(mail.To).Concat(mail.Cc).Any(Matches);
 
+    /// <summary>
+    /// A way to find which client a mail is about, for the badge on its row: the client the sender belongs to,
+    /// else (for mail Eddie sent) the client it went to. Clients with no address or domain never match.
+    /// </summary>
+    public static Func<MailSummary, Client?> Finder(IEnumerable<Client> clients)
+    {
+        var known = clients.Select(c => (Client: c, Mail: new ClientMail(c))).Where(x => !x.Mail.IsEmpty).ToList();
+        if (known.Count == 0)
+            return _ => null;
+        return mail =>
+            (mail.From is { } from ? known.FirstOrDefault(x => x.Mail.Matches(from)).Client : null)
+            ?? known.FirstOrDefault(x => mail.To.Concat(mail.Cc).Any(x.Mail.Matches)).Client;
+    }
+
     public bool Matches(MailPerson person)
     {
         if (addresses.Contains(person.Address))
