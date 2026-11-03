@@ -162,6 +162,34 @@ public sealed class AssistantMailTests : IDisposable
     }
 
     [Fact]
+    public void Claude_desktop_settings_are_looked_for_in_the_classic_packaged_and_store_folders()
+    {
+        var roaming = Path.Combine(folder, "Roaming");
+        var local = Path.Combine(folder, "Local");
+        // The install from claude.ai keeps its settings under Claude-Data, one folder per install.
+        Directory.CreateDirectory(Path.Combine(local, "Claude-Data", "claude_pzs8sxrjxfjjc"));
+        Directory.CreateDirectory(Path.Combine(local, "Packages", "Claude_pzs8sxrjxfjjc"));
+        Directory.CreateDirectory(Path.Combine(local, "Packages", "Microsoft.Something_123"));
+
+        Assert.Equal(
+        [
+            Path.Combine(roaming, "Claude", "claude_desktop_config.json"),
+            Path.Combine(local, "Claude-Data", "claude_pzs8sxrjxfjjc", "claude_desktop_config.json"),
+            Path.Combine(local, "Packages", "Claude_pzs8sxrjxfjjc", "LocalCache", "Roaming", "Claude", "claude_desktop_config.json"),
+        ], ClaudeDesktopConfig.Paths(roaming, local));
+    }
+
+    [Fact]
+    public void Claude_desktop_settings_paths_skip_folders_that_are_not_there()
+    {
+        var local = Path.Combine(folder, "Local");
+        Directory.CreateDirectory(local);
+        Assert.Equal([Path.Combine(folder, "Roaming", "Claude", "claude_desktop_config.json")],
+            ClaudeDesktopConfig.Paths(Path.Combine(folder, "Roaming"), local));
+        Assert.Empty(ClaudeDesktopConfig.Paths("", null));
+    }
+
+    [Fact]
     public void Client_mail_matches_their_addresses_and_their_own_domain_only()
     {
         var physio = new ClientMail(new Webignite.Core.Clients.Client
