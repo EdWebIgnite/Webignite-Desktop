@@ -10,24 +10,43 @@
 
     <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Classes="primary" Content="{Binding NewLabel}" Command="{Binding NewCommand}" VerticalAlignment="Center" />
-        <TextBlock Classes="h1" Text="{Binding Title}" />
+        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding NewLabel}" />
+          </StackPanel>
+        </Button>
+        <StackPanel Spacing="4">
+          <TextBlock Classes="h1" Text="{Binding Title}" />
+          <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding HasAny}" />
+        </StackPanel>
       </DockPanel>
 
       <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{Binding EmptyIcon, Converter={x:Static c:IconConverter.Instance}}"
                     Title="{Binding EmptyTitle}" Text="{Binding EmptyText}" ActionText="{Binding NewLabel}" Command="{Binding NewCommand}" />
 
       <!-- Search and filters -->
-      <DockPanel IsVisible="{Binding HasAny}">
-        <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding Summary}" VerticalAlignment="Center" Margin="12,0,0,0" />
-        <Button DockPanel.Dock="Right" Classes="link" Content="Clear" Command="{Binding ClearFiltersCommand}"
-                IsVisible="{Binding IsFiltered}" VerticalAlignment="Center" />
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBox Text="{Binding Search}" Width="300" PlaceholderText="Search by customer, number, line or amount" />
-          <ComboBox ItemsSource="{x:Static vm:DocumentsViewModel.ShowChoices}" SelectedItem="{Binding ShowChoice}" Width="160" />
-          <ComboBox ItemsSource="{x:Static vm:DocumentsViewModel.PeriodChoices}" SelectedItem="{Binding PeriodChoice}" Width="150" />
-        </StackPanel>
-      </DockPanel>
+      <StackPanel Spacing="12" IsVisible="{Binding HasAny}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding Summary}" VerticalAlignment="Center" Margin="12,0,0,0" />
+          <Button DockPanel.Dock="Right" Classes="link" Content="Clear" Command="{Binding ClearFiltersCommand}"
+                  IsVisible="{Binding IsFiltered}" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox Text="{Binding Search}" Width="300" PlaceholderText="Search by customer, number, line or amount" />
+            <ComboBox ItemsSource="{x:Static vm:DocumentsViewModel.PeriodChoices}" SelectedItem="{Binding PeriodChoice}" Width="150" />
+          </StackPanel>
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding ShowChips}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:FilterChip">
+              <Button Classes="filter" Classes.on="{Binding IsOn}" Content="{Binding Label}" Command="{Binding PickCommand}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
 
       <c:EmptyState IsVisible="{Binding NoMatches}" Icon="{StaticResource Icon.Search}" Title="Nothing matches"
                     Text="Try fewer words, or pick Everything and Any date." ActionText="Clear the filters" Command="{Binding ClearFiltersCommand}" />
@@ -36,7 +55,7 @@
         <StackPanel>
           <!-- The heading row is padded like the rows below it, so each title sits over its column. -->
           <Border Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
-            <Grid ColumnDefinitions="150,*,130,120,140">
+            <Grid ColumnDefinitions="150,*,130,130,140,28">
               <TextBlock Grid.Column="0" Classes="label tablehead" Text="Number" />
               <TextBlock Grid.Column="1" Classes="label tablehead" Text="Customer" />
               <TextBlock Grid.Column="2" Classes="label tablehead" Text="Date" />
@@ -49,14 +68,22 @@
               <DataTemplate x:DataType="vm:DocumentRow">
                 <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
-                  <Grid ColumnDefinitions="150,*,130,120,140">
-                    <TextBlock Grid.Column="0" Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" Margin="8,0" />
-                    <TextBlock Grid.Column="1" Text="{Binding Customer}" Margin="8,0" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Grid.Column="2" Text="{Binding Date}" Margin="8,0" />
-                    <Border Grid.Column="3" Classes="status" Classes.done="{Binding IsDone}" Classes.problem="{Binding IsOverdue}" ToolTip.Tip="{Binding Owing}" HorizontalAlignment="Left" Margin="8,0">
-                      <TextBlock Text="{Binding Status}" FontSize="12" />
-                    </Border>
-                    <TextBlock Grid.Column="4" Classes="amount" Text="{Binding Total}" Margin="8,0" />
+                  <Grid ColumnDefinitions="150,*,130,130,140,28">
+                    <TextBlock Grid.Column="0" Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" Margin="8,0" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="8,0">
+                      <c:Monogram Text="{Binding CustomerName}" Size="28" />
+                      <StackPanel Spacing="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Customer}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="{Binding Date}" Margin="8,0" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center" ToolTip.Tip="{Binding Owing}">
+                      <Ellipse Classes="dot" Classes.done="{Binding IsDone}" Classes.problem="{Binding IsOverdue}" Classes.waiting="{Binding IsWaiting}" />
+                      <TextBlock Classes="status" Classes.problem="{Binding IsOverdue}" Text="{Binding Status}" FontSize="13" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="4" Classes="amount" Text="{Binding Total}" Margin="8,0" VerticalAlignment="Center" />
+                    <c:Icon Grid.Column="5" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
                   </Grid>
                 </Button>
               </DataTemplate>

@@ -10,8 +10,16 @@
 
     <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Classes="primary" Content="New client" Command="{Binding NewCommand}" VerticalAlignment="Center" />
-        <TextBlock Classes="h1" Text="Clients" />
+        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
+            <TextBlock Text="New client" />
+          </StackPanel>
+        </Button>
+        <StackPanel Spacing="4">
+          <TextBlock Classes="h1" Text="Clients" />
+          <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding !IsEmpty}" />
+        </StackPanel>
       </DockPanel>
 
       <Border Classes="pending" IsVisible="{Binding HasSuggestions}">
@@ -44,7 +52,7 @@
         <Border Classes="card" Padding="0" IsVisible="{Binding !NoMatches}">
           <StackPanel>
             <Border Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
-              <Grid ColumnDefinitions="*,280,140">
+              <Grid ColumnDefinitions="*,280,140,28">
                 <TextBlock Grid.Column="0" Classes="label tablehead" Text="Client" />
                 <TextBlock Grid.Column="1" Classes="label tablehead" Text="Work" />
                 <TextBlock Grid.Column="2" Classes="label tablehead" Text="Owed" HorizontalAlignment="Right" />
@@ -55,13 +63,17 @@
                 <DataTemplate x:DataType="vm:ClientRow">
                   <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                           Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
-                    <Grid ColumnDefinitions="*,280,140">
-                      <StackPanel Grid.Column="0" Margin="8,0" Spacing="2">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Contact}" IsVisible="{Binding HasContact}" TextTrimming="CharacterEllipsis" />
+                    <Grid ColumnDefinitions="*,280,140,28">
+                      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" Margin="8,0">
+                        <c:Monogram Text="{Binding Name}" Size="34" />
+                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Contact}" IsVisible="{Binding HasContact}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
                       </StackPanel>
                       <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Work}" Margin="8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Work}" />
                       <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Owed}" Margin="8,0" VerticalAlignment="Center" />
+                      <c:Icon Grid.Column="3" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
                     </Grid>
                   </Button>
                 </DataTemplate>

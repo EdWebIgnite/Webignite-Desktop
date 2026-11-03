@@ -241,7 +241,7 @@ public partial class ClientDetailViewModel : ViewModelBase
             var summary = ClientDirectory.Summarise(client, services.Store.List(), services.Store.ListTasks(),
                 services.Store.ListEvents(Today, Today.AddDays(90)), Today);
             foreach (var doc in summary.Documents)
-                Documents.Add(new DocumentRow(doc));
+                Documents.Add(new DocumentRow(doc, Today));
             foreach (var task in summary.OpenTasks)
                 Tasks.Add(new ClientTaskViewModel(task, this));
             foreach (var ev in summary.UpcomingEvents)

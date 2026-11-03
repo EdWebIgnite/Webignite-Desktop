@@ -32,6 +32,22 @@ public static class ClientDirectory
             TaskGroups.Sort(tasks.Where(t => !t.Done && Matches(client, t.Customer))).ToList(),
             events.Where(e => e.Date >= today && Matches(client, e.Customer)).OrderBy(e => e.Date).ThenBy(e => e.Start).ToList());
 
+    /// <summary>
+    /// The line under the Clients title: "6 clients, R 4 500.00 owed by 2, 1 new site underway". Parts with nothing
+    /// to say are left out.
+    /// </summary>
+    public static string Headline(IReadOnlyCollection<ClientSummary> clients)
+    {
+        var parts = new List<string> { clients.Count == 1 ? "1 client" : $"{clients.Count} clients" };
+        var owing = clients.Where(c => c.Owed > 0).ToList();
+        if (owing.Count > 0)
+            parts.Add($"{Money.Rand(owing.Sum(c => c.Owed))} owed by {owing.Count}");
+        var building = clients.Count(c => Onboarding.InProgress(c.Client));
+        if (building > 0)
+            parts.Add(building == 1 ? "1 new site underway" : $"{building} new sites underway");
+        return string.Join(", ", parts);
+    }
+
     /// <summary>What is wrong with a client before it can be saved, in plain English. Empty means fine.</summary>
     public static IReadOnlyList<string> Check(Client client, IEnumerable<Client> others)
     {

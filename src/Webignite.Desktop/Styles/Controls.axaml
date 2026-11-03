@@ -226,8 +226,91 @@
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
     <Setter Property="BorderThickness" Value="0,1,0,0" />
   </Style>
+  <Style Selector="Button.row">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
   <Style Selector="Button.row:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Button.row:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TableHead}" />
+  </Style>
+  <!-- The chevron at the end of a row you can open: faint until the pointer is on the row. -->
+  <Style Selector="c|Icon.chevron">
+    <Setter Property="Size" Value="16" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="Opacity" Value="0.35" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.row:pointerover c|Icon.chevron">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+
+  <!-- Status as a coloured dot and a word, the way Apple shows tags. Red is a problem, green is done,
+       orange is waiting on you, grey is everything else. -->
+  <Style Selector="Ellipse.dot">
+    <Setter Property="Width" Value="8" />
+    <Setter Property="Height" Value="8" />
+    <Setter Property="Fill" Value="{DynamicResource CategoryGrey}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Ellipse.dot.done">
+    <Setter Property="Fill" Value="{DynamicResource Ok}" />
+  </Style>
+  <Style Selector="Ellipse.dot.waiting">
+    <Setter Property="Fill" Value="{DynamicResource CategoryOrange}" />
+  </Style>
+  <Style Selector="Ellipse.dot.problem">
+    <Setter Property="Fill" Value="{DynamicResource Attention}" />
+  </Style>
+  <Style Selector="TextBlock.problem.status">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- Quick filters above a list: soft pills, the one in use filled in. -->
+  <Style Selector="Button.filter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="15" />
+    <Setter Property="Padding" Value="12,5" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.filter:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Button.filter.on">
+    <Setter Property="Background" Value="{DynamicResource Primary}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+  </Style>
+  <Style Selector="Button.filter.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource PrimaryHover}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryHover}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+  </Style>
+
+  <!-- A badge for something paused or set aside. -->
+  <Style Selector="Border.dim">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+
+  <!-- The line under a page title that says where things stand. -->
+  <Style Selector="TextBlock.headline">
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- A small icon before a card's heading. -->
+  <Style Selector="c|Icon.cardicon">
+    <Setter Property="Size" Value="16" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.status">
     <Setter Property="Background" Value="{DynamicResource Surface2}" />

@@ -29,6 +29,11 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
     public partial ClientDetailViewModel? Detail { get; set; }
 
     public bool IsListing => Detail is null;
+
+    /// <summary>The line under the title: "6 clients, R 4 500.00 owed by 2".</summary>
+    [ObservableProperty]
+    public partial string Headline { get; set; } = "";
+
     public bool IsEmpty => all.Count == 0;
     public bool HasSuggestions => Suggestions.Count > 0;
     public bool NoMatches => all.Count > 0 && Rows.Count == 0;
@@ -68,6 +73,7 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
         all = clients
             .Select(c => new ClientRow(ClientDirectory.Summarise(c, documents, tasks, [], today)))
             .ToList();
+        Headline = ClientDirectory.Headline(all.Select(r => r.Summary).ToList());
         Suggestions.Clear();
         foreach (var name in ClientDirectory.UnsavedNames(clients, documents))
             Suggestions.Add(name);

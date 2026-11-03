@@ -5,10 +5,10 @@
              x:Class="Webignite.Desktop.Views.TodoView"
              x:DataType="vm:TodoViewModel">
   <StackPanel Spacing="18">
-    <DockPanel>
-      <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding Summary}" VerticalAlignment="Bottom" />
+    <StackPanel Spacing="4">
       <TextBlock Classes="h1" Text="To-do" />
-    </DockPanel>
+      <TextBlock Classes="headline" Text="{Binding Summary}" />
+    </StackPanel>
 
     <!-- Quick add: type, pick when, press Enter -->
     <Border Classes="card" Padding="12">
