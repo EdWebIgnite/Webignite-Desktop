@@ -65,6 +65,9 @@ void Save(string name)
 }
 
 Save("overview");
+vm.ToggleShortcutsCommand.Execute(null);
+Save("shortcuts");
+vm.HideShortcutsCommand.Execute(null);
 
 // Working states: a background job in the sidebar and the payments check on Overview.
 using (services.Work.Start("Checking mail"))

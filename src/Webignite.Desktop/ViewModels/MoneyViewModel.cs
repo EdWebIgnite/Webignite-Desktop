@@ -10,7 +10,7 @@ namespace Webignite.Desktop.ViewModels;
 /// The Money module: what came in and went out in a month, and the expenses that repeat monthly.
 /// Amounts are typed in here by hand. Nothing is sent to Xero.
 /// </summary>
-public partial class MoneyViewModel : ViewModelBase
+public partial class MoneyViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
 
@@ -160,6 +160,11 @@ public partial class MoneyViewModel : ViewModelBase
     {
         services.Store.DeleteEntry(entry.Id);
         Refresh();
+        services.OfferUndo($"Removed {Money.Rand(entry.Amount)}{(entry.Party is { } p ? " " + (entry.Kind == EntryKind.Received ? "from " : "to ") + p : "")}", () =>
+        {
+            services.Store.SaveEntry(entry);
+            Refresh();
+        });
     }
 
     public void SetPaused(RecurringExpense recurring, bool paused)
@@ -172,6 +177,11 @@ public partial class MoneyViewModel : ViewModelBase
     {
         services.Store.DeleteRecurring(recurring.Id);
         Refresh();
+        services.OfferUndo($"Stopped {recurring.Name}", () =>
+        {
+            services.Store.SaveRecurring(recurring);
+            Refresh();
+        });
     }
 
     private static string? Blank(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

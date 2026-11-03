@@ -19,7 +19,7 @@ public sealed record PeriodChoice(string Label, int Months)
 }
 
 /// <summary>Domains and hosting: what renews when, with reminders and renewal invoices drafted in time.</summary>
-public partial class RenewalsViewModel : ViewModelBase
+public partial class RenewalsViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
     private Renewal? editing;
@@ -168,6 +168,11 @@ public partial class RenewalsViewModel : ViewModelBase
     {
         services.Store.DeleteRenewal(renewal.Id);
         Refresh();
+        services.OfferUndo($"Removed {renewal.Name}", () =>
+        {
+            services.Store.SaveRenewal(renewal);
+            Refresh();
+        });
     }
 
     public void Refresh()

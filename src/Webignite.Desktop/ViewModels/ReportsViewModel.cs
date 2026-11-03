@@ -6,7 +6,7 @@ using Webignite.Core.Finance;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>Reports from the money typed into the Money module: month by month, tax year, clients and costs.</summary>
-public partial class ReportsViewModel : ViewModelBase
+public partial class ReportsViewModel : ViewModelBase, IRefreshable
 {
     private const double BarWidth = 220;
     private readonly AppServices services;

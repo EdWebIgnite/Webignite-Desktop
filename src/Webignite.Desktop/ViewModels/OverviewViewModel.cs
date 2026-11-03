@@ -9,7 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Webignite.Desktop.ViewModels;
 
-public sealed partial class OverviewViewModel : ViewModelBase
+public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
 

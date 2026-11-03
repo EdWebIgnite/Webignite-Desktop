@@ -9,7 +9,7 @@ namespace Webignite.Desktop.ViewModels;
 /// Everything waiting on Eddie: documents Claude or ChatGPT prepared, drafts in Xero not yet approved,
 /// invoices approved but not emailed, and anything Xero left unclear. Opening one shows the usual editor.
 /// </summary>
-public partial class ApprovalsViewModel(AppServices services) : ViewModelBase
+public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, IRefreshable
 {
     public ObservableCollection<ApprovalRowViewModel> Rows { get; } = [];
 

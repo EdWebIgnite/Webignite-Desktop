@@ -23,7 +23,7 @@ public sealed record ProjectChoice(string Label, ClientProject? Project)
 /// The Time page: a start/stop timer, time typed in by hand, totals per client and project, and the entries.
 /// Time can be for a client, one of the client's projects, or nobody at all.
 /// </summary>
-public partial class TimeViewModel : ViewModelBase
+public partial class TimeViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
     private readonly DispatcherTimer tick = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -175,6 +175,12 @@ public partial class TimeViewModel : ViewModelBase
         services.Store.DeleteTime(entry.Id);
         Say($"Removed {TimeRules.Format(entry.Minutes)} from {entry.Date:d MMM}.");
         Refresh();
+        services.OfferUndo($"Removed {TimeRules.Format(entry.Minutes)}", () =>
+        {
+            services.Store.SaveTime(entry);
+            Say("");
+            Refresh();
+        });
     }
 
     private void Say(string text, bool problem = false)
