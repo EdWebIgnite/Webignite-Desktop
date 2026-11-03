@@ -61,7 +61,7 @@ public sealed partial class SiteCheckViewModel
     {
         if (UptimeWatch.Running)
             return;
-        WatchSummary = "Checking...";
+        WatchSummary = "Checking…";
         WatchProblem = false;
         var alerts = await UptimeWatch.RunAsync(services);
         Announce?.Invoke(alerts);

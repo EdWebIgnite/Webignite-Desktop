@@ -108,7 +108,7 @@
                   <DockPanel Margin="0,3">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
                       <Button Classes="link" Content="Folder" Padding="6,2" Command="{Binding ShowInFolderCommand}" IsVisible="{Binding !Missing}" />
-                      <Button Classes="link" Content="×" Padding="6,2" Command="{Binding RemoveCommand}" ToolTip.Tip="Unlink. The file itself isn't deleted" />
+                      <Button Classes="link" Content="✕" Padding="6,2" Command="{Binding RemoveCommand}" ToolTip.Tip="Unlink. The file itself isn't deleted." />
                     </StackPanel>
                     <StackPanel>
                       <Button Classes="link" Content="{Binding Name}" Padding="0,2" Command="{Binding OpenCommand}" IsVisible="{Binding !Missing}" HorizontalAlignment="Left" />
@@ -124,7 +124,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ClientNoteRow">
                   <DockPanel Margin="0,6,0,0">
-                    <Button DockPanel.Dock="Right" Classes="link" Content="×" Padding="6,0" VerticalAlignment="Top" Command="{Binding RemoveCommand}" ToolTip.Tip="Delete this note" />
+                    <Button DockPanel.Dock="Right" Classes="link" Content="✕" Padding="6,0" VerticalAlignment="Top" Command="{Binding RemoveCommand}" ToolTip.Tip="Delete this note" />
                     <TextBlock DockPanel.Dock="Top" Classes="label" Text="{Binding Day}" />
                     <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" />
                   </DockPanel>
@@ -154,7 +154,7 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:OnboardingRow">
                     <DockPanel Margin="0,1">
-                      <Button DockPanel.Dock="Right" Classes="link" Content="×" Padding="6,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Not needed for this client" />
+                      <Button DockPanel.Dock="Right" Classes="link" Content="✕" Padding="6,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Not needed for this client" />
                       <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0" />
                       <CheckBox IsChecked="{Binding Done}" Content="{Binding Name}" />
                     </DockPanel>

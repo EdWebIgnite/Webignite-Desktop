@@ -60,7 +60,7 @@ public sealed partial class ToolsViewModel
         {
             for (var i = 0; i < files.Count; i++)
             {
-                ImageMessage = $"Working on {i + 1} of {files.Count}...";
+                ImageMessage = $"Working on {i + 1} of {files.Count}…";
                 var result = await Task.Run(() => ImageShrinker.Shrink(files[i], job));
                 ImageResults.Add(new ImageResultRow(result));
                 if (result.Problem is null)

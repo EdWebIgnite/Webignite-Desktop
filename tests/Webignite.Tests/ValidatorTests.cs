@@ -7,12 +7,12 @@ public class ValidatorTests
     [Fact]
     public void Wrong_total_is_rejected() =>
         Assert.Contains(Errors(Samples.Completed(Samples.NewInvoice()) with { Total = 451m }),
-            e => e.Contains("do not add up"));
+            e => e.Contains("don't add up"));
 
     [Fact]
     public void Tax_is_rejected_for_a_non_vat_business() =>
         Assert.Contains(Errors(Samples.Completed(Samples.NewInvoice() with { TaxTotal = 67.5m })),
-            e => e.Contains("non-VAT"));
+            e => e.Contains("isn't VAT registered"));
 
     [Fact]
     public void Quantity_without_price_is_rejected() =>
@@ -47,7 +47,7 @@ public class ValidatorTests
     public void Source_line_total_must_match() =>
         Assert.Contains(Errors(Samples.Completed(Samples.NewInvoice(
             Samples.Priced("Hosting", 1, 450m) with { SourceLineTotal = 455m }))),
-            e => e.Contains("source document"));
+            e => e.Contains("original document"));
 
     [Fact]
     public void Too_many_decimal_places_is_rejected() =>
