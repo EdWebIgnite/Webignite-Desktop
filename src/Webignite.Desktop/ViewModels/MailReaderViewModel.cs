@@ -117,7 +117,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     partial void OnMoveToChanged(MoveTarget? value)
     {
         if (value is not null)
-            _ = Move(value);
+            Move(value).Forget("Moving a mail");
     }
 
     private async Task Move(MoveTarget target)

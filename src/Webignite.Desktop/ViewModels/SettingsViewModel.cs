@@ -233,6 +233,13 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
         AppServices.OpenFile(BackupFolder);
     }
 
+    [RelayCommand]
+    private void OpenLogFolder()
+    {
+        Directory.CreateDirectory(Webignite.Data.AppLog.Folder);
+        AppServices.OpenFile(Webignite.Data.AppLog.Folder);
+    }
+
     public void ChooseRestoreFile(string path)
     {
         RestoreFile = path;

@@ -101,18 +101,18 @@ public partial class MainViewModel : ViewModelBase
     {
         this.services = services;
         services.CatchUp();
-        _ = Updates.CheckAsync();
-        _ = services.BackUpAsync();
+        Updates.CheckAsync().Forget("Checking for an update");
+        services.BackUpAsync().Forget("Backing up");
         // Once an hour, check whether the daily backup is due, for when the app stays open for days.
         backupTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(1) };
-        backupTimer.Tick += (_, _) => _ = services.BackUpAsync();
+        backupTimer.Tick += (_, _) => services.BackUpAsync().Forget("Backing up");
         backupTimer.Start();
         // Mail is checked in the background every few minutes (Settings), even when another page is open.
         mailTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         mailTimer.Tick += (_, _) =>
         {
             if (DateTimeOffset.Now - lastMailCheck >= Webignite.Core.Mail.NewMail.Interval(services.MailCheckSettings))
-                _ = CheckMailAsync();
+                CheckMailAsync().Forget("Checking mail");
         };
         mailTimer.Start();
         Quotes = new DocumentsViewModel(DocumentKind.Quote, services);
@@ -178,7 +178,7 @@ public partial class MainViewModel : ViewModelBase
         Modules = [.. nav.OfType<Module>()];
         Selected = Modules[0];
         mailModule = Modules.Single(m => m.Page == Mail);
-        _ = CheckMailAsync();
+        CheckMailAsync().Forget("Checking mail");
         services.OpenMail = summary =>
         {
             Selected = mailModule;
@@ -334,7 +334,7 @@ public partial class MainViewModel : ViewModelBase
             case MoneyViewModel money: money.Refresh(); break;
             case ReportsViewModel reports: reports.Refresh(); break;
             case ApprovalsViewModel approvals: approvals.Refresh(); break;
-            case MailViewModel mail: mail.Reload(); _ = mail.SyncAll(); break;
+            case MailViewModel mail: mail.Reload(); mail.SyncAll().Forget("Checking mail"); break;
             case SettingsViewModel settings: settings.Refresh(); break;
         }
     }

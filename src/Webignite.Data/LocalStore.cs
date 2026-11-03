@@ -118,6 +118,37 @@ public sealed partial class LocalStore : IDisposable
                 payload BLOB NOT NULL
             );
             """);
+        Upgrade();
+    }
+
+    /// <summary>The layout this version of the app writes. Bump it when a table changes shape, and add the step below.</summary>
+    public const int SchemaVersion = 1;
+
+    /// <summary>What the database file was last written by, from SQLite's own user_version slot.</summary>
+    public int StoredSchemaVersion
+    {
+        get
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA user_version";
+            return Convert.ToInt32(command.ExecuteScalar());
+        }
+    }
+
+    /// <summary>
+    /// Brings an older database up to date, one numbered step at a time. The CREATE TABLE IF NOT EXISTS block above
+    /// handles new tables on its own; this is for changing a table that already has data in it, e.g. a new column or
+    /// an index over a field that is now in the clear. Records themselves are JSON, so a new field needs no step.
+    /// </summary>
+    private void Upgrade()
+    {
+        var version = StoredSchemaVersion;
+        if (version >= SchemaVersion)
+            return;
+        using var transaction = connection.BeginTransaction();
+        // if (version < 2) Execute("ALTER TABLE ...");
+        Execute($"PRAGMA user_version = {SchemaVersion}");
+        transaction.Commit();
     }
 
     /// <summary>Opens the database in the normal place, with the normal key.</summary>
@@ -586,10 +617,10 @@ public sealed partial class LocalStore : IDisposable
     public void Dispose() => connection.Dispose();
 
     private byte[] Seal<T>(string context, T value) =>
-        vault.Encrypt(JsonSerializer.SerializeToUtf8Bytes(value, DocumentJson.Options), context);
+        vault.Encrypt(JsonSerializer.SerializeToUtf8Bytes(value, StoredJson.Options), context);
 
     private T Open<T>(string context, byte[] payload) =>
-        JsonSerializer.Deserialize<T>(vault.Decrypt(payload, context), DocumentJson.Options)!;
+        JsonSerializer.Deserialize<T>(vault.Decrypt(payload, context), StoredJson.Options)!;
 
     private void Execute(string sql)
     {

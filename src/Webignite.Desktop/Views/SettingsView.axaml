@@ -381,5 +381,14 @@
         <TextBlock Classes="muted" FontSize="12" Text="Currency is ZAR and there is no VAT, as Webignite is not VAT registered." />
       </StackPanel>
     </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="If something goes wrong" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Problems the app runs into in the background, such as a mail check that failed, are written to a log on this PC and kept for two weeks. Nothing is sent anywhere." />
+        <Button Classes="quiet" Content="Open log folder" Command="{Binding OpenLogFolderCommand}" HorizontalAlignment="Left" />
+      </StackPanel>
+    </Border>
   </StackPanel>
 </UserControl>

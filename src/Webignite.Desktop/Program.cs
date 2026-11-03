@@ -1,5 +1,7 @@
+using System.Runtime.InteropServices;
 using Avalonia;
 using Velopack;
+using Webignite.Data;
 
 namespace Webignite.Desktop;
 
@@ -10,7 +12,16 @@ internal sealed class Program
     {
         // Lets the installer and updater do their part (shortcuts, clean upgrades) before the window opens.
         VelopackApp.Build().Run();
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        WatchForCrashes();
+        try
+        {
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception e)
+        {
+            ReportCrash("Webignite stopped", e);
+            throw;
+        }
     }
 
     // Also used by the visual designer.
@@ -22,4 +33,41 @@ internal sealed class Program
 #endif
             .WithInterFont()
             .LogToTrace();
+
+    /// <summary>
+    /// Anything that would otherwise close the app without a word is written to the log, and the person is told
+    /// where to look. Background tasks nobody awaited are logged too, so a failed check leaves a trace.
+    /// </summary>
+    private static void WatchForCrashes()
+    {
+        AppLog.Trim(DateTimeOffset.Now);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            if (e.ExceptionObject is Exception error)
+                ReportCrash("Webignite stopped", error);
+        };
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            AppLog.Write("A background task failed and nobody was waiting for it", e.Exception);
+            e.SetObserved();
+        };
+    }
+
+    private static bool crashReported;
+
+    private static void ReportCrash(string what, Exception error)
+    {
+        if (crashReported)
+            return;
+        crashReported = true;
+        AppLog.Write(what, error);
+        if (OperatingSystem.IsWindows())
+        {
+            var text = $"Something went wrong and Webignite has to close.\n\nWhat happened is written in\n{AppLog.CurrentFile(DateTimeOffset.Now)}\n\n{error.GetType().Name}: {error.Message}";
+            MessageBoxW(IntPtr.Zero, text, "Webignite", 0x10 /* MB_ICONERROR */);
+        }
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr owner, string text, string caption, uint type);
 }

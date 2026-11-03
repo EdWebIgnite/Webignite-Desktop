@@ -100,7 +100,7 @@ public partial class MailViewModel : ViewModelBase
         Reader = null;
         ShowMessages();
         if (!folder.IsAllInboxes)
-            _ = Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path));
+            Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path)).Forget("Checking a mail folder");
     }
 
     private void ShowMessages()
@@ -180,7 +180,7 @@ public partial class MailViewModel : ViewModelBase
         if (row is null && accounts.FirstOrDefault(a => a.Id == summary.AccountId) is { } account)
             row = new MailRowViewModel(summary, account, false, this);
         if (row is not null)
-            _ = Select(row);
+            Select(row).Forget("Opening a mail");
     }
 
     public bool Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null, Func<Task>? afterSent = null)
@@ -206,7 +206,7 @@ public partial class MailViewModel : ViewModelBase
     {
         CloseComposer(composer);
         SetStatus(note, note.StartsWith("Sent, but", StringComparison.Ordinal));
-        _ = SyncAll();
+        SyncAll().Forget("Checking mail");
     }
 
     internal void DraftSaved() => ShowMessages();
@@ -265,7 +265,7 @@ public partial class MailViewModel : ViewModelBase
         ShowSetup = false;
         Reload();
         if (changed)
-            _ = SyncAll();
+            SyncAll().Forget("Checking mail");
     }
 
     /// <summary>Called by the reader after it moves or deletes a message.</summary>
