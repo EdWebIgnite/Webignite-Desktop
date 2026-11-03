@@ -55,5 +55,7 @@
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
+
+    <c:ListHint IsVisible="{Binding HasHint}" Text="{Binding Hint}" Margin="0,-18,0,0" />
   </StackPanel>
 </UserControl>

@@ -92,6 +92,7 @@ vm.Invoices.Search = "nothing like this";
 Save("invoices-no-match");
 vm.Invoices.ClearFiltersCommand.Execute(null);
 Open(Page.Quotes);
+Save("quotes");
 vm.Quotes.OpenDocument(store.List(DocumentKind.Quote)[0]);
 Save("quote-editor");
 vm.Quotes.Editor!.MakeInvoiceCommand.Execute(null);
@@ -162,6 +163,10 @@ Save("settings-backups");
 settingsPage.Open("emails");
 Save("settings-emails");
 settingsPage.Open("xero");
+
+// A short to-do list, before the sample to-dos below, so the hint under it shows.
+Open(Page.Todo);
+Save("todo-short");
 
 var today = DateOnly.FromDateTime(DateTime.Today);
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t1", Title = "Send Bosveld the sitemap for sign-off", Due = today, Created = DateTimeOffset.UtcNow });

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Webignite.Core.Layout;
 using Webignite.Core.Tasks;
 
 namespace Webignite.Desktop.ViewModels;
@@ -43,6 +44,13 @@ public partial class TodoViewModel : ViewModelBase, IRefreshable
 
     [ObservableProperty]
     public partial string Summary { get; set; } = "";
+
+    /// <summary>The line under a short list of open to-dos, or null.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHint))]
+    public partial string? Hint { get; set; }
+
+    public bool HasHint => Hint is not null;
 
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
@@ -92,6 +100,8 @@ public partial class TodoViewModel : ViewModelBase, IRefreshable
         }
         OnPropertyChanged(nameof(IsEmpty));
         var open = tasks.Count(t => !t.Done);
+        // No open to-dos still gets the hint when done ones are listed; with none at all the empty state shows.
+        Hint = open < ListHints.ShortList ? TaskGroups.Hint(tasks, Today) : null;
         var overdue = tasks.Count(t => TaskGroups.Of(t, Today) == TaskGroup.Overdue);
         Summary = open == 0 ? "Nothing to do. Nice." : overdue > 0 ? $"{open} open, {overdue} overdue" : $"{open} open";
     }

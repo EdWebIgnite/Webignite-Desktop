@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Clients;
 using Webignite.Core.Documents;
+using Webignite.Core.Layout;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -37,6 +38,23 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
     public bool IsEmpty => all.Count == 0;
     public bool HasSuggestions => Suggestions.Count > 0;
     public bool NoMatches => all.Count > 0 && Rows.Count == 0;
+
+    /// <summary>The line under a short list, or null when the list is long, searched or empty.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHint))]
+    public partial ClientHint? Hint { get; set; }
+
+    public bool HasHint => Hint is not null;
+
+    /// <summary>Does what the hint offers: opens the client it names, or starts a new one.</summary>
+    [RelayCommand]
+    private void FollowHint()
+    {
+        if (Hint?.Open is { } client)
+            OpenClient(client);
+        else
+            New();
+    }
 
     partial void OnSearchChanged(string value) => Filter();
 
@@ -88,6 +106,7 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
         Rows.Clear();
         foreach (var row in all.Where(r => words.All(r.Contains)))
             Rows.Add(row);
+        Hint = ListHints.Shows(Rows.Count, words.Length > 0) ? ClientDirectory.Hint(all.Select(r => r.Summary).ToList()) : null;
         OnPropertyChanged(nameof(NoMatches));
     }
 }

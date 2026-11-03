@@ -48,6 +48,27 @@ public static class ClientDirectory
         return string.Join(", ", parts);
     }
 
+    /// <summary>
+    /// The line under a short client list. Clients with no email address come first, so mail can reach them;
+    /// otherwise a reminder that new names on documents are offered above the list.
+    /// Null when there are no clients; the empty state covers that.
+    /// </summary>
+    public static ClientHint? Hint(IReadOnlyCollection<ClientSummary> clients)
+    {
+        if (clients.Count == 0)
+            return null;
+        var noEmail = clients.Where(c => string.IsNullOrWhiteSpace(c.Client.Email))
+            .OrderBy(c => c.Client.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        if (noEmail.Count > 0)
+        {
+            var first = noEmail[0].Client;
+            return noEmail.Count == 1
+                ? new($"{first.Name.Trim()} has no email address saved yet.", "Add it", first)
+                : new($"{noEmail.Count} clients have no email address saved yet.", $"Start with {first.Name.Trim()}", first);
+        }
+        return new("New names on quotes and invoices show up at the top, ready to save.", "New client", null);
+    }
+
     /// <summary>What is wrong with a client before it can be saved, in plain English. Empty means fine.</summary>
     public static IReadOnlyList<string> Check(Client client, IEnumerable<Client> others)
     {
@@ -84,3 +105,6 @@ public static class ClientDirectory
             .ToList();
     }
 }
+
+/// <summary>The line under a short client list. A null client means the action starts a new one.</summary>
+public sealed record ClientHint(string Text, string ActionText, Client? Open);

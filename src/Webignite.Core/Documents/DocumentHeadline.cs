@@ -75,7 +75,56 @@ public static class DocumentHeadline
         return string.Join(", ", parts);
     }
 
+    /// <summary>
+    /// The line under a short list: the most useful next step. Overdue money first, then what is still on this
+    /// PC, then drafts waiting for approval in Xero, then accepted quotes with no invoice yet. With nothing to
+    /// sort out it offers a new one. Returns null when there are none at all; the empty state covers that.
+    /// </summary>
+    public static DocumentHint? Hint(DocumentKind kind, IReadOnlyCollection<StoredDocument> documents, DateOnly today)
+    {
+        var mine = documents.Where(d => d.Document.Kind == kind).ToList();
+        if (mine.Count == 0)
+            return null;
+        var noun = kind == DocumentKind.Quote ? "quote" : "invoice";
+
+        var overdue = mine.Where(d => Receivables.IsOverdue(d, today)).ToList();
+        if (overdue.Count > 0)
+        {
+            var amount = Money.Rand(overdue.Sum(Receivables.Outstanding));
+            return new(overdue.Count == 1
+                ? $"1 invoice is overdue, {amount}."
+                : $"{overdue.Count} invoices are overdue, {amount} in all.", "Show overdue", DocumentShow.Overdue);
+        }
+
+        var onThisPc = mine.Count(d => d.Status != DocumentStatus.InXero);
+        if (onThisPc > 0)
+            return new(onThisPc == 1
+                ? $"1 {noun} is still on this PC. Open it and send it to Xero as a draft when it's ready."
+                : $"{onThisPc} {noun}s are still on this PC. Open one and send it to Xero as a draft when it's ready.",
+                onThisPc == 1 ? "Show it" : "Show them", DocumentShow.NotInXero);
+
+        var drafts = mine.Count(d => d.Settled is null && d.XeroStatus is "DRAFT" or "SUBMITTED");
+        if (drafts > 0)
+            return new(drafts == 1
+                ? $"1 {noun} is a draft in Xero. Approve it in Xero when it can go to the client."
+                : $"{drafts} {noun}s are drafts in Xero. Approve them in Xero when they can go to the client.", null, null);
+
+        var accepted = mine.Count(d => d.SettledAs == "accepted");
+        if (kind == DocumentKind.Quote && accepted > 0)
+            return new(accepted == 1
+                ? "1 accepted quote has no invoice yet. Open it and pick Make invoice."
+                : $"{accepted} accepted quotes have no invoice yet. Open one and pick Make invoice.",
+                accepted == 1 ? "Show it" : "Show them", DocumentShow.Settled);
+
+        return kind == DocumentKind.Quote
+            ? new("Nothing to sort out. Quotes waiting on a client turn up on To-do when it's time to follow up.", "New quote", null)
+            : new("Nothing to sort out. Every invoice is in Xero and none is overdue.", "New invoice", null);
+    }
+
     private static string Count(int n, string noun) => n == 1 ? $"1 {noun}" : $"{n} {noun}s";
 
     private static string Day(DateOnly date) => date.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
 }
+
+/// <summary>The line under a short quote or invoice list. With an action, a null filter means "start a new one".</summary>
+public sealed record DocumentHint(string Text, string? ActionText, DocumentShow? Show);
