@@ -4,6 +4,8 @@ using Avalonia.Controls.Notifications;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Avalonia;
 using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
@@ -15,6 +17,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // Before the ListBox sees the press, so clicking a heading folds its group instead of selecting it.
+        Nav.AddHandler(PointerPressedEvent, FoldGroup, RoutingStrategies.Tunnel);
         // Made before the window's template is applied, so it can put itself in the window's top layer.
         notes = new WindowNotificationManager(this) { Position = NotificationPosition.BottomRight, MaxItems = 3 };
     }
@@ -95,16 +99,23 @@ public partial class MainWindow : Window
         FullHost.PageTransition = FadeRise.For(appearance.Motion);
     }
 
-    // Group headings in the sidebar are only labels: they can't be picked, hovered or reached with the arrow keys.
+    // Group headings in the sidebar can't be picked or reached with the arrow keys; a click folds the group.
     private void PrepareNavItem(object? sender, ContainerPreparedEventArgs e)
     {
         if (e.Container is not ListBoxItem item || DataContext is not MainViewModel main)
             return;
-        var heading = main.NavItems[e.Index] is NavHeading;
+        var heading = main.Sidebar.Items[e.Index] is NavGroup;
         item.Classes.Set("heading", heading);
-        item.Classes.Set("gap", main.NavItems[e.Index] is NavHeading { Title.Length: 0 });
-        item.IsEnabled = !heading;
+        item.Classes.Set("gap", main.Sidebar.Items[e.Index] is NavGroup { CanFold: false });
         item.Focusable = !heading;
+    }
+
+    private void FoldGroup(object? sender, PointerPressedEventArgs e)
+    {
+        if ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is not NavGroup group)
+            return;
+        group.Toggle();
+        e.Handled = true;
     }
 
     private QuickSearchViewModel? Search => (DataContext as MainViewModel)?.Search;

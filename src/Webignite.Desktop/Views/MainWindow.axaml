@@ -15,6 +15,7 @@
     <KeyBinding Gesture="Ctrl+N" Command="{Binding NewCommand}" />
     <KeyBinding Gesture="F5" Command="{Binding RefreshPageCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding ToggleShortcutsCommand}" />
+    <KeyBinding Gesture="Ctrl+B" Command="{Binding Sidebar.ToggleCommand}" />
     <KeyBinding Gesture="Ctrl+D1" Command="{Binding GoToCommand}" CommandParameter="1" />
     <KeyBinding Gesture="Ctrl+D2" Command="{Binding GoToCommand}" CommandParameter="2" />
     <KeyBinding Gesture="Ctrl+D3" Command="{Binding GoToCommand}" CommandParameter="3" />
@@ -26,13 +27,27 @@
     <KeyBinding Gesture="Ctrl+D9" Command="{Binding GoToCommand}" CommandParameter="9" />
   </Window.KeyBindings>
 
-  <Grid ColumnDefinitions="232,*">
+  <Grid ColumnDefinitions="Auto,*">
+
+    <!-- The sidebar tucked away: a thin strip with the button that brings it back (or Ctrl+B). -->
+    <Border Grid.Column="0" Width="44" Background="{DynamicResource Nav}" Padding="6,18" IsVisible="{Binding Sidebar.IsHidden}">
+      <Button Classes="navtoggle" VerticalAlignment="Top" HorizontalAlignment="Center" Command="{Binding Sidebar.ToggleCommand}"
+              ToolTip.Tip="Show the sidebar (Ctrl+B)">
+        <c:Icon Data="{StaticResource Icon.SidebarShow}" Size="18" />
+      </Button>
+    </Border>
 
     <!-- Sidebar -->
-    <Border Grid.Column="0" Background="{DynamicResource Nav}" Padding="14,18">
+    <Border Grid.Column="0" Width="232" Background="{DynamicResource Nav}" Padding="14,18" IsVisible="{Binding !Sidebar.IsHidden}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="6,0,6,12" Spacing="2">
-          <TextBlock Text="Webignite" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource NavText}" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="navtoggle" VerticalAlignment="Top" Margin="0,-2,-6,0" Command="{Binding Sidebar.ToggleCommand}"
+                    ToolTip.Tip="Tuck the sidebar away (Ctrl+B)">
+              <c:Icon Data="{StaticResource Icon.SidebarHide}" Size="18" />
+            </Button>
+            <TextBlock Text="Webignite" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource NavText}" />
+          </DockPanel>
           <TextBlock Text="Quotes, invoices and more" FontSize="12" Foreground="{DynamicResource NavMuted}" />
           <Button Classes="navsearch" Margin="0,12,0,0" HorizontalAlignment="Stretch" Command="{Binding Search.ShowCommand}">
             <DockPanel>
@@ -66,11 +81,17 @@
                      Text="{Binding Updates.VersionText, StringFormat='{}{0} · Data stays on this PC'}" />
         </StackPanel>
 
-        <ListBox x:Name="Nav" Classes="nav" ItemsSource="{Binding NavItems}" SelectedItem="{Binding SelectedNav}"
+        <ListBox x:Name="Nav" Classes="nav" ItemsSource="{Binding Sidebar.Items}" SelectedItem="{Binding SelectedNav}"
                  ContainerPrepared="PrepareNavItem" ScrollViewer.VerticalScrollBarVisibility="Hidden">
           <ListBox.DataTemplates>
-            <DataTemplate DataType="vm:NavHeading">
-              <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" />
+            <DataTemplate DataType="vm:NavGroup">
+              <DockPanel>
+                <Panel DockPanel.Dock="Right" IsVisible="{Binding CanFold}" VerticalAlignment="Center">
+                  <c:Icon Classes="fold" Size="14" Foreground="{DynamicResource NavMuted}" IsVisible="{Binding IsOpen}" Data="{StaticResource Icon.ChevronDown}" />
+                  <c:Icon Classes="fold" Size="14" Foreground="{DynamicResource NavMuted}" IsVisible="{Binding IsFolded}" Data="{StaticResource Icon.ChevronRight}" />
+                </Panel>
+                <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+              </DockPanel>
             </DataTemplate>
             <DataTemplate DataType="vm:Module">
               <DockPanel>

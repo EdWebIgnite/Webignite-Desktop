@@ -40,6 +40,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("tasks", value);
     }
 
+    /// <summary>Whether the sidebar is tucked away and which of its groups are folded.</summary>
+    public SidebarLayout? Sidebar
+    {
+        get => store.GetSetting<SidebarLayout>("sidebar");
+        set => store.SetSetting("sidebar", value);
+    }
+
     /// <summary>Window size, position and last page, saved when the app closes.</summary>
     public WindowPlacement? Window
     {

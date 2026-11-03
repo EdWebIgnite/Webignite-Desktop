@@ -153,29 +153,37 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Overview, "Overview", Overview, "Overview"),
             new Module(Page.Approvals, "To approve", Approvals, "Approve"),
             new Module(Page.Mail, "Mail", Mail, "Mail", fullBleed: true),
-            new NavHeading("CLIENT WORK"),
+            new NavGroup("client-work", "CLIENT WORK"),
             new Module(Page.Clients, "Clients", Clients, "Clients"),
             new Module(Page.Retainers, "Retainers", new RetainersViewModel(services), "Retainers"),
             new Module(Page.Renewals, "Domains and hosting", new RenewalsViewModel(services), "Domains"),
-            new NavHeading("BILLING"),
+            new NavGroup("billing", "BILLING"),
             new Module(Page.Quotes, "Quotes", Quotes, "Quotes"),
             new Module(Page.Invoices, "Invoices", Invoices, "Invoices"),
             new Module(Page.Money, "Money", new MoneyViewModel(services), "Money"),
             new Module(Page.Reports, "Reports", new ReportsViewModel(services), "Reports"),
-            new NavHeading("PLANNING"),
+            new NavGroup("planning", "PLANNING"),
             new Module(Page.Todo, "To-do", Todo, "Todo"),
             new Module(Page.Calendar, "Calendar", new CalendarViewModel(services), "Calendar"),
             new Module(Page.Planner, "Planner", new PlannerViewModel(services), "Planner"),
             new Module(Page.Time, "Time", Time, "Time"),
-            new NavHeading("WEB TOOLS"),
+            new NavGroup("web-tools", "WEB TOOLS"),
             new Module(Page.SiteCheck, "Site check", SiteCheck, "SiteCheck"),
             new Module(Page.Markup, "Mark-up", Markup, "Markup"),
             new Module(Page.Tools, "Tools", Tools, "Tools"),
-            new NavHeading(""),
+            new NavGroup("end", ""),
             new Module(Page.Settings, "Settings", new SettingsViewModel(services), "Settings"),
         ];
-        NavItems = nav;
+        NavGroup? group = null;
+        foreach (var item in nav)
+        {
+            if (item is NavGroup heading)
+                group = heading;
+            else if (item is Module module)
+                module.Group = group;
+        }
         Modules = [.. nav.OfType<Module>()];
+        Sidebar = new SidebarViewModel(services.Settings, nav);
         Selected = Modules[0];
         mailModule = this[Page.Mail];
         CheckMailAsync().Forget("Checking mail");
@@ -275,8 +283,8 @@ public partial class MainViewModel : ViewModelBase
     public TimeViewModel Time { get; }
     public IReadOnlyList<Module> Modules { get; }
 
-    /// <summary>What the sidebar lists: the pages, with group headings between them.</summary>
-    public IReadOnlyList<object> NavItems { get; }
+    /// <summary>The sidebar itself: hidden or showing, and which groups are folded.</summary>
+    public SidebarViewModel Sidebar { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedNav))]

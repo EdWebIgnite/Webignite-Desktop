@@ -19,6 +19,9 @@ public sealed partial class Module(Page key, string title, ViewModelBase page, s
     public bool IsLater { get; } = isLater;
     public bool FullBleed { get; } = fullBleed;
 
+    /// <summary>The heading this page sits under, if any. Folding the group takes the page off the list.</summary>
+    public NavGroup? Group { get; internal set; }
+
     /// <summary>A count shown beside the name, e.g. unread mail. Zero hides it.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasBadge))]
@@ -34,5 +37,28 @@ public sealed partial class Module(Page key, string title, ViewModelBase page, s
     public ViewModelBase? FullPage => FullBleed ? Page : null;
 }
 
-/// <summary>A small heading between groups of pages in the sidebar. It can't be picked.</summary>
-public sealed record NavHeading(string Title);
+/// <summary>
+/// A heading between groups of pages in the sidebar. Clicking it folds the group up to the heading or opens
+/// it out again. A heading with no words is only a little space, e.g. above Settings, and can't fold.
+/// </summary>
+public sealed partial class NavGroup(string key, string title) : ObservableObject
+{
+    /// <summary>What the folded state is saved under, so the title can change freely.</summary>
+    public string Key { get; } = key;
+    public string Title { get; } = title;
+    public bool CanFold => Title.Length > 0;
+
+    internal SidebarViewModel? Owner { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFolded))]
+    public partial bool IsOpen { get; set; } = true;
+
+    public bool IsFolded => !IsOpen;
+
+    public void Toggle()
+    {
+        if (CanFold)
+            Owner?.Fold(this, !IsOpen);
+    }
+}
