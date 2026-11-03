@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -21,6 +22,29 @@ public sealed partial class Module(Page key, string title, ViewModelBase page, s
 
     /// <summary>The heading this page sits under, if any. Folding the group takes the page off the list.</summary>
     public NavGroup? Group { get; internal set; }
+
+    internal SidebarViewModel? Sidebar { get; set; }
+
+    public bool CanMoveUp => Sidebar?.CanMove(this, -1) == true;
+    public bool CanMoveDown => Sidebar?.CanMove(this, +1) == true;
+
+    [RelayCommand(CanExecute = nameof(CanMoveUp))]
+    private void MoveUp() => Sidebar?.Move(this, -1);
+
+    [RelayCommand(CanExecute = nameof(CanMoveDown))]
+    private void MoveDown() => Sidebar?.Move(this, +1);
+
+    /// <summary>The sidebar's right-click menu: put everything back.</summary>
+    public IRelayCommand? ResetSidebarCommand => Sidebar?.ResetCommand;
+
+    internal void Changed()
+    {
+        OnPropertyChanged(nameof(CanMoveUp));
+        OnPropertyChanged(nameof(CanMoveDown));
+        OnPropertyChanged(nameof(ResetSidebarCommand));
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
+    }
 
     /// <summary>A count shown beside the name, e.g. unread mail. Zero hides it.</summary>
     [ObservableProperty]
@@ -60,5 +84,31 @@ public sealed partial class NavGroup(string key, string title) : ObservableObjec
     {
         if (CanFold)
             Owner?.Fold(this, !IsOpen);
+    }
+
+    [RelayCommand]
+    private void ToggleFold() => Toggle();
+
+    public bool CanMoveUp => Owner?.CanMove(this, -1) == true;
+    public bool CanMoveDown => Owner?.CanMove(this, +1) == true;
+
+    [RelayCommand(CanExecute = nameof(CanMoveUp))]
+    private void MoveUp() => Owner?.Move(this, -1);
+
+    [RelayCommand(CanExecute = nameof(CanMoveDown))]
+    private void MoveDown() => Owner?.Move(this, +1);
+
+    public IRelayCommand? ResetSidebarCommand => Owner?.ResetCommand;
+
+    public string FoldText => IsOpen ? "Fold up" : "Open out";
+
+    internal void Changed()
+    {
+        OnPropertyChanged(nameof(CanMoveUp));
+        OnPropertyChanged(nameof(CanMoveDown));
+        OnPropertyChanged(nameof(ResetSidebarCommand));
+        OnPropertyChanged(nameof(FoldText));
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
     }
 }

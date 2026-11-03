@@ -144,6 +144,11 @@ vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "web-tools").Toggle();
 vm.Sidebar.Toggle();
 Save("sidebar-hidden");
 vm.Sidebar.Toggle();
+vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "planning").MoveUpCommand.Execute(null);
+vm[Page.Mail].MoveDownCommand.Execute(null);
+vm[Page.Mail].MoveDownCommand.Execute(null);
+Save("sidebar-reordered");
+vm.Sidebar.ResetCommand.Execute(null);
 
 // Run synchronously here: the headless dispatcher isn't pumped while this script waits.
 services.Secrets.Write(AppServices.BackupPasswordName, "a long sample password");

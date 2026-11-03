@@ -85,7 +85,16 @@
                  ContainerPrepared="PrepareNavItem" ScrollViewer.VerticalScrollBarVisibility="Hidden">
           <ListBox.DataTemplates>
             <DataTemplate DataType="vm:NavGroup">
-              <DockPanel>
+              <DockPanel Background="Transparent">
+                <DockPanel.ContextMenu>
+                  <ContextMenu IsVisible="{Binding CanFold}">
+                    <MenuItem Header="{Binding FoldText}" Command="{Binding ToggleFoldCommand}" />
+                    <MenuItem Header="Move group up" Command="{Binding MoveUpCommand}" />
+                    <MenuItem Header="Move group down" Command="{Binding MoveDownCommand}" />
+                    <Separator />
+                    <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
+                  </ContextMenu>
+                </DockPanel.ContextMenu>
                 <Panel DockPanel.Dock="Right" IsVisible="{Binding CanFold}" VerticalAlignment="Center">
                   <c:Icon Classes="fold" Size="14" Foreground="{DynamicResource NavMuted}" IsVisible="{Binding IsOpen}" Data="{StaticResource Icon.ChevronDown}" />
                   <c:Icon Classes="fold" Size="14" Foreground="{DynamicResource NavMuted}" IsVisible="{Binding IsFolded}" Data="{StaticResource Icon.ChevronRight}" />
@@ -94,7 +103,15 @@
               </DockPanel>
             </DataTemplate>
             <DataTemplate DataType="vm:Module">
-              <DockPanel>
+              <DockPanel Background="Transparent">
+                <DockPanel.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" />
+                    <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" />
+                    <Separator />
+                    <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
+                  </ContextMenu>
+                </DockPanel.ContextMenu>
                 <Border DockPanel.Dock="Right" Classes="tag" IsVisible="{Binding IsLater}">
                   <TextBlock Text="Later" FontSize="11" Foreground="{DynamicResource NavMuted}" />
                 </Border>

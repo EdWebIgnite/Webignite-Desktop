@@ -112,7 +112,9 @@ public partial class MainWindow : Window
 
     private void FoldGroup(object? sender, PointerPressedEventArgs e)
     {
-        if ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is not NavGroup group)
+        // A right click opens the menu instead.
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            || (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is not NavGroup group)
             return;
         group.Toggle();
         e.Handled = true;
