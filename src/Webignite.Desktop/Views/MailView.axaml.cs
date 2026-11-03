@@ -67,6 +67,12 @@ public partial class MailView : UserControl
             Fill(flyout.Items, mail.CategoryMenu());
     }
 
+    private void SnoozeFlyoutOpening(object? sender, EventArgs e)
+    {
+        if (Mail is { } mail && sender is MenuFlyout flyout)
+            Fill(flyout.Items, mail.SnoozeMenu());
+    }
+
     private void MoveFlyoutOpening(object? sender, EventArgs e)
     {
         if (Mail is { } mail && sender is MenuFlyout flyout)
