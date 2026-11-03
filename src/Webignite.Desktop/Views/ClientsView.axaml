@@ -5,88 +5,120 @@
              x:Class="Webignite.Desktop.Views.ClientsView"
              x:DataType="vm:ClientsViewModel"
              x:Name="Root">
-  <Panel>
-    <ContentControl Content="{Binding Detail}" IsVisible="{Binding !IsListing}" />
+  <!-- The client list and the open client side by side. The panes move, resize and hide as on Mail. -->
+  <c:PanelGrid Layout="{Binding Panels.Layout}" Resized="PaneResized">
+    <Border c:PanelGrid.Pane="list" c:PanelGrid.DefaultWidth="400" Background="{DynamicResource Canvas}"
+            BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <ScrollViewer>
+        <StackPanel Spacing="16" Margin="24,30,24,30">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
+              <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panes: show, hide and move them">
+                <c:Icon Data="{StaticResource Icon.Panels}" Size="16" />
+                <Button.Flyout>
+                  <MenuFlyout Placement="BottomEdgeAlignedRight">
+                    <MenuItem Header="Client list" DataContext="{Binding Panels[list]}" x:DataType="vm:PaneViewModel">
+                      <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
+                      <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
+                    </MenuItem>
+                    <MenuItem Header="Open client" DataContext="{Binding Panels[detail]}" x:DataType="vm:PaneViewModel">
+                      <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
+                      <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
+                      <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="Put the panes back" Command="{Binding Panels.ResetCommand}" />
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
+              <Button Classes="primary" Command="{Binding NewCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
+                  <TextBlock Text="New client" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Classes="h1" Text="Clients" />
+              <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding !IsEmpty}" />
+            </StackPanel>
+          </DockPanel>
 
-    <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
-      <DockPanel>
-        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
-            <TextBlock Text="New client" />
-          </StackPanel>
-        </Button>
-        <StackPanel Spacing="4">
-          <TextBlock Classes="h1" Text="Clients" />
-          <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding !IsEmpty}" />
-        </StackPanel>
-      </DockPanel>
+          <Border Classes="pending" IsVisible="{Binding HasSuggestions}">
+            <StackPanel Spacing="8">
+              <TextBlock FontWeight="SemiBold" Text="On your quotes and invoices but not saved as clients" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding Suggestions}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <Button Classes="quiet" Margin="0,0,8,8" Content="{Binding StringFormat='+ {0}'}"
+                            Command="{Binding #Root.((vm:ClientsViewModel)DataContext).AddSuggestedCommand}" CommandParameter="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
 
-      <Border Classes="pending" IsVisible="{Binding HasSuggestions}">
-        <StackPanel Spacing="8">
-          <TextBlock FontWeight="SemiBold" Text="On your quotes and invoices but not saved as clients" />
-          <ItemsControl ItemsSource="{Binding Suggestions}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="x:String">
-                <Button Classes="quiet" Margin="0,0,8,8" Content="{Binding StringFormat='+ {0}'}"
-                        Command="{Binding #Root.((vm:ClientsViewModel)DataContext).AddSuggestedCommand}" CommandParameter="{Binding}" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-      </Border>
+          <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Clients}" Title="No clients yet"
+                        Text="Add one here, or pick a name above from your existing quotes and invoices."
+                        ActionText="New client" Command="{Binding NewCommand}" />
 
-      <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Clients}" Title="No clients yet"
-                    Text="Add one here, or pick a name above from your existing quotes and invoices."
-                    ActionText="New client" Command="{Binding NewCommand}" />
+          <StackPanel Spacing="12" IsVisible="{Binding !IsEmpty}">
+            <TextBox Text="{Binding Search}" PlaceholderText="Search by name, person, email or phone" />
 
-      <StackPanel Spacing="12" IsVisible="{Binding !IsEmpty}">
-        <TextBox Text="{Binding Search}" PlaceholderText="Search by name, person, email or phone" MaxWidth="420" HorizontalAlignment="Left" Width="420" />
+            <c:EmptyState IsVisible="{Binding NoMatches}" Icon="{StaticResource Icon.Search}" Title="No client matches that search"
+                          Text="Try part of the name, the contact person, an email address or a phone number." />
 
-        <c:EmptyState IsVisible="{Binding NoMatches}" Icon="{StaticResource Icon.Search}" Title="No client matches that search"
-                      Text="Try part of the name, the contact person, an email address or a phone number." />
-
-        <Border Classes="card" Padding="0" IsVisible="{Binding !NoMatches}">
-          <StackPanel>
-            <Border Classes="stickyhead" c:Sticky.IsEnabled="True" Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
-              <Grid ColumnDefinitions="*,280,140,28">
-                <TextBlock Grid.Column="0" Classes="label tablehead" Text="Client" />
-                <TextBlock Grid.Column="1" Classes="label tablehead" Text="Work" />
-                <TextBlock Grid.Column="2" Classes="label tablehead" Text="Owed" HorizontalAlignment="Right" />
-              </Grid>
+            <Border Classes="card" Padding="0" IsVisible="{Binding !NoMatches}">
+              <StackPanel>
+                <Border Classes="stickyhead" c:Sticky.IsEnabled="True" Background="{DynamicResource TableHead}" Height="36" Padding="12,0">
+                  <Grid ColumnDefinitions="*,Auto,28">
+                    <TextBlock Grid.Column="0" Classes="label tablehead" Text="Client" />
+                    <TextBlock Grid.Column="1" Classes="label tablehead" Text="Owed" HorizontalAlignment="Right" />
+                  </Grid>
+                </Border>
+                <ItemsControl ItemsSource="{Binding Rows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ClientRow">
+                      <Button Classes="row" Classes.open="{Binding IsOpen}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                              Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
+                        <Grid ColumnDefinitions="*,Auto,28">
+                          <Border Grid.ColumnSpan="3" Classes="edge" IsVisible="{Binding HasOverdue}" Margin="-12,-11,0,-11" />
+                          <Grid Grid.Column="0" ColumnDefinitions="Auto,12,*" Margin="8,0">
+                            <c:Monogram Text="{Binding Name}" Size="34" />
+                            <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Classes="muted" FontSize="12" Text="{Binding Contact}" IsVisible="{Binding HasContact}" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Classes="muted" FontSize="12" Text="{Binding Work}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Work}" />
+                            </StackPanel>
+                          </Grid>
+                          <TextBlock Grid.Column="1" Classes="amount" Classes.problem="{Binding HasOverdue}" Text="{Binding Owed}" Margin="8,0" VerticalAlignment="Center"
+                                     ToolTip.Tip="{Binding OverdueTip}" />
+                          <c:Icon Grid.Column="2" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
             </Border>
-            <ItemsControl ItemsSource="{Binding Rows}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ClientRow">
-                  <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                          Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
-                    <Grid ColumnDefinitions="*,280,140,28">
-                      <Border Grid.ColumnSpan="4" Classes="edge" IsVisible="{Binding HasOverdue}" Margin="-12,-11,0,-11" />
-                      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" Margin="8,0">
-                        <c:Monogram Text="{Binding Name}" Size="34" />
-                        <StackPanel Spacing="2" VerticalAlignment="Center">
-                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Contact}" IsVisible="{Binding HasContact}" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                      </StackPanel>
-                      <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Work}" Margin="8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Work}" />
-                      <TextBlock Grid.Column="2" Classes="amount" Classes.problem="{Binding HasOverdue}" Text="{Binding Owed}" Margin="8,0" VerticalAlignment="Center"
-                                 ToolTip.Tip="{Binding OverdueTip}" />
-                      <c:Icon Grid.Column="3" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
-                    </Grid>
-                  </Button>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Border>
 
-        <c:ListHint IsVisible="{Binding HasHint}" Text="{Binding Hint.Text, FallbackValue=''}"
-                    ActionText="{Binding Hint.ActionText, FallbackValue=''}" Command="{Binding FollowHintCommand}" Margin="0,6,0,0" />
-      </StackPanel>
-    </StackPanel>
-  </Panel>
+            <c:ListHint IsVisible="{Binding HasHint}" Text="{Binding Hint.Text, FallbackValue=''}"
+                        ActionText="{Binding Hint.ActionText, FallbackValue=''}" Command="{Binding FollowHintCommand}" Margin="0,6,0,0" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <!-- The open client, or a word on what goes here -->
+    <ScrollViewer c:PanelGrid.Pane="detail" c:PanelGrid.DefaultWidth="640">
+      <Panel Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch">
+        <ContentControl Content="{Binding Detail}" IsVisible="{Binding HasDetail}" />
+        <c:EmptyState IsVisible="{Binding !HasDetail}" Icon="{StaticResource Icon.Clients}" Title="Pick a client"
+                      Text="Their quotes, invoices, to-dos, mail and notes show here." VerticalAlignment="Top" />
+      </Panel>
+    </ScrollViewer>
+  </c:PanelGrid>
 </UserControl>

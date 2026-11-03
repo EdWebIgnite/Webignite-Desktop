@@ -27,7 +27,8 @@
           </Button>
         </StackPanel>
         <StackPanel Spacing="4">
-          <Button Classes="link" Content="← Back to clients" Command="{Binding BackCommand}" Padding="0,2" Margin="0,0,0,6" />
+          <Button Classes="link" Content="Close" Command="{Binding BackCommand}" Padding="0,2" Margin="0,0,0,6"
+                  ToolTip.Tip="Saves what you typed and closes this client" />
           <StackPanel Orientation="Horizontal" Spacing="14">
             <c:Monogram Text="{Binding Title}" Size="48" IsVisible="{Binding IsSaved}" />
             <StackPanel Spacing="2" VerticalAlignment="Center">
@@ -164,13 +165,14 @@
           <!-- New site checklist -->
           <Border Classes="card" IsVisible="{Binding IsSaved}">
             <StackPanel Spacing="10">
-              <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding OnboardingProgress}" VerticalAlignment="Center" IsVisible="{Binding HasOnboarding}" />
+              <!-- The note sits under the heading, so a narrow pane doesn't push them into each other. -->
+              <StackPanel Spacing="2">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <c:Icon Classes="cardicon" Data="{StaticResource Icon.Todo}" />
                   <TextBlock Classes="h2" Text="New site checklist" VerticalAlignment="Center" />
                 </StackPanel>
-              </DockPanel>
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding OnboardingProgress}" TextWrapping="Wrap" IsVisible="{Binding HasOnboarding}" />
+              </StackPanel>
               <StackPanel Spacing="8" IsVisible="{Binding CanStartOnboarding}">
                 <TextBlock Classes="muted" TextWrapping="Wrap"
                            Text="For a new website: the logo, content, photos, domain and hosting access you need from them, ticked off as each comes in." />
@@ -207,13 +209,14 @@
           <!-- Projects and time -->
           <Border Classes="card" IsVisible="{Binding IsSaved}">
             <StackPanel Spacing="10">
-              <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding TimeSummary}" VerticalAlignment="Center" />
+              <!-- The note sits under the heading, so a narrow pane doesn't push them into each other. -->
+              <StackPanel Spacing="2">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <c:Icon Classes="cardicon" Data="{StaticResource Icon.Time}" />
                   <TextBlock Classes="h2" Text="Projects and time" VerticalAlignment="Center" />
                 </StackPanel>
-              </DockPanel>
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding TimeSummary}" TextWrapping="Wrap" />
+              </StackPanel>
               <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasProjects}"
                          Text="Add a project, like New website or Monthly SEO, to log time against it on the Time page." />
               <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding HasProjects}" Text="Tick a project when it's finished. Its time is kept." />

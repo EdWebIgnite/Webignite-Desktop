@@ -236,6 +236,10 @@
   <Style Selector="Button.row:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
   </Style>
+  <!-- The row whose item is open beside the list, e.g. the client open in the right-hand pane. -->
+  <Style Selector="Button.row.open /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
+  </Style>
   <Style Selector="Button.row:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TableHead}" />
   </Style>
@@ -429,12 +433,13 @@
   <Style Selector="c|ListHint">
     <Setter Property="Template">
       <ControlTemplate>
-        <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,2,0,0">
+        <!-- A grid rather than a row, so the words wrap in a narrow pane instead of running off the edge. -->
+        <Grid ColumnDefinitions="Auto,8,*,8,Auto" Margin="4,2,0,0" HorizontalAlignment="Left" MaxWidth="780">
           <c:Icon Data="{StaticResource Icon.Hint}" Size="16" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
-          <TextBlock Classes="muted" Text="{TemplateBinding Text}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="640" />
-          <Button Classes="link" Content="{TemplateBinding ActionText}" Command="{TemplateBinding Command}" VerticalAlignment="Center"
+          <TextBlock Grid.Column="2" Classes="muted" Text="{TemplateBinding Text}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="640" />
+          <Button Grid.Column="4" Classes="link" Content="{TemplateBinding ActionText}" Command="{TemplateBinding Command}" VerticalAlignment="Center"
                   IsVisible="{TemplateBinding ActionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-        </StackPanel>
+        </Grid>
       </ControlTemplate>
     </Setter>
   </Style>

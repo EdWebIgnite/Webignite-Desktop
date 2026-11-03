@@ -16,8 +16,12 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
     public ClientsViewModel(AppServices services)
     {
         this.services = services;
+        Panels = new PanelsViewModel(services.Settings, "clients", [("list", "Client list"), ("detail", "Open client")], spine: "list");
         Refresh();
     }
+
+    /// <summary>The client list and the open client side by side, moved, resized and hidden as on Mail.</summary>
+    public PanelsViewModel Panels { get; }
 
     public ObservableCollection<ClientRow> Rows { get; } = [];
     public ObservableCollection<string> Suggestions { get; } = [];
@@ -26,10 +30,28 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
     public partial string Search { get; set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsListing))]
+    [NotifyPropertyChangedFor(nameof(IsListing), nameof(HasDetail))]
     public partial ClientDetailViewModel? Detail { get; set; }
 
     public bool IsListing => Detail is null;
+    public bool HasDetail => Detail is not null;
+
+    partial void OnDetailChanged(ClientDetailViewModel? value)
+    {
+        foreach (var row in all)
+            row.IsOpen = value is not null && row.Client.Id == value.ClientId;
+        // Opening a client brings its pane back if it was hidden.
+        if (value is not null && !Panels["detail"].IsShown)
+            Panels["detail"].IsShown = true;
+    }
+
+    /// <summary>Shows a client in the right-hand pane, saving the one open there first.</summary>
+    private void Show(ClientDetailViewModel next)
+    {
+        if (Detail is { } open && !open.Leave())
+            return;
+        Detail = next;
+    }
 
     /// <summary>The line under the title: "6 clients, R 4 500.00 owed by 2".</summary>
     [ObservableProperty]
@@ -59,20 +81,24 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
     partial void OnSearchChanged(string value) => Filter();
 
     [RelayCommand]
-    private void New() => Detail = new ClientDetailViewModel(new Client { Id = Client.NewId(), Name = "" }, isNew: true, services, Close);
+    private void New() => Show(new ClientDetailViewModel(new Client { Id = Client.NewId(), Name = "" }, isNew: true, services, Close));
 
     [RelayCommand]
-    private void Open(ClientRow row) => Detail = new ClientDetailViewModel(row.Client, isNew: false, services, Close);
+    private void Open(ClientRow row)
+    {
+        if (Detail?.ClientId != row.Client.Id)
+            Show(new ClientDetailViewModel(row.Client, isNew: false, services, Close));
+    }
 
     /// <summary>Opens a client's page, e.g. from search.</summary>
-    public void OpenClient(Client client) => Detail = new ClientDetailViewModel(client, isNew: false, services, Close);
+    public void OpenClient(Client client) => Show(new ClientDetailViewModel(client, isNew: false, services, Close));
 
     [RelayCommand]
     private void AddSuggested(string name)
     {
         var client = services.Store.SaveClient(new Client { Id = Client.NewId(), Name = name, Created = DateTimeOffset.UtcNow });
         Refresh();
-        Detail = new ClientDetailViewModel(client, isNew: false, services, Close);
+        Show(new ClientDetailViewModel(client, isNew: false, services, Close));
     }
 
     private void Close()
@@ -89,7 +115,7 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
         var tasks = services.Store.ListTasks();
         var today = DateOnly.FromDateTime(DateTime.Today);
         all = clients
-            .Select(c => new ClientRow(ClientDirectory.Summarise(c, documents, tasks, [], today)))
+            .Select(c => new ClientRow(ClientDirectory.Summarise(c, documents, tasks, [], today)) { IsOpen = Detail?.ClientId == c.Id })
             .ToList();
         Headline = ClientDirectory.Headline(all.Select(r => r.Summary).ToList());
         Suggestions.Clear();
@@ -112,8 +138,14 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
 }
 
 /// <summary>One line in the clients list.</summary>
-public sealed record ClientRow(ClientSummary Summary)
+public sealed partial class ClientRow(ClientSummary summary) : ViewModelBase
 {
+    public ClientSummary Summary { get; } = summary;
+
+    /// <summary>This client is the one open in the right-hand pane.</summary>
+    [ObservableProperty]
+    public partial bool IsOpen { get; set; }
+
     public Client Client => Summary.Client;
     public string Name => Client.Name;
     public string Contact => string.Join("  ·  ", new[] { Client.ContactPerson, Client.Email, Client.Phone }.Where(s => !string.IsNullOrWhiteSpace(s)));
