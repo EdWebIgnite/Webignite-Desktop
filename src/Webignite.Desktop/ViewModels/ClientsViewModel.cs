@@ -119,6 +119,10 @@ public sealed record ClientRow(ClientSummary Summary)
     public string Contact => string.Join("  ·  ", new[] { Client.ContactPerson, Client.Email, Client.Phone }.Where(s => !string.IsNullOrWhiteSpace(s)));
     public bool HasContact => Contact.Length > 0;
     public string Owed => Summary.Owed == 0 ? "" : Money.Rand(Summary.Owed);
+
+    /// <summary>Some of what this client owes is past its due date: the row gets the bold edge.</summary>
+    public bool HasOverdue => Summary.Documents.Any(d => Receivables.IsOverdue(d, DateOnly.FromDateTime(DateTime.Today)));
+    public string? OverdueTip => HasOverdue ? Money.Rand(Receivables.Overdue(Summary.Documents, DateOnly.FromDateTime(DateTime.Today))) + " of it is overdue" : null;
     public string Work
     {
         get

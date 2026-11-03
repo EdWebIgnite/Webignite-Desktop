@@ -64,6 +64,7 @@
                   <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                           Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
                     <Grid ColumnDefinitions="*,280,140,28">
+                      <Border Grid.ColumnSpan="4" Classes="edge" IsVisible="{Binding HasOverdue}" Margin="-12,-11,0,-11" />
                       <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" Margin="8,0">
                         <c:Monogram Text="{Binding Name}" Size="34" />
                         <StackPanel Spacing="2" VerticalAlignment="Center">
@@ -72,7 +73,8 @@
                         </StackPanel>
                       </StackPanel>
                       <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Work}" Margin="8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Work}" />
-                      <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Owed}" Margin="8,0" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Classes="amount" Classes.problem="{Binding HasOverdue}" Text="{Binding Owed}" Margin="8,0" VerticalAlignment="Center"
+                                 ToolTip.Tip="{Binding OverdueTip}" />
                       <c:Icon Grid.Column="3" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
                     </Grid>
                   </Button>

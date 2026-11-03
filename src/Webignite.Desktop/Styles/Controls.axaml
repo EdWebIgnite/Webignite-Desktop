@@ -339,6 +339,14 @@
   </Style>
 
   <!-- To-do -->
+  <!-- A bold edge down the left of a row that needs you: overdue in the problem colour. Rows put it first in a
+       Panel, with a negative margin that takes it out to the row's own edge. -->
+  <Style Selector="Border.edge">
+    <Setter Property="Width" Value="3" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource Attention}" />
+  </Style>
   <Style Selector="Border.taskrow">
     <Setter Property="Padding" Value="16,8,8,8" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
