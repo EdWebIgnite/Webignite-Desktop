@@ -156,9 +156,9 @@
     </ScrollViewer>
 
     <!-- The mail itself: folders, messages, the open message -->
-    <Grid ColumnDefinitions="240,380,*" IsVisible="{Binding ShowMail}">
+    <c:PanelGrid Layout="{Binding Panels.Layout}" Resized="PaneResized" IsVisible="{Binding ShowMail}">
       <!-- Folders -->
-      <Border Grid.Column="0" Background="{DynamicResource Canvas}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <Border c:PanelGrid.Pane="folders" c:PanelGrid.DefaultWidth="240" Background="{DynamicResource Canvas}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>
           <StackPanel DockPanel.Dock="Bottom" Margin="12">
             <Button Classes="link" Content="Manage mailboxes" Command="{Binding ManageMailboxesCommand}" />
@@ -196,7 +196,7 @@
       </Border>
 
       <!-- Message list -->
-      <Border Grid.Column="1" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <Border c:PanelGrid.Pane="messages" c:PanelGrid.DefaultWidth="380" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>
           <StackPanel DockPanel.Dock="Top" Margin="16,16,16,10" Spacing="10">
             <DockPanel>
@@ -204,6 +204,29 @@
                 <c:Spinner IsVisible="{Binding IsBusy}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,4,0"
                            ToolTip.Tip="Talking to the mail server" />
                 <Button Classes="quiet" Content="Check for mail" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
+                <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panels: show, hide and move them">
+                  <c:Icon Data="{StaticResource Icon.Panels}" Size="16" />
+                  <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                      <MenuItem Header="Folders" DataContext="{Binding Panels[folders]}" x:DataType="vm:PaneViewModel">
+                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
+                        <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
+                        <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
+                      </MenuItem>
+                      <MenuItem Header="Messages" DataContext="{Binding Panels[messages]}" x:DataType="vm:PaneViewModel">
+                        <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
+                        <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
+                      </MenuItem>
+                      <MenuItem Header="Reading pane" DataContext="{Binding Panels[reader]}" x:DataType="vm:PaneViewModel">
+                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
+                        <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
+                        <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
+                      </MenuItem>
+                      <Separator />
+                      <MenuItem Header="Put the panes back" Command="{Binding Panels.ResetCommand}" />
+                    </MenuFlyout>
+                  </Button.Flyout>
+                </Button>
                 <Button Classes="primary" Content="Write" Command="{Binding WriteCommand}" />
               </StackPanel>
               <TextBlock Classes="h2" Text="{Binding ListTitle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -249,7 +272,7 @@
       </Border>
 
       <!-- The open message -->
-      <Grid Grid.Column="2" Background="{DynamicResource Surface}">
+      <Grid c:PanelGrid.Pane="reader" c:PanelGrid.DefaultWidth="560" Background="{DynamicResource Surface}">
         <TextBlock Classes="muted" Text="Pick a message to read it." HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowNothing}" />
         <Panel IsVisible="{Binding HasComposer}">
           <v:ComposeView DataContext="{Binding Composer}" />
@@ -331,6 +354,6 @@
         </DockPanel>
         </Panel>
       </Grid>
-    </Grid>
+    </c:PanelGrid>
   </Grid>
 </UserControl>
