@@ -13,10 +13,13 @@ public partial class MainViewModel
         new("Ctrl+K", "Search clients, quotes, invoices and mail"),
         new("Ctrl+N", "New on this page: quote, invoice, client, retainer, domain or mail"),
         new("Ctrl+1 to Ctrl+9", "Jump to a page, in sidebar order"),
-        new("Ctrl+B", "Tuck the sidebar away or bring it back"),
+        new("Ctrl+B", "Fold the sidebar to icons, tuck it away, or bring it back"),
         new("F5", "Read this page again, or check for mail on Mail"),
         new("F1", "Show or hide this list"),
         new("Esc", "Close this list or the search box"),
+        new("Down, Up", "Clients, Quotes and Invoices: move between rows"),
+        new("Enter", "Clients, Quotes and Invoices: open the row"),
+        new("Esc", "Close the open client, quote or invoice"),
         .. MailViewModel.ListKeys.Select(k => new Shortcut(k.Keys, "Mail list: " + k.What)),
     ];
 
@@ -27,6 +30,28 @@ public partial class MainViewModel
 
     [RelayCommand]
     private void HideShortcuts() => ShowingShortcuts = false;
+
+    /// <summary>
+    /// Esc: goes back from what is open on the page, the way its Back or Close does (saving what was typed).
+    /// A quote or invoice opened from a client goes back to the client. Returns false when nothing is open.
+    /// </summary>
+    public bool GoBack()
+    {
+        switch (Selected.Page)
+        {
+            case DocumentsViewModel { Editor: { } editor }:
+                editor.BackCommand.Execute(null);
+                return true;
+            case ClientsViewModel { Detail: { Editor: { } editor } }:
+                editor.BackCommand.Execute(null);
+                return true;
+            case ClientsViewModel { Detail: { } client }:
+                client.BackCommand.Execute(null);
+                return true;
+            default:
+                return false;
+        }
+    }
 
     /// <summary>Ctrl+1 to Ctrl+9: the pages in sidebar order.</summary>
     [RelayCommand]

@@ -149,6 +149,12 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        // Esc nobody else wanted: close what is open on the page, e.g. an invoice or a client.
+        if (e.Key == Key.Escape && !e.Handled && DataContext is MainViewModel page && page.GoBack())
+        {
+            e.Handled = true;
+            return;
+        }
         base.OnKeyDown(e);
     }
 
