@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Webignite.Core.Tasks;
 
 public enum TaskGroup
@@ -26,4 +28,27 @@ public static class TaskGroups
             .ThenBy(t => t.Done ? DateTimeOffset.MaxValue - (t.DoneAt ?? t.Created) : TimeSpan.Zero)
             .ThenBy(t => t.Due ?? DateOnly.MaxValue)
             .ThenBy(t => t.Created);
+
+    /// <summary>
+    /// The line under a short to-do list. When nothing is due today or overdue it names the next thing coming
+    /// up; otherwise it says which to-dos arrive by themselves. Null when there are no to-dos at all.
+    /// </summary>
+    public static string? Hint(IReadOnlyCollection<TaskItem> tasks, DateOnly today)
+    {
+        if (tasks.Count == 0)
+            return null;
+        var open = tasks.Where(t => !t.Done).ToList();
+        var pressing = open.Any(t => Of(t, today) is TaskGroup.Overdue or TaskGroup.Today);
+        var next = Sort(open.Where(t => Of(t, today) == TaskGroup.Upcoming)).FirstOrDefault();
+        if (!pressing && next?.Due is { } due)
+            return $"Nothing due today. Next up: {next.Title.Trim()}, {Day(due, today)}.";
+        return "Overdue invoices, quotes waiting on a client and forgotten drafts land here by themselves.";
+    }
+
+    private static string Day(DateOnly due, DateOnly today) => (due.DayNumber - today.DayNumber) switch
+    {
+        1 => "tomorrow",
+        < 7 => due.ToString("dddd", CultureInfo.InvariantCulture),
+        _ => due.ToString("d MMM", CultureInfo.InvariantCulture),
+    };
 }

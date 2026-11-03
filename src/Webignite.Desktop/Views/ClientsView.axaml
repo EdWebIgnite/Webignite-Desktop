@@ -81,6 +81,9 @@
             </ItemsControl>
           </StackPanel>
         </Border>
+
+        <c:ListHint IsVisible="{Binding HasHint}" Text="{Binding Hint.Text, FallbackValue=''}"
+                    ActionText="{Binding Hint.ActionText, FallbackValue=''}" Command="{Binding FollowHintCommand}" Margin="0,6,0,0" />
       </StackPanel>
     </StackPanel>
   </Panel>

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Documents;
+using Webignite.Core.Layout;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -88,6 +89,23 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
 
     public bool IsFiltered => Filter.IsActive;
 
+    /// <summary>The line under a short list, or null when the list is long, filtered or empty.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHint))]
+    public partial DocumentHint? Hint { get; set; }
+
+    public bool HasHint => Hint is not null;
+
+    /// <summary>Does what the hint offers: shows the filter it names, or starts a new one.</summary>
+    [RelayCommand]
+    private void FollowHint()
+    {
+        if (Hint?.Show is { } show)
+            Show = show;
+        else
+            New();
+    }
+
     private DocumentFilter Filter => new(Search, Show, PeriodChoice?.Value ?? DocumentPeriod.AllTime);
 
     partial void OnSearchChanged(string value) => Refresh();
@@ -140,6 +158,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
             Rows.Add(new DocumentRow(stored, today));
         IsEmpty = all.Count == 0;
         Headline = DocumentHeadline.For(Kind, all, today);
+        Hint = ListHints.Shows(Rows.Count, Filter.IsActive) ? DocumentHeadline.Hint(Kind, all, today) : null;
         Summary = Filter.IsActive ? $"{shown.Count} of {all.Count}, {Money.Rand(shown.Sum(d => d.Document.Total ?? 0))}" : "";
         OnPropertyChanged(nameof(NoMatches));
         OnPropertyChanged(nameof(ShowTable));
