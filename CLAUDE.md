@@ -10,3 +10,5 @@ Native Windows app (C#, .NET 10, Avalonia 12, MVVM with CommunityToolkit.Mvvm). 
 - Webignite is not VAT registered. Xero writes are DRAFT only. Assistants never approve or send.
 - UI copy: plain South African English, Rand shown as `R 1 234.56`, no em dashes.
 - Colours come only from `Styles/Palette.axaml`. Red and green mean problem and done, nothing else.
+- Recipes for adding a page, setting, table, background check or assistant tool: `docs/adding-things.md`.
+- Dropped tasks go through `Background.Forget("What it was doing")`, never `_ =`. Problems go to `AppLog`.

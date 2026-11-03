@@ -1,65 +1,80 @@
 # Webignite Desktop
 
-Native Windows software for Webignite's quotes and invoices, built to grow into email and more. It runs on your PC and keeps your data there. No browser engine, no Electron, no server.
+Native Windows software for running Webignite: quotes, invoices, clients, mail and the small web tools the work needs. It runs on your PC and keeps your data there. No browser engine, no Electron, no server.
 
 ![New invoice](docs/screenshot-invoice.png)
 
-## What it does now
+## What it does
 
-- **New quote** and **New invoice** screens. Type a customer and lines and the totals, date and due date fill in as you go. Amounts like `3,5` or `R650` are read correctly.
-- Every document goes through the same checks that will apply to documents Claude and ChatGPT prepare: totals must add up to the cent, no VAT (Webignite is not VAT registered), and dates and lines must make sense.
-- **Quotes** and **Invoices** lists. Documents save to an encrypted database on this PC (`%LOCALAPPDATA%\Webignite`).
-- **Clients**: one page per client with contact details and notes, plus their quotes, invoices, to-dos and upcoming events. Names already on quotes and invoices can be saved as clients with one click.
-- **Retainers**: clients who pay the same every month. The invoice is drafted on its day, with the month filled in, and waits under Invoices for you to check.
-- **Domains and hosting**: every renewal date in one list. A to-do appears before each one, and if the client pays for it the renewal invoice is drafted for you to check. Marking it renewed moves it to the next date and adds the cost to expenses.
-- **Money**: enter money received and expenses, month by month, with what is left over. Monthly expenses are set up once and added on their day.
-- **Reports**: the tax year so far (1 March to February), the last 12 months side by side, best clients and where the money went.
-- **To-do**: quick-add tasks grouped into Overdue, Today, Coming up and No date. Reminders appear by themselves to follow up quotes, chase overdue invoices and finish old drafts.
-- **Calendar**: month view with events you add, plus to-dos, quote expiry dates and invoice due dates filled in automatically. Kept on this PC only.
-- **Planner**: the week at a glance, with undated to-dos waiting to be given a day.
-- **Overview**: money owed, overdue and quoted, plus everything on today.
-- **Settings**: connect Xero and set default due and expiry days. Xero sign-in opens in your own browser; the app never sees your Xero password, and the sign-in is kept in Windows Credential Manager.
-- The Xero draft format and the read-back check are ready. Creating drafts in Xero is the next step.
+**Billing.** Quotes and invoices with totals that fill in as you type, a price list for one-click lines, copy a document or make an invoice from a quote, search and filters. Documents go to Xero as drafts, you approve them in the app, and the invoice is emailed from your own mailbox with Xero's PDF. Payments are read back from Xero so money owed is right. Monthly statements, overdue reminders and quote follow-ups are drafted for you.
 
-## Coming next
+**Clients.** One page per client: contact details, notes and linked files, their documents, mail, to-dos, projects, time and a new-site checklist. Retainers draft their invoice on the day. Domains and hosting renewals raise a to-do and, if the client pays, the renewal invoice.
 
-1. Create drafts in Xero from the editor, with customer matching.
-2. The **To approve** list, plus the connector for Claude Desktop and ChatGPT.
-3. Approve and send invoices from accounts@webignite.co.za, using the Xero PDF and your own email templates.
-4. Installer with automatic updates and encrypted backups.
-5. Mail, with a native HTML viewer, plus the assistant tools to read and draft replies.
+**Money.** Money received and expenses month by month, recurring expenses added on their day, an income projection (expected against came in, 12 months, with a chart) and reports for the tax year (1 March to February).
+
+**Planning.** To-do, calendar, weekly planner and time tracking (a timer or typed-in hours, for a client, a project or nobody).
+
+**Mail.** Both mailboxes over IMAP and SMTP (MailKit), read in a native HTML viewer with scripts off and remote images blocked. Write with bold, lists, links, signature pictures and drag-and-drop attachments. Mail is checked in the background and new mail is announced. Address suggestions come from clients and past mail.
+
+**Web tools.** Site check (DNS, MX, SPF, DKIM, DMARC, RDAP and a PageSpeed run, with results kept), uptime and certificate watch for client sites, a mark-up tool for screenshots, image resizing and WebP, calculator, password generator, colour picker and QR codes.
+
+**Assistants.** `Webignite.Connector` is an MCP server that Claude Desktop and ChatGPT start locally. They can search and read mail, draft replies, list and prepare quotes and invoices, and read and add to-dos. Only a person approves or sends.
+
+**Everything else.** Encrypted daily backups, Ctrl+K search across everything, a morning summary, keyboard shortcuts, Undo after removing, light and dark looks with a motion setting, in-app updates from GitHub releases.
 
 ## Connecting Xero
 
 1. At [developer.xero.com/app/manage](https://developer.xero.com/app/manage), create a new app of type **Mobile or desktop app (PKCE)**, with redirect URI `http://localhost:47310/callback`.
 2. Copy its Client ID into Settings in the app and click Connect Xero.
 
+Sign-in opens in your own browser; the app never sees your Xero password. The refresh token is kept in Windows Credential Manager.
+
 ## Building
 
-You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). The SDK version is pinned in `global.json`.
 
 ```
-dotnet run --project src/Webignite.Desktop        # open the app
+dotnet build Webignite.slnx                        # build everything, warnings are errors
 dotnet test --solution Webignite.slnx             # run the tests
-dotnet run --project tools/Snapshot -- shots       # save screenshots of each screen
+dotnet run --project src/Webignite.Desktop        # open the app
+dotnet run --project tools/Snapshot -- shots       # save screenshots of each screen (works on Linux too)
 ```
+
+CI builds and tests every pull request on Windows. Every merge to `main` publishes a release that installed copies pick up on their next start (`.github/workflows/release.yml`).
+
+To add a page, a setting, a table, a background check, an assistant tool or a test, see [docs/adding-things.md](docs/adding-things.md).
 
 ## Layout
 
 | Project | What it holds |
 |---|---|
-| `src/Webignite.Core` | Documents, money rules, defaults and checks. No UI, no network. |
-| `src/Webignite.Data` | The local database. Everything except ids, kinds, statuses and timestamps is encrypted with AES-256-GCM; the key is protected by Windows (DPAPI). |
-| `src/Webignite.Xero` | Xero sign-in (PKCE), the draft format and the check that Xero saved what was sent. |
-| `src/Webignite.Desktop` | The Avalonia app. Each sidebar entry is a module. |
-| `tests/Webignite.Tests` | Tests for Core and Xero. |
-| `tools/Snapshot` | Renders screens to PNG without opening a window. |
+| `src/Webignite.Core` | The rules: documents, money, clients, retainers, renewals, time, mail models and formatting, web checks, small tools. No UI, no network, no packages. Everything here has tests. |
+| `src/Webignite.Data` | The local SQLite database (`LocalStore`), encryption (`Vault`, key under DPAPI), backups, secrets, the app log, and what assistants are allowed to read and write. |
+| `src/Webignite.Xero` | Xero sign-in (PKCE), the accounting API calls, draft creation and the check that Xero saved what was sent. |
+| `src/Webignite.Mail` | IMAP and SMTP through MailKit, syncing into the local store, sending, and the assistant mail tools. |
+| `src/Webignite.Desktop` | The Avalonia app. View models under `ViewModels`, views under `Views`, custom controls under `Controls`, colours and styles under `Styles`. Each sidebar entry is a `Module`. |
+| `src/Webignite.Connector` | The MCP server Claude Desktop and ChatGPT start. Talks over stdin and stdout; logs go to stderr. |
+| `tests/Webignite.Tests` | xUnit tests for Core, Data, Xero and Mail. Xero and mail are tested against fake HTTP handlers. |
+| `tools/Snapshot` | Renders every screen to PNG without opening a window, using a throwaway database with sample data. |
 
-Colours live in `src/Webignite.Desktop/Styles/Palette.axaml`. Change that one file to try a different palette.
+Colours live in `src/Webignite.Desktop/Styles/Palette.axaml` and the three `Palette.Dark.*.axaml` files. Nothing else names a colour.
+
+## Where things live on the PC
+
+| What | Where |
+|---|---|
+| Database, vault key, settings | `%LOCALAPPDATA%\Webignite` (`WEBIGNITE_DATA_DIR` overrides it) |
+| Log files, kept 14 days | `%LOCALAPPDATA%\Webignite\logs` |
+| Backups | The folder chosen in Settings, by default `Webignite backups` in OneDrive or Documents |
+| Mailbox passwords, Xero token, backup password | Windows Credential Manager |
+| The installed app | `%LOCALAPPDATA%\WebigniteDesktop` (Velopack) |
 
 ## Ground rules
 
 - Drafts only. The app never sends, approves, emails or records payments in Xero without a person clicking.
 - Assistants can prepare documents and replies, but only a person can approve them.
-- Money is always `decimal`, rounded half away from zero to the cent.
+- Webignite is not VAT registered. Money is always `decimal`, rounded half away from zero to the cent, shown as `R 1 234.56`.
 - Never retry a write to Xero when the outcome is unclear. Check what Xero has first.
+- Business rules go in `Webignite.Core` with a test, never in a view model.
+- Records are JSON inside encrypted blobs, read with `StoredJson`: a new field needs no migration, and a field this version doesn't know is skipped. Assistant input is read strictly with `DocumentJson`.
+- Plain South African English in the UI, no em dashes. Red means a problem and green means done, nothing else.

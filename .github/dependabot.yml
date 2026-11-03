@@ -1,0 +1,28 @@
+# Opens a pull request when a package or an action has a newer version, once a week, grouped so
+# Avalonia's packages move together. CI builds and tests each one before anyone merges it.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Africa/Johannesburg
+    groups:
+      avalonia:
+        patterns:
+          - "Avalonia*"
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+          - "System.*"
+      tests:
+        patterns:
+          - "xunit*"
+          - "Microsoft.NET.Test.Sdk"
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
