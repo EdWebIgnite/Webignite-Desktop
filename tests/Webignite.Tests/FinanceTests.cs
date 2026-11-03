@@ -136,4 +136,22 @@ public sealed class FinanceTests : IDisposable
         SqliteConnection.ClearAllPools();
         Directory.Delete(folder, recursive: true);
     }
+
+    [Fact]
+    public void By_client_lists_every_client_biggest_first_with_its_share()
+    {
+        var shares = Ledger.ByClient(
+        [
+            In(new(2026, 4, 1), 6000m, "Karoo Coffee Roasters"), In(new(2026, 9, 1), 2000m, "karoo coffee  roasters"),
+            In(new(2026, 5, 1), 3000m, "Fynbos Physio"), In(new(2026, 6, 1), 1000m, "Bosveld Builders"),
+            In(new(2026, 2, 1), 9000m, "Fynbos Physio"), Out(new(2026, 5, 1), 500m),
+        ], new DateOnly(2026, 3, 1), Today);
+
+        Assert.Equal(["Karoo Coffee Roasters", "Fynbos Physio", "Bosveld Builders"], shares.Select(s => s.Name));
+        Assert.Equal([8000m, 3000m, 1000m], shares.Select(s => s.Amount));
+        Assert.Equal(["67%", "25%", "8%"], shares.Select(s => s.Percent));
+        Assert.Equal(1, shares[0].OfBiggest);
+        Assert.Equal(0.125, shares[2].OfBiggest);
+        Assert.Empty(Ledger.ByClient([], new DateOnly(2026, 3, 1), Today));
+    }
 }

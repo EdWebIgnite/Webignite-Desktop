@@ -240,6 +240,17 @@
   <Style Selector="Button.row:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
   </Style>
+  <!-- A row in a Reports list: plain until the pointer is on a client that can be opened. -->
+  <Style Selector="Button.sharerow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.sharerow:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+
   <!-- The row whose item is open beside the list, e.g. the client open in the right-hand pane. -->
   <Style Selector="Button.row.open /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />

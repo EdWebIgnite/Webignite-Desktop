@@ -84,18 +84,29 @@
       <Grid ColumnDefinitions="*,24,*">
         <Border Grid.Column="0" Classes="card" VerticalAlignment="Top">
           <StackPanel Spacing="10">
-            <TextBlock Classes="h2" Text="Best clients, last 12 months" />
-            <TextBlock Classes="muted" Text="No money received yet." IsVisible="{Binding !HasPayers}" />
-            <ItemsControl ItemsSource="{Binding Payers}">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Classes="filter" Classes.on="{Binding ClientsTaxYear}" Content="Tax year" Command="{Binding ShowTaxYearCommand}" />
+                <Button Classes="filter" Classes.on="{Binding ClientsLastYear}" Content="12 months" Command="{Binding ShowLastYearCommand}" />
+              </StackPanel>
+              <TextBlock Classes="h2" Text="{Binding ClientsTitle}" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Classes="muted" Text="No money received yet." IsVisible="{Binding !HasClientShares}" />
+            <ItemsControl ItemsSource="{Binding ClientShares}">
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:TotalRowViewModel">
-                  <Panel Margin="0,2">
-                    <c:ShareBar Fraction="{Binding Share}" Fill="{DynamicResource InvoiceSoft}" />
-                    <DockPanel Margin="10,7">
-                      <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
-                      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                    </DockPanel>
-                  </Panel>
+                <DataTemplate x:DataType="vm:ClientShareRowViewModel">
+                  <!-- A bar behind each amount, the biggest client full width. Click a saved client to open them. -->
+                  <Button Classes="sharerow" Command="{Binding OpenCommand}" IsHitTestVisible="{Binding CanOpen}"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,2">
+                    <Panel>
+                      <c:ShareBar Fraction="{Binding Share}" Fill="{DynamicResource InvoiceSoft}" />
+                      <DockPanel Margin="10,7">
+                        <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Percent}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                      </DockPanel>
+                    </Panel>
+                  </Button>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
