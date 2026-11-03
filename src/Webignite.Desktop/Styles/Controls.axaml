@@ -64,6 +64,10 @@
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="12,10" />
   </Style>
+  <!-- A box whose text isn't right, e.g. a rate that isn't an amount. -->
+  <Style Selector="TextBox.problem">
+    <Setter Property="BorderBrush" Value="{DynamicResource Attention}" />
+  </Style>
   <Style Selector="TextBlock.problem">
     <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>

@@ -102,4 +102,51 @@ public sealed class TimeTests
         store.SetRunningTimer(null);
         Assert.Null(store.RunningTimer);
     }
+
+    private static readonly Client[] Rated =
+    [
+        new() { Id = "c1", Name = "Karoo Coffee Roasters", HourlyRate = 600m, Projects = [new() { Id = "p1", Name = "New website", HourlyRate = 750m }, new() { Id = "p2", Name = "Upkeep" }] },
+        new() { Id = "c2", Name = "Fynbos Physio" },
+    ];
+
+    [Fact]
+    public void A_project_s_own_rate_wins_over_the_client_s()
+    {
+        Assert.Equal(750m, TimeRules.Rate(Entry(60, "c1", "p1"), Rated));
+        Assert.Equal(600m, TimeRules.Rate(Entry(60, "c1", "p2"), Rated));
+        Assert.Equal(600m, TimeRules.Rate(Entry(60, "c1"), Rated));
+        Assert.Null(TimeRules.Rate(Entry(60, "c2"), Rated));
+        Assert.Null(TimeRules.Rate(Entry(60), Rated));
+    }
+
+    [Fact]
+    public void Time_is_worth_its_minutes_at_its_rate_and_time_with_no_rate_is_counted_apart()
+    {
+        Assert.Equal(325m, TimeRules.Value(30, 650m));
+        Assert.Equal(116.67m, TimeRules.Value(10, 700m));
+        var (value, unpriced) = TimeRules.Worth([Entry(90, "c1", "p1"), Entry(30, "c1"), Entry(45, "c2"), Entry(15)], Rated);
+        Assert.Equal(1125m + 300m, value);
+        Assert.Equal(60, unpriced);
+        Assert.Null(TimeRules.Worth([Entry(45, "c2")], Rated).Value);
+    }
+
+    [Fact]
+    public void Totals_carry_their_value_when_a_rate_is_set()
+    {
+        var totals = TimeRules.Totals([Entry(60, "c1", "p1"), Entry(60, "c1"), Entry(30, "c2")], Rated);
+        Assert.Equal([1350m, 750m, null], totals.Select(t => t.Value));
+    }
+
+    [Theory]
+    [InlineData("650", true, 650.0)]
+    [InlineData("R 650,50", true, 650.5)]
+    [InlineData("R800/h", true, 800.0)]
+    [InlineData("", true, null)]
+    [InlineData("lots", false, null)]
+    [InlineData("0", false, null)]
+    public void Rates_are_read_the_way_people_type_them(string text, bool ok, double? expected)
+    {
+        Assert.Equal(ok, TimeRules.TryParseRate(text, out var rate));
+        Assert.Equal(expected is null ? null : (decimal)expected.Value, rate);
+    }
 }

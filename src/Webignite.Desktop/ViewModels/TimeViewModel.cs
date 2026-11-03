@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Clients;
+using Webignite.Core.Documents;
 using Webignite.Core.Time;
 
 namespace Webignite.Desktop.ViewModels;
@@ -68,6 +69,9 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     [ObservableProperty] public partial string Message { get; set; } = "";
     [ObservableProperty] public partial bool MessageIsProblem { get; set; }
     [ObservableProperty] public partial string PeriodTotal { get; set; } = "";
+
+    /// <summary>"R 8 125.00 at your hourly rates", or empty when no client has a rate.</summary>
+    [ObservableProperty] public partial string PeriodValue { get; set; } = "";
     [ObservableProperty] public partial string Clock { get; set; } = "";
 
     /// <summary>The timer that's running, if any. It survives closing the app.</summary>
@@ -222,6 +226,10 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         var entries = services.Store.ListTime(from, to);
         var total = entries.Sum(e => e.Minutes);
         PeriodTotal = TimeRules.Format(total);
+        var (worth, unpriced) = TimeRules.Worth(entries, clients);
+        PeriodValue = worth is not { } value ? ""
+            : unpriced == 0 ? $"{Money.Rand(value)} at your hourly rates"
+            : $"{Money.Rand(value)} at your hourly rates, and {TimeRules.Format(unpriced)} with no rate";
         Totals.Clear();
         foreach (var line in TimeRules.Totals(entries, clients))
             Totals.Add(new TimeTotalRow(line, total));
@@ -243,6 +251,7 @@ public sealed record TimeTotalRow(TimeTotal Total, int PeriodMinutes)
     public string Label => Total.Label;
     public string Time => TimeRules.Format(Total.Minutes);
     public bool IsProject => Total.ProjectId is not null;
+    public string Value => Total.Value is { } value ? Money.Rand(value) : "";
 
     /// <summary>Share of the period's time, 0 to 1, for the bar.</summary>
     public double Share => PeriodMinutes == 0 ? 0 : (double)Total.Minutes / PeriodMinutes;
