@@ -1,0 +1,92 @@
+namespace Webignite.Core.Mail;
+
+/// <summary>One conversation in the message list: a first mail and the replies to it, oldest first.</summary>
+public sealed record MailThread(IReadOnlyList<MailSummary> Messages)
+{
+    /// <summary>The newest mail, which the row shows and the reader opens.</summary>
+    public MailSummary Latest => Messages[^1];
+    public MailSummary First => Messages[0];
+    public int Count => Messages.Count;
+    public bool AnyUnread => Messages.Any(m => !m.Seen);
+    public bool AnyFlagged => Messages.Any(m => m.Flagged);
+    public bool AnyAttachments => Messages.Any(m => m.HasAttachments);
+}
+
+/// <summary>How the message list looks, kept on this PC.</summary>
+public sealed record MailViewSettings
+{
+    /// <summary>The lists (a folder, All inboxes, Important or a category, by their key) showing one row per mail.</summary>
+    public IReadOnlyList<string> ConversationsOff { get; init; } = [];
+
+    public bool ConversationsIn(string list) => !ConversationsOff.Contains(list);
+
+    public MailViewSettings WithConversations(string list, bool on) => this with
+    {
+        ConversationsOff = on ? ConversationsOff.Where(k => k != list).ToList() : ConversationsOff.Append(list).Distinct().ToList(),
+    };
+}
+
+/// <summary>
+/// Groups mail into conversations, as Apple Mail and Outlook do. A reply joins the mail it answers (its
+/// In-Reply-To matches that mail's Message-ID). A mail whose subject starts with Re: or Fwd: also joins an
+/// earlier mail in the same mailbox with the same subject, for mail programs that leave In-Reply-To out.
+/// Mail with no reply prefix and no In-Reply-To always starts its own conversation, so two separate mails both
+/// called "Invoice" stay apart.
+/// </summary>
+public static class MailThreads
+{
+    private static readonly string[] Prefixes = ["re:", "fw:", "fwd:", "aw:", "wg:", "sv:", "antw:"];
+
+    /// <summary>The subject without reply and forward prefixes, in lower case, for matching.</summary>
+    public static string Topic(string? subject)
+    {
+        var s = (subject ?? "").Trim();
+        while (true)
+        {
+            var prefix = Prefixes.FirstOrDefault(p => s.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+            if (prefix is null)
+                break;
+            s = s[prefix.Length..].TrimStart();
+        }
+        return string.Join(' ', s.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+    }
+
+    /// <summary>Whether the subject starts with Re:, Fwd: or the like.</summary>
+    public static bool IsReply(string? subject) =>
+        Prefixes.Any(p => (subject ?? "").TrimStart().StartsWith(p, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>The mail grouped into conversations, newest conversation first. Each keeps its mail oldest first.</summary>
+    public static IReadOnlyList<MailThread> Group(IEnumerable<MailSummary> mail)
+    {
+        var list = mail.OrderBy(m => m.Date).ToList();
+        var parent = Enumerable.Range(0, list.Count).ToArray();
+        int Root(int i) => parent[i] == i ? i : parent[i] = Root(parent[i]);
+        void Join(int a, int b) => parent[Root(b)] = Root(a);
+
+        var byMessageId = new Dictionary<(string, string), int>();
+        var byTopic = new Dictionary<(string, string), int>();
+        for (var i = 0; i < list.Count; i++)
+        {
+            var m = list[i];
+            if (!string.IsNullOrWhiteSpace(m.InReplyTo) && byMessageId.TryGetValue((m.AccountId, m.InReplyTo.Trim()), out var answered))
+                Join(answered, i);
+            else if (IsReply(m.Subject) && Topic(m.Subject) is { Length: > 0 } topic && byTopic.TryGetValue((m.AccountId, topic), out var same))
+                Join(same, i);
+
+            if (!string.IsNullOrWhiteSpace(m.MessageId))
+                byMessageId.TryAdd((m.AccountId, m.MessageId.Trim()), i);
+            if (Topic(m.Subject) is { Length: > 0 } own)
+                byTopic.TryAdd((m.AccountId, own), i);
+        }
+
+        return list.Select((m, i) => (Mail: m, Root: Root(i)))
+            .GroupBy(x => x.Root)
+            .Select(g => new MailThread(g.Select(x => x.Mail).ToList()))
+            .OrderByDescending(t => t.Latest.Date)
+            .ToList();
+    }
+
+    /// <summary>Each mail as a conversation of its own, for folders with conversations switched off.</summary>
+    public static IReadOnlyList<MailThread> Single(IEnumerable<MailSummary> mail) =>
+        mail.OrderByDescending(m => m.Date).Select(m => new MailThread([m])).ToList();
+}

@@ -27,6 +27,16 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     public bool IsNotDraft => !IsDraft;
     public bool CanWrite => mime is not null;
 
+    /// <summary>The whole conversation this mail is in, oldest first. Just this mail when there is no conversation.</summary>
+    public IReadOnlyList<MailSummary> Thread { get; init; } = [summary];
+
+    /// <summary>The conversation stacked above the open mail, one line per mail, the open one marked.</summary>
+    public IReadOnlyList<ThreadLineViewModel> ThreadLines => Thread.Count < 2 ? [] :
+        Thread.Select(m => new ThreadLineViewModel(m, MailViewModel.Key(m) == MailViewModel.Key(Summary),
+            () => owner.ShowInThread(m, account, Thread))).ToList();
+    public bool HasThread => Thread.Count > 1;
+    public string ThreadTitle => $"{Thread.Count} mails in this conversation";
+
     public ObservableCollection<AttachmentViewModel> Attachments { get; } = [];
     public bool HasAttachments => Attachments.Count > 0;
 
@@ -221,4 +231,17 @@ public static class MailStyle
 {
     public static string Wrap(string html) =>
         "<div style=\"font-family: 'Segoe UI', Inter, Arial, sans-serif; font-size: 10.5pt; color: #1F2A26;\">" + html + "</div>";
+}
+
+/// <summary>One mail in the conversation stack above the reader: who, when and the first words. Click to open it.</summary>
+public sealed partial class ThreadLineViewModel(MailSummary mail, bool isOpen, Func<Task> open)
+{
+    public string Who => mail.From?.Display ?? "Unknown sender";
+    public string When => mail.Date.ToLocalTime().ToString("d MMM, HH:mm");
+    public string Preview => mail.Preview;
+    public bool IsOpen => isOpen;
+    public bool IsUnread => !mail.Seen;
+
+    [RelayCommand]
+    private Task Open() => isOpen ? Task.CompletedTask : open();
 }

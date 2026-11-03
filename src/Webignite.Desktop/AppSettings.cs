@@ -150,6 +150,13 @@ public sealed class AppSettings(LocalStore store)
         store.SetSetting("panels", all);
     }
 
+    /// <summary>How the message list looks: which lists show one row per mail rather than conversations.</summary>
+    public MailViewSettings MailView
+    {
+        get => store.GetSetting<MailViewSettings>("mail-view") ?? new MailViewSettings();
+        set => store.SetSetting("mail-view", value);
+    }
+
     /// <summary>How often mail is checked in the background, and what was already announced.</summary>
     public MailCheckSettings MailCheck
     {

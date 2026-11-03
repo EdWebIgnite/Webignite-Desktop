@@ -27,7 +27,8 @@ public partial class MailViewModel
     /// <summary>The picked messages, or the open one when nothing in the list is picked.</summary>
     internal IReadOnlyList<MailSummary> Targets()
     {
-        var picked = Selection.SelectedItems.OfType<MailRowViewModel>().Select(r => r.Summary).ToList();
+        // A picked conversation means all of its mail.
+        var picked = Selection.SelectedItems.OfType<MailRowViewModel>().SelectMany(r => r.Thread).ToList();
         return picked.Count > 0 ? picked : Reader is { } reader ? [reader.Summary] : [];
     }
 

@@ -60,6 +60,38 @@
     <Style Selector="ListBox.messages ListBoxItem:selected /template/ ContentPresenter">
       <Setter Property="ClipToBounds" Value="False" />
     </Style>
+    <!-- Conversations: the count beside the sender, and the stack of mails above the open one -->
+    <Style Selector="Border.threadcount">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="6,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.threadstack">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="Button.threadline">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.threadline:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+    </Style>
+    <Style Selector="Button.threadline.open /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
+    </Style>
+    <Style Selector="Button.threadline.open">
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+    <Style Selector="TextBlock.who.unread">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
     <Style Selector="Border.mailcard">
       <Setter Property="Padding" Value="16,10" />
     </Style>
@@ -428,6 +460,8 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+            <CheckBox Content="Group into conversations" IsChecked="{Binding Conversations, Mode=OneWay}" Command="{Binding ToggleConversationsCommand}"
+                      IsVisible="{Binding CanGroup}" FontSize="12" ToolTip.Tip="Replies sit under the first mail. Switched on or off for this list only." />
             <TextBlock FontSize="12" Classes="muted" Classes.short="{Binding StatusIsProblem}" Text="{Binding Status}" TextWrapping="Wrap"
                        IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
@@ -465,6 +499,10 @@
                               </DataTemplate>
                             </ItemsControl.ItemTemplate>
                           </ItemsControl>
+                          <Border DockPanel.Dock="Right" Classes="threadcount" IsVisible="{Binding IsConversation}" Margin="6,0,0,0"
+                                  ToolTip.Tip="Mails in this conversation">
+                            <TextBlock Text="{Binding Count}" FontSize="11" />
+                          </Border>
                           <TextBlock Classes="who" Text="{Binding Who}" TextTrimming="CharacterEllipsis" />
                         </DockPanel>
                         <DockPanel>
@@ -534,6 +572,27 @@
                         Foreground="{DynamicResource Important}" IsVisible="{Binding IsImportant}" ToolTip.Tip="Important" />
                 <TextBlock Classes="h2" Text="{Binding Subject}" TextWrapping="Wrap" />
               </DockPanel>
+              <!-- The rest of the conversation, stacked: click a line to open that mail. -->
+              <Border Classes="threadstack" IsVisible="{Binding HasThread}">
+                <StackPanel>
+                  <TextBlock Classes="label" Text="{Binding ThreadTitle}" Margin="12,8,12,4" />
+                  <ItemsControl ItemsSource="{Binding ThreadLines}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ThreadLineViewModel">
+                        <Button Classes="threadline" Classes.open="{Binding IsOpen}" Command="{Binding OpenCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                          <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" Margin="8,0,0,0" />
+                            <TextBlock DockPanel.Dock="Left" Classes="who" Classes.unread="{Binding IsUnread}" Text="{Binding Who}" Width="150"
+                                       TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                            <TextBlock Classes="muted" FontSize="12" Text="{Binding Preview}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                          </DockPanel>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="2">
                   <TextBlock FontWeight="SemiBold" Text="{Binding From}" TextWrapping="Wrap" />
