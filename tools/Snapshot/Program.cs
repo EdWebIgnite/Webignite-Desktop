@@ -172,6 +172,7 @@ Save("todo-short");
 var today = DateOnly.FromDateTime(DateTime.Today);
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t1", Title = "Send Bosveld the sitemap for sign-off", Due = today, Created = DateTimeOffset.UtcNow });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t2", Title = "Renew webignite.co.za SSL certificate", Due = today.AddDays(3), Created = DateTimeOffset.UtcNow });
+store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t0", Title = "Send Karoo the logo files", Due = today.AddDays(-2), Created = DateTimeOffset.UtcNow });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t3", Title = "Update portfolio with Fynbos Physio site", Created = DateTimeOffset.UtcNow });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t4", Title = "Back up client sites", Due = today.AddDays(-1), Done = true, DoneAt = DateTimeOffset.UtcNow, Created = DateTimeOffset.UtcNow });
 var overdue = store.List(DocumentKind.Invoice).First(d => d.XeroNumber is not null);

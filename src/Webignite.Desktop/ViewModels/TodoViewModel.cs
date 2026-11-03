@@ -140,6 +140,9 @@ public partial class TaskRowViewModel : ViewModelBase
 
     public TaskItem Task { get; }
     public string Title => Task.Title;
+
+    /// <summary>Past its due date and not done: the row gets the bold edge.</summary>
+    public bool IsOverdue => TaskGroups.Of(Task, DateOnly.FromDateTime(DateTime.Today)) == TaskGroup.Overdue;
     public bool IsAuto => Task.Source == TaskSource.Auto;
     public string SourceLabel => Task.Source switch
     {

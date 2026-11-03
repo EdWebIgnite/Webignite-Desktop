@@ -36,16 +36,19 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:TaskRowViewModel">
                     <Border Classes="taskrow" Classes.done="{Binding IsDone}" Classes.justdone="{Binding JustDone}" Classes.leaving="{Binding IsLeaving}">
-                      <DockPanel>
-                        <Button DockPanel.Dock="Right" Classes="link" Content="✕" ToolTip.Tip="Delete" Command="{Binding DeleteCommand}" />
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding DueText}" VerticalAlignment="Center" Margin="12,0" />
-                        <Border DockPanel.Dock="Right" Classes="status" IsVisible="{Binding HasSource}" VerticalAlignment="Center">
-                          <TextBlock Text="{Binding SourceLabel}" FontSize="11" />
-                        </Border>
-                        <CheckBox IsChecked="{Binding IsDone}" VerticalAlignment="Center">
-                          <TextBlock Classes="tasktitle" Text="{Binding Title}" TextWrapping="Wrap" />
-                        </CheckBox>
-                      </DockPanel>
+                      <Panel>
+                        <Border Classes="edge" IsVisible="{Binding IsOverdue}" Margin="-16,-8,0,-8" />
+                        <DockPanel>
+                          <Button DockPanel.Dock="Right" Classes="link" Content="✕" ToolTip.Tip="Delete" Command="{Binding DeleteCommand}" />
+                          <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding DueText}" VerticalAlignment="Center" Margin="12,0" />
+                          <Border DockPanel.Dock="Right" Classes="status" IsVisible="{Binding HasSource}" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding SourceLabel}" FontSize="11" />
+                          </Border>
+                          <CheckBox IsChecked="{Binding IsDone}" VerticalAlignment="Center">
+                            <TextBlock Classes="tasktitle" Text="{Binding Title}" TextWrapping="Wrap" />
+                          </CheckBox>
+                        </DockPanel>
+                      </Panel>
                     </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

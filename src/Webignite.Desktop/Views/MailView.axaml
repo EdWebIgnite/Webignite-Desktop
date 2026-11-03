@@ -60,6 +60,15 @@
     <Style Selector="ListBox.messages ListBoxItem:selected /template/ ContentPresenter">
       <Setter Property="ClipToBounds" Value="False" />
     </Style>
+    <Style Selector="Border.mailcard">
+      <Setter Property="Padding" Value="16,10" />
+    </Style>
+    <!-- Unread mail gets a bold left edge as well as the dot, so it stands out down a long list. -->
+    <Style Selector="Border.mailcard.unread">
+      <Setter Property="BorderBrush" Value="{DynamicResource InvoiceTint}" />
+      <Setter Property="BorderThickness" Value="3,0,0,0" />
+      <Setter Property="Padding" Value="13,10,16,10" />
+    </Style>
     <Style Selector="ListBox.messages ListBoxItem:selected Border.mailcard">
       <Setter Property="Background" Value="{DynamicResource TableHead}" />
       <Setter Property="BoxShadow" Value="{DynamicResource CardShadowRaised}" />
@@ -435,7 +444,7 @@
               </ListBox.ContextMenu>
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:MailRowViewModel">
-                  <Border Classes="mailcard" Padding="16,10">
+                  <Border Classes="mailcard" Classes.unread="{Binding IsUnread}">
                     <Grid ColumnDefinitions="14,*" Classes="mailrow" Classes.unread="{Binding IsUnread}" Background="Transparent">
                       <Border Grid.Column="0" Classes="unreaddot" IsVisible="{Binding IsUnread}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,6,0,0" />
                       <StackPanel Grid.Column="1" Spacing="2">
