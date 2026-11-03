@@ -6,6 +6,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <SolidColorBrush x:Key="Canvas" Color="#16171A" />
   <SolidColorBrush x:Key="Surface" Color="#1F2024" />
+  <!-- Behind a page of a PDF or a picture: white, as on paper, in every look. -->
+  <SolidColorBrush x:Key="Paper" Color="#FFFFFF" />
   <SolidColorBrush x:Key="Surface2" Color="#26282C" />
   <SolidColorBrush x:Key="TableHead" Color="#2A2C31" />
   <SolidColorBrush x:Key="Line" Color="#33363C" />

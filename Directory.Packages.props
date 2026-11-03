@@ -4,6 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Avalonia" Version="12.1.4" />
+    <!-- Draws PDF pages for the attachment preview (PDFium, a PDF library, not a browser). -->
+    <PackageVersion Include="Docnet.Core" Version="2.6.0" />
     <PackageVersion Include="Velopack" Version="1.2.161" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.4" />
