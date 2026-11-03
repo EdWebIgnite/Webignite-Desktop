@@ -406,6 +406,20 @@ var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 _ = vm.Mail.Select(opened);
 Save("mail");
 
+// The PDF attachment shown in the reading pane. The drawing runs off the screen's thread, so wait for it here.
+{
+    var preview = vm.Mail.Reader!.Attachments.First(a => a.Name == "booking-report.pdf").PreviewCommand.ExecuteAsync(null);
+    for (var waited = 0; !preview.IsCompleted && waited < 200; waited++)
+    {
+        Dispatcher.UIThread.RunJobs();
+        Thread.Sleep(25);
+    }
+    Dispatcher.UIThread.RunJobs();
+    Console.WriteLine("PDF pages drawn: " + (vm.Mail.Reader.Preview?.Pages.Count ?? -1) + " " + vm.Mail.Reader.Preview?.Note);
+    Save("mail-preview-pdf");
+    vm.Mail.Reader.Preview?.CloseCommand.Execute(null);
+}
+
 // Only one client's mail.
 vm.Mail.ClientFilter = vm.Mail.ClientChoices.First(c => c.Label == "Fynbos Physio");
 Save("mail-client-filter");
@@ -788,6 +802,8 @@ void SeedMail()
     };
     body.Attachments.Add("booking-phone-1.png", new byte[48_211], new MimeKit.ContentType("image", "png"));
     body.Attachments.Add("booking-phone-2.png", new byte[51_877], new MimeKit.ContentType("image", "png"));
+    body.Attachments.Add("booking-report.pdf", SamplePdf("Booking page report", "Fynbos Physio, 3 November 2026", "The booking page spins on phones after the date is picked."),
+        new MimeKit.ContentType("application", "pdf"));
     message.Body = body.ToMessageBody();
     using var mime = new MemoryStream();
     message.WriteTo(mime);
@@ -806,3 +822,30 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
             Lines = lines.Select(l => new Line { Description = l.Description, Quantity = l.Quantity, UnitPrice = l.Price }).ToList(),
         }, new DocumentSettings(), DateOnly.FromDateTime(DateTime.Today)),
     });
+
+// A small, real PDF for the attachment preview: one A4 page with three lines of text.
+static byte[] SamplePdf(params string[] lines)
+{
+    var text = string.Join("\n", lines.Select((l, i) => $"BT /F1 {(i == 0 ? 22 : 13)} Tf 60 {760 - i * 34} Td ({l}) Tj ET"));
+    string[] objects =
+    [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        $"<< /Length {text.Length} >>\nstream\n{text}\nendstream",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ];
+    var pdf = new System.Text.StringBuilder("%PDF-1.4\n");
+    var offsets = new List<int>();
+    for (var i = 0; i < objects.Length; i++)
+    {
+        offsets.Add(pdf.Length);
+        pdf.Append($"{i + 1} 0 obj\n{objects[i]}\nendobj\n");
+    }
+    var xref = pdf.Length;
+    pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+    foreach (var offset in offsets)
+        pdf.Append($"{offset:D10} 00000 n \n");
+    pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+    return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
+}

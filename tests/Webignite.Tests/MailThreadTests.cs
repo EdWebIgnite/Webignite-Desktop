@@ -119,3 +119,18 @@ public sealed class MailClientTests
         Assert.Null(ClientMail.Finder([NoAddress])(Mail("someone@bosveld.co.za")));
     }
 }
+
+/// <summary>Which attachments open inside the app.</summary>
+public sealed class AttachmentPreviewTests
+{
+    [Theory]
+    [InlineData("Invoice INV-0107.pdf", "application/pdf", 50_000, PreviewKind.Pdf)]
+    [InlineData("scan", "application/pdf", 50_000, PreviewKind.Pdf)]
+    [InlineData("booking-phone-1.PNG", "image/png", 48_000, PreviewKind.Picture)]
+    [InlineData("photo.jpeg", null, 2_000_000, PreviewKind.Picture)]
+    [InlineData("logo.svg", "image/svg+xml", 4_000, PreviewKind.None)]
+    [InlineData("contract.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 30_000, PreviewKind.None)]
+    [InlineData("huge.pdf", "application/pdf", 40_000_000, PreviewKind.None)]
+    public void Pdfs_and_pictures_preview_in_the_app(string name, string? type, long size, PreviewKind expected) =>
+        Assert.Equal(expected, AttachmentPreview.Kind(name, type, size));
+}

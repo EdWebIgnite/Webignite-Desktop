@@ -30,6 +30,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Avalonia.HtmlRenderer" />
     <PackageReference Include="QRCoder" />
+    <PackageReference Include="Docnet.Core" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Webignite.Core\Webignite.Core.csproj" />

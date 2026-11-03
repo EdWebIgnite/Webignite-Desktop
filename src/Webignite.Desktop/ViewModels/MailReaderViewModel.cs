@@ -172,6 +172,25 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
 
     internal void Said(string message) => AttachmentMessage = message;
 
+    /// <summary>The attachment shown in the reading pane in place of the mail, or null.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPreviewing), nameof(IsNotPreviewing))]
+    public partial AttachmentPreviewViewModel? Preview { get; set; }
+
+    public bool IsPreviewing => Preview is not null;
+    public bool IsNotPreviewing => Preview is null;
+
+    internal async Task ShowPreview(AttachmentViewModel row, MailAttachment attachment)
+    {
+        if (mime is null)
+            return;
+        using var buffer = new MemoryStream();
+        MailReader.SaveAttachment(mime, attachment.Index, buffer);
+        var preview = new AttachmentPreviewViewModel(row, () => Preview = null);
+        Preview = preview;
+        await preview.Load(buffer.ToArray(), row.PreviewKind);
+    }
+
     private static string UniquePath(string folder, string fileName)
     {
         var path = Path.Combine(folder, fileName);
@@ -194,6 +213,13 @@ public partial class AttachmentViewModel(MailAttachment attachment, MailReaderVi
 
     public string Name => attachment.FileName;
     public string Size => FormatSize(attachment.Size);
+
+    /// <summary>PDFs and pictures open inside the app; everything else in another program.</summary>
+    public PreviewKind PreviewKind => AttachmentPreview.Kind(attachment.FileName, attachment.ContentType, attachment.Size);
+    public bool CanPreview => PreviewKind != PreviewKind.None;
+
+    [RelayCommand]
+    private Task Preview() => reader.ShowPreview(this, attachment);
 
     public static string FormatSize(long size) => size switch
     {
