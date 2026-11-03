@@ -37,13 +37,48 @@
       </Button>
     </Border>
 
+    <!-- The sidebar folded to icons: each page's icon, its name on hover, the Mail badge as a dot with the count. -->
+    <Border Grid.Column="0" Width="64" Background="{DynamicResource Nav}" Padding="8,18" IsVisible="{Binding Sidebar.IsIcons}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,12">
+          <Button Classes="navtoggle" HorizontalAlignment="Center" Command="{Binding Sidebar.ToggleCommand}" ToolTip.Tip="{Binding Sidebar.ToggleTip}">
+            <c:Icon Data="{StaticResource Icon.SidebarHide}" Size="18" />
+          </Button>
+          <Button Classes="navtoggle" HorizontalAlignment="Center" Command="{Binding Search.ShowCommand}" ToolTip.Tip="Search (Ctrl+K)">
+            <c:Icon Data="{StaticResource Icon.Search}" Size="18" />
+          </Button>
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,8,0,0">
+          <Button Classes="navtoggle" HorizontalAlignment="Center" IsVisible="{Binding Time.IsRunning}" Command="{Binding OpenTimeCommand}"
+                  ToolTip.Tip="{Binding Time.Clock, StringFormat='Timer running, {0}. Click to open Time.'}">
+            <c:Icon Data="{StaticResource Icon.Time}" Size="18" Foreground="{DynamicResource NavText}" />
+          </Button>
+          <c:Spinner Size="12" Foreground="{DynamicResource NavText}" HorizontalAlignment="Center" IsVisible="{Binding Work.IsWorking}"
+                     ToolTip.Tip="{Binding Work.Text}" />
+        </StackPanel>
+        <ListBox Classes="nav icons" ItemsSource="{Binding Sidebar.IconPages}" SelectedItem="{Binding SelectedNav}"
+                 ScrollViewer.VerticalScrollBarVisibility="Hidden">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:Module">
+              <Panel Background="Transparent" ToolTip.Tip="{Binding Title}" ToolTip.Placement="Right">
+                <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="20" HorizontalAlignment="Center" />
+                <Border Classes="badge" IsVisible="{Binding HasBadge}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0">
+                  <TextBlock Text="{Binding Badge}" FontSize="10" FontWeight="SemiBold" />
+                </Border>
+              </Panel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
     <!-- Sidebar -->
-    <Border Grid.Column="0" Width="232" Background="{DynamicResource Nav}" Padding="14,18" IsVisible="{Binding !Sidebar.IsHidden}">
+    <Border Grid.Column="0" Width="232" Background="{DynamicResource Nav}" Padding="14,18" IsVisible="{Binding Sidebar.IsFull}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="6,0,6,12" Spacing="2">
           <DockPanel>
             <Button DockPanel.Dock="Right" Classes="navtoggle" VerticalAlignment="Top" Margin="0,-2,-6,0" Command="{Binding Sidebar.ToggleCommand}"
-                    ToolTip.Tip="Tuck the sidebar away (Ctrl+B)">
+                    ToolTip.Tip="{Binding Sidebar.ToggleTip}">
               <c:Icon Data="{StaticResource Icon.SidebarHide}" Size="18" />
             </Button>
             <TextBlock Text="Webignite" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource NavText}" />
