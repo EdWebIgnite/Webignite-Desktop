@@ -63,7 +63,7 @@ public partial class RetainersViewModel : ViewModelBase, IRefreshable
     {
         services.Store.DeleteRetainer(retainer.Id);
         Refresh();
-        services.OfferUndo($"Stopped {retainer.Title} for {retainer.ClientName}", () =>
+        services.OfferUndo($"Stopped {retainer.Title} for {retainer.ClientName}. Drafted invoices stay", () =>
         {
             services.Store.SaveRetainer(retainer);
             Refresh();
@@ -99,19 +99,11 @@ public partial class RetainerRowViewModel(Retainer retainer, DateOnly? next, Ret
             : "Ended";
     public string PauseLabel => retainer.Paused ? "Resume" : "Pause";
 
-    [ObservableProperty] public partial bool ConfirmingStop { get; set; }
-
     [RelayCommand]
     private void Edit() => owner.Edit(retainer);
 
     [RelayCommand]
     private void TogglePause() => owner.SetPaused(retainer, !retainer.Paused);
-
-    [RelayCommand]
-    private void AskStop() => ConfirmingStop = true;
-
-    [RelayCommand]
-    private void CancelStop() => ConfirmingStop = false;
 
     [RelayCommand]
     private void Stop() => owner.Stop(retainer);
