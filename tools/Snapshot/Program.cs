@@ -291,6 +291,26 @@ Save("income-manual");
 moneyPage.UseAutoCommand.Execute(null);
 moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Bars);
 window.Height = 860;
+
+// Dark mode: each dark look on Overview, Money and Settings, then back to light.
+foreach (var look in new[] { DarkPalette.Graphite, DarkPalette.Midnight, DarkPalette.Warm })
+{
+    services.Appearance = services.Appearance with { Theme = Theme.Dark, DarkPalette = look };
+    var name = look.ToString().ToLowerInvariant();
+    Open("Overview");
+    Save($"dark-{name}-overview");
+    Open("Money");
+    Save($"dark-{name}-money");
+    Open("Invoices");
+    Save($"dark-{name}-invoices");
+}
+Open("Settings");
+Save("dark-settings");
+services.Appearance = services.Appearance with { Theme = Theme.Light };
+Open("Settings");
+window.Height = 1500;
+Save("settings-looks");
+window.Height = 860;
 Open("Reports");
 Save("reports");
 

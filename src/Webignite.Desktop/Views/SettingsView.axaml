@@ -103,6 +103,122 @@
 
     <Border Classes="card">
       <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Light and dark" />
+        <Border Classes="segments" HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="segment" Classes.on="{Binding IsLight}" Content="Light" Command="{Binding UseThemeCommand}" CommandParameter="Light" />
+            <Button Classes="segment" Classes.on="{Binding IsDark}" Content="Dark" Command="{Binding UseThemeCommand}" CommandParameter="Dark" />
+            <Button Classes="segment" Classes.on="{Binding IsFollowingWindows}" Content="Same as Windows" Command="{Binding UseThemeCommand}" CommandParameter="FollowWindows" />
+          </StackPanel>
+        </Border>
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="Pick the dark look you like. Same as Windows switches between light and your dark look when Windows does." />
+        <WrapPanel>
+          <Button Classes="palette" Classes.on="{Binding IsGraphite}" Command="{Binding UseDarkPaletteCommand}" CommandParameter="Graphite">
+            <StackPanel Spacing="8">
+              <Border x:Name="PreviewGraphite" Width="200" Height="112" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Canvas}">
+                <Grid ColumnDefinitions="46,*">
+                  <Border Background="{DynamicResource Nav}" Padding="7,10">
+                    <StackPanel Spacing="7">
+                      <Border Height="6" CornerRadius="3" Background="{DynamicResource NavText}" Width="26" HorizontalAlignment="Left" />
+                      <Border Height="10" CornerRadius="3" Background="{DynamicResource NavSelected}" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="24" HorizontalAlignment="Left" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="20" HorizontalAlignment="Left" />
+                    </StackPanel>
+                  </Border>
+                  <StackPanel Grid.Column="1" Margin="10" Spacing="8">
+                    <Border Height="7" CornerRadius="3" Background="{DynamicResource Ink}" Width="60" HorizontalAlignment="Left" />
+                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="8">
+                      <StackPanel Spacing="5">
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Text}" Width="80" HorizontalAlignment="Left" />
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Muted}" Width="56" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Border Height="12" Width="38" CornerRadius="3" Background="{DynamicResource Primary}" />
+                          <Border Height="12" Width="24" CornerRadius="3" Background="{DynamicResource AttentionSoft}" BorderBrush="{DynamicResource AttentionLine}" BorderThickness="1" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <StackPanel Spacing="1">
+                <TextBlock Text="Graphite" FontWeight="SemiBold" />
+                <TextBlock Classes="muted" FontSize="12" Text="Neutral grey" />
+              </StackPanel>
+            </StackPanel>
+          </Button>
+          <Button Classes="palette" Classes.on="{Binding IsMidnight}" Command="{Binding UseDarkPaletteCommand}" CommandParameter="Midnight">
+            <StackPanel Spacing="8">
+              <Border x:Name="PreviewMidnight" Width="200" Height="112" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Canvas}">
+                <Grid ColumnDefinitions="46,*">
+                  <Border Background="{DynamicResource Nav}" Padding="7,10">
+                    <StackPanel Spacing="7">
+                      <Border Height="6" CornerRadius="3" Background="{DynamicResource NavText}" Width="26" HorizontalAlignment="Left" />
+                      <Border Height="10" CornerRadius="3" Background="{DynamicResource NavSelected}" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="24" HorizontalAlignment="Left" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="20" HorizontalAlignment="Left" />
+                    </StackPanel>
+                  </Border>
+                  <StackPanel Grid.Column="1" Margin="10" Spacing="8">
+                    <Border Height="7" CornerRadius="3" Background="{DynamicResource Ink}" Width="60" HorizontalAlignment="Left" />
+                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="8">
+                      <StackPanel Spacing="5">
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Text}" Width="80" HorizontalAlignment="Left" />
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Muted}" Width="56" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Border Height="12" Width="38" CornerRadius="3" Background="{DynamicResource Primary}" />
+                          <Border Height="12" Width="24" CornerRadius="3" Background="{DynamicResource AttentionSoft}" BorderBrush="{DynamicResource AttentionLine}" BorderThickness="1" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <StackPanel Spacing="1">
+                <TextBlock Text="Midnight" FontWeight="SemiBold" />
+                <TextBlock Classes="muted" FontSize="12" Text="Deep blue" />
+              </StackPanel>
+            </StackPanel>
+          </Button>
+          <Button Classes="palette" Classes.on="{Binding IsWarm}" Command="{Binding UseDarkPaletteCommand}" CommandParameter="Warm">
+            <StackPanel Spacing="8">
+              <Border x:Name="PreviewWarm" Width="200" Height="112" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Canvas}">
+                <Grid ColumnDefinitions="46,*">
+                  <Border Background="{DynamicResource Nav}" Padding="7,10">
+                    <StackPanel Spacing="7">
+                      <Border Height="6" CornerRadius="3" Background="{DynamicResource NavText}" Width="26" HorizontalAlignment="Left" />
+                      <Border Height="10" CornerRadius="3" Background="{DynamicResource NavSelected}" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="24" HorizontalAlignment="Left" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="20" HorizontalAlignment="Left" />
+                    </StackPanel>
+                  </Border>
+                  <StackPanel Grid.Column="1" Margin="10" Spacing="8">
+                    <Border Height="7" CornerRadius="3" Background="{DynamicResource Ink}" Width="60" HorizontalAlignment="Left" />
+                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="8">
+                      <StackPanel Spacing="5">
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Text}" Width="80" HorizontalAlignment="Left" />
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Muted}" Width="56" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Border Height="12" Width="38" CornerRadius="3" Background="{DynamicResource Primary}" />
+                          <Border Height="12" Width="24" CornerRadius="3" Background="{DynamicResource AttentionSoft}" BorderBrush="{DynamicResource AttentionLine}" BorderThickness="1" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <StackPanel Spacing="1">
+                <TextBlock Text="Warm" FontWeight="SemiBold" />
+                <TextBlock Classes="muted" FontSize="12" Text="Charcoal brown" />
+              </StackPanel>
+            </StackPanel>
+          </Button>
+        </WrapPanel>
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Motion" />
         <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.MotionChoices}" SelectedItem="{Binding MotionChoice}" MinWidth="380" />
         <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"

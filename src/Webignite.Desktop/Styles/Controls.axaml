@@ -140,6 +140,26 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
   </Style>
+  <!-- A palette preview in Settings: a quiet frame that darkens when it's the one in use. -->
+  <Style Selector="Button.palette">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="Margin" Value="0,0,12,12" />
+  </Style>
+  <Style Selector="Button.palette:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+  </Style>
+  <Style Selector="Button.palette.on">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+  </Style>
+  <Style Selector="Button.palette.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+  </Style>
+
   <!-- A row of choices where one is on, e.g. Bars / Filled / Lines -->
   <Style Selector="Border.segments">
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
@@ -216,11 +236,11 @@
     <Setter Property="Foreground" Value="{DynamicResource Ok}" />
   </Style>
   <Style Selector="Border.status.problem">
-    <Setter Property="Background" Value="{StaticResource AttentionSoft}" />
-    <Setter Property="BorderBrush" Value="{StaticResource AttentionLine}" />
+    <Setter Property="Background" Value="{DynamicResource AttentionSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AttentionLine}" />
   </Style>
   <Style Selector="Border.status.problem TextBlock">
-    <Setter Property="Foreground" Value="{StaticResource Attention}" />
+    <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
 
   <!-- To-do -->

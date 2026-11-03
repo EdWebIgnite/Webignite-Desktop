@@ -7,7 +7,14 @@ namespace Webignite.Desktop.Views;
 
 public partial class SettingsView : UserControl
 {
-    public SettingsView() => InitializeComponent();
+    public SettingsView()
+    {
+        InitializeComponent();
+        // Each preview carries its own palette, so it shows that look whatever the app is using now.
+        PreviewGraphite.Resources.MergedDictionaries.Add(Palettes.Load(DarkPalette.Graphite));
+        PreviewMidnight.Resources.MergedDictionaries.Add(Palettes.Load(DarkPalette.Midnight));
+        PreviewWarm.Resources.MergedDictionaries.Add(Palettes.Load(DarkPalette.Warm));
+    }
 
     private async void ChooseBackupFolder(object? sender, RoutedEventArgs e)
     {

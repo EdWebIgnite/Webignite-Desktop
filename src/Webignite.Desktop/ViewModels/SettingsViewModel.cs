@@ -27,6 +27,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
         UpdateBackupStatus();
         LoadPrices();
         MotionChoice = MotionChoices.First(c => c.Value == services.Appearance.Motion);
+        services.AppearanceChanged += LookChanged;
         var mailCheck = services.MailCheckSettings;
         MailCheckMinutes = NewMail.MinuteChoices.Contains(mailCheck.Minutes) ? mailCheck.Minutes : 5;
         NotifyNewMail = mailCheck.Notify;
@@ -69,6 +70,42 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     {
         if (value is not null && value.Value != services.Appearance.Motion)
             services.Appearance = services.Appearance with { Motion = value.Value };
+    }
+
+    // Light and dark
+
+    public bool IsLight => services.Appearance.Theme == Theme.Light;
+    public bool IsDark => services.Appearance.Theme == Theme.Dark;
+    public bool IsFollowingWindows => services.Appearance.Theme == Theme.FollowWindows;
+    public bool IsGraphite => services.Appearance.DarkPalette == DarkPalette.Graphite;
+    public bool IsMidnight => services.Appearance.DarkPalette == DarkPalette.Midnight;
+    public bool IsWarm => services.Appearance.DarkPalette == DarkPalette.Warm;
+
+    [RelayCommand]
+    private void UseTheme(string theme)
+    {
+        if (Enum.TryParse<Theme>(theme, out var value))
+            SetLook(services.Appearance with { Theme = value });
+    }
+
+    /// <summary>Picking a dark look while the app is light switches it to dark, so the choice shows straight away.</summary>
+    [RelayCommand]
+    private void UseDarkPalette(string palette)
+    {
+        if (Enum.TryParse<DarkPalette>(palette, out var value))
+            SetLook(services.Appearance with
+            {
+                DarkPalette = value,
+                Theme = services.Appearance.Theme == Theme.Light ? Theme.Dark : services.Appearance.Theme,
+            });
+    }
+
+    private void SetLook(AppearanceSettings look) => services.Appearance = look;
+
+    private void LookChanged(AppearanceSettings look)
+    {
+        foreach (var name in new[] { nameof(IsLight), nameof(IsDark), nameof(IsFollowingWindows), nameof(IsGraphite), nameof(IsMidnight), nameof(IsWarm) })
+            OnPropertyChanged(name);
     }
 
     // Mail checking

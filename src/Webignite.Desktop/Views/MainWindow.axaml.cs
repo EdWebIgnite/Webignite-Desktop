@@ -87,6 +87,7 @@ public partial class MainWindow : Window
     /// <summary>Motion: the window's class switches the eased styles in Styles/Motion.axaml, and pages get their fade.</summary>
     private void ApplyAppearance(AppearanceSettings appearance)
     {
+        Palettes.Apply(appearance);
         Classes.Set("motion-full", appearance.Motion == Motion.Full);
         Classes.Set("motion-reduced", appearance.Motion == Motion.Reduced);
         Controls.Spinner.Still = appearance.Motion == Motion.Off;
