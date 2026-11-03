@@ -150,6 +150,13 @@ public sealed class AppSettings(LocalStore store)
         store.SetSetting("panels", all);
     }
 
+    /// <summary>Mail rules and how far through each inbox they have looked.</summary>
+    public MailRuleSettings MailRules
+    {
+        get => store.GetSetting<MailRuleSettings>("mail-rules") ?? new MailRuleSettings();
+        set => store.SetSetting("mail-rules", value);
+    }
+
     /// <summary>How the message list looks: which lists show one row per mail rather than conversations.</summary>
     public MailViewSettings MailView
     {

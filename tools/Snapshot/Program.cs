@@ -371,6 +371,24 @@ vm.Mail.StatusIsProblem = false;
 var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 _ = vm.Mail.Select(opened);
 Save("mail");
+
+// Mail rules: two rules, then the page with the form.
+{
+    var work = services.Store.ListMailAccounts().First(a => a.Address.StartsWith("eddie"));
+    services.Settings.MailRules = new Webignite.Core.Mail.MailRuleSettings
+    {
+        Rules =
+        [
+            new() { Id = "r1", AccountId = work.Id, Match = Webignite.Core.Mail.RuleMatch.Domain, Text = "karoocoffee.co.za", MoveTo = "INBOX.Clients.Karoo", Category = "clients" },
+            new() { Id = "r2", Match = Webignite.Core.Mail.RuleMatch.Subject, Text = "Proof of payment", Category = "accounts", MarkImportant = true },
+        ],
+    };
+    vm.Mail.ManageRulesCommand.Execute(null);
+    vm.Mail.RulesPage.Text = "fnb.co.za";
+    Save("mail-rules");
+    vm.Mail.RulesPage.CloseCommand.Execute(null);
+    services.Settings.MailRules = new Webignite.Core.Mail.MailRuleSettings();
+}
 vm.Mail.Reader!.ReplyCommand.Execute(null);
 vm.Mail.Composer!.Body = "Hi Lerato,\n\nThanks for letting me know. I'm looking at it now and will come back to you before lunch." + vm.Mail.Composer.Body;
 vm.Mail.Composer.ShowQuote = true;

@@ -87,7 +87,7 @@ public partial class MailViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowMail))]
     public partial bool ShowSetup { get; set; }
 
-    public bool ShowMail => !ShowSetup;
+    public bool ShowMail => !ShowSetup && !ShowRules;
     public bool HasReader => Reader is not null;
     public bool NoMessages => Messages.Count == 0;
     public bool HasCategories => Categories.Count > 0;
@@ -421,6 +421,7 @@ public partial class MailViewModel : ViewModelBase
                 }
                 await Run(() => services.Mail.SyncAccountAsync(account), quiet: true, onError: e => failed.Add($"{account.Address}: {e}"));
             }
+            await RunRulesOnArrival();
             if (CurrentFolder is { Kind: FolderKind.Folder } folder && folder.Role is not (FolderRole.Inbox or FolderRole.Sent or FolderRole.Drafts))
                 await Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path), quiet: true, onError: e => failed.Add(e));
             Reload();
