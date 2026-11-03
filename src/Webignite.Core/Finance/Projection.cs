@@ -42,7 +42,17 @@ public sealed record IncomePlan
 {
     public ExpectedSource Expected { get; init; } = ExpectedSource.Auto;
     public CameInSource CameIn { get; init; } = CameInSource.Money;
-    public ChartStyle Chart { get; init; } = ChartStyle.Bars;
+    /// <summary>The chart Eddie picked on Money. Only counts once <see cref="ChartPicked"/> is set.</summary>
+    public ChartStyle Chart { get; init; } = ChartStyle.Lines;
+
+    /// <summary>
+    /// Whether a chart style was picked by hand. Plans saved before Lines became the default stored Bars without it
+    /// being a choice, so until a style is picked the chart shows as Lines.
+    /// </summary>
+    public bool ChartPicked { get; init; }
+
+    /// <summary>The chart to draw: the one picked, or Lines.</summary>
+    public ChartStyle ChartShown => ChartPicked ? Chart : ChartStyle.Lines;
 
     /// <summary>Typed-in expected amounts by month, keyed "yyyy-MM". Kept when switching to auto.</summary>
     public IReadOnlyDictionary<string, decimal> Manual { get; init; } = new Dictionary<string, decimal>();

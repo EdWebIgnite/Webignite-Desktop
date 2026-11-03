@@ -306,6 +306,8 @@ Open(Page.Money);
 var moneyPage = (MoneyViewModel)vm.Selected.Page;
 moneyPage.Refresh();
 window.Height = 1180;
+Save("income-default"); // Lines until a style is picked
+moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Bars);
 Save("income-bars");
 moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Filled);
 Save("income-filled");
