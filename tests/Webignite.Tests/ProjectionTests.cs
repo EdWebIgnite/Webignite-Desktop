@@ -138,4 +138,13 @@ public sealed class ProjectionTests
         Assert.Equal(5000m, auto.Manual["2026-11"]);
         Assert.Empty(Projection.SetManual(plan, Nov, null).Manual);
     }
+
+    [Fact]
+    public void The_chart_is_lines_until_a_style_is_picked_by_hand()
+    {
+        Assert.Equal(ChartStyle.Lines, new IncomePlan().ChartShown);
+        // A plan saved before Lines was the default holds Bars without it being a choice.
+        Assert.Equal(ChartStyle.Lines, new IncomePlan { Chart = ChartStyle.Bars }.ChartShown);
+        Assert.Equal(ChartStyle.Bars, new IncomePlan { Chart = ChartStyle.Bars, ChartPicked = true }.ChartShown);
+    }
 }

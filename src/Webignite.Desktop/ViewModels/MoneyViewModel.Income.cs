@@ -26,14 +26,14 @@ public partial class MoneyViewModel
     public ObservableCollection<ExpectedItemRow> ExpectedItems { get; } = [];
     public bool HasExpectedItems => ExpectedItems.Count > 0;
 
-    public ChartStyle ChartStyle => plan.Chart;
+    public ChartStyle ChartStyle => plan.ChartShown;
     public bool IsAuto => plan.Expected == ExpectedSource.Auto;
     public bool IsManual => !IsAuto;
     public bool FromXero => plan.CameIn == CameInSource.Xero;
     public bool FromMoney => !FromXero;
-    public bool ChartBars => plan.Chart == ChartStyle.Bars;
-    public bool ChartFilled => plan.Chart == ChartStyle.Filled;
-    public bool ChartLines => plan.Chart == ChartStyle.Lines;
+    public bool ChartBars => plan.ChartShown == ChartStyle.Bars;
+    public bool ChartFilled => plan.ChartShown == ChartStyle.Filled;
+    public bool ChartLines => plan.ChartShown == ChartStyle.Lines;
 
     [RelayCommand]
     private void UseAuto() => ChangePlan(plan with { Expected = ExpectedSource.Auto });
@@ -48,7 +48,7 @@ public partial class MoneyViewModel
     private void CameInFromXero() => ChangePlan(plan with { CameIn = CameInSource.Xero });
 
     [RelayCommand]
-    private void ShowChart(ChartStyle style) => ChangePlan(plan with { Chart = style }, rows: false);
+    private void ShowChart(ChartStyle style) => ChangePlan(plan with { Chart = style, ChartPicked = true }, rows: false);
 
     private void ChangePlan(IncomePlan changed, bool rows = true)
     {
