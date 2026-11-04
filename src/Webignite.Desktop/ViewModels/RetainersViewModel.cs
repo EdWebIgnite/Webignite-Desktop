@@ -56,6 +56,7 @@ public partial class RetainersViewModel : ViewModelBase, IRefreshable
     public void SetPaused(Retainer retainer, bool paused)
     {
         services.Store.SaveRetainer(RetainerSchedule.SetPaused(retainer, paused, Today));
+        services.CatchUpNow();
         Refresh();
     }
 
@@ -66,6 +67,7 @@ public partial class RetainersViewModel : ViewModelBase, IRefreshable
         services.OfferUndo($"Stopped {retainer.Title} for {retainer.ClientName}. Drafted invoices stay", () =>
         {
             services.Store.SaveRetainer(retainer);
+            services.CatchUpNow();
             Refresh();
         });
     }

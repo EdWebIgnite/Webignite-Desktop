@@ -141,10 +141,11 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
                 if (recent.Count > 0)
                 {
                     var flags = await folder.FetchAsync(recent, MessageSummaryItems.UniqueId | MessageSummaryItems.Flags, cancel);
+                    var cachedNow = store.GetMailSummaries(account.Id, path, recent.Select(u => u.Id).ToHashSet());
                     var changed = new List<MailSummary>();
                     foreach (var f in flags)
                     {
-                        if (store.GetMailSummary(account.Id, path, f.UniqueId.Id) is not { } summary || f.Flags is not { } marks)
+                        if (!cachedNow.TryGetValue(f.UniqueId.Id, out var summary) || f.Flags is not { } marks)
                             continue;
                         var keywords = f.Keywords?.ToList() ?? [];
                         var sameKeywords = MailCategories.SameKeywords(summary.Keywords, keywords);

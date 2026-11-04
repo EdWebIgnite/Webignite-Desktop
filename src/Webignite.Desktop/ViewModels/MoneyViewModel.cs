@@ -151,6 +151,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
             return;
         }
         services.Store.SaveRecurring(recurring);
+        services.CatchUpNow();
         RecName = RecAmount = RecMessage = "";
         RecDay = "1";
         Refresh();
@@ -173,6 +174,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
     public void SetPaused(RecurringExpense recurring, bool paused)
     {
         services.Store.SaveRecurring(RecurringExpenses.SetPaused(recurring, paused, Today));
+        services.CatchUpNow();
         Refresh();
     }
 
@@ -183,16 +185,17 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
         services.OfferUndo($"Stopped {recurring.Name}. Past months stay", () =>
         {
             services.Store.SaveRecurring(recurring);
+            services.CatchUpNow();
             Refresh();
         });
     }
 
     private static string? Blank(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    /// <summary>Adds any monthly expenses that have come round, then shows the month.</summary>
+    /// <summary>Shows the month. Monthly expenses that came round are added by <see cref="AppServices.CatchUp"/>.</summary>
     public void Refresh()
     {
-        services.Store.AddRecurringExpenses(Today);
+        services.CatchUp();
         var entries = services.Store.ListEntries(Month, Month.AddMonths(1).AddDays(-1));
 
         ReceivedRows.Clear();

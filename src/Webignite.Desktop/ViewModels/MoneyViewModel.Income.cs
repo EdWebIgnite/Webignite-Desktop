@@ -52,33 +52,62 @@ public partial class MoneyViewModel
 
     private void ChangePlan(IncomePlan changed, bool rows = true)
     {
+        planSave?.Stop(); // saved together with this change
         plan = changed;
         services.Settings.IncomePlan = changed;
         UpdateIncome(rows);
     }
 
-    /// <summary>A typed amount for one month. Saved as it is typed, without rebuilding the rows.</summary>
+    private Avalonia.Threading.DispatcherTimer? planSave;
+
+    /// <summary>
+    /// A typed amount for one month. The figures update as it is typed; it is saved once typing pauses, or when
+    /// the app closes, not on every key.
+    /// </summary>
     internal void SetManual(DateOnly month, decimal? amount)
     {
         plan = Projection.SetManual(plan, month, amount);
-        services.Settings.IncomePlan = plan;
         UpdateIncome(rows: false);
+        if (planSave is null)
+        {
+            planSave = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+            planSave.Tick += (_, _) => SaveTyped();
+        }
+        planSave.Stop();
+        planSave.Start();
+    }
+
+    /// <summary>Saves typed amounts still waiting for a pause in typing.</summary>
+    internal void SaveTyped()
+    {
+        if (planSave is not { IsEnabled: true })
+            return;
+        planSave.Stop();
+        services.Settings.IncomePlan = plan;
     }
 
     private void LoadIncome()
     {
+        SaveTyped();
         plan = services.Settings.IncomePlan;
         UpdateIncome(rows: true);
     }
 
+    // What the projection is worked out from, read when the rows are built. Typing an amount or switching the
+    // chart reuses it instead of reading invoices, entries, retainers and renewals again on every key.
+    private (IReadOnlyList<StoredDocument> Documents, IReadOnlyList<MoneyEntry> Entries, IReadOnlyList<Webignite.Core.Retainers.Retainer> Retainers,
+        IReadOnlyList<Webignite.Core.Renewals.Renewal> Renewals, HashSet<string> Drafted)? incomeData;
+
     private void UpdateIncome(bool rows)
     {
-        var first = Projection.FirstMonth(Today);
-        var documents = services.Store.List(DocumentKind.Invoice);
-        var entries = services.Store.ListEntries(first, first.AddMonths(Projection.MonthCount).AddDays(-1));
-        var retainers = services.Store.ListRetainers();
-        var renewals = services.Store.ListRenewals();
-        var drafted = services.Store.DraftsMade().Keys.ToHashSet();
+        if (rows || incomeData is null)
+        {
+            var first = Projection.FirstMonth(Today);
+            incomeData = (services.Store.List(DocumentKind.Invoice),
+                services.Store.ListEntries(first, first.AddMonths(Projection.MonthCount).AddDays(-1)),
+                services.Store.ListRetainers(), services.Store.ListRenewals(), services.Store.DraftsMade().Keys.ToHashSet());
+        }
+        var (documents, entries, retainers, renewals, drafted) = incomeData.Value;
 
         var months = Projection.Months(plan, entries, documents, retainers, renewals, drafted, Today);
         ProjectionMonths = months;

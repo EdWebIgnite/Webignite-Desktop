@@ -723,6 +723,12 @@ Save("site-check");
 
 // Ctrl+K search
 vm.Search.Show();
+for (var waited = 0; !vm.Search.MailLoaded.IsCompleted && waited < 200; waited++)
+{
+    Dispatcher.UIThread.RunJobs();
+    Thread.Sleep(25);
+}
+Dispatcher.UIThread.RunJobs();
 vm.Search.Query = "karoo";
 Save("search");
 vm.Search.Hide();

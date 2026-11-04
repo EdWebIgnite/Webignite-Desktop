@@ -17,12 +17,14 @@ public partial class DocumentEditorViewModel : ViewModelBase
     private StoredDocument? stored;
     private bool loading;
     private bool changed; // typed into since it was opened or last saved
+    private readonly DocumentSettings documentSettings; // read once: Build runs on every key
 
     public DocumentEditorViewModel(DocumentKind kind, AppServices services, Action close)
     {
         Kind = kind;
         this.services = services;
         this.close = close;
+        documentSettings = services.Settings.Documents;
         Lines.Add(NewRow());
         Recalculate();
         changed = false;
@@ -211,7 +213,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         Date = stored?.Document.Date,
         DueOrExpiryDate = stored?.Document.DueOrExpiryDate,
         Lines = Lines.Select(row => row.ToLine()).OfType<Line>().ToList(),
-    }, services.Settings.Documents, DateOnly.FromDateTime(DateTime.Today));
+    }, documentSettings, DateOnly.FromDateTime(DateTime.Today));
 
     private LineRowViewModel NewRow() => new(Recalculate);
 

@@ -58,6 +58,9 @@ public partial class MailViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(HasReader), nameof(ShowReader), nameof(ShowNothing), nameof(HasTargets), nameof(ShowActions))]
     public partial MailReaderViewModel? Reader { get; set; }
 
+    // A reader replaced by another lets go of any attachment preview it was showing.
+    partial void OnReaderChanged(MailReaderViewModel? oldValue, MailReaderViewModel? newValue) => oldValue?.ClosePreview();
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasComposer), nameof(ShowReader), nameof(ShowNothing), nameof(ShowMany), nameof(ShowActions))]
     public partial ComposeViewModel? Composer { get; set; }
@@ -156,12 +159,38 @@ public partial class MailViewModel : ViewModelBase
     internal IReadOnlyList<MailCategory> CategoryList => categories;
     internal AppServices Services => services;
 
+    private CancellationTokenSource? searching;
+
     partial void OnSearchChanged(string value)
     {
         OnPropertyChanged(nameof(ListTitle));
         OnPropertyChanged(nameof(EmptyText));
-        ShowMessages();
+        searching?.Cancel();
+        searching = null;
+        var query = value.Trim();
+        if (query.Length == 0)
+        {
+            ShowMessages();
+            return;
+        }
+        searching = new CancellationTokenSource();
+        SearchSoon(query, searching.Token).Forget("Searching mail");
     }
+
+    /// <summary>
+    /// Searches once typing pauses, off the screen's thread, since every cached mail has to be unlocked to be
+    /// read. A newer key press cancels the search still running.
+    /// </summary>
+    private async Task SearchSoon(string query, CancellationToken cancel)
+    {
+        await Task.Delay(SearchPause, cancel);
+        var ids = accounts.Select(a => a.Id).ToList();
+        var found = await Task.Run(() => services.Store.SearchMail(ids, query, cancel: cancel), cancel);
+        if (!cancel.IsCancellationRequested && Search.Trim() == query)
+            ShowMessages(found);
+    }
+
+    private static readonly TimeSpan SearchPause = TimeSpan.FromMilliseconds(250);
 
     partial void OnFilterChanged(MailFilter value)
     {
@@ -245,7 +274,7 @@ public partial class MailViewModel : ViewModelBase
         OnPropertyChanged(nameof(EmptyText));
     }
 
-    private void ShowMessages()
+    private void ShowMessages(IReadOnlyList<MailSummary>? searched = null)
     {
         var picked = Selection.SelectedItems.OfType<MailRowViewModel>().Select(r => Key(r.Summary)).ToHashSet();
         if (picked.Count == 0 && Reader is { } reader)
@@ -255,7 +284,7 @@ public partial class MailViewModel : ViewModelBase
         IEnumerable<MailSummary> list;
         var ids = accounts.Select(a => a.Id).ToList();
         if (Search.Trim().Length > 0)
-            list = services.Store.SearchMail(ids, Search.Trim());
+            list = searched ?? services.Store.SearchMail(ids, Search.Trim());
         else if (CurrentCategory is { } category)
             list = services.Store.FindMail(ids, s => MailCategories.Has(s, category.Keyword) && !InBin(s), 500);
         else if (CurrentFolder is { Kind: FolderKind.Important })
@@ -524,7 +553,8 @@ public partial class MailViewModel : ViewModelBase
         if (Reader is { } reader && keys.Contains(Key(reader.Summary)))
             Reader = null;
         OnPropertyChanged(nameof(NoMessages));
-        RefreshCounts(gone);
+        // Unread mail that went away comes off its folder's count.
+        AdjustCounts(gone.Where(m => !m.Seen).Select(m => (m.AccountId, m.Folder, -1)), []);
         if (next >= 0 && Messages.Count > 0 && Selection.SelectedItems.Count == 0)
             Select(Messages[Math.Min(next, Messages.Count - 1)]).Forget("Opening the next mail");
         else
@@ -537,25 +567,39 @@ public partial class MailViewModel : ViewModelBase
         if (changed.Count == 0)
             return;
         var byKey = changed.ToDictionary(Key);
+        // How each mail was before, from the list, so the unread counts move by the difference.
+        var before = Messages.SelectMany(r => r.Thread).Where(m => byKey.ContainsKey(Key(m)))
+            .GroupBy(Key).ToDictionary(g => g.Key, g => g.First());
+        if (Reader is { } shown && byKey.ContainsKey(Key(shown.Summary)))
+            before.TryAdd(Key(shown.Summary), shown.Summary);
         foreach (var row in Messages)
             if (row.Thread.Any(m => byKey.ContainsKey(Key(m))))
                 row.Update(byKey);
         if (Reader is { } reader && byKey.TryGetValue(Key(reader.Summary), out var open))
             reader.Update(open);
-        RefreshCounts(changed);
+        var known = changed.Where(m => before.ContainsKey(Key(m))).ToList();
+        AdjustCounts(
+            known.Select(m => (m.AccountId, m.Folder, (m.Seen ? 0 : 1) - (before[Key(m)].Seen ? 0 : 1))),
+            changed.Where(m => !before.ContainsKey(Key(m))).Select(m => (m.AccountId, m.Folder)));
         // In a filtered list or the Important view, mail that no longer fits stays until the list is next shown,
         // so it doesn't jump away under the mouse.
     }
 
-    // Only the folders that changed: counting every folder meant reading thousands of messages per click.
-    private void RefreshCounts(IEnumerable<MailSummary> changed)
+    /// <summary>
+    /// Moves folder unread counts by what changed, so marking one mail read doesn't unlock the whole folder to
+    /// count it again. Folders in <paramref name="recount"/> (mail whose earlier state isn't known) are counted.
+    /// </summary>
+    private void AdjustCounts(IEnumerable<(string AccountId, string Folder, int Change)> changes, IEnumerable<(string AccountId, string Folder)> recount)
     {
-        var touched = changed.Select(m => (m.AccountId, m.Folder)).ToHashSet();
-        foreach (var folder in Mailboxes.SelectMany(m => m.Folders)
-                     .Where(f => f.Kind == FolderKind.Folder && touched.Contains((f.Mailbox.Id, f.Path))))
-            folder.Unread = services.Store.ListMailSummaries(folder.Mailbox.Id, folder.Path).Count(s => !s.Seen);
+        var folders = Mailboxes.SelectMany(m => m.Folders).Where(f => f.Kind == FolderKind.Folder).ToList();
+        foreach (var group in changes.Where(c => c.Change != 0).GroupBy(c => (c.AccountId, c.Folder)))
+            if (folders.FirstOrDefault(f => f.Mailbox.Id == group.Key.AccountId && f.Path == group.Key.Folder) is { } folder)
+                folder.Unread = Math.Max(0, folder.Unread + group.Sum(c => c.Change));
+        foreach (var (accountId, path) in recount.Distinct())
+            if (folders.FirstOrDefault(f => f.Mailbox.Id == accountId && f.Path == path) is { } folder)
+                folder.Unread = services.Store.ListMailSummaries(accountId, path).Count(m => !m.Seen);
         if (Mailboxes.SelectMany(m => m.Folders).FirstOrDefault(f => f.Kind == FolderKind.AllInboxes) is { } all)
-            all.Unread = Mailboxes.SelectMany(m => m.Folders).Where(f => f.Kind == FolderKind.Folder && f.Role == FolderRole.Inbox).Sum(f => f.Unread);
+            all.Unread = folders.Where(f => f.Role == FolderRole.Inbox).Sum(f => f.Unread);
     }
 
     internal void SetStatus(string text, bool problem)

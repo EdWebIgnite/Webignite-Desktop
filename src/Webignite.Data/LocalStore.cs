@@ -107,6 +107,7 @@ public sealed partial class LocalStore : IDisposable
                 PRIMARY KEY (account_id, folder, uid)
             );
             CREATE INDEX IF NOT EXISTS mail_messages_date ON mail_messages (account_id, folder, date DESC);
+            CREATE INDEX IF NOT EXISTS mail_messages_newest ON mail_messages (date DESC);
             CREATE TABLE IF NOT EXISTS mail_bodies (
                 account_id TEXT NOT NULL,
                 folder TEXT NOT NULL,

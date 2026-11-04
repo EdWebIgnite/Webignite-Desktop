@@ -117,6 +117,7 @@ public partial class MainViewModel : ViewModelBase
         mailTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         mailTimer.Tick += (_, _) =>
         {
+            services.CatchUp(); // a moment's work only after midnight; otherwise it returns at once
             if (DateTimeOffset.Now - lastMailCheck >= Webignite.Core.Mail.NewMail.Interval(services.Settings.MailCheck))
                 CheckMailAsync().Forget("Checking mail");
         };
@@ -313,6 +314,8 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     public async Task<string?> PrepareToCloseAsync()
     {
+        foreach (var money in Modules.Select(m => m.Page).OfType<MoneyViewModel>())
+            money.SaveTyped();
         Invoices.Editor?.Keep();
         Quotes.Editor?.Keep();
         Approvals.Editor?.Keep();
