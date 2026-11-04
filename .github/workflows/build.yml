@@ -43,7 +43,7 @@ jobs:
       - run: dotnet build Webignite.slnx -c Release
       - run: dotnet test --solution Webignite.slnx -c Release --no-build
       - run: dotnet run --project tools/Snapshot -c Release --no-build -- screenshots
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots
