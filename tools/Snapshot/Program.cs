@@ -388,6 +388,47 @@ vm.Clients.Detail!.BackCommand.Execute(null);
     Check("The sidebar's own copy is never closed", !vm.Close(vm[Page.Clients].Main));
     first.Detail!.BackCommand.Execute(null);
 }
+// Tabs: Ctrl+click (or a middle click) opens a page or a client in a tab of its own.
+{
+    Open(Page.Overview);
+    vm.OpenInNewTab(vm[Page.Mail]);
+    services.Go.ClientInNewTab(bosveld);
+    vm.OpenInNewTab(vm[Page.Invoices]);
+    Dispatcher.UIThread.RunJobs();
+    Check("Pages and a client open in tabs of their own, and the strip shows",
+        vm.ShowTabs && vm.Tabs.Select(t => t.Key).SequenceEqual([Page.Overview, Page.Mail, Page.Clients, Page.Invoices]));
+    Check("A client's tab is called by its name", vm.Tabs[2].Title == "Bosveld Builders");
+    Save("tabs");
+    window.KeyPress(Avalonia.Input.Key.Tab, Avalonia.Input.RawInputModifiers.Control, Avalonia.Input.PhysicalKey.Tab, null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Ctrl+Tab goes round to the first tab", vm.Current == vm.Tabs[0]);
+    vm.Current = vm.Tabs[3];
+    Open(Page.Retainers);
+    Check("The sidebar changes what the tab on screen shows", vm.Tabs.Count == 4 && vm.Tabs[3].Key == Page.Retainers && vm.Current == vm.Tabs[3]);
+    Open(Page.Mail);
+    Check("The sidebar goes to a tab already showing that page", vm.Current == vm.Tabs[1] && vm.Tabs[3].Key == Page.Retainers);
+    var saved = vm.TabState();
+    vm.RestoreTabs(new Webignite.Core.Layout.TabSettings());
+    Check("With nothing saved the app opens on one Overview tab", vm.Tabs.Count == 1 && vm.Current.Key == Page.Overview && !vm.ShowTabs);
+    vm.RestoreTabs(saved);
+    Check("Tabs come back as they were, on the same tab", vm.Tabs.Select(t => t.Key).SequenceEqual([Page.Overview, Page.Mail, Page.Clients, Page.Retainers]) && vm.Current == vm.Tabs[1]);
+    vm.Current = vm.Tabs[3];
+    window.KeyPress(Avalonia.Input.Key.W, Avalonia.Input.RawInputModifiers.Control, Avalonia.Input.PhysicalKey.W, null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Ctrl+W closes the tab and the one before it shows", vm.Tabs.Count == 3 && vm.Current == vm.Tabs[2]);
+    vm.OpenInNewTab(vm[Page.Clients]);
+    services.Go.ClientInNewTab(bosveld);
+    var open = vm.Tabs.Last(t => t.Key == Page.Clients);
+    Check("A tab with a client open isn't closed until it's put away", !vm.CloseTab(open));
+    vm.CloseOtherTabsCommand.Execute(vm.Tabs[0]);
+    Check("Closing the other tabs keeps the one with work open", vm.Tabs.Count == 2 && vm.Tabs.Contains(open));
+    ((ClientsViewModel)open.Page).Detail!.BackCommand.Execute(null);
+    vm.CloseOtherTabsCommand.Execute(vm.Tabs[0]);
+    // A client copy put out of the tabs by the restore above still has Bosveld open: put it away too.
+    foreach (var host in vm.Open.Where(h => h.IsBuilt && h.Page is ClientsViewModel { Detail: not null }).ToList())
+        ((ClientsViewModel)host.Page).Detail!.BackCommand.Execute(null);
+    Check("After putting the client away, one tab is left and the strip goes", vm.Tabs.Count == 1 && !vm.ShowTabs && vm.Current.Key == Page.Overview);
+}
 var month = Dates.MonthStart(today);
 void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>
     store.SaveEntry(new Webignite.Core.Finance.MoneyEntry { Id = Webignite.Core.Finance.MoneyEntry.NewId(), Kind = kind, Date = date, Amount = amount, Party = party, Category = category, Note = note });

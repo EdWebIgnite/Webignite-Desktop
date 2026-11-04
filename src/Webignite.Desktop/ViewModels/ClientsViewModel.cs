@@ -8,8 +8,10 @@ using Webignite.Core.Layout;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>The Clients module: a searchable list, and one client's page when one is open.</summary>
-public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork
+public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork, ITabTitle
 {
+    public string? TabTitle => Detail?.Title;
+
     public bool HoldsWork => Detail is not null;
 
     private readonly AppServices services;
@@ -32,7 +34,7 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     public partial string Search { get; set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsListing), nameof(HasDetail))]
+    [NotifyPropertyChangedFor(nameof(IsListing), nameof(HasDetail), nameof(TabTitle))]
     public partial ClientDetailViewModel? Detail { get; set; }
 
     public bool IsListing => Detail is null;

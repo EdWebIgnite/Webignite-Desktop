@@ -29,6 +29,8 @@ public sealed class Navigator
     internal Func<OutgoingMail, string?, Func<IReadOnlyList<MailPerson>, Task>?, bool>? ComposeMailAction { get; set; }
     internal Action<StoredDocument>? OpenDocumentAction { get; set; }
     internal Action<Client>? OpenClientAction { get; set; }
+    internal Action<Client>? OpenClientInNewTabAction { get; set; }
+    internal Action<MailSummary>? OpenMailInNewTabAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -53,6 +55,12 @@ public sealed class Navigator
 
     /// <summary>Opens a client's page.</summary>
     public void Client(Client client) => OpenClientAction?.Invoke(client);
+
+    /// <summary>Opens a client in a tab of its own (Ctrl+click or a middle click on the client).</summary>
+    public void ClientInNewTab(Client client) => OpenClientInNewTabAction?.Invoke(client);
+
+    /// <summary>Opens a mail in a Mail tab of its own (a middle click on the mail).</summary>
+    public void MailInNewTab(MailSummary mail) => OpenMailInNewTabAction?.Invoke(mail);
 
     /// <summary>Puts an amount on the invoice being edited, or a new one, and opens it. Returns a problem, or null.</summary>
     public string? AddToInvoice(decimal amount, string description) => AddToInvoiceAction?.Invoke(amount, description);

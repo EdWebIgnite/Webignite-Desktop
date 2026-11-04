@@ -211,6 +211,9 @@ public partial class MainViewModel : ViewModelBase
             Selected = this[Page.Clients];
             Clients.OpenClient(services.Clients.Get(client.Id) ?? client);
         };
+        go.OpenClientInNewTabAction = client =>
+            ((ClientsViewModel)OpenInNewTab(this[Page.Clients]).Page).OpenClient(services.Clients.Get(client.Id) ?? client);
+        go.OpenMailInNewTabAction = summary => ((MailViewModel)OpenInNewTab(mailModule).Page).OpenMessage(summary);
         go.AddToInvoiceAction = (amount, description) =>
         {
             if (Invoices.Editor is { } open && !open.AddAmount(amount, description))
@@ -268,15 +271,18 @@ public partial class MainViewModel : ViewModelBase
     /// Closes an extra copy of a page and frees it. The module's own copy is never closed (only let go when
     /// idle), and a copy with open work stays until that work is saved or put away. Returns true when it closed.
     /// </summary>
-    public bool Close(PageHost host)
+    public bool Close(PageHost host, bool quietly = false)
     {
         if (host.IsMain || !Open.Contains(host) || (host.IsBuilt && host.Page is IHoldsWork { HoldsWork: true }))
             return false;
         var showing = Current == host;
         host.Release();
         Open.Remove(host);
-        if (showing)
+        if (Tabs.Contains(host) && !showing)
+            Tabs.Remove(host);
+        if (showing && !quietly)
             Current = LastUsed(host.Module);
+        OnPropertyChanged(nameof(ShowTabs));
         return true;
     }
 
@@ -380,18 +386,21 @@ public partial class MainViewModel : ViewModelBase
     partial void OnSelectedChanged(Module value)
     {
         if (Current?.Module != value)
-            Current = LastUsed(value);
+            Current = TabFor(value) ?? LastUsed(value);
     }
 
     partial void OnCurrentChanging(PageHost value)
     {
-        if (Current is { } leaving)
+        leaving = Current;
+        if (leaving is not null)
             leaving.LastSeen = DateTimeOffset.Now;
     }
 
     // These pages show things other pages change, so they look again whenever they're opened.
     partial void OnCurrentChanged(PageHost value)
     {
+        KeepInTabs(value);
+        leaving = null;
         value.LastSeen = DateTimeOffset.Now;
         if (Selected != value.Module)
             Selected = value.Module;

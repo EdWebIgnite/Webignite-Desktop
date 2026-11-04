@@ -16,6 +16,10 @@
     <KeyBinding Gesture="F5" Command="{Binding RefreshPageCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding ToggleShortcutsCommand}" />
     <KeyBinding Gesture="Ctrl+B" Command="{Binding Sidebar.ToggleCommand}" />
+    <KeyBinding Gesture="Ctrl+T" Command="{Binding NewTabCommand}" />
+    <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseThisTabCommand}" />
+    <KeyBinding Gesture="Ctrl+Tab" Command="{Binding NextTabCommand}" CommandParameter="1" />
+    <KeyBinding Gesture="Ctrl+Shift+Tab" Command="{Binding NextTabCommand}" CommandParameter="-1" />
     <KeyBinding Gesture="Ctrl+D1" Command="{Binding GoToCommand}" CommandParameter="1" />
     <KeyBinding Gesture="Ctrl+D2" Command="{Binding GoToCommand}" CommandParameter="2" />
     <KeyBinding Gesture="Ctrl+D3" Command="{Binding GoToCommand}" CommandParameter="3" />
@@ -141,6 +145,9 @@
               <DockPanel Background="Transparent">
                 <DockPanel.ContextMenu>
                   <ContextMenu>
+                    <MenuItem Header="Open in new tab (Ctrl+click)"
+                              Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).NewTabForCommand}" CommandParameter="{Binding}" />
+                    <Separator />
                     <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" />
                     <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" />
                     <Separator />
@@ -160,11 +167,48 @@
       </DockPanel>
     </Border>
 
-    <!-- Page -->
-    <ScrollViewer Grid.Column="1" IsVisible="{Binding Current.Scrolls}">
-      <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
-    </ScrollViewer>
-    <TransitioningContentControl x:Name="FullHost" Grid.Column="1" Content="{Binding Current.FullPage}" IsVisible="{Binding Current.FullBleed}" />
+    <!-- Tabs, once there are two, then the page on screen -->
+    <DockPanel Grid.Column="1">
+      <Border DockPanel.Dock="Top" Classes="tabstrip" IsVisible="{Binding ShowTabs}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="tabplus" Command="{Binding NewTabCommand}" ToolTip.Tip="New tab (Ctrl+T)" VerticalAlignment="Center">
+            <c:Icon Data="{StaticResource Icon.Plus}" Size="14" />
+          </Button>
+          <ListBox x:Name="TabStrip" Classes="tabs" ItemsSource="{Binding Tabs}" SelectedItem="{Binding Current, Mode=OneWay}" SelectionChanged="TabPicked"
+                   ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:PageHost">
+                <DockPanel Background="Transparent" PointerReleased="TabReleased">
+                  <DockPanel.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="Close tab" InputGesture="Ctrl+W"
+                                Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseThisTabCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Close the other tabs"
+                                Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseOtherTabsCommand}" CommandParameter="{Binding}" />
+                    </ContextMenu>
+                  </DockPanel.ContextMenu>
+                  <Button DockPanel.Dock="Right" Classes="tabclose" ToolTip.Tip="Close tab (Ctrl+W)" Margin="6,0,0,0"
+                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseThisTabCommand}" CommandParameter="{Binding}">
+                    <c:Icon Data="{StaticResource Icon.Close}" Size="10" />
+                  </Button>
+                  <c:Icon Data="{Binding Module.Icon, Converter={x:Static c:IconConverter.Instance}}" Size="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding Title}" MaxWidth="180" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </DockPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+      <Panel>
+        <ScrollViewer IsVisible="{Binding Current.Scrolls}">
+          <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
+        </ScrollViewer>
+        <TransitioningContentControl x:Name="FullHost" Content="{Binding Current.FullPage}" IsVisible="{Binding Current.FullBleed}" />
+      </Panel>
+    </DockPanel>
 
     <!-- Ctrl+K search, over everything -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{DynamicResource Scrim}" PointerPressed="CloseSearch">

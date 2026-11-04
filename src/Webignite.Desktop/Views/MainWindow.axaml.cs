@@ -19,7 +19,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         // Before the ListBox sees the press, so clicking a heading folds its group instead of selecting it.
-        Nav.AddHandler(PointerPressedEvent, FoldGroup, RoutingStrategies.Tunnel);
+        Nav.AddHandler(PointerPressedEvent, NavPressed, RoutingStrategies.Tunnel);
         // Made before the window's template is applied, so it can put itself in the window's top layer.
         notes = new WindowNotificationManager(this) { Position = NotificationPosition.BottomRight, MaxItems = 3 };
     }
@@ -94,7 +94,10 @@ public partial class MainWindow : Window
         Position = new Avalonia.PixelPoint(placement.X, placement.Y);
         if (placement.Maximized)
             WindowState = WindowState.Maximized;
-        if (Enum.TryParse<Page>(placement.LastPage, out var key) && main.Modules.FirstOrDefault(m => m.Key == key) is { } page)
+        // The tabs come back as they were; before there were tabs, the page that was open.
+        if (App.Services?.Settings.Tabs is { Pages.Count: > 0 } tabs)
+            main.RestoreTabs(tabs);
+        else if (Enum.TryParse<Page>(placement.LastPage, out var key) && main.Modules.FirstOrDefault(m => m.Key == key) is { } page)
             main.Selected = page;
     }
 
@@ -136,6 +139,7 @@ public partial class MainWindow : Window
             Maximized = WindowState == WindowState.Maximized,
             LastPage = main.Selected.Key.ToString(),
         };
+        services.Settings.Tabs = main.TabState();
     }
 
     /// <summary>Motion: the window's class switches the eased styles in Styles/Motion.axaml, and pages get their fade.</summary>
@@ -160,14 +164,40 @@ public partial class MainWindow : Window
         item.Focusable = !heading;
     }
 
-    private void FoldGroup(object? sender, PointerPressedEventArgs e)
+    // A heading folds its group. A page with Ctrl held, or with the middle button, opens in a new tab.
+    private void NavPressed(object? sender, PointerPressedEventArgs e)
     {
+        var point = e.GetCurrentPoint(this).Properties;
+        var item = (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext;
+        if (item is Module module && DataContext is MainViewModel main
+            && (point.IsMiddleButtonPressed || (point.IsLeftButtonPressed && e.KeyModifiers.HasFlag(KeyModifiers.Control))))
+        {
+            main.OpenInNewTab(module);
+            e.Handled = true;
+            return;
+        }
         // A right click opens the menu instead.
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            || (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is not NavGroup group)
+        if (!point.IsLeftButtonPressed || item is not NavGroup group)
             return;
         group.Toggle();
         e.Handled = true;
+    }
+
+    // Picking a tab shows it. While a tab's page is being swapped the strip briefly has nothing picked; that is ignored.
+    private void TabPicked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (TabStrip.SelectedItem is PageHost tab && DataContext is MainViewModel main && main.Current != tab)
+            main.Current = tab;
+    }
+
+    // A middle click on a tab closes it, as in a browser.
+    private void TabReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton == MouseButton.Middle && (sender as Control)?.DataContext is PageHost tab && DataContext is MainViewModel main)
+        {
+            main.CloseTab(tab);
+            e.Handled = true;
+        }
     }
 
     private QuickSearchViewModel? Search => (DataContext as MainViewModel)?.Search;
