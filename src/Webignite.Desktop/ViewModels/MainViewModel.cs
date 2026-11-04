@@ -143,6 +143,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
             new NavGroup("planning", "PLANNING"),
             new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo"),
+            new Module(Page.Notes, "Notes", () => new NotesViewModel(services), "Notes", fullBleed: true),
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar"),
             new Module(Page.Planner, "Planner", () => new PlannerViewModel(services), "Planner"),
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time"),
@@ -225,6 +226,16 @@ public partial class MainViewModel : ViewModelBase
             else
                 Selected = this[Page.Pdf];
             ((PdfViewModel)host.Page).Open(paths).Forget("Opening PDFs", tell: true);
+        };
+        go.OpenNoteAction = id =>
+        {
+            Selected = this[Page.Notes];
+            PageOf<NotesViewModel>(Page.Notes).OpenNote(id);
+        };
+        go.ClientNotesAction = (id, name) =>
+        {
+            Selected = this[Page.Notes];
+            PageOf<NotesViewModel>(Page.Notes).ShowClient(id, name);
         };
         go.OpenSettingsAction = section =>
         {
@@ -370,6 +381,7 @@ public partial class MainViewModel : ViewModelBase
     public ClientsViewModel Clients => PageOf<ClientsViewModel>(Page.Clients);
     public FilesViewModel Files => PageOf<FilesViewModel>(Page.Files);
     public PdfViewModel Pdf => PageOf<PdfViewModel>(Page.Pdf);
+    public NotesViewModel Notes => PageOf<NotesViewModel>(Page.Notes);
     public MailViewModel Mail => PageOf<MailViewModel>(Page.Mail);
     public ApprovalsViewModel Approvals => PageOf<ApprovalsViewModel>(Page.Approvals);
     public ToolsViewModel Tools => PageOf<ToolsViewModel>(Page.Tools);
@@ -411,6 +423,8 @@ public partial class MainViewModel : ViewModelBase
             documents.Editor?.Keep();
         foreach (var approvals in Built<ApprovalsViewModel>(Page.Approvals))
             approvals.Editor?.Keep();
+        foreach (var notes in Built<NotesViewModel>(Page.Notes))
+            notes.Keep();
         string? problem = null;
         foreach (var clients in Built<ClientsViewModel>(Page.Clients))
         {

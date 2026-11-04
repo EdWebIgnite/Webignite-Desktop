@@ -136,13 +136,16 @@ public sealed class GlobalHotkey
     private readonly Avalonia.Controls.TopLevel window;
     private readonly IntPtr handle;
     private readonly Action pressed;
+    private readonly string place;
     private readonly Avalonia.Controls.Win32Properties.CustomWndProcHookCallback hook;
     private bool registered;
 
     /// <param name="id">Different for each shortcut the window holds, e.g. one for screenshots and one for recording.</param>
-    public GlobalHotkey(Avalonia.Controls.TopLevel window, int id, Action pressed)
+    /// <param name="place">The part of Settings where the keys are picked, for the note when they're taken.</param>
+    public GlobalHotkey(Avalonia.Controls.TopLevel window, int id, Action pressed, string place = "Screenshots")
     {
         this.id = id;
+        this.place = place;
         this.window = window;
         this.pressed = pressed;
         handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
@@ -162,7 +165,7 @@ public sealed class GlobalHotkey
         if (keys.Shift) modifiers |= 0x4;
         if (keys.Win) modifiers |= 0x8;
         registered = RegisterHotKey(handle, id, modifiers, VirtualKey(keys.Key));
-        return registered ? null : $"Another program already uses {keys}. Pick other keys in Settings, Screenshots.";
+        return registered ? null : $"Another program already uses {keys}. Pick other keys in Settings, {place}.";
     }
 
     private static uint VirtualKey(string key) => key switch

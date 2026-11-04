@@ -55,6 +55,12 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>The screenshot shortcut and where screenshots are saved.</summary>
+    public Webignite.Core.Notes.NoteSettings Notes
+    {
+        get => store.GetSetting<Webignite.Core.Notes.NoteSettings>("notes") ?? new Webignite.Core.Notes.NoteSettings();
+        set => store.SetSetting("notes", value);
+    }
+
     public Webignite.Core.Tools.ScreenshotSettings Screenshots
     {
         get => store.GetSetting<Webignite.Core.Tools.ScreenshotSettings>("screenshots") ?? new Webignite.Core.Tools.ScreenshotSettings();

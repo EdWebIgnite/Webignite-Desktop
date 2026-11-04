@@ -16,6 +16,9 @@ public enum ListKind
     None,
     Bullet,
     Number,
+
+    /// <summary>A checklist: each item has a box that can be ticked.</summary>
+    Check,
 }
 
 public enum Alignment
@@ -106,6 +109,9 @@ public sealed class TextBlock : Block
 
     public const int MaxIndent = 8;
 
+    /// <summary>A checklist item that is ticked off.</summary>
+    public bool Checked { get; set; }
+
     public List<Run> Runs { get; private set; } = [];
 
     public TextBlock()
@@ -126,7 +132,7 @@ public sealed class TextBlock : Block
     /// <summary>Same style, list, indent and alignment, with these runs.</summary>
     public TextBlock CopyShape(IEnumerable<Run> runs)
     {
-        var copy = new TextBlock { Style = Style, Align = Align, List = List, Indent = Indent, IsSignature = IsSignature };
+        var copy = new TextBlock { Style = Style, Align = Align, List = List, Indent = Indent, Checked = Checked, IsSignature = IsSignature };
         copy.Runs.AddRange(runs);
         return copy;
     }

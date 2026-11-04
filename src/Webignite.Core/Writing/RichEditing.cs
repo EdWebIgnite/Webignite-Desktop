@@ -137,6 +137,8 @@ public static class RichEditing
             return at;
         }
         var tail = block.Cut(at.Offset);
+        // A new checklist item starts unticked.
+        tail.Checked = false;
         if (block.Style is BlockStyle.Heading1 or BlockStyle.Heading2 or BlockStyle.Heading3 && tail.Length == 0)
             tail.Style = BlockStyle.Paragraph;
         document.Blocks.Insert(slot.Top + 1, tail);
@@ -373,6 +375,7 @@ public static class RichEditing
         foreach (var block in blocks)
         {
             block.List = off ? ListKind.None : kind;
+            block.Checked = false;
             if (!off && block.Style != BlockStyle.Paragraph)
                 block.Style = BlockStyle.Paragraph;
         }

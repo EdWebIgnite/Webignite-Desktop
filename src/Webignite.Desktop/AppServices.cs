@@ -48,6 +48,10 @@ public sealed class AppServices : IDisposable
     /// <summary>Clients: pages read and change them here, never on the store directly.</summary>
     public ClientService Clients { get; }
 
+    /// <summary>Notebooks and notes: the Notes page, the client page and the quick note change them here.</summary>
+    public NoteService Notes => notes ??= new NoteService(Store);
+    private NoteService? notes;
+
     public Navigator Go { get; } = new();
 
     private MailDrafts? drafts;
@@ -148,6 +152,9 @@ public sealed class AppServices : IDisposable
 
     /// <summary>Set by the main window: takes the recording shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyRecordShortcut { get; set; }
+
+    /// <summary>Settings asks the window to take up a new quick-note shortcut; returns a problem or null.</summary>
+    public Func<string?>? ApplyQuickNoteShortcut { get; set; }
 
     /// <summary>A screen recording is under way, so closing the app should stop it properly first.</summary>
     public bool Recording { get; set; }

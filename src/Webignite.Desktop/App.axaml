@@ -20,6 +20,7 @@
     <DataTemplate DataType="vm:ClientsViewModel"><v:ClientsView /></DataTemplate>
     <DataTemplate DataType="vm:FilesViewModel"><v:FilesView /></DataTemplate>
     <DataTemplate DataType="vm:PdfViewModel"><v:PdfView /></DataTemplate>
+    <DataTemplate DataType="vm:NotesViewModel"><v:NotesView /></DataTemplate>
     <DataTemplate DataType="vm:ClientDetailViewModel"><v:ClientDetailView /></DataTemplate>
     <DataTemplate DataType="vm:DocumentsViewModel"><v:DocumentsView /></DataTemplate>
     <DataTemplate DataType="vm:DocumentEditorViewModel"><v:DocumentEditorView /></DataTemplate>

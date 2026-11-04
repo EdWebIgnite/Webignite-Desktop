@@ -348,6 +348,22 @@ public sealed partial class RichTextEditor
         }
         if (!point.Properties.IsLeftButtonPressed)
             return;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.ClickCount == 1 && LinkAt(at) is { } link && LinkOpened is { } open)
+        {
+            open(link);
+            e.Handled = true;
+            return;
+        }
+        if (BoxAt(point.Position) is { } item)
+        {
+            Change(d =>
+            {
+                item.Checked = !item.Checked;
+                return caret;
+            });
+            e.Handled = true;
+            return;
+        }
         var slots = RichEditing.Slots(Document);
         if (e.ClickCount == 2 && slots[at.Slot].Text is { } word)
         {
@@ -455,31 +471,48 @@ public sealed partial class RichTextEditor
         return tag > 0 ? html[tag..] : html;
     }
 
+    /// <summary>A link to open, from Ctrl+click or the right-click menu. Without it, links are only edited.</summary>
+    public event Action<string>? LinkOpened;
+
+    private string? LinkAt(DocPosition at)
+    {
+        if (Document is null || RichEditing.Slots(Document)[at.Slot].Text is not { } block)
+            return null;
+        // The letter clicked on: the one after the caret position, or the last one at the end of a line.
+        var offset = Math.Min(at.Offset + 1, block.Length);
+        return offset == 0 ? null : block.FormatAt(offset).Link;
+    }
+
     private void ShowMenu(object? sender, ContextRequestedEventArgs e)
     {
-        var menu = new ContextMenu
+        var link = LinkOpened is null ? null : LinkAt(caret);
+        var items = new List<object>();
+        if (link is not null)
         {
-            ItemsSource = new object[]
+            items.Add(Item("Open link (Ctrl+click)", null, true, () => LinkOpened?.Invoke(link)));
+            items.Add(new Separator());
+        }
+        items.AddRange(
+        [
+            Item("Cut", "Ctrl+X", HasSelection, () => CopyAsync(cut: true).Forget("Cutting")),
+            Item("Copy", "Ctrl+C", HasSelection, () => CopyAsync(cut: false).Forget("Copying")),
+            Item("Paste", "Ctrl+V", true, () => PasteAsync().Forget("Pasting")),
+            Item("Paste as plain text", "Ctrl+Shift+V", true, () => PasteAsync(plain: true).Forget("Pasting")),
+            new Separator(),
+            Item("Select all", "Ctrl+A", true, () =>
             {
-                Item("Cut", "Ctrl+X", HasSelection, () => CopyAsync(cut: true).Forget("Cutting")),
-                Item("Copy", "Ctrl+C", HasSelection, () => CopyAsync(cut: false).Forget("Copying")),
-                Item("Paste", "Ctrl+V", true, () => PasteAsync().Forget("Pasting")),
-                Item("Paste as plain text", "Ctrl+Shift+V", true, () => PasteAsync(plain: true).Forget("Pasting")),
-                new Separator(),
-                Item("Select all", "Ctrl+A", true, () =>
-                {
-                    anchor = RichEditing.Start;
-                    MoveTo(RichEditing.End(Document!), extend: true);
-                }),
-            },
-        };
+                anchor = RichEditing.Start;
+                MoveTo(RichEditing.End(Document!), extend: true);
+            }),
+        ]);
+        var menu = new ContextMenu { ItemsSource = items };
         menu.Open(this);
         e.Handled = true;
     }
 
-    private static MenuItem Item(string header, string keys, bool enabled, Action action)
+    private static MenuItem Item(string header, string? keys, bool enabled, Action action)
     {
-        var item = new MenuItem { Header = header, InputGesture = KeyGesture.Parse(keys), IsEnabled = enabled };
+        var item = new MenuItem { Header = header, InputGesture = keys is null ? null : KeyGesture.Parse(keys), IsEnabled = enabled };
         item.Click += (_, _) => action();
         return item;
     }

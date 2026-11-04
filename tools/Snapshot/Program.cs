@@ -1480,6 +1480,101 @@ Save("site-check");
     Check("Done throws the temporary recording away", vm.Markup.Recording is null && !File.Exists(video));
 }
 
+// Notes: notebooks and folders, a note with headings, a checklist, a table and a link, search, the client's
+// page, the quick note, and nothing typed lost on closing.
+{
+    var notes = services.Notes;
+    var mine = notes.Notebooks()[0];
+    notes.AddFolder(mine.Id, "Meetings");
+    notes.AddFolder(mine.Id, "Ideas");
+    var personal = notes.AddNotebook();
+    notes.RenameNotebook(personal.Id, "Personal");
+    Webignite.Core.Writing.RichDocument Writing(string html) => Webignite.Core.Writing.RichHtml.Read(html);
+    var kickoff = notes.New(mine.Id, "Meetings", clientId: "c1");
+    notes.Save(kickoff.Id, "Bosveld Builders website kick-off", Writing(
+        "<h2>What Pieter wants</h2><ul><li>A gallery of finished houses, by area</li><li>A quote request form that asks for the plot size</li>"
+        + "<li>Their xneelo hosting kept as it is</li></ul><h2>Next steps</h2>"
+        + "<ul data-check><li data-checked>Send the sitemap</li><li data-checked>Ask for the logo files</li><li>Get photos of finished projects</li><li>Quote for phase two</li></ul>"
+        + "<h3>Pages</h3><table><tr><th>Page</th><th>Who writes it</th></tr><tr><td>Home</td><td>Webignite</td></tr><tr><td>Gallery</td><td>Pieter sends photos</td></tr></table>"
+        + "<p>Their current site: <a href=\"https://bosveldbuilders.co.za\">bosveldbuilders.co.za</a></p>"));
+    var plan = notes.New(mine.Id);
+    notes.Save(plan.Id, "This week", Writing("<ul data-check><li data-checked>Invoices out</li><li>Fynbos booking page on phones</li><li>Back up the laptop</li></ul>"));
+    notes.Change(plan.Id, n => n with { Pinned = true });
+    var portfolio = notes.New(mine.Id, "Ideas");
+    notes.Save(portfolio.Id, "Portfolio page ideas", Writing("<p>Show before and after for each site, with the speed score next to it. Invoice clients for the photos?</p>"));
+    var braai = notes.New(personal.Id);
+    notes.Save(braai.Id, "Braai on Saturday", Writing("<ul data-check><li>Boerewors</li><li>Charcoal</li><li>Ice</li></ul>"));
+
+    Open(Page.Notes);
+    var page = vm.Notes;
+    Check("Notes opens on the first notebook with its notes, pinned first", page.Place?.Title == "My notes" && page.Rows.Count == 3 && page.Rows[0].Name == "This week");
+    page.OpenNote(kickoff.Id);
+    Check("A note opens with its title, checklist and table", page.Title == "Bosveld Builders website kick-off"
+        && page.Document!.Blocks.OfType<Webignite.Core.Writing.TextBlock>().Count(b => b.List == Webignite.Core.Writing.ListKind.Check) == 4
+        && page.Document.Blocks.OfType<Webignite.Core.Writing.TableBlock>().Any());
+    Check("The list says how much of a checklist is done", page.Rows.Any(r => r.Note.Id == kickoff.Id && r.Detail.Contains("2 of 4 done", StringComparison.Ordinal)));
+    Check("A note about a client says who", page.OpenClient?.Name == "Bosveld Builders");
+    Save("notes");
+
+    page.Query = "invoice";
+    Check("Search finds words in titles and in the writing", page.Rows.Select(r => r.Note.Id).ToHashSet().SetEquals([plan.Id, portfolio.Id]));
+    Save("notes-search");
+    page.Query = "";
+
+    // Typing is saved: on switching notes, and when the app closes.
+    page.OpenNote(portfolio.Id);
+    page.Title = "Portfolio page";
+    page.Document!.Blocks.Add(new Webignite.Core.Writing.TextBlock("Ask Lerato for a quote we can show."));
+    page.Revision++;
+    Check("Something typed holds the page open", page.HoldsWork);
+    page.OpenNote(plan.Id);
+    Check("Opening another note saves the one before", notes.Get(portfolio.Id)!.Title == "Portfolio page" && notes.Get(portfolio.Id)!.Text.Contains("Lerato", StringComparison.Ordinal));
+    page.Title = "This week, typed before closing";
+    Check("Closing the app saves the open note", vm.PrepareToCloseAsync().GetAwaiter().GetResult() is null && notes.Get(plan.Id)!.Title == "This week, typed before closing");
+
+    // The undo note would stay in every picture after this one, as the snapshot clock stands still.
+    var showNote = services.ShowNote;
+    services.ShowNote = null;
+    page.DeleteOpenCommand.Execute(null);
+    services.ShowNote = showNote;
+    Check("A deleted note waits in Deleted", notes.Get(plan.Id)!.Deleted is not null && page.Rows.All(r => r.Note.Id != plan.Id));
+    page.PickPlace(page.Places.First(p => p.Kind == Webignite.Core.Notes.NotePlace.Deleted));
+    page.OpenNote(plan.Id);
+    Check("It can be read there but not changed", page.OpenIsDeleted && !page.CanEdit);
+    page.RestoreOpenCommand.Execute(null);
+    Check("Put it back and it's in its notebook again", notes.Get(plan.Id)!.Deleted is null && page.Place?.Kind == Webignite.Core.Notes.NotePlace.Notebook);
+
+    // On the client's page.
+    Open(Page.Clients);
+    vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Bosveld Builders"));
+    Check("Notes about a client show on their page", vm.Clients.Detail!.NoteLinks.Any(l => l.Name == "Bosveld Builders website kick-off"));
+    Dispatcher.UIThread.RunJobs();
+    if (window.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().FirstOrDefault(t => t.Text == "Notebook notes") is { } notesCard)
+        Avalonia.Controls.ControlExtensions.BringIntoView(notesCard.GetVisualAncestors().OfType<Avalonia.Controls.Border>().First(b => b.Classes.Contains("card")));
+    Save("client-notes");
+    vm.Clients.Detail.NoteLinks.First().OpenCommand.Execute(null);
+    Check("Clicking one opens it in Notes", vm.Current.Key == Page.Notes && vm.Notes.Open?.Id == kickoff.Id);
+
+    // The quick note from any program: what is typed is kept however the box closes.
+    var quick = new QuickNoteWindow(services) { Typed = "Call the bank about the card\nThey said to phone after 9\n[ ] Card number ready" };
+    quick.Show();
+    Dispatcher.UIThread.RunJobs();
+    using (var quickFrame = quick.CaptureRenderedFrame())
+    using (var quickFile = File.Create(Path.Combine(output, "quick-note.png")))
+        quickFrame?.Save(quickFile, new PngBitmapEncoderOptions());
+    quick.Close();
+    Check("A quick note goes into Notes with its title and checklist", quick.Saved is { Title: "Call the bank about the card", Checks: 1 }
+        && Until(() => vm.Notes.Rows.Any(r => r.Name == "Call the bank about the card")));
+
+    var notesSettings = (SettingsViewModel)vm[Page.Settings].Main.Page;
+    notesSettings.Open("notes");
+    Open(Page.Settings);
+    Save("settings-notes");
+    notesSettings.SetQuickNoteShortcut("Ctrl+Alt+S");
+    Check("The quick-note shortcut can't be the screenshot one", notesSettings.QuickNoteProblem && services.Settings.Notes.QuickShortcut == "Ctrl+Alt+N");
+    Open(Page.Notes);
+}
+
 // Ctrl+K search
 vm.Search.Show();
 Wait(vm.Search.MailLoaded, "Search read the mail");

@@ -11,7 +11,7 @@ public enum Page
     Overview, Approvals, Mail,
     Clients, Files, Retainers, Renewals,
     Quotes, Invoices, Money, Reports,
-    Todo, Calendar, Planner, Time,
+    Todo, Notes, Calendar, Planner, Time,
     SiteCheck, Markup, Pdf, Tools,
     Settings,
 }
@@ -36,6 +36,9 @@ public sealed class Navigator
     internal Action<bool>? ScreenshotAction { get; set; }
     internal Action<bool>? RecordAction { get; set; }
     internal Action<IReadOnlyList<string>>? OpenPdfAction { get; set; }
+    internal Action<string>? OpenNoteAction { get; set; }
+    internal Action<string, string>? ClientNotesAction { get; set; }
+    internal Action? QuickNoteAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -88,6 +91,15 @@ public sealed class Navigator
         File.WriteAllBytes(path, data);
         Pdf([path]);
     }
+
+    /// <summary>Opens a note on the Notes page.</summary>
+    public void Note(string id) => OpenNoteAction?.Invoke(id);
+
+    /// <summary>Shows the notes about a client on the Notes page.</summary>
+    public void ClientNotes(string clientId, string clientName) => ClientNotesAction?.Invoke(clientId, clientName);
+
+    /// <summary>The small quick-note box, as from the shortcut.</summary>
+    public void QuickNote() => QuickNoteAction?.Invoke();
 
     /// <summary>Opens Settings at a section, by its key (e.g. "files").</summary>
     public void Settings(string section) => OpenSettingsAction?.Invoke(section);

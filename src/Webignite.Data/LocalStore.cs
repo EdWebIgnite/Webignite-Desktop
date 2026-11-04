@@ -130,6 +130,18 @@ public sealed partial class LocalStore : IDisposable
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS notebooks (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS notes (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS note_bodies (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
             """);
         try
         {

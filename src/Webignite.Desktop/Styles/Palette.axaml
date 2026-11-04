@@ -13,6 +13,7 @@
   <!-- Writing on paper (the mail editor): the paper stays white in every palette, so its ink does too. -->
   <SolidColorBrush x:Key="PaperText" Color="#1F2A26" />
   <SolidColorBrush x:Key="PaperLine" Color="#C8CDD0" />
+  <SolidColorBrush x:Key="PaperMuted" Color="#7A8580" />
   <SolidColorBrush x:Key="PaperShade" Color="#F4F5F5" />
   <SolidColorBrush x:Key="PaperLink" Color="#1A5FB4" />
   <SolidColorBrush x:Key="PaperSelection" Color="#B9D3F5" />

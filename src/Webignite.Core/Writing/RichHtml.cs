@@ -100,11 +100,16 @@ public static partial class RichHtml
     {
         var first = (TextBlock)blocks[i];
         var tag = first.List == ListKind.Number ? "ol" : "ul";
-        html.Append('<').Append(tag).Append(" style=\"margin:0; padding-left:24px")
+        var check = first.List == ListKind.Check;
+        html.Append('<').Append(tag).Append(check ? " data-check style=\"margin:0; padding-left:4px; list-style:none" : " style=\"margin:0; padding-left:24px")
             .Append(first.Indent > 0 ? $"; margin-left:{(first.Indent * 24).ToString(CultureInfo.InvariantCulture)}px" : "").Append("\">");
         while (i < blocks.Count && blocks[i] is TextBlock item && item.List == first.List && item.Indent == first.Indent && item.IsSignature == first.IsSignature)
         {
-            html.Append("<li").Append(AlignAttribute(item.Align)).Append('>').Append(item.Length == 0 ? "<br>" : Runs(item)).Append("</li>");
+            html.Append("<li").Append(check && item.Checked ? " data-checked" : "").Append(AlignAttribute(item.Align)).Append('>');
+            // The box is written as a character too, so the list reads right in any mail program.
+            if (check)
+                html.Append(item.Checked ? "\u2611 " : "\u2610 ");
+            html.Append(item.Length == 0 && !check ? "<br>" : Runs(item)).Append("</li>");
             i++;
         }
         html.Append("</").Append(tag).Append('>');
@@ -207,6 +212,7 @@ public static partial class RichHtml
         private TableBlock? table;
         private TextBlock? cell;
         private int skipping;
+        private bool ticked;
 
         public void Run(string html)
         {
@@ -295,7 +301,10 @@ public static partial class RichHtml
                         f = f with { Fixed = true };
                     break;
                 case "ul":
-                    lists.Push(ListKind.Bullet);
+                    lists.Push(attrs.ContainsKey("data-check") ? ListKind.Check : ListKind.Bullet);
+                    break;
+                case "li":
+                    ticked = attrs.ContainsKey("data-checked");
                     break;
                 case "ol":
                     lists.Push(ListKind.Number);
@@ -416,6 +425,7 @@ public static partial class RichHtml
                 List = open.Any(o => o.Tag == "li") && lists.Count > 0 ? lists.Peek() : ListKind.None,
                 Indent = Math.Clamp(context.Indent + Math.Max(0, lists.Count - 1), 0, TextBlock.MaxIndent),
             };
+            block.Checked = block.List == ListKind.Check && ticked;
             Document.Blocks.Add(block);
             return block;
         }
@@ -440,6 +450,9 @@ public static partial class RichHtml
             var text = paragraph.Text;
             if (text.EndsWith('\n'))
                 paragraph.Delete(text.Length - 1, text.Length);
+            // A checklist item's box was written as a character for other mail programs; the item has its own.
+            if (paragraph.List == ListKind.Check && paragraph.Text is ['\u2610' or '\u2611', ..] boxed)
+                paragraph.Delete(0, boxed.Length > 1 && boxed[1] == ' ' ? 2 : 1);
             var trimmed = paragraph.Text;
             var end = trimmed.Length;
             while (end > 0 && trimmed[end - 1] == ' ')
