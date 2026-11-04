@@ -148,9 +148,14 @@ public sealed partial class LocalStore
         return uids;
     }
 
+    /// <summary>Removes cached messages and their bodies, all in one go.</summary>
     public void DeleteMailMessages(string accountId, string folder, IEnumerable<uint> uids)
     {
-        foreach (var uid in uids)
+        var list = uids.ToList();
+        if (list.Count == 0)
+            return;
+        Execute("BEGIN IMMEDIATE");
+        try
         {
             using var command = connection.CreateCommand();
             command.CommandText = """
@@ -159,9 +164,41 @@ public sealed partial class LocalStore
                 """;
             command.Parameters.AddWithValue("$account", accountId);
             command.Parameters.AddWithValue("$folder", folder);
-            command.Parameters.AddWithValue("$uid", (long)uid);
-            command.ExecuteNonQuery();
+            var uid = command.Parameters.Add("$uid", Microsoft.Data.Sqlite.SqliteType.Integer);
+            foreach (var one in list)
+            {
+                uid.Value = (long)one;
+                command.ExecuteNonQuery();
+            }
+            Execute("COMMIT");
         }
+        catch
+        {
+            Execute("ROLLBACK");
+            throw;
+        }
+    }
+
+    /// <summary>Several cached messages of one folder in one read, e.g. to compare marks after a mail check.</summary>
+    public IReadOnlyDictionary<uint, MailSummary> GetMailSummaries(string accountId, string folder, IReadOnlyCollection<uint> uids)
+    {
+        var found = new Dictionary<uint, MailSummary>();
+        if (uids.Count == 0)
+            return found;
+        var wanted = uids as IReadOnlySet<uint> ?? uids.ToHashSet();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT uid, payload FROM mail_messages WHERE account_id = $account AND folder = $folder AND uid >= $from";
+        command.Parameters.AddWithValue("$account", accountId);
+        command.Parameters.AddWithValue("$folder", folder);
+        command.Parameters.AddWithValue("$from", (long)uids.Min());
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var uid = (uint)reader.GetInt64(0);
+            if (wanted.Contains(uid))
+                found[uid] = Open<MailSummary>(MessageContext(accountId, folder, uid), (byte[])reader[1]);
+        }
+        return found;
     }
 
     public void ClearMailFolder(string accountId, string folder)
@@ -205,30 +242,38 @@ public sealed partial class LocalStore
     /// Searches cached mail by sender, recipients, subject and preview. Every word has to match.
     /// Newest first.
     /// </summary>
-    public IReadOnlyList<MailSummary> SearchMail(IEnumerable<string> accountIds, string query, int limit = 200)
+    public IReadOnlyList<MailSummary> SearchMail(IEnumerable<string> accountIds, string query, int limit = 200, CancellationToken cancel = default)
     {
         var words = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return FindMail(accountIds, summary => words.All(w => MailSearch.Matches(summary, w)), limit);
+        return FindMail(accountIds, summary => words.All(w => MailSearch.Matches(summary, w)), limit, cancel);
     }
 
-    /// <summary>Cached mail in any folder of these mailboxes that passes the test. Newest first.</summary>
-    public IReadOnlyList<MailSummary> FindMail(IEnumerable<string> accountIds, Func<MailSummary, bool> match, int limit = 200)
+    /// <summary>
+    /// Cached mail in any folder of these mailboxes that passes the test. Newest first. Reads newest to oldest
+    /// across all the mailboxes at once and stops at <paramref name="limit"/>, so a search that matches recent
+    /// mail doesn't unlock every message in the cache. Safe to run off the screen's thread.
+    /// </summary>
+    public IReadOnlyList<MailSummary> FindMail(IEnumerable<string> accountIds, Func<MailSummary, bool> match, int limit = 200,
+        CancellationToken cancel = default)
     {
+        var ids = accountIds.Distinct().ToList();
         var found = new List<MailSummary>();
-        foreach (var accountId in accountIds)
+        if (ids.Count == 0)
+            return found;
+        using var command = connection.CreateCommand();
+        var names = ids.Select((id, i) => "$a" + i).ToList();
+        command.CommandText = $"SELECT account_id, folder, uid, payload FROM mail_messages WHERE account_id IN ({string.Join(", ", names)}) ORDER BY date DESC";
+        for (var i = 0; i < ids.Count; i++)
+            command.Parameters.AddWithValue(names[i], ids[i]);
+        using var reader = command.ExecuteReader();
+        while (found.Count < limit && reader.Read())
         {
-            using var command = connection.CreateCommand();
-            command.CommandText = "SELECT folder, uid, payload FROM mail_messages WHERE account_id = $account ORDER BY date DESC";
-            command.Parameters.AddWithValue("$account", accountId);
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                var summary = Open<MailSummary>(MessageContext(accountId, reader.GetString(0), (uint)reader.GetInt64(1)), (byte[])reader[2]);
-                if (match(summary))
-                    found.Add(summary);
-            }
+            cancel.ThrowIfCancellationRequested();
+            var summary = Open<MailSummary>(MessageContext(reader.GetString(0), reader.GetString(1), (uint)reader.GetInt64(2)), (byte[])reader[3]);
+            if (match(summary))
+                found.Add(summary);
         }
-        return found.OrderByDescending(s => s.Date).Take(limit).ToList();
+        return found;
     }
 
     private List<MailSummary> ReadSummaries(Microsoft.Data.Sqlite.SqliteCommand command, string accountId, string folder)

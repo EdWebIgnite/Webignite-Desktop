@@ -244,6 +244,28 @@ public partial class ClientDetailViewModel : ViewModelBase
         Refresh();
     }
 
+    private int mailRead; // counts up per read, so an older read finishing late is dropped
+
+    /// <summary>
+    /// The latest mail with this client, read off the screen's thread: finding it means unlocking cached mail
+    /// one message at a time, which mustn't hold up typing or saving.
+    /// </summary>
+    private async Task LoadMail()
+    {
+        var matcher = new ClientMail(client);
+        if (matcher.IsEmpty)
+            return;
+        var read = ++mailRead;
+        var accounts = services.Store.ListMailAccounts();
+        var found = await Task.Run(() => services.Store.FindMail(accounts.Select(a => a.Id), matcher.Matches, limit: 12));
+        if (read != mailRead)
+            return;
+        Mail.Clear();
+        foreach (var mail in found)
+            Mail.Add(new ClientMailRow(mail, accounts.First(a => a.Id == mail.AccountId), services.Store));
+        OnPropertyChanged(nameof(HasMail));
+    }
+
     public void Refresh()
     {
         LoadOnboarding();
@@ -255,11 +277,7 @@ public partial class ClientDetailViewModel : ViewModelBase
         Mail.Clear();
         if (!isNew)
         {
-            var matcher = new ClientMail(client);
-            var accounts = services.Store.ListMailAccounts();
-            if (!matcher.IsEmpty)
-                foreach (var found in services.Store.FindMail(accounts.Select(a => a.Id), matcher.Matches, limit: 12))
-                    Mail.Add(new ClientMailRow(found, accounts.First(a => a.Id == found.AccountId), services.Store));
+            LoadMail().Forget("Reading the client's mail");
             var summary = ClientDirectory.Summarise(client, services.Store.List(), services.Store.ListTasks(),
                 services.Store.ListEvents(Today, Today.AddDays(90)), Today);
             foreach (var doc in summary.Documents)

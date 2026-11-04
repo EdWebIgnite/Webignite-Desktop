@@ -25,13 +25,13 @@ public partial class AttachmentPreviewViewModel(AttachmentViewModel attachment, 
             if (kind == PreviewKind.Picture)
             {
                 using var stream = new MemoryStream(data);
-                Pages.Add(new Bitmap(stream));
+                Keep(new Bitmap(stream));
             }
             else
             {
                 var (pages, count) = await Task.Run(() => PdfPages.Render(data, 1100, AttachmentPreview.MaxPages));
                 foreach (var page in pages)
-                    Pages.Add(page);
+                    Keep(page);
                 if (count > pages.Count)
                     Note = $"Showing the first {pages.Count} of {count} pages. Open it to see the rest.";
                 else if (count == 0)
@@ -46,6 +46,34 @@ public partial class AttachmentPreviewViewModel(AttachmentViewModel attachment, 
         {
             IsLoading = false;
         }
+    }
+
+    private bool freed;
+
+    // A page drawn after the preview was closed is let go at once.
+    private void Keep(Bitmap page)
+    {
+        if (freed)
+            page.Dispose();
+        else
+            Pages.Add(page);
+    }
+
+    /// <summary>
+    /// Lets go of the drawn pages, about 7 MB each for a PDF. Called when the preview closes or the mail changes;
+    /// without it every preview stayed in memory until the app closed.
+    /// </summary>
+    public void Free()
+    {
+        freed = true;
+        var pages = Pages.ToList();
+        Pages.Clear();
+        // After the screen has let go of them, so nothing draws a freed picture.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            foreach (var page in pages)
+                page.Dispose();
+        }, Avalonia.Threading.DispatcherPriority.Background);
     }
 
     [RelayCommand]

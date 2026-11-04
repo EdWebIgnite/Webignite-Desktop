@@ -98,6 +98,30 @@ public sealed class MailTests : IDisposable
     }
 
     [Fact]
+    public void Finding_mail_reads_every_mailbox_newest_first_and_stops_at_the_limit()
+    {
+        using var store = new LocalStore(Path.Combine(folder, "find.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
+        var work = store.SaveMailAccount(MailAccounts.Suggest("eddie@webignite.co.za", "Eddie"));
+        var accounts = store.SaveMailAccount(MailAccounts.Suggest("accounts@webignite.co.za", "Accounts"));
+        var day = DateTimeOffset.Parse("2026-11-01T09:00:00+02:00", System.Globalization.CultureInfo.InvariantCulture);
+        store.SaveMailSummaries(
+        [
+            Summary(work.Id, 1, "Oldest", "Pieter", day),
+            Summary(accounts.Id, 2, "Middle", "Anri", day.AddHours(1)),
+            Summary(work.Id, 3, "Newest", "Thandi", day.AddHours(2)),
+        ]);
+        var cancel = TestContext.Current.CancellationToken;
+        Assert.Equal(["Newest", "Middle", "Oldest"], store.FindMail([work.Id, accounts.Id], _ => true, cancel: cancel).Select(m => m.Subject));
+        Assert.Equal(["Newest", "Middle"], store.FindMail([work.Id, accounts.Id], _ => true, limit: 2, cancel: cancel).Select(m => m.Subject));
+        Assert.Empty(store.FindMail([], _ => true, cancel: cancel));
+
+        Assert.Equal([1u, 3u], store.GetMailSummaries(work.Id, "INBOX", [1, 3, 9]).Keys.Order());
+        store.DeleteMailMessages(work.Id, "INBOX", [1, 3]);
+        Assert.Empty(store.ListMailSummaries(work.Id, "INBOX"));
+        Assert.Single(store.ListMailSummaries(accounts.Id, "INBOX"));
+    }
+
+    [Fact]
     public void Store_caches_mail_encrypted_and_searches_it()
     {
         var path = Path.Combine(folder, "mail.db");
@@ -114,7 +138,7 @@ public sealed class MailTests : IDisposable
                 Summary(account.Id, 2, "Fynbos photos", "Anri", DateTimeOffset.Parse("2026-10-31T09:00:00+02:00")),
             ]);
             Assert.Equal([2u, 1u], store.ListMailSummaries(account.Id, "INBOX").Select(s => s.Uid));
-            Assert.Equal([1u], store.SearchMail([account.Id], "pieter sitemap").Select(s => s.Uid));
+            Assert.Equal([1u], store.SearchMail([account.Id], "pieter sitemap", cancel: TestContext.Current.CancellationToken).Select(s => s.Uid));
             Assert.Equal(new HashSet<uint> { 1, 2 }, store.KnownMailUids(account.Id, "INBOX"));
 
             store.SaveMailBody(account.Id, "INBOX", 1, Encoding.UTF8.GetBytes("Subject: Bosveld sitemap\r\n\r\nSecret plan"));

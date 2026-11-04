@@ -177,6 +177,11 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     [NotifyPropertyChangedFor(nameof(IsPreviewing), nameof(IsNotPreviewing))]
     public partial AttachmentPreviewViewModel? Preview { get; set; }
 
+    partial void OnPreviewChanged(AttachmentPreviewViewModel? oldValue, AttachmentPreviewViewModel? newValue) => oldValue?.Free();
+
+    /// <summary>Closes an open preview, e.g. when another mail is opened in its place.</summary>
+    internal void ClosePreview() => Preview = null;
+
     public bool IsPreviewing => Preview is not null;
     public bool IsNotPreviewing => Preview is null;
 

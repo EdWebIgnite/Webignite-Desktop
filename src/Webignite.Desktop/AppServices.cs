@@ -157,13 +157,24 @@ public sealed class AppServices : IDisposable
 
     // The PC
 
+    private DateOnly caughtUpOn;
+
     /// <summary>
     /// Does what the calendar calls for since the app last looked: drafts retainer and renewal invoices that are due,
-    /// adds monthly expenses and renewal reminders. All of it stays on this PC and safe to run any number of times.
+    /// adds monthly expenses and renewal reminders. All of it stays on this PC and is safe to run any number of
+    /// times. Runs once a day: at start, then on the first page change or timer tick after midnight.
     /// </summary>
     public void CatchUp()
     {
+        if (caughtUpOn != DateOnly.FromDateTime(DateTime.Today))
+            CatchUpNow();
+    }
+
+    /// <summary>The same, straight away: after a retainer, renewal or monthly cost was added or changed.</summary>
+    public void CatchUpNow()
+    {
         var today = DateOnly.FromDateTime(DateTime.Today);
+        caughtUpOn = today;
         var documents = Settings.Documents;
         Store.DraftRetainerInvoices(documents, today);
         Store.AddRecurringExpenses(today);

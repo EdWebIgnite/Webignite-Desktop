@@ -189,8 +189,8 @@ public sealed class MailKeywordStoreTests : IDisposable
         ]);
         Assert.Equal(["waiting"], store.GetMailSummary(account.Id, "INBOX", 1)!.Keywords);
         Assert.Empty(store.GetMailSummary(account.Id, "INBOX", 2)!.Keywords);
-        Assert.Equal([1u], store.FindMail([account.Id], m => MailCategories.Has(m, "Waiting")).Select(m => m.Uid));
-        Assert.Equal([1u], store.FindMail([account.Id], m => m.Flagged).Select(m => m.Uid));
+        Assert.Equal([1u], store.FindMail([account.Id], m => MailCategories.Has(m, "Waiting"), cancel: TestContext.Current.CancellationToken).Select(m => m.Uid));
+        Assert.Equal([1u], store.FindMail([account.Id], m => m.Flagged, cancel: TestContext.Current.CancellationToken).Select(m => m.Uid));
     }
 
     public void Dispose()

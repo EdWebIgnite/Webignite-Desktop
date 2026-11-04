@@ -58,7 +58,7 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
 
     public void Refresh()
     {
-        services.Store.AddRecurringExpenses(Today);
+        services.CatchUp();
         var from = Ledger.MonthOf(Today).AddMonths(-11);
         var taxStart = Ledger.TaxYearStart(Today);
         // Back to the start of last tax year, so this tax year can be set against it.

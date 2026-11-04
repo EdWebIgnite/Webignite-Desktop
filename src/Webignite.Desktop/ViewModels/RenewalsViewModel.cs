@@ -139,6 +139,7 @@ public partial class RenewalsViewModel : ViewModelBase, IRefreshable
             return;
         }
         services.Store.SaveRenewal(renewal);
+        services.CatchUpNow();
         ClearForm();
         ShowForm = false;
         Refresh();
@@ -171,13 +172,14 @@ public partial class RenewalsViewModel : ViewModelBase, IRefreshable
         services.OfferUndo($"Removed {renewal.Name}", () =>
         {
             services.Store.SaveRenewal(renewal);
+            services.CatchUpNow();
             Refresh();
         });
     }
 
     public void Refresh()
     {
-        services.Store.RaiseRenewals(services.Settings.Documents, Today);
+        services.CatchUp();
         Soon.Clear();
         Later.Clear();
         foreach (var renewal in services.Store.ListRenewals())

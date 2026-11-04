@@ -22,19 +22,34 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
     [RelayCommand]
     public void Show()
     {
-        // Read once per opening, so typing stays quick.
+        // Read once per opening, so typing stays quick. Mail has to be unlocked message by message, so it is read
+        // off the screen's thread and joins the results when it's in; the box opens straight away.
         var accounts = services.Store.ListMailAccounts().Select(a => a.Id).ToList();
         sources = new SearchSources
         {
             Clients = services.Store.ListClients(),
             Documents = services.Store.List(),
-            Mail = services.Store.FindMail(accounts, _ => true, 1500),
+            Mail = [],
             Tasks = services.Store.ListTasks(),
             Renewals = services.Store.ListRenewals(),
         };
         Query = "";
         Results.Clear();
         IsOpen = true;
+        Refresh();
+        MailLoaded = LoadMail(accounts, sources);
+        MailLoaded.Forget("Reading mail for search");
+    }
+
+    /// <summary>Done once the mail has joined the search, e.g. for the screenshot tool to wait on.</summary>
+    public Task MailLoaded { get; private set; } = Task.CompletedTask;
+
+    private async Task LoadMail(IReadOnlyList<string> accounts, SearchSources opened)
+    {
+        var mail = await Task.Run(() => services.Store.FindMail(accounts, _ => true, 1500));
+        if (!IsOpen || !ReferenceEquals(sources, opened))
+            return; // closed, or opened again since
+        sources = opened with { Mail = mail };
         Refresh();
     }
 
