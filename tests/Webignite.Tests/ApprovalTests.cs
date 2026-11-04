@@ -29,11 +29,11 @@ public sealed class ApprovalTests : IDisposable
     {
         var mine = Doc();
         var fromClaude = Doc() with { Status = DocumentStatus.AwaitingApproval, Source = DocumentSource.Claude };
-        var draft = Doc() with { XeroState = XeroWriteState.Verified, XeroId = "x1", Status = DocumentStatus.InXero };
-        var approved = draft with { Id = "a", Approved = DateTimeOffset.UtcNow };
-        var emailed = approved with { Id = "e", Emailed = DateTimeOffset.UtcNow };
-        var broken = Doc() with { XeroState = XeroWriteState.Uncertain };
-        var quote = Doc(DocumentKind.Quote) with { XeroState = XeroWriteState.Verified, XeroId = "q1" };
+        var draft = Doc().WithXero(x => x with { State = XeroWriteState.Verified, Id = "x1" }) with { Status = DocumentStatus.InXero };
+        var approved = draft with { Id = "a", Delivery = draft.Delivery with { Approved = DateTimeOffset.UtcNow } };
+        var emailed = approved with { Id = "e", Delivery = approved.Delivery with { Emailed = DateTimeOffset.UtcNow } };
+        var broken = Doc().WithXero(x => x with { State = XeroWriteState.Uncertain });
+        var quote = Doc(DocumentKind.Quote).WithXero(x => x with { State = XeroWriteState.Verified, Id = "q1" });
 
         var waiting = Approvals.Waiting([mine, fromClaude, draft, approved, emailed, broken, quote]);
 
@@ -59,7 +59,7 @@ public sealed class ApprovalTests : IDisposable
         var stored = store.Get(prepared.Id)!;
         Assert.Equal(DocumentStatus.AwaitingApproval, stored.Status);
         Assert.Equal(DocumentSource.ChatGpt, stored.Source);
-        Assert.Equal(XeroWriteState.None, stored.XeroState);
+        Assert.Equal(XeroWriteState.None, stored.Xero.State);
         Assert.Equal("Karoo Coffee Roasters", stored.Document.Customer.Name);
         Assert.Equal("accounts@karoocoffee.co.za", stored.Document.Customer.Email);
         Assert.Null(stored.Document.Lines[2].Quantity);

@@ -33,7 +33,7 @@ public static class Approvals
     /// Whether it can be thrown away from To approve: only what Claude or ChatGPT prepared and never reached Xero.
     /// Anything in Xero is dealt with in Xero.
     /// </summary>
-    public static bool CanReject(WaitingItem item) => item.Kind == WaitingKind.FromAssistant && item.Stored.XeroId is null;
+    public static bool CanReject(WaitingItem item) => item.Kind == WaitingKind.FromAssistant && item.Stored.Xero.Id is null;
 
     public static WaitingItem? Why(StoredDocument s)
     {
@@ -41,17 +41,17 @@ public static class Approvals
         var by = s.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude";
         return s switch
         {
-            { XeroState: XeroWriteState.Writing or XeroWriteState.Uncertain } =>
+            { Xero.State: XeroWriteState.Writing or XeroWriteState.Uncertain } =>
                 new(s, WaitingKind.XeroProblem, "It isn't clear whether Xero got it. Open it and use Check Xero."),
-            { XeroState: XeroWriteState.Mismatch } =>
+            { Xero.State: XeroWriteState.Mismatch } =>
                 new(s, WaitingKind.XeroProblem, "Xero's copy differs from this one. Open it to see how."),
-            { XeroState: XeroWriteState.None, Status: DocumentStatus.AwaitingApproval } =>
+            { Xero.State: XeroWriteState.None, Status: DocumentStatus.AwaitingApproval } =>
                 new(s, WaitingKind.FromAssistant, $"{by} prepared this {what}. Check it, then create it in Xero or reject it."),
-            { XeroState: XeroWriteState.Verified, Emailed: null, Approved: null } =>
+            { Xero.State: XeroWriteState.Verified, Delivery: { Emailed: null, Approved: null } } =>
                 new(s, WaitingKind.XeroDraft, s.Document.Kind == DocumentKind.Quote
                     ? "Draft quote in Xero, not emailed yet."
                     : "Draft invoice in Xero, not approved or emailed yet."),
-            { XeroState: XeroWriteState.Verified, Emailed: null, Approved: not null } =>
+            { Xero.State: XeroWriteState.Verified, Delivery: { Emailed: null, Approved: not null } } =>
                 new(s, WaitingKind.NotEmailed, "Approved in Xero but not emailed to the customer."),
             _ => null,
         };

@@ -151,8 +151,14 @@ public sealed class OneRuleTests
     {
         StoredDocument Owing(string name, decimal due) => new()
         {
-            Id = StoredDocument.NewId(), XeroId = StoredDocument.NewId(), Status = DocumentStatus.InXero, XeroAmountDue = due,
+            Id = StoredDocument.NewId(),
+            Status = DocumentStatus.InXero,
             Document = Samples.Completed(Samples.NewInvoice() with { Customer = new Customer { Name = name } }),
+            Xero = new()
+            {
+                Id = StoredDocument.NewId(),
+                AmountDue = due,
+            },
         };
         var due = Statements.Due([Owing("Karoo Coffee", 100m), Owing("karoo  coffee", 50m)], new Dictionary<string, DateOnly>(), Samples.Today);
         Assert.Equal(150m, Assert.Single(due).Open);

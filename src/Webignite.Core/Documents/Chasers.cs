@@ -5,7 +5,7 @@ public enum ChaseKind { FollowUp, Reminder }
 /// <summary>A quote to follow up or an overdue invoice to remind about.</summary>
 public sealed record ChaseItem(StoredDocument Stored, ChaseKind Kind, int Days, bool Due)
 {
-    public string Number => Stored.XeroNumber ?? (Kind == ChaseKind.FollowUp ? "the quote" : "the invoice");
+    public string Number => Stored.Xero.Number ?? (Kind == ChaseKind.FollowUp ? "the quote" : "the invoice");
     public string Customer => Stored.Document.Customer.Name;
 }
 
@@ -22,12 +22,12 @@ public static class Chasers
     public static IReadOnlyList<ChaseItem> Find(IEnumerable<StoredDocument> documents, DateOnly today)
     {
         var items = new List<ChaseItem>();
-        foreach (var stored in documents.Where(d => d.Settled is null && d.XeroId is not null))
+        foreach (var stored in documents.Where(d => d.Settled is null && d.Xero.Id is not null))
         {
             var doc = stored.Document;
             if (doc.Kind == DocumentKind.Quote)
             {
-                if (stored.Emailed is not { } sent || stored.Chased is not null || doc.DueOrExpiryDate < today)
+                if (stored.Delivery.Emailed is not { } sent || stored.Delivery.Chased is not null || doc.DueOrExpiryDate < today)
                     continue;
                 var days = today.DayNumber - Day(sent).DayNumber;
                 if (days >= FollowUpAfterDays)
@@ -36,7 +36,7 @@ public static class Chasers
             else if (Receivables.IsOverdue(stored, today) && doc.DueOrExpiryDate is { } due)
             {
                 var overdue = today.DayNumber - due.DayNumber;
-                var remind = stored.Chased is not { } last || today.DayNumber - Day(last).DayNumber >= RemindEveryDays;
+                var remind = stored.Delivery.Chased is not { } last || today.DayNumber - Day(last).DayNumber >= RemindEveryDays;
                 items.Add(new ChaseItem(stored, ChaseKind.Reminder, overdue, remind));
             }
         }

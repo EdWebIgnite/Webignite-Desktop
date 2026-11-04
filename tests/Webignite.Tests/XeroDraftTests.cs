@@ -77,11 +77,11 @@ public sealed class XeroDraftTests
         var result = await drafts.CreateAsync(stored, new XeroTarget("200"), cancel: TestContext.Current.CancellationToken);
 
         var done = Assert.IsType<XeroDrafts.Result.Done>(result);
-        Assert.Equal(XeroWriteState.Verified, done.Stored.XeroState);
-        Assert.Equal("INV-0111", done.Stored.XeroNumber);
+        Assert.Equal(XeroWriteState.Verified, done.Stored.Xero.State);
+        Assert.Equal("INV-0111", done.Stored.Xero.Number);
         Assert.Equal(Webignite.Core.Documents.DocumentStatus.InXero, done.Stored.Status);
-        Assert.Equal(XeroWriteState.Writing, saves[0].XeroState);
-        Assert.NotNull(saves[0].XeroSent);
+        Assert.Equal(XeroWriteState.Writing, saves[0].Xero.State);
+        Assert.NotNull(saves[0].Xero.Sent);
         var put = Assert.Single(xero.Puts);
         Assert.Equal(stored.Id + "-document", put.Key);
         Assert.Equal("DRAFT", put.Body["Invoices"]![0]!["Status"]!.GetValue<string>());
@@ -114,14 +114,14 @@ public sealed class XeroDraftTests
 
         var result = await drafts.CreateAsync(Stored(), new XeroTarget("200"), cancel: TestContext.Current.CancellationToken);
         var stopped = Assert.IsType<XeroDrafts.Result.Stopped>(result);
-        Assert.Equal(XeroWriteState.Uncertain, stopped.Stored.XeroState);
+        Assert.Equal(XeroWriteState.Uncertain, stopped.Stored.Xero.State);
         Assert.Single(xero.Puts);
 
         // Trying again is refused; Check Xero finds the one that did arrive.
         Assert.IsType<XeroDrafts.Result.Stopped>(await drafts.CreateAsync(stopped.Stored, new XeroTarget("200"), cancel: TestContext.Current.CancellationToken));
         Assert.Single(xero.Puts);
         var check = await drafts.CheckAsync(stopped.Stored, TestContext.Current.CancellationToken);
-        Assert.Equal(XeroWriteState.Verified, Assert.IsType<XeroDrafts.Result.Done>(check).Stored.XeroState);
+        Assert.Equal(XeroWriteState.Verified, Assert.IsType<XeroDrafts.Result.Done>(check).Stored.Xero.State);
     }
 
     [Fact]

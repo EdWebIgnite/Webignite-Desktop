@@ -57,10 +57,10 @@ public sealed class ServiceLayerTests : IDisposable
         var typed = draft.Document with { Reference = "Website, November" };
         Assert.Equal("Website, November", documents.SaveDraft(draft.Id, typed).Document.Reference);
 
-        documents.Change(draft.Id, d => d with { XeroState = XeroWriteState.Verified, XeroId = "x1" });
+        documents.Change(draft.Id, d => d with { Xero = d.Xero with { State = XeroWriteState.Verified, Id = "x1" } });
         var refused = documents.SaveDraft(draft.Id, typed with { Reference = "Changed after" });
         Assert.Equal("Website, November", refused.Document.Reference);
-        Assert.Equal(XeroWriteState.Verified, refused.XeroState);
+        Assert.Equal(XeroWriteState.Verified, refused.Xero.State);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class ServiceLayerTests : IDisposable
         Assert.NotNull(documents.Get(fromClaude.Id));
 
         // It went to Xero from another page meanwhile: no longer thrown away from here.
-        documents.Change(fromClaude.Id, d => d with { XeroId = "x9" });
+        documents.Change(fromClaude.Id, d => d with { Xero = d.Xero with { Id = "x9" } });
         Assert.Null(documents.Reject(new WaitingItem(fromClaude, WaitingKind.FromAssistant, "")));
         Assert.NotNull(documents.Get(fromClaude.Id));
     }

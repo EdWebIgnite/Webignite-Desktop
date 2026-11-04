@@ -38,8 +38,10 @@ public sealed class CalendarTests : IDisposable
         var tasks = new[] { new TaskItem { Id = "t1", Title = "Send sitemap", Due = Today } };
         var invoice = new StoredDocument
         {
-            Id = "d1", Status = DocumentStatus.InXero, XeroNumber = "INV-0107",
+            Id = "d1",
+            Status = DocumentStatus.InXero,
             Document = Samples.Completed(Samples.NewInvoice() with { Date = Today.AddDays(-7), DueOrExpiryDate = Today }),
+            Xero = new() { Number = "INV-0107" },
         };
         var draft = invoice with { Id = "d2", Status = DocumentStatus.Draft };
 

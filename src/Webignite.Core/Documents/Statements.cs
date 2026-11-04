@@ -21,7 +21,7 @@ public static class Statements
     {
         var monthStart = Dates.MonthStart(today);
         return documents
-            .Where(d => d.XeroId is not null && Receivables.Outstanding(d) > 0)
+            .Where(d => d.Xero.Id is not null && Receivables.Outstanding(d) > 0)
             .GroupBy(d => Key(d.Document.Customer.Name))
             .Where(g => !(sent.TryGetValue(g.Key, out var last) && last >= monthStart))
             .Select(g => (g.First().Document.Customer.Name.Trim(), g.Sum(Receivables.Outstanding)))
@@ -57,8 +57,8 @@ public static class Statements
     {
         var key = Key(customer);
         return clients.FirstOrDefault(c => Key(c.Name) == key && c.XeroContactId is { Length: > 0 })?.XeroContactId
-            ?? documents.Where(d => Key(d.Document.Customer.Name) == key && d.XeroContactId is { Length: > 0 })
-                .OrderByDescending(d => d.Updated).FirstOrDefault()?.XeroContactId;
+            ?? documents.Where(d => Key(d.Document.Customer.Name) == key && d.Xero.ContactId is { Length: > 0 })
+                .OrderByDescending(d => d.Updated).FirstOrDefault()?.Xero.ContactId;
     }
 
     /// <summary>Remembers that a customer had their statement, so it isn't offered again this month.</summary>

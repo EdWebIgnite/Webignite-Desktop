@@ -32,7 +32,7 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
     public async Task<Result> CreateAsync(StoredDocument stored, XeroTarget target, string? contactId = null, bool createContact = false,
         string? customerEmail = null, CancellationToken cancel = default)
     {
-        if (stored.XeroState != XeroWriteState.None)
+        if (stored.Xero.State != XeroWriteState.None)
             return new Result.Stopped(stored, "This one has already been sent to Xero. Use Check Xero instead.");
         var doc = stored.Document;
         if (DocumentValidator.Validate(doc) is { Count: > 0 } problems)
@@ -64,7 +64,7 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
 
         // From here on, every step is saved before the next, so a crash or a dropped line leaves a clear trail.
         var payload = XeroPayload.Build(doc, contact?.Id ?? "", target.AccountCode, target.TaxType);
-        stored = save(stored with { XeroState = XeroWriteState.Writing, XeroContactId = contact?.Id, XeroSent = payload.ToJsonString(), XeroProblems = [] });
+        stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.Writing, ContactId = contact?.Id, Sent = payload.ToJsonString(), Problems = [] } });
 
         try
         {
@@ -76,7 +76,7 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
                 if (id.Length == 0)
                     throw new XeroUncertainException("Xero didn't say which contact it made. Check Xero.");
                 payload["Contact"] = new JsonObject { ["ContactID"] = id };
-                stored = save(stored with { XeroContactId = id, XeroSent = payload.ToJsonString() });
+                stored = save(stored with { Xero = stored.Xero with { ContactId = id, Sent = payload.ToJsonString() } });
             }
 
             var created = await api.PutAsync(Resource(doc) + "?unitdp=4", new JsonObject { [Resource(doc)] = new JsonArray(JsonNode.Parse(payload.ToJsonString())) },
@@ -84,20 +84,23 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
             var record = created[Resource(doc)]?[0] as JsonObject ?? throw new XeroUncertainException("Xero's reply had no document in it. Use Check Xero.");
             stored = save(stored with
             {
-                XeroState = XeroWriteState.CreatedUnverified,
-                XeroId = XeroApi.Str(record[IdKey(doc)]),
-                XeroNumber = XeroApi.Str(record[NumberKey(doc)]) is { Length: > 0 } n ? n : null,
+                Xero = stored.Xero with
+            {
+                State = XeroWriteState.CreatedUnverified,
+                Id = XeroApi.Str(record[IdKey(doc)]),
+                Number = XeroApi.Str(record[NumberKey(doc)]) is { Length: > 0 } n ? n : null,
+            },
             });
         }
         catch (XeroUncertainException e)
         {
-            stored = save(stored with { XeroState = XeroWriteState.Uncertain, XeroProblems = [e.Message] });
+            stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.Uncertain, Problems = [e.Message] } });
             return new Result.Stopped(stored, e.Message);
         }
         catch (XeroException e)
         {
             // Xero turned the document down, so nothing was made (a new contact may have been).
-            stored = save(stored with { XeroState = XeroWriteState.None, XeroSent = null, XeroProblems = [e.Message] });
+            stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.None, Sent = null, Problems = [e.Message] } });
             return new Result.Stopped(stored, e.Message);
         }
         return await VerifyAsync(stored, cancel);
@@ -110,42 +113,45 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
     public async Task<Result> CheckAsync(StoredDocument stored, CancellationToken cancel = default)
     {
         var doc = stored.Document;
-        if (stored.XeroId is null)
+        if (stored.Xero.Id is null)
         {
-            if (stored.XeroContactId is null)
+            if (stored.Xero.ContactId is null)
                 return Unsure(stored, "Couldn't tell whether a new contact was made. Look in Xero for this customer and their document, then use Start over if nothing is there.");
-            var existing = await api.ExistingAsync(doc.Kind == DocumentKind.Quote, stored.XeroContactId, cancel);
-            if (XeroRules.FindOurs(doc, stored.XeroContactId, existing, linkedXeroIds()) is not { } ours)
+            var existing = await api.ExistingAsync(doc.Kind == DocumentKind.Quote, stored.Xero.ContactId, cancel);
+            if (XeroRules.FindOurs(doc, stored.Xero.ContactId, existing, linkedXeroIds()) is not { } ours)
                 return Unsure(stored, "Couldn't find exactly one matching draft in Xero. Look in Xero, then use Start over if it isn't there.");
-            stored = save(stored with { XeroId = ours.Id, XeroNumber = ours.Number, XeroState = XeroWriteState.CreatedUnverified });
+            stored = save(stored with { Xero = stored.Xero with { Id = ours.Id, Number = ours.Number, State = XeroWriteState.CreatedUnverified } });
         }
         return await VerifyAsync(stored, cancel);
     }
 
     /// <summary>After a person has checked Xero and found nothing, the document can be sent again.</summary>
     public StoredDocument StartOver(StoredDocument stored) =>
-        stored.XeroId is not null ? stored : save(stored with { XeroState = XeroWriteState.None, XeroSent = null, XeroProblems = [] });
+        stored.Xero.Id is not null ? stored : save(stored with { Xero = stored.Xero with { State = XeroWriteState.None, Sent = null, Problems = [] } });
 
     private Result.Stopped Unsure(StoredDocument stored, string message)
     {
-        stored = save(stored with { XeroState = XeroWriteState.Uncertain, XeroProblems = [message] });
+        stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.Uncertain, Problems = [message] } });
         return new Result.Stopped(stored, message);
     }
 
     private async Task<Result> VerifyAsync(StoredDocument stored, CancellationToken cancel)
     {
         var doc = stored.Document;
-        if (stored.XeroSent is null || JsonNode.Parse(stored.XeroSent) is not JsonObject sent)
+        if (stored.Xero.Sent is null || JsonNode.Parse(stored.Xero.Sent) is not JsonObject sent)
             return Unsure(stored, "What was sent to Xero wasn't kept, so it can't be checked. Compare it in Xero by hand.");
-        var reply = await api.GetAsync($"{Resource(doc)}/{stored.XeroId}?unitdp=4", cancel);
+        var reply = await api.GetAsync($"{Resource(doc)}/{stored.Xero.Id}?unitdp=4", cancel);
         var actual = reply[Resource(doc)]?[0] as JsonObject ?? throw new XeroException("Xero didn't send the document back.");
         var differences = XeroPayload.Verify(doc, sent, actual);
         stored = save(stored with
         {
-            XeroNumber = XeroApi.Str(actual[NumberKey(doc)]) is { Length: > 0 } n ? n : stored.XeroNumber,
-            XeroState = differences.Count == 0 ? XeroWriteState.Verified : XeroWriteState.Mismatch,
             Status = DocumentStatus.InXero,
-            XeroProblems = differences,
+            Xero = stored.Xero with
+            {
+                Number = XeroApi.Str(actual[NumberKey(doc)]) is { Length: > 0 } n ? n : stored.Xero.Number,
+                State = differences.Count == 0 ? XeroWriteState.Verified : XeroWriteState.Mismatch,
+                Problems = differences,
+            },
         });
         return differences.Count == 0
             ? new Result.Done(stored)

@@ -8,22 +8,31 @@ public sealed class ChaserTests
     private static StoredDocument Invoice(int dueDaysAgo, DateTimeOffset? chased = null) => new()
     {
         Id = "i" + dueDaysAgo,
-        XeroId = "x",
-        XeroNumber = "INV-0111",
         Status = DocumentStatus.InXero,
-        Chased = chased,
         Document = Samples.Completed(Samples.NewInvoice()) with { DueOrExpiryDate = Today.AddDays(-dueDaysAgo) },
+        Xero = new()
+        {
+            Id = "x",
+            Number = "INV-0111",
+        },
+        Delivery = new() { Chased = chased },
     };
 
     private static StoredDocument Quote(int emailedDaysAgo, int expiresIn = 20, DateTimeOffset? chased = null) => new()
     {
         Id = "q" + emailedDaysAgo,
-        XeroId = "x",
-        XeroNumber = "QU-0012",
         Status = DocumentStatus.InXero,
-        Emailed = DaysAgo(emailedDaysAgo),
-        Chased = chased,
         Document = Samples.Completed(Samples.NewInvoice()) with { Kind = DocumentKind.Quote, DueOrExpiryDate = Today.AddDays(expiresIn) },
+        Xero = new()
+        {
+            Id = "x",
+            Number = "QU-0012",
+        },
+        Delivery = new()
+        {
+            Emailed = DaysAgo(emailedDaysAgo),
+            Chased = chased,
+        },
     };
 
     [Fact]
@@ -54,9 +63,9 @@ public sealed class ChaserTests
     [Fact]
     public void Settled_and_unsent_documents_are_left_alone()
     {
-        Assert.Empty(Chasers.Find([Invoice(5) with { Settled = DaysAgo(1), SettledAs = Settlement.Paid }], Today));
-        Assert.Empty(Chasers.Find([Invoice(5) with { XeroId = null }], Today));
-        Assert.Empty(Chasers.Find([Quote(9) with { Emailed = null }], Today));
+        Assert.Empty(Chasers.Find([Invoice(5) with { Settled = new SettledState { On = DaysAgo(1), As = Settlement.Paid } }], Today));
+        Assert.Empty(Chasers.Find([Invoice(5).WithXero(x => x with { Id = null })], Today));
+        Assert.Empty(Chasers.Find([Quote(9).WithDelivery(x => x with { Emailed = null })], Today));
     }
 
     [Theory]

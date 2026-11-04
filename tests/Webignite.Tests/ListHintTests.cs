@@ -14,15 +14,14 @@ public sealed class ListHintTests
     {
         Id = StoredDocument.NewId(),
         Status = status,
-        XeroStatus = status == DocumentStatus.InXero ? xeroStatus : null,
-        SettledAs = settledAs,
-        Settled = settledAs is null ? null : DateTimeOffset.UtcNow,
+        Settled = settledAs is null ? null : new SettledState { On = DateTimeOffset.UtcNow, As = settledAs },
         Document = Samples.Completed(Samples.NewInvoice(Samples.Priced("Website", 1, amount))) with
         {
             Kind = kind,
             DueOrExpiryDate = due,
             Customer = new Customer { Name = "Karoo Coffee Roasters" },
         },
+        Xero = new() { Status = status == DocumentStatus.InXero ? xeroStatus : null },
     };
 
     private static StoredDocument Invoice(decimal amount, DateOnly due, DocumentStatus status = DocumentStatus.InXero,

@@ -12,8 +12,7 @@ public sealed class HeadlineTests
     {
         Id = StoredDocument.NewId(),
         Status = status,
-        SettledAs = settledAs,
-        Settled = settledAs is null ? null : DateTimeOffset.UtcNow,
+        Settled = settledAs is null ? null : new SettledState { On = DateTimeOffset.UtcNow, As = settledAs },
         Document = Samples.Completed(Samples.NewInvoice(Samples.Priced("Website", 1, amount))) with
         {
             DueOrExpiryDate = due,
@@ -26,7 +25,7 @@ public sealed class HeadlineTests
         Invoice(amount, expires, settledAs: settledAs) with
         {
             Document = Invoice(amount, expires).Document with { Kind = DocumentKind.Quote },
-            XeroStatus = "SENT",
+            Xero = Invoice(amount, expires, settledAs: settledAs).Xero with { Status = "SENT" },
         };
 
     [Theory]
@@ -99,10 +98,10 @@ public sealed class HeadlineTests
     [Fact]
     public void A_draft_quote_the_client_never_saw_isnt_waiting_on_them()
     {
-        var draft = Quote(14500m, Today.AddDays(20)) with { XeroStatus = "DRAFT" };
+        var draft = Quote(14500m, Today.AddDays(20)).WithXero(x => x with { Status = "DRAFT" });
         Assert.Equal("1 quote", DocumentHeadline.For(DocumentKind.Quote, [draft], Today));
         Assert.Equal(0m, Receivables.QuotesOut([draft], Today));
-        Assert.Equal(14500m, Receivables.QuotesOut([draft with { Emailed = DateTimeOffset.UnixEpoch }], Today));
+        Assert.Equal(14500m, Receivables.QuotesOut([draft with { Delivery = draft.Delivery with { Emailed = DateTimeOffset.UnixEpoch } }], Today));
     }
 
     [Fact]
@@ -122,7 +121,7 @@ public sealed class HeadlineTests
     [Fact]
     public void The_row_detail_says_when_it_was_paid_or_that_a_quote_expired()
     {
-        var paid = Invoice(100m, Today, settledAs: Settlement.Paid) with { PaidOn = new DateOnly(2026, 10, 28) };
+        var paid = Invoice(100m, Today, settledAs: Settlement.Paid).WithXero(x => x with { PaidOn = new DateOnly(2026, 10, 28) });
         Assert.Equal("Paid 28 Oct 2026", DocumentHeadline.Detail(paid, Today));
         Assert.Equal("Expired 1 Oct 2026", DocumentHeadline.Detail(Quote(100m, new DateOnly(2026, 10, 1)), Today));
         Assert.Equal("Expires 30 Nov 2026", DocumentHeadline.Detail(Quote(100m, new DateOnly(2026, 11, 30)), Today));
@@ -162,9 +161,12 @@ public sealed class EmailedLineTests
     {
         Id = StoredDocument.NewId(),
         Status = DocumentStatus.InXero,
-        Emailed = emailed,
-        EmailedTo = to,
         Document = Samples.Completed(Samples.NewInvoice()) with { DueOrExpiryDate = new DateOnly(2026, 11, 17), Reference = reference },
+        Delivery = new()
+        {
+            Emailed = emailed,
+            EmailedTo = to,
+        },
     };
 
     private static readonly DateTimeOffset Sent = new(2026, 11, 3, 10, 0, 0, TimeSpan.FromHours(2));

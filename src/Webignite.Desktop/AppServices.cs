@@ -170,7 +170,7 @@ public sealed class AppServices : IDisposable
     /// <summary>Creates Xero drafts, saving each step to this PC as it goes.</summary>
     public Webignite.Xero.XeroDrafts? XeroDrafts =>
         XeroApi is { } api
-            ? new Webignite.Xero.XeroDrafts(api, Documents.Put, () => Documents.List().Select(d => d.XeroId).OfType<string>().ToHashSet())
+            ? new Webignite.Xero.XeroDrafts(api, Documents.Put, () => Documents.List().Select(d => d.Xero.Id).OfType<string>().ToHashSet())
             : null;
 
     /// <summary>Approves, fetches Xero's PDF and marks documents sent, for emailing from Webignite's own mailbox.</summary>

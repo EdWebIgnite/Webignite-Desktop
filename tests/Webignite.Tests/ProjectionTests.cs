@@ -16,7 +16,7 @@ public sealed class ProjectionTests
         Id = id,
         Document = Samples.Completed(Samples.NewInvoice(Samples.Priced("Work", 1, total))) with { DueOrExpiryDate = due },
         Status = DocumentStatus.InXero,
-        XeroNumber = "INV-" + id,
+        Xero = new() { Number = "INV-" + id },
     };
 
     private static Retainer Seo(DateOnly starts) => new()
@@ -84,7 +84,7 @@ public sealed class ProjectionTests
     [Fact]
     public void Voided_invoices_are_not_expected()
     {
-        var voided = Invoice("1", 1000m, new DateOnly(2026, 11, 14)) with { SettledAs = Settlement.Voided };
+        var voided = Invoice("1", 1000m, new DateOnly(2026, 11, 14)) with { Settled = new SettledState { On = DateTimeOffset.UnixEpoch, As = Settlement.Voided } };
         Assert.Empty(Projection.ExpectedIn(Nov, [voided], [], [], None));
     }
 
@@ -102,7 +102,7 @@ public sealed class ProjectionTests
     public void Came_in_reads_money_received_or_xero_payments()
     {
         MoneyEntry[] entries = [Received(new DateOnly(2026, 10, 3), 500m), Received(new DateOnly(2026, 9, 3), 70m)];
-        StoredDocument[] docs = [Invoice("1", 1000m, new DateOnly(2026, 10, 1)) with { PaidOn = new DateOnly(2026, 10, 9), XeroAmountPaid = 1000m }];
+        StoredDocument[] docs = [Invoice("1", 1000m, new DateOnly(2026, 10, 1)).WithXero(x => x with { PaidOn = new DateOnly(2026, 10, 9), AmountPaid = 1000m })];
         var oct = new DateOnly(2026, 10, 1);
         Assert.Equal(500m, Projection.CameIn(oct, CameInSource.Money, entries, docs));
         Assert.Equal(1000m, Projection.CameIn(oct, CameInSource.Xero, entries, docs));

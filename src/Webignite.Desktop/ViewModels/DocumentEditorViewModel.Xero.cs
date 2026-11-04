@@ -38,7 +38,7 @@ public partial class DocumentEditorViewModel
     [ObservableProperty]
     public partial string ContactSearch { get; set; } = "";
 
-    public XeroWriteState XeroState => stored?.XeroState ?? XeroWriteState.None;
+    public XeroWriteState XeroState => stored?.Xero.State ?? XeroWriteState.None;
     public bool IsEditable => XeroState == XeroWriteState.None;
     public bool IsVerified => XeroState == XeroWriteState.Verified;
     public bool HasXeroMessage => XeroMessage.Length > 0;
@@ -54,8 +54,8 @@ public partial class DocumentEditorViewModel
     public bool CanCreate => IsEditable && !XeroBusy && XeroHint.Length == 0;
     public bool ShowCreate => IsEditable;
     public bool ShowCheck => XeroState is XeroWriteState.Writing or XeroWriteState.Uncertain or XeroWriteState.CreatedUnverified or XeroWriteState.Mismatch;
-    public bool ShowStartOver => XeroState is XeroWriteState.Writing or XeroWriteState.Uncertain && stored?.XeroId is null;
-    public bool HasXeroLink => Kind == DocumentKind.Invoice && stored?.XeroId is not null;
+    public bool ShowStartOver => XeroState is XeroWriteState.Writing or XeroWriteState.Uncertain && stored?.Xero.Id is null;
+    public bool HasXeroLink => Kind == DocumentKind.Invoice && stored?.Xero.Id is not null;
 
     partial void OnIsReadyChanged(bool value) => RefreshXero();
 
@@ -101,7 +101,7 @@ public partial class DocumentEditorViewModel
 
     [RelayCommand]
     private Task OpenInXero() =>
-        stored?.XeroId is { } id
+        stored?.Xero.Id is { } id
             ? AppServices.OpenInBrowser(new Uri("https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=" + Uri.EscapeDataString(id)))
             : Task.CompletedTask;
 
@@ -196,14 +196,14 @@ public partial class DocumentEditorViewModel
     public string XeroStatus => stored is null ? "" : XeroState switch
     {
         XeroWriteState.Writing => "Sending to Xero was cut off. Use Check Xero before anything else.",
-        XeroWriteState.Uncertain => "It isn't clear whether Xero got it. " + string.Join(" ", stored.XeroProblems),
-        XeroWriteState.CreatedUnverified => $"In Xero as {stored.XeroNumber ?? "a draft"}, not compared yet. Use Check Xero.",
-        XeroWriteState.Mismatch => $"In Xero as {stored.XeroNumber ?? "a draft"}, but it differs: " + string.Join(" ", stored.XeroProblems),
-        XeroWriteState.Verified when stored.Approved is not null => $"{stored.XeroNumber} is approved in Xero.",
+        XeroWriteState.Uncertain => "It isn't clear whether Xero got it. " + string.Join(" ", stored.Xero.Problems),
+        XeroWriteState.CreatedUnverified => $"In Xero as {stored.Xero.Number ?? "a draft"}, not compared yet. Use Check Xero.",
+        XeroWriteState.Mismatch => $"In Xero as {stored.Xero.Number ?? "a draft"}, but it differs: " + string.Join(" ", stored.Xero.Problems),
+        XeroWriteState.Verified when stored.Delivery.Approved is not null => $"{stored.Xero.Number} is approved in Xero.",
         XeroWriteState.Verified => Kind == DocumentKind.Quote
-            ? $"Draft {stored.XeroNumber} is in Xero and matches this document. Email it when it's right."
-            : $"Draft {stored.XeroNumber} is in Xero and matches this document. Use Approve and email when it's right.",
-        _ => stored.XeroProblems.Count > 0 ? "Xero turned it down: " + string.Join(" ", stored.XeroProblems) : "",
+            ? $"Draft {stored.Xero.Number} is in Xero and matches this document. Email it when it's right."
+            : $"Draft {stored.Xero.Number} is in Xero and matches this document. Use Approve and email when it's right.",
+        _ => stored.Xero.Problems.Count > 0 ? "Xero turned it down: " + string.Join(" ", stored.Xero.Problems) : "",
     };
 
     public bool HasXeroStatus => XeroStatus.Length > 0;
@@ -236,22 +236,22 @@ public partial class DocumentEditorViewModel
     public bool ShowEmail => stored is not null && XeroSending.CannotSend(stored) is null;
 
     public string EmailButtonText =>
-        stored?.Emailed is not null ? "Email again"
+        stored?.Delivery.Emailed is not null ? "Email again"
         : Kind == DocumentKind.Quote ? "Email the quote"
-        : stored?.Approved is null ? "Approve and email" : "Email the invoice";
+        : stored?.Delivery.Approved is null ? "Approve and email" : "Email the invoice";
 
-    public string EmailedText => stored?.Emailed is { } when
-        ? (string.IsNullOrWhiteSpace(stored.EmailedTo) ? "Emailed" : $"Emailed to {stored.EmailedTo}") + $" on {when.ToLocalTime():d MMM} at {when.ToLocalTime():HH:mm}."
+    public string EmailedText => stored?.Delivery.Emailed is { } when
+        ? (string.IsNullOrWhiteSpace(stored.Delivery.EmailedTo) ? "Emailed" : $"Emailed to {stored.Delivery.EmailedTo}") + $" on {when.ToLocalTime():d MMM} at {when.ToLocalTime():HH:mm}."
         : "";
     public bool HasEmailedText => EmailedText.Length > 0;
 
     public string ApproveQuestion =>
-        $"This approves {stored?.XeroNumber ?? "the invoice"} in Xero, so it counts as owed, then opens the email from your invoice mailbox with Xero's PDF attached. Nothing is sent until you press Send.";
+        $"This approves {stored?.Xero.Number ?? "the invoice"} in Xero, so it counts as owed, then opens the email from your invoice mailbox with Xero's PDF attached. Nothing is sent until you press Send.";
 
     [RelayCommand]
     private Task StartEmail()
     {
-        if (Kind == DocumentKind.Invoice && stored?.Approved is null)
+        if (Kind == DocumentKind.Invoice && stored?.Delivery.Approved is null)
         {
             ConfirmingApprove = true;
             return Task.CompletedTask;
@@ -285,7 +285,7 @@ public partial class DocumentEditorViewModel
         }
 
         XeroBusy = true;
-        ShowXero(Kind == DocumentKind.Invoice && stored.Approved is null ? "Approving in Xero and fetching the PDF…" : "Fetching the PDF from Xero…", problem: false);
+        ShowXero(Kind == DocumentKind.Invoice && stored.Delivery.Approved is null ? "Approving in Xero and fetching the PDF…" : "Fetching the PDF from Xero…", problem: false);
         try
         {
             var ready = await sending.PrepareAsync(stored, services.Settings.Xero.TenantName ?? "Webignite");

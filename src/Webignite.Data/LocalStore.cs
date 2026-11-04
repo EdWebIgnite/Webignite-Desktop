@@ -127,11 +127,19 @@ public sealed partial class LocalStore : IDisposable
                 payload BLOB NOT NULL
             );
             """);
-        Upgrade();
+        try
+        {
+            Upgrade();
+        }
+        catch
+        {
+            Dispose(); // so the file isn't left open, and a restore or a later try can use it
+            throw;
+        }
     }
 
     /// <summary>The layout this version of the app writes. Bump it when a table changes shape, and add the step below.</summary>
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
 
     /// <summary>What the database file was last written by, from SQLite's own user_version slot.</summary>
     public int StoredSchemaVersion
@@ -152,10 +160,13 @@ public sealed partial class LocalStore : IDisposable
     private void Upgrade()
     {
         var version = StoredSchemaVersion;
-        if (version >= SchemaVersion)
+        if (version > SchemaVersion)
+            throw new NewerDataException();
+        if (version == SchemaVersion)
             return;
         using var transaction = connection.BeginTransaction();
-        // if (version < 2) Execute("ALTER TABLE ...");
+        if (version < 2)
+            GroupDocumentFields();
         Execute($"PRAGMA user_version = {SchemaVersion}");
         transaction.Commit();
     }

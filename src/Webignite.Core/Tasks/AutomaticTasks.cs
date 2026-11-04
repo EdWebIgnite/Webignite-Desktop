@@ -30,7 +30,7 @@ public static class AutomaticTasks
             if (chase.Kind == ChaseKind.FollowUp)
                 Add(stored, customer, $"{FollowUpKey}{stored.Id}", $"Follow up {chase.Number}{For(customer)}", today);
             else
-                Add(stored, customer, $"{ReminderKey}{stored.Id}:{stored.ChaseCount}",
+                Add(stored, customer, $"{ReminderKey}{stored.Id}:{stored.Delivery.ChaseCount}",
                     $"Chase overdue {chase.Number}{For(customer)}, {Money.Rand(Receivables.Outstanding(stored))}", today);
         }
         foreach (var stored in all)

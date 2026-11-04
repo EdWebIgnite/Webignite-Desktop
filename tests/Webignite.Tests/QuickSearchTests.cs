@@ -17,7 +17,7 @@ public sealed class QuickSearchTests
         ],
         Documents =
         [
-            new StoredDocument { Id = "d1", Status = DocumentStatus.InXero, XeroNumber = "INV-0107", Document = Samples.Completed(Samples.NewInvoice()) },
+            new StoredDocument { Id = "d1", Status = DocumentStatus.InXero, Document = Samples.Completed(Samples.NewInvoice()), Xero = new() { Number = "INV-0107" } },
         ],
         Mail =
         [

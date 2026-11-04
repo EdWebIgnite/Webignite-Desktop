@@ -29,7 +29,7 @@ public sealed class DocumentService(LocalStore store)
     /// A document that was deleted meanwhile is saved again, so the typing isn't lost.
     /// </summary>
     public StoredDocument SaveDraft(string id, Document document) =>
-        store.Update(id, current => current.XeroState == XeroWriteState.None ? current with { Document = document } : null)
+        store.Update(id, current => current.Xero.State == XeroWriteState.None ? current with { Document = document } : null)
         ?? store.Save(new StoredDocument { Id = id, Document = document });
 
     /// <summary>A new draft copied from another: the same customer, lines and notes, with fresh dates.</summary>
@@ -48,7 +48,7 @@ public sealed class DocumentService(LocalStore store)
         if (!Approvals.CanReject(item))
             return null;
         var gone = Latest(item.Stored);
-        if (gone.XeroId is not null)
+        if (gone.Xero.Id is not null)
             return null;
         store.DeleteDocument(gone.Id);
         return gone;
