@@ -58,6 +58,28 @@ window.Show();
 
 void Open(Page page) => vm.Selected = vm[page];
 
+// Checks along the way. Each failure is listed, and the run ends with an error so CI shows it.
+var failures = new List<string>();
+void Check(string what, bool ok)
+{
+    Console.WriteLine((ok ? "OK    " : "FAIL  ") + what);
+    if (!ok)
+        failures.Add(what);
+}
+
+// Waits for work that finishes off the screen's thread, keeping the screen's own jobs running meanwhile.
+void Wait(Task task, string what)
+{
+    var until = DateTime.UtcNow.AddSeconds(10);
+    while (!task.IsCompleted && DateTime.UtcNow < until)
+    {
+        Dispatcher.UIThread.RunJobs();
+        Thread.Sleep(10);
+    }
+    Dispatcher.UIThread.RunJobs();
+    Check(what, task.IsCompletedSuccessfully);
+}
+
 void Save(string name)
 {
     Dispatcher.UIThread.RunJobs();
@@ -67,7 +89,7 @@ void Save(string name)
     Console.WriteLine("Saved " + name);
 }
 
-Save("overview");
+Save("overview-start");
 
 vm.ToggleShortcutsCommand.Execute(null);
 Save("shortcuts");
@@ -106,10 +128,10 @@ vm.Invoices.ClearFiltersCommand.Execute(null);
     Save("invoices-keys");
     window.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
     Dispatcher.UIThread.RunJobs();
-    Console.WriteLine("Enter opened a row: " + !vm.Invoices.IsListing);
+    Check("Enter opened a row", !vm.Invoices.IsListing);
     window.KeyPress(Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null);
     Dispatcher.UIThread.RunJobs();
-    Console.WriteLine("Esc went back: " + vm.Invoices.IsListing);
+    Check("Esc went back", vm.Invoices.IsListing);
 }
 Open(Page.Quotes);
 Save("quotes");
@@ -405,7 +427,7 @@ vm.Mail.Reload();
 vm.Mail.Status = "Up to date at 09:12";
 vm.Mail.StatusIsProblem = false;
 var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
-_ = vm.Mail.Select(opened);
+Wait(vm.Mail.Select(opened), "The mail opened");
 Save("mail");
 // The same mail in a dark look: it stays on white paper so it can be read.
 services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Dark, DarkPalette = DarkPalette.Graphite };
@@ -414,14 +436,8 @@ services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme
 
 // The PDF attachment shown in the reading pane. The drawing runs off the screen's thread, so wait for it here.
 {
-    var preview = vm.Mail.Reader!.Attachments.First(a => a.Name == "booking-report.pdf").PreviewCommand.ExecuteAsync(null);
-    for (var waited = 0; !preview.IsCompleted && waited < 200; waited++)
-    {
-        Dispatcher.UIThread.RunJobs();
-        Thread.Sleep(25);
-    }
-    Dispatcher.UIThread.RunJobs();
-    Console.WriteLine("PDF pages drawn: " + (vm.Mail.Reader.Preview?.Pages.Count ?? -1) + " " + vm.Mail.Reader.Preview?.Note);
+    Wait(vm.Mail.Reader!.Attachments.First(a => a.Name == "booking-report.pdf").PreviewCommand.ExecuteAsync(null), "The PDF preview finished");
+    Check("The PDF preview drew its page", vm.Mail.Reader.Preview?.Pages.Count > 0);
     Save("mail-preview-pdf");
     vm.Mail.Reader.Preview?.CloseCommand.Execute(null);
 }
@@ -430,16 +446,16 @@ services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme
 vm.Mail.ClientFilter = vm.Mail.ClientChoices.First(c => c.Label == "Fynbos Physio");
 Save("mail-client-filter");
 vm.Mail.ClientFilter = vm.Mail.ClientChoices[0];
-_ = vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41));
+Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41)), "The booking mail opened");
 
 // Snooze until a picked day: the small form above the list.
-_ = vm.Mail.SnoozeMenu().Last().Run!(); // finishes at once: it only opens the form
+Wait(vm.Mail.SnoozeMenu().Last().Run!(), "The snooze form opened");
 Save("mail-snooze-pick");
 vm.Mail.CancelSnoozePickCommand.Execute(null);
 
 // Mail rules: two rules, then the page with the form.
 {
-    var work = services.Store.ListMailAccounts().First(a => a.Address.StartsWith("eddie"));
+    var work = services.Store.ListMailAccounts().First(a => a.Address.StartsWith("eddie", StringComparison.Ordinal));
     services.Settings.MailRules = new Webignite.Core.Mail.MailRuleSettings
     {
         Rules =
@@ -497,7 +513,7 @@ vm.Mail.FolderEditor.CancelCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Panels.Show("folders", false);
 vm.Mail.Panels.Resized("messages", 460);
-_ = vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41));
+Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41)), "The booking mail opened");
 Save("mail-panels-no-folders");
 vm.Mail.Panels.Move("reader", -1);
 Save("mail-panels-reader-left");
@@ -508,7 +524,7 @@ vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynb
 Save("client-mail");
 
 // An invoice email as Approve and email prepares it, from accounts@ with the signature picture.
-var logo = File.ReadAllBytes(Path.Combine("src", "Webignite.Desktop", "Assets", "webignite-logo.png"));
+var logo = File.ReadAllBytes(Path.Combine(RepoRoot(), "src", "Webignite.Desktop", "Assets", "webignite-logo.png"));
 var invoiceBox = store.SaveMailAccount(store.ListMailAccounts().Single(a => a.SendsInvoices) with
 {
     Signature = "Webignite Accounts\naccounts@webignite.co.za", SignatureImage = logo, SignatureImageType = "image/png",
@@ -535,14 +551,15 @@ Save("invoice-email");
     toBox.Focus();
     Dispatcher.UIThread.RunJobs();
     toBox.Text = "Thandi Mokoena <accounts@karoocoffee.co.za>, pie";
-    for (var tick = 0; tick < 50 && !vm.Mail.Composer!.HasSuggestions; tick++)
+    var until = DateTime.UtcNow.AddSeconds(5);
+    while (!vm.Mail.Composer!.HasSuggestions && DateTime.UtcNow < until)
     {
         Dispatcher.UIThread.RunJobs();
-        Thread.Sleep(20);
+        Thread.Sleep(10);
     }
-    Console.WriteLine("Suggested: " + string.Join(" | ", vm.Mail.Composer!.Suggestions.Select(c => c.Display)));
+    Check("Typing in To suggests addresses", vm.Mail.Composer!.HasSuggestions);
     vm.Mail.Composer.AcceptSuggestion();
-    Console.WriteLine("To is now: " + vm.Mail.Composer.To);
+    Check("Picking a suggestion fills it in", vm.Mail.Composer.To.Contains("pieter", StringComparison.OrdinalIgnoreCase));
 }
 // Formatting: what's typed, then the preview.
 vm.Mail.Composer!.Body = "Hi Thandi,\n\nHere's what I still need **before Friday**:\n- your logo\n- three photos of the shop\n- the *new* opening hours\n\nThe draft site is up at [this link](https://karoo.webignite.co.za).\n" + Webignite.Core.Mail.Replies.StartBody(invoiceBox.Signature);
@@ -596,7 +613,7 @@ foreach (var (name, w, h) in new[] { ("Shop Front (1).jpg", 4032, 3024), ("Team 
             c.DrawCircle(rng.Next(w), rng.Next(h), rng.Next(2, 30), new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor((byte)rng.Next(256), (byte)rng.Next(256), (byte)rng.Next(256)) });
     }
     using var img = SkiaSharp.SKImage.FromBitmap(bmp);
-    using var encoded = img.Encode(name.EndsWith(".png") ? SkiaSharp.SKEncodedImageFormat.Png : SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
+    using var encoded = img.Encode(name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? SkiaSharp.SKEncodedImageFormat.Png : SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
     File.WriteAllBytes(Path.Combine(photos, name), encoded.ToArray());
 }
 long shrunkBefore = 0, shrunkAfter = 0;
@@ -724,12 +741,7 @@ Save("site-check");
 
 // Ctrl+K search
 vm.Search.Show();
-for (var waited = 0; !vm.Search.MailLoaded.IsCompleted && waited < 200; waited++)
-{
-    Dispatcher.UIThread.RunJobs();
-    Thread.Sleep(25);
-}
-Dispatcher.UIThread.RunJobs();
+Wait(vm.Search.MailLoaded, "Search read the mail");
 vm.Search.Query = "karoo";
 Save("search");
 vm.Search.Hide();
@@ -737,7 +749,7 @@ vm.Search.Hide();
 // New mail while another page is open: a count beside Mail and a note in the corner.
 var mailIds = store.ListMailAccounts().Select(a => a.Id).ToList();
 services.Settings.MailCheck = new Webignite.Core.Mail.MailCheckSettings { Announced = mailIds.ToDictionary(id => id, _ => 0u) };
-_ = vm.CheckMailAsync();
+var mailCheck = vm.CheckMailAsync();
 // Let the note's fade-in finish before the picture.
 for (var tick = 0; tick < 40; tick++)
 {
@@ -845,10 +857,8 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     var problem = vm.PrepareToCloseAsync().GetAwaiter().GetResult();
     var kept = store.Get(invoices[0].Id)!.Document.Reference == "Typed before another opened"
         && store.Get(invoices[1].Id)!.Document.Reference == "Typed before closing" && problem is null;
-    Console.WriteLine("Open invoices were saved when replaced and on closing: " + kept);
+    Check("Open invoices were saved when replaced and on closing", kept);
     vm.Invoices.Editor = null;
-    if (!kept)
-        Environment.Exit(1);
 }
 
 // Last, as its note stays on screen while the snapshot clock stands still.
@@ -860,10 +870,25 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Dispatcher.UIThread.RunJobs();
     var logged = File.Exists(Webignite.Data.AppLog.CurrentFile(DateTimeOffset.Now))
         && File.ReadAllText(Webignite.Data.AppLog.CurrentFile(DateTimeOffset.Now)).Contains("A test problem from the snapshot tool.");
-    Console.WriteLine("An error on the screen's thread was caught and logged: " + logged);
+    Check("An error on the screen's thread was caught and logged", logged);
     Save("problem-note");
-    if (!logged)
-        Environment.Exit(1);
+}
+
+Check("The new-mail check finished", mailCheck.IsCompletedSuccessfully);
+if (failures.Count > 0)
+{
+    Console.WriteLine($"{failures.Count} check(s) failed: {string.Join("; ", failures)}");
+    Environment.Exit(1);
+}
+
+// The repository's top folder, found from where the tool runs, so it works from any folder.
+static string RepoRoot()
+{
+    foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        for (var dir = new DirectoryInfo(start); dir is not null; dir = dir.Parent)
+            if (File.Exists(Path.Combine(dir.FullName, "Webignite.slnx")))
+                return dir.FullName;
+    throw new DirectoryNotFoundException("Run the screenshot tool from inside the Webignite repository.");
 }
 
 // A small, real PDF for the attachment preview: one A4 page with three lines of text.

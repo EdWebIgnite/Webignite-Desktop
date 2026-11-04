@@ -11,7 +11,6 @@ namespace Webignite.Desktop.ViewModels;
 public partial class SettingsViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
-    private CancellationTokenSource? signIn;
 
     public SettingsViewModel(AppServices services)
     {
@@ -457,7 +456,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
 
         IsConnecting = true;
         XeroStatus = "Finish signing in to Xero in your browser. This page updates by itself.";
-        signIn = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var signIn = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         try
         {
             var tenants = await services.Xero!.SignInAsync(AppServices.OpenInBrowser, signIn.Token);
@@ -482,8 +481,6 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
         finally
         {
             IsConnecting = false;
-            signIn.Dispose();
-            signIn = null;
         }
     }
 

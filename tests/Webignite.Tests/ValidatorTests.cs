@@ -18,7 +18,7 @@ public class ValidatorTests
     public void Quantity_without_price_is_rejected() =>
         Assert.Contains(Errors(Samples.Completed(Samples.NewInvoice(
             Samples.Priced("Hosting", 1, 450m), new Line { Description = "Half", Quantity = 1 }))),
-            e => e.StartsWith("Line 2:"));
+            e => e.StartsWith("Line 2:", StringComparison.Ordinal));
 
     [Fact]
     public void Only_text_lines_is_rejected() =>

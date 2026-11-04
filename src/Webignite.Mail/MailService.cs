@@ -364,7 +364,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
                 Name = MailFolders.DisplayName(folder.FullName, folder.DirectorySeparator, role),
                 Role = role,
             };
-        }, cancel);
+        }, cancel, repeatable: false);
         store.SaveMailFolder(made);
         return made;
     }
@@ -530,7 +530,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
                 throw new MailException($"This mailbox has no {(role == FolderRole.Sent ? "Sent" : "Drafts")} folder yet. Press Check for mail, then try again.");
             var uid = await folder.AppendAsync(new AppendRequest(message, flags), cancel);
             return uid?.Id;
-        }, cancel);
+        }, cancel, repeatable: false);
     }
 
     private static async Task Expunge(ImapClient imap, IMailFolder folder, IList<UniqueId> uids, CancellationToken cancel)
@@ -554,7 +554,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
             MessageId = envelope?.MessageId,
             InReplyTo = envelope?.InReplyTo,
             Date = envelope?.Date ?? s.InternalDate ?? DateTimeOffset.MinValue,
-            From = People(envelope?.From).FirstOrDefault(),
+            From = People(envelope?.From) is [var first, ..] ? first : null,
             To = People(envelope?.To),
             Cc = People(envelope?.Cc),
             Subject = envelope?.Subject ?? "",
@@ -580,8 +580,13 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
         : folder.Attributes.HasFlag(FolderAttributes.Trash) ? FolderRole.Trash
         : MailFolders.Guess(folder.FullName, folder.DirectorySeparator);
 
-    /// <summary>Runs one job on the mailbox's connection, connecting or reconnecting first if needed.</summary>
-    private async Task<T> WithImap<T>(MailAccount account, Func<ImapClient, Task<T>> job, CancellationToken cancel)
+    /// <summary>
+    /// Runs one job on the mailbox's connection, connecting or reconnecting first if needed. A connection that
+    /// drops is tried once more, but a job that adds something to the server (<paramref name="repeatable"/> false,
+    /// such as saving a copy to Sent or Drafts) is only tried again when it never started, so a retry can't
+    /// leave two copies.
+    /// </summary>
+    private async Task<T> WithImap<T>(MailAccount account, Func<ImapClient, Task<T>> job, CancellationToken cancel, bool repeatable = true)
     {
         var connection = connections.GetOrAdd(account.Id, _ => new Connection());
         await connection.Lock.WaitAsync(cancel);
@@ -591,15 +596,17 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
                 ?? throw new MailException($"The password for {account.Address} isn't saved on this PC yet. Add it under Mail settings.");
             for (var attempt = 0; ; attempt++)
             {
+                var started = false;
                 try
                 {
                     if (!connection.Client.IsConnected)
                         await connection.Client.ConnectAsync(account.ImapHost, account.ImapPort, SecureSocketOptions.Auto, cancel);
                     if (!connection.Client.IsAuthenticated)
                         await connection.Client.AuthenticateAsync(account.SignInName, password, cancel);
+                    started = true;
                     return await job(connection.Client);
                 }
-                catch (Exception e) when (attempt == 0 && e is IOException or SocketException or ServiceNotConnectedException or ImapProtocolException)
+                catch (Exception e) when (MailRetry.TryAgain(attempt, started, repeatable, e))
                 {
                     // A dropped connection is common after the PC sleeps. Start a fresh one and try once more.
                     connection.Reset();

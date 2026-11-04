@@ -9,13 +9,15 @@ namespace Webignite.Xero.Auth;
 /// Signs in to Xero from the desktop and keeps a valid access token. Xero issues a new refresh token
 /// on every refresh, so the new one is saved straight away; losing it would mean signing in again.
 /// </summary>
-public sealed class XeroSession(XeroOptions options, HttpClient http, ITokenStore store, TimeProvider? clock = null)
+public sealed class XeroSession(XeroOptions options, HttpClient http, ITokenStore store, TimeProvider? clock = null) : IDisposable
 {
     private readonly TimeProvider clock = clock ?? TimeProvider.System;
     private readonly SemaphoreSlim gate = new(1, 1);
     private TokenSet? tokens;
 
     public bool HasSavedSignIn => store.ReadRefreshToken() is not null;
+
+    public void Dispose() => gate.Dispose();
 
     public Uri AuthorizeUrl(string state, string challenge)
     {
@@ -108,7 +110,9 @@ public sealed class XeroSession(XeroOptions options, HttpClient http, ITokenStor
             }
             throw new XeroSignInException($"Xero sign-in failed ({(int)response.StatusCode}).");
         }
-        var token = await response.Content.ReadFromJsonAsync<TokenResponse>(cancel)
+        // Xero has issued a new refresh token and the old one no longer works, so the reply is read and saved
+        // even if the person cancels now. Dropping it here would lose the sign-in.
+        var token = await response.Content.ReadFromJsonAsync<TokenResponse>(CancellationToken.None)
                     ?? throw new XeroSignInException("Xero sent an empty sign-in reply.");
         store.WriteRefreshToken(token.RefreshToken);
         tokens = new TokenSet(token.AccessToken, token.RefreshToken, clock.GetUtcNow().AddSeconds(token.ExpiresIn));

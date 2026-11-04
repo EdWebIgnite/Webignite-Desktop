@@ -125,7 +125,8 @@ public partial class ToolsView : UserControl
         }
         finally
         {
-            ReleaseDC(IntPtr.Zero, screen);
+            if (ReleaseDC(IntPtr.Zero, screen) == 0)
+                Webignite.Data.AppLog.Write("Picking a colour: the screen wasn't let go", new InvalidOperationException("ReleaseDC returned 0"));
         }
     }
 

@@ -12,7 +12,7 @@ public sealed class StoreTests : IDisposable
     private string DbPath => Path.Combine(folder, "test.db");
     private LocalStore Open() => new(DbPath, new Vault(key));
 
-    private static StoredDocument Stored(Document doc) => new() { Id = StoredDocument.NewId(), Document = doc };
+    private static StoredDocument Stored(Document doc) => Samples.Stored(doc);
 
     [Fact]
     public void Saves_and_reads_back_a_document()

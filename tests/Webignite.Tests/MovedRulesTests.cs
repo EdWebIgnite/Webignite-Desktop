@@ -12,6 +12,7 @@ namespace Webignite.Tests;
 public sealed class MovedRulesTests
 {
     private static readonly DateOnly Today = new(2026, 11, 4);
+    private static readonly decimal[] ShortAmounts = [0m, 800m, 1500m, 12000m, 1_200_000m];
 
     private static StoredDocument Invoice(DocumentStatus status, Settlement? settledAs = null, int dueInDays = 10, DateTimeOffset? checkedAt = null) => new()
     {
@@ -156,7 +157,7 @@ public sealed class MovedRulesTests
 
     [Fact]
     public void Chart_labels_are_short() =>
-        Assert.Equal(["R 0", "R 800", "R 1.5k", "R 12k", "R 1.2m"], new[] { 0m, 800m, 1500m, 12000m, 1_200_000m }.Select(ChartScale.Short));
+        Assert.Equal(["R 0", "R 800", "R 1.5k", "R 12k", "R 1.2m"], ShortAmounts.Select(ChartScale.Short));
 
     [Theory]
     [InlineData("9", 9, 0)]

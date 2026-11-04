@@ -66,7 +66,7 @@ public sealed class SiteChecker(HttpClient http)
     // A subdomain usually has no NS records of its own, so walk up until some are found.
     private async Task<IReadOnlyList<string>> NameServersAsync(string domain, CancellationToken cancel)
     {
-        for (var name = domain; name.Count(c => c == '.') >= 1; name = name[(name.IndexOf('.') + 1)..])
+        for (var name = domain; name.Contains('.'); name = name[(name.IndexOf('.') + 1)..])
         {
             var found = await DnsAsync(name, "NS", 2, cancel);
             if (found.Count > 0)
@@ -121,11 +121,15 @@ public sealed class SiteChecker(HttpClient http)
             using var tcp = new TcpClient();
             await tcp.ConnectAsync(domain, 443, timeout.Token);
             SslPolicyErrors errors = SslPolicyErrors.None;
+            // The certificate is read, not trusted for anything: nothing is sent over this connection, and any
+            // problem with it (expired, wrong name) is what the site check reports.
+#pragma warning disable CA5359
             using var ssl = new SslStream(tcp.GetStream(), false, (_, _, _, e) =>
             {
                 errors = e;
                 return true; // Look at it either way; the errors are reported below.
             });
+#pragma warning restore CA5359
             await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions { TargetHost = domain }, timeout.Token);
             if (ssl.RemoteCertificate is null)
                 return (null, null, "The site sent no certificate.");
@@ -172,6 +176,9 @@ public sealed class SiteChecker(HttpClient http)
             ConnectTimeout = TimeSpan.FromSeconds(15),
             SslOptions = new SslClientAuthenticationOptions
             {
+                // Uptime asks whether the site answers; a bad certificate is noted (trusted = false) and shown,
+                // not a reason to say the site is down. Only a plain GET is sent, nothing private.
+#pragma warning disable CA5359
                 RemoteCertificateValidationCallback = (_, certificate, _, errors) =>
                 {
                     // Only the first certificate: that's the client's own domain, before any redirect elsewhere.
@@ -183,6 +190,7 @@ public sealed class SiteChecker(HttpClient http)
                     }
                     return true;
                 },
+#pragma warning restore CA5359
             },
         };
         using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };

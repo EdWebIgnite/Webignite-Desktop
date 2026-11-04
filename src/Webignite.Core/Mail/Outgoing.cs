@@ -197,12 +197,14 @@ public static class OutgoingRules
         return problems;
     }
 
+    private static readonly string[] AttachmentWords = ["attached", "attachment", "see attach", "find attach", "enclosed"];
+
     /// <summary>A gentle check before sending, like Thunderbird's: mail that mentions an attachment but has none.</summary>
     public static bool MentionsMissingAttachment(OutgoingMail mail)
     {
         if (mail.Attachments.Count > 0)
             return false;
         var text = mail.Body.ToLowerInvariant();
-        return new[] { "attached", "attachment", "see attach", "find attach", "enclosed" }.Any(text.Contains);
+        return AttachmentWords.Any(text.Contains);
     }
 }

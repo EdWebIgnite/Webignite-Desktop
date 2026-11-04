@@ -36,7 +36,7 @@ public sealed class AssistantTools(LocalStore store, MailService mail, TimeProvi
     /// Folders are brought up to date from the server first when the copy on this PC is a few minutes old.
     /// </summary>
     public async Task<SearchResult> SearchAsync(string? query, string? mailbox, string? folder, bool unreadOnly, int limit,
-        CancellationToken cancel = default, string? client = null)
+        string? client = null, CancellationToken cancel = default)
     {
         ClientMail? withClient = null;
         if (!string.IsNullOrWhiteSpace(client))
@@ -72,10 +72,10 @@ public sealed class AssistantTools(LocalStore store, MailService mail, TimeProvi
         IEnumerable<MailSummary> found = withClient is not null
             ? store.FindMail(accounts.Select(a => a.Id), s => withClient.Matches(s)
                 && (string.IsNullOrWhiteSpace(folder) || folders.Any(f => f.Account.Id == s.AccountId && f.Path == s.Folder))
-                && (string.IsNullOrWhiteSpace(query) || query.Split(' ', StringSplitOptions.RemoveEmptyEntries).All(w => MailSearch.Matches(s, w))), 500)
+                && (string.IsNullOrWhiteSpace(query) || query.Split(' ', StringSplitOptions.RemoveEmptyEntries).All(w => MailSearch.Matches(s, w))), 500, cancel)
             : string.IsNullOrWhiteSpace(query)
             ? folders.SelectMany(f => store.ListMailSummaries(f.Account.Id, f.Path))
-            : store.SearchMail(accounts.Select(a => a.Id), query.Trim(), 500)
+            : store.SearchMail(accounts.Select(a => a.Id), query.Trim(), 500, cancel)
                 .Where(s => string.IsNullOrWhiteSpace(folder) || folders.Any(f => f.Account.Id == s.AccountId && f.Path == s.Folder));
         if (unreadOnly)
             found = found.Where(s => !s.Seen);

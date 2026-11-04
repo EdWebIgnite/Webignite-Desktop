@@ -53,7 +53,7 @@ public sealed class ClientMail
     /// The first address in a list of a client's addresses ("a@x.co.za; b@x.co.za"), for where only one fits,
     /// such as a Xero contact. Null when there is none.
     /// </summary>
-    public static string? First(string? addresses) => Recipients.Parse(addresses).People.FirstOrDefault()?.Address;
+    public static string? First(string? addresses) => Recipients.Parse(addresses).People is [var first, ..] ? first.Address : null;
     public IReadOnlyCollection<string> Domains => domains;
     public bool IsEmpty => addresses.Count == 0 && domains.Count == 0;
 

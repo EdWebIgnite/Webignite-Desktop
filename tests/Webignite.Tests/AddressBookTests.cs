@@ -30,7 +30,7 @@ public sealed class AddressBookTests
         var book = Book();
         Assert.Equal(["accounts@karoocoffee.co.za", "thandi@karoocoffee.co.za", "pieter@bosveldbuilders.co.za", "lerato@fynbosphysio.co.za"],
             book.Select(c => c.Address));
-        Assert.Equal("Pieter van Wyk", book.Single(c => c.Address.StartsWith("pieter")).Name);
+        Assert.Equal("Pieter van Wyk", book.Single(c => c.Address.StartsWith("pieter", StringComparison.Ordinal)).Name);
         Assert.DoesNotContain(book, c => c.Address.Contains("xero") || c.Address.Contains("webignite"));
     }
 
