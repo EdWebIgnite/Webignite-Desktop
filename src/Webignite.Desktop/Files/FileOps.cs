@@ -265,6 +265,7 @@ public abstract record FileChange(string What)
     public sealed record Renamed(string From, string To) : FileChange($"Renamed {Path.GetFileName(From)}");
     public sealed record Moved(IReadOnlyList<(string From, string To)> Items) : FileChange(Items.Count == 1 ? $"Moved {Path.GetFileName(Items[0].From)}" : $"Moved {Items.Count} items");
     public sealed record Made(IReadOnlyList<string> Paths) : FileChange(Paths.Count == 1 ? $"Made {Path.GetFileName(Paths[0])}" : $"Made {Paths.Count} items");
+    public sealed record Rotated(IReadOnlyList<string> Paths, int Degrees) : FileChange(Paths.Count == 1 ? $"Turned {Path.GetFileName(Paths[0])}" : $"Turned {Paths.Count} pictures");
 
     /// <summary>Puts it back: a rename or move the other way; anything made (a copy, a new folder) to the Recycle Bin.</summary>
     public void Undo()
@@ -277,6 +278,9 @@ public abstract record FileChange(string What)
             case Moved m:
                 foreach (var (from, to) in m.Items.Reverse())
                     FileOps.MoveOne(to, from);
+                break;
+            case Rotated rotated:
+                QuickActionRunner.RotateNow(rotated.Paths, -rotated.Degrees);
                 break;
             case Made made:
                 FileOps.Recycle(made.Paths.Where(p => File.Exists(p) || Directory.Exists(p)));

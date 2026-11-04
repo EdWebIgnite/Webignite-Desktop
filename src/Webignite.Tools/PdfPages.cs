@@ -12,7 +12,7 @@ namespace Webignite.Tools;
 /// </summary>
 public static class PdfPages
 {
-    private static readonly Lock Gate = new();
+    internal static readonly Lock Gate = new();
 
     /// <summary>The pages, at most <paramref name="maxPages"/>, about <paramref name="width"/> pixels wide, and the page count.</summary>
     public static (IReadOnlyList<Bitmap> Pages, int Count) Render(byte[] pdf, int width, int maxPages)

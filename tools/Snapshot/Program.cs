@@ -98,6 +98,9 @@ void Check(string what, bool ok)
 }
 
 // A method of its own, so the tools assembly is only read when this runs, as in the app.
+static int PdfPageCount(string path) => Webignite.Tools.PdfText.Pages(File.ReadAllBytes(path));
+
+// A method of its own, so the tools assembly is only read when this runs, as in the app.
 static void ShrinkPhotos(string photos, ToolsViewModel tools)
 {
     long before = 0, after = 0;
@@ -900,6 +903,110 @@ Save("client-mail");
     Check("Files shows a tag's new colour straight away", Row("Quote QU-0042.pdf").Tags.Any(t => t.Colour == "pink"));
     tagSettings.FileTagRows.First(r => r.Tag.Id == "invoice-sent").RemoveCommand.Execute(null);
     Check("A removed tag leaves the side list", !files.Places.First(g => g.Title == "TAGS").Places.Any(p => p.Name == "Invoice sent"));
+
+    // Finder extras: search as you type (and inside files), the details pane, Quick Look, column view,
+    // Favourites and Recents, and quick actions on pictures, PDFs and zips.
+    bool Until(Func<bool> done)
+    {
+        var until = DateTime.UtcNow.AddSeconds(10);
+        while (!done() && DateTime.UtcNow < until)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(15);
+        }
+        Dispatcher.UIThread.RunJobs();
+        return done();
+    }
+    using (var docx = new System.IO.Compression.ZipArchive(File.Create(Path.Combine(site, "Logo", "Sitemap.docx")), System.IO.Compression.ZipArchiveMode.Create))
+    using (var xml = new StreamWriter(docx.CreateEntry("word/document.xml").Open()))
+        xml.Write("<w:document><w:body><w:p><w:r><w:t>Home, About, Projects, and online booking for site visits.</w:t></w:r></w:p></w:body></w:document>");
+    files.GoTo(site);
+    files.SearchText = "visit";
+    files.StartSearch(); // as Enter does; the pause after typing needs a clock the headless screen doesn't run
+    Check("Search finds names as you type, in the folders below too",
+        Until(() => !files.StatusText.Contains("Searching", StringComparison.Ordinal) && files.Items.OfType<FileRowViewModel>().Count() == 2)
+        && files.Items.OfType<FileRowViewModel>().Select(r => r.Name).Order().SequenceEqual(["Site visit 1.png", "Site visit 2.png"]));
+    Save("files-search");
+    files.SearchText = "online booking";
+    files.SearchInside = true;
+    files.StartSearch();
+    Check("Words inside files finds a Word document by what it says",
+        Until(() => files.Items.OfType<FileRowViewModel>().Any(r => r.Name == "Sitemap.docx" && r.Snippet?.Contains("online booking", StringComparison.Ordinal) == true)));
+    files.SearchText = "17 700";
+    files.StartSearch();
+    Check("And a PDF by its words", Until(() => files.Items.OfType<FileRowViewModel>().Any(r => r.Name == "Quote QU-0042.pdf" && r.Snippet is not null)));
+    Save("files-search-inside");
+    files.ClearSearchCommand.Execute(null);
+    files.SearchInside = false;
+    Check("Clearing the search shows the folder again", !files.IsSearching && files.Items.OfType<FileRowViewModel>().Any(r => r.Name == "Logo"));
+
+    files.ShowDetails = true;
+    files.Selected = [Row("Quote QU-0042.pdf")];
+    files.PickChanged();
+    Check("The details pane shows a PDF's pages", Until(() => files.Details is { IsLoading: false, Measure: "1 page", HasPictures: true }));
+    Save("files-details-pane");
+    files.Selected = [Row("Site visit 1.png")];
+    files.PickChanged();
+    Check("And a picture's size", Until(() => files.Details is { IsLoading: false } d && d.Measure.Contains('×')));
+
+    files.Selected = [Row("Copy for the home page.txt")];
+    files.PickChanged();
+    files.ToggleQuickLook();
+    Check("Quick Look shows a text file's words", Until(() => files.QuickLook is { IsLoading: false, HasText: true }));
+    Save("files-quick-look");
+    files.Selected = [Row("Quote QU-0042.pdf")];
+    files.PickChanged();
+    Check("Moving the pick moves Quick Look with it", Until(() => files.QuickLook is { Name: "Quote QU-0042.pdf", IsLoading: false, HasPictures: true }));
+    files.ToggleQuickLook();
+    Check("Space again closes it", files.QuickLook is null);
+    files.ShowDetails = false;
+
+    files.ShowAsCommand.Execute(Webignite.Core.Files.FileView.Columns);
+    files.GoTo(Path.Combine(site, "Logo"));
+    Check("Column view shows each folder on the way in a column", files.Columns.Select(c => Path.GetFileName(c.Folder)).SequenceEqual(["Projects", "Bosveld Builders"])
+        && files.Columns[1].Rows.Single(r => r.IsOnPath).Name == "Logo");
+    Save("files-columns");
+    files.UpAndPick();
+    Check("Left goes back a column with the folder picked", files.Folder == site && files.Selected.Single().Name == "Logo");
+    files.ShowAsCommand.Execute(Webignite.Core.Files.FileView.Details);
+
+    files.AddFavourite(Path.Combine(site, "Photos"));
+    Check("A folder can be added to Favourites", files.Places.First(g => g.Title == "FAVOURITES").Places.Any(p => p.Name == "Photos" && p.IsFavourite));
+    files.Open(Row("Quote QU-0042.pdf"));
+    files.ClosePreviewCommand.Execute(null);
+    files.Places.First(g => g.Title == "FAVOURITES").Places.First(p => p.Name == "Recent files").GoCommand.Execute(null);
+    Check("Recents lists files opened from here", files.ShowingRecents && files.Items.OfType<FileRowViewModel>().First().Name == "Quote QU-0042.pdf");
+    Save("files-recents");
+    files.RemoveFavourite(Path.Combine(site, "Photos"));
+    files.GoTo(site);
+
+    var visit = Path.Combine(site, "Site visit 1.png");
+    (int W, int H) Size(string picture)
+    {
+        using var bitmap = new Bitmap(picture);
+        return (bitmap.PixelSize.Width, bitmap.PixelSize.Height);
+    }
+    var wide = Size(visit);
+    files.Selected = [Row("Site visit 1.png")];
+    Wait(files.RotateRightCommand.ExecuteAsync(null), "Turning a picture");
+    Check("Turn right stands a wide picture on its end", Size(visit) == (wide.H, wide.W));
+    files.UndoCommand.Execute(null);
+    Check("Undo turns it back", Size(visit) == wide);
+    files.Selected = [Row("Quote QU-0042.pdf"), Row("Site visit 2.png")];
+    Wait(files.CombineCommand.ExecuteAsync(null), "Putting files into one PDF");
+    var combined = Path.Combine(site, "Combined.pdf");
+    Check("Put into one PDF makes one PDF with a page for each, ready to name" + (files.MessageIsProblem ? " (" + files.Message + ")" : ""),
+        File.Exists(combined) && PdfPageCount(combined) == 2 && files.Items.OfType<FileRowViewModel>().Any(r => r.Name == "Combined.pdf" && r.IsRenaming));
+    if (files.Items.OfType<FileRowViewModel>().FirstOrDefault(r => r.Name == "Combined.pdf") is { } combinedRow)
+        FilesViewModel.CancelRename(combinedRow);
+    files.UndoCommand.Execute(null);
+    Check("Undo takes the new PDF away", !File.Exists(combined));
+    files.Selected = [Row("Logo"), Row("Quote QU-0042.pdf")];
+    Wait(files.ZipCommand.ExecuteAsync(null), "Zipping");
+    var zipped = Path.Combine(site, "Bosveld Builders.zip");
+    using (var zip = System.IO.Compression.ZipFile.OpenRead(zipped))
+        Check("Zip puts folders and files in one zip", zip.Entries.Any(z => z.FullName == "Logo/Sitemap.docx") && zip.Entries.Any(z => z.FullName == "Quote QU-0042.pdf"));
+    files.UndoCommand.Execute(null);
 
     services.Go.Folder(Path.Combine(site, "Logo"), newTab: true);
     Check("A folder opens in a Files tab of its own", vm.Open.Count(h => h.Key == Page.Files) == 2 && vm.Files.Folder == Path.Combine(site, "Logo"));

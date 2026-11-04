@@ -33,6 +33,8 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         Descending = settings.Descending;
         Grouping = settings.Grouping;
         ThumbnailSize = settings.ThumbnailSize;
+        ShowDetails = settings.ShowDetails;
+        searchSoon.Tick += SearchTick;
         reloadSoon.Tick += (_, _) =>
         {
             reloadSoon.Stop();
@@ -65,16 +67,43 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     public partial FileTag? FilterTag { get; private set; }
 
     public bool IsTagView => ShowingTag is not null;
+
+    /// <summary>Recent files, from every folder, instead of a folder.</summary>
+    [ObservableProperty] public partial bool ShowingRecents { get; private set; }
+
+    /// <summary>The list holds files from many folders (a tag, Recents, or search results), not one folder's.</summary>
+    public bool IsGathered => IsTagView || ShowingRecents || IsSearching;
+
+    private void GatheredChanged()
+    {
+        OnPropertyChanged(nameof(IsGathered));
+        OnPropertyChanged(nameof(KindHeading));
+        OnPropertyChanged(nameof(Crumbs));
+        OnPropertyChanged(nameof(TabTitle));
+        OnPropertyChanged(nameof(CanGoUp));
+        OnPropertyChanged(nameof(EmptyTitle));
+        OnPropertyChanged(nameof(EmptyText));
+        UpCommand.NotifyCanExecuteChanged();
+    }
     public bool IsFiltered => FilterTag is not null;
     public string TagFilterText => FilterTag?.Name ?? "Tags";
 
     /// <summary>A tag's files come from many folders, so that column says which.</summary>
-    public string KindHeading => IsTagView ? "Folder" : "Kind";
+    public string KindHeading => IsGathered ? "Folder" : "Kind";
 
-    public string EmptyTitle => IsTagView ? "Nothing has this tag yet" : IsFiltered ? $"Nothing here is tagged {FilterTag!.Name}" : "This folder is empty";
+    public string EmptyTitle =>
+        IsSearching ? (searchRunning ? "Searching…" : $"Nothing found for “{SearchText.Trim()}”")
+        : IsTagView ? "Nothing has this tag yet"
+        : ShowingRecents ? "No recent files yet"
+        : IsFiltered ? $"Nothing here is tagged {FilterTag!.Name}"
+        : "This folder is empty";
 
-    public string EmptyText => IsTagView ? "Right-click a file or folder and choose Tags to add it."
-        : IsFiltered ? "Pick Tags, then All files, to see everything again." : "Drag files here to copy them in, or make a new folder.";
+    public string EmptyText =>
+        IsSearching ? (SearchInside ? "Check the spelling, or search a folder higher up." : "Tick Words inside files to look inside PDFs, Word and text files too.")
+        : IsTagView ? "Right-click a file or folder and choose Tags to add it."
+        : ShowingRecents ? "Files you open from here show up in this list."
+        : IsFiltered ? "Pick Tags, then All files, to see everything again."
+        : "Drag files here to copy them in, or make a new folder.";
 
     /// <summary>The tags, for the Tags button and the right-click menu.</summary>
     public IReadOnlyList<FileTag> AllTags => services.FileTags.Tags;
@@ -82,13 +111,15 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     // Back and forward hold folders and tag views alike; a tag view is "tag:" and its id.
     private const string TagPrefix = "tag:";
 
-    private string Location => ShowingTag is { } tag ? TagPrefix + tag.Id : Folder;
+    private const string RecentsLocation = "recents:";
+
+    private string Location => ShowingTag is { } tag ? TagPrefix + tag.Id : ShowingRecents ? RecentsLocation : Folder;
 
     [ObservableProperty] public partial string AddressText { get; set; } = "";
     [ObservableProperty] public partial bool EditingAddress { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsThumbnails), nameof(IsList), nameof(IsDetails))]
+    [NotifyPropertyChangedFor(nameof(IsThumbnails), nameof(IsList), nameof(IsDetails), nameof(IsColumns), nameof(IsListLike), nameof(ColumnsScroll))]
     public partial FileView View { get; set; }
 
     [ObservableProperty] public partial FileSort Sort { get; set; }
@@ -111,16 +142,21 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     public bool IsThumbnails => View == FileView.Thumbnails;
     public bool IsList => View == FileView.List;
     public bool IsDetails => View == FileView.Details;
+    public bool IsColumns => View == FileView.Columns;
+
+    /// <summary>Rows look like the list view in list and column views.</summary>
+    public bool IsListLike => IsList || IsColumns;
     public bool HasMessage => Message.Length > 0;
     public bool IsPreviewing => Preview is not null;
-    public bool CanGoUp => !IsTagView && FilePaths.Parent(Folder) is not null;
+    public bool CanGoUp => !IsTagView && !ShowingRecents && FilePaths.Parent(Folder) is not null;
     public bool IsEmpty => !Items.OfType<FileRowViewModel>().Any();
 
     public IReadOnlyList<FileCrumb> Crumbs => ShowingTag is { } tag
         ? [new FileCrumb("Tagged " + tag.Name, TagPrefix + tag.Id, this)]
+        : ShowingRecents ? [new FileCrumb("Recent files", RecentsLocation, this)]
         : [.. FilePaths.Crumbs(Folder).Select(c => new FileCrumb(c.Name, c.Path, this))];
 
-    public string? TabTitle => ShowingTag is { } tag ? tag.Name : Folder.Length == 0 ? null : FilePaths.Crumbs(Folder).LastOrDefault().Name;
+    public string? TabTitle => ShowingTag is { } tag ? tag.Name : ShowingRecents ? "Recent files" : Folder.Length == 0 ? null : FilePaths.Crumbs(Folder).LastOrDefault().Name;
 
     /// <summary>The rows picked in the view, kept in step by the view.</summary>
     public IReadOnlyList<FileRowViewModel> Selected { get; set; } = [];
@@ -152,6 +188,11 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
                 .ToList();
             groups.Add(new FilePlaceGroup("CLIENTS", [new FilePlace("All client folders", root, "Folder", this), .. clients]));
         }
+        groups.Add(new FilePlaceGroup("FAVOURITES",
+        [
+            new FilePlace("Recent files", RecentsLocation, "Time", this),
+            .. services.Settings.Files.Favourites.Select(f => new FilePlace(Path.GetFileName(f.TrimEnd('\\', '/')) is { Length: > 0 } name ? name : f, f, "Star", this) { IsFavourite = true }),
+        ]));
         if (services.FileTags.Tags.Count > 0)
             groups.Add(new FilePlaceGroup("TAGS", [.. services.FileTags.Tags.Select(t => new FilePlace(t.Name, TagPrefix + t.Id, "Tag", this) { Colour = t.Colour })]));
         groups.Add(new FilePlaceGroup("FOLDERS", [.. FileOps.UsualFolders().Select(f => new FilePlace(f.Name, f.Path, "Folder", this))]));
@@ -172,7 +213,7 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
             if (TagCalled(path) is null)
                 return;
         }
-        else if (!Directory.Exists(path))
+        else if (path != RecentsLocation && !Directory.Exists(path))
         {
             Say($"There's no folder at {path}.", problem: true);
             return;
@@ -196,18 +237,23 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         var tag = location.StartsWith(TagPrefix, StringComparison.Ordinal) ? TagCalled(location) : null;
         if (tag is null && location.StartsWith(TagPrefix, StringComparison.Ordinal))
             return; // a tag taken off the list since
+        StopSearch(clear: true);
+        CloseQuickLook();
         ShowingTag = tag;
-        if (tag is null)
+        ShowingRecents = location == RecentsLocation;
+        if (tag is null && !ShowingRecents)
             Folder = location;
-        AddressText = tag is null ? location : Folder;
+        AddressText = Folder;
         EditingAddress = false;
         ClosePreview();
         Say("", problem: false);
+        GatheredChanged();
         Load(keepSelection: false);
-        if (tag is null)
-            Watch();
-        else
+        if (IsGathered)
             StopWatching();
+        else
+            Watch();
+        BuildColumns();
         BackCommand.NotifyCanExecuteChanged();
         ForwardCommand.NotifyCanExecuteChanged();
         UpCommand.NotifyCanExecuteChanged();
@@ -267,6 +313,7 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
             GoTo(row.Entry.Path);
             return;
         }
+        Remember(row.Entry.Path);
         if (FileKinds.CanPreview(row.Name))
         {
             ShowPreview(row.Entry.Path);
@@ -314,8 +361,9 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         var picked = keepSelection ? SelectedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase) : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         try
         {
-            entries = ShowingTag is { } tag
-                ? [.. services.FileTags.With(tag.Id).Select(FileOps.Entry).OfType<FileEntry>()]
+            entries = searchHits is { } hits ? [.. hits.Values.Select(h => h.Entry)]
+                : ShowingTag is { } tag ? [.. services.FileTags.With(tag.Id).Select(FileOps.Entry).OfType<FileEntry>()]
+                : ShowingRecents ? [.. services.Settings.FileRecents.Select(FileOps.Entry).OfType<FileEntry>()]
                 : FileOps.List(Folder);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -332,7 +380,11 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         Items.Clear();
         var tags = services.FileTags;
         var shown = FilterTag is { } filter ? entries.Where(e => tags.TagsOf(e.Path).Any(t => t.Id == filter.Id)) : entries;
-        var sorted = FileLists.Sort(shown, Sort, Descending);
+        // Searching a tag's files or Recents: only the names, as you type; a folder is searched below by the searcher.
+        if (IsSearching && searchHits is null)
+            shown = shown.Where(e => FileSearch.NameMatches(e.Name, SearchText));
+        // Recents keep the order they were opened in, newest first, unless sorted by another column.
+        var sorted = ShowingRecents && Sort == FileSort.Name && !IsSearching ? [.. shown] : FileLists.Sort(shown, Sort, Descending);
         var today = DateOnly.FromDateTime(DateTime.Today);
         var rows = new List<FileRowViewModel>();
         var groups = FileLists.Group(sorted, Grouping, today, e => tags.TagsOf(e.Path).FirstOrDefault()?.Name, [.. tags.Tags.Select(t => t.Name)]);
@@ -342,7 +394,12 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
                 Items.Add(new FileHeaderRow(heading, group.Count));
             foreach (var entry in group)
             {
-                var row = new FileRowViewModel(entry, this) { IsCut = services.FileClipboard.IsCut(entry.Path), Tags = tags.TagsOf(entry.Path) };
+                var row = new FileRowViewModel(entry, this)
+                {
+                    IsCut = services.FileClipboard.IsCut(entry.Path),
+                    Tags = tags.TagsOf(entry.Path),
+                    Snippet = searchHits is { } hits && hits.TryGetValue(entry.Path, out var hit) ? hit.Snippet : null,
+                };
                 rows.Add(row);
                 Items.Add(row);
             }
@@ -350,7 +407,7 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         Selected = [.. rows.Where(r => picked.Contains(r.Entry.Path))];
         Restored?.Invoke(Selected);
         OnPropertyChanged(nameof(IsEmpty));
-        UpdateStatus();
+        PickChanged();
     }
 
     /// <summary>Set by the view: picks rows again after the list was laid out afresh.</summary>
@@ -360,6 +417,8 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     {
         var count = Items.OfType<FileRowViewModel>().Count();
         var items = (count == 1 ? "1 item" : $"{count} items") + (ShowingTag is { } tag ? $" tagged {tag.Name}" : FilterTag is { } filter ? $" tagged {filter.Name}" : "");
+        if (IsSearching && searchHits is not null)
+            items = SearchStatus(count);
         StatusText = Selected.Count switch
         {
             0 => items,
@@ -368,7 +427,11 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         };
     }
 
-    partial void OnViewChanged(FileView value) => KeepLook();
+    partial void OnViewChanged(FileView value)
+    {
+        KeepLook();
+        BuildColumns();
+    }
     partial void OnThumbnailSizeChanged(int value) => KeepLook();
 
     partial void OnSortChanged(FileSort value)
@@ -469,6 +532,11 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     public void Dispose()
     {
         services.FileTags.Changed -= TagsChanged;
+        StopSearch(clear: false);
+        searchSoon.Stop();
+        CloseQuickLook();
+        Details?.Free();
+        Details = null;
         StopWatching();
         reloadSoon.Stop();
         FreeRows();
@@ -527,8 +595,13 @@ public sealed partial class FileRowViewModel(FileEntry entry, FilesViewModel own
     public bool HasTags => Tags.Count > 0;
     public string TagText => string.Join(", ", Tags.Select(t => t.Name));
 
+    /// <summary>The words around a search hit inside the file, shown as the row's tip and in the details pane.</summary>
+    public string? Snippet { get; init; }
+
+    public string Tip => Snippet ?? entry.Path;
+
     /// <summary>The Kind column; in a tag's view, the folder the file is in, as the files come from all over.</summary>
-    public string KindText => owner.IsTagView ? System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(entry.Path.TrimEnd('\\', '/')) ?? "") : Kind;
+    public string KindText => owner.IsGathered ? System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(entry.Path.TrimEnd('\\', '/')) ?? "") : Kind;
 
     [ObservableProperty] public partial bool IsCut { get; set; }
     [ObservableProperty] public partial bool IsRenaming { get; set; }
@@ -606,6 +679,12 @@ public sealed partial class FilePlace(string name, string path, string icon, Fil
 
     /// <summary>A tag's colour; its dot shows in place of the icon.</summary>
     public string? Colour { get; init; }
+
+    /// <summary>A folder pinned to Favourites, which can be taken off again from its right-click menu.</summary>
+    public bool IsFavourite { get; init; }
+
+    [RelayCommand]
+    private void RemoveFavourite() => owner.RemoveFavourite(path);
 
     public bool HasColour => Colour is not null;
 

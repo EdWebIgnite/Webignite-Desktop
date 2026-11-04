@@ -34,6 +34,21 @@ public partial class FilesView : UserControl
         FileList.ContainerPrepared += Prepared;
         FileList.ContainerClearing += Clearing;
         FileList.DoubleTapped += DoubleTappedRow;
+        FileList.SizeChanged += (_, e) =>
+        {
+            if (Files is { } files)
+                files.IsNarrow = e.NewSize.Width < 820;
+        };
+        FileList.AddHandler(PointerReleasedEvent, ColumnClicked, RoutingStrategies.Bubble, handledEventsToo: true);
+        // Space is Quick Look, caught before the list takes it for picking.
+        FileList.AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (e.Key == Key.Space && e.KeyModifiers == KeyModifiers.None && e.Source is not TextBox && Files is { } files)
+            {
+                files.ToggleQuickLook();
+                e.Handled = true;
+            }
+        }, RoutingStrategies.Tunnel);
         FileList.ContextRequested += MenuRequested;
         FileList.AddHandler(PointerPressedEvent, RowPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         FileList.AddHandler(PointerMovedEvent, RowMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -102,7 +117,7 @@ public partial class FilesView : UserControl
         foreach (var heading in e.AddedItems.OfType<FileHeaderRow>().ToList())
             FileList.Selection.Deselect(files.Items.IndexOf(heading));
         files.Selected = [.. FileList.Selection.SelectedItems.OfType<FileRowViewModel>()];
-        files.UpdateStatus();
+        files.PickChanged();
     }
 
     private void Restore(IReadOnlyList<FileRowViewModel> rows)
@@ -157,8 +172,29 @@ public partial class FilesView : UserControl
             }
             return;
         }
+        if (files.IsQuickLooking && e.Key is Key.Escape)
+        {
+            files.CloseQuickLookCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
         switch (e.Key)
         {
+            case Key.F when ctrl:
+                SearchBox.Focus();
+                SearchBox.SelectAll();
+                break;
+            case Key.Escape when files.IsSearching:
+                files.ClearSearchCommand.Execute(null);
+                break;
+            // Column view: Right opens the picked folder in the next column, Left goes back a column.
+            case Key.Right when files.IsColumns && !alt && files.Selected is [{ IsFolder: true } folder]:
+                files.GoTo(folder.Entry.Path);
+                FocusFirstRow();
+                break;
+            case Key.Left when files.IsColumns && !alt && files.CanGoUp:
+                files.UpAndPick();
+                break;
             case Key.Enter when !ctrl && !alt:
                 files.OpenPickedCommand.Execute(null);
                 break;
@@ -331,9 +367,16 @@ public partial class FilesView : UserControl
                 items.Add(Item("Open in a new tab", null, () => files.OpenPickedInNewTabCommand.Execute(null)));
             if (windows && picked.Count == 1 && !picked[0].IsFolder)
                 items.Add(Item("Open with…", null, () => files.OpenWithCommand.Execute(null)));
-            if (files.IsTagView && picked.Count == 1)
+            items.Add(Item("Quick Look", "Space", files.ToggleQuickLook));
+            if (files.IsGathered && picked.Count == 1)
                 items.Add(Item("Show in its folder", null, () => files.ShowInItsFolder(picked[0])));
             items.Add(TagsMenu(files));
+            if (QuickActionsMenu(files) is { } quick)
+                items.Add(quick);
+            if (picked is [{ IsFolder: true } pin])
+                items.Add(files.IsFavourite(pin.Entry.Path)
+                    ? Item("Remove from Favourites", null, () => files.RemoveFavourite(pin.Entry.Path))
+                    : Item("Add to Favourites", null, () => files.AddFavourite(pin.Entry.Path)));
             items.Add(new Separator());
             items.Add(Item("Cut", "Ctrl+X", () =>
             {
@@ -367,6 +410,23 @@ public partial class FilesView : UserControl
             items.Add(Item("More options", null, () => WindowsMenu(files)));
         }
         return items;
+    }
+
+    // Quick actions: only those that fit what is picked.
+    private static MenuItem? QuickActionsMenu(FilesViewModel files)
+    {
+        var menu = new MenuItem { Header = "Quick actions", Icon = new Controls.Icon { Data = Icon("Tools"), Size = 15 } };
+        if (files.PickedPictures.Count > 0)
+        {
+            menu.Items.Add(Item("Turn left", null, () => files.RotateLeftCommand.Execute(null)));
+            menu.Items.Add(Item("Turn right", null, () => files.RotateRightCommand.Execute(null)));
+            menu.Items.Add(Item("Make a smaller copy for a website", null, () => files.ShrinkCommand.Execute(null)));
+        }
+        if (files.CanCombine && !files.IsGathered)
+            menu.Items.Add(Item("Put into one PDF", null, () => files.CombineCommand.Execute(null)));
+        if (!files.IsGathered)
+            menu.Items.Add(Item("Zip", null, () => files.ZipCommand.Execute(null)));
+        return menu.Items.Count > 0 ? menu : null;
     }
 
     // Tags: each one ticked when everything picked has it; picking it puts it on or takes it off.
@@ -601,6 +661,9 @@ public partial class FilesView : UserControl
 
     private void LookChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // Column view keeps the newest column in sight.
+        if (e.PropertyName is nameof(FilesViewModel.Folder) or nameof(FilesViewModel.View) && Files is { IsColumns: true })
+            Dispatcher.UIThread.Post(() => ColumnsScroller.Offset = new Vector(double.MaxValue, ColumnsScroller.Offset.Y), DispatcherPriority.Loaded);
         // A long path keeps the folder you're in on screen; the start of the path is what scrolls out of sight.
         if (e.PropertyName == nameof(FilesViewModel.Folder))
             Dispatcher.UIThread.Post(() => CrumbScroll.Offset = new Vector(double.MaxValue, 0), DispatcherPriority.Loaded);
@@ -615,5 +678,63 @@ public partial class FilesView : UserControl
                     && new Rect(at, container.Bounds.Size).Intersects(new Rect(viewport.Size)))
                     row.LoadThumbnail(ThumbnailWidth());
         }, DispatcherPriority.Loaded);
+    }
+
+    // Search box: Enter searches straight away, Esc empties it, Down goes to the results.
+    private void SearchKeys(object? sender, KeyEventArgs e)
+    {
+        if (Files is not { } files)
+            return;
+        switch (e.Key)
+        {
+            case Key.Enter:
+                files.StartSearch();
+                break;
+            case Key.Escape:
+                files.ClearSearchCommand.Execute(null);
+                FileList.Focus();
+                break;
+            case Key.Down:
+                FocusFirstRow();
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
+    }
+
+    private void FocusFirstRow() => Dispatcher.UIThread.Post(() =>
+    {
+        if (Files is { } files && files.Items.OfType<FileRowViewModel>().FirstOrDefault() is { } first && files.Selected.Count == 0)
+            Restore([first]);
+        FileList.Focus();
+    }, DispatcherPriority.Loaded);
+
+    // Quick Look closes on a click outside it, as in Finder.
+    private void QuickLookBackdrop(object? sender, PointerPressedEventArgs e)
+    {
+        Files?.CloseQuickLookCommand.Execute(null);
+        FileList.Focus();
+    }
+
+    private void QuickLookCard(object? sender, PointerPressedEventArgs e) => e.Handled = true;
+
+    // Column view: a click on a folder opens it in the next column.
+    private void ColumnClicked(object? sender, PointerReleasedEventArgs e)
+    {
+        if (Files is not { IsColumns: true } files || e.InitialPressMouseButton != MouseButton.Left
+            || e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Shift)
+            || RowAt(e.Source) is not { IsFolder: true, IsRenaming: false } row)
+            return;
+        Dispatcher.UIThread.Post(() => files.GoTo(row.Entry.Path));
+    }
+
+    // A favourite in the side list can be taken off from its right-click menu.
+    private void PlaceMenu(object? sender, ContextRequestedEventArgs e)
+    {
+        if (sender is not Control { DataContext: FilePlace { IsFavourite: true } place } button)
+            return;
+        e.Handled = true;
+        new ContextMenu { ItemsSource = new[] { Item("Remove from Favourites", null, () => place.RemoveFavouriteCommand.Execute(null)) } }.Open(button);
     }
 }
