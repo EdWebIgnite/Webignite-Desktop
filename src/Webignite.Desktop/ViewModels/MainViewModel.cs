@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Webignite.Core.Documents;
 
@@ -26,16 +27,16 @@ public partial class MainViewModel : ViewModelBase
         if (byHand && problem is null && news.Count == 0)
             services.ShowNote?.Invoke("Payments checked", "No new payments in Xero.", null);
         // Only pages already built need telling; the rest read the latest when opened.
-        IfBuilt<OverviewViewModel>(Page.Overview)?.Refresh();
-        IfBuilt<DocumentsViewModel>(Page.Invoices)?.Refresh();
-        IfBuilt<DocumentsViewModel>(Page.Quotes)?.Refresh();
+        foreach (var page in Built<IRefreshable>(Page.Overview, Page.Invoices, Page.Quotes))
+            page.Refresh();
     }
 
     /// <summary>Shows a note for each site that went down, came back, or has a certificate about to run out.</summary>
     private async Task CheckSitesAsync()
     {
         AnnounceSites(await services.SiteWatch.RunAsync());
-        IfBuilt<SiteCheckViewModel>(Page.SiteCheck)?.RefreshWatched();
+        foreach (var page in Built<SiteCheckViewModel>(Page.SiteCheck))
+            page.RefreshWatched();
     }
 
     private void AnnounceSites(IReadOnlyList<Webignite.Core.Web.UptimeAlert> alerts)
@@ -73,10 +74,17 @@ public partial class MainViewModel : ViewModelBase
             // With Mail open its list and status update too; otherwise the check runs on its own.
             using (services.Work.Start("Checking mail"))
             {
-                if (IfBuilt<MailViewModel>(Page.Mail) is { } mail)
-                    await mail.SyncAll();
+                var open = Built<MailViewModel>(Page.Mail).ToList();
+                if (open.Count > 0)
+                {
+                    await open[0].SyncAll();
+                    foreach (var other in open.Skip(1))
+                        other.Reload();
+                }
                 else
+                {
                     await services.MailCheck.RunAsync();
+                }
             }
             var settings = services.Settings.MailCheck;
             var inboxes = new List<(string, IReadOnlyList<Webignite.Core.Mail.MailSummary>)>();
@@ -90,7 +98,7 @@ public partial class MainViewModel : ViewModelBase
             var found = Webignite.Core.Mail.NewMail.Find(settings.Announced, inboxes);
             services.Settings.MailCheck = settings with { Announced = found.Announced };
             var active = WindowIsActive?.Invoke() == true;
-            if (found.Fresh.Count == 0 || (active && Selected == mailModule))
+            if (found.Fresh.Count == 0 || (active && Current.Key == Page.Mail))
                 return;
             if (!active)
                 FlashTaskbar?.Invoke();
@@ -154,6 +162,8 @@ public partial class MainViewModel : ViewModelBase
         }
         Modules = [.. nav.OfType<Module>()];
         Sidebar = new SidebarViewModel(services.Settings, nav);
+        Open = [.. Modules.Select(m => m.Main)];
+        Current = Modules[0].Main;
         Selected = Modules[0];
         mailModule = this[Page.Mail];
         Jobs = new BackgroundJobs(services)
@@ -226,17 +236,55 @@ public partial class MainViewModel : ViewModelBase
         return page;
     }
 
-    /// <summary>A page, built now if it hasn't been.</summary>
-    private T PageOf<T>(Page key) where T : ViewModelBase => (T)this[key].Page;
+    /// <summary>
+    /// Every open copy of every page: each module's own, plus any opened again alongside it. The tabs show these.
+    /// </summary>
+    public ObservableCollection<PageHost> Open { get; }
 
-    /// <summary>A page only if it is already built, for telling open pages something changed.</summary>
-    private T? IfBuilt<T>(Page key) where T : ViewModelBase => this[key].IsBuilt ? (T)this[key].Page : null;
+    /// <summary>The page on screen: the copy shown is the one jumps land on.</summary>
+    [ObservableProperty]
+    public partial PageHost Current { get; set; }
+
+    /// <summary>The copy of a module used last, which is where the sidebar and jumps take you.</summary>
+    private PageHost LastUsed(Module module) =>
+        Current.Module == module && Open.Contains(Current) ? Current : Open.Where(h => h.Module == module).MaxBy(h => h.LastSeen) ?? module.Main;
+
+    /// <summary>A page, built now if it hasn't been: the copy on screen, or the one used last.</summary>
+    private T PageOf<T>(Page key) where T : ViewModelBase => (T)LastUsed(this[key]).Page;
+
+    /// <summary>Every built copy of these pages, for telling open pages something changed.</summary>
+    private IEnumerable<T> Built<T>(params Page[] keys) => Open.Where(h => keys.Contains(h.Key) && h.IsBuilt).Select(h => h.Page).OfType<T>();
+
+    /// <summary>Opens another copy of a page alongside the ones already open, and shows it.</summary>
+    public PageHost OpenAnother(Page key)
+    {
+        var host = this[key].NewHost();
+        Open.Add(host);
+        Current = host;
+        return host;
+    }
+
+    /// <summary>
+    /// Closes an extra copy of a page and frees it. The module's own copy is never closed (only let go when
+    /// idle), and a copy with open work stays until that work is saved or put away. Returns true when it closed.
+    /// </summary>
+    public bool Close(PageHost host)
+    {
+        if (host.IsMain || !Open.Contains(host) || (host.IsBuilt && host.Page is IHoldsWork { HoldsWork: true }))
+            return false;
+        var showing = Current == host;
+        host.Release();
+        Open.Remove(host);
+        if (showing)
+            Current = LastUsed(host.Module);
+        return true;
+    }
 
     /// <summary>Lets go of pages nobody has looked at for a while, unless they hold open work.</summary>
     public int ReleaseIdle(TimeSpan idle)
     {
         var now = DateTimeOffset.Now;
-        return Modules.Count(m => m != Selected && m.IsBuilt && now - m.LastSeen >= idle && m.Release());
+        return Open.Count(h => h != Current && h.IsBuilt && now - h.LastSeen >= idle && h.Release());
     }
 
     public QuickSearchViewModel Search { get; }
@@ -310,27 +358,43 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     public async Task<string?> PrepareToCloseAsync()
     {
-        // Only built pages can hold anything unsaved.
-        IfBuilt<MoneyViewModel>(Page.Money)?.SaveTyped();
-        IfBuilt<DocumentsViewModel>(Page.Invoices)?.Editor?.Keep();
-        IfBuilt<DocumentsViewModel>(Page.Quotes)?.Editor?.Keep();
-        IfBuilt<ApprovalsViewModel>(Page.Approvals)?.Editor?.Keep();
-        var problem = IfBuilt<ClientsViewModel>(Page.Clients)?.Detail is { } client && !client.Leave()
-            ? $"{client.Title} has something to fix before it can be saved."
-            : null;
-        return (IfBuilt<MailViewModel>(Page.Mail) is { } mail ? await mail.PrepareToCloseAsync() : null) ?? problem;
+        // Only built pages can hold anything unsaved, and every open copy of a page is saved.
+        foreach (var money in Built<MoneyViewModel>(Page.Money))
+            money.SaveTyped();
+        foreach (var documents in Built<DocumentsViewModel>(Page.Invoices, Page.Quotes))
+            documents.Editor?.Keep();
+        foreach (var approvals in Built<ApprovalsViewModel>(Page.Approvals))
+            approvals.Editor?.Keep();
+        string? problem = null;
+        foreach (var clients in Built<ClientsViewModel>(Page.Clients))
+        {
+            if (clients.Detail is { } client && !client.Leave())
+                problem ??= $"{client.Title} has something to fix before it can be saved.";
+        }
+        foreach (var mail in Built<MailViewModel>(Page.Mail))
+            problem = await mail.PrepareToCloseAsync() ?? problem;
+        return problem;
     }
 
-    partial void OnSelectedChanging(Module value)
+    // The sidebar picks a module; the copy of it used last goes on screen.
+    partial void OnSelectedChanged(Module value)
     {
-        if (Selected is { } leaving)
+        if (Current?.Module != value)
+            Current = LastUsed(value);
+    }
+
+    partial void OnCurrentChanging(PageHost value)
+    {
+        if (Current is { } leaving)
             leaving.LastSeen = DateTimeOffset.Now;
     }
 
     // These pages show things other pages change, so they look again whenever they're opened.
-    partial void OnSelectedChanged(Module value)
+    partial void OnCurrentChanged(PageHost value)
     {
         value.LastSeen = DateTimeOffset.Now;
+        if (Selected != value.Module)
+            Selected = value.Module;
         services.CatchUp();
         if (mailModule is not null)
             UpdateMailBadge();

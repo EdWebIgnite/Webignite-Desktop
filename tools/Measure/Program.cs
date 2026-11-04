@@ -55,7 +55,7 @@ Line("Start-up to first frame", $"{startMs} ms", $"{limits.StartMilliseconds} ms
 Line("Managed memory after start", Mb(startBytes), $"{limits.StartManagedMegabytes} MB");
 Check($"Start-up took {startMs} ms (limit {limits.StartMilliseconds} ms)", startMs <= limits.StartMilliseconds);
 Check($"Memory after start is {Mb(startBytes)} (limit {limits.StartManagedMegabytes} MB)", startBytes <= limits.StartManagedMegabytes * 1024L * 1024);
-Check("Only Overview is built at start", vm.Modules.Where(m => m.IsBuilt).Select(m => m.Key).SequenceEqual([Page.Overview]));
+Check("Only Overview is built at start", vm.Open.Where(h => h.IsBuilt).Select(h => h.Key).SequenceEqual([Page.Overview]));
 
 // Every page in turn: open it, draw it, leave it, let it go, and check it is really gone. The first round also
 // pays one-off costs (screens compiled, styles and fonts read); a second round shows whether anything is left
@@ -66,7 +66,7 @@ for (var round = 1; round <= 2; round++)
     foreach (var module in vm.Modules.Where(m => m.Key != Page.Overview).ToList())
     {
         var (page, view) = OpenAndLeave(vm, window, module);
-        var kept = module.IsBuilt;
+        var kept = module.Main.IsBuilt;
         var after = Settle();
         var gone = !page.IsAlive && !view.IsAlive;
         if (round == 1)
@@ -77,6 +77,14 @@ for (var round = 1; round <= 2; round++)
     if (round == 1)
         firstRoundBytes = Settle();
 }
+// Copies opened beside the first (two Mails, two Clients) must go too when closed.
+foreach (var twice in new[] { Page.Mail, Page.Clients })
+{
+    var (page, view) = OpenAnotherAndClose(vm, window, twice);
+    Settle();
+    Check($"A second {vm[twice].Title} gives its memory back when closed", !page.IsAlive && !view.IsAlive);
+}
+
 var endBytes = Settle();
 var firstGrowth = firstRoundBytes - startBytes;
 var repeatGrowth = endBytes - firstRoundBytes;
@@ -108,12 +116,26 @@ static (WeakReference Page, WeakReference View) OpenAndLeave(MainViewModel vm, M
 {
     vm.Selected = module;
     Draw(window);
-    var page = new WeakReference(module.Page);
+    var page = new WeakReference(module.Main.Page);
     var view = new WeakReference(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window)
-        .OfType<Avalonia.Controls.UserControl>().FirstOrDefault(v => ReferenceEquals(v.DataContext, module.Page)));
+        .OfType<Avalonia.Controls.UserControl>().FirstOrDefault(v => ReferenceEquals(v.DataContext, module.Main.Page)));
     vm.Selected = vm[Page.Overview];
     Draw(window);
     vm.ReleaseIdle(TimeSpan.Zero);
+    Draw(window);
+    return (page, view);
+}
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+static (WeakReference Page, WeakReference View) OpenAnotherAndClose(MainViewModel vm, MainWindow window, Page key)
+{
+    var host = vm.OpenAnother(key);
+    Draw(window);
+    var page = new WeakReference(host.Page);
+    var view = new WeakReference(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window)
+        .OfType<Avalonia.Controls.UserControl>().FirstOrDefault(v => ReferenceEquals(v.DataContext, host.Page)));
+    if (!vm.Close(host))
+        throw new InvalidOperationException($"The second {key} wouldn't close.");
     Draw(window);
     return (page, view);
 }

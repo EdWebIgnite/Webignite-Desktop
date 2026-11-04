@@ -161,10 +161,10 @@
     </Border>
 
     <!-- Page -->
-    <ScrollViewer Grid.Column="1" IsVisible="{Binding Selected.Scrolls}">
-      <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Selected.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
+    <ScrollViewer Grid.Column="1" IsVisible="{Binding Current.Scrolls}">
+      <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
     </ScrollViewer>
-    <TransitioningContentControl x:Name="FullHost" Grid.Column="1" Content="{Binding Selected.FullPage}" IsVisible="{Binding Selected.FullBleed}" />
+    <TransitioningContentControl x:Name="FullHost" Grid.Column="1" Content="{Binding Current.FullPage}" IsVisible="{Binding Current.FullBleed}" />
 
     <!-- Ctrl+K search, over everything -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{DynamicResource Scrim}" PointerPressed="CloseSearch">
