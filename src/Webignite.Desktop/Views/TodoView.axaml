@@ -39,7 +39,9 @@
                       <Panel>
                         <Border Classes="edge" IsVisible="{Binding IsOverdue}" Margin="-16,-8,0,-8" />
                         <DockPanel>
-                          <Button DockPanel.Dock="Right" Classes="link" Content="✕" ToolTip.Tip="Delete" Command="{Binding DeleteCommand}" />
+                          <Button DockPanel.Dock="Right" Classes="link" ToolTip.Tip="Delete" Command="{Binding DeleteCommand}">
+                            <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                          </Button>
                           <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding DueText}" VerticalAlignment="Center" Margin="12,0" />
                           <Border DockPanel.Dock="Right" Classes="status" IsVisible="{Binding HasSource}" VerticalAlignment="Center">
                             <TextBlock Text="{Binding SourceLabel}" FontSize="11" />

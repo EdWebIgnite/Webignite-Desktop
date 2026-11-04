@@ -20,7 +20,6 @@ updates:
       tests:
         patterns:
           - "xunit*"
-          - "Microsoft.NET.Test.Sdk"
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /

@@ -8,8 +8,6 @@ public sealed record MailThread(IReadOnlyList<MailSummary> Messages)
     public MailSummary First => Messages[0];
     public int Count => Messages.Count;
     public bool AnyUnread => Messages.Any(m => !m.Seen);
-    public bool AnyFlagged => Messages.Any(m => m.Flagged);
-    public bool AnyAttachments => Messages.Any(m => m.HasAttachments);
 }
 
 /// <summary>How the message list looks, kept on this PC.</summary>

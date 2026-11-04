@@ -67,9 +67,11 @@
                 <TextBox Grid.Column="2" Text="{Binding Price}" PlaceholderText="0.00" LostFocus="SettleSum"
                          ToolTip.Tip="Type an amount, or a sum like 3.5 x 650" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
                 <TextBlock Grid.Column="3" Classes="amount" Text="{Binding AmountText}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <Button Grid.Column="4" Classes="link" Content="✕" ToolTip.Tip="Remove line"
+                <Button Grid.Column="4" Classes="link" ToolTip.Tip="Remove line"
                         Command="{Binding #Root.((vm:DocumentEditorViewModel)DataContext).RemoveLineCommand}"
-                        CommandParameter="{Binding}" />
+                        CommandParameter="{Binding}">
+                  <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                </Button>
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

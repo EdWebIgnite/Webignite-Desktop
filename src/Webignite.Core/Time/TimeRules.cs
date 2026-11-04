@@ -4,8 +4,7 @@ using Webignite.Core.Clients;
 
 namespace Webignite.Core.Time;
 
-/// <summary>One line of a time summary: who or what, and how long.</summary>
-/// <summary>One line of the time totals. Value is the time at its hourly rate, or null when no rate is set for any of it.</summary>
+/// <summary>One line of the time totals: who or what, and how long. Value is the time at its hourly rate, or null when no rate is set for any of it.</summary>
 public sealed record TimeTotal(string Label, int Minutes, string? ClientId, string? ProjectId, decimal? Value = null);
 
 /// <summary>Reading typed times, showing them, stopping the timer and adding up a week or month.</summary>

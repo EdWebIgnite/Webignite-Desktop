@@ -54,6 +54,6 @@ public sealed class Monogram : Border
         letters.Text = Core.Clients.Monogram.Initials(Text);
         var colour = Core.Clients.Monogram.Colour(Text);
         background?.Dispose();
-        background = Bind(BackgroundProperty, this.GetResourceObservable("Category" + char.ToUpperInvariant(colour[0]) + colour[1..]));
+        background = Bind(BackgroundProperty, this.GetResourceObservable(CategoryDot.ResourceKey(colour)));
     }
 }

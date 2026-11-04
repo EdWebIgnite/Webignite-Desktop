@@ -331,22 +331,12 @@ public partial class MainViewModel : ViewModelBase
         services.CatchUp();
         if (mailModule is not null)
             UpdateMailBadge();
-        switch (value.Page)
+        if (value.Page is MailViewModel mail)
         {
-            case DocumentsViewModel documents: documents.Refresh(); break;
-            case RetainersViewModel retainers: retainers.Refresh(); break;
-            case RenewalsViewModel renewals: renewals.Refresh(); break;
-            case TodoViewModel todo: todo.Refresh(); break;
-            case TimeViewModel time: time.Refresh(); break;
-            case CalendarViewModel calendar: calendar.Refresh(); break;
-            case PlannerViewModel planner: planner.Refresh(); break;
-            case OverviewViewModel overview: overview.Refresh(); break;
-            case ClientsViewModel clients: clients.Refresh(); break;
-            case MoneyViewModel money: money.Refresh(); break;
-            case ReportsViewModel reports: reports.Refresh(); break;
-            case ApprovalsViewModel approvals: approvals.Refresh(); break;
-            case MailViewModel mail: mail.Reload(); mail.SyncAll().Forget("Checking mail"); break;
-            case SettingsViewModel settings: settings.Refresh(); break;
+            mail.Reload();
+            mail.SyncAll().Forget("Checking mail");
         }
+        else if (value.Page is IRefreshable page)
+            page.Refresh();
     }
 }

@@ -121,7 +121,7 @@
             <c:Spinner IsVisible="{Binding IsWorking}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="4,0,0,0" />
           </StackPanel>
           <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap"
-                     Classes="muted" Classes.short="{Binding MessageIsProblem}" Text="{Binding Message}" />
+                     Classes="muted" Classes.problem="{Binding MessageIsProblem}" Text="{Binding Message}" />
         </DockPanel>
       </StackPanel>
     </Border>
@@ -218,7 +218,7 @@
   </DockPanel>
   <!-- Suggestions under whichever address box is being typed in -->
   <Popup x:Name="SuggestionsPopup" IsOpen="{Binding HasSuggestions}" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False">
-    <Border Classes="card" Padding="4" MinWidth="320" BoxShadow="0 6 18 0 #331C1D21">
+    <Border Classes="card" Padding="4" MinWidth="320" BoxShadow="{DynamicResource PopupShadow}">
       <ListBox x:Name="SuggestionList" ItemsSource="{Binding Suggestions}" SelectedItem="{Binding ChosenSuggestion}" Background="Transparent"
                Tapped="SuggestionTapped">
         <ListBox.ItemTemplate>

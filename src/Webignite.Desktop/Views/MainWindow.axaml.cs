@@ -24,11 +24,18 @@ public partial class MainWindow : Window
         notes = new WindowNotificationManager(this) { Position = NotificationPosition.BottomRight, MaxItems = 3 };
     }
 
+    private MainViewModel? wired; // the view model whose events this window listens to
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (DataContext is not MainViewModel main)
+        if (DataContext is not MainViewModel main || ReferenceEquals(main, wired))
             return;
+        // Only the first time: the app has one window and one main view model, so listening again would only
+        // add a second copy of each handler.
+        if (wired is not null)
+            return;
+        wired = main;
         main.WindowIsActive = () => IsActive && WindowState != WindowState.Minimized;
         main.FlashTaskbar = Flash;
         main.Search.PropertyChanged += (_, args) =>

@@ -145,7 +145,6 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     public bool ShowPasswordFields => ChangingPassword || !HasBackupPassword;
     public bool ShowRestore => RestoreFile is not null && !RestoreReady;
     public string RestoreFileName => RestoreFile is null ? "" : Path.GetFileName(RestoreFile);
-    public string PasswordButtonText => HasBackupPassword ? "Change backup password" : "";
 
     partial void OnChangingPasswordChanged(bool value) => OnPropertyChanged(nameof(ShowPasswordFields));
     partial void OnHasBackupPasswordChanged(bool value) => OnPropertyChanged(nameof(ShowPasswordFields));
@@ -221,19 +220,21 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
             return;
         }
         BackingUp = true;
-        string? problem;
+        AppServices.BackupOutcome outcome;
         try
         {
-            problem = await services.BackUpAsync(now: true);
+            outcome = await services.TryBackUpAsync(now: true);
         }
         finally
         {
             BackingUp = false; // a surprise error still frees the Back up now button
         }
         UpdateBackupStatus();
-        if (problem is not null)
+        if (outcome.Problem is { } problem)
             Say(problem, true);
-        else if (!BackupMessage.StartsWith("Saved.", StringComparison.Ordinal))
+        else if (outcome.Skipped is { } why)
+            Say(why);
+        else if (outcome.Made && !BackupMessage.StartsWith("Saved.", StringComparison.Ordinal))
             Say("Backed up.");
     }
 

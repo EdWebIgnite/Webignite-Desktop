@@ -173,7 +173,7 @@
               <TextBox Text="{Binding InNote}" PlaceholderText="Note, e.g. INV-0107" />
             </DockPanel>
           </Grid>
-          <TextBlock Classes="label short" Text="{Binding InMessage}" Margin="20,0,20,8" IsVisible="{Binding InMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="label problem" Text="{Binding InMessage}" Margin="20,0,20,8" IsVisible="{Binding InMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <TextBlock Classes="muted" Text="Nothing received this month yet." Margin="20,4,20,16" IsVisible="{Binding !HasReceived}" />
           <ItemsControl ItemsSource="{Binding ReceivedRows}" Margin="0,0,0,8">
             <ItemsControl.ItemTemplate>
@@ -186,7 +186,9 @@
                       <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0" />
-                    <Button Grid.Column="3" Classes="link" Content="✕" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}" />
+                    <Button Grid.Column="3" Classes="link" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}">
+                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                    </Button>
                   </Grid>
                 </Border>
               </DataTemplate>
@@ -202,14 +204,14 @@
           <Grid ColumnDefinitions="140,8,*" RowDefinitions="Auto,8,Auto,8,Auto" Margin="20,0,20,12">
             <CalendarDatePicker Grid.Row="0" Grid.Column="0" SelectedDate="{Binding OutDate}" HorizontalAlignment="Stretch"
                                 SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
-            <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding OutAmount}" PlaceholderText="Amount, e.g. 349,99" />
+            <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding OutAmount}" PlaceholderText="Amount, e.g. 349.99" />
             <TextBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding OutTo}" PlaceholderText="Paid to, e.g. Takealot" />
             <DockPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3">
               <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding AddExpenseCommand}" Margin="8,0,0,0" />
               <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding OutCategory}" HorizontalAlignment="Stretch" />
             </DockPanel>
           </Grid>
-          <TextBlock Classes="label short" Text="{Binding OutMessage}" Margin="20,0,20,8" IsVisible="{Binding OutMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="label problem" Text="{Binding OutMessage}" Margin="20,0,20,8" IsVisible="{Binding OutMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <TextBlock Classes="muted" Text="No expenses this month yet." Margin="20,4,20,16" IsVisible="{Binding !HasExpenses}" />
           <ItemsControl ItemsSource="{Binding ExpenseRows}" Margin="0,0,0,8">
             <ItemsControl.ItemTemplate>
@@ -222,7 +224,9 @@
                       <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0" />
-                    <Button Grid.Column="3" Classes="link" Content="✕" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}" />
+                    <Button Grid.Column="3" Classes="link" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}">
+                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                    </Button>
                   </Grid>
                 </Border>
               </DataTemplate>
@@ -269,7 +273,7 @@
           <ComboBox Grid.Column="6" ItemsSource="{Binding Categories}" SelectedItem="{Binding RecCategory}" HorizontalAlignment="Stretch" />
           <Button Grid.Column="8" Classes="quiet" Content="Add" Command="{Binding AddRecurringCommand}" />
         </Grid>
-        <TextBlock Classes="label short" Text="{Binding RecMessage}" Margin="20,0,20,8" IsVisible="{Binding RecMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Classes="label problem" Text="{Binding RecMessage}" Margin="20,0,20,8" IsVisible="{Binding RecMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <Border Height="8" />
       </StackPanel>
     </Border>

@@ -116,13 +116,13 @@ public static class XeroRules
         return found.Count == 1 ? found[0] : null;
     }
 
-    /// <summary>Accounts Webignite's sales can go to.</summary>
     /// <summary>A Xero app's Client ID: 32 letters and numbers (hex), as developer.xero.com shows it.</summary>
     public static bool LooksLikeClientId(string? text) => text is { Length: 32 } id && id.All(Uri.IsHexDigit);
 
     /// <summary>Whether Xero has the "No VAT" tax rate (NONE) that drafts are written with.</summary>
     public static bool HasNoVatRate(IEnumerable<string> taxTypes) => taxTypes.Contains("NONE", StringComparer.Ordinal);
 
+    /// <summary>Accounts Webignite's sales can go to.</summary>
     public static bool IsSalesAccount(string? type, string? status) =>
         status == "ACTIVE" && type is "REVENUE" or "SALES" or "OTHERINCOME";
 }

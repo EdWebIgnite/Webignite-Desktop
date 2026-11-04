@@ -40,17 +40,9 @@ public partial class MailViewModel
 
     private static string Count(int n) => n == 1 ? "1 message" : $"{n} messages";
 
-    public bool TargetsUnread => Targets().Any(m => !m.Seen);
-    public bool TargetsImportant => Targets().Count > 0 && Targets().All(m => m.Flagged);
 
     [RelayCommand]
     private Task ToggleRead() => Mark(MailMark.Read, Targets().Any(m => !m.Seen));
-
-    [RelayCommand]
-    private Task MarkRead() => Mark(MailMark.Read, true);
-
-    [RelayCommand]
-    private Task MarkUnread() => Mark(MailMark.Read, false);
 
     /// <summary>Marks the selected mail Important, or takes the mark off when all of it already has it.</summary>
     [RelayCommand]
@@ -67,7 +59,6 @@ public partial class MailViewModel
         foreach (var (account, group) in ByMailbox(changing))
             await Run(async () => updated.AddRange(await services.Mail.MarkAsync(account, group, mark, on)), quiet: true);
         Updated(updated);
-        NotifyTargets();
     }
 
     /// <summary>Puts mail in a category or takes it out. With no mail given, the selected mail.</summary>
@@ -141,14 +132,8 @@ public partial class MailViewModel
     private void RemovedAndReload(IReadOnlyCollection<MailSummary> gone)
     {
         Removed(gone);
-        NotifyTargets();
     }
 
-    private void NotifyTargets()
-    {
-        OnPropertyChanged(nameof(TargetsUnread));
-        OnPropertyChanged(nameof(TargetsImportant));
-    }
 
     /// <summary>The keys on the message list. Returns whether the key was used.</summary>
     public bool HandleKey(string key, bool shift)

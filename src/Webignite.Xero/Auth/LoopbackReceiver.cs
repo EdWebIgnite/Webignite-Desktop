@@ -23,6 +23,14 @@ public sealed class LoopbackReceiver : IDisposable
         {
             var context = await listener.GetContextAsync().WaitAsync(cancel);
             var query = context.Request.QueryString;
+            // Anything without this sign-in's own state is ignored, an error included: another page on this PC
+            // could open this address, and mustn't be able to cancel the sign-in or slip in a code.
+            if (query["state"] != expectedState)
+            {
+                await Reply(context, query["code"] is null && query["error"] is null ? "Waiting for Xero." : "This sign-in link doesn't match. Start again from Webignite.",
+                    query["code"] is null && query["error"] is null ? 404 : 400);
+                continue;
+            }
             if (query["error"] is { } error)
             {
                 await Reply(context, "Xero sign-in was cancelled. You can close this tab.");
@@ -31,12 +39,7 @@ public sealed class LoopbackReceiver : IDisposable
             if (query["code"] is not { Length: > 0 } code)
             {
                 await Reply(context, "Waiting for Xero.", 404);
-                continue; // e.g. a favicon request
-            }
-            if (query["state"] != expectedState)
-            {
-                await Reply(context, "This sign-in link doesn't match. Start again from Webignite.", 400);
-                throw new XeroSignInException("The sign-in reply did not match this request. Please try again.");
+                continue;
             }
             await Reply(context, "Signed in to Xero. You can close this tab and go back to Webignite.");
             return code;

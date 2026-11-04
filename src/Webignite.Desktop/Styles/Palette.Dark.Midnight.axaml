@@ -22,7 +22,6 @@
   <SolidColorBrush x:Key="NavSelected" Color="#1F2B3E" />
   <SolidColorBrush x:Key="NavText" Color="#FFFFFF" />
   <SolidColorBrush x:Key="NavMuted" Color="#7F8CA3" />
-  <SolidColorBrush x:Key="NavActive" Color="#FFFFFF" />
   <!-- Dims the page behind the Ctrl+K search box. -->
   <SolidColorBrush x:Key="Scrim" Color="#99000000" />
 
@@ -54,12 +53,18 @@
   <!-- Depth: cards sit just above the page; cards you can click rise a little more under the mouse. -->
   <BoxShadows x:Key="CardShadow">0 1 2 0 #40000000, 0 4 14 0 #33000000</BoxShadows>
   <BoxShadows x:Key="CardShadowRaised">0 2 4 0 #4D000000, 0 10 24 0 #80000000</BoxShadows>
+  <!-- Under things that float over the page: the Ctrl+K box, a note in the corner, the address suggestions. -->
+  <BoxShadows x:Key="OverlayShadow">0 12 32 0 #99000000</BoxShadows>
+  <BoxShadows x:Key="PopupShadow">0 6 18 0 #80000000</BoxShadows>
   <BoxShadows x:Key="HeadShadow">0 3 8 0 #73000000</BoxShadows>
 
   <!-- Mark-up pens, drawn on client screenshots. Red marks what needs fixing. -->
   <Color x:Key="MarkRed">#E03131</Color>
   <Color x:Key="MarkYellow">#FCC419</Color>
   <Color x:Key="MarkBlue">#1971C2</Color>
+  <!-- Round a numbered note, and its number: white, or black on the yellow pen. -->
+  <Color x:Key="MarkOutline">#FFFFFF</Color>
+  <Color x:Key="MarkOnYellow">#000000</Color>
 
   <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
   <Color x:Key="SystemAccentColor">#8AAEF5</Color>

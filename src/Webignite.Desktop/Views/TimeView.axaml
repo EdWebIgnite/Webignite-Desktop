@@ -133,7 +133,9 @@
                   <DataTemplate x:DataType="vm:TimeEntryRow">
                     <Border Classes="taskrow" Classes.leaving="{Binding IsLeaving}">
                       <DockPanel>
-                        <Button DockPanel.Dock="Right" Classes="link" Content="✕" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}" />
+                        <Button DockPanel.Dock="Right" Classes="link" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}">
+                          <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                        </Button>
                         <TextBlock DockPanel.Dock="Right" Text="{Binding Time}" VerticalAlignment="Center" Margin="12,0" FontFeatures="+tnum" />
                         <StackPanel VerticalAlignment="Center" Spacing="1">
                           <TextBlock Text="{Binding Who}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

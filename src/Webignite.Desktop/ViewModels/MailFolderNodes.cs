@@ -106,7 +106,6 @@ public partial class FolderNodeViewModel : ViewModelBase
     public string Path { get; }
     public string Name { get; }
     public FolderRole Role { get; }
-    public bool IsAllInboxes => Kind == FolderKind.AllInboxes;
     public bool IsImportant => Kind == FolderKind.Important;
     public bool IsRealFolder => Kind == FolderKind.Folder;
     public int Depth { get; }

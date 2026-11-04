@@ -204,12 +204,6 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
         return mime;
     }
 
-    public Task SetSeenAsync(MailAccount account, MailSummary summary, bool seen, CancellationToken cancel = default) =>
-        MarkAsync(account, [summary], MailMark.Read, seen, cancel);
-
-    public Task SetFlaggedAsync(MailAccount account, MailSummary summary, bool flagged, CancellationToken cancel = default) =>
-        MarkAsync(account, [summary], MailMark.Important, flagged, cancel);
-
     /// <summary>Marks mail from one mailbox read or unread, important or not, all in one go. Returns the mail as it is now.</summary>
     public async Task<IReadOnlyList<MailSummary>> MarkAsync(MailAccount account, IReadOnlyList<MailSummary> mail, MailMark mark, bool on,
         CancellationToken cancel = default)
@@ -260,10 +254,6 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
             return true;
         }, cancel);
 
-    /// <summary>Moves a message to another folder. The copy on this PC follows when that folder next syncs.</summary>
-    public Task MoveAsync(MailAccount account, MailSummary summary, string target, CancellationToken cancel = default) =>
-        MoveAsync(account, [summary], target, cancel);
-
     /// <summary>Moves mail from one mailbox to another of its folders.</summary>
     public async Task MoveAsync(MailAccount account, IReadOnlyList<MailSummary> mail, string target, CancellationToken cancel = default)
     {
@@ -302,10 +292,6 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
         await MoveAsync(account, mail.Where(m => m.Folder != archive.Path).ToList(), archive.Path, cancel);
         return archive.Name;
     }
-
-    /// <summary>Deleting moves to Trash. Deleting from Trash removes it for good.</summary>
-    public Task DeleteAsync(MailAccount account, MailSummary summary, CancellationToken cancel = default) =>
-        DeleteAsync(account, [summary], cancel);
 
     /// <summary>
     /// Mail from one mailbox goes to its Trash, making a Trash folder first if the mailbox has none Webignite
