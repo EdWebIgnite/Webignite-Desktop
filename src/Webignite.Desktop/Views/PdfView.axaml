@@ -1,0 +1,164 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.PdfView"
+             x:DataType="vm:PdfViewModel">
+  <Panel>
+    <DockPanel>
+      <!-- What's open and saving it -->
+      <Border DockPanel.Dock="Top" Padding="24,18,24,12">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <Button Classes="quiet" Content="Open" Click="OpenFiles" ToolTip.Tip="Open PDFs or pictures. With pages already here, they go on the end." />
+            <Button Classes="quiet" Content="Save as…" Click="SaveAs" IsEnabled="{Binding HasPages}" />
+            <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsVisible="{Binding CanSaveInPlace}" IsEnabled="{Binding Changed}"
+                    ToolTip.Tip="Writes over the file. The old copy goes to the Recycle Bin." />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="h1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="muted">
+              <Run Text="{Binding PageCountText}" />
+              <Run Text=" · drag pages to put them in order, pick some to turn or take out" />
+            </TextBlock>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- Doing things to the pages picked -->
+      <Border DockPanel.Dock="Top" Padding="24,6" BorderBrush="{DynamicResource Line}" BorderThickness="0,1" IsVisible="{Binding HasPages}">
+        <WrapPanel ItemSpacing="6" LineSpacing="6">
+          <Button Classes="quiet format" Content="Turn left" Command="{Binding TurnLeftCommand}" />
+          <Button Classes="quiet format" Content="Turn right" Command="{Binding TurnRightCommand}" />
+          <Button Classes="quiet format" Content="Take out" Command="{Binding RemoveCommand}" ToolTip.Tip="Takes the picked pages out of this PDF (Delete)" />
+          <Button Classes="quiet format" Content="Fill in and sign" Command="{Binding FillInCommand}" ToolTip.Tip="Shows the picked page large, to type on it and sign it" />
+          <Border Width="1" Background="{DynamicResource Line}" Margin="4,4" />
+          <TextBox Text="{Binding RangeText}" Width="120" PlaceholderText="Pages, e.g. 1-3" ToolTip.Tip="Leave empty to use the pages picked" />
+          <Button Classes="quiet format" Content="Into a new PDF" Command="{Binding TakeOutCommand}" ToolTip.Tip="Copies those pages into a PDF of their own, beside this one" />
+          <Button Classes="quiet format" Content="Split">
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="Every page on its own" Click="SplitEach" />
+                <MenuItem Header="Every 2 pages" Click="SplitTwos" />
+                <MenuItem Header="Every 5 pages" Click="SplitFives" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <Border Width="1" Background="{DynamicResource Line}" Margin="4,4" />
+          <Button Classes="quiet format" Content="Make smaller" Command="{Binding MakeSmallerCommand}"
+                  ToolTip.Tip="A smaller copy for mailing: pages become pictures, so its text can't be picked or searched" />
+          <Button Classes="quiet format" Content="Save as pictures" Command="{Binding SavePicturesCommand}" ToolTip.Tip="Each page as a PNG, in a folder beside this PDF" />
+          <Button Classes="link" Content="Show in Files" Command="{Binding ShowInFilesCommand}" />
+        </WrapPanel>
+      </Border>
+
+      <Border DockPanel.Dock="Bottom" Padding="24,6" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="Working…" IsVisible="{Binding Working}" />
+          <TextBlock Classes="muted" Classes.problem="{Binding MessageIsProblem}" FontSize="12" Text="{Binding Message}" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+      </Border>
+
+      <Panel>
+        <c:EmptyState Title="No PDF open" Text="Open a PDF or pictures, or drop them here. From Files, right-click a PDF and choose PDF tools."
+                      IsVisible="{Binding IsEmpty}" Margin="0,80,0,0" />
+        <ListBox x:Name="PageList" Classes="pdfpages" ItemsSource="{Binding Pages}" SelectionMode="Multiple" Background="Transparent"
+                 Padding="20,12" DragDrop.AllowDrop="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:PdfPageRow">
+              <StackPanel Width="180" Spacing="6" Margin="4">
+                <Border Height="230" Background="{DynamicResource Paper}" BoxShadow="{DynamicResource CardShadow}" CornerRadius="3" ClipToBounds="True">
+                  <LayoutTransformControl HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <LayoutTransformControl.LayoutTransform>
+                      <RotateTransform Angle="{Binding Angle}" />
+                    </LayoutTransformControl.LayoutTransform>
+                    <Image Source="{Binding Thumbnail}" Stretch="Uniform" MaxWidth="170" MaxHeight="220" />
+                  </LayoutTransformControl>
+                </Border>
+                <TextBlock HorizontalAlignment="Center" FontSize="12">
+                  <Run Text="{Binding Number}" FontWeight="SemiBold" />
+                  <Run Text="  " />
+                  <Run Text="{Binding From}" Foreground="{DynamicResource Muted}" />
+                </TextBlock>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Panel>
+    </DockPanel>
+
+    <!-- Filling in and signing one page -->
+    <Border IsVisible="{Binding IsFilling}" Background="{DynamicResource Canvas}">
+      <DockPanel DataContext="{Binding Filling}" x:DataType="vm:PdfFillViewModel">
+        <Border DockPanel.Dock="Top" Padding="24,12" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Content="Done" Command="{Binding DoneCommand}" ToolTip.Tip="Back to the pages, keeping what's on this one" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Classes="h2" VerticalAlignment="Center" Margin="0,0,12,0">
+                <Run Text="Page " /><Run Text="{Binding PageNumber}" />
+              </TextBlock>
+              <Button Classes="quiet format" Classes.on="{Binding IsText}" Content="Text" Command="{Binding UseCommand}" CommandParameter="{x:Static vm:FillTool.Text}" />
+              <Button Classes="quiet format" Classes.on="{Binding IsDate}" Content="Today's date" Command="{Binding UseCommand}" CommandParameter="{x:Static vm:FillTool.Date}" />
+              <Button Classes="quiet format" Classes.on="{Binding IsSignature}" Content="Signature" Command="{Binding UseCommand}" CommandParameter="{x:Static vm:FillTool.Signature}" />
+              <Button Classes="link" Content="Draw it again" Command="{Binding DrawSignatureCommand}" IsVisible="{Binding HasSignature}" />
+              <TextBlock Classes="muted" Text="{Binding Hint}" VerticalAlignment="Center" Margin="12,0,0,0" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <ScrollViewer>
+          <Panel Margin="24">
+            <Panel x:Name="FillPage" Width="{x:Static vm:PdfFillViewModel.ShownWidth}" Height="{Binding ShownHeight}" HorizontalAlignment="Center"
+                   Background="{DynamicResource Paper}" PointerPressed="PagePressed">
+              <Image Source="{Binding Picture}" Stretch="Fill" IsHitTestVisible="False" />
+              <ItemsControl ItemsSource="{Binding Stamps}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:PdfStampRow">
+                    <Canvas>
+                      <Border Classes="stamp" Canvas.Left="{Binding Left}" Canvas.Top="{Binding Top}"
+                              PointerPressed="StampPressed" PointerMoved="StampMoved" PointerReleased="StampReleased">
+                        <Panel>
+                          <TextBox Classes="stamptext" IsVisible="{Binding IsWords}" Text="{Binding Text}" FontSize="{Binding FontSize}" AcceptsReturn="True"
+                                   MinWidth="80" AttachedToVisualTree="StampTextShown" />
+                          <Image IsVisible="{Binding IsSignature}" Source="{Binding Shown}" Width="{Binding BoxWidth}" Height="{Binding BoxHeight}" />
+                          <Button Classes="stampclose" Command="{Binding RemoveCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip.Tip="Take it off">
+                            <c:Icon Data="{StaticResource Icon.Close}" Size="9" />
+                          </Button>
+                        </Panel>
+                      </Border>
+                    </Canvas>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Panel>
+          </Panel>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+
+    <!-- Drawing the signature once -->
+    <Border IsVisible="{Binding Filling.Drawing, FallbackValue=False}" Background="{DynamicResource Scrim}">
+      <Border Background="{DynamicResource Surface}" CornerRadius="10" Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center"
+              BoxShadow="{DynamicResource OverlayShadow}">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="Draw your signature" />
+          <TextBlock Classes="muted" Text="Use the mouse or a pen. It's kept, encrypted, for the next PDF." />
+          <Border BorderBrush="{DynamicResource Line2}" BorderThickness="1" CornerRadius="6">
+            <Canvas x:Name="Pad" Width="520" Height="180" Background="{DynamicResource Paper}" ClipToBounds="True"
+                    PointerPressed="PadPressed" PointerMoved="PadMoved" PointerReleased="PadReleased" />
+          </Border>
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Classes="link" Content="Start again" Click="PadClear" />
+            <Button Classes="quiet" Content="Cancel" Click="PadCancel" />
+            <Button Classes="primary" Content="Keep it" Click="PadKeep" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Panel>
+</UserControl>

@@ -12,7 +12,7 @@ public enum Page
     Clients, Files, Retainers, Renewals,
     Quotes, Invoices, Money, Reports,
     Todo, Calendar, Planner, Time,
-    SiteCheck, Markup, Tools,
+    SiteCheck, Markup, Pdf, Tools,
     Settings,
 }
 
@@ -35,6 +35,7 @@ public sealed class Navigator
     internal Action<string>? OpenSettingsAction { get; set; }
     internal Action<bool>? ScreenshotAction { get; set; }
     internal Action<bool>? RecordAction { get; set; }
+    internal Action<IReadOnlyList<string>>? OpenPdfAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -71,6 +72,22 @@ public sealed class Navigator
 
     /// <summary>Starts recording part of the screen, or stops the recording under way and opens it in Mark-up.</summary>
     public void Record(bool hideApp = true) => RecordAction?.Invoke(hideApp);
+
+    /// <summary>Opens PDFs (and pictures, as pages) in the PDF tools.</summary>
+    public void Pdf(IReadOnlyList<string> paths) => OpenPdfAction?.Invoke(paths);
+
+    /// <summary>
+    /// Opens a PDF that isn't a file yet (a mail's attachment) in the PDF tools: it is kept in a temporary folder,
+    /// and saving asks where it should go.
+    /// </summary>
+    public void Pdf(string name, byte[] data)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "Webignite PDFs", Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, Path.GetFileName(name));
+        File.WriteAllBytes(path, data);
+        Pdf([path]);
+    }
 
     /// <summary>Opens Settings at a section, by its key (e.g. "files").</summary>
     public void Settings(string section) => OpenSettingsAction?.Invoke(section);

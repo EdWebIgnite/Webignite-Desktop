@@ -17,7 +17,7 @@ namespace Webignite.Desktop.Views;
 /// The Files page: keys, the right-click menu, dragging files in and out (to Explorer, Outlook or a folder here),
 /// the clipboard, and drawing thumbnails only for what is on screen.
 /// </summary>
-public partial class FilesView : UserControl
+public partial class FilesView : FullBleedView
 {
     private FilesViewModel? watching;
     private bool syncing;
@@ -59,35 +59,6 @@ public partial class FilesView : UserControl
     }
 
     private FilesViewModel? Files => DataContext as FilesViewModel;
-
-    // Pages that fill the window sit in a sideways scroller, which offers endless width. Files keeps to the width on
-    // screen instead, so long names trim and thumbnails wrap; the scroller only scrolls below the page's least width.
-    private ScrollViewer? scroller;
-
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-        scroller = this.FindAncestorOfType<ScrollViewer>();
-        if (scroller is not null)
-            scroller.SizeChanged += ScrollerResized;
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        if (scroller is not null)
-            scroller.SizeChanged -= ScrollerResized;
-        scroller = null;
-        base.OnDetachedFromVisualTree(e);
-    }
-
-    private void ScrollerResized(object? sender, SizeChangedEventArgs e) => InvalidateMeasure();
-
-    protected override Size MeasureOverride(Size availableSize)
-    {
-        if (double.IsInfinity(availableSize.Width) && scroller is { Bounds.Width: > 0 } around)
-            availableSize = availableSize.WithWidth(Math.Max(around.Bounds.Width, 760));
-        return base.MeasureOverride(availableSize);
-    }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -368,6 +339,8 @@ public partial class FilesView : UserControl
             if (windows && picked.Count == 1 && !picked[0].IsFolder)
                 items.Add(Item("Open with…", null, () => files.OpenWithCommand.Execute(null)));
             items.Add(Item("Quick Look", "Space", files.ToggleQuickLook));
+            if (picked.All(r => !r.IsFolder && (Webignite.Core.Files.FileKinds.IsPdf(r.Name) || Webignite.Core.Files.QuickActions.CanRotate(r.Name))) && picked.Any(r => Webignite.Core.Files.FileKinds.IsPdf(r.Name)))
+                items.Add(Item("PDF tools", null, () => App.Services?.Go.Pdf([.. picked.Select(r => r.Entry.Path)])));
             if (files.IsGathered && picked.Count == 1)
                 items.Add(Item("Show in its folder", null, () => files.ShowInItsFolder(picked[0])));
             items.Add(TagsMenu(files));
