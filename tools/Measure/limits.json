@@ -1,0 +1,7 @@
+{
+  "comment": "Measured on 4 Nov 2026 on Linux: start about 2 s and 30.6 MB, first round +2.9 MB, second round +0.0 MB. Raise a limit only on purpose, in the same pull request as the change that needs it, saying why.",
+  "startMilliseconds": 6000,
+  "startManagedMegabytes": 36,
+  "firstRoundGrowthMegabytes": 6,
+  "repeatGrowthMegabytes": 0.5
+}

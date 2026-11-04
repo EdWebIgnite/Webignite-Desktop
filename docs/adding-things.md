@@ -102,6 +102,9 @@ Versions are central in `Directory.Packages.props`; a project's `.csproj` names 
 dotnet build Webignite.slnx
 dotnet test --solution Webignite.slnx
 dotnet run --project tools/Snapshot -- shots
+dotnet run --project tools/Measure -c Release
 ```
+
+Measure fails when start-up time or memory passes `tools/Measure/limits.json`, or when a page or its screen is still in memory after it is let go. A screen that puts a handler on the window (or anything else that outlives it) keeps the window holding the screen; remember what it was put on and take it off when the screen is taken off screen, as `MarkupView` does. A new tool that opens and closes (a viewer, the file explorer) gets the same open-and-let-go check there. Raise a limit only on purpose, in the PR that needs it, saying why.
 
 Warnings are errors and the .NET code analysers run at "recommended", so the build is the lint. A rule that doesn't fit is switched off in `.editorconfig` with the reason, or for one line with a `#pragma` and a comment saying why. Look at the screenshots for any screen you touched. One PR per feature, branched from `main`.

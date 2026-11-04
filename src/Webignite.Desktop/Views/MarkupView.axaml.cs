@@ -13,6 +13,10 @@ namespace Webignite.Desktop.Views;
 public partial class MarkupView : UserControl
 {
     private DispatcherTimer? waitingForSnip;
+
+    // The window the Ctrl+V and Ctrl+Z handler went on. Asking for the window again when the page is taken
+    // off screen finds nothing, which left the handler, and the whole page, held by the window for good.
+    private TopLevel? keysOn;
     private DateTime snipStarted;
 
     public MarkupView()
@@ -31,14 +35,15 @@ public partial class MarkupView : UserControl
     {
         base.OnAttachedToVisualTree(e);
         Markup?.LoadClients();
-        if (TopLevel.GetTopLevel(this) is { } top)
-            top.AddHandler(KeyDownEvent, Keys, RoutingStrategies.Tunnel);
+        keysOn = TopLevel.GetTopLevel(this);
+        keysOn?.AddHandler(KeyDownEvent, Keys, RoutingStrategies.Tunnel);
     }
 
     protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
     {
         StopWaiting();
-        TopLevel.GetTopLevel(this)?.RemoveHandler(KeyDownEvent, Keys);
+        keysOn?.RemoveHandler(KeyDownEvent, Keys);
+        keysOn = null;
         base.OnDetachedFromVisualTree(e);
     }
 
