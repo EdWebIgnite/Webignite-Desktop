@@ -15,8 +15,3 @@ public enum DocumentOrigin
     PdfImport,
 }
 
-/// <summary>Webignite is not VAT registered, so this is the only treatment for now.</summary>
-public enum TaxTreatment
-{
-    NoVat,
-}

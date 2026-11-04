@@ -15,7 +15,5 @@ public sealed record CalendarEvent
     public string? Notes { get; init; }
     public string? Customer { get; init; }
 
-    public bool AllDay => Start is null;
-
     public static string NewId() => Guid.CreateVersion7().ToString("N");
 }

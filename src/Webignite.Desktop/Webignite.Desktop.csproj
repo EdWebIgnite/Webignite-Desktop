@@ -15,7 +15,8 @@
     <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
   </ItemGroup>
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+    <!-- Only the window icon is read at run time. webignite.ico is the exe icon (above); the logo is for the screenshot tool. -->
+    <AvaloniaResource Include="Assets\icon.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Velopack" />

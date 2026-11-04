@@ -54,7 +54,4 @@ public static partial class TimeRules
         rate = Money.Cents(value);
         return true;
     }
-
-    /// <summary>"R 650.00 an hour", for showing a rate.</summary>
-    public static string RateText(decimal rate) => Money.Rand(rate) + " an hour";
 }

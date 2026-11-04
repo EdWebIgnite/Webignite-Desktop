@@ -15,6 +15,14 @@
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="CornerRadius" Value="6" />
     </Style>
+    <!-- Palette hover and press, not Fluent's own grey, which doesn't match the dark looks. -->
+    <Style Selector="Button.folder:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.tool:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.swatch:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
+    <Style Selector="Button.folder:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.tool:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.swatch:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+    </Style>
     <Style Selector="Button.folder.current">
       <Setter Property="Background" Value="{DynamicResource TableHead}" />
     </Style>
@@ -200,7 +208,7 @@
                 <TextBlock FontWeight="SemiBold" Text="{Binding Heading}" TextWrapping="Wrap" />
                 <TextBox Text="{Binding Name}" PlaceholderText="Folder name" IsVisible="{Binding AsksName}" x:Name="FolderName" />
                 <TextBlock Classes="muted" FontSize="12" Text="{Binding Note}" TextWrapping="Wrap" />
-                <TextBlock Classes="short" FontSize="12" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
+                <TextBlock Classes="problem" FontSize="12" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <Button Classes="primary" Content="{Binding SaveLabel}" Command="{Binding SaveCommand}" IsDefault="True" />
                   <Button Classes="link" Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
@@ -224,7 +232,7 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Classes="short" FontSize="12" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
+                <TextBlock Classes="problem" FontSize="12" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
                 <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !ConfirmingRemove}">
                   <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsDefault="True" />
                   <Button Classes="link" Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
@@ -330,7 +338,7 @@
                 <c:Spinner IsVisible="{Binding IsBusy}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,4,0"
                            ToolTip.Tip="Talking to the mail server" />
                 <Button Classes="quiet" Content="Check for mail" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
-                <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panels: show, hide and move them">
+                <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panes: show, hide and move them">
                   <c:Icon Data="{StaticResource Icon.Panels}" Size="16" />
                   <Button.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
@@ -400,7 +408,7 @@
                       HorizontalAlignment="Stretch" ToolTip.Tip="Show only one client's mail in this list" />
             <CheckBox Content="Group into conversations" IsChecked="{Binding Conversations, Mode=OneWay}" Command="{Binding ToggleConversationsCommand}"
                       IsVisible="{Binding CanGroup}" FontSize="12" ToolTip.Tip="Replies sit under the first mail. Switched on or off for this list only." />
-            <TextBlock FontSize="12" Classes="muted" Classes.short="{Binding StatusIsProblem}" Text="{Binding Status}" TextWrapping="Wrap"
+            <TextBlock FontSize="12" Classes="muted" Classes.problem="{Binding StatusIsProblem}" Text="{Binding Status}" TextWrapping="Wrap"
                        IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
           <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,8" IsVisible="{Binding CanLoadOlder}">
@@ -624,7 +632,7 @@
             <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
               <Grid>
                 <TextBlock Classes="muted" Margin="24" Text="Opening…" IsVisible="{Binding IsLoading}" />
-                <TextBlock Classes="short" Margin="24" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
+                <TextBlock Classes="problem" Margin="24" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
                 <!-- Mail is shown on paper white in every look: senders colour their text for a white page. -->
                 <Border Background="{DynamicResource Paper}" CornerRadius="6" Margin="12,8" Padding="12,8" IsVisible="{Binding IsNotPreviewing}">
                   <html:HtmlPanel x:Name="Body" Text="{Binding Html}" Background="{DynamicResource Paper}" />

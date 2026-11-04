@@ -42,7 +42,7 @@
             <ComboBox ItemsSource="{Binding SalesAccounts}" SelectedItem="{Binding ChosenAccount}" MinWidth="280" IsVisible="{Binding HasAccounts}" />
             <Button Classes="primary" Content="Use this account" Command="{Binding SaveAccountCommand}" IsVisible="{Binding HasAccounts}" />
           </StackPanel>
-          <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.short="{Binding AccountProblem}" Text="{Binding AccountMessage}" />
+          <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding AccountProblem}" Text="{Binding AccountMessage}" />
         </StackPanel>
         <Button Classes="quiet" Content="Disconnect Xero" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsConnected}" />
       </StackPanel>
@@ -263,7 +263,7 @@
           <Button Classes="quiet" Content="Connect again" Command="{Binding ConnectClaudeCommand}" IsVisible="{Binding ClaudeConnected}" />
         </StackPanel>
         <Border Classes.ready="{Binding ClaudeConnected}" Classes.pending="{Binding !ClaudeConnected}">
-          <TextBlock Text="{Binding ClaudeStatus}" TextWrapping="Wrap" Classes.short="{Binding ClaudeProblem}" />
+          <TextBlock Text="{Binding ClaudeStatus}" TextWrapping="Wrap" Classes.problem="{Binding ClaudeProblem}" />
         </Border>
 
         <TextBlock FontWeight="SemiBold" Text="ChatGPT" Margin="0,6,0,0" />

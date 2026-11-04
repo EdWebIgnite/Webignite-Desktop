@@ -35,7 +35,7 @@
         <Border Classes="card">
           <StackPanel Spacing="10">
             <TextBlock Classes="label" Text="DRAW" />
-            <ListBox ItemsSource="{Binding Tools}" SelectedItem="{Binding ChosenTool}" Classes="choices">
+            <ListBox ItemsSource="{Binding Tools}" SelectedItem="{Binding ChosenTool}">
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:ToolChoice">
                   <TextBlock Text="{Binding Label}" />
@@ -69,7 +69,9 @@
                 <DataTemplate x:DataType="vm:PinRow">
                   <DockPanel Margin="0,0,0,6">
                     <TextBlock DockPanel.Dock="Left" Text="{Binding Number}" FontWeight="Bold" Width="22" Margin="0,6,0,0" VerticalAlignment="Top" />
-                    <Button DockPanel.Dock="Right" Classes="link" Content="✕" Padding="6,4" VerticalAlignment="Top" Command="{Binding RemoveCommand}" ToolTip.Tip="Remove this note" />
+                    <Button DockPanel.Dock="Right" Classes="link" Padding="6,4" VerticalAlignment="Top" Command="{Binding RemoveCommand}" ToolTip.Tip="Remove this note">
+                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                    </Button>
                     <TextBox Text="{Binding Comment}" AcceptsReturn="True" TextWrapping="Wrap" PlaceholderText="What needs changing here" />
                   </DockPanel>
                 </DataTemplate>

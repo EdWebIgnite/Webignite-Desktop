@@ -18,7 +18,6 @@ public sealed record Document
     public DateOnly? Date { get; init; }
     public DateOnly? DueOrExpiryDate { get; init; }
     public string? Currency { get; init; }
-    public TaxTreatment TaxTreatment { get; init; } = TaxTreatment.NoVat;
     public required IReadOnlyList<Line> Lines { get; init; }
     public decimal? Subtotal { get; init; }
     public decimal? DocumentDiscountAmount { get; init; }
@@ -30,7 +29,6 @@ public sealed record Document
     public string? OriginalStatus { get; init; }
     public decimal? AmountPaid { get; init; }
     public decimal? BalanceDue { get; init; }
-    public IReadOnlyList<string> ReviewFlags { get; init; } = [];
 
     public decimal LinesTotal() => Lines.Sum(line => line.Amount());
 

@@ -117,7 +117,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:ShadeRow">
-                <Button Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Hex}"
+                <Button Classes="shade" Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Hex}"
                         Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
                   <Border Height="28" CornerRadius="4" Background="{Binding Brush}" />
                 </Button>

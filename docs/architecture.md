@@ -96,14 +96,14 @@ flowchart BT
 | Project | Holds | Outside packages |
 | --- | --- | --- |
 | `Webignite.Core` | Every business rule and record: documents, money, clients, mail rules, time, layout. Pure functions with dates passed in. | none |
-| `Webignite.Data` | `LocalStore` (SQLite, one table per kind of record, payload encrypted by `Vault`), `VaultKey`, backups, secrets, `AppLog`, the assistant rules for documents and to-dos. | Microsoft.Data.Sqlite, ProtectedData |
+| `Webignite.Data` | `LocalStore` (SQLite, one table per kind of record, payload encrypted by `Vault`; one file per area on the shared helpers in `LocalStore.Rows.cs`, and `LocalStore.Schedules.cs` for what the calendar calls for), `VaultKey`, backups, secrets, `AppLog`, the assistant rules for documents and to-dos. | Microsoft.Data.Sqlite, ProtectedData |
 | `Webignite.Xero` | `XeroSession` (sign-in, tokens), `XeroApi`, `XeroDrafts` (create and check drafts), `XeroSending` (PDFs, mark sent), `XeroStandings` (payments). | none |
-| `Webignite.Mail` | `MailService` (sync, read, mark, move, send), `MailComposer`, `MailReader`, `AssistantTools` (what an assistant may do with mail). | MailKit |
+| `Webignite.Mail` | `MailService` (sync, read, mark, move, send; `MailRetry` decides when a dropped connection is tried again), `MailComposer`, `MailReader`, `AssistantTools` (what an assistant may do with mail). | MailKit |
 | `Webignite.Services` | `PaymentWatch`, `UptimeWatch`, `SiteChecker`: each has `Due(now)` and `RunAsync`. | none |
 | `Webignite.Connector` | The MCP server and its tools: documents, to-dos, mail. Logs go to stderr only. | ModelContextProtocol, Hosting |
-| `Webignite.Desktop` | The app: `AppServices`, `AppSettings`, `Navigator`, pages (view models and views), controls, styles. | Avalonia, CommunityToolkit.Mvvm, HtmlRenderer, QRCoder, Docnet.Core, Velopack |
+| `Webignite.Desktop` | The app: `AppServices`, `AppSettings`, `Navigator`, `MailDrafts`, pages (view models and views), controls, styles. | Avalonia, CommunityToolkit.Mvvm, HtmlRenderer, QRCoder, Docnet.Core, Velopack |
 | `tests/Webignite.Tests` | xUnit v3 tests, one file per area. | xunit.v3 |
-| `tools/Snapshot` | Builds sample data in a throwaway database and saves a screenshot of each screen. | Avalonia.Headless |
+| `tools/Snapshot` | Builds sample data in a throwaway database, saves a screenshot of each screen and runs checks along the way (a failed check fails the run). CI runs it on every pull request and keeps the pictures. | Avalonia.Headless |
 
 ## 3. Inside the projects
 
@@ -119,8 +119,9 @@ flowchart LR
         time["Time<br/>TimeRules, TimeRates, TimeInvoice"]
         tasks["Tasks<br/>TaskGroups, AutomaticTasks"]
         overview["Overview<br/>MorningSummary, OverviewCards"]
-        layout["Layout<br/>Sidebar, Panels, ListHints"]
-        other["Calendar, Renewals, Retainers,<br/>Search, Tools, Web, Backups, Xero"]
+        layout["Layout<br/>Sidebar, Panels, ListHints, ListUndo"]
+        shared["Shared helpers<br/>Wording, Dates, MonthlySchedule"]
+        other["Calendar, Renewals, Retainers,<br/>Search, Tools, Web (Domains), Backups, Xero"]
     end
     overview --> documents
     overview --> finance
@@ -129,7 +130,11 @@ flowchart LR
     clients --> documents
     time --> clients
     mailc --> clients
+    finance --> shared
+    tasks --> shared
 ```
+
+Some rules are written once and used everywhere; a second copy is a bug waiting to happen. Days in words are `Wording`, weeks, months and tax years are `Dates`, anything monthly is `MonthlySchedule`, names are compared with `ClientDirectory.Key`, addresses are matched with `ClientMail`, websites become domains with `Web.Domains.Of`, and typed amounts are read with `Money.Parse`.
 
 ### Desktop: how a page is built
 
@@ -156,13 +161,17 @@ flowchart LR
 
 | Piece | Job |
 | --- | --- |
-| `AppServices` | One of each long-lived thing: the store, settings, mail, Xero session, watches, `Navigator`, notes, background work. |
+| `AppServices` | One of each long-lived thing: the store, settings, mail, Xero session, watches, `Navigator`, `MailDrafts`, notes, background work. |
+| `MailDrafts` (`services.Drafts`) | The one way a mail is prepared for the person to send: invoice and quote mail, reminders, statements, onboarding reminders, mark-ups. Nothing is sent from code. |
+| `IRefreshable` | A page that shows what other pages change reads it again when it is opened and on F5. |
+| `MainViewModel.PrepareToCloseAsync` | Runs before the window closes: saves open editors, the open client and typed amounts, sends a mail still in its undo wait and saves the mail being written. |
 | `AppSettings` | Typed settings saved as JSON under a key in the `settings` table, e.g. `mail-rules`, `mail-snooze`, `income-plan`. |
 | `Navigator` (`services.Go`) | Moving between pages and opening a client, a document or a mail, without pages knowing about each other. |
-| `Background.Forget` | Runs a task nobody waits for and writes any failure to `AppLog`. |
+| `Background.Forget` | Runs a task nobody waits for and writes any failure to `AppLog`; with `tell: true` a note says so too. `Background.CatchUnhandled` does the same for any error nobody caught on the screen's thread, and the app carries on. |
 | `Feedback` | Timings for small movements (fades, the to-do tick), following the Motion setting. |
-| Controls | `PanelGrid` (movable panes), `Sticky` (pinned table headings), `ListKeys` (arrow keys on lists), `EmptyState`, `ListHint`, `SavedNote`, `Monogram`, `Sparkline`, `ShareBar`, `IncomeChart`, `MarkupCanvas`. |
-| Styles | `Palette.axaml` and three dark palettes (the only place colours live), `Controls.axaml`, `Icons.axaml` (Lucide), `Motion.axaml`. |
+| Controls | `PanelGrid` (movable panes), `Sticky` (pinned table headings), `ListKeys` (arrow keys on lists), `EmptyState`, `ListHint`, `SavedNote`, `Monogram`, `CategoryDot`, `Icon` and `IconConverter`, `Spinner`, `Sparkline`, `ShareBar`, `IncomeChart`, `MarkupCanvas`. |
+| Styles | `Palette.axaml` and three dark palettes (the only place colours live, shadows and mark-up pens included), `Controls.axaml`, `Icons.axaml` (Lucide), `Motion.axaml`, and `Views/AgendaChips.axaml` for calendar chips. |
+| Mail page | `MailView` with the folder tree (`MailFolderNodes.cs`), the list (`MailRowViewModel`) and the reader; `MailRulesView` and `MailSetupView` are its two pages of their own. `MailViewModel` is split by job into partial files (Actions, Editors, Rules, Sending, Snooze). |
 
 ### Pages
 
@@ -210,7 +219,7 @@ sequenceDiagram
     Editor->>Drafts: CreateAsync
     Drafts->>Xero: POST as DRAFT (never approved here)
     Xero-->>Drafts: number and id
-    Drafts->>Store: save with XeroNumber, InXero
+    Drafts->>Store: save with XeroNumber, InXero (Store.Update: on top of any change made meanwhile)
     Editor-->>Eddie: "Draft in Xero" status
 ```
 
@@ -228,13 +237,15 @@ sequenceDiagram
     Eddie->>Editor: Email it
     Editor->>Sending: PrepareAsync
     Sending->>Xero: PDF and contact email
-    Editor->>Mail: open the filled-in mail with the PDF
+    Editor->>Mail: open the filled-in mail with the PDF (through MailDrafts)
     Eddie->>Mail: Send
     Mail->>Mail: wait 10 seconds (Undo)
     Mail->>Service: SendAsync (SMTP, copy to Sent)
     Mail->>Sending: MarkSentAsync(who it went to)
     Sending->>Xero: invoice marked sent, quote marked SENT
 ```
+
+Approving the invoice and marking it sent are the only Xero writes that aren't drafts, and they happen only from the person's own click on Email it. Claude and ChatGPT never get this far.
 
 ### Mail arrives
 
@@ -288,7 +299,9 @@ sequenceDiagram
 | --- | --- |
 | A rule, calculation or decision | `Webignite.Core/<Area>`, with a test in `tests/Webignite.Tests` |
 | A new kind of record that is saved | Core record + a table and `LocalStore.Thing.cs` in `Webignite.Data` |
-| A setting | A record in Core, a property on `AppSettings` |
+| A setting | A record in Core (or `Desktop` when it is only about the app), a property on `AppSettings` |
+| A mail the person sends | `services.Drafts` (`MailDrafts`) |
+| Work that mustn't be lost when the app closes | A line in `MainViewModel.PrepareToCloseAsync` |
 | A page | View model, view, icon, `Page` value, `Module` in `MainViewModel` |
 | A background check | A class in `Webignite.Services` with `Due` and `RunAsync` |
 | Something an assistant can do | A tool in `Webignite.Connector`, its rule in `Assistant*` |

@@ -13,8 +13,6 @@ public sealed record ClientSummary(
 {
     /// <summary>What's still owed on this client's invoices, using Xero's payments when they've been read.</summary>
     public decimal Owed => Receivables.Owed(Documents);
-
-    public DateTimeOffset? LastActivity => Documents.Count == 0 ? null : Documents.Max(d => d.Updated);
 }
 
 public static class ClientDirectory

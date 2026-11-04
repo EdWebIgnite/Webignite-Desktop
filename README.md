@@ -58,7 +58,7 @@ To add a page, a setting, a table, a background check, an assistant tool or a te
 | `tests/Webignite.Tests` | xUnit tests for Core, Data, Xero, Mail and Services. Xero and mail are tested against fake HTTP handlers. |
 | `tools/Snapshot` | Renders every screen to PNG without opening a window, using a throwaway database with sample data. |
 
-Colours live in `src/Webignite.Desktop/Styles/Palette.axaml` and the three `Palette.Dark.*.axaml` files. Nothing else names a colour.
+Colours live in `src/Webignite.Desktop/Styles/Palette.axaml` and the three `Palette.Dark.*.axaml` files, which all hold the same names. The only other colours are inside mail itself: mail is shown on white paper in every look, so its base text colour is written into the mail's own HTML.
 
 ## Where things live on the PC
 

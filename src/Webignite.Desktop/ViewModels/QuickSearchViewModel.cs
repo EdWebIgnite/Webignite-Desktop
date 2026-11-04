@@ -53,7 +53,6 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
         Refresh();
     }
 
-    [RelayCommand]
     public void Hide() => IsOpen = false;
 
     partial void OnQueryChanged(string value) => Refresh();
@@ -76,19 +75,11 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
         Chosen = Results[Math.Clamp(index + step, 0, Results.Count - 1)];
     }
 
-    [RelayCommand]
     public void OpenChosen()
     {
         if (Chosen is not { } hit)
             return;
         IsOpen = false;
         open(hit);
-    }
-
-    [RelayCommand]
-    private void OpenHit(SearchHit hit)
-    {
-        Chosen = hit;
-        OpenChosen();
     }
 }

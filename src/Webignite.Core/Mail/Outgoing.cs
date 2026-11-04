@@ -38,10 +38,6 @@ public sealed record Quoted(string Header, string Text, string? Html, bool IsFor
 
 public static class Recipients
 {
-    /// <summary>
-    /// Reads what was typed in a To, Cc or Bcc box: addresses split by commas or semicolons, with or
-    /// without a name, e.g. "Thandi Mokoena &lt;thandi@karoocoffee.co.za&gt;, pieter@bosveld.co.za".
-    /// </summary>
     /// <summary>Who a mail goes to, short: "Thandi Mokoena", "Thandi Mokoena and Pieter" or "Thandi Mokoena and 2 others".</summary>
     public static string Short(IReadOnlyList<MailPerson> people) => people.Count switch
     {
@@ -51,6 +47,11 @@ public static class Recipients
         _ => $"{people[0].Display} and {people.Count - 1} others",
     };
 
+    /// <summary>
+    /// Reads what was typed in a To, Cc or Bcc box: addresses split by commas or semicolons, with or
+    /// without a name, e.g. "Thandi Mokoena &lt;thandi@karoocoffee.co.za&gt;, pieter@bosveld.co.za".
+    /// Anything that isn't an address comes back in Bad, as typed.
+    /// </summary>
     public static (IReadOnlyList<MailPerson> People, IReadOnlyList<string> Bad) Parse(string? text)
     {
         var people = new List<MailPerson>();

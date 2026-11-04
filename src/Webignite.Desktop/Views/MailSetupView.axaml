@@ -85,7 +85,7 @@
         <CheckBox Content="Invoices are sent from this mailbox" IsChecked="{Binding SendsInvoices}" />
         <CheckBox Content="Claude and ChatGPT may read this mailbox and draft replies (they can never send)" IsChecked="{Binding AssistantsMayRead}" />
 
-        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes.short="{Binding MessageIsProblem}" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes.problem="{Binding MessageIsProblem}" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
         <DockPanel>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsEditing}">

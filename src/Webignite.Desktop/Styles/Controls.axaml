@@ -37,6 +37,7 @@
     <Setter Property="FontFeatures" Value="+tnum" />
   </Style>
   <!-- More went out than came in -->
+  <!-- Money that came in short of what went out, or a date that has passed. For messages, use problem. -->
   <Style Selector="TextBlock.short">
     <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
@@ -218,6 +219,16 @@
   <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
     <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <!-- A colour you click (the shades on Tools): the colour itself is the button, with no grey behind it. -->
+  <Style Selector="Button.shade">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.shade:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.shade:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.shade:pointerover">
+    <Setter Property="Opacity" Value="0.85" />
   </Style>
   <Style Selector="Button.link:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TableHead}" />
@@ -517,7 +528,6 @@
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="CornerRadius" Value="6" />
   </Style>
-  <!-- Group headings: clicking one folds its pages up or opens them out. They never look selected. -->
   <!-- The sidebar folded to icons: square items, the icon in the middle. -->
   <Style Selector="ListBox.nav.icons ListBoxItem">
     <Setter Property="Padding" Value="0,10" />
@@ -526,9 +536,6 @@
   <Style Selector="ListBox.nav ListBoxItem.heading">
     <Setter Property="Padding" Value="12,12,12,4" />
     <Setter Property="Cursor" Value="Hand" />
-  </Style>
-  <Style Selector="ListBox.nav ListBoxItem.heading:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="Transparent" />
   </Style>
   <Style Selector="ListBox.nav ListBoxItem.heading:pointerover c|Icon.fold">
     <Setter Property="Opacity" Value="1" />
@@ -559,17 +566,6 @@
   <Style Selector="ListBox.nav ListBoxItem:selected c|Icon.navicon">
     <Setter Property="Opacity" Value="1" />
   </Style>
-  <!-- Sidebar options for comparing looks: no icons, or no group headings. -->
-  <Style Selector="Window.nav-noicons c|Icon.navicon">
-    <Setter Property="IsVisible" Value="False" />
-  </Style>
-  <Style Selector="Window.nav-noheadings ListBox.nav ListBoxItem.heading">
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="Height" Value="10" />
-  </Style>
-  <Style Selector="Window.nav-noheadings ListBox.nav ListBoxItem.heading /template/ ContentPresenter">
-    <Setter Property="IsVisible" Value="False" />
-  </Style>
   <Style Selector="ListBox.nav ListBoxItem:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NavHover}" />
     <Setter Property="Foreground" Value="{DynamicResource NavText}" />
@@ -580,5 +576,10 @@
   </Style>
   <Style Selector="ListBox.nav ListBoxItem:selected:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NavSelected}" />
+  </Style>
+  <!-- Group headings: clicking one folds its pages up or opens them out. They never look selected or lit up.
+       Last on purpose: Avalonia gives later styles the say, so these must come after the hover and selected rules. -->
+  <Style Selector="ListBox.nav ListBoxItem.heading:pointerover /template/ ContentPresenter, ListBox.nav ListBoxItem.heading:selected /template/ ContentPresenter, ListBox.nav ListBoxItem.gap:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 </Styles>

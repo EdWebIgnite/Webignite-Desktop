@@ -147,9 +147,6 @@
                     <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
                   </ContextMenu>
                 </DockPanel.ContextMenu>
-                <Border DockPanel.Dock="Right" Classes="tag" IsVisible="{Binding IsLater}">
-                  <TextBlock Text="Later" FontSize="11" Foreground="{DynamicResource NavMuted}" />
-                </Border>
                 <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasBadge}">
                   <TextBlock Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold" />
                 </Border>
@@ -172,7 +169,7 @@
     <!-- Ctrl+K search, over everything -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{DynamicResource Scrim}" PointerPressed="CloseSearch">
       <Border Classes="card searchbox" Width="640" VerticalAlignment="Top" Margin="0,90,0,0" Padding="0" PointerPressed="KeepSearchOpen"
-              BoxShadow="0 12 32 0 #401C1D21">
+              BoxShadow="{DynamicResource OverlayShadow}">
         <DockPanel>
           <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Classes="search" Text="{Binding Search.Query}" KeyDown="SearchKeys"
                    PlaceholderText="Find a client, quote, invoice, mail, to-do or domain" BorderThickness="0" Padding="18,14" FontSize="16" />
@@ -199,7 +196,7 @@
     </Grid>
     <!-- F1: the keyboard shortcuts. Click anywhere or press Esc to close. -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding ShowingShortcuts}" Background="{DynamicResource Scrim}" PointerPressed="CloseShortcuts">
-      <Border Classes="card searchbox" Width="520" VerticalAlignment="Top" Margin="0,90,0,0" BoxShadow="0 12 32 0 #401C1D21">
+      <Border Classes="card searchbox" Width="520" VerticalAlignment="Top" Margin="0,90,0,0" BoxShadow="{DynamicResource OverlayShadow}">
         <StackPanel Spacing="12">
           <DockPanel>
             <Button DockPanel.Dock="Right" Classes="link" Content="Close" Command="{Binding HideShortcutsCommand}" />

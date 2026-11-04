@@ -9,7 +9,7 @@ namespace Webignite.Desktop;
 /// </summary>
 public static class Feedback
 {
-    /// <summary>How long a removed row takes to fade out.</summary>
+    /// <summary>How long a removed row takes to fade out. Matches the leaving animations in Styles/Motion.axaml.</summary>
     public static TimeSpan LeaveTime(Motion motion) => motion switch
     {
         Motion.Full => TimeSpan.FromMilliseconds(220),

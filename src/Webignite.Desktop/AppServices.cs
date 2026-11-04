@@ -83,14 +83,22 @@ public sealed class AppServices : IDisposable
     /// Makes a backup when one is due (or now, when asked). Copies the database on this thread, then encrypts
     /// in the background. Returns the problem, or null when it worked or wasn't needed.
     /// </summary>
-    public async Task<string?> BackUpAsync(bool now = false)
+    public async Task<string?> BackUpAsync(bool now = false) => (await TryBackUpAsync(now)).Problem;
+
+    /// <summary>What a backup attempt did: made one, or why not (already running, no password, not due).</summary>
+    public sealed record BackupOutcome(bool Made, string? Problem = null, string? Skipped = null);
+
+    /// <summary>Backs up, saying what happened, so "Backed up." is only shown when a backup was made.</summary>
+    public async Task<BackupOutcome> TryBackUpAsync(bool now = false)
     {
-        if (backingUp || Secrets.Read(BackupPasswordName) is not { Length: > 0 } password)
-            return null;
+        if (backingUp)
+            return new(false, Skipped: "A backup is already running. It finishes in a moment.");
+        if (Secrets.Read(BackupPasswordName) is not { Length: > 0 } password)
+            return new(false, Skipped: "Choose a backup password first.");
         var settings = Settings.Backups;
         var started = DateTimeOffset.Now;
         if (!now && !BackupRules.IsDue(settings, started))
-            return null;
+            return new(false, Skipped: "No backup is due yet.");
         backingUp = true;
         using var working = Work.Start("Backing up");
         try
@@ -101,14 +109,14 @@ public sealed class AppServices : IDisposable
             var version = typeof(AppServices).Assembly.GetName().Version?.ToString(3);
             var file = await Task.Run(() => Backups.Seal(snapshot, key, password, folder, started, version));
             Settings.Backups = Settings.Backups with { LastBackup = started, LastFile = file, LastProblem = null, LastProblemAt = null };
-            return null;
+            return new(true);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException
                                       or System.Security.Cryptography.CryptographicException or PlatformNotSupportedException)
         {
             var problem = e is UnauthorizedAccessException ? "Webignite can't write to the backup folder." : e.Message;
             Settings.Backups = Settings.Backups with { LastProblem = problem, LastProblemAt = DateTimeOffset.Now };
-            return problem;
+            return new(false, problem);
         }
         finally
         {
@@ -206,7 +214,10 @@ public sealed class AppServices : IDisposable
 
     public void Dispose()
     {
-        mail?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(3));
+        // Off the screen's thread: closing the connections continues on whatever thread it started on, so
+        // waiting for it here, on that same thread, would only ever time out.
+        if (mail is { } open)
+            Task.Run(() => open.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(3));
         xero?.Dispose();
         Store.Dispose();
     }

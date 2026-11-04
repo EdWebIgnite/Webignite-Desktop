@@ -110,13 +110,20 @@ public class XeroAuthTests
     }
 
     [Fact]
-    public async Task Wrong_state_is_refused()
+    public async Task A_reply_without_this_sign_ins_state_is_ignored()
     {
         var port = FreePort();
         using var receiver = new LoopbackReceiver(port);
         var wait = receiver.WaitForCodeAsync("expected", TestContext.Current.CancellationToken);
-        await new HttpClient().GetAsync($"http://localhost:{port}/callback?code=X&state=forged", TestContext.Current.CancellationToken);
-        await Assert.ThrowsAsync<XeroSignInException>(() => wait);
+        using var http = new HttpClient();
+        // Another page tries to slip in a code, then to cancel the sign-in. Neither counts.
+        var forged = await http.GetAsync($"http://localhost:{port}/callback?code=X&state=forged", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, forged.StatusCode);
+        await http.GetAsync($"http://localhost:{port}/callback?error=access_denied", TestContext.Current.CancellationToken);
+        Assert.False(wait.IsCompleted);
+
+        await http.GetAsync($"http://localhost:{port}/callback?code=real&state=expected", TestContext.Current.CancellationToken);
+        Assert.Equal("real", await wait);
     }
 
     private static int FreePort()

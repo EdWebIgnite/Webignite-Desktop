@@ -121,10 +121,10 @@ public sealed class MarkupCanvas : Control
                 case MarkKind.Pin:
                     var radius = stroke * 5;
                     var centre = new Point(p[0].X, p[0].Y);
-                    context.DrawEllipse(new SolidColorBrush(colour), new Pen(Brushes.White, stroke / 2), centre, radius, radius);
+                    context.DrawEllipse(new SolidColorBrush(colour), new Pen(new SolidColorBrush(Colour("MarkOutline")), stroke / 2), centre, radius, radius);
                     var text = new FormattedText(mark.Number.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
                         new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Bold), radius * 1.15,
-                        mark.Colour == MarkColour.Yellow ? Brushes.Black : Brushes.White);
+                        new SolidColorBrush(Colour(mark.Colour == MarkColour.Yellow ? "MarkOnYellow" : "MarkOutline")));
                     context.DrawText(text, new Point(centre.X - text.Width / 2, centre.Y - text.Height / 2));
                     break;
                 case MarkKind.Arrow when p.Count > 1:
@@ -158,11 +158,12 @@ public sealed class MarkupCanvas : Control
         }
     }
 
-    public static Color ColourOf(MarkColour colour)
-    {
-        var key = colour switch { MarkColour.Yellow => "MarkYellow", MarkColour.Blue => "MarkBlue", _ => "MarkRed" };
-        return Application.Current?.TryGetResource(key, null, out var value) == true && value is Color c ? c : Colors.Black;
-    }
+    public static Color ColourOf(MarkColour colour) =>
+        Colour(colour switch { MarkColour.Yellow => "MarkYellow", MarkColour.Blue => "MarkBlue", _ => "MarkRed" });
+
+    // A colour from the palette.
+    private static Color Colour(string key) =>
+        Application.Current?.TryGetResource(key, null, out var value) == true && value is Color c ? c : Colors.Black;
 
     /// <summary>The screenshot with its marks, at full size, as PNG.</summary>
     public static byte[] RenderPng(Bitmap image, IEnumerable<Mark> marks)

@@ -251,7 +251,6 @@ public partial class FolderEditorViewModel(MailViewModel owner, FolderEditorMode
     public FolderNodeViewModel? Folder => folder;
 
     public bool AsksName => mode != FolderEditorMode.Remove;
-    public bool IsRemove => mode == FolderEditorMode.Remove;
 
     public string Heading => mode switch
     {

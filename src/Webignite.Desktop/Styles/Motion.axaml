@@ -101,6 +101,7 @@
   <!-- A removed row fades and slides a little to the right before it goes (Feedback.Leave) -->
   <Style Selector="Window.motion-full Border.taskrow.leaving">
     <Style.Animations>
+      <!-- 0.22 s and 0.12 s below match Feedback.LeaveTime, which waits for these before the row goes. -->
       <Animation Duration="0:0:0.22" Easing="CubicEaseIn" FillMode="Forward">
         <KeyFrame Cue="0%">
           <Setter Property="Opacity" Value="1" />

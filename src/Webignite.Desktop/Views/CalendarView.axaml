@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.CalendarView"
              x:DataType="vm:CalendarViewModel"
              x:Name="Root">
@@ -72,8 +73,10 @@
                 <Border Classes="chip" Classes.task="{Binding IsTask}" Classes.quote="{Binding IsQuote}"
                         Classes.invoice="{Binding IsInvoice}" Classes.done="{Binding IsDone}" Padding="8,6" Margin="0,0,0,6">
                   <DockPanel>
-                    <Button DockPanel.Dock="Right" Classes="link" Content="✕" ToolTip.Tip="Delete event"
-                            IsVisible="{Binding CanDelete}" Command="{Binding Delete}" Padding="4,0" />
+                    <Button DockPanel.Dock="Right" Classes="link" ToolTip.Tip="Delete event"
+                            IsVisible="{Binding CanDelete}" Command="{Binding Delete}" Padding="4,0">
+                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                    </Button>
                     <StackPanel>
                       <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
                       <TextBlock Classes="muted" FontSize="11">
