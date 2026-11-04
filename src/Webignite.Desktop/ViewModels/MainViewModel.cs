@@ -133,6 +133,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
             new NavGroup("client-work", "CLIENT WORK"),
             new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
+            new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
             new Module(Page.Retainers, "Retainers", () => new RetainersViewModel(services), "Retainers"),
             new Module(Page.Renewals, "Domains and hosting", () => new RenewalsViewModel(services), "Domains"),
             new NavGroup("billing", "BILLING"),
@@ -214,6 +215,16 @@ public partial class MainViewModel : ViewModelBase
         go.OpenClientInNewTabAction = client =>
             ((ClientsViewModel)OpenInNewTab(this[Page.Clients]).Page).OpenClient(services.Clients.Get(client.Id) ?? client);
         go.OpenMailInNewTabAction = summary => ((MailViewModel)OpenInNewTab(mailModule).Page).OpenMessage(summary);
+        go.OpenFolderAction = (path, newTab) =>
+        {
+            if (newTab)
+            {
+                ((FilesViewModel)OpenInNewTab(this[Page.Files]).Page).GoTo(path);
+                return;
+            }
+            Selected = this[Page.Files];
+            PageOf<FilesViewModel>(Page.Files).GoTo(path);
+        };
         go.AddToInvoiceAction = (amount, description) =>
         {
             if (Invoices.Editor is { } open && !open.AddAmount(amount, description))
@@ -341,6 +352,7 @@ public partial class MainViewModel : ViewModelBase
     public TodoViewModel Todo => PageOf<TodoViewModel>(Page.Todo);
     public OverviewViewModel Overview => PageOf<OverviewViewModel>(Page.Overview);
     public ClientsViewModel Clients => PageOf<ClientsViewModel>(Page.Clients);
+    public FilesViewModel Files => PageOf<FilesViewModel>(Page.Files);
     public MailViewModel Mail => PageOf<MailViewModel>(Page.Mail);
     public ApprovalsViewModel Approvals => PageOf<ApprovalsViewModel>(Page.Approvals);
     public ToolsViewModel Tools => PageOf<ToolsViewModel>(Page.Tools);

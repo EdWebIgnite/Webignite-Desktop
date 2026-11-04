@@ -21,6 +21,9 @@ var snapshotKey = RandomNumberGenerator.GetBytes(32);
 var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(snapshotKey));
 var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey };
 services.Settings.Backups = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
+// Client folders as on Eddie's PC (C:\Projects), with a few files in them, for Files and the client pages.
+var projects = Path.Combine(data, "Projects");
+services.Settings.Files = new Webignite.Core.Files.FileSettings { ClientRoot = projects };
 App.Services = services;
 
 AppBuilder.Configure<App>()
@@ -730,6 +733,117 @@ vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 Open(Page.Clients);
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
 Save("client-mail");
+
+// Files: the client folders first, the three views, and each change it makes put back with Undo.
+{
+    foreach (var folder in new[] { "Bosveld Builders", "Fynbos", "Lerato Designs" })
+        Directory.CreateDirectory(Path.Combine(projects, folder));
+    var site = Path.Combine(projects, "Bosveld Builders");
+    Directory.CreateDirectory(Path.Combine(site, "Photos"));
+    Directory.CreateDirectory(Path.Combine(site, "Logo"));
+    File.WriteAllBytes(Path.Combine(site, "Bosveld website brief.pdf"), SamplePdf("Bosveld Builders", "Website brief"));
+    File.WriteAllBytes(Path.Combine(site, "Quote QU-0042.pdf"), SamplePdf("Quote QU-0042", "R 17 700.00"));
+    File.WriteAllText(Path.Combine(site, "Sitemap.docx"), "sitemap");
+    File.WriteAllText(Path.Combine(site, "Copy for the home page.txt"), "Building the Bosveld since 1998.");
+    var logoPng = Path.Combine(RepoRoot(), "src", "Webignite.Desktop", "Assets", "webignite-logo.png");
+    foreach (var picture in new[] { "Site visit 1.png", "Site visit 2.png", "Finished house.png" })
+        File.Copy(logoPng, Path.Combine(site, picture));
+    File.SetLastWriteTime(Path.Combine(site, "Sitemap.docx"), DateTime.Now.AddDays(-20));
+
+    Open(Page.Files);
+    var files = vm.Files;
+    Check("Files starts in the client folders", files.Folder == projects);
+    Check("Client folders are listed by client in the side list", files.Places[0].Places.Any(p => p.Name == "Bosveld Builders" && p.Path == site));
+    files.GoTo(site);
+    Check("Folders come first, then files by name", files.Items.OfType<FileRowViewModel>().Select(r => r.Name).Take(3).SequenceEqual(["Logo", "Photos", "Bosveld website brief.pdf"]));
+    files.ShowAsCommand.Execute(Webignite.Core.Files.FileView.Details);
+    Save("files-details");
+    files.GroupByCommand.Execute(Webignite.Core.Files.FileGrouping.Kind);
+    Save("files-grouped");
+    files.GroupByCommand.Execute(Webignite.Core.Files.FileGrouping.None);
+    files.ShowAsCommand.Execute(Webignite.Core.Files.FileView.List);
+    Save("files-list");
+    files.ShowAsCommand.Execute(Webignite.Core.Files.FileView.Thumbnails);
+    var until = DateTime.UtcNow.AddSeconds(5);
+    while (files.Items.OfType<FileRowViewModel>().Any(r => r.IsPicture && !r.HasThumbnail) && DateTime.UtcNow < until)
+    {
+        Dispatcher.UIThread.RunJobs();
+        Thread.Sleep(10);
+    }
+    Check("Pictures show as thumbnails", files.Items.OfType<FileRowViewModel>().Where(r => r.IsPicture).All(r => r.HasThumbnail));
+    Save("files-thumbnails");
+    files.ShowAsCommand.Execute(Webignite.Core.Files.FileView.Details);
+
+    FileRowViewModel Row(string name) => files.Items.OfType<FileRowViewModel>().First(r => r.Name == name);
+    files.NewFolderCommand.Execute(null);
+    var made = files.Items.OfType<FileRowViewModel>().FirstOrDefault(r => r.IsRenaming);
+    Check("A new folder is made and ready to name", made?.Name == "New folder" && Directory.Exists(Path.Combine(site, "New folder")));
+    made!.RenameText = "Invoices";
+    Save("files-renaming");
+    Check("Renaming keeps the new name", files.FinishRename(made) && Directory.Exists(Path.Combine(site, "Invoices")));
+    made = Row("Invoices");
+    made.IsRenaming = true;
+    made.RenameText = "Bad:name";
+    Check("A name Windows can't take is refused, with why", !files.FinishRename(made) && made.RenameProblem.Length > 0);
+    FilesViewModel.CancelRename(made);
+    files.UndoCommand.Execute(null);
+    Check("Undo puts the old name back", Directory.Exists(Path.Combine(site, "New folder")) && !Directory.Exists(Path.Combine(site, "Invoices")));
+    files.UndoCommand.Execute(null);
+    Check("Undo takes the new folder away again", !Directory.Exists(Path.Combine(site, "New folder")));
+
+    files.Selected = [Row("Quote QU-0042.pdf")];
+    files.CopyCommand.Execute(null);
+    files.GoTo(Path.Combine(projects, "Fynbos"));
+    files.Paste();
+    Check("Copy and paste puts a copy in the other folder", File.Exists(Path.Combine(projects, "Fynbos", "Quote QU-0042.pdf")) && File.Exists(Path.Combine(site, "Quote QU-0042.pdf")));
+    files.Paste();
+    Check("Pasting again doesn't overwrite: the copy gets (2)", File.Exists(Path.Combine(projects, "Fynbos", "Quote QU-0042 (2).pdf")));
+    files.UndoCommand.Execute(null);
+    files.UndoCommand.Execute(null);
+    Check("Undo takes both copies away", !Directory.EnumerateFiles(Path.Combine(projects, "Fynbos")).Any());
+
+    files.BackCommand.Execute(null);
+    Check("Back returns to the folder before", files.Folder == site);
+    files.Selected = [Row("Copy for the home page.txt")];
+    files.CutCommand.Execute(null);
+    Check("Cut files show faded until pasted", Row("Copy for the home page.txt").IsCut);
+    files.GoTo(Path.Combine(site, "Photos"));
+    files.Paste();
+    Check("Cut and paste moves it", File.Exists(Path.Combine(site, "Photos", "Copy for the home page.txt")) && !File.Exists(Path.Combine(site, "Copy for the home page.txt")));
+    files.UndoCommand.Execute(null);
+    Check("Undo moves it back", File.Exists(Path.Combine(site, "Copy for the home page.txt")));
+
+    files.UpCommand.Execute(null);
+    files.Selected = [Row("Sitemap.docx")];
+    files.DeleteCommand.Execute(null);
+    Check("Delete sends it away", !File.Exists(Path.Combine(site, "Sitemap.docx")));
+
+    files.Open(Row("Quote QU-0042.pdf"));
+    Wait(Task.Run(async () =>
+    {
+        var until = DateTime.UtcNow.AddSeconds(10);
+        while (files.Preview is { IsLoading: true } && DateTime.UtcNow < until)
+            await Task.Delay(20);
+    }), "The PDF opens in the preview");
+    Check("A PDF opens in the preview, page by page", files.Preview is { Pages.Count: > 0 });
+    Save("files-preview");
+    files.ClosePreviewCommand.Execute(null);
+
+    services.Go.Folder(Path.Combine(site, "Logo"), newTab: true);
+    Check("A folder opens in a Files tab of its own", vm.Open.Count(h => h.Key == Page.Files) == 2 && vm.Files.Folder == Path.Combine(site, "Logo"));
+    vm.Close(vm.Current);
+
+    // The client's page finds their folder by name, and asks about one that only looks like it.
+    Open(Page.Clients);
+    vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Bosveld Builders"));
+    Check("A client's folder is found by name", vm.Clients.Detail is { FolderPath: var bosveldFolder, FolderIsGuess: false } && bosveldFolder == site);
+    vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
+    Check("A folder that only looks like the client's is asked about", vm.Clients.Detail is { FolderIsGuess: true } fynbos && fynbos.FolderPath.EndsWith("Fynbos", StringComparison.Ordinal));
+    Save("client-folder");
+    vm.Clients.Detail!.ConfirmFolderCommand.Execute(null);
+    Check("Saying yes keeps it on the client", store.ListClients().First(c => c.Name == "Fynbos Physio").Folder?.EndsWith("Fynbos", StringComparison.Ordinal) == true
+        && !vm.Clients.Detail.FolderIsGuess);
+}
 
 // An invoice email as Approve and email prepares it, from accounts@ with the signature picture.
 var logo = File.ReadAllBytes(Path.Combine(RepoRoot(), "src", "Webignite.Desktop", "Assets", "webignite-logo.png"));

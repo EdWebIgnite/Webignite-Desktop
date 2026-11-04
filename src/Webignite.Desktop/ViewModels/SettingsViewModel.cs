@@ -207,6 +207,16 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         NewBackupPassword = RepeatBackupPassword = "";
     }
 
+    /// <summary>Where client folders live, e.g. C:\Projects. Files lists them first and matches them to clients.</summary>
+    public string ClientRoot => Files.FileOps.ClientRoot(services.Settings.Files) ?? "Not set";
+
+    public void SetClientRoot(string folder)
+    {
+        services.Settings.Files = services.Settings.Files with { ClientRoot = folder };
+        OnPropertyChanged(nameof(ClientRoot));
+        Say("Client folders are in " + folder + ". Files and each client's page use it from now on.");
+    }
+
     public void SetBackupFolder(string folder)
     {
         services.Settings.Backups = services.Settings.Backups with { Folder = folder };

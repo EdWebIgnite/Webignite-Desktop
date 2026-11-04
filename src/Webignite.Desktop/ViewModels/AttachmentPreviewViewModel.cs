@@ -6,10 +6,30 @@ using Webignite.Core.Mail;
 
 namespace Webignite.Desktop.ViewModels;
 
-/// <summary>A PDF or picture attachment shown inside the reading pane, page by page.</summary>
-public partial class AttachmentPreviewViewModel(AttachmentViewModel attachment, Action close) : ViewModelBase
+/// <summary>A PDF or picture shown inside the app, page by page: a mail's attachment, or a file in Files.</summary>
+public partial class AttachmentPreviewViewModel : ViewModelBase
 {
-    public string Name => attachment.Name;
+    private readonly Action open;
+    private readonly Action? save;
+    private readonly Action close;
+
+    public AttachmentPreviewViewModel(AttachmentViewModel attachment, Action close)
+        : this(attachment.Name, () => attachment.OpenCommand.Execute(null), () => attachment.SaveCommand.Execute(null), close)
+    {
+    }
+
+    public AttachmentPreviewViewModel(string name, Action open, Action? save, Action close)
+    {
+        Name = name;
+        this.open = open;
+        this.save = save;
+        this.close = close;
+    }
+
+    public string Name { get; }
+
+    /// <summary>A mail's attachment can be saved; a file in Files already is somewhere.</summary>
+    public bool CanSave => save is not null;
     public System.Collections.ObjectModel.ObservableCollection<Bitmap> Pages { get; } = [];
 
     [ObservableProperty] public partial bool IsLoading { get; set; } = true;
@@ -78,10 +98,10 @@ public partial class AttachmentPreviewViewModel(AttachmentViewModel attachment, 
     }
 
     [RelayCommand]
-    private void Open() => attachment.OpenCommand.Execute(null);
+    private void Open() => open();
 
     [RelayCommand]
-    private void Save() => attachment.SaveCommand.Execute(null);
+    private void Save() => save?.Invoke();
 
     [RelayCommand]
     private void Close() => close();

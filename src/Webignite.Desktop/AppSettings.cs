@@ -47,6 +47,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("sidebar", value);
     }
 
+    /// <summary>The file explorer: where client folders live, and how folders are shown.</summary>
+    public Webignite.Core.Files.FileSettings Files
+    {
+        get => store.GetSetting<Webignite.Core.Files.FileSettings>("files") ?? new Webignite.Core.Files.FileSettings();
+        set => store.SetSetting("files", value);
+    }
+
     /// <summary>The tabs that were open and which was showing.</summary>
     public Webignite.Core.Layout.TabSettings Tabs
     {

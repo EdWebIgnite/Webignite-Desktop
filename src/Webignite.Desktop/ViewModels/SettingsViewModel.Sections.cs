@@ -13,6 +13,7 @@ public partial class SettingsViewModel
         new("backups", "Backups"),
         new("look", "Look and feel"),
         new("mail", "Mail"),
+        new("files", "Files"),
         new("assistants", "Claude and ChatGPT"),
         new("emails", "Email wording"),
         new("documents", "Quotes and invoices"),
@@ -20,7 +21,7 @@ public partial class SettingsViewModel
     ];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowXero), nameof(ShowBackups), nameof(ShowLook), nameof(ShowMail),
+    [NotifyPropertyChangedFor(nameof(ShowXero), nameof(ShowBackups), nameof(ShowLook), nameof(ShowMail), nameof(ShowFiles),
         nameof(ShowAssistants), nameof(ShowEmails), nameof(ShowDocuments), nameof(ShowHelp))]
     public partial Section Current { get; set; } = Sections[0];
 
@@ -31,6 +32,7 @@ public partial class SettingsViewModel
     public bool ShowBackups => Current.Key == "backups";
     public bool ShowLook => Current.Key == "look";
     public bool ShowMail => Current.Key == "mail";
+    public bool ShowFiles => Current.Key == "files";
     public bool ShowAssistants => Current.Key == "assistants";
     public bool ShowEmails => Current.Key == "emails";
     public bool ShowDocuments => Current.Key == "documents";

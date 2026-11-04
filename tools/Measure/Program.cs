@@ -89,7 +89,7 @@ Check($"First round of every page grew memory by {Mb(firstGrowth)} (limit {limit
 Check($"Opening and closing every page again left {Mb(repeatGrowth)} behind (limit {limits.RepeatGrowthMegabytes} MB)",
     repeatGrowth <= limits.RepeatGrowthMegabytes * 1024 * 1024);
 // Copies opened beside the first (two Mails, two Clients) must go too when closed.
-foreach (var twice in new[] { Page.Mail, Page.Clients })
+foreach (var twice in new[] { Page.Mail, Page.Clients, Page.Files })
 {
     var (page, view) = OpenAnotherAndClose(vm, window, twice);
     Settle();
