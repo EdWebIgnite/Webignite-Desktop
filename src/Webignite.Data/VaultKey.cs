@@ -57,23 +57,47 @@ public static class VaultKey
     internal static byte[] LoadOrCreate(string keyPath, string databasePath, Func<byte[], byte[]> protect, Func<byte[], byte[]> unprotect)
     {
         if (File.Exists(keyPath))
-            return unprotect(File.ReadAllBytes(keyPath));
+            return ReadWhenWritten(keyPath, unprotect);
         if (File.Exists(databasePath) && new FileInfo(databasePath).Length > 0)
             throw new VaultKeyMissingException(keyPath);
 
         var key = RandomNumberGenerator.GetBytes(32);
         Directory.CreateDirectory(Path.GetDirectoryName(keyPath)!);
+        // Only one program can create the file (CreateNew fails when it's there), and the key goes in with a
+        // single write. The other program waits until it can read the whole key.
+        var sealedKey = protect(key);
         try
         {
-            using var file = new FileStream(keyPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            file.Write(protect(key));
+            using (var file = new FileStream(keyPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                file.Write(sealedKey);
+                file.Flush(flushToDisk: true);
+            }
             return key;
         }
         catch (IOException) when (File.Exists(keyPath))
         {
-            // The other program made it first: use that one.
-            Thread.Sleep(100);
-            return unprotect(File.ReadAllBytes(keyPath));
+            return ReadWhenWritten(keyPath, unprotect);
+        }
+    }
+
+    // Reads the key, waiting up to two seconds when the other program has just made the file and is still
+    // writing it. A key that still can't be read after that is reported as it is, not hidden.
+    private static byte[] ReadWhenWritten(string keyPath, Func<byte[], byte[]> unprotect)
+    {
+        for (var tries = 0; ; tries++)
+        {
+            try
+            {
+                var stored = File.ReadAllBytes(keyPath);
+                if (stored.Length > 0 || tries >= 40)
+                    return unprotect(stored);
+            }
+            catch (Exception e) when ((e is IOException or CryptographicException) && tries < 40)
+            {
+                // Still being written.
+            }
+            Thread.Sleep(50);
         }
     }
 }
