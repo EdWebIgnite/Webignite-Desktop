@@ -134,7 +134,7 @@ public static class DocumentHeadline
             : new("Nothing to sort out. Every invoice is in Xero and none is overdue.", "New invoice", null);
     }
 
-    private static string Count(int n, string noun) => n == 1 ? $"1 {noun}" : $"{n} {noun}s";
+    private static string Count(int n, string noun) => Wording.Count(n, noun);
 
     private static string Day(DateOnly date) => date.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
 }

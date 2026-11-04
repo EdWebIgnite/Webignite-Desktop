@@ -46,6 +46,23 @@ public static class Receivables
         && (d.Emailed is not null || d.XeroStatus == "SENT")
         && !(d.Document.DueOrExpiryDate < today);
 
+    /// <summary>The word on a quote or invoice row: Draft, To approve, Overdue, Paid, Accepted and so on.</summary>
+    public static string StatusText(StoredDocument d, DateOnly today) => d.Status switch
+    {
+        DocumentStatus.Draft => "Draft",
+        DocumentStatus.AwaitingApproval => "To approve",
+        DocumentStatus.InXero when IsOverdue(d, today) => "Overdue",
+        DocumentStatus.InXero => Standing(d) ?? "In Xero",
+        _ => d.Status.ToString(),
+    };
+
+    /// <summary>
+    /// Shown in green: paid, accepted or invoiced, or in Xero before Xero has been read for payments (and not
+    /// overdue).
+    /// </summary>
+    public static bool IsDone(StoredDocument d, DateOnly today) => d.SettledAs is "paid" or "accepted" or "invoiced"
+        || (d.Status == DocumentStatus.InXero && d.XeroChecked is null && !IsOverdue(d, today));
+
     public static decimal Owed(IEnumerable<StoredDocument> documents) => documents.Sum(Outstanding);
 
     public static decimal Overdue(IEnumerable<StoredDocument> documents, DateOnly today) =>

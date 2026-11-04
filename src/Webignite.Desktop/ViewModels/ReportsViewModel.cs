@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Webignite.Core.Documents;
 using Webignite.Core.Finance;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -59,8 +60,8 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
     public void Refresh()
     {
         services.CatchUp();
-        var from = Ledger.MonthOf(Today).AddMonths(-11);
-        var taxStart = Ledger.TaxYearStart(Today);
+        var from = Dates.MonthStart(Today).AddMonths(-11);
+        var taxStart = Dates.TaxYear(Today).From;
         // Back to the start of last tax year, so this tax year can be set against it.
         var start = taxStart.AddYears(-1) < from ? taxStart.AddYears(-1) : from;
         var entries = services.Store.ListEntries(start, Today.AddYears(1));
@@ -83,13 +84,12 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
         TaxYearShort = received < expenses;
         TaxYearChange = Trends.AgainstLastTaxYear(entries, Today) ?? "";
 
-        var fullMonths = months.Take(11).Where(m => m.Received > 0 || m.Expenses > 0).ToList();
-        AverageReceived = fullMonths.Count == 0 ? "" : $"On average {Money.Rand(fullMonths.Average(m => m.Received))} a month came in over the last {fullMonths.Count} full months.";
+        AverageReceived = Ledger.AverageReceived(months);
 
         ClientShares.Clear();
         var known = services.Store.ListClients();
         foreach (var share in Ledger.ByClient(entries, ClientsTaxYear ? taxStart : from, Today))
-            ClientShares.Add(new ClientShareRowViewModel(share, known.FirstOrDefault(c => ClientDirectory.Matches(c, share.Name)), services));
+            ClientShares.Add(new ClientShareRowViewModel(share, ClientDirectory.Find(known, share.Name), services));
         Categories.Clear();
         var categories = Ledger.ByCategory(lastYear, from, Today);
         foreach (var c in categories)

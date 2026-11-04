@@ -56,7 +56,7 @@ public sealed class IncomeChart : Control
         var line = Brush("Line");
         var text = Brush("Text");
 
-        var top = NiceTop(months.Max(m => Math.Max(m.Expected ?? 0, m.CameIn)));
+        var top = ChartScale.NiceTop(months.Max(m => Math.Max(m.Expected ?? 0, m.CameIn)));
         double Y(decimal amount) => plot.Bottom - (double)(amount / top) * plot.Height;
 
         // Scale: four steps with the amounts on the left.
@@ -65,7 +65,7 @@ public sealed class IncomeChart : Control
             var amount = top * i / 4;
             var y = Y(amount);
             context.DrawLine(new Pen(line, 1), new Point(plot.Left, y), new Point(plot.Right, y));
-            var label = Text(Short(amount), 11, muted);
+            var label = Text(ChartScale.Short(amount), 11, muted);
             context.DrawText(label, new Point(plot.Left - 8 - label.Width, y - label.Height / 2));
         }
 
@@ -172,24 +172,4 @@ public sealed class IncomeChart : Control
         new(value, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface(Avalonia.Controls.Documents.TextElement.GetFontFamily(this), weight: bold ? FontWeight.SemiBold : FontWeight.Normal), size, brush);
 
-    /// <summary>A round top for the scale: 1, 2, 2.5 or 5 times a power of ten, at least R 1 000.</summary>
-    internal static decimal NiceTop(decimal max)
-    {
-        if (max <= 1000)
-            return 1000;
-        var power = (decimal)Math.Pow(10, Math.Floor(Math.Log10((double)max)));
-        foreach (var step in new[] { 1m, 2m, 2.5m, 5m, 10m })
-            if (step * power >= max)
-                return step * power;
-        return 10 * power;
-    }
-
-    /// <summary>R 12k, R 1.5k, R 800.</summary>
-    internal static string Short(decimal amount) => amount switch
-    {
-        0 => "R 0",
-        >= 1_000_000 => $"R {(amount / 1_000_000).ToString("0.#", CultureInfo.InvariantCulture)}m",
-        >= 1000 => $"R {(amount / 1000).ToString("0.#", CultureInfo.InvariantCulture)}k",
-        _ => $"R {amount.ToString("0", CultureInfo.InvariantCulture)}",
-    };
 }

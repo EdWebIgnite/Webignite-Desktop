@@ -31,14 +31,10 @@ public static class NewMail
         var marks = new Dictionary<string, uint>();
         foreach (var (accountId, inbox) in inboxes)
         {
-            var highest = inbox.Count == 0 ? 0 : inbox.Max(m => m.Uid);
-            if (!announced.TryGetValue(accountId, out var mark))
-            {
-                marks[accountId] = highest;
-                continue;
-            }
-            fresh.AddRange(inbox.Where(m => m.Uid > mark && !m.Seen));
-            marks[accountId] = Math.Max(mark, highest);
+            // The same high-water mark as mail rules: only what came in above the last mark counts.
+            var (arrived, upTo) = MailRules.Arrived(inbox, announced.TryGetValue(accountId, out var mark) ? mark : null);
+            fresh.AddRange(arrived.Where(m => !m.Seen));
+            marks[accountId] = upTo;
         }
         return new NewMailResult(fresh.OrderByDescending(m => m.Date).ToList(), marks);
     }

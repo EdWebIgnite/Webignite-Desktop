@@ -65,6 +65,15 @@ public sealed record ProjectionMonth(DateOnly Month, decimal? Expected, decimal 
 
     /// <summary>Expected less what came in. Positive means still to come, or short for a past month.</summary>
     public decimal Gap => (Expected ?? 0) - CameIn;
+
+    /// <summary>A past month that brought in less than expected: shown in red.</summary>
+    public bool IsShort => IsPast && Expected is > 0 && Gap > 0;
+
+    /// <summary>"R 1 200.00 short", "R 800.00 to come", "R 300.00 more" or "On target". Empty with nothing expected, or ahead.</summary>
+    public string GapText => Expected is not > 0 || IsFuture ? ""
+        : Gap > 0 ? (IsPast ? $"{Money.Rand(Gap)} short" : $"{Money.Rand(Gap)} to come")
+        : Gap < 0 ? $"{Money.Rand(-Gap)} more"
+        : "On target";
 }
 
 /// <summary>What the money behind an auto expected figure is, for showing under the chart.</summary>
@@ -75,7 +84,7 @@ public static class Projection
     public static string Key(DateOnly month) => month.ToString("yyyy-MM", CultureInfo.InvariantCulture);
 
     /// <summary>The 12 months the chart shows: 5 back, this month and 6 ahead.</summary>
-    public static DateOnly FirstMonth(DateOnly today) => Ledger.MonthOf(today).AddMonths(-5);
+    public static DateOnly FirstMonth(DateOnly today) => Dates.MonthStart(today).AddMonths(-5);
 
     public const int MonthCount = 12;
 
@@ -99,7 +108,7 @@ public static class Projection
         IEnumerable<Retainer> retainers, IEnumerable<Renewal> renewals, IReadOnlySet<string> drafted)
     {
         var items = new List<ExpectedItem>();
-        var first = Ledger.MonthOf(month);
+        var first = Dates.MonthStart(month);
 
         foreach (var d in documents)
         {
@@ -114,7 +123,7 @@ public static class Projection
 
         foreach (var r in retainers)
         {
-            if (r.Paused || Ledger.MonthOf(r.Starts) > first || r.Ends is { } ends && Ledger.MonthOf(ends) < first)
+            if (r.Paused || Dates.MonthStart(r.Starts) > first || r.Ends is { } ends && Dates.MonthStart(ends) < first)
                 continue;
             if (drafted.Contains(RetainerSchedule.Key(r, first)) || r.MonthlyAmount <= 0)
                 continue;
@@ -126,7 +135,7 @@ public static class Projection
             if (r.Price is not > 0 || string.IsNullOrWhiteSpace(r.ClientName) || r.PeriodMonths < 1)
                 continue;
             // Only the next renewal can have been invoiced already; later ones repeat every period.
-            for (var on = r.RenewsOn; Ledger.MonthOf(on) <= first; on = on.AddMonths(r.PeriodMonths))
+            for (var on = r.RenewsOn; Dates.MonthStart(on) <= first; on = on.AddMonths(r.PeriodMonths))
             {
                 if (!Ledger.InMonth(on, first))
                     continue;
@@ -156,7 +165,7 @@ public static class Projection
         var money = entries.ToList();
         var ret = retainers.ToList();
         var ren = renewals.ToList();
-        var current = Ledger.MonthOf(today);
+        var current = Dates.MonthStart(today);
         return Enumerable.Range(0, MonthCount)
             .Select(i => FirstMonth(today).AddMonths(i))
             .Select(m => new ProjectionMonth(m,

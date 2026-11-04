@@ -34,30 +34,6 @@ public static class DomainReport
     public const int CertificateWarnDays = 14;
     public const int RegistrationWarnDays = 30;
 
-    /// <summary>"https://www.Karoo.co.za/menu" becomes "karoo.co.za". Null when it isn't a domain.</summary>
-    public static string? Normalise(string? input)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-            return null;
-        var text = input.Trim().ToLowerInvariant();
-        var scheme = text.IndexOf("://", StringComparison.Ordinal);
-        if (scheme >= 0)
-            text = text[(scheme + 3)..];
-        text = text.Split('/', '?', '#')[0].Split(':')[0].TrimEnd('.');
-        if (text.Contains('@'))
-            text = text[(text.LastIndexOf('@') + 1)..];
-        if (text.StartsWith("www.", StringComparison.Ordinal))
-            text = text[4..];
-        if (text.Length is 0 or > 253 || !text.Contains('.'))
-            return null;
-        foreach (var label in text.Split('.'))
-        {
-            if (label.Length is 0 or > 63 || label.StartsWith('-') || label.EndsWith('-') || !label.All(c => char.IsAsciiLetterOrDigit(c) || c == '-'))
-                return null;
-        }
-        return text;
-    }
-
     /// <summary>The answers in a DNS-over-HTTPS JSON reply, of one record type (1 A, 2 NS, 15 MX, 16 TXT).</summary>
     public static IReadOnlyList<string> DnsAnswers(string json, int type)
     {
@@ -262,6 +238,6 @@ public static class DomainReport
     }
 
     private static string Date(DateTimeOffset when) => when.ToString("d MMMM yyyy", CultureInfo.InvariantCulture);
-    private static string Days(int days) => days == 1 ? "1 day" : $"{days} days";
-    private static string Ago(int days) => days == 0 ? "today" : days == 1 ? "yesterday" : $"{days} days ago";
+    private static string Days(int days) => Wording.Days(days);
+    private static string Ago(int days) => Wording.Ago(days);
 }

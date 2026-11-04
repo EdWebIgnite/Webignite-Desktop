@@ -223,9 +223,7 @@ public partial class DocumentEditorViewModel
     /// <summary>The first address saved on the matching client, used when a new Xero contact is made.</summary>
     private string? ClientEmail(string customer)
     {
-        var wanted = XeroRules.Normalise(customer);
-        var client = services.Store.ListClients().FirstOrDefault(c => XeroRules.Normalise(c.Name) == wanted);
-        return Webignite.Core.Mail.ClientMail.First(client?.Email);
+        return Webignite.Core.Mail.ClientMail.First(Webignite.Core.Clients.ClientDirectory.Find(services.Store.ListClients(), customer)?.Email);
     }
 }
 
@@ -280,7 +278,7 @@ public partial class DocumentEditorViewModel
         }
         // The editor may have been open on another page while this changed (emailed, approved, paid).
         stored = services.Store.Get(stored.Id) ?? stored;
-        if (services.Store.ListMailAccounts().FirstOrDefault(a => a.SendsInvoices) is not { } mailbox)
+        if (Webignite.Core.Mail.MailAccounts.ForInvoices(services.Store.ListMailAccounts()) is not { } mailbox)
         {
             ShowXero("No mailbox is set up to send invoices. In Mail, Manage mailboxes, tick \"Invoices are sent from this mailbox\" on accounts@.", problem: true);
             return;

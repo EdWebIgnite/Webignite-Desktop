@@ -1,3 +1,4 @@
+using Webignite.Core.Clients;
 using Webignite.Core.Documents;
 
 namespace Webignite.Core.Xero;
@@ -45,21 +46,25 @@ public enum XeroWriteState
     Verified,
 }
 
+/// <summary>A Xero account sales can be coded to, e.g. 200 Sales.</summary>
+public sealed record XeroSalesAccount(string Code, string Name)
+{
+    public override string ToString() => $"{Code}  {Name}";
+}
+
 public static class XeroRules
 {
-    public static string Normalise(string? value) => string.Join(' ', (value ?? "").ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
-
     /// <summary>
     /// Matches on name or email. A match on both, or on one where the other is unknown, is used;
     /// anything less certain goes to a person. Archived contacts are never used silently.
     /// </summary>
     public static ContactMatch MatchContact(string customerName, string? customerEmail, IReadOnlyList<XeroContact> contacts)
     {
-        var name = Normalise(customerName);
+        var name = ClientDirectory.Key(customerName);
         // The customer may have several addresses; the first one is the one matched.
-        var email = Normalise(Webignite.Core.Mail.ClientMail.First(customerEmail) ?? customerEmail);
+        var email = ClientDirectory.Key(Webignite.Core.Mail.ClientMail.First(customerEmail) ?? customerEmail);
         var matches = contacts
-            .Where(c => Normalise(c.Name) == name || (email.Length > 0 && Normalise(c.Email) == email))
+            .Where(c => ClientDirectory.Key(c.Name) == name || (email.Length > 0 && ClientDirectory.Key(c.Email) == email))
             .ToList();
         if (matches.Count == 0)
             return new ContactMatch.New();
@@ -69,8 +74,8 @@ public static class XeroRules
         if (active.Count > 1)
             return new ContactMatch.Choose("More than one Xero contact could be this customer. Pick the right one.", active);
         var one = active[0];
-        var nameMatches = Normalise(one.Name) == name;
-        var emailMatches = email.Length == 0 || Normalise(one.Email).Length == 0 || Normalise(one.Email) == email;
+        var nameMatches = ClientDirectory.Key(one.Name) == name;
+        var emailMatches = email.Length == 0 || ClientDirectory.Key(one.Email).Length == 0 || ClientDirectory.Key(one.Email) == email;
         return nameMatches && emailMatches
             ? new ContactMatch.Use(one)
             : new ContactMatch.Choose("A Xero contact matches on name or email, but not both. Check it's the same customer.", [one]);
@@ -79,8 +84,8 @@ public static class XeroRules
     /// <summary>Contacts whose name or email contains the search, for picking by hand.</summary>
     public static IReadOnlyList<XeroContact> Search(string text, IReadOnlyList<XeroContact> contacts)
     {
-        var q = Normalise(text);
-        return q.Length < 2 ? [] : contacts.Where(c => c.Active && (Normalise(c.Name).Contains(q) || Normalise(c.Email).Contains(q))).Take(20).ToList();
+        var q = ClientDirectory.Key(text);
+        return q.Length < 2 ? [] : contacts.Where(c => c.Active && (ClientDirectory.Key(c.Name).Contains(q) || ClientDirectory.Key(c.Email).Contains(q))).Take(20).ToList();
     }
 
     /// <summary>
@@ -112,6 +117,12 @@ public static class XeroRules
     }
 
     /// <summary>Accounts Webignite's sales can go to.</summary>
+    /// <summary>A Xero app's Client ID: 32 letters and numbers (hex), as developer.xero.com shows it.</summary>
+    public static bool LooksLikeClientId(string? text) => text is { Length: 32 } id && id.All(Uri.IsHexDigit);
+
+    /// <summary>Whether Xero has the "No VAT" tax rate (NONE) that drafts are written with.</summary>
+    public static bool HasNoVatRate(IEnumerable<string> taxTypes) => taxTypes.Contains("NONE", StringComparer.Ordinal);
+
     public static bool IsSalesAccount(string? type, string? status) =>
         status == "ACTIVE" && type is "REVENUE" or "SALES" or "OTHERINCOME";
 }

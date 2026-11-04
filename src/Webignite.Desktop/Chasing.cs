@@ -16,7 +16,7 @@ public static class Chasing
     {
         if (services.XeroSending is not { } sending)
             return ("Connect Xero in Settings first.", true);
-        if (services.Store.ListMailAccounts().FirstOrDefault(a => a.SendsInvoices) is not { } mailbox)
+        if (Webignite.Core.Mail.MailAccounts.ForInvoices(services.Store.ListMailAccounts()) is not { } mailbox)
             return ("No mailbox is set up to send invoices. In Mail, Manage mailboxes, tick \"Invoices are sent from this mailbox\" on accounts@.", true);
         try
         {

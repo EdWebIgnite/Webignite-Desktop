@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Calendar;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -15,7 +16,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     {
         this.services = services;
         var today = Today;
-        month = new DateOnly(today.Year, today.Month, 1);
+        month = Dates.MonthStart(today);
         SelectedDate = today;
         Refresh();
     }
@@ -61,7 +62,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     private void GoToToday()
     {
         SelectedDate = Today;
-        Show(new DateOnly(Today.Year, Today.Month, 1));
+        Show(Dates.MonthStart(Today));
     }
 
     [RelayCommand]
@@ -69,7 +70,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     {
         SelectedDate = day.Date;
         if (day.Date.Month != month.Month)
-            Show(new DateOnly(day.Date.Year, day.Date.Month, 1));
+            Show(Dates.MonthStart(day.Date));
         else
             Refresh();
     }
@@ -82,7 +83,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
         TimeOnly? start = null;
         if (!string.IsNullOrWhiteSpace(NewTime))
         {
-            if (!TryParseTime(NewTime, out var parsed))
+            if (!CalendarEvents.TryParseTime(NewTime, out var parsed))
             {
                 FormMessage = "Type the time like 9:30 or 14:00, or leave it empty for all day.";
                 return;
@@ -113,17 +114,6 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
                 services.Store.SaveEvent(gone);
                 Refresh();
             });
-    }
-
-    internal static bool TryParseTime(string text, out TimeOnly time)
-    {
-        var cleaned = text.Trim().Replace('h', ':').Replace('.', ':');
-        if (!cleaned.Contains(':') && int.TryParse(cleaned, out var hour) && hour is >= 0 and < 24)
-        {
-            time = new TimeOnly(hour, 0);
-            return true;
-        }
-        return TimeOnly.TryParseExact(cleaned, ["H:mm", "HH:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
     }
 
     private void Show(DateOnly firstOfMonth)

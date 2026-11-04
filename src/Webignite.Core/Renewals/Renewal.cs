@@ -70,6 +70,22 @@ public static class RenewalRules
         : renewal.RenewsOn <= today.AddDays(renewal.RemindDaysBefore) ? RenewalState.DueSoon
         : RenewalState.Fine;
 
+    /// <summary>
+    /// When it renews, with how far off that is for anything within two months: "14 Nov 2026, in 10 days",
+    /// "3 Nov 2026, yesterday". Further off, just the date.
+    /// </summary>
+    public static string When(Renewal renewal, DateOnly today)
+    {
+        var days = renewal.RenewsOn.DayNumber - today.DayNumber;
+        var date = renewal.RenewsOn.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+        return days switch
+        {
+            >= 60 => date,
+            > 1 => $"{date}, in {Wording.Days(days)}",
+            _ => $"{date}, {Wording.Day(renewal.RenewsOn, today)}",
+        };
+    }
+
     /// <summary>The last day the renewal covers, e.g. 14 Nov 2026 to 13 Nov 2027.</summary>
     public static DateOnly CoversUntil(Renewal renewal) => renewal.RenewsOn.AddMonths(renewal.PeriodMonths).AddDays(-1);
 

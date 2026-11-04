@@ -16,27 +16,30 @@ public sealed record ClientShare(string Name, decimal Amount, string Percent, do
 
 public static class Ledger
 {
-    public static DateOnly MonthOf(DateOnly date) => new(date.Year, date.Month, 1);
-
     public static bool InMonth(DateOnly date, DateOnly month) => date.Year == month.Year && date.Month == month.Month;
-
-    /// <summary>
-    /// The South African tax year a date falls in: 1 March to the end of February.
-    /// Returns its first day.
-    /// </summary>
-    public static DateOnly TaxYearStart(DateOnly date) => new(date.Month >= 3 ? date.Year : date.Year - 1, 3, 1);
 
     /// <summary>Totals for <paramref name="count"/> months ending with the month of <paramref name="last"/>, oldest first.</summary>
     public static IReadOnlyList<MonthTotals> Months(IEnumerable<MoneyEntry> entries, DateOnly last, int count)
     {
         var list = entries.ToList();
-        var end = MonthOf(last);
+        var end = Dates.MonthStart(last);
         return Enumerable.Range(0, count)
             .Select(i => end.AddMonths(i - count + 1))
             .Select(m => new MonthTotals(m.Year, m.Month,
                 Sum(list.Where(e => InMonth(e.Date, m)), EntryKind.Received),
                 Sum(list.Where(e => InMonth(e.Date, m)), EntryKind.Expense)))
             .ToList();
+    }
+
+    /// <summary>
+    /// "On average R 12 500.00 a month came in over the last 9 full months.", from monthly totals oldest first
+    /// ending with this month. This month isn't full yet, and empty months don't count. Empty when there's nothing.
+    /// </summary>
+    public static string AverageReceived(IReadOnlyList<MonthTotals> months)
+    {
+        var full = months.Take(months.Count - 1).Where(m => m.Received > 0 || m.Expenses > 0).ToList();
+        return full.Count == 0 ? ""
+            : $"On average {Webignite.Core.Documents.Money.Rand(full.Average(m => m.Received))} a month came in over the last {Wording.Count(full.Count, "full month")}.";
     }
 
     public static decimal Sum(IEnumerable<MoneyEntry> entries, EntryKind kind) =>

@@ -29,6 +29,12 @@ public static class Approvals
             .ThenBy(w => w.Stored.Created)
             .ToList();
 
+    /// <summary>
+    /// Whether it can be thrown away from To approve: only what Claude or ChatGPT prepared and never reached Xero.
+    /// Anything in Xero is dealt with in Xero.
+    /// </summary>
+    public static bool CanReject(WaitingItem item) => item.Kind == WaitingKind.FromAssistant && item.Stored.XeroId is null;
+
     public static WaitingItem? Why(StoredDocument s)
     {
         var what = s.Document.Kind == DocumentKind.Quote ? "quote" : "invoice";

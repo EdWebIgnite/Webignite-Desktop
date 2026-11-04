@@ -19,18 +19,18 @@ public static class Statements
     /// </summary>
     public static IReadOnlyList<(string Customer, decimal Open)> Due(IEnumerable<StoredDocument> documents, IReadOnlyDictionary<string, DateOnly> sent, DateOnly today)
     {
-        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var monthStart = Dates.MonthStart(today);
         return documents
             .Where(d => d.XeroId is not null && Receivables.Outstanding(d) > 0)
-            .GroupBy(d => d.Document.Customer.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-            .Where(g => !(sent.TryGetValue(Key(g.Key), out var last) && last >= monthStart))
-            .Select(g => (g.Key, g.Sum(Receivables.Outstanding)))
+            .GroupBy(d => Key(d.Document.Customer.Name))
+            .Where(g => !(sent.TryGetValue(g.Key, out var last) && last >= monthStart))
+            .Select(g => (g.First().Document.Customer.Name.Trim(), g.Sum(Receivables.Outstanding)))
             .OrderByDescending(x => x.Item2)
             .ToList();
     }
 
     /// <summary>How a customer is remembered in the "statements sent" list.</summary>
-    public static string Key(string customer) => Xero.XeroRules.Normalise(customer);
+    public static string Key(string customer) => Clients.ClientDirectory.Key(customer);
 
     /// <summary>The invoices as text for the mail, oldest first, with how late each one is.</summary>
     public static string Lines(IEnumerable<StatementLine> lines, DateOnly today)
@@ -50,7 +50,7 @@ public static class Statements
         return string.Join("\n", text);
     }
 
-    private static string Days(int days) => days == 1 ? "1 day" : $"{days} days";
+    private static string Days(int days) => Wording.Days(days);
 
     /// <summary>The contact to build a statement for: one already linked to Xero on a client or invoice, if any.</summary>
     public static string? ContactIdFor(string customer, IEnumerable<StoredDocument> documents, IEnumerable<Clients.Client> clients)

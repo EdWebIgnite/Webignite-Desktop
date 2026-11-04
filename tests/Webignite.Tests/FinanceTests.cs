@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
 using Webignite.Core.Finance;
 using Webignite.Data;
+using Webignite.Core;
 
 namespace Webignite.Tests;
 
@@ -42,7 +43,7 @@ public sealed class FinanceTests : IDisposable
     [InlineData(2027, 2, 28, 2026)]
     [InlineData(2027, 3, 1, 2027)]
     public void Tax_year_runs_March_to_February(int y, int m, int d, int startYear) =>
-        Assert.Equal(new DateOnly(startYear, 3, 1), Ledger.TaxYearStart(new DateOnly(y, m, d)));
+        Assert.Equal(new DateOnly(startYear, 3, 1), Dates.TaxYear(new DateOnly(y, m, d)).From);
 
     [Fact]
     public void Top_payers_group_names_like_clients()

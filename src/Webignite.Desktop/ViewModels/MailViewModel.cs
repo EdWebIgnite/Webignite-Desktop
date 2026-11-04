@@ -156,6 +156,10 @@ public partial class MailViewModel : ViewModelBase
     public bool CanLoadOlder => CurrentFolder is { Kind: FolderKind.Folder } && CurrentCategory is null;
 
     internal IReadOnlyList<MailAccount> Accounts => accounts;
+
+    /// <summary>The role of the folder a mail is in (Inbox, Sent, Drafts and so on), from the folder list.</summary>
+    internal FolderRole? RoleOf(MailSummary mail) => Mailboxes.SelectMany(m => m.Folders)
+        .FirstOrDefault(f => f.Kind == FolderKind.Folder && f.Mailbox.Id == mail.AccountId && f.Path == mail.Folder)?.Role;
     internal IReadOnlyList<MailCategory> CategoryList => categories;
     internal AppServices Services => services;
 
@@ -425,7 +429,7 @@ public partial class MailViewModel : ViewModelBase
     {
         if (accounts.Count == 0)
             return;
-        var from = accounts.FirstOrDefault(a => !a.SendsInvoices) ?? accounts[0];
+        var from = Webignite.Core.Mail.MailAccounts.ForEveryday(accounts)!;
         Compose(new OutgoingMail { AccountId = from.Id, To = to, Body = Replies.StartBody(from.Signature) });
     }
 
@@ -855,8 +859,7 @@ public partial class MailRowViewModel(MailSummary summary, MailAccount account, 
     public MailAccount Account => account;
     public bool ShowMailbox => showMailbox;
 
-    private bool IsOutgoing => Summary.Folder.EndsWith("Sent", StringComparison.OrdinalIgnoreCase)
-        || Summary.Folder.EndsWith("Drafts", StringComparison.OrdinalIgnoreCase);
+    private bool IsOutgoing => MailFolders.IsOutgoing(owner.RoleOf(Summary));
 
     public string Who => IsOutgoing
         ? "To " + (Summary.To.Count == 0 ? "nobody yet" : string.Join(", ", Summary.To.Select(p => p.Display)))

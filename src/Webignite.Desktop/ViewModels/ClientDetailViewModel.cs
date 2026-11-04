@@ -334,7 +334,7 @@ public sealed class ClientMailRow(MailSummary summary, MailAccount account, Webi
         get
         {
             var folder = store.ListMailFolders(account.Id).FirstOrDefault(f => f.Path == summary.Folder);
-            var outgoing = folder?.Role is FolderRole.Sent or FolderRole.Drafts;
+            var outgoing = MailFolders.IsOutgoing(folder?.Role);
             var who = outgoing ? "To " + string.Join(", ", summary.To.Select(p => p.Display)) : summary.From?.Display ?? "";
             return $"{who}  ·  {folder?.Name ?? summary.Folder}, {account.Address.Split('@')[0]}@";
         }

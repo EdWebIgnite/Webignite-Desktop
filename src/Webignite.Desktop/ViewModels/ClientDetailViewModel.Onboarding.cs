@@ -36,7 +36,7 @@ public partial class ClientDetailViewModel
     private void SaveOnboarding(Client changed)
     {
         // Keep any unsaved typing in the details; only the checklist is saved here.
-        var stored = services.Store.ListClients().FirstOrDefault(c => c.Id == client.Id) ?? client;
+        var stored = Current();
         client = services.Store.SaveClient(stored with { Onboarding = changed.Onboarding, OnboardingStarted = changed.OnboardingStarted });
         LoadOnboarding();
     }
@@ -65,7 +65,7 @@ public partial class ClientDetailViewModel
     private void DraftOnboardingReminder()
     {
         var accounts = services.Store.ListMailAccounts();
-        var mailbox = accounts.FirstOrDefault(a => !a.SendsInvoices) ?? accounts.FirstOrDefault();
+        var mailbox = Webignite.Core.Mail.MailAccounts.ForEveryday(accounts);
         if (mailbox is null)
         {
             OnboardingMessage = "Add a mailbox under Mail first.";

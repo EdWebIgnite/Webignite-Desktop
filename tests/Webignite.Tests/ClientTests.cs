@@ -133,3 +133,36 @@ public sealed class ClientEmailTests
             Webignite.Xero.XeroPayload.NewContact(new Customer { Name = "Karoo", Email = Karoo.Email }, null)["EmailAddress"]!.GetValue<string>());
     }
 }
+
+/// <summary>Names and websites are each compared one way, everywhere.</summary>
+public sealed class OneRuleTests
+{
+    [Fact]
+    public void Names_match_ignoring_case_and_any_extra_spaces()
+    {
+        Assert.Equal("karoo coffee roasters", Webignite.Core.Clients.ClientDirectory.Key("  Karoo Coffee \t ROASTERS "));
+        var karoo = new Webignite.Core.Clients.Client { Id = "c1", Name = "Karoo Coffee Roasters" };
+        Assert.Equal(karoo, Webignite.Core.Clients.ClientDirectory.Find([karoo], "karoo  coffee roasters"));
+        Assert.Null(Webignite.Core.Clients.ClientDirectory.Find([karoo], ""));
+    }
+
+    [Fact]
+    public void A_customer_typed_two_ways_gets_one_statement_line()
+    {
+        StoredDocument Owing(string name, decimal due) => new()
+        {
+            Id = StoredDocument.NewId(), XeroId = StoredDocument.NewId(), Status = DocumentStatus.InXero, XeroAmountDue = due,
+            Document = Samples.Completed(Samples.NewInvoice() with { Customer = new Customer { Name = name } }),
+        };
+        var due = Statements.Due([Owing("Karoo Coffee", 100m), Owing("karoo  coffee", 50m)], new Dictionary<string, DateOnly>(), Samples.Today);
+        Assert.Equal(150m, Assert.Single(due).Open);
+    }
+
+    [Theory]
+    [InlineData("https://www.Karoo.co.za/menu", "karoo.co.za")]
+    [InlineData("karoocoffee.co.za", "karoocoffee.co.za")]
+    [InlineData("thandi@karoocoffee.co.za", "karoocoffee.co.za")]
+    [InlineData("not a website", null)]
+    public void A_website_has_one_domain(string website, string? domain) =>
+        Assert.Equal(domain, Webignite.Core.Web.Domains.Of(website));
+}

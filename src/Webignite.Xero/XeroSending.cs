@@ -94,8 +94,8 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
     {
         if (string.IsNullOrWhiteSpace(contactId))
         {
-            var key = XeroRules.Normalise(customer);
-            var matches = (await api.ContactsAsync(cancel)).Where(c => XeroRules.Normalise(c.Name) == key).ToList();
+            var key = Webignite.Core.Clients.ClientDirectory.Key(customer);
+            var matches = (await api.ContactsAsync(cancel)).Where(c => Webignite.Core.Clients.ClientDirectory.Key(c.Name) == key).ToList();
             if (matches.Count == 0)
                 throw new XeroException($"Couldn't find {customer} in Xero's contacts.");
             if (matches.Count > 1)

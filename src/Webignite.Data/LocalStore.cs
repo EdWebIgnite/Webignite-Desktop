@@ -403,6 +403,15 @@ public sealed partial class LocalStore : IDisposable
     }
 
     /// <summary>All clients, A to Z. Names are encrypted, so sorting happens after reading.</summary>
+    /// <summary>One client by id, without unlocking all of them.</summary>
+    public Client? GetClient(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT payload FROM clients WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        return command.ExecuteScalar() is byte[] payload ? Open<Client>("client:" + id, payload) : null;
+    }
+
     public IReadOnlyList<Client> ListClients()
     {
         using var command = connection.CreateCommand();

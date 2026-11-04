@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Clients;
 using Webignite.Core.Documents;
 using Webignite.Core.Time;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -58,12 +59,12 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         choicesMadeFor = today;
 
         DayChoices = Enumerable.Range(0, 14).Select(back => today.AddDays(-back))
-            .Select(day => new Choice<DateOnly>(day == today ? "Today" : day == today.AddDays(-1) ? "Yesterday" : day.ToString("ddd d MMM"), day))
+            .Select(day => new Choice<DateOnly>(ClientRecords.Day(day, today), day))
             .ToList();
         OnPropertyChanged(nameof(DayChoices));
         Day = wasToday ? DayChoices[0] : DayChoices.FirstOrDefault(c => c.Value == keep) ?? DayChoices[0];
 
-        var month = new DateOnly(today.Year, today.Month, 1);
+        var month = Dates.MonthStart(today);
         InvoiceMonths = [new("This month", month), new("Last month", month.AddMonths(-1))];
         OnPropertyChanged(nameof(InvoiceMonths));
         InvoiceMonth = InvoiceMonths.FirstOrDefault(c => c.Label == invoiceLabel) ?? InvoiceMonths[0];
@@ -73,12 +74,12 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     public ObservableCollection<ProjectChoice> ProjectChoices { get; } = [];
     public IReadOnlyList<Choice<DateOnly>> DayChoices { get; private set; } = [];
 
-    public static IReadOnlyList<Choice<int>> PeriodChoices { get; } =
+    public static IReadOnlyList<Choice<TimeRules.Period>> PeriodChoices { get; } =
     [
-        new("This week", 0),
-        new("Last week", 1),
-        new("This month", 2),
-        new("Last month", 3),
+        new("This week", TimeRules.Period.ThisWeek),
+        new("Last week", TimeRules.Period.LastWeek),
+        new("This month", TimeRules.Period.ThisMonth),
+        new("Last month", TimeRules.Period.LastMonth),
     ];
 
     public ObservableCollection<TimeTotalRow> Totals { get; } = [];
@@ -89,7 +90,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     [ObservableProperty] public partial ProjectChoice? ProjectChoice { get; set; }
     [ObservableProperty] public partial string Hours { get; set; } = "";
     [ObservableProperty] public partial Choice<DateOnly> Day { get; set; }
-    [ObservableProperty] public partial Choice<int> Period { get; set; }
+    [ObservableProperty] public partial Choice<TimeRules.Period> Period { get; set; }
     [ObservableProperty] public partial string Message { get; set; } = "";
     [ObservableProperty] public partial bool MessageIsProblem { get; set; }
     [ObservableProperty] public partial string PeriodTotal { get; set; } = "";
@@ -124,7 +125,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         OnPropertyChanged(nameof(HasProjects));
     }
 
-    partial void OnPeriodChanged(Choice<int> value) => Refresh();
+    partial void OnPeriodChanged(Choice<TimeRules.Period> value) => Refresh();
 
     partial void OnRunningChanged(RunningTimer? value)
     {
@@ -224,18 +225,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     private string Describe(string? clientId, string? projectId) =>
         TimeRules.Describe(new TimeEntry { Id = "", Date = Today, Minutes = 0, ClientId = clientId, ProjectId = projectId }, clients);
 
-    private (DateOnly From, DateOnly To) Range()
-    {
-        var week = TimeRules.WeekStart(Today);
-        var month = new DateOnly(Today.Year, Today.Month, 1);
-        return Period?.Value switch
-        {
-            1 => (week.AddDays(-7), week.AddDays(-1)),
-            2 => (month, month.AddMonths(1).AddDays(-1)),
-            3 => (month.AddMonths(-1), month.AddDays(-1)),
-            _ => (week, week.AddDays(6)),
-        };
-    }
+    private (DateOnly From, DateOnly To) Range() => TimeRules.Range(Period?.Value ?? TimeRules.Period.ThisWeek, Today);
 
     public void Refresh()
     {

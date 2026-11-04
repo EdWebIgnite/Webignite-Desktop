@@ -70,21 +70,14 @@ public sealed record DocumentFilter(string Text = "", DocumentShow Show = Docume
     /// <summary>The first and last day of a period, counted from today.</summary>
     public static (DateOnly From, DateOnly To) Range(DocumentPeriod period, DateOnly today)
     {
-        var month = new DateOnly(today.Year, today.Month, 1);
+        var month = Dates.MonthStart(today);
         return period switch
         {
             DocumentPeriod.ThisMonth => (month, month.AddMonths(1).AddDays(-1)),
             DocumentPeriod.LastMonth => (month.AddMonths(-1), month.AddDays(-1)),
-            DocumentPeriod.ThisTaxYear => TaxYear(today),
+            DocumentPeriod.ThisTaxYear => Dates.TaxYear(today),
             _ => (DateOnly.MinValue, DateOnly.MaxValue),
         };
-    }
-
-    /// <summary>1 March to the last day of February, for the tax year today falls in.</summary>
-    public static (DateOnly From, DateOnly To) TaxYear(DateOnly today)
-    {
-        var start = new DateOnly(today.Month >= 3 ? today.Year : today.Year - 1, 3, 1);
-        return (start, start.AddYears(1).AddDays(-1));
     }
 
     private static bool Found(StoredDocument stored, string word)

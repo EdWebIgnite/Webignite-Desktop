@@ -43,6 +43,16 @@ public sealed record MailAccount
 
 public static class MailAccounts
 {
+    /// <summary>The mailbox invoices, quotes, reminders and statements go out from. Null when none is ticked.</summary>
+    public static MailAccount? ForInvoices(IEnumerable<MailAccount> accounts) => accounts.FirstOrDefault(a => a.SendsInvoices);
+
+    /// <summary>The mailbox everyday mail goes out from: the first that isn't for invoices, else the first.</summary>
+    public static MailAccount? ForEveryday(IEnumerable<MailAccount> accounts)
+    {
+        var list = accounts.ToList();
+        return list.FirstOrDefault(a => !a.SendsInvoices) ?? list.FirstOrDefault();
+    }
+
     /// <summary>
     /// Server settings for a webignite.co.za mailbox on xneelo, so only the password has to be typed.
     /// Other domains get guesses in the usual mail.domain / smtp.domain shape.

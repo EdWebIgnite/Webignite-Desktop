@@ -209,7 +209,7 @@ public sealed class AssistantMailTests : IDisposable
         var gmailOnly = new ClientMail(new Webignite.Core.Clients.Client { Id = "g", Name = "Joe", Email = "joe@gmail.com" });
         Assert.Empty(gmailOnly.Domains);
         Assert.True(new ClientMail(new Webignite.Core.Clients.Client { Id = "n", Name = "Nobody" }).IsEmpty);
-        Assert.Equal("karoocoffee.co.za", ClientMail.WebsiteDomain("www.karoocoffee.co.za"));
+        Assert.Equal("karoocoffee.co.za", Webignite.Core.Web.Domains.Of("www.karoocoffee.co.za"));
     }
 
     private void Seed()

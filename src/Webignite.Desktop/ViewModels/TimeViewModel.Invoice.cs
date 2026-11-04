@@ -22,9 +22,7 @@ public partial class TimeViewModel
     private void LoadInvoiceChoices(IReadOnlyList<Client> clients)
     {
         var keep = InvoiceClient?.Value.Id;
-        InvoiceClients = clients.Where(c => c.HourlyRate is not null || c.Projects.Any(p => p.HourlyRate is not null))
-            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(c => new Choice<Client>(c.Name, c)).ToList();
+        InvoiceClients = TimeRules.Invoiceable(clients).Select(c => new Choice<Client>(c.Name, c)).ToList();
         OnPropertyChanged(nameof(InvoiceClients));
         OnPropertyChanged(nameof(CanInvoice));
         InvoiceClient = InvoiceClients.FirstOrDefault(c => c.Value.Id == keep) ?? InvoiceClients.FirstOrDefault();

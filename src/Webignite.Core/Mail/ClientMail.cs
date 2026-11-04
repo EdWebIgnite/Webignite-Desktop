@@ -26,7 +26,7 @@ public sealed class ClientMail
         domains = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var address in addresses)
             AddDomain(address[(address.LastIndexOf('@') + 1)..]);
-        if (WebsiteDomain(client.Website) is { } site)
+        if (Webignite.Core.Web.Domains.Of(client.Website) is { } site)
             AddDomain(site);
     }
 
@@ -90,19 +90,5 @@ public sealed class ClientMail
         domain = domain.Trim().TrimEnd('.').ToLowerInvariant();
         if (domain.Contains('.') && !SharedProviders.Contains(domain))
             domains.Add(domain);
-    }
-
-    /// <summary>"https://www.karoocoffee.co.za/shop" gives "karoocoffee.co.za".</summary>
-    public static string? WebsiteDomain(string? website)
-    {
-        if (string.IsNullOrWhiteSpace(website))
-            return null;
-        var text = website.Trim();
-        if (!text.Contains("://", StringComparison.Ordinal))
-            text = "https://" + text;
-        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) || !uri.Host.Contains('.'))
-            return null;
-        var host = uri.Host.ToLowerInvariant();
-        return host.StartsWith("www.", StringComparison.Ordinal) ? host[4..] : host;
     }
 }

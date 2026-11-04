@@ -209,13 +209,6 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
 
 public partial class AttachmentViewModel(MailAttachment attachment, MailReaderViewModel reader) : ViewModelBase
 {
-    /// <summary>Files that run as programs. They can be saved, but the app won't start them.</summary>
-    private static readonly HashSet<string> Programs = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".exe", ".com", ".bat", ".cmd", ".scr", ".pif", ".msi", ".msp", ".js", ".jse", ".vbs", ".vbe", ".wsf", ".wsh",
-        ".ps1", ".psm1", ".hta", ".jar", ".lnk", ".reg", ".cpl", ".dll", ".iso", ".img", ".vhd", ".vhdx", ".appx", ".msix",
-    };
-
     public string Name => attachment.FileName;
     public string Size => FormatSize(attachment.Size);
 
@@ -256,7 +249,7 @@ public partial class AttachmentViewModel(MailAttachment attachment, MailReaderVi
     [RelayCommand]
     private void Open()
     {
-        if (Programs.Contains(Path.GetExtension(Name)))
+        if (AttachmentPreview.IsProgram(Name))
         {
             if (SaveToDownloads() is { } saved)
                 reader.Said($"{Path.GetFileName(saved)} is a program, so it was saved to Downloads but not opened. Only run it if you trust the sender.");

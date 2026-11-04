@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Webignite.Core.Calendar;
 using Webignite.Core.Tasks;
 using Webignite.Data;
+using Webignite.Core;
 
 namespace Webignite.Tests;
 
@@ -23,7 +24,7 @@ public sealed class CalendarTests : IDisposable
 
     [Fact]
     public void Week_starts_on_monday() =>
-        Assert.Equal(new DateOnly(2026, 10, 26), Agenda.StartOfWeek(Today));
+        Assert.Equal(new DateOnly(2026, 10, 26), Dates.WeekStart(Today));
 
     [Fact]
     public void Agenda_brings_events_tasks_and_document_dates_together()

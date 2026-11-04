@@ -202,12 +202,8 @@ public partial class IncomeMonthRow : ViewModelBase
         IsFuture = month.IsFuture;
         Expected = month.Expected is { } e ? Money.Rand(e) : "Not set";
         CameIn = month.IsFuture ? "" : Money.Rand(month.CameIn);
-        IsShort = month.IsPast && month.Expected is > 0 && month.Gap > 0;
-        Gap = month.Expected is not > 0 ? ""
-            : month.IsFuture ? ""
-            : month.Gap > 0 ? (month.IsPast ? $"{Money.Rand(month.Gap)} short" : $"{Money.Rand(month.Gap)} to come")
-            : month.Gap < 0 ? $"{Money.Rand(-month.Gap)} more"
-            : "On target";
+        IsShort = month.IsShort;
+        Gap = month.GapText;
     }
 }
 

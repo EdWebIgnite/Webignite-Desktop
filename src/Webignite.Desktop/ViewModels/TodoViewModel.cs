@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Layout;
 using Webignite.Core.Tasks;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -159,17 +160,7 @@ public partial class TaskRowViewModel : ViewModelBase
         {
             if (Task.Due is not { } due)
                 return "";
-            var today = DateOnly.FromDateTime(DateTime.Today);
-            var days = due.DayNumber - today.DayNumber;
-            return days switch
-            {
-                0 => "Today",
-                1 => "Tomorrow",
-                -1 => "Yesterday",
-                < 0 => $"{-days} days ago",
-                < 7 => due.ToString("dddd"),
-                _ => due.ToString("d MMM"),
-            };
+            return Wording.Capital(Wording.Day(due, DateOnly.FromDateTime(DateTime.Today)));
         }
     }
 

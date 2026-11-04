@@ -51,7 +51,7 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
     internal void Reject(ApprovalRowViewModel row)
     {
         // Only documents that never reached Xero can be thrown away here.
-        if (row.Item.Kind != WaitingKind.FromAssistant || row.Item.Stored.XeroId is not null)
+        if (!Approvals.CanReject(row.Item))
             return;
         var gone = services.Store.Get(row.Item.Stored.Id) ?? row.Item.Stored;
         services.Store.DeleteDocument(gone.Id);
@@ -74,7 +74,7 @@ public partial class ApprovalRowViewModel(WaitingItem item, ApprovalsViewModel o
     public string Total => Money.Rand(item.Stored.Document.Total ?? 0);
     public string Reason => item.Reason;
     public bool IsProblem => item.Kind == WaitingKind.XeroProblem;
-    public bool CanReject => item.Kind == WaitingKind.FromAssistant;
+    public bool CanReject => Approvals.CanReject(item);
     public string Lines => string.Join(", ", item.Stored.Document.Lines.Take(3).Select(l => l.Description))
         + (item.Stored.Document.Lines.Count > 3 ? $" and {item.Stored.Document.Lines.Count - 3} more" : "");
 

@@ -118,7 +118,11 @@ public sealed record FilledEmail(string Subject, string Body, IReadOnlyList<stri
 
 public static partial class DocumentEmail
 {
-    /// <summary>The placeholders that can be used, as Xero names them.</summary>
+    /// <summary>
+    /// The placeholders offered for quote and invoice mail, as Xero names them. Replace also accepts a few more:
+    /// [Organisation Name] (the same as [Trading Name]), [Online Quote Link], and [Statement Lines] and
+    /// [Statement Date] for statement mail.
+    /// </summary>
     public static IReadOnlyList<string> Placeholders(DocumentKind kind) => kind == DocumentKind.Quote
         ? ["[Contact Name]", "[Contact First Name]", "[Quote Number]", "[Quote Total]", "[Expiry Date]", "[Reference]", "[Trading Name]"]
         : ["[Contact Name]", "[Contact First Name]", "[Invoice Number]", "[Invoice Total]", "[Amount Due]", "[Due Date]", "[Reference]",
