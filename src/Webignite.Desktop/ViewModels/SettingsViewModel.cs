@@ -8,8 +8,11 @@ using Webignite.Xero.Auth;
 
 namespace Webignite.Desktop.ViewModels;
 
-public partial class SettingsViewModel : ViewModelBase, IRefreshable
+public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
 {
+    /// <summary>Settings stays once opened: it is small and may hold something half typed.</summary>
+    public bool HoldsWork => true;
+
     private readonly AppServices services;
 
     public SettingsViewModel(AppServices services)

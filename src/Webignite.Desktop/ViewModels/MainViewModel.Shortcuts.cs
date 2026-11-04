@@ -80,7 +80,7 @@ public partial class MainViewModel
     [RelayCommand]
     private async Task RefreshPage()
     {
-        if (Selected.Page == Mail)
+        if (Selected.Key == Page.Mail)
             await CheckMailAsync();
         else if (Selected.Page is IRefreshable page)
             page.Refresh();

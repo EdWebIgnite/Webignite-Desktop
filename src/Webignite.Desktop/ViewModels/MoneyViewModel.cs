@@ -11,8 +11,16 @@ namespace Webignite.Desktop.ViewModels;
 /// The Money module: what came in and went out in a month, and the expenses that repeat monthly.
 /// Amounts are typed in here by hand. Nothing is sent to Xero.
 /// </summary>
-public partial class MoneyViewModel : ViewModelBase, IRefreshable
+public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
 {
+    /// <summary>Let go: what was typed is saved first.</summary>
+    public void Dispose()
+    {
+        planSave?.Stop();
+        SaveTyped();
+        GC.SuppressFinalize(this);
+    }
+
     private readonly AppServices services;
 
     public MoneyViewModel(AppServices services)

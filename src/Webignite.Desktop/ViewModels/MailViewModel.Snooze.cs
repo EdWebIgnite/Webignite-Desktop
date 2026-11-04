@@ -95,58 +95,6 @@ public partial class MailViewModel
             SetStatus("This mail can't be snoozed: the mail server gave no ID to find it again by.", true);
     }
 
-    /// <summary>
-    /// Brings back snoozed mail whose time has come: back to its folder, unread, and at the top of the list.
-    /// A snooze whose mail is no longer in the Snoozed folder (moved from a phone, say) is dropped.
-    /// </summary>
-    private async Task WakeSnoozed()
-    {
-        var settings = services.Settings.Snooze;
-        var now = DateTimeOffset.Now;
-        var due = Snooze.Due(settings.Snoozed, now);
-        var done = new HashSet<SnoozedMail>();
-        var woken = new List<WokenMail>();
-        foreach (var group in due.GroupBy(s => s.AccountId))
-        {
-            var account = accounts.FirstOrDefault(a => a.Id == group.Key);
-            var folder = account is null ? null : services.Store.ListMailFolders(account.Id).FirstOrDefault(Snooze.IsSnoozeFolder);
-            if (account is null || folder is null)
-            {
-                done.UnionWith(group);
-                continue;
-            }
-            if (!await Run(() => services.Mail.SyncFolderAsync(account, folder.Path), quiet: true))
-                continue;
-            var waiting = services.Store.ListMailSummaries(account.Id, folder.Path, 5000);
-            foreach (var back in group.GroupBy(s => s.BackTo))
-            {
-                var found = back.Select(s => (Snooze: s, Mail: Snooze.Find(s, waiting))).ToList();
-                done.UnionWith(found.Where(f => f.Mail is null).Select(f => f.Snooze));
-                var mail = found.Where(f => f.Mail is not null).Select(f => f.Mail!).ToList();
-                if (mail.Count == 0)
-                    continue;
-                var ok = await Run(async () =>
-                {
-                    var unread = await services.Mail.MarkAsync(account, mail, MailMark.Read, false);
-                    await services.Mail.MoveAsync(account, unread.Count == mail.Count ? unread : mail, back.Key);
-                }, quiet: true);
-                if (!ok)
-                    continue;
-                done.UnionWith(found.Where(f => f.Mail is not null).Select(f => f.Snooze));
-                woken.AddRange(mail.Select(m => new WokenMail(account.Id, m.MessageId!.Trim(), now)));
-            }
-        }
-        if (done.Count == 0 && woken.Count == 0 && settings.Woken.Count == Snooze.Tidy(settings.Woken, now).Count)
-            return;
-        // Read the list again: mail snoozed while this ran must stay on it.
-        var latest = services.Settings.Snooze;
-        services.Settings.Snooze = new SnoozeSettings
-        {
-            Snoozed = latest.Snoozed.Where(s => !done.Contains(s)).ToList(),
-            Woken = [.. Snooze.Tidy(latest.Woken, now), .. woken],
-        };
-    }
-
     /// <summary>When a mail counts as arriving for the list's order: mail back from snooze counts from when it came back.</summary>
     private Func<MailSummary, DateTimeOffset> Arrival()
     {

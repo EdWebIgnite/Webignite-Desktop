@@ -12,8 +12,10 @@ using Webignite.Desktop.Controls;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>Mark up a screenshot of a client's site with numbered notes, arrows and boxes, then mail it to them.</summary>
-public sealed partial class MarkupViewModel : ViewModelBase
+public sealed partial class MarkupViewModel : ViewModelBase, IHoldsWork
 {
+    public bool HoldsWork => Image is not null;
+
     private readonly AppServices services;
 
     public MarkupViewModel(AppServices services)

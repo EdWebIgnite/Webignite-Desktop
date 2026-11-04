@@ -140,6 +140,16 @@ public sealed class AppServices : IDisposable
     private MailService? mail;
     public MailService Mail => mail ??= new MailService(Store, Secrets);
 
+    private TimerClock? timer;
+
+    /// <summary>The time-tracking timer, shown in the sidebar and on Time.</summary>
+    public TimerClock Timer => timer ??= new TimerClock(this);
+
+    private MailCheck? mailCheck;
+
+    /// <summary>The mail check that runs whether or not the Mail page is open.</summary>
+    public MailCheck MailCheck => mailCheck ??= new MailCheck(this);
+
     private IReadOnlyList<Webignite.Core.Mail.Contact>? addressBook;
     private DateTime addressBookMade;
 

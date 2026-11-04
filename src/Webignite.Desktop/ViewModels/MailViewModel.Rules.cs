@@ -34,26 +34,6 @@ public partial class MailViewModel
         _ => null,
     };
 
-    /// <summary>Runs the rules on new inbox mail in every mailbox. The first look at a mailbox only notes where its inbox is up to.</summary>
-    private async Task RunRulesOnArrival()
-    {
-        var settings = services.Settings.MailRules;
-        var marks = settings.RanUpTo.ToDictionary();
-        var outcomes = new List<RuleOutcome>();
-        foreach (var account in accounts)
-        {
-            if (services.Store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == FolderRole.Inbox) is not { } inbox)
-                continue;
-            var (fresh, ranUpTo) = MailRules.Arrived(services.Store.ListMailSummaries(account.Id, inbox.Path, 500),
-                settings.RanUpTo.TryGetValue(account.Id, out var mark) ? mark : null);
-            marks[account.Id] = ranUpTo;
-            outcomes.AddRange(MailRules.Apply(settings.Rules, fresh));
-        }
-        services.Settings.MailRules = services.Settings.MailRules with { RanUpTo = marks };
-        if (outcomes.Count > 0)
-            await Carry(outcomes);
-    }
-
     /// <summary>Runs every rule once on the mail in the open folder, or in every inbox. Returns how many mails changed.</summary>
     internal async Task<int> RunRulesNow()
     {
@@ -66,29 +46,7 @@ public partial class MailViewModel
         };
         var outcomes = MailRules.Apply(services.Settings.MailRules.Rules, mail);
         if (outcomes.Count > 0)
-            await Carry(outcomes);
+            await services.MailCheck.CarryAsync(outcomes, e => SetStatus("A mail rule couldn't finish: " + e, true));
         return outcomes.Count;
-    }
-
-    /// <summary>Does what the rules decided, one mailbox at a time: marks and categories first, then the moves.</summary>
-    private async Task Carry(IReadOnlyList<RuleOutcome> outcomes)
-    {
-        foreach (var group in outcomes.GroupBy(o => o.Mail.AccountId))
-        {
-            if (accounts.FirstOrDefault(a => a.Id == group.Key) is not { } account)
-                continue;
-            var list = group.ToList();
-            await Run(async () =>
-            {
-                if (list.Where(o => o.MarkRead).Select(o => o.Mail).ToList() is { Count: > 0 } read)
-                    await services.Mail.MarkAsync(account, read, MailMark.Read, true);
-                if (list.Where(o => o.MarkImportant).Select(o => o.Mail).ToList() is { Count: > 0 } important)
-                    await services.Mail.MarkAsync(account, important, MailMark.Important, true);
-                foreach (var keyword in list.SelectMany(o => o.Categories).Distinct(StringComparer.OrdinalIgnoreCase))
-                    await services.Mail.SetCategoryAsync(account, list.Where(o => o.Categories.Contains(keyword, StringComparer.OrdinalIgnoreCase)).Select(o => o.Mail).ToList(), keyword, true);
-                foreach (var move in list.Where(o => o.MoveTo is not null).GroupBy(o => o.MoveTo!))
-                    await services.Mail.MoveAsync(account, move.Select(o => o.Mail).ToList(), move.Key);
-            }, quiet: true, onError: e => SetStatus("A mail rule couldn't finish: " + e, true));
-        }
     }
 }

@@ -30,8 +30,6 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Avalonia.HtmlRenderer" />
-    <PackageReference Include="QRCoder" />
-    <PackageReference Include="Docnet.Core" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Webignite.Core\Webignite.Core.csproj" />
@@ -39,5 +37,6 @@
     <ProjectReference Include="..\Webignite.Xero\Webignite.Xero.csproj" />
     <ProjectReference Include="..\Webignite.Mail\Webignite.Mail.csproj" />
     <ProjectReference Include="..\Webignite.Services\Webignite.Services.csproj" />
+    <ProjectReference Include="..\Webignite.Tools\Webignite.Tools.csproj" />
   </ItemGroup>
 </Project>

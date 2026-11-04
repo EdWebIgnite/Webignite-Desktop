@@ -99,45 +99,6 @@ public partial class MailViewModel
     /// <summary>Opens an editor again, e.g. after Undo or when the server refused the mail.</summary>
     internal void Reopen(ComposeViewModel composer) => Composer = composer;
 
-    /// <summary>Sends mail whose time has come. A draft that has gone from Drafts is dropped with a note.</summary>
-    private async Task SendScheduled()
-    {
-        var due = SendLater.Due(services.Settings.SendLater.Scheduled, DateTimeOffset.Now);
-        foreach (var item in due)
-        {
-            var account = accounts.FirstOrDefault(a => a.Id == item.AccountId);
-            var drafts = account is null ? null : services.Store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == FolderRole.Drafts);
-            var sent = false;
-            // Drafts is read at every check, so a draft missing from it was sent or deleted elsewhere.
-            var gone = account is null || drafts is null || !services.Store.KnownMailUids(account.Id, drafts.Path).Contains(item.DraftUid);
-            if (!gone)
-            {
-                try
-                {
-                    var mime = await services.Mail.GetMessageAsync(account!, drafts!.Path, item.DraftUid);
-                    using var stream = new MemoryStream(mime);
-                    var message = await MimeKit.MimeMessage.LoadAsync(stream);
-                    message.Date = DateTimeOffset.Now;
-                    await services.Mail.SendAsync(account!, message, null, item.DraftUid);
-                    sent = true;
-                }
-                catch (MailException e)
-                {
-                    // Most likely no internet: it is tried again at the next check.
-                    AppLog.Write("Sending a mail set for later", e);
-                }
-            }
-            if (!sent && !gone)
-                continue;
-            services.Settings.SendLater = services.Settings.SendLater with
-            {
-                Scheduled = services.Settings.SendLater.Scheduled.Where(s => s.Id != item.Id).ToList(),
-            };
-            services.ShowNote?.Invoke(sent ? $"Sent to {item.To}" : "A mail set for later wasn't sent",
-                sent ? $"\"{item.Subject}\" went at {DateTime.Now:HH:mm}, as set." : $"\"{item.Subject}\" was no longer in Drafts.", null);
-        }
-    }
-
     /// <summary>Takes a draft off the send-later list, e.g. when it is opened to edit or Don't send is clicked.</summary>
     internal void Unschedule(string accountId, uint draftUid)
     {

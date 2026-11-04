@@ -13,8 +13,10 @@ namespace Webignite.Desktop.ViewModels;
 /// What you can do to the selected mail (mark, move, archive, categories) is in MailViewModel.Actions.cs, and
 /// making folders and categories in MailViewModel.Editors.cs.
 /// </summary>
-public partial class MailViewModel : ViewModelBase
+public partial class MailViewModel : ViewModelBase, IHoldsWork
 {
+    public bool HoldsWork => Composer is not null || HasPendingSend;
+
     private readonly AppServices services;
     private IReadOnlyList<MailAccount> accounts = [];
     private IReadOnlyList<MailCategory> categories = [];
@@ -478,19 +480,9 @@ public partial class MailViewModel : ViewModelBase
         syncing = true;
         try
         {
-            var failed = new List<string>();
-            foreach (var account in accounts)
-            {
-                if (!services.Mail.HasPassword(account))
-                {
-                    failed.Add($"{account.Address}: password not saved yet");
-                    continue;
-                }
-                await Run(() => services.Mail.SyncAccountAsync(account), quiet: true, onError: e => failed.Add($"{account.Address}: {e}"));
-            }
-            await SendScheduled();
-            await WakeSnoozed();
-            await RunRulesOnArrival();
+            IsBusy = true;
+            var failed = (await services.MailCheck.RunAsync())?.ToList() ?? [];
+            IsBusy = false;
             if (CurrentFolder is { Kind: FolderKind.Folder } folder && folder.Role is not (FolderRole.Inbox or FolderRole.Sent or FolderRole.Drafts))
                 await Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path), quiet: true, onError: e => failed.Add(e));
             Reload();

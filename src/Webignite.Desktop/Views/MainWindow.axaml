@@ -49,8 +49,8 @@
           </Button>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,8,0,0">
-          <Button Classes="navtoggle" HorizontalAlignment="Center" IsVisible="{Binding Time.IsRunning}" Command="{Binding OpenTimeCommand}"
-                  ToolTip.Tip="{Binding Time.Clock, StringFormat='Timer running, {0}. Click to open Time.'}">
+          <Button Classes="navtoggle" HorizontalAlignment="Center" IsVisible="{Binding Timer.IsRunning}" Command="{Binding OpenTimeCommand}"
+                  ToolTip.Tip="{Binding Timer.Clock, StringFormat='Timer running, {0}. Click to open Time.'}">
             <c:Icon Data="{StaticResource Icon.Time}" Size="18" Foreground="{DynamicResource NavText}" />
           </Button>
           <c:Spinner Size="12" Foreground="{DynamicResource NavText}" HorizontalAlignment="Center" IsVisible="{Binding Work.IsWorking}"
@@ -95,12 +95,12 @@
 
         <StackPanel DockPanel.Dock="Bottom" Margin="6,8,6,0" Spacing="6">
           <!-- The running timer, from any page. Clicking it opens Time. -->
-          <Button Classes="navsearch" HorizontalAlignment="Stretch" IsVisible="{Binding Time.IsRunning}" Command="{Binding OpenTimeCommand}"
+          <Button Classes="navsearch" HorizontalAlignment="Stretch" IsVisible="{Binding Timer.IsRunning}" Command="{Binding OpenTimeCommand}"
                   ToolTip.Tip="Timer running. Click to open Time.">
             <DockPanel>
               <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Time}" Size="16" Foreground="{DynamicResource NavText}" Margin="0,0,8,0" VerticalAlignment="Center" />
-              <TextBlock DockPanel.Dock="Right" Text="{Binding Time.Clock}" Foreground="{DynamicResource NavText}" FontFeatures="+tnum" VerticalAlignment="Center" Margin="8,0,0,0" />
-              <TextBlock Text="{Binding Time.RunningFor}" Foreground="{DynamicResource NavMuted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="12" />
+              <TextBlock DockPanel.Dock="Right" Text="{Binding Timer.Clock}" Foreground="{DynamicResource NavText}" FontFeatures="+tnum" VerticalAlignment="Center" Margin="8,0,0,0" />
+              <TextBlock Text="{Binding Timer.RunningFor}" Foreground="{DynamicResource NavMuted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="12" />
             </DockPanel>
           </Button>
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
