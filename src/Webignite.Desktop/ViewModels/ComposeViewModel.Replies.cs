@@ -64,8 +64,13 @@ public partial class ComposeViewModel
     public void RemoveReply(SavedReply reply)
     {
         var before = SavedReplyList;
+        var at = before.ToList().FindIndex(r => r.Id == reply.Id);
         services.Settings.SavedReplies = before.Where(r => r.Id != reply.Id).ToList();
         OnPropertyChanged(nameof(SavedReplyList));
-        services.OfferUndo($"Removed the saved reply \"{reply.Name}\"", () => services.Settings.SavedReplies = before);
+        services.OfferUndo($"Removed the saved reply \"{reply.Name}\"", () =>
+        {
+            services.Settings.SavedReplies = Webignite.Core.Layout.ListUndo.PutBack(services.Settings.SavedReplies, reply, at, r => r.Id);
+            OnPropertyChanged(nameof(SavedReplyList));
+        });
     }
 }

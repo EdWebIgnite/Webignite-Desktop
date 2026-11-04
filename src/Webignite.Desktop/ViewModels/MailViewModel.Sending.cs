@@ -63,6 +63,25 @@ public partial class MailViewModel
         send().Forget("Sending a mail");
     }
 
+    /// <summary>
+    /// Before the app closes: a mail still in its undo wait is sent now, and the open editor is saved to Drafts.
+    /// Returns what couldn't be done, or null when nothing is left behind.
+    /// </summary>
+    internal async Task<string?> PrepareToCloseAsync()
+    {
+        if (pending is { } waiting)
+        {
+            countdown?.Stop();
+            pending = null;
+            PendingSendText = "";
+            OnPropertyChanged(nameof(HasPendingSend));
+            await waiting.Send(); // a refused mail comes back in the editor, which is saved below
+        }
+        if (Composer is { } open && !await open.KeepAsync())
+            return $"The mail you're writing couldn't be saved to Drafts. {open.Message}".TrimEnd();
+        return null;
+    }
+
     /// <summary>Takes the waiting mail back and opens it in the editor again, as it was.</summary>
     [RelayCommand]
     private void UndoSend()

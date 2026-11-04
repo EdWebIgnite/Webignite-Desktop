@@ -131,8 +131,10 @@ public partial class MailRulesViewModel(MailViewModel owner) : ViewModelBase
     internal void Remove(MailRule rule)
     {
         var before = Services.Settings.MailRules.Rules;
+        var at = before.ToList().FindIndex(r => r.Id == rule.Id);
         Save(before.Where(r => r.Id != rule.Id).ToList());
-        Services.OfferUndo("Removed a mail rule", () => Save(before));
+        Services.OfferUndo("Removed a mail rule", () =>
+            Save(Webignite.Core.Layout.ListUndo.PutBack(Services.Settings.MailRules.Rules, rule, at, r => r.Id)));
     }
 
     private void Save(IReadOnlyList<MailRule> rules)

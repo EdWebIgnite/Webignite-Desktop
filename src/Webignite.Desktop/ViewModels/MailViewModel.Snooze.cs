@@ -136,12 +136,14 @@ public partial class MailViewModel
                 woken.AddRange(mail.Select(m => new WokenMail(account.Id, m.MessageId!.Trim(), now)));
             }
         }
-        if (done.Count == 0 && settings.Woken.Count == Snooze.Tidy(settings.Woken, now).Count)
+        if (done.Count == 0 && woken.Count == 0 && settings.Woken.Count == Snooze.Tidy(settings.Woken, now).Count)
             return;
+        // Read the list again: mail snoozed while this ran must stay on it.
+        var latest = services.Settings.Snooze;
         services.Settings.Snooze = new SnoozeSettings
         {
-            Snoozed = settings.Snoozed.Where(s => !done.Contains(s)).ToList(),
-            Woken = [.. Snooze.Tidy(settings.Woken, now), .. woken],
+            Snoozed = latest.Snoozed.Where(s => !done.Contains(s)).ToList(),
+            Woken = [.. Snooze.Tidy(latest.Woken, now), .. woken],
         };
     }
 

@@ -307,6 +307,21 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Runs when the window is closed: saves open quotes, invoices and the open client, sends a mail still in its
+    /// undo wait and saves the mail being written. Returns what couldn't be kept, or null when nothing is lost.
+    /// </summary>
+    public async Task<string?> PrepareToCloseAsync()
+    {
+        Invoices.Editor?.Keep();
+        Quotes.Editor?.Keep();
+        Approvals.Editor?.Keep();
+        var problem = Clients.Detail is { } client && !client.Leave()
+            ? $"{client.Title} has something to fix before it can be saved."
+            : null;
+        return await Mail.PrepareToCloseAsync() ?? problem;
+    }
+
     // These pages show things other pages change, so they look again whenever they're opened.
     partial void OnSelectedChanged(Module value)
     {
