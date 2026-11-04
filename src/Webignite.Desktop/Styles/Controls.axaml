@@ -666,4 +666,61 @@
   <Style Selector="ListBox.nav ListBoxItem.heading:pointerover /template/ ContentPresenter, ListBox.nav ListBoxItem.heading:selected /template/ ContentPresenter, ListBox.nav ListBoxItem.gap:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
   </Style>
+
+  <!-- Files: the side list of places, the address bar, the column headings, and the list in its three views. -->
+  <Style Selector="Button.place">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    <Setter Property="Padding" Value="10,6" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Button.place:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Border.address">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Cursor" Value="Ibeam" />
+  </Style>
+  <Style Selector="Button.crumb">
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    <Setter Property="Padding" Value="6,3" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.sorthead">
+    <Setter Property="Padding" Value="0,8" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="ListBox.files ListBoxItem">
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="ListBox.files.thumbs">
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <WrapPanel />
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ListBox.files.thumbs ListBoxItem">
+    <Setter Property="Padding" Value="4" />
+  </Style>
+  <Style Selector="Border.thumb">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <!-- Cut and not pasted yet: faded, as in Explorer. -->
+  <Style Selector="Panel.cut">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+  <Style Selector="c|Icon.folder">
+    <Setter Property="Foreground" Value="{DynamicResource CategoryYellow}" />
+  </Style>
 </Styles>

@@ -1,0 +1,200 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:files="using:Webignite.Core.Files"
+             x:Class="Webignite.Desktop.Views.FilesView"
+             x:DataType="vm:FilesViewModel">
+  <Grid ColumnDefinitions="220,*">
+    <!-- Side list: client folders, the usual folders, every drive -->
+    <Border Grid.Column="0" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Places}" Margin="10,16">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:FilePlaceGroup">
+              <StackPanel Margin="0,0,0,14" Spacing="2">
+                <TextBlock Text="{Binding Title}" Classes="label" Margin="10,0,0,4" FontSize="10.5" LetterSpacing="0.6" />
+                <ItemsControl ItemsSource="{Binding Places}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FilePlace">
+                      <Button Classes="place" Command="{Binding GoCommand}" ToolTip.Tip="{Binding Path}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                          <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="150" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+    <DockPanel Grid.Column="1">
+      <!-- Back, forward, up, the address bar, and how the folder is shown -->
+      <Border DockPanel.Dock="Top" Padding="14,12" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" Margin="0,0,10,0">
+            <Button Classes="quiet format icon" Command="{Binding BackCommand}" ToolTip.Tip="Back (Alt+Left)"><c:Icon Data="{StaticResource Icon.Back}" Size="16" /></Button>
+            <Button Classes="quiet format icon" Command="{Binding ForwardCommand}" ToolTip.Tip="Forward (Alt+Right)"><c:Icon Data="{StaticResource Icon.Forward}" Size="16" /></Button>
+            <Button Classes="quiet format icon" Command="{Binding UpCommand}" ToolTip.Tip="Up a folder (Alt+Up)"><c:Icon Data="{StaticResource Icon.Up}" Size="16" /></Button>
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" Margin="10,0,0,0">
+            <Button Classes="quiet format icon" Command="{Binding NewFolderCommand}" ToolTip.Tip="New folder (Ctrl+Shift+N)"><c:Icon Data="{StaticResource Icon.FolderPlus}" Size="16" /></Button>
+            <Button Classes="quiet format icon" Command="{Binding UndoCommand}" ToolTip.Tip="{Binding UndoText}"><c:Icon Data="{StaticResource Icon.Undo}" Size="16" /></Button>
+            <Border Width="1" Background="{DynamicResource Line}" Margin="6,4" />
+            <Button Classes="quiet format icon" Classes.on="{Binding IsThumbnails}" Command="{Binding ShowAsCommand}" CommandParameter="{x:Static files:FileView.Thumbnails}" ToolTip.Tip="Thumbnails"><c:Icon Data="{StaticResource Icon.Tiles}" Size="16" /></Button>
+            <Button Classes="quiet format icon" Classes.on="{Binding IsList}" Command="{Binding ShowAsCommand}" CommandParameter="{x:Static files:FileView.List}" ToolTip.Tip="List"><c:Icon Data="{StaticResource Icon.Bullets}" Size="16" /></Button>
+            <Button Classes="quiet format icon" Classes.on="{Binding IsDetails}" Command="{Binding ShowAsCommand}" CommandParameter="{x:Static files:FileView.Details}" ToolTip.Tip="Details"><c:Icon Data="{StaticResource Icon.Table}" Size="16" /></Button>
+            <Button Classes="quiet format" ToolTip.Tip="Group by">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="Group" />
+                <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                  <MenuItem Header="Not grouped" Command="{Binding GroupByCommand}" CommandParameter="{x:Static files:FileGrouping.None}" />
+                  <MenuItem Header="By kind" Command="{Binding GroupByCommand}" CommandParameter="{x:Static files:FileGrouping.Kind}" />
+                  <MenuItem Header="By date" Command="{Binding GroupByCommand}" CommandParameter="{x:Static files:FileGrouping.Date}" />
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+            <Slider Width="90" Minimum="64" Maximum="256" Value="{Binding ThumbnailSize}" IsVisible="{Binding IsThumbnails}" VerticalAlignment="Center"
+                    ToolTip.Tip="Thumbnail size" Margin="6,0,0,0" />
+          </StackPanel>
+          <!-- The address: each folder on the way, clickable; click the empty part to type a path. -->
+          <Border Classes="address">
+            <Panel>
+              <DockPanel IsVisible="{Binding !EditingAddress}" Background="Transparent" PointerPressed="AddressPressed">
+                <ScrollViewer x:Name="CrumbScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
+                  <ItemsControl ItemsSource="{Binding Crumbs}" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:FileCrumb">
+                        <StackPanel Orientation="Horizontal">
+                          <Button Classes="link crumb" Content="{Binding Name}" Command="{Binding GoCommand}" PointerReleased="CrumbReleased" />
+                          <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="12" VerticalAlignment="Center" Opacity="0.5" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </DockPanel>
+              <TextBox x:Name="AddressBox" Text="{Binding AddressText}" IsVisible="{Binding EditingAddress}" BorderThickness="0" Padding="8,5"
+                       KeyDown="AddressKeys" LostFocus="AddressLost" />
+            </Panel>
+          </Border>
+        </DockPanel>
+      </Border>
+
+      <!-- What's here, and anything to say about the last thing done -->
+      <Border DockPanel.Dock="Bottom" Padding="16,6" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="{Binding StatusText}" VerticalAlignment="Center" />
+          <TextBlock Classes="muted" Classes.problem="{Binding MessageIsProblem}" FontSize="12" Text="{Binding Message}" TextTrimming="CharacterEllipsis"
+                     HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0" />
+        </DockPanel>
+      </Border>
+
+      <Panel>
+        <DockPanel IsVisible="{Binding !IsPreviewing}">
+          <!-- Column headings for the details view: click to sort, again for the other way round. -->
+          <Border DockPanel.Dock="Top" Classes="stickyhead" Padding="16,0,24,0" IsVisible="{Binding IsDetails}">
+            <Grid ColumnDefinitions="*,170,150,90">
+              <Button Grid.Column="0" Classes="link sorthead" Content="Name" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Name}" />
+              <Button Grid.Column="1" Classes="link sorthead" Content="Date changed" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Modified}" />
+              <Button Grid.Column="2" Classes="link sorthead" Content="Kind" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Kind}" />
+              <Button Grid.Column="3" Classes="link sorthead" Content="Size" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Size}" HorizontalAlignment="Right" />
+            </Grid>
+          </Border>
+          <Panel>
+            <c:EmptyState Title="This folder is empty" Text="Drag files here to copy them in, or make a new folder." IsVisible="{Binding IsEmpty}" Margin="0,60,0,0" />
+            <ListBox x:Name="FileList" Classes="files" Classes.thumbs="{Binding IsThumbnails}" ItemsSource="{Binding Items}" SelectionMode="Multiple"
+                     Background="Transparent" DragDrop.AllowDrop="True" Padding="8,6"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+              <ListBox.DataTemplates>
+                <DataTemplate DataType="vm:FileHeaderRow">
+                  <DockPanel Margin="8,12,8,4" MinWidth="{Binding $parent[ListBox].Bounds.Width, Converter={x:Static c:Widths.LessMargin}}">
+                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding CountText}" />
+                    <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" />
+                  </DockPanel>
+                </DataTemplate>
+                <DataTemplate DataType="vm:FileRowViewModel">
+                  <Panel Classes.cut="{Binding IsCut}">
+                    <!-- Details -->
+                    <Grid ColumnDefinitions="*,170,150,90" IsVisible="{Binding Owner.IsDetails}" Height="30">
+                      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" Classes.folder="{Binding IsFolder}" />
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" IsVisible="{Binding !IsRenaming}" VerticalAlignment="Center" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Classes="muted" Text="{Binding ModifiedText}" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Classes="muted" Text="{Binding Kind}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="3" Classes="muted" Text="{Binding SizeText}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    </Grid>
+                    <!-- List -->
+                    <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding Owner.IsList}" Height="26">
+                      <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" Classes.folder="{Binding IsFolder}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Name}" IsVisible="{Binding !IsRenaming}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <!-- Thumbnails -->
+                    <StackPanel IsVisible="{Binding Owner.IsThumbnails}" Width="{Binding Owner.ThumbnailSize}" Spacing="6" Margin="4">
+                      <Border Height="{Binding Owner.ThumbnailSize}" Classes="thumb">
+                        <Panel>
+                          <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="36" Classes.folder="{Binding IsFolder}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasThumbnail}" />
+                          <Image Source="{Binding Thumbnail}" Stretch="Uniform" IsVisible="{Binding HasThumbnail}" />
+                        </Panel>
+                      </Border>
+                      <TextBlock Text="{Binding Name}" TextAlignment="Center" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                                 FontSize="12" IsVisible="{Binding !IsRenaming}" />
+                    </StackPanel>
+                    <!-- Renaming, in any view -->
+                    <StackPanel IsVisible="{Binding IsRenaming}" VerticalAlignment="Center" Margin="26,0,0,0">
+                      <TextBox Classes="rename" Text="{Binding RenameText}" MinWidth="220" KeyDown="RenameKeys" LostFocus="RenameLost" />
+                      <TextBlock Classes="problem" FontSize="11" Text="{Binding RenameProblem}" IsVisible="{Binding RenameProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                  </Panel>
+                </DataTemplate>
+              </ListBox.DataTemplates>
+            </ListBox>
+          </Panel>
+        </DockPanel>
+
+        <!-- A PDF or picture shown here, page by page, as in Mail. -->
+        <DockPanel IsVisible="{Binding IsPreviewing}">
+          <DockPanel DataContext="{Binding Preview}" x:DataType="vm:AttachmentPreviewViewModel">
+            <Border DockPanel.Dock="Top" Padding="20,8" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                  <Button Classes="link" Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open it in its usual program" />
+                  <Button Classes="quiet" Content="Back to the folder" Command="{Binding CloseCommand}" />
+                </StackPanel>
+                <TextBlock FontWeight="SemiBold" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+            </Border>
+            <TextBlock DockPanel.Dock="Top" Classes="muted" FontSize="12" Margin="20,8,20,0" Text="{Binding Note}" TextWrapping="Wrap" IsVisible="{Binding HasNote}" />
+            <Panel>
+              <TextBlock Classes="muted" Margin="20" Text="Opening…" IsVisible="{Binding IsLoading}" />
+              <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Pages}" Margin="20,16">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="Bitmap">
+                      <Border Background="{DynamicResource Paper}" BoxShadow="{DynamicResource CardShadow}" Margin="0,0,0,16" HorizontalAlignment="Center">
+                        <Image Source="{Binding}" Stretch="Uniform" StretchDirection="DownOnly" />
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Panel>
+          </DockPanel>
+        </DockPanel>
+      </Panel>
+    </DockPanel>
+  </Grid>
+</UserControl>

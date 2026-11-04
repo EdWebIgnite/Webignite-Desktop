@@ -70,4 +70,10 @@
   <StreamGeometry x:Key="Icon.Emoji">M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z M8 14s1.5 2 4 2 4-2 4-2 M9 9h.01 M15 9h.01</StreamGeometry>
   <StreamGeometry x:Key="Icon.TextColour">M4 20h16 M6 16 l6-12 6 12 M8 12h8</StreamGeometry>
   <StreamGeometry x:Key="Icon.Highlight">M9 11 l-6 6v3h9l3-3 M22 12 l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4</StreamGeometry>
+  <!-- Files. -->
+  <StreamGeometry x:Key="Icon.Back">M12 19 L5 12 L12 5 M19 12H5</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Forward">M5 12h14 M12 5 L19 12 L12 19</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Up">M5 12 L12 5 L19 12 M12 19V5</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Tiles">M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Undo">M9 14 L4 9 L9 4 M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1 -5.5 5.5H11</StreamGeometry>
 </ResourceDictionary>

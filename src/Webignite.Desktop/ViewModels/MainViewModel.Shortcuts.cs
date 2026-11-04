@@ -24,6 +24,12 @@ public partial class MainViewModel
         new("Down, Up", "Clients, Quotes and Invoices: move between rows"),
         new("Enter", "Clients, Quotes and Invoices: open the row"),
         new("Esc", "Close the open client, quote or invoice"),
+        new("F2, Delete", "Files: rename, or send to the Recycle Bin"),
+        new("Ctrl+C, Ctrl+X, Ctrl+V", "Files: copy, cut and paste, to and from Explorer too"),
+        new("Ctrl+Z", "Files: put back the last rename, move, copy or new folder"),
+        new("Ctrl+Shift+N", "Files: new folder"),
+        new("Alt+Left, Alt+Right, Alt+Up", "Files: back, forward, up a folder"),
+        new("Ctrl+L", "Files: type a path"),
         .. MailViewModel.ListKeys.Select(k => new Shortcut(k.Keys, "Mail list: " + k.What)),
     ];
 

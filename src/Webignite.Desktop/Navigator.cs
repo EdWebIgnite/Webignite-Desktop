@@ -9,7 +9,7 @@ namespace Webignite.Desktop;
 public enum Page
 {
     Overview, Approvals, Mail,
-    Clients, Retainers, Renewals,
+    Clients, Files, Retainers, Renewals,
     Quotes, Invoices, Money, Reports,
     Todo, Calendar, Planner, Time,
     SiteCheck, Markup, Tools,
@@ -31,6 +31,7 @@ public sealed class Navigator
     internal Action<Client>? OpenClientAction { get; set; }
     internal Action<Client>? OpenClientInNewTabAction { get; set; }
     internal Action<MailSummary>? OpenMailInNewTabAction { get; set; }
+    internal Action<string, bool>? OpenFolderAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -55,6 +56,9 @@ public sealed class Navigator
 
     /// <summary>Opens a client's page.</summary>
     public void Client(Client client) => OpenClientAction?.Invoke(client);
+
+    /// <summary>Opens a folder in Files, or in a Files tab of its own (Ctrl+click or a middle click on a folder).</summary>
+    public void Folder(string path, bool newTab = false) => OpenFolderAction?.Invoke(path, newTab);
 
     /// <summary>Opens a client in a tab of its own (Ctrl+click or a middle click on the client).</summary>
     public void ClientInNewTab(Client client) => OpenClientInNewTabAction?.Invoke(client);

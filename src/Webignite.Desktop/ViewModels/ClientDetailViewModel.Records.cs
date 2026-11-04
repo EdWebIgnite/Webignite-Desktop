@@ -32,6 +32,7 @@ public partial class ClientDetailViewModel
             FileRows.Add(new ClientFileRow(file, this));
         OnPropertyChanged(nameof(HasLog));
         OnPropertyChanged(nameof(HasFiles));
+        LoadFolder();
     }
 
     // Notes and files are changed on the client as stored now, so unsaved typing in the details stays typed

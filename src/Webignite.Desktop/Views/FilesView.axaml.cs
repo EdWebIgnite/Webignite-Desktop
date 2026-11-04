@@ -1,0 +1,565 @@
+using System.ComponentModel;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Webignite.Desktop.Files;
+using Webignite.Desktop.ViewModels;
+
+namespace Webignite.Desktop.Views;
+
+/// <summary>
+/// The Files page: keys, the right-click menu, dragging files in and out (to Explorer, Outlook or a folder here),
+/// the clipboard, and drawing thumbnails only for what is on screen.
+/// </summary>
+public partial class FilesView : UserControl
+{
+    private FilesViewModel? watching;
+    private bool syncing;
+    private PointerPressedEventArgs? pressed;
+    private Point pressedAt;
+    private IReadOnlyList<string> pressedPaths = [];
+    private IReadOnlyList<string> dragging = [];
+    private Point? menuAt;
+
+    public FilesView()
+    {
+        InitializeComponent();
+        FileList.SelectionChanged += Picked;
+        FileList.ContainerPrepared += Prepared;
+        FileList.ContainerClearing += Clearing;
+        FileList.DoubleTapped += DoubleTappedRow;
+        FileList.ContextRequested += MenuRequested;
+        FileList.AddHandler(PointerPressedEvent, RowPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+        FileList.AddHandler(PointerMovedEvent, RowMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
+        FileList.AddHandler(PointerReleasedEvent, (_, _) => pressed = null, RoutingStrategies.Tunnel, handledEventsToo: true);
+        FileList.AddHandler(DragDrop.DragOverEvent, DraggedOver);
+        FileList.AddHandler(DragDrop.DropEvent, Dropped);
+        AddHandler(KeyDownEvent, Keys, RoutingStrategies.Bubble);
+    }
+
+    private FilesViewModel? Files => DataContext as FilesViewModel;
+
+    // Pages that fill the window sit in a sideways scroller, which offers endless width. Files keeps to the width on
+    // screen instead, so long names trim and thumbnails wrap; the scroller only scrolls below the page's least width.
+    private ScrollViewer? scroller;
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        scroller = this.FindAncestorOfType<ScrollViewer>();
+        if (scroller is not null)
+            scroller.SizeChanged += ScrollerResized;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        if (scroller is not null)
+            scroller.SizeChanged -= ScrollerResized;
+        scroller = null;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void ScrollerResized(object? sender, SizeChangedEventArgs e) => InvalidateMeasure();
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (double.IsInfinity(availableSize.Width) && scroller is { Bounds.Width: > 0 } around)
+            availableSize = availableSize.WithWidth(Math.Max(around.Bounds.Width, 760));
+        return base.MeasureOverride(availableSize);
+    }
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (watching is not null)
+        {
+            watching.Restored = null;
+            watching.RenameStarted = null;
+            watching.PropertyChanged -= LookChanged;
+        }
+        watching = Files;
+        if (watching is not null)
+        {
+            watching.Restored = Restore;
+            watching.RenameStarted = FocusRename;
+            watching.PropertyChanged += LookChanged;
+        }
+    }
+
+    // Selection
+
+    private void Picked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (syncing || Files is not { } files)
+            return;
+        // Group headings can't be picked.
+        foreach (var heading in e.AddedItems.OfType<FileHeaderRow>().ToList())
+            FileList.Selection.Deselect(files.Items.IndexOf(heading));
+        files.Selected = [.. FileList.Selection.SelectedItems.OfType<FileRowViewModel>()];
+        files.UpdateStatus();
+    }
+
+    private void Restore(IReadOnlyList<FileRowViewModel> rows)
+    {
+        if (Files is not { } files)
+            return;
+        syncing = true;
+        try
+        {
+            FileList.Selection.Clear();
+            foreach (var row in rows)
+                FileList.Selection.Select(files.Items.IndexOf(row));
+        }
+        finally
+        {
+            syncing = false;
+        }
+        if (rows.Count > 0)
+            FileList.ScrollIntoView(rows[0]);
+    }
+
+    private static FileRowViewModel? RowAt(object? source) =>
+        (source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext as FileRowViewModel;
+
+    private void DoubleTappedRow(object? sender, TappedEventArgs e)
+    {
+        if (Files is not { } files || RowAt(e.Source) is not { IsRenaming: false } row)
+            return;
+        e.Handled = true;
+        // Ctrl+double-click opens a folder in a tab of its own, as in Explorer.
+        if (row.IsFolder && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            files.OpenInNewTab(row);
+        else
+            files.Open(row);
+    }
+
+    // Keys
+
+    private void Keys(object? sender, KeyEventArgs e)
+    {
+        if (Files is not { } files || e.Source is TextBox)
+            return;
+        var ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+        var alt = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
+        if (files.IsPreviewing)
+        {
+            if (e.Key is Key.Escape or Key.Back)
+            {
+                files.ClosePreviewCommand.Execute(null);
+                e.Handled = true;
+            }
+            return;
+        }
+        switch (e.Key)
+        {
+            case Key.Enter when !ctrl && !alt:
+                files.OpenPickedCommand.Execute(null);
+                break;
+            case Key.F2:
+                files.StartRename();
+                break;
+            case Key.Delete:
+                files.DeleteCommand.Execute(null);
+                break;
+            case Key.F5:
+                files.Refresh();
+                break;
+            case Key.C when ctrl && shift:
+                CopyPath();
+                break;
+            case Key.C when ctrl:
+                files.CopyCommand.Execute(null);
+                ShareWithWindows().Forget("Copying the files");
+                break;
+            case Key.X when ctrl:
+                files.CutCommand.Execute(null);
+                ShareWithWindows().Forget("Cutting the files");
+                break;
+            case Key.V when ctrl:
+                PasteAsync().Forget("Pasting the files", tell: true);
+                break;
+            case Key.Z when ctrl:
+                if (files.UndoCommand.CanExecute(null))
+                    files.UndoCommand.Execute(null);
+                break;
+            case Key.N when ctrl && shift:
+                files.NewFolderCommand.Execute(null);
+                break;
+            case Key.L when ctrl:
+                StartTypingAddress();
+                break;
+            case Key.Left when alt:
+            case Key.Back when !alt:
+                if (files.BackCommand.CanExecute(null))
+                    files.BackCommand.Execute(null);
+                break;
+            case Key.Right when alt:
+                if (files.ForwardCommand.CanExecute(null))
+                    files.ForwardCommand.Execute(null);
+                break;
+            case Key.Up when alt:
+                if (files.UpCommand.CanExecute(null))
+                    files.UpCommand.Execute(null);
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
+    }
+
+    // The address bar
+
+    private void AddressPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            StartTypingAddress();
+    }
+
+    private void StartTypingAddress()
+    {
+        Files?.EditAddressCommand.Execute(null);
+        Dispatcher.UIThread.Post(() =>
+        {
+            AddressBox.Focus();
+            AddressBox.SelectAll();
+        }, DispatcherPriority.Loaded);
+    }
+
+    // A middle click on a folder in the address opens it in a tab of its own.
+    private void CrumbReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton == MouseButton.Middle && (sender as Control)?.DataContext is FileCrumb crumb)
+        {
+            Files?.OpenInNewTab(crumb.Path);
+            e.Handled = true;
+        }
+    }
+
+    private void AddressKeys(object? sender, KeyEventArgs e)
+    {
+        if (Files is not { } files)
+            return;
+        if (e.Key == Key.Enter)
+        {
+            files.GoToAddressCommand.Execute(null);
+            FileList.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            files.StopEditingAddressCommand.Execute(null);
+            FileList.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void AddressLost(object? sender, RoutedEventArgs e) => Files?.StopEditingAddressCommand.Execute(null);
+
+    // Renaming
+
+    private void FocusRename(FileRowViewModel row) => Dispatcher.UIThread.Post(() =>
+    {
+        FileList.ScrollIntoView(row);
+        if (FileList.ContainerFromItem(row)?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(t => t.Classes.Contains("rename")) is not { } box)
+            return;
+        box.Focus();
+        // The name is picked without its extension, so typing keeps ".pdf".
+        var dot = row.IsFolder ? -1 : row.RenameText.LastIndexOf('.');
+        box.SelectionStart = 0;
+        box.SelectionEnd = dot > 0 ? dot : row.RenameText.Length;
+    }, DispatcherPriority.Loaded);
+
+    private void RenameKeys(object? sender, KeyEventArgs e)
+    {
+        if (Files is not { } files || (sender as Control)?.DataContext is not FileRowViewModel row)
+            return;
+        if (e.Key == Key.Enter)
+        {
+            if (files.FinishRename(row))
+                FileList.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            FilesViewModel.CancelRename(row);
+            FileList.Focus();
+            e.Handled = true;
+        }
+    }
+
+    // Clicking away keeps the new name; one that can't be used is dropped, as in Explorer.
+    private void RenameLost(object? sender, RoutedEventArgs e)
+    {
+        if (Files is { } files && (sender as Control)?.DataContext is FileRowViewModel { IsRenaming: true } row && !files.FinishRename(row))
+            FilesViewModel.CancelRename(row);
+    }
+
+    // The right-click menu
+
+    private void MenuRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (Files is not { } files)
+            return;
+        e.Handled = true;
+        menuAt = e.TryGetPosition(FileList, out var at) ? at : null;
+        var row = RowAt(e.Source);
+        if (row is null)
+            FileList.Selection.Clear();
+        else if (!files.Selected.Contains(row))
+            Restore([row]);
+        files.Selected = [.. FileList.Selection.SelectedItems.OfType<FileRowViewModel>()];
+        var menu = new ContextMenu { ItemsSource = MenuItems(files) };
+        menu.Open(FileList);
+    }
+
+    private List<Control> MenuItems(FilesViewModel files)
+    {
+        var picked = files.Selected;
+        var windows = OperatingSystem.IsWindows();
+        var items = new List<Control>();
+        if (picked.Count > 0)
+        {
+            items.Add(Item("Open", "Enter", () => files.OpenPickedCommand.Execute(null)));
+            if (picked.Any(r => r.IsFolder))
+                items.Add(Item("Open in a new tab", null, () => files.OpenPickedInNewTabCommand.Execute(null)));
+            if (windows && picked.Count == 1 && !picked[0].IsFolder)
+                items.Add(Item("Open with…", null, () => files.OpenWithCommand.Execute(null)));
+            items.Add(new Separator());
+            items.Add(Item("Cut", "Ctrl+X", () =>
+            {
+                files.CutCommand.Execute(null);
+                ShareWithWindows().Forget("Cutting the files");
+            }));
+            items.Add(Item("Copy", "Ctrl+C", () =>
+            {
+                files.CopyCommand.Execute(null);
+                ShareWithWindows().Forget("Copying the files");
+            }));
+        }
+        items.Add(Item("Paste", "Ctrl+V", () => PasteAsync().Forget("Pasting the files", tell: true)));
+        items.Add(Item("Copy path", "Ctrl+Shift+C", CopyPath));
+        items.Add(new Separator());
+        if (picked.Count > 0)
+        {
+            if (picked.Count == 1)
+                items.Add(Item("Rename", "F2", () => files.StartRename()));
+            items.Add(Item("Delete", "Delete", () => files.DeleteCommand.Execute(null)));
+            items.Add(new Separator());
+        }
+        items.Add(Item("New folder", "Ctrl+Shift+N", () => files.NewFolderCommand.Execute(null)));
+        if (files.CanUndo)
+            items.Add(Item(files.UndoText, "Ctrl+Z", () => files.UndoCommand.Execute(null)));
+        if (windows)
+        {
+            items.Add(new Separator());
+            items.Add(Item("Show in Explorer", null, () => files.ShowInExplorerCommand.Execute(null)));
+            items.Add(Item("Properties", null, () => files.PropertiesCommand.Execute(null)));
+            items.Add(Item("More options", null, () => WindowsMenu(files)));
+        }
+        return items;
+    }
+
+    private static MenuItem Item(string header, string? keys, Action run)
+    {
+        var item = new MenuItem { Header = header, InputGesture = keys is null ? null : KeyGesture.Parse(keys) };
+        item.Click += (_, _) => run();
+        return item;
+    }
+
+    // Windows' own right-click menu, with what other programs add there (7-Zip, OneDrive, antivirus).
+    private void WindowsMenu(FilesViewModel files)
+    {
+        if (!OperatingSystem.IsWindows() || TopLevel.GetTopLevel(this) is not { } top || top.TryGetPlatformHandle()?.Handle is not { } handle)
+            return;
+        var paths = files.Selected.Count > 0 ? files.SelectedPaths : [files.Folder];
+        var at = FileList.PointToScreen(menuAt ?? new Point(FileList.Bounds.Width / 2, 40));
+        if (!WindowsShell.ShowMenu(paths, handle, at.X, at.Y))
+            files.ShowInExplorerCommand.Execute(null);
+    }
+
+    // The clipboard
+
+    private void CopyPath()
+    {
+        if (Files is { } files && TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+            clipboard.SetTextAsync(files.PathsToCopy()).Forget("Copying the path");
+    }
+
+    // Copied or cut files go on Windows' clipboard too, so they paste into Explorer, Outlook or WhatsApp.
+    private async Task ShareWithWindows()
+    {
+        if (Files is not { } files || files.Selected.Count == 0 || TopLevel.GetTopLevel(this) is not { Clipboard: { } clipboard } top)
+            return;
+        var items = await StorageItems(top.StorageProvider, files.SelectedPaths);
+        if (items.Count > 0)
+            await clipboard.SetFilesAsync(items);
+    }
+
+    private async Task PasteAsync()
+    {
+        if (Files is not { } files)
+            return;
+        IReadOnlyList<string> fromWindows = [];
+        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard && await clipboard.TryGetFilesAsync() is { } items)
+            fromWindows = [.. items.Select(i => i.TryGetLocalPath()).OfType<string>()];
+        // Files copied in another program since: those win over what was copied here.
+        var app = App.Services?.FileClipboard;
+        if (app is not null && fromWindows.Count > 0 && !fromWindows.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(app.Paths))
+            app.Clear();
+        files.Paste(fromWindows);
+    }
+
+    private static async Task<IReadOnlyList<IStorageItem>> StorageItems(IStorageProvider storage, IEnumerable<string> paths)
+    {
+        var items = new List<IStorageItem>();
+        foreach (var path in paths)
+        {
+            IStorageItem? item = Directory.Exists(path)
+                ? await storage.TryGetFolderFromPathAsync(path)
+                : await storage.TryGetFileFromPathAsync(path);
+            if (item is not null)
+                items.Add(item);
+        }
+        return items;
+    }
+
+    // Dragging out: to Explorer, Outlook, a browser's upload box, or a folder here.
+
+    private void RowPressed(object? sender, PointerPressedEventArgs e)
+    {
+        pressed = null;
+        var point = e.GetCurrentPoint(FileList).Properties;
+        var row = RowAt(e.Source);
+        if (point.IsMiddleButtonPressed && row is { IsFolder: true } && Files is { } files)
+        {
+            files.OpenInNewTab(row);
+            e.Handled = true;
+            return;
+        }
+        if (!point.IsLeftButtonPressed || row is null || row.IsRenaming || e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            return;
+        var picked = Files?.Selected ?? [];
+        pressedPaths = picked.Contains(row) ? [.. picked.Select(r => r.Entry.Path)] : [row.Entry.Path];
+        pressed = e;
+        pressedAt = e.GetPosition(FileList);
+    }
+
+    private void RowMoved(object? sender, PointerEventArgs e) => DragOutAsync(e).Forget("Dragging the files", tell: true);
+
+    private async Task DragOutAsync(PointerEventArgs e)
+    {
+        if (pressed is not { } start || !e.GetCurrentPoint(FileList).Properties.IsLeftButtonPressed)
+            return;
+        var moved = e.GetPosition(FileList) - pressedAt;
+        if (Math.Abs(moved.X) < 8 && Math.Abs(moved.Y) < 8)
+            return;
+        pressed = null;
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
+        var items = await StorageItems(storage, pressedPaths);
+        if (items.Count == 0)
+            return;
+        var data = new DataTransfer();
+        foreach (var item in items)
+            data.Add(DataTransferItem.CreateFile(item));
+        dragging = pressedPaths;
+        try
+        {
+            await DragDrop.DoDragDropAsync(start, data, DragDropEffects.Copy | DragDropEffects.Move);
+        }
+        catch (InvalidOperationException problem)
+        {
+            Webignite.Data.AppLog.Write("Dragging files", problem);
+        }
+        finally
+        {
+            dragging = [];
+            foreach (var item in items)
+                item.Dispose();
+        }
+    }
+
+    // Dropping in: onto a folder in the list, into that folder; anywhere else, into the folder shown.
+    // Copied, or moved with Shift held (or when dragged between folders on the same drive here, as Explorer does).
+
+    private (string Into, IReadOnlyList<string> Paths, bool Move)? DropPlan(DragEventArgs e)
+    {
+        if (Files is not { } files || e.DataTransfer.TryGetFiles() is not { } dropped)
+            return null;
+        var paths = dropped.Select(f => f.TryGetLocalPath()).OfType<string>().ToList();
+        if (paths.Count == 0)
+            return null;
+        var into = RowAt(e.Source) is { IsFolder: true } folder && !paths.Contains(folder.Entry.Path, StringComparer.OrdinalIgnoreCase)
+            ? folder.Entry.Path
+            : files.Folder;
+        var ours = dragging.Count > 0;
+        // Dragged from this folder onto its own background: nothing to do.
+        if (ours && string.Equals(into, files.Folder, StringComparison.OrdinalIgnoreCase)
+            && paths.All(p => string.Equals(Path.GetDirectoryName(p.TrimEnd('\\', '/')), into.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase)))
+            return null;
+        var sameDrive = paths.All(p => string.Equals(Path.GetPathRoot(p), Path.GetPathRoot(into), StringComparison.OrdinalIgnoreCase));
+        var move = e.KeyModifiers.HasFlag(KeyModifiers.Shift) || (ours && sameDrive && !e.KeyModifiers.HasFlag(KeyModifiers.Control));
+        return (into, paths, move);
+    }
+
+    private void DraggedOver(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = DropPlan(e) is { } plan ? plan.Move ? DragDropEffects.Move : DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Dropped(object? sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (Files is { } files && DropPlan(e) is { } plan)
+            files.Bring(plan.Paths, plan.Move, plan.Into);
+    }
+
+    // Thumbnails: drawn when a picture scrolls into sight, at the size it shows on this screen.
+
+    private void Prepared(object? sender, ContainerPreparedEventArgs e)
+    {
+        var heading = e.Container.DataContext is FileHeaderRow;
+        e.Container.Focusable = !heading;
+        e.Container.IsHitTestVisible = !heading;
+        e.Container.EffectiveViewportChanged -= InSight;
+        if (!heading)
+            e.Container.EffectiveViewportChanged += InSight;
+    }
+
+    private void Clearing(object? sender, ContainerClearingEventArgs e) => e.Container.EffectiveViewportChanged -= InSight;
+
+    private void InSight(object? sender, EffectiveViewportChangedEventArgs e)
+    {
+        if (sender is Control { DataContext: FileRowViewModel { IsPicture: true } row } container && Files is { IsThumbnails: true }
+            && e.EffectiveViewport.Width > 0 && e.EffectiveViewport.Intersects(new Rect(container.Bounds.Size)))
+            row.LoadThumbnail(ThumbnailWidth());
+    }
+
+    private int ThumbnailWidth() => (int)Math.Ceiling((Files?.ThumbnailSize ?? 120) * (TopLevel.GetTopLevel(this)?.RenderScaling ?? 1));
+
+    private void LookChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // A long path keeps the folder you're in on screen; the start of the path is what scrolls out of sight.
+        if (e.PropertyName == nameof(FilesViewModel.Folder))
+            Dispatcher.UIThread.Post(() => CrumbScroll.Offset = new Vector(double.MaxValue, 0), DispatcherPriority.Loaded);
+        if (e.PropertyName is not (nameof(FilesViewModel.View) or nameof(FilesViewModel.ThumbnailSize)) || Files is not { IsThumbnails: true })
+            return;
+        // Once laid out in the new view, draw what is now in sight.
+        Dispatcher.UIThread.Post(() =>
+        {
+            var viewport = FileList.Bounds;
+            foreach (var container in FileList.GetRealizedContainers())
+                if (container.DataContext is FileRowViewModel { IsPicture: true } row && container.TranslatePoint(default, FileList) is { } at
+                    && new Rect(at, container.Bounds.Size).Intersects(new Rect(viewport.Size)))
+                    row.LoadThumbnail(ThumbnailWidth());
+        }, DispatcherPriority.Loaded);
+    }
+}

@@ -140,6 +140,9 @@ public sealed class AppServices : IDisposable
     private MailService? mail;
     public MailService Mail => mail ??= new MailService(Store, Secrets);
 
+    /// <summary>Files copied or cut in Files, waiting to be pasted, in any Files tab or window.</summary>
+    public Files.FileClipboard FileClipboard { get; } = new();
+
     private TimerClock? timer;
 
     /// <summary>The time-tracking timer, shown in the sidebar and on Time.</summary>

@@ -345,6 +345,18 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="card" IsVisible="{Binding ShowFiles}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Client folders" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="The folder that holds a folder for each client, e.g. C:\Projects. Files shows them at the top, and each client's page finds their folder by name." />
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="quiet" Content="Choose folder" Click="ChooseClientRoot" Margin="8,0,0,0" />
+          <TextBox Text="{Binding ClientRoot, Mode=OneWay}" IsReadOnly="True" />
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding ShowDocuments}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="New documents" />

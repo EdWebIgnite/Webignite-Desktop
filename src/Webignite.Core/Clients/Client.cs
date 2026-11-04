@@ -21,6 +21,9 @@ public sealed record Client
     /// <summary>Dated notes: calls, meetings, decisions. Newest first.</summary>
     public IReadOnlyList<ClientNote> Log { get; init; } = [];
 
+    /// <summary>The client's folder, when picked by hand; otherwise found by name in the main client folder.</summary>
+    public string? Folder { get; init; }
+
     /// <summary>Files about this client (contracts, briefs), linked where they already live, e.g. OneDrive.</summary>
     public IReadOnlyList<ClientFile> Files { get; init; } = [];
 

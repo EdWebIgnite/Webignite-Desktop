@@ -27,6 +27,17 @@ public partial class SettingsView : UserControl
             settings.SetBackupFolder(path);
     }
 
+    private void ChooseClientRoot(object? sender, RoutedEventArgs e) => ChooseClientRootAsync().Forget("Choosing the client folders", tell: true);
+
+    private async Task ChooseClientRootAsync()
+    {
+        if (DataContext is not SettingsViewModel settings || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
+        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Where are your client folders?" });
+        if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
+            settings.SetClientRoot(path);
+    }
+
     private void ChooseRestoreFile(object? sender, RoutedEventArgs e) => ChooseRestoreFileAsync(sender, e).Forget("Choosing a backup to restore", tell: true);
 
     private async Task ChooseRestoreFileAsync(object? sender, RoutedEventArgs e)
