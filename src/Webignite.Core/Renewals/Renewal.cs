@@ -1,3 +1,4 @@
+using System.Globalization;
 using Webignite.Core.Clients;
 using Webignite.Core.Documents;
 using Webignite.Core.Finance;
@@ -72,8 +73,8 @@ public static class RenewalRules
     /// <summary>The last day the renewal covers, e.g. 14 Nov 2026 to 13 Nov 2027.</summary>
     public static DateOnly CoversUntil(Renewal renewal) => renewal.RenewsOn.AddMonths(renewal.PeriodMonths).AddDays(-1);
 
-    public static string TaskKey(Renewal renewal) => $"renewal:{renewal.Id}:{renewal.RenewsOn:yyyy-MM-dd}";
-    public static string InvoiceKey(Renewal renewal) => $"renewal-invoice:{renewal.Id}:{renewal.RenewsOn:yyyy-MM-dd}";
+    public static string TaskKey(Renewal renewal) => string.Create(CultureInfo.InvariantCulture, $"renewal:{renewal.Id}:{renewal.RenewsOn:yyyy-MM-dd}");
+    public static string InvoiceKey(Renewal renewal) => string.Create(CultureInfo.InvariantCulture, $"renewal-invoice:{renewal.Id}:{renewal.RenewsOn:yyyy-MM-dd}");
 
     /// <summary>A reminder to renew, due on the renewal date, once it is within the reminder window.</summary>
     public static IReadOnlyList<TaskItem> Reminders(IEnumerable<Renewal> renewals, IReadOnlySet<string> knownKeys, DateOnly today, DateTimeOffset now) =>
@@ -103,7 +104,7 @@ public static class RenewalRules
             [
                 new Line
                 {
-                    Description = $"{KindLabel(renewal.Kind)} renewal: {renewal.Name.Trim()}, {renewal.RenewsOn:d MMM yyyy} to {CoversUntil(renewal):d MMM yyyy}",
+                    Description = string.Create(CultureInfo.InvariantCulture, $"{KindLabel(renewal.Kind)} renewal: {renewal.Name.Trim()}, {renewal.RenewsOn:d MMM yyyy} to {CoversUntil(renewal):d MMM yyyy}"),
                     Quantity = 1,
                     UnitPrice = renewal.Price,
                 },

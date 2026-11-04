@@ -50,7 +50,7 @@ public static class Snooze
         if (now.TimeOfDay < TimeSpan.FromHours(15))
         {
             var later = today.AddHours(now.Hour + 3);
-            choices.Add(($"Later today, {later:HH:mm}", later));
+            choices.Add(($"Later today, {later.ToString("HH:mm", CultureInfo.InvariantCulture)}", later));
         }
         if (now.TimeOfDay < TimeSpan.FromHours(17))
             choices.Add(("This evening, 18:00", today + Evening));
@@ -72,9 +72,9 @@ public static class Snooze
 
     /// <summary>"until tomorrow at 08:00" or "until Mon 9 Nov at 08:00", for the note after snoozing.</summary>
     public static string Until(DateTimeOffset when, DateTimeOffset now) =>
-        when.Date == now.Date ? $"until {when:HH:mm} today"
-        : when.Date == now.Date.AddDays(1) ? $"until tomorrow at {when:HH:mm}"
-        : $"until {Day(when)} at {when:HH:mm}";
+        when.Date == now.Date ? $"until {when.ToString("HH:mm", CultureInfo.InvariantCulture)} today"
+        : when.Date == now.Date.AddDays(1) ? $"until tomorrow at {when.ToString("HH:mm", CultureInfo.InvariantCulture)}"
+        : $"until {Day(when)} at {when.ToString("HH:mm", CultureInfo.InvariantCulture)}";
 
     /// <summary>Snoozed mail whose time has come.</summary>
     public static IReadOnlyList<SnoozedMail> Due(IEnumerable<SnoozedMail> snoozed, DateTimeOffset now) =>

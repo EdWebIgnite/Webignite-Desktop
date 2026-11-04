@@ -13,6 +13,7 @@ internal sealed class Program
         // Lets the installer and updater do their part (shortcuts, clean upgrades) before the window opens.
         VelopackApp.Build().Run();
         WatchForCrashes();
+        UseSouthAfricanEnglish();
         try
         {
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
@@ -55,6 +56,26 @@ internal sealed class Program
         // An error on the screen's thread (a button, a timer, a handler) is logged and shown, and the app carries on.
         // Only an error outside it, or before the window exists, still closes the app with the message below.
         Background.CatchUnhandled();
+    }
+
+    /// <summary>
+    /// Dates and times on screen read the same on every PC: "4 November 2026, 14:30", whatever language or region
+    /// Windows is set to. Text for clients and Xero is fixed in Core itself and doesn't rely on this.
+    /// </summary>
+    private static void UseSouthAfricanEnglish()
+    {
+        try
+        {
+            var culture = System.Globalization.CultureInfo.GetCultureInfo("en-ZA");
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culture;
+            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+            System.Globalization.CultureInfo.CurrentUICulture = culture;
+        }
+        catch (System.Globalization.CultureNotFoundException e)
+        {
+            AppLog.Write("South African English isn't available on this PC; using the Windows setting", e);
+        }
     }
 
     private static bool crashReported;

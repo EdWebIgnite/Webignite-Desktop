@@ -104,3 +104,15 @@ public sealed class TaskTests : IDisposable
         Directory.Delete(folder, recursive: true);
     }
 }
+
+public sealed class NextWeekTests
+{
+    [Theory]
+    [InlineData("2026-11-08", "2026-11-09")] // Sunday: tomorrow
+    [InlineData("2026-11-09", "2026-11-16")] // Monday: a week on
+    [InlineData("2026-11-04", "2026-11-09")] // Wednesday
+    [InlineData("2026-11-07", "2026-11-09")] // Saturday
+    public void Next_week_is_the_coming_monday(string today, string expected) =>
+        Assert.Equal(DateOnly.Parse(expected, System.Globalization.CultureInfo.InvariantCulture),
+            Webignite.Core.Tasks.TaskGroups.NextMonday(DateOnly.Parse(today, System.Globalization.CultureInfo.InvariantCulture)));
+}

@@ -35,15 +35,18 @@ public static class ListKeys
         if (sender is not Control root || e.KeyModifiers != KeyModifiers.None || e.Key is not (Key.Down or Key.Up))
             return;
         var focused = TopLevel.GetTopLevel(root)?.FocusManager?.GetFocusedElement() as Visual;
-        // Up and Down still move the cursor in a box of several lines.
-        if (focused is TextBox { AcceptsReturn: true })
+        // Only from a row or a one-line box such as the search. Everything else (a dropdown, a date, a box of
+        // several lines, a menu) keeps its own Up and Down.
+        var fromBox = focused is TextBox { AcceptsReturn: false };
+        var fromRow = focused is not null && focused.GetSelfAndVisualAncestors().OfType<Button>().Any(b => b.Classes.Contains("row"));
+        if (!fromBox && !fromRow)
             return;
         var rows = root.GetVisualDescendants().OfType<Button>()
             .Where(b => b.Classes.Contains("row") && b.IsEffectivelyVisible && b.IsEffectivelyEnabled)
             .ToList();
         if (rows.Count == 0)
             return;
-        var at = focused is null ? -1 : rows.FindIndex(r => r == focused || r.IsVisualAncestorOf(focused));
+        var at = rows.FindIndex(r => r == focused || r.IsVisualAncestorOf(focused!));
         var next = at < 0
             ? (e.Key == Key.Down ? 0 : -1)
             : Math.Clamp(at + (e.Key == Key.Down ? 1 : -1), 0, rows.Count - 1);

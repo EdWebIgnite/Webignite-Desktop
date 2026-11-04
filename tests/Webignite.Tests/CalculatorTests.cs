@@ -17,6 +17,7 @@ public sealed class CalculatorTests
     [InlineData("2 + 3 × 4", "14")]
     [InlineData("10 ÷ 4", "2.5")]
     [InlineData("0.1 + 0.2", "0.3")]
+    [InlineData("1,250 x 2", "2500")]
     public void Sums_work_out(string sum, string expected) =>
         Assert.Equal(expected, Calculator.Plain(Calculator.Evaluate(sum).Value!.Value));
 

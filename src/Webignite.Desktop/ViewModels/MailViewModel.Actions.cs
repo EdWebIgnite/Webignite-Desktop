@@ -156,22 +156,22 @@ public partial class MailViewModel
         switch (key)
         {
             case "Delete" or "Back":
-                DeleteCommand.Execute(null);
+                Press(DeleteCommand);
                 return true;
             case "E":
-                ArchiveCommand.Execute(null);
+                Press(ArchiveCommand);
                 return true;
             case "I":
-                ToggleImportantCommand.Execute(null);
+                Press(ToggleImportantCommand);
                 return true;
             case "U":
-                ToggleReadCommand.Execute(null);
+                Press(ToggleReadCommand);
                 return true;
             case "R" when Reader is { CanWrite: true } reader && SelectedCount <= 1:
-                (shift ? reader.ReplyAllCommand : reader.ReplyCommand).Execute(null);
+                Press(shift ? reader.ReplyAllCommand : reader.ReplyCommand);
                 return true;
             case "F" when Reader is { CanWrite: true } reader && SelectedCount <= 1:
-                reader.ForwardCommand.Execute(null);
+                Press(reader.ForwardCommand);
                 return true;
             default:
                 return false;
@@ -249,6 +249,16 @@ public partial class MailViewModel
                 && !(here.Count == 1 && here[0] == f.Path))
             .Select(f => new MailMenuItem(new string(' ', f.Depth * 4) + f.Name, () => MoveTo(f, mail)) { Icon = f.Icon })
             .ToList();
+    }
+
+    /// <summary>
+    /// A key press runs the command only when it can run now, as a button would. A second Delete or E while the
+    /// first is still talking to the server is ignored instead of acting on the same mail twice.
+    /// </summary>
+    private static void Press(System.Windows.Input.ICommand command)
+    {
+        if (command.CanExecute(null))
+            command.Execute(null);
     }
 
     private static Task Do(System.Windows.Input.ICommand command)

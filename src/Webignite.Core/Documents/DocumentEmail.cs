@@ -146,7 +146,7 @@ public static partial class DocumentEmail
                 "invoice number" or "quote number" or "document number" => v.Number,
                 "invoice total" or "quote total" or "total" => Money.Rand(v.Total),
                 "amount due" => Money.Rand(v.AmountDue ?? v.Total),
-                "due date" or "expiry date" => v.DueOrExpiryDate?.ToString("d MMMM yyyy"),
+                "due date" or "expiry date" => v.DueOrExpiryDate?.ToString("d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture),
                 "reference" => v.Reference ?? "",
                 "online invoice link" or "online quote link" => v.OnlineLink,
                 "trading name" or "organisation name" => v.TradingName,

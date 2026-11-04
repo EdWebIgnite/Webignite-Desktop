@@ -37,9 +37,13 @@ public static class Receivables
     public static bool IsOverdue(StoredDocument d, DateOnly today) =>
         Outstanding(d) > 0 && d.Document.DueOrExpiryDate is { } due && due < today;
 
-    /// <summary>A quote still waiting on the client: not accepted, declined or expired.</summary>
+    /// <summary>
+    /// A quote waiting on the client: the client has it (emailed from here, or marked sent in Xero) and it isn't
+    /// accepted, declined or expired. A draft the client never saw isn't waiting on anyone, as with invoices.
+    /// </summary>
     public static bool IsOpenQuote(StoredDocument d, DateOnly today) =>
         d.Document.Kind == DocumentKind.Quote && d.Status == DocumentStatus.InXero && d.Settled is null
+        && (d.Emailed is not null || d.XeroStatus == "SENT")
         && !(d.Document.DueOrExpiryDate < today);
 
     public static decimal Owed(IEnumerable<StoredDocument> documents) => documents.Sum(Outstanding);

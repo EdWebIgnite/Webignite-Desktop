@@ -106,7 +106,6 @@ public sealed record DocumentFilter(string Text = "", DocumentShow Show = Docume
             plain = plain[1..];
         if (plain.Length == 0 || !plain.All(c => char.IsDigit(c) || c is '.' or ','))
             return null;
-        plain = plain.Replace(',', '.');
-        return decimal.TryParse(plain, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value) ? value : null;
+        return Money.Parse(plain);
     }
 }

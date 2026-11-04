@@ -5,7 +5,8 @@
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="6,2" />
     <Setter Property="Margin" Value="0,0,0,3" />
-    <Setter Property="Background" Value="{DynamicResource OkSoft}" />
+    <!-- Events are neutral: green means done and nothing else. -->
+    <Setter Property="Background" Value="{DynamicResource TableHead}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
     <Setter Property="BorderThickness" Value="3,0,0,0" />
   </Style>
