@@ -61,6 +61,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("screenshots", value);
     }
 
+    /// <summary>The signature drawn once for signing PDFs, as a PNG with a see-through background. Kept encrypted with the rest.</summary>
+    public byte[]? Signature
+    {
+        get => store.GetSetting<SignatureSetting>("signature")?.Png;
+        set => store.SetSetting("signature", new SignatureSetting(value));
+    }
+
     /// <summary>Files opened lately from Files, newest first, for Recents in its side list.</summary>
     public IReadOnlyList<string> FileRecents
     {
@@ -227,3 +234,6 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("mail-check", value);
     }
 }
+
+/// <summary>The saved signature, as stored.</summary>
+public sealed record SignatureSetting(byte[]? Png);

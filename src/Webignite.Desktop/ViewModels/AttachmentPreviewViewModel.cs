@@ -28,6 +28,19 @@ public partial class AttachmentPreviewViewModel : ViewModelBase
 
     public string Name { get; }
 
+    // A PDF's bytes, kept while it shows so it can go to the PDF tools.
+    private byte[]? pdf;
+
+    /// <summary>A PDF can be opened in the PDF tools, to sign it or take pages out.</summary>
+    public bool CanEditPdf => pdf is not null;
+
+    [RelayCommand]
+    private void EditPdf()
+    {
+        if (pdf is { } data)
+            App.Services?.Go.Pdf(Name, data);
+    }
+
     /// <summary>A mail's attachment can be saved; a file in Files already is somewhere.</summary>
     public bool CanSave => save is not null;
     public System.Collections.ObjectModel.ObservableCollection<Bitmap> Pages { get; } = [];
@@ -50,6 +63,8 @@ public partial class AttachmentPreviewViewModel : ViewModelBase
             }
             else
             {
+                pdf = data;
+                OnPropertyChanged(nameof(CanEditPdf));
                 var (pages, count) = await Task.Run(() => PdfPages.Render(data, 1100, AttachmentPreview.MaxPages));
                 foreach (var page in pages)
                     Keep(page);

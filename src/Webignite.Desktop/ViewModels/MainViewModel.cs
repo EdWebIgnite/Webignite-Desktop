@@ -149,6 +149,7 @@ public partial class MainViewModel : ViewModelBase
             new NavGroup("web-tools", "WEB TOOLS"),
             new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
+            new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
             new Module(Page.Tools, "Tools", () => new ToolsViewModel(services), "Tools"),
             new NavGroup("end", ""),
             new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings"),
@@ -215,6 +216,16 @@ public partial class MainViewModel : ViewModelBase
         go.OpenClientInNewTabAction = client =>
             ((ClientsViewModel)OpenInNewTab(this[Page.Clients]).Page).OpenClient(services.Clients.Get(client.Id) ?? client);
         go.OpenMailInNewTabAction = summary => ((MailViewModel)OpenInNewTab(mailModule).Page).OpenMessage(summary);
+        go.OpenPdfAction = paths =>
+        {
+            // Opened in a PDF tools tab of its own when one already has work in it.
+            var host = LastUsed(this[Page.Pdf]);
+            if (host.IsBuilt && host.Page is PdfViewModel { HasPages: true })
+                host = OpenInNewTab(this[Page.Pdf]);
+            else
+                Selected = this[Page.Pdf];
+            ((PdfViewModel)host.Page).Open(paths).Forget("Opening PDFs", tell: true);
+        };
         go.OpenSettingsAction = section =>
         {
             Selected = this[Page.Settings];
@@ -358,6 +369,7 @@ public partial class MainViewModel : ViewModelBase
     public OverviewViewModel Overview => PageOf<OverviewViewModel>(Page.Overview);
     public ClientsViewModel Clients => PageOf<ClientsViewModel>(Page.Clients);
     public FilesViewModel Files => PageOf<FilesViewModel>(Page.Files);
+    public PdfViewModel Pdf => PageOf<PdfViewModel>(Page.Pdf);
     public MailViewModel Mail => PageOf<MailViewModel>(Page.Mail);
     public ApprovalsViewModel Approvals => PageOf<ApprovalsViewModel>(Page.Approvals);
     public ToolsViewModel Tools => PageOf<ToolsViewModel>(Page.Tools);

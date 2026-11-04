@@ -645,6 +645,8 @@
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
                           <Button Classes="link" Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open it in another program" />
                           <Button Classes="link" Content="Save" Command="{Binding SaveCommand}" />
+                          <Button Classes="link" Content="PDF tools" Command="{Binding EditPdfCommand}" IsVisible="{Binding CanEditPdf}"
+                                  ToolTip.Tip="Open it in the PDF tools to sign it, fill it in or take pages out" />
                           <Button Classes="quiet" Content="Back to the mail" Command="{Binding CloseCommand}" />
                         </StackPanel>
                         <TextBlock FontWeight="SemiBold" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />

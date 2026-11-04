@@ -767,4 +767,38 @@
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="HorizontalAlignment" Value="Left" />
   </Style>
+  <!-- PDF tools: pages as cards, and what's put on a page while filling it in. -->
+  <Style Selector="ListBox.pdfpages ListBoxItem">
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="ListBox.pdfpages ListBoxItem:selected /template/ ContentPresenter, ListBox.pdfpages ListBoxItem:selected:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Border.stamp">
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="4,2" />
+    <Setter Property="Cursor" Value="SizeAll" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="TextBox.stamptext">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource PaperText}" />
+  </Style>
+  <Style Selector="TextBox.stamptext:focus /template/ Border#PART_BorderElement, TextBox.stamptext:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.stampclose">
+    <Setter Property="Padding" Value="3" />
+    <Setter Property="Margin" Value="0,-10,-10,0" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
 </Styles>

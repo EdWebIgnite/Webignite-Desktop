@@ -97,8 +97,10 @@ void Check(string what, bool ok)
         failures.Add(what);
 }
 
-// A method of its own, so the tools assembly is only read when this runs, as in the app.
+// Methods of their own, so the tools assembly is only read when they run, as in the app.
 static int PdfPageCount(string path) => Webignite.Tools.PdfText.Pages(File.ReadAllBytes(path));
+
+static string PdfReadText(string path) => Webignite.Tools.PdfText.Read(File.ReadAllBytes(path));
 
 // A method of its own, so the tools assembly is only read when this runs, as in the app.
 static void ShrinkPhotos(string photos, ToolsViewModel tools)
@@ -1073,6 +1075,51 @@ Save("client-mail");
     Check("Stop ends it and drops the half-copied file", Until(() => job.State == Webignite.Desktop.Files.CopyState.Stopped) && !File.Exists(Path.Combine(fynbosFolder, "Walkthrough.mp4")));
     job.DismissCommand.Execute(null);
     File.Delete(big);
+
+    // PDF tools: two PDFs together, a page turned and moved, pages taken out, filled in and signed, saved,
+    // a smaller copy and the pages as pictures. PDFium does the work, on Linux as on Windows.
+    var quotePdf = Path.Combine(site, "Quote QU-0042.pdf");
+    var briefPdf = Path.Combine(site, "Website brief v2.pdf");
+    services.Go.Pdf([quotePdf, briefPdf]);
+    var pdf = vm.Pdf;
+    Check("PDF tools opens both files' pages together", Until(() => pdf.Pages.Count == 2 && pdf.Pages.All(p => p.Thumbnail is not null)) && pdf.Changed);
+    pdf.Picked = [pdf.Pages[1]];
+    pdf.TurnRightCommand.Execute(null);
+    pdf.MovePicked(0);
+    Check("A page can be turned and moved to the front", pdf.Pages[0].From == "Website brief v2.pdf" && pdf.Pages[0].Angle == 90 && pdf.Pages[0].Number == 1);
+    Save("pdf-pages");
+    pdf.RangeText = "2";
+    Wait(pdf.TakeOutCommand.ExecuteAsync(null), "Taking a page out into a new PDF");
+    Check("A page can be taken out into a PDF of its own", File.Exists(Path.Combine(site, "Quote QU-0042 (page 2).pdf")));
+    pdf.RangeText = "";
+
+    pdf.Picked = [pdf.Pages[1]];
+    Wait(pdf.FillInCommand.ExecuteAsync(null), "Opening a page to fill in");
+    var fill = pdf.Filling!;
+    var typed = fill.PlaceAt(0.12, 0.3)!;
+    typed.Text = "Approved by Pieter van Wyk";
+    fill.UseCommand.Execute(Webignite.Desktop.ViewModels.FillTool.Date);
+    fill.PlaceAt(0.12, 0.34);
+    var pad = new Avalonia.Controls.Canvas { Width = 520, Height = 180 };
+    var line = new Avalonia.Controls.Shapes.Polyline { Stroke = Avalonia.Media.Brushes.Navy, StrokeThickness = 2.5 };
+    foreach (var (x, y) in new[] { (40, 120), (80, 40), (120, 130), (160, 50), (200, 120), (260, 90), (320, 100) })
+        line.Points.Add(new Point(x, y));
+    pad.Children.Add(line);
+    fill.KeepSignature(PdfView.SignaturePng(pad));
+    fill.PlaceAt(0.3, 0.42);
+    Check("Text, the date and a signature go on the page", fill.Stamps.Count == 3 && fill.Stamps.Any(s => s.IsSignature) && services.Settings.Signature is { Length: > 0 });
+    Save("pdf-fill");
+    fill.DoneCommand.Execute(null);
+    var signed = Path.Combine(data, "signed.pdf");
+    Wait(pdf.SaveAs(signed), "Saving the signed PDF");
+    var signedText = PdfReadText(signed);
+    Check("The saved PDF has its pages and the words typed on", PdfPageCount(signed) == 2 && signedText.Contains("Approved by Pieter van Wyk", StringComparison.Ordinal)
+        && signedText.Contains(DateTime.Today.ToString("yyyy", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
+    Wait(pdf.SavePicturesCommand.ExecuteAsync(null), "Saving the pages as pictures");
+    Check("The pages can be saved as pictures", Directory.GetFiles(Path.Combine(site, "Quote QU-0042 pages"), "*.png").Length == 2);
+    Wait(pdf.MakeSmallerCommand.ExecuteAsync(null), "Making a smaller copy");
+    Check("Make smaller says what it did", pdf.Message.Length > 0 && !pdf.MessageIsProblem);
+    Open(Page.Files);
 
     services.Go.Folder(Path.Combine(site, "Logo"), newTab: true);
     Check("A folder opens in a Files tab of its own", vm.Open.Count(h => h.Key == Page.Files) == 2 && vm.Files.Folder == Path.Combine(site, "Logo"));

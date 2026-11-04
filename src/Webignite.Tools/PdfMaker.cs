@@ -41,8 +41,8 @@ public static class PdfMaker
         return DocLib.Instance.JpegToPdf([new JpegImage { Bytes = jpeg.ToArray(), Width = 8, Height = 8 }]);
     }
 
-    // A picture becomes a one-page PDF: turned the right way up and saved as a JPEG inside it.
-    private static byte[] PictureAsPdf(string path)
+    /// <summary>A picture as a one-page PDF: turned the right way up and saved as a JPEG inside it.</summary>
+    public static byte[] PictureAsPdf(string path)
     {
         using var upright = PictureTools.Upright(path);
         using var image = SKImage.FromBitmap(upright);

@@ -16,6 +16,14 @@ public static class PictureTools
             ? (h, w) : (w, h);
     }
 
+    /// <summary>A PNG's pixels as BGRA (four bytes a pixel, top row first), for putting on a PDF page.</summary>
+    public static (byte[] Pixels, int Width, int Height) Bgra(byte[] png)
+    {
+        using var decoded = SKBitmap.Decode(png) ?? throw new IOException("The picture couldn't be read.");
+        using var bgra = decoded.Copy(SKColorType.Bgra8888);
+        return (bgra.Bytes, bgra.Width, bgra.Height);
+    }
+
     /// <summary>Turns a picture a quarter to the right (90) or left (-90), saving it in place in the same format.</summary>
     public static void Rotate(string path, int degrees)
     {
