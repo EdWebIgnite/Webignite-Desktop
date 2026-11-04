@@ -143,35 +143,23 @@ public sealed partial class MarkupViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(HasImage))]
     private async Task Email()
     {
-        var accounts = services.Store.ListMailAccounts();
-        if (Webignite.Core.Mail.MailAccounts.ForEveryday(accounts) is not { } mailbox)
+        if (services.Drafts.EverydayMailbox is not { } mailbox)
         {
-            Say("Add a mailbox under Mail first.", problem: true);
+            Say(MailDrafts.NoMailbox, problem: true);
             return;
         }
         if (Png() is not { } png)
             return;
-        var folder = Path.Combine(DataPaths.Root(), "outgoing");
-        Directory.CreateDirectory(folder);
-        var name = FileName;
-        var path = Path.Combine(folder, name);
-        await File.WriteAllBytesAsync(path, png);
-
+        var picture = await services.Drafts.AttachAsync(FileName, png);
         var (subject, body) = Markup.Mail(Client?.Name, Client?.ContactPerson, Page, Marks, services.Settings.Xero.TenantName ?? "Webignite");
-        var to = Recipients.Parse(Client?.Email);
-        var mail = new OutgoingMail
-        {
-            AccountId = mailbox.Id,
-            To = to.People,
-            Subject = subject,
-            Body = body + Replies.StartBody(mailbox.Signature),
-            Attachments = [new OutgoingAttachment(name, png.Length, FilePath: path)],
-        };
         var unwritten = Marks.Count(m => m.Kind == MarkKind.Pin && string.IsNullOrWhiteSpace(m.Comment));
-        var note = to.People.Count == 0 ? "Type who it goes to in To." : unwritten > 0 ? $"{unwritten} numbered note(s) have nothing written, so they're not in the list." : null;
-        var opened = services.Go.ComposeMail(mail, note, null);
+        var opened = services.Drafts.Open(new MailDraft(mailbox, Client?.Email, subject, body)
+        {
+            Attachments = [picture],
+            Note = unwritten > 0 ? $"{unwritten} numbered note(s) have nothing written, so they're not in the list." : null,
+        });
         if (!opened)
-            Say("Another mail is open in Mail with changes. Send or close it first.", problem: true);
+            Say(MailDrafts.AnotherOpen, problem: true);
     }
 
     public void Say(string text, bool problem = false)

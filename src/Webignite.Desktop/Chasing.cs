@@ -16,42 +16,29 @@ public static class Chasing
     {
         if (services.XeroSending is not { } sending)
             return ("Connect Xero in Settings first.", true);
-        if (Webignite.Core.Mail.MailAccounts.ForInvoices(services.Store.ListMailAccounts()) is not { } mailbox)
-            return ("No mailbox is set up to send invoices. In Mail, Manage mailboxes, tick \"Invoices are sent from this mailbox\" on accounts@.", true);
+        if (services.Drafts.InvoiceMailbox is not { } mailbox)
+            return (MailDrafts.NoInvoiceMailbox, true);
         try
         {
             var (ready, settled) = await sending.PrepareChaserAsync(stored, services.Settings.Xero.TenantName ?? "Webignite");
             if (ready is null)
                 return ($"Xero says {stored.XeroNumber ?? "it"} is {(settled is { } how ? Settlements.Word(how) : "settled")}, so there's nothing to chase.", false);
 
-            var folder = Path.Combine(DataPaths.Root(), "outgoing");
-            Directory.CreateDirectory(folder);
-            var pdf = Path.Combine(folder, string.Join("_", ready.PdfName.Split(Path.GetInvalidFileNameChars())));
-            await File.WriteAllBytesAsync(pdf, ready.Pdf);
-
+            var pdf = await services.Drafts.AttachAsync(ready.PdfName, ready.Pdf);
             var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.ChaserFor(stored.Document.Kind), ready.Values);
-            var to = Recipients.Parse(ready.ContactEmail);
-            var mail = new OutgoingMail
+            var opened = services.Drafts.Open(new MailDraft(mailbox, ready.ContactEmail, filled.Subject, filled.Body)
             {
-                AccountId = mailbox.Id,
-                To = to.People,
-                Subject = filled.Subject,
-                Body = filled.Body + Replies.StartBody(mailbox.Signature),
-                Attachments = [new OutgoingAttachment(ready.PdfName, ready.Pdf.Length, FilePath: pdf)],
-            };
-            var notes = new List<string>();
-            if (to.People.Count == 0)
-                notes.Add($"Xero has no email address for {ready.Values.ContactName}. Type it in To.");
-            if (filled.Unfilled.Count > 0)
-                notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
-
-            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, _ =>
-            {
-                sending.MarkChased(services.Store.Get(stored.Id) ?? ready.Stored);
-                services.Store.TickOffChasing(stored.Id, DateTimeOffset.Now);
-                return Task.CompletedTask;
+                Attachments = [pdf],
+                NoAddress = $"Xero has no email address for {ready.Values.ContactName}. Type it in To.",
+                Unfilled = filled.Unfilled,
+                AfterSent = _ =>
+                {
+                    sending.MarkChased(services.Store.Get(stored.Id) ?? ready.Stored);
+                    services.Store.TickOffChasing(stored.Id, DateTimeOffset.Now);
+                    return Task.CompletedTask;
+                },
             });
-            return opened ? (null, false) : ("Another mail is open in Mail with changes. Send or close it first, then try again.", true);
+            return opened ? (null, false) : (MailDrafts.AnotherOpen, true);
         }
         catch (Exception e) when (e is XeroException or HttpRequestException or IOException or TaskCanceledException or InvalidOperationException)
         {

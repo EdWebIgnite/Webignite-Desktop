@@ -97,3 +97,15 @@ public sealed class MissingRuleTests
         Assert.Equal(4u, next.Announced["work"]);
     }
 }
+
+public sealed class DraftNoteTests
+{
+    [Fact]
+    public void The_note_above_a_prepared_mail_says_what_needs_a_look()
+    {
+        Assert.Null(Webignite.Core.Mail.DraftNotes.For(1, "No address.", []));
+        Assert.Equal("No address.", Webignite.Core.Mail.DraftNotes.For(0, "No address.", []));
+        Assert.Equal("Couldn't fill [Due Date]. Fix the text before sending. 2 notes are empty.",
+            Webignite.Core.Mail.DraftNotes.For(1, "No address.", ["[Due Date]"], " 2 notes are empty. "));
+    }
+}

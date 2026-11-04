@@ -15,8 +15,8 @@ public static class Statementing
     {
         if (services.XeroSending is not { } sending)
             return ("Connect Xero in Settings first.", true);
-        if (Webignite.Core.Mail.MailAccounts.ForInvoices(services.Store.ListMailAccounts()) is not { } mailbox)
-            return ("No mailbox is set up to send invoices. In Mail, Manage mailboxes, tick \"Invoices are sent from this mailbox\" on accounts@.", true);
+        if (services.Drafts.InvoiceMailbox is not { } mailbox)
+            return (MailDrafts.NoInvoiceMailbox, true);
         var today = DateOnly.FromDateTime(DateTime.Today);
         try
         {
@@ -41,26 +41,17 @@ public static class Statementing
                 TradingName = services.Settings.Xero.TenantName ?? "Webignite",
             };
             var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.Statement, values);
-            var to = Recipients.Parse(ready.Email);
-            var mail = new OutgoingMail
+            var opened = services.Drafts.Open(new MailDraft(mailbox, ready.Email, filled.Subject, filled.Body)
             {
-                AccountId = mailbox.Id,
-                To = to.People,
-                Subject = filled.Subject,
-                Body = filled.Body + Replies.StartBody(mailbox.Signature),
-            };
-            var notes = new List<string>();
-            if (to.People.Count == 0)
-                notes.Add($"Xero has no email address for {ready.ContactName}. Type it in To.");
-            if (filled.Unfilled.Count > 0)
-                notes.Add($"Couldn't fill {string.Join(", ", filled.Unfilled)}. Fix the text before sending.");
-
-            var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, _ =>
-            {
-                services.Settings.StatementsSent = Statements.MarkSent(services.Settings.StatementsSent, customer, DateOnly.FromDateTime(DateTime.Today));
-                return Task.CompletedTask;
+                NoAddress = $"Xero has no email address for {ready.ContactName}. Type it in To.",
+                Unfilled = filled.Unfilled,
+                AfterSent = _ =>
+                {
+                    services.Settings.StatementsSent = Statements.MarkSent(services.Settings.StatementsSent, customer, DateOnly.FromDateTime(DateTime.Today));
+                    return Task.CompletedTask;
+                },
             });
-            return opened ? (null, false) : ("Another mail is open in Mail with changes. Send or close it first, then try again.", true);
+            return opened ? (null, false) : (MailDrafts.AnotherOpen, true);
         }
         catch (Exception e) when (e is XeroException or HttpRequestException or TaskCanceledException or InvalidOperationException)
         {

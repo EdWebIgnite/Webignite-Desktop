@@ -64,24 +64,17 @@ public partial class ClientDetailViewModel
     [RelayCommand]
     private void DraftOnboardingReminder()
     {
-        var accounts = services.Store.ListMailAccounts();
-        var mailbox = Webignite.Core.Mail.MailAccounts.ForEveryday(accounts);
-        if (mailbox is null)
+        if (services.Drafts.EverydayMailbox is not { } mailbox)
         {
-            OnboardingMessage = "Add a mailbox under Mail first.";
+            OnboardingMessage = MailDrafts.NoMailbox;
             return;
         }
         var (subject, body) = Onboarding.Reminder(client, services.Settings.Xero.TenantName ?? "Webignite");
-        var to = Recipients.Parse(client.Email);
-        var mail = new OutgoingMail
+        var opened = services.Drafts.Open(new MailDraft(mailbox, client.Email, subject, body)
         {
-            AccountId = mailbox.Id,
-            To = to.People,
-            Subject = subject,
-            Body = body + Replies.StartBody(mailbox.Signature),
-        };
-        var opened = services.Go.ComposeMail(mail, to.People.Count == 0 ? "This client has no email address. Type it in To." : null, null);
-        OnboardingMessage = opened ? "" : "Another mail is open in Mail with changes. Send or close it first.";
+            NoAddress = "This client has no email address. Type it in To.",
+        });
+        OnboardingMessage = opened ? "" : MailDrafts.AnotherOpen;
     }
 }
 
