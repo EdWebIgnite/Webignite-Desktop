@@ -51,8 +51,14 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     [RelayCommand]
     private void DeletePrice(PriceRow row)
     {
+        var at = services.Settings.PriceList.ToList().FindIndex(e => e.Id == row.Entry.Id);
         services.Settings.PriceList = PriceList.Remove(services.Settings.PriceList, row.Entry.Id);
         LoadPrices();
+        services.OfferUndo($"Deleted {row.Entry.Name} from the price list", () =>
+        {
+            services.Settings.PriceList = Webignite.Core.Layout.ListUndo.PutBack(services.Settings.PriceList, row.Entry, at, e => e.Id);
+            LoadPrices();
+        });
     }
 
     // Motion

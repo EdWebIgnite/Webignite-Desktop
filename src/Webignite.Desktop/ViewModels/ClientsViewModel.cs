@@ -90,8 +90,12 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
             Show(new ClientDetailViewModel(row.Client, isNew: false, services, Close));
     }
 
-    /// <summary>Opens a client's page, e.g. from search.</summary>
-    public void OpenClient(Client client) => Show(new ClientDetailViewModel(client, isNew: false, services, Close));
+    /// <summary>Opens a client's page, e.g. from search or after Undo brought it back.</summary>
+    public void OpenClient(Client client)
+    {
+        Refresh();
+        Show(new ClientDetailViewModel(client, isNew: false, services, Close));
+    }
 
     [RelayCommand]
     private void AddSuggested(string name)

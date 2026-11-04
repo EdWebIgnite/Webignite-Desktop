@@ -45,13 +45,6 @@ public static class MorningSummary
 
     private static string Days(int days) => days == 1 ? "1 day" : $"{days} days";
 
-    // Shared mail services: matching on these domains would make every Gmail sender a client.
-    private static readonly HashSet<string> SharedDomains = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "yahoo.com", "icloud.com", "me.com",
-        "mweb.co.za", "telkomsa.net", "vodamail.co.za", "webmail.co.za", "iafrica.com", "absamail.co.za", "lantic.net",
-    };
-
     public static IReadOnlyList<SummaryLine> Build(SummaryInput input)
     {
         var lines = new List<SummaryLine>();
@@ -152,24 +145,7 @@ public static class MorningSummary
         return lines;
     }
 
-    public static Client? ClientFor(string address, IEnumerable<Client> clients)
-    {
-        var domain = Domain(address);
-        Client? byDomain = null;
-        foreach (var client in clients)
-        {
-            if (client.Email is not { Length: > 0 } email)
-                continue;
-            if (string.Equals(email.Trim(), address, StringComparison.OrdinalIgnoreCase))
-                return client;
-            var clientDomain = Domain(email);
-            if (byDomain is null && domain.Length > 0 && !SharedDomains.Contains(domain) && string.Equals(clientDomain, domain, StringComparison.OrdinalIgnoreCase))
-                byDomain = client;
-        }
-        return byDomain;
-    }
-
-    private static string Domain(string address) => address.LastIndexOf('@') is var at and >= 0 ? address[(at + 1)..].Trim() : "";
+    public static Client? ClientFor(string address, IEnumerable<Client> clients) => ClientMail.For(clients, address);
 
     /// <summary>"today", "yesterday", "tomorrow", a weekday within a week, otherwise "3 November".</summary>
     public static string Day(DateOnly day, DateOnly today) => (today.DayNumber - day.DayNumber) switch

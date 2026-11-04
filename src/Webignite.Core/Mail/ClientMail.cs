@@ -31,6 +31,29 @@ public sealed class ClientMail
     }
 
     public IReadOnlyCollection<string> Addresses => addresses;
+
+    /// <summary>Whether this is one of the client's own addresses (not just their domain).</summary>
+    public bool IsOwn(string? address) => address is not null && addresses.Contains(address.Trim());
+
+    /// <summary>
+    /// The client an address belongs to: one that has the address itself, else one whose addresses or website
+    /// share its domain. Shared mail providers never count. Null when none fits.
+    /// </summary>
+    public static Client? For(IEnumerable<Client> clients, string? address)
+    {
+        if (string.IsNullOrWhiteSpace(address) || !address.Contains('@'))
+            return null;
+        var known = clients.Select(c => (Client: c, Mail: new ClientMail(c))).ToList();
+        var person = new MailPerson(null, address.Trim());
+        return known.FirstOrDefault(x => x.Mail.IsOwn(person.Address)).Client
+            ?? known.FirstOrDefault(x => x.Mail.Matches(person)).Client;
+    }
+
+    /// <summary>
+    /// The first address in a list of a client's addresses ("a@x.co.za; b@x.co.za"), for where only one fits,
+    /// such as a Xero contact. Null when there is none.
+    /// </summary>
+    public static string? First(string? addresses) => Recipients.Parse(addresses).People.FirstOrDefault()?.Address;
     public IReadOnlyCollection<string> Domains => domains;
     public bool IsEmpty => addresses.Count == 0 && domains.Count == 0;
 

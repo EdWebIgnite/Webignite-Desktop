@@ -77,16 +77,13 @@ public static class ClientDirectory
             problems.Add("Give the client a name.");
         else if (others.Any(o => o.Id != client.Id && Matches(o, client.Name)))
             problems.Add($"There is already a client called {client.Name.Trim()}.");
-        if (!string.IsNullOrWhiteSpace(client.Email) && !LooksLikeEmail(client.Email.Trim()))
-            problems.Add("The email address doesn't look right.");
+        // A client can have several addresses, separated by ; or a comma.
+        var bad = Webignite.Core.Mail.Recipients.Parse(client.Email).Bad;
+        if (bad.Count == 1)
+            problems.Add($"\"{bad[0]}\" doesn't look like an email address.");
+        else if (bad.Count > 1)
+            problems.Add($"These don't look like email addresses: {string.Join(", ", bad)}.");
         return problems;
-    }
-
-    private static bool LooksLikeEmail(string email)
-    {
-        var at = email.IndexOf('@');
-        return at > 0 && at == email.LastIndexOf('@') && email.IndexOf('.', at) > at + 1
-            && !email.EndsWith('.') && !email.Contains(' ');
     }
 
     /// <summary>

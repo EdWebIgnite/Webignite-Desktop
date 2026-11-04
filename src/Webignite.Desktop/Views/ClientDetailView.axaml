@@ -69,7 +69,7 @@
             <Grid ColumnDefinitions="*,12,*">
               <StackPanel Grid.Column="0">
                 <TextBlock Classes="label" Text="Email" />
-                <TextBox Text="{Binding Email}" PlaceholderText="Where invoices go" />
+                <TextBox Text="{Binding Email}" PlaceholderText="Where invoices go" ToolTip.Tip="More than one? Separate them with ; and the first gets the invoices." />
               </StackPanel>
               <StackPanel Grid.Column="2">
                 <TextBlock Classes="label" Text="Website" />

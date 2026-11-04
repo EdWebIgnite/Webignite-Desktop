@@ -47,9 +47,11 @@ public static class ClaudeDesktopConfig
     /// Claude-Data\claude_pzs8sxrjxfjjc). This is the file Claude's own "Edit config" opens.</item>
     /// <item>%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude, the Microsoft Store version.</item>
     /// </list>
-    /// Folders that aren't there are skipped, except the classic one, which is always listed. Empty arguments are ignored.
+    /// Folders that aren't there are skipped, except the classic one, which is always listed. Empty arguments are
+    /// ignored. <paramref name="subfolders"/> lists the folders in a folder that match a pattern (none when the
+    /// folder isn't there); the app reads the disk, so this rule stays testable without it.
     /// </summary>
-    public static IReadOnlyList<string> Paths(string? roaming, string? local)
+    public static IReadOnlyList<string> Paths(string? roaming, string? local, Func<string, string, IEnumerable<string>> subfolders)
     {
         var paths = new List<string>();
         if (!string.IsNullOrEmpty(roaming))
@@ -57,15 +59,10 @@ public static class ClaudeDesktopConfig
         if (string.IsNullOrEmpty(local))
             return paths;
 
-        var data = Path.Combine(local, "Claude-Data");
-        if (Directory.Exists(data))
-            paths.AddRange(Directory.GetDirectories(data).Order(StringComparer.OrdinalIgnoreCase)
-                .Select(folder => Path.Combine(folder, FileName)));
-
-        var packages = Path.Combine(local, "Packages");
-        if (Directory.Exists(packages))
-            paths.AddRange(Directory.GetDirectories(packages, "Claude_*").Order(StringComparer.OrdinalIgnoreCase)
-                .Select(folder => Path.Combine(folder, "LocalCache", "Roaming", "Claude", FileName)));
+        paths.AddRange(subfolders(Path.Combine(local, "Claude-Data"), "*").Order(StringComparer.OrdinalIgnoreCase)
+            .Select(folder => Path.Combine(folder, FileName)));
+        paths.AddRange(subfolders(Path.Combine(local, "Packages"), "Claude_*").Order(StringComparer.OrdinalIgnoreCase)
+            .Select(folder => Path.Combine(folder, "LocalCache", "Roaming", "Claude", FileName)));
         return paths;
     }
 

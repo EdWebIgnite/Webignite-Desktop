@@ -1,3 +1,4 @@
+using System.Globalization;
 using Webignite.Core.Time;
 
 namespace Webignite.Data;
@@ -15,7 +16,7 @@ public sealed partial class LocalStore
             ON CONFLICT (id) DO UPDATE SET date = $date, payload = $payload
             """;
         command.Parameters.AddWithValue("$id", entry.Id);
-        command.Parameters.AddWithValue("$date", entry.Date.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$date", entry.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$payload", Seal("time:" + entry.Id, entry));
         command.ExecuteNonQuery();
         return entry;
@@ -34,8 +35,8 @@ public sealed partial class LocalStore
     {
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT id, payload FROM time_entries WHERE date BETWEEN $from AND $to";
-        command.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd"));
-        command.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         using var reader = command.ExecuteReader();
         var list = new List<TimeEntry>();
         while (reader.Read())

@@ -14,7 +14,8 @@ public static class AssistantSetup
     /// <summary>Every place Claude Desktop may keep its settings file on this PC (rules in ClaudeDesktopConfig.Paths).</summary>
     public static IReadOnlyList<string> ClaudeConfigPaths() => ClaudeDesktopConfig.Paths(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        (folder, pattern) => Directory.Exists(folder) ? Directory.GetDirectories(folder, pattern) : []);
 
     public static bool ClaudeConnected() =>
         ClaudeConfigPaths().Any(p => File.Exists(p) && ClaudeDesktopConfig.HasConnector(File.ReadAllText(p), ConnectorPath()));

@@ -161,32 +161,36 @@ public sealed class AssistantMailTests : IDisposable
         Assert.Throws<FormatException>(() => ClaudeDesktopConfig.WithConnector("{ not json", "x.exe"));
     }
 
+    // Folders as the disk would list them, so the rule is tested without touching it.
+    private static Func<string, string, IEnumerable<string>> Disk(params string[] folders) => (parent, pattern) =>
+        folders.Where(f => Path.GetDirectoryName(f) == parent
+            && System.IO.Enumeration.FileSystemName.MatchesSimpleExpression(pattern, Path.GetFileName(f)));
+
     [Fact]
     public void Claude_desktop_settings_are_looked_for_in_the_classic_packaged_and_store_folders()
     {
-        var roaming = Path.Combine(folder, "Roaming");
-        var local = Path.Combine(folder, "Local");
+        var roaming = Path.Combine("C:", "Roaming");
+        var local = Path.Combine("C:", "Local");
         // The install from claude.ai keeps its settings under Claude-Data, one folder per install.
-        Directory.CreateDirectory(Path.Combine(local, "Claude-Data", "claude_pzs8sxrjxfjjc"));
-        Directory.CreateDirectory(Path.Combine(local, "Packages", "Claude_pzs8sxrjxfjjc"));
-        Directory.CreateDirectory(Path.Combine(local, "Packages", "Microsoft.Something_123"));
+        var disk = Disk(
+            Path.Combine(local, "Claude-Data", "claude_pzs8sxrjxfjjc"),
+            Path.Combine(local, "Packages", "Claude_pzs8sxrjxfjjc"),
+            Path.Combine(local, "Packages", "Microsoft.Something_123"));
 
         Assert.Equal(
         [
             Path.Combine(roaming, "Claude", "claude_desktop_config.json"),
             Path.Combine(local, "Claude-Data", "claude_pzs8sxrjxfjjc", "claude_desktop_config.json"),
             Path.Combine(local, "Packages", "Claude_pzs8sxrjxfjjc", "LocalCache", "Roaming", "Claude", "claude_desktop_config.json"),
-        ], ClaudeDesktopConfig.Paths(roaming, local));
+        ], ClaudeDesktopConfig.Paths(roaming, local, disk));
     }
 
     [Fact]
     public void Claude_desktop_settings_paths_skip_folders_that_are_not_there()
     {
-        var local = Path.Combine(folder, "Local");
-        Directory.CreateDirectory(local);
-        Assert.Equal([Path.Combine(folder, "Roaming", "Claude", "claude_desktop_config.json")],
-            ClaudeDesktopConfig.Paths(Path.Combine(folder, "Roaming"), local));
-        Assert.Empty(ClaudeDesktopConfig.Paths("", null));
+        Assert.Equal([Path.Combine("C:", "Roaming", "Claude", "claude_desktop_config.json")],
+            ClaudeDesktopConfig.Paths(Path.Combine("C:", "Roaming"), Path.Combine("C:", "Local"), Disk()));
+        Assert.Empty(ClaudeDesktopConfig.Paths("", null, Disk()));
     }
 
     [Fact]

@@ -58,7 +58,7 @@ public sealed class PaymentWatch(LocalStore store, Func<XeroApi?> xero, TimeProv
                 if (payment is not null)
                     news.Add(payment);
                 if (changed.Settled is not null)
-                    TickOffChasing(changed, now);
+                    store.TickOffChasing(changed.Id, now);
             }
             LastRun = clock.GetLocalNow();
             return (news, null);
@@ -71,13 +71,5 @@ public sealed class PaymentWatch(LocalStore store, Func<XeroApi?> xero, TimeProv
         {
             running = false;
         }
-    }
-
-    // A paid invoice or settled quote doesn't need its automatic "chase" or "follow up" to-do any more.
-    private void TickOffChasing(StoredDocument stored, DateTimeOffset now)
-    {
-        foreach (var task in store.ListTasks().Where(t => !t.Done && t.DocumentId == stored.Id
-            && t.AutoKey is { } key && (key.StartsWith("invoice-overdue:", StringComparison.Ordinal) || key.StartsWith("quote-follow-up:", StringComparison.Ordinal))))
-            store.SaveTask(task with { Done = true, DoneAt = now });
     }
 }

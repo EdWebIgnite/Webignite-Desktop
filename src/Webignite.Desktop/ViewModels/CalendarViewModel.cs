@@ -104,8 +104,15 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
 
     private void DeleteEvent(AgendaItemViewModel item)
     {
+        var gone = services.Store.GetEvent(item.Item.SourceId);
         services.Store.DeleteEvent(item.Item.SourceId);
         Refresh();
+        if (gone is not null)
+            services.OfferUndo($"Deleted {gone.Title}", () =>
+            {
+                services.Store.SaveEvent(gone);
+                Refresh();
+            });
     }
 
     internal static bool TryParseTime(string text, out TimeOnly time)
