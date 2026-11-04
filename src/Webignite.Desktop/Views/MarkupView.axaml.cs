@@ -19,6 +19,7 @@ public partial class MarkupView : UserControl
     {
         InitializeComponent();
         SnipButton.IsVisible = OperatingSystem.IsWindows();
+        RecordButton.IsVisible = OperatingSystem.IsWindows();
         Canvas.MarkDrawn = mark => Markup?.Add(mark);
         Canvas.TextAsked = AskForText;
         DragDrop.SetAllowDrop(Canvas, true);
@@ -74,6 +75,33 @@ public partial class MarkupView : UserControl
 
     // Windows: the screen freezes; drag over the part wanted, click a window, or press Enter for all of it.
     private void TakeScreenshot(object? sender, RoutedEventArgs e) => App.Services?.Go.Screenshot(hideApp: true);
+
+    // A client picked from either list. One-way, as a list being taken down clears its pick, which would
+    // otherwise wipe the client chosen.
+    private void ClientPicked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (Markup is { } markup && (sender as ComboBox)?.SelectedItem is Webignite.Core.Clients.Client client)
+            markup.Client = client;
+    }
+
+    private void RecordScreen(object? sender, RoutedEventArgs e) => App.Services?.Go.Record(hideApp: true);
+
+    private void SaveRecordingAs(object? sender, RoutedEventArgs e) => SaveRecordingAsAsync().Forget("Saving the recording", tell: true);
+
+    private async Task SaveRecordingAsAsync()
+    {
+        if (Markup?.Recording is not { } recording || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
+        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save the recording",
+            SuggestedFileName = Webignite.Core.Tools.Recordings.FileName(Markup.Client?.Name, DateTime.Now),
+            DefaultExtension = "mp4",
+            FileTypeChoices = [new FilePickerFileType("MP4 video") { Patterns = ["*.mp4"] }],
+        });
+        if (file?.TryGetLocalPath() is { } path)
+            await recording.SaveTo(path);
+    }
 
     private void OpenImage(object? sender, RoutedEventArgs e) => OpenImageAsync(sender, e).Forget("Opening the picture", tell: true);
 

@@ -146,6 +146,12 @@ public sealed class AppServices : IDisposable
     /// <summary>Set by the main window: takes the screenshot shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyScreenshotShortcut { get; set; }
 
+    /// <summary>Set by the main window: takes the recording shortcut from Settings again. Returns why not, when it can't.</summary>
+    public Func<string?>? ApplyRecordShortcut { get; set; }
+
+    /// <summary>A screen recording is under way, so closing the app should stop it properly first.</summary>
+    public bool Recording { get; set; }
+
     private Files.FileTagBook? fileTags;
     private Files.CopyQueue? copyQueue;
 

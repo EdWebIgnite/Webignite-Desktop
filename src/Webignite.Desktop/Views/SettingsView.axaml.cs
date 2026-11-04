@@ -52,12 +52,24 @@ public partial class SettingsView : UserControl
         }
     }
 
-    // The shortcut box: whatever keys are pressed in it become the shortcut.
+    // The shortcut boxes: whatever keys are pressed in one become its shortcut.
     private void ShortcutKeys(object? sender, KeyEventArgs e)
     {
-        if (DataContext is not SettingsViewModel settings || e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
+        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
+            settings.SetShortcut(keys);
+    }
+
+    private void RecordShortcutKeys(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
+            settings.SetRecordShortcut(keys);
+    }
+
+    private static string? Pressed(KeyEventArgs e)
+    {
+        if (e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
             or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin or Key.Tab)
-            return;
+            return null;
         e.Handled = true;
         var parts = new List<string>();
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
@@ -76,7 +88,7 @@ public partial class SettingsView : UserControl
             Key.Scroll => "ScrollLock",
             _ => e.Key.ToString(),
         });
-        settings.SetShortcut(string.Join('+', parts));
+        return string.Join('+', parts);
     }
 
     private void ChooseScreenshotFolder(object? sender, RoutedEventArgs e) => ChooseScreenshotFolderAsync().Forget("Choosing the screenshot folder", tell: true);

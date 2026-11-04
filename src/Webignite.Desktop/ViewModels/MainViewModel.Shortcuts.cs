@@ -30,6 +30,8 @@ public partial class MainViewModel
         new("Ctrl+Shift+N", "Files: new folder"),
         new("Alt+Left, Alt+Right, Alt+Up", "Files: back, forward, up a folder"),
         new("Ctrl+L", "Files: type a path"),
+        new("Ctrl+Alt+S", "From any program: a screenshot (change it in Settings, Screenshots)"),
+        new("Ctrl+Alt+R", "From any program: start or stop recording the screen"),
         new("Ctrl+F", "Files: search this folder and everything below it"),
         new("Space", "Files: Quick Look, a big preview; arrows go through the folder"),
         new("Left, Right", "Files, column view: back a column, or open the picked folder"),

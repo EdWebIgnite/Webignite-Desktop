@@ -12,9 +12,37 @@ using Webignite.Desktop.Controls;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>Mark up a screenshot of a client's site with numbered notes, arrows and boxes, then mail it to them.</summary>
-public sealed partial class MarkupViewModel : ViewModelBase, IHoldsWork
+public sealed partial class MarkupViewModel : ViewModelBase, IHoldsWork, IDisposable
 {
-    public bool HoldsWork => Image is not null;
+    public bool HoldsWork => Image is not null || Recording is not null;
+
+    /// <summary>A screen recording just made, being trimmed and saved; the picture tools step aside meanwhile.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRecording), nameof(ShowsPicture))]
+    public partial RecordingViewModel? Recording { get; private set; }
+
+    public bool HasRecording => Recording is not null;
+    public bool ShowsPicture => Recording is null;
+
+    public void ShowRecording(string path, TimeSpan length, IVideoTools video, string? soundProblem)
+    {
+        Recording?.Dispose();
+        Recording = new RecordingViewModel(path, length, video, this, services, soundProblem);
+        Say(soundProblem ?? "Drag the handles to cut the start and end, then save it.", problem: soundProblem is not null);
+    }
+
+    public void CloseRecording()
+    {
+        Recording?.Dispose();
+        Recording = null;
+        Say("");
+    }
+
+    public void Dispose()
+    {
+        Recording?.Dispose();
+        Recording = null;
+    }
 
     private readonly AppServices services;
 
@@ -77,10 +105,19 @@ public sealed partial class MarkupViewModel : ViewModelBase, IHoldsWork
     /// <summary>Called when the page is shown, so new clients appear in the list.</summary>
     public void LoadClients()
     {
+        // Updated in place: emptying the list would make the client boxes drop the client picked.
         var chosen = Client?.Id;
-        Clients.Clear();
-        foreach (var c in services.Clients.List())
-            Clients.Add(c);
+        var fresh = services.Clients.List();
+        foreach (var gone in Clients.Where(c => fresh.All(f => f.Id != c.Id)).ToList())
+            Clients.Remove(gone);
+        for (var i = 0; i < fresh.Count; i++)
+        {
+            var at = Clients.ToList().FindIndex(c => c.Id == fresh[i].Id);
+            if (at < 0)
+                Clients.Insert(Math.Min(i, Clients.Count), fresh[i]);
+            else if (Clients[at] != fresh[i] && fresh[i].Id != chosen)
+                Clients[at] = fresh[i];
+        }
         Client = Clients.FirstOrDefault(c => c.Id == chosen);
     }
 
@@ -180,7 +217,9 @@ public sealed partial class MarkupViewModel : ViewModelBase, IHoldsWork
     }
 
     /// <summary>"Save to Bosveld Builders' folder" when the client has one, else "Save to Screenshots".</summary>
-    public string SaveToText => ClientFolder() is not null && Client is { } c ? $"Save to {c.Name}'s folder" : "Save to Screenshots";
+    public string SaveToText => ClientFolder() is not null && Client is { } c
+        ? $"Save to {c.Name}{(c.Name.EndsWith('s') ? "'" : "'s")} folder"
+        : "Save to Screenshots";
 
     private string? ClientFolder()
     {
@@ -204,11 +243,14 @@ public sealed partial class MarkupViewModel : ViewModelBase, IHoldsWork
     [RelayCommand(CanExecute = nameof(HasImage))]
     private void SaveToFolder() => SaveNow();
 
+    /// <summary>The client's folder when they have one, else Screenshots.</summary>
+    public string SaveFolder() => ClientFolder() ?? ScreenshotsFolder();
+
     private string? SaveNow()
     {
         if (Png() is not { } png)
             return null;
-        var folder = ClientFolder() ?? ScreenshotsFolder();
+        var folder = SaveFolder();
         try
         {
             Directory.CreateDirectory(folder);
