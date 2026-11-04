@@ -78,9 +78,13 @@ public sealed class FileTagTests
                 store.SaveTaggedFile(new TaggedFile { Id = "2", Path = @"C:\Projects\Fynbos\Old.pdf", Tags = ["final"] });
                 store.DeleteTaggedFile("2");
             }
-            using var again = new LocalStore(Path.Combine(folder, "t.db"), new Vault(key));
-            var read = Assert.Single(again.ListTaggedFiles());
-            Assert.Equal((@"C:\Projects\Fynbos\Quote.pdf", "abc-1"), (read.Path, read.FileKey));
+            using (var again = new LocalStore(Path.Combine(folder, "t.db"), new Vault(key)))
+            {
+                var read = Assert.Single(again.ListTaggedFiles());
+                Assert.Equal((@"C:\Projects\Fynbos\Quote.pdf", "abc-1"), (read.Path, read.FileKey));
+            }
+            // Windows keeps the file locked while a pooled connection holds it.
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
             Assert.DoesNotContain("Fynbos", System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(folder, "t.db"))), StringComparison.Ordinal);
         }
         finally
