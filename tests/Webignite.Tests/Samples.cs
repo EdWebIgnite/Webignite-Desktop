@@ -31,7 +31,15 @@ internal static class Samples
         Id = id,
         Document = Completed(NewInvoice(Priced(kind == DocumentKind.Quote ? "Site" : "Work", 1, total))) with { Kind = kind, DueOrExpiryDate = due ?? Today.AddDays(10) },
         Status = DocumentStatus.InXero,
-        XeroId = "x-" + id,
-        XeroNumber = (kind == DocumentKind.Quote ? "QU-" : "INV-") + id,
+        Xero = new()
+        {
+            Id = "x-" + id,
+            Number = (kind == DocumentKind.Quote ? "QU-" : "INV-") + id,
+        },
     };
+
+    /// <summary>The same document with its Xero part changed: <c>doc.WithXero(x => x with { Id = null })</c>.</summary>
+    public static StoredDocument WithXero(this StoredDocument d, Func<XeroLink, XeroLink> change) => d with { Xero = change(d.Xero) };
+
+    public static StoredDocument WithDelivery(this StoredDocument d, Func<Delivery, Delivery> change) => d with { Delivery = change(d.Delivery) };
 }

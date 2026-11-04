@@ -12,7 +12,7 @@ public static class DocumentCopies
         var from = source.Document;
         var reference = from.Reference;
         // An invoice made from a quote says which quote, unless the quote already had its own reference.
-        if (kind == DocumentKind.Invoice && from.Kind == DocumentKind.Quote && string.IsNullOrWhiteSpace(reference) && source.XeroNumber is { } quoteNumber)
+        if (kind == DocumentKind.Invoice && from.Kind == DocumentKind.Quote && string.IsNullOrWhiteSpace(reference) && source.Xero.Number is { } quoteNumber)
             reference = quoteNumber;
 
         var document = DocumentDefaults.Complete(new Document
@@ -37,7 +37,7 @@ public static class DocumentCopies
             Status = DocumentStatus.Draft,
             Source = DocumentSource.App,
             // Same customer, so the same Xero contact: no need to ask again.
-            XeroContactId = source.XeroContactId,
+            Xero = new() { ContactId = source.Xero.ContactId },
         };
     }
 }

@@ -10,14 +10,17 @@ public sealed class StatementsTests
     private static StoredDocument Invoice(string id, string customer, decimal total, DateTimeOffset? settled = null) => new()
     {
         Id = id,
-        XeroId = "x" + id,
-        XeroNumber = "INV-" + id,
         Status = DocumentStatus.InXero,
-        Settled = settled,
+        Settled = settled is { } on ? new SettledState { On = on, As = Settlement.Paid } : null,
         Document = Samples.Completed(Samples.NewInvoice()) with
         {
             Customer = new Customer { Name = customer },
             Total = total,
+        },
+        Xero = new()
+        {
+            Id = "x" + id,
+            Number = "INV-" + id,
         },
     };
 
@@ -101,7 +104,7 @@ public sealed class StatementsTests
     public void A_linked_contact_is_used_first()
     {
         var clients = new[] { new Client { Id = "c", Name = "Karoo Coffee", XeroContactId = "from-client" } };
-        var documents = new[] { Invoice("1", "Karoo Coffee", 10) with { XeroContactId = "from-invoice" } };
+        var documents = new[] { Invoice("1", "Karoo Coffee", 10).WithXero(x => x with { ContactId = "from-invoice" }) };
         Assert.Equal("from-client", Statements.ContactIdFor("karoo coffee", documents, clients));
         Assert.Equal("from-invoice", Statements.ContactIdFor("Karoo Coffee", documents, []));
         Assert.Null(Statements.ContactIdFor("Someone Else", documents, clients));

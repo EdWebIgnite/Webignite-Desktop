@@ -50,10 +50,10 @@ public partial class DocumentEditorViewModel : ViewModelBase
     }
 
     public DocumentKind Kind { get; }
-    public string Title => stored?.XeroNumber ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
+    public string Title => stored?.Xero.Number ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
     public string DueLabel => Kind == DocumentKind.Quote ? "Expires" : "Due";
     public string NumberNote =>
-        stored?.XeroNumber is not null ? "Created in Xero. Changes are made in Xero from here on."
+        stored?.Xero.Number is not null ? "Created in Xero. Changes are made in Xero from here on."
         : stored is { Status: DocumentStatus.AwaitingApproval } ? $"{(stored.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude")} prepared this. Check it, change anything, then create it in Xero."
         : "Xero gives it the next number when it is created.";
 
@@ -160,7 +160,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         // Saved onto the document as it is now, and only while it still hasn't gone to Xero. An editor left open
         // on another page mustn't wipe a Xero link made from here meanwhile, or the next Create makes a second one.
         var latest = services.Documents.SaveDraft(stored?.Id ?? StoredDocument.NewId(), Build());
-        if (latest is { XeroState: not XeroWriteState.None })
+        if (latest is { Xero.State: not XeroWriteState.None })
         {
             stored = latest;
             RefreshXero();

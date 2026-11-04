@@ -15,7 +15,7 @@ public sealed class TaskTests : IDisposable
         new() { Id = TaskItem.NewId(), Title = title, Due = due, Done = done, Created = Now };
 
     private static StoredDocument Stored(Document doc, DocumentStatus status, DateTimeOffset when, string? number = null) =>
-        new() { Id = StoredDocument.NewId(), Document = Samples.Completed(doc), Status = status, XeroNumber = number, Created = when, Updated = when };
+        new() { Id = StoredDocument.NewId(), Document = Samples.Completed(doc), Status = status, Created = when, Updated = when, Xero = new() { Number = number } };
 
     [Fact]
     public void Groups_by_due_date()
@@ -37,13 +37,13 @@ public sealed class TaskTests : IDisposable
     [Fact]
     public void A_quote_is_followed_up_a_week_after_it_was_emailed_and_never_before()
     {
-        var quote = Stored(Samples.NewInvoice() with { Kind = DocumentKind.Quote }, DocumentStatus.InXero, Now.AddDays(-10), "QU-0012")
-            with { XeroId = "q12" };
+        var quote = Stored(Samples.NewInvoice() with { Kind = DocumentKind.Quote }, DocumentStatus.InXero, Now.AddDays(-10), "QU-0012");
+        quote = quote with { Xero = quote.Xero with { Id = "q12" } };
         // In Xero but never emailed: the client hasn't seen it, so nothing to follow up.
         Assert.Empty(AutomaticTasks.Suggest([quote], new HashSet<string>(), new TaskSettings(), Today, Now));
-        Assert.Empty(AutomaticTasks.Suggest([quote with { Emailed = Now.AddDays(-3) }], new HashSet<string>(), new TaskSettings(), Today, Now));
+        Assert.Empty(AutomaticTasks.Suggest([quote with { Delivery = quote.Delivery with { Emailed = Now.AddDays(-3) } }], new HashSet<string>(), new TaskSettings(), Today, Now));
 
-        var task = Assert.Single(AutomaticTasks.Suggest([quote with { Emailed = Now.AddDays(-8) }], new HashSet<string>(), new TaskSettings(), Today, Now));
+        var task = Assert.Single(AutomaticTasks.Suggest([quote with { Delivery = quote.Delivery with { Emailed = Now.AddDays(-8) } }], new HashSet<string>(), new TaskSettings(), Today, Now));
         Assert.Equal("Follow up QU-0012 for Karoo Coffee Roasters", task.Title);
         Assert.Equal(Today, task.Due);
         Assert.Equal(TaskSource.Auto, task.Source);
@@ -53,15 +53,15 @@ public sealed class TaskTests : IDisposable
     public void An_overdue_invoice_gets_one_to_do_per_reminder_round()
     {
         var doc = Samples.NewInvoice() with { Date = Today.AddDays(-20), DueOrExpiryDate = Today.AddDays(-13) };
-        var invoice = Stored(doc, DocumentStatus.InXero, Now.AddDays(-20), "INV-0101") with { XeroId = "i101" };
+        var invoice = Stored(doc, DocumentStatus.InXero, Now.AddDays(-20), "INV-0101").WithXero(x => x with { Id = "i101" });
         var task = Assert.Single(AutomaticTasks.Suggest([invoice], new HashSet<string>(), new TaskSettings(), Today, Now));
         Assert.Equal($"Chase overdue INV-0101 for Karoo Coffee Roasters, {Money.Rand(450m)}", task.Title);
 
         // Reminder emailed yesterday: nothing new until a week has gone by, then the next round's to-do.
-        var chased = invoice with { Chased = Now.AddDays(-1), ChaseCount = 1 };
+        var chased = invoice with { Delivery = invoice.Delivery with { Chased = Now.AddDays(-1), ChaseCount = 1 } };
         var known = new HashSet<string> { task.AutoKey! };
         Assert.Empty(AutomaticTasks.Suggest([chased], known, new TaskSettings(), Today, Now));
-        var next = Assert.Single(AutomaticTasks.Suggest([chased with { Chased = Now.AddDays(-8) }], known, new TaskSettings(), Today, Now));
+        var next = Assert.Single(AutomaticTasks.Suggest([chased with { Delivery = chased.Delivery with { Chased = Now.AddDays(-8) } }], known, new TaskSettings(), Today, Now));
         Assert.NotEqual(task.AutoKey, next.AutoKey);
         Assert.True(AutomaticTasks.IsChase(next));
     }

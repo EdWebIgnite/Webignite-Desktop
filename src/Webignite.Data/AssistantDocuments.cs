@@ -89,7 +89,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         return store.List(only)
             .Where(s => wanted.Length == 0 || Webignite.Core.Clients.ClientDirectory.Key(s.Document.Customer.Name).Contains(wanted, StringComparison.Ordinal))
             .Take(Math.Clamp(limit <= 0 ? 20 : limit, 1, 100))
-            .Select(s => new Listed(s.Id, s.Document.Kind.ToString().ToLowerInvariant(), s.XeroNumber, s.Document.Customer.Name, s.Document.Reference,
+            .Select(s => new Listed(s.Id, s.Document.Kind.ToString().ToLowerInvariant(), s.Xero.Number, s.Document.Customer.Name, s.Document.Reference,
                 s.Document.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", Money.Rand(s.Document.Total ?? 0), StatusText(s),
                 s.Document.Lines.Select(l => l.IsPriced ? $"{l.Description}: {l.Quantity:0.##} x {Money.Rand(l.UnitPrice ?? 0)}" : l.Description).ToList()))
             .ToList();
@@ -97,11 +97,11 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
 
     private static string StatusText(StoredDocument s) => s switch
     {
-        { Emailed: not null } => "emailed to the customer",
-        { Approved: not null } => "approved in Xero, not emailed",
-        { XeroState: XeroWriteState.Verified } => "draft in Xero",
+        { Delivery.Emailed: not null } => "emailed to the customer",
+        { Delivery.Approved: not null } => "approved in Xero, not emailed",
+        { Xero.State: XeroWriteState.Verified } => "draft in Xero",
         { Status: DocumentStatus.AwaitingApproval } => "waiting for Eddie under To approve",
-        { XeroId: not null } => "in Xero",
+        { Xero.Id: not null } => "in Xero",
         _ => "draft on Eddie's PC",
     };
 }

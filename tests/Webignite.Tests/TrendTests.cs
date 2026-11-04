@@ -63,16 +63,15 @@ public sealed class TrendTests
     {
         Id = StoredDocument.NewId(),
         Status = DocumentStatus.InXero,
-        XeroStatus = "AUTHORISED",
-        SettledAs = settledAs,
-        Settled = settledAs is null ? null : DateTimeOffset.UtcNow,
+        Settled = settledAs is null ? null : new SettledState { On = DateTimeOffset.UtcNow, As = settledAs },
         Document = Samples.Completed(Samples.NewInvoice(Samples.Priced("Website", 1, amount))) with { Date = date, DueOrExpiryDate = due },
+        Xero = new() { Status = "AUTHORISED" },
     };
 
     private static StoredDocument Quote(DateOnly expires) => Invoice(1000m, Today.AddDays(-5), expires) with
     {
         Document = Invoice(1000m, Today.AddDays(-5), expires).Document with { Kind = DocumentKind.Quote },
-        XeroStatus = "SENT",
+        Xero = Invoice(1000m, Today.AddDays(-5), expires).Xero with { Status = "SENT" },
     };
 
     [Fact]

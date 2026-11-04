@@ -32,7 +32,7 @@ public static class DocumentHeadline
             var waiting = Receivables.QuotesOut(mine, today);
             if (waiting > 0)
                 parts.Add(Money.Rand(waiting) + " waiting on clients");
-            var accepted = mine.Count(d => d.SettledAs is Settlement.Accepted or Settlement.Invoiced);
+            var accepted = mine.Count(d => d.Settled?.As is Settlement.Accepted or Settlement.Invoiced);
             if (accepted > 0)
                 parts.Add($"{accepted} accepted");
         }
@@ -54,9 +54,9 @@ public static class DocumentHeadline
         if (!string.IsNullOrWhiteSpace(doc.Reference))
             parts.Add(doc.Reference.Trim());
 
-        if (stored.SettledAs == Settlement.Paid)
-            parts.Add(stored.PaidOn is { } paid ? "Paid " + Day(paid) : "Paid");
-        else if (stored.SettledAs is null && doc.DueOrExpiryDate is { } due)
+        if (stored.Settled?.As == Settlement.Paid)
+            parts.Add(stored.Xero.PaidOn is { } paid ? "Paid " + Day(paid) : "Paid");
+        else if (stored.Settled?.As is null && doc.DueOrExpiryDate is { } due)
         {
             var word = doc.Kind == DocumentKind.Quote ? "Expires" : "Due";
             if (Receivables.IsOverdue(stored, today))
@@ -82,9 +82,9 @@ public static class DocumentHeadline
     /// "Emailed to Thandi Mokoena 3 Nov" or, for mail sent before names were kept, "Emailed 3 Nov". Null when it
     /// hasn't been emailed from Webignite.
     /// </summary>
-    public static string? Emailed(StoredDocument stored) => stored.Emailed is not { } when ? null
-        : string.IsNullOrWhiteSpace(stored.EmailedTo) ? $"Emailed {Short(when)}"
-        : $"Emailed to {stored.EmailedTo.Trim()} {Short(when)}";
+    public static string? Emailed(StoredDocument stored) => stored.Delivery.Emailed is not { } when ? null
+        : string.IsNullOrWhiteSpace(stored.Delivery.EmailedTo) ? $"Emailed {Short(when)}"
+        : $"Emailed to {stored.Delivery.EmailedTo.Trim()} {Short(when)}";
 
     private static string Short(DateTimeOffset when) => when.ToLocalTime().ToString("d MMM", CultureInfo.InvariantCulture);
 
@@ -116,13 +116,13 @@ public static class DocumentHeadline
                 : $"{onThisPc} {noun}s are still on this PC. Open one and send it to Xero as a draft when it's ready.",
                 onThisPc == 1 ? "Show it" : "Show them", DocumentShow.NotInXero);
 
-        var drafts = mine.Count(d => d.Settled is null && XeroStatuses.IsDraft(d.XeroStatus));
+        var drafts = mine.Count(d => d.Settled is null && XeroStatuses.IsDraft(d.Xero.Status));
         if (drafts > 0)
             return new(drafts == 1
                 ? $"1 {noun} is a draft in Xero. Approve it in Xero when it can go to the client."
                 : $"{drafts} {noun}s are drafts in Xero. Approve them in Xero when they can go to the client.", null, null);
 
-        var accepted = mine.Count(d => d.SettledAs == Settlement.Accepted);
+        var accepted = mine.Count(d => d.Settled?.As == Settlement.Accepted);
         if (kind == DocumentKind.Quote && accepted > 0)
             return new(accepted == 1
                 ? "1 accepted quote has no invoice yet. Open it and pick Make invoice."

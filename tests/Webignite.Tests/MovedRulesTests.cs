@@ -16,9 +16,16 @@ public sealed class MovedRulesTests
 
     private static StoredDocument Invoice(DocumentStatus status, Settlement? settledAs = null, int dueInDays = 10, DateTimeOffset? checkedAt = null) => new()
     {
-        Id = StoredDocument.NewId(), Status = status, SettledAs = settledAs, Settled = settledAs is null ? null : DateTimeOffset.UnixEpoch,
-        XeroId = status == DocumentStatus.InXero ? "x1" : null, XeroChecked = checkedAt, XeroStatus = status == DocumentStatus.InXero ? "AUTHORISED" : null,
+        Id = StoredDocument.NewId(),
+        Status = status,
+        Settled = settledAs is null ? null : new SettledState { On = DateTimeOffset.UnixEpoch, As = settledAs },
         Document = Samples.Completed(Samples.NewInvoice() with { DueOrExpiryDate = Today.AddDays(dueInDays) }),
+        Xero = new()
+        {
+            Id = status == DocumentStatus.InXero ? "x1" : null,
+            Checked = checkedAt,
+            Status = status == DocumentStatus.InXero ? "AUTHORISED" : null,
+        },
     };
 
     [Fact]
@@ -63,7 +70,7 @@ public sealed class MovedRulesTests
     {
         var fromClaude = Invoice(DocumentStatus.AwaitingApproval);
         Assert.True(Approvals.CanReject(new WaitingItem(fromClaude, WaitingKind.FromAssistant, "")));
-        Assert.False(Approvals.CanReject(new WaitingItem(fromClaude with { XeroId = "x9" }, WaitingKind.FromAssistant, "")));
+        Assert.False(Approvals.CanReject(new WaitingItem(fromClaude with { Xero = fromClaude.Xero with { Id = "x9" } }, WaitingKind.FromAssistant, "")));
         Assert.False(Approvals.CanReject(new WaitingItem(fromClaude, WaitingKind.XeroDraft, "")));
     }
 

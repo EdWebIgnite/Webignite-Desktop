@@ -35,15 +35,15 @@ public sealed class PaymentWatch(LocalStore store, Func<XeroApi?> xero, TimeProv
         {
             var open = store.List().Where(Receivables.NeedsChecking).ToList();
             var standings = new XeroStandings(api);
-            var invoices = await standings.InvoicesAsync(open.Where(d => d.Document.Kind == DocumentKind.Invoice).Select(d => d.XeroId!), cancel);
-            var quotes = await standings.QuotesAsync(open.Where(d => d.Document.Kind == DocumentKind.Quote).Select(d => d.XeroId!), cancel);
+            var invoices = await standings.InvoicesAsync(open.Where(d => d.Document.Kind == DocumentKind.Invoice).Select(d => d.Xero.Id!), cancel);
+            var quotes = await standings.QuotesAsync(open.Where(d => d.Document.Kind == DocumentKind.Quote).Select(d => d.Xero.Id!), cancel);
 
             var news = new List<PaymentNews>();
             var now = clock.GetUtcNow();
             foreach (var doc in open)
             {
                 var found = doc.Document.Kind == DocumentKind.Invoice ? invoices : quotes;
-                if (!found.TryGetValue(doc.XeroId!, out var standing))
+                if (!found.TryGetValue(doc.Xero.Id!, out var standing))
                     continue;
                 // Applied to the document as it is now: it may have been changed while Xero was being read.
                 StoredDocument? changed = null;

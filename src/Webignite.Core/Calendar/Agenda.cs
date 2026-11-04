@@ -37,7 +37,7 @@ public static class Agenda
         foreach (var d in documents.Where(d => d.Status == DocumentStatus.InXero && d.Settled is null && d.Document.DueOrExpiryDate is { } date && InRange(date)))
         {
             var doc = d.Document;
-            var name = d.XeroNumber ?? (doc.Kind == DocumentKind.Quote ? "Quote" : "Invoice");
+            var name = d.Xero.Number ?? (doc.Kind == DocumentKind.Quote ? "Quote" : "Invoice");
             var customer = string.IsNullOrWhiteSpace(doc.Customer.Name) ? "" : $" ({doc.Customer.Name})";
             items.Add(doc.Kind == DocumentKind.Quote
                 ? new AgendaItem(doc.DueOrExpiryDate!.Value, AgendaKind.QuoteExpires, $"{name} expires{customer}", null, d.Id)

@@ -81,9 +81,12 @@ public sealed class MorningSummaryTests
         {
             Id = "d1",
             Status = DocumentStatus.InXero,
-            XeroId = "x1",
-            XeroNumber = "INV-0111",
             Document = Samples.Completed(Samples.NewInvoice()) with { DueOrExpiryDate = Today.AddDays(-5) },
+            Xero = new()
+            {
+                Id = "x1",
+                Number = "INV-0111",
+            },
         };
         var lines = MorningSummary.Build(Input(Mail("lerato@fynbosphysio.co.za", "Lerato", 1)) with
         {

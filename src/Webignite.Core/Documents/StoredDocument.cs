@@ -74,18 +74,52 @@ public sealed record StoredDocument
     public required Document Document { get; init; }
     public DocumentStatus Status { get; init; } = DocumentStatus.Draft;
     public DocumentSource Source { get; init; } = DocumentSource.App;
-    public string? XeroId { get; init; }
-    public string? XeroNumber { get; init; }
+
+    /// <summary>Its copy in Xero and what Xero last said about it.</summary>
+    public XeroLink Xero { get; init; } = new();
+
+    /// <summary>Approving, emailing and chasing it.</summary>
+    public Delivery Delivery { get; init; } = new();
+
+    /// <summary>Set when Xero says there's nothing left to chase: the invoice is paid, or the quote accepted or declined.</summary>
+    public SettledState? Settled { get; init; }
+
+    public DateTimeOffset Created { get; init; }
+    public DateTimeOffset Updated { get; init; }
+
+    public static string NewId() => Guid.CreateVersion7().ToString("N");
+}
+
+/// <summary>A document's copy in Xero: how the write went, and what Xero last said.</summary>
+public sealed record XeroLink
+{
+    public string? Id { get; init; }
+    public string? Number { get; init; }
 
     /// <summary>Where the Xero write stands, and the Xero contact it used.</summary>
-    public Xero.XeroWriteState XeroState { get; init; }
-    public string? XeroContactId { get; init; }
+    public Webignite.Core.Xero.XeroWriteState State { get; init; }
+    public string? ContactId { get; init; }
 
     /// <summary>Exactly what was sent to Xero, kept so it can be checked against what Xero saved.</summary>
-    public string? XeroSent { get; init; }
+    public string? Sent { get; init; }
 
-    public IReadOnlyList<string> XeroProblems { get; init; } = [];
+    public IReadOnlyList<string> Problems { get; init; } = [];
 
+    /// <summary>What Xero last said: its status (AUTHORISED, PAID, ACCEPTED...), what's still due and what's been paid.</summary>
+    public string? Status { get; init; }
+    public decimal? AmountDue { get; init; }
+    public decimal? AmountPaid { get; init; }
+
+    /// <summary>The day Xero says the invoice was paid in full.</summary>
+    public DateOnly? PaidOn { get; init; }
+
+    /// <summary>When Xero was last read for this document's status and payments.</summary>
+    public DateTimeOffset? Checked { get; init; }
+}
+
+/// <summary>Getting a document to the customer and following it up.</summary>
+public sealed record Delivery
+{
     /// <summary>When Eddie approved it in Xero from here (invoices become AUTHORISED).</summary>
     public DateTimeOffset? Approved { get; init; }
 
@@ -98,24 +132,11 @@ public sealed record StoredDocument
     /// <summary>When a reminder (invoice) or follow-up (quote) last went out, and how many so far.</summary>
     public DateTimeOffset? Chased { get; init; }
     public int ChaseCount { get; init; }
+}
 
-    /// <summary>When Xero said there's nothing left to chase: the invoice is paid, or the quote accepted or declined.</summary>
-    public DateTimeOffset? Settled { get; init; }
-    public Settlement? SettledAs { get; init; }
-
-    /// <summary>What Xero last said: its status (AUTHORISED, PAID, ACCEPTED...), what's still due and what's been paid.</summary>
-    public string? XeroStatus { get; init; }
-    public decimal? XeroAmountDue { get; init; }
-    public decimal? XeroAmountPaid { get; init; }
-
-    /// <summary>The day Xero says the invoice was paid in full.</summary>
-    public DateOnly? PaidOn { get; init; }
-
-    /// <summary>When Xero was last read for this document's status and payments.</summary>
-    public DateTimeOffset? XeroChecked { get; init; }
-
-    public DateTimeOffset Created { get; init; }
-    public DateTimeOffset Updated { get; init; }
-
-    public static string NewId() => Guid.CreateVersion7().ToString("N");
+/// <summary>When a document was settled and how. <see cref="As"/> is missing on a few settled before the reason was kept.</summary>
+public sealed record SettledState
+{
+    public required DateTimeOffset On { get; init; }
+    public Settlement? As { get; init; }
 }

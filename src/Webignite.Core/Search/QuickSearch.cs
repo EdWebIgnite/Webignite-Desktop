@@ -64,7 +64,7 @@ public static class QuickSearch
         {
             Add(hits, words, sources.Documents.Where(d => d.Document.Kind == kind).Select(d => new SearchHit(
                 kind == DocumentKind.Quote ? HitKind.Quote : HitKind.Invoice,
-                Join(d.XeroNumber, d.Document.Customer.Name),
+                Join(d.Xero.Number, d.Document.Customer.Name),
                 Join(d.Document.Reference, d.Document.Total is { } total ? Money.Rand(total) : null,
                     d.Document.Date?.ToString("d MMM yyyy", CultureInfo.InvariantCulture)), 0) { Document = d }),
                 h => Join(string.Join(" ", h.Document!.Document.Lines.Select(l => l.Description)), h.Document.Document.Customer.Email));

@@ -7,12 +7,12 @@ public sealed record XeroStanding(string Status, decimal? AmountDue, decimal? Am
 public sealed record PaymentNews(StoredDocument Stored, decimal Amount, bool PaidInFull)
 {
     public string Title => PaidInFull
-        ? $"{Stored.Document.Customer.Name} paid {Stored.XeroNumber ?? "an invoice"}"
+        ? $"{Stored.Document.Customer.Name} paid {Stored.Xero.Number ?? "an invoice"}"
         : $"Part payment from {Stored.Document.Customer.Name}";
 
     public string Text => PaidInFull
         ? $"{Money.Rand(Amount)} came in. Nothing more is owed on it."
-        : $"{Money.Rand(Amount)} came in for {Stored.XeroNumber ?? "an invoice"}. {Money.Rand(Stored.XeroAmountDue ?? 0)} is still owed.";
+        : $"{Money.Rand(Amount)} came in for {Stored.Xero.Number ?? "an invoice"}. {Money.Rand(Stored.Xero.AmountDue ?? 0)} is still owed.";
 }
 
 /// <summary>
@@ -23,16 +23,16 @@ public static class Receivables
 {
     /// <summary>Invoices and quotes worth reading from Xero: in Xero and not settled yet.</summary>
     public static bool NeedsChecking(StoredDocument d) =>
-        d.Status == DocumentStatus.InXero && d.XeroId is not null && d.Settled is null;
+        d.Status == DocumentStatus.InXero && d.Xero.Id is not null && d.Settled is null;
 
     /// <summary>An invoice the customer has and hasn't settled. Drafts still waiting for approval in Xero don't count.</summary>
     public static bool IsOpenInvoice(StoredDocument d) =>
         d.Document.Kind == DocumentKind.Invoice && d.Status == DocumentStatus.InXero && d.Settled is null
-        && !XeroStatuses.IsDraft(d.XeroStatus);
+        && !XeroStatuses.IsDraft(d.Xero.Status);
 
     /// <summary>What's still owed on an invoice: Xero's amount due when known, otherwise the total.</summary>
     public static decimal Outstanding(StoredDocument d) =>
-        IsOpenInvoice(d) ? Math.Max(0, d.XeroAmountDue ?? d.Document.Total ?? 0) : 0;
+        IsOpenInvoice(d) ? Math.Max(0, d.Xero.AmountDue ?? d.Document.Total ?? 0) : 0;
 
     public static bool IsOverdue(StoredDocument d, DateOnly today) =>
         Outstanding(d) > 0 && d.Document.DueOrExpiryDate is { } due && due < today;
@@ -43,7 +43,7 @@ public static class Receivables
     /// </summary>
     public static bool IsOpenQuote(StoredDocument d, DateOnly today) =>
         d.Document.Kind == DocumentKind.Quote && d.Status == DocumentStatus.InXero && d.Settled is null
-        && (d.Emailed is not null || d.XeroStatus == XeroStatuses.Sent)
+        && (d.Delivery.Emailed is not null || d.Xero.Status == XeroStatuses.Sent)
         && !(d.Document.DueOrExpiryDate < today);
 
     /// <summary>The word on a quote or invoice row: Draft, To approve, Overdue, Paid, Accepted and so on.</summary>
@@ -60,8 +60,8 @@ public static class Receivables
     /// Shown in green: paid, accepted or invoiced, or in Xero before Xero has been read for payments (and not
     /// overdue).
     /// </summary>
-    public static bool IsDone(StoredDocument d, DateOnly today) => Settlements.IsGood(d.SettledAs)
-        || (d.Status == DocumentStatus.InXero && d.XeroChecked is null && !IsOverdue(d, today));
+    public static bool IsDone(StoredDocument d, DateOnly today) => Settlements.IsGood(d.Settled?.As)
+        || (d.Status == DocumentStatus.InXero && d.Xero.Checked is null && !IsOverdue(d, today));
 
     public static decimal Owed(IEnumerable<StoredDocument> documents) => documents.Sum(Outstanding);
 
@@ -83,35 +83,38 @@ public static class Receivables
 
         var updated = stored with
         {
-            XeroStatus = xero.Status,
-            XeroAmountDue = xero.AmountDue,
-            XeroAmountPaid = xero.AmountPaid,
-            PaidOn = xero.PaidOn ?? stored.PaidOn,
-            Settled = settledAs is null ? stored.Settled : stored.Settled ?? now,
-            SettledAs = settledAs ?? stored.SettledAs,
+            Xero = stored.Xero with
+            {
+                Status = xero.Status,
+                AmountDue = xero.AmountDue,
+                AmountPaid = xero.AmountPaid,
+                PaidOn = xero.PaidOn ?? stored.Xero.PaidOn,
+            },
+            Settled = settledAs is null ? stored.Settled
+                : stored.Settled is { } settled ? settled with { As = settledAs } : new SettledState { On = now, As = settledAs },
         };
 
         PaymentNews? news = null;
-        var paidBefore = stored.XeroAmountPaid ?? 0;
-        if (stored.Document.Kind == DocumentKind.Invoice && stored.XeroChecked is not null
+        var paidBefore = stored.Xero.AmountPaid ?? 0;
+        if (stored.Document.Kind == DocumentKind.Invoice && stored.Xero.Checked is not null
             && xero.AmountPaid is { } paid && Money.Cents(paid) > Money.Cents(paidBefore))
             news = new PaymentNews(updated, paid - paidBefore, settledAs == Settlement.Paid);
 
-        var same = updated with { XeroChecked = stored.XeroChecked } == stored;
-        if (same && stored.XeroChecked is not null)
+        var same = updated with { Xero = updated.Xero with { Checked = stored.Xero.Checked } } == stored;
+        if (same && stored.Xero.Checked is not null)
             return (null, null);
-        return (updated with { XeroChecked = now }, news);
+        return (updated with { Xero = updated.Xero with { Checked = now } }, news);
     }
 
     /// <summary>How the invoice or quote stands, for the lists: "Paid", "Part paid", "Accepted", or null when Xero hasn't said.</summary>
-    public static string? Standing(StoredDocument d) => d.SettledAs switch
+    public static string? Standing(StoredDocument d) => d.Settled?.As switch
     {
         Settlement.Deleted => "Deleted in Xero",
         { } settled => Settlements.Label(settled),
-        _ when d.Document.Kind == DocumentKind.Invoice && d.XeroAmountPaid > 0 && d.XeroAmountDue > 0 => "Part paid",
-        _ when XeroStatuses.IsDraft(d.XeroStatus) => "Draft in Xero",
-        _ when d.XeroStatus == XeroStatuses.Authorised => "Approved",
-        _ when d.XeroStatus == XeroStatuses.Sent => "Sent",
+        _ when d.Document.Kind == DocumentKind.Invoice && d.Xero.AmountPaid > 0 && d.Xero.AmountDue > 0 => "Part paid",
+        _ when XeroStatuses.IsDraft(d.Xero.Status) => "Draft in Xero",
+        _ when d.Xero.Status == XeroStatuses.Authorised => "Approved",
+        _ when d.Xero.Status == XeroStatuses.Sent => "Sent",
         _ => null,
     };
 }

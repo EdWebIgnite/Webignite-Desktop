@@ -42,10 +42,10 @@ public sealed class StoreTests : IDisposable
     {
         using var store = Open();
         var first = store.Save(Stored(Samples.Completed(Samples.NewInvoice())));
-        var second = store.Save(first with { Status = DocumentStatus.InXero, XeroNumber = "INV-0001" });
+        var second = store.Save(first with { Status = DocumentStatus.InXero, Xero = first.Xero with { Number = "INV-0001" } });
 
         Assert.Equal(first.Created, second.Created);
-        Assert.Equal("INV-0001", store.Get(first.Id)!.XeroNumber);
+        Assert.Equal("INV-0001", store.Get(first.Id)!.Xero.Number);
         Assert.Single(store.List());
     }
 

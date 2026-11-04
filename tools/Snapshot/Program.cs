@@ -31,18 +31,45 @@ AppBuilder.Configure<App>()
 
 Sample("Karoo Coffee Roasters", DocumentKind.Invoice, ("Website hosting, November", 1, 450m), ("Content updates (hours)", 3.5m, 650m));
 Sample("Fynbos Physio", DocumentKind.Invoice, ("Monthly SEO", 1, 2800m));
-store.Save(store.List(DocumentKind.Invoice)[0] with { Status = DocumentStatus.InXero, XeroNumber = "INV-0107" });
+store.Save(store.List(DocumentKind.Invoice)[0] with { Status = DocumentStatus.InXero, Xero = store.List(DocumentKind.Invoice)[0].Xero with { Number = "INV-0107" } });
 Sample("Fynbos Physio", DocumentKind.Invoice, ("Monthly SEO, September", 1, 2800m));
 Sample("Bosveld Builders", DocumentKind.Invoice, ("Website deposit", 1, 7250m));
 {
     var invoices = store.List(DocumentKind.Invoice).Where(d => d.Status == DocumentStatus.Draft).ToList();
     var fynbos = invoices.First(d => d.Document.Lines[0].Description.Contains("September"));
-    store.Save(fynbos with { Status = DocumentStatus.InXero, XeroNumber = "INV-0103", XeroId = "x103", Document = fynbos.Document with { DueOrExpiryDate = DateOnly.FromDateTime(DateTime.Today).AddDays(-9) },
-        XeroStatus = "AUTHORISED", XeroAmountDue = 1300m, XeroAmountPaid = 1500m, XeroChecked = DateTimeOffset.Now,
-        Emailed = DateTimeOffset.Now.AddDays(-39), EmailedTo = "Lerato Dlamini" });
+    store.Save(fynbos with {
+        Status = DocumentStatus.InXero,
+        Document = fynbos.Document with { DueOrExpiryDate = DateOnly.FromDateTime(DateTime.Today).AddDays(-9) },
+        Xero = fynbos.Xero with
+        {
+            Number = "INV-0103",
+            Id = "x103",
+            Status = "AUTHORISED",
+            AmountDue = 1300m,
+            AmountPaid = 1500m,
+            Checked = DateTimeOffset.Now,
+        },
+        Delivery = fynbos.Delivery with
+        {
+            Emailed = DateTimeOffset.Now.AddDays(-39),
+            EmailedTo = "Lerato Dlamini",
+        },
+});
     var bosveldInvoice = invoices.First(d => d.Document.Customer.Name == "Bosveld Builders");
-    store.Save(bosveldInvoice with { Status = DocumentStatus.InXero, XeroNumber = "INV-0105", XeroId = "x105", XeroStatus = "PAID", XeroAmountDue = 0m, XeroAmountPaid = 7250m,
-        XeroChecked = DateTimeOffset.Now, Settled = DateTimeOffset.Now, SettledAs = Settlement.Paid, PaidOn = DateOnly.FromDateTime(DateTime.Today) });
+    store.Save(bosveldInvoice with {
+        Status = DocumentStatus.InXero,
+        Settled = new SettledState { On = DateTimeOffset.Now, As = Settlement.Paid },
+        Xero = bosveldInvoice.Xero with
+        {
+            Number = "INV-0105",
+            Id = "x105",
+            Status = "PAID",
+            AmountDue = 0m,
+            AmountPaid = 7250m,
+            Checked = DateTimeOffset.Now,
+            PaidOn = DateOnly.FromDateTime(DateTime.Today),
+        },
+});
 }
 Sample("Bosveld Builders", DocumentKind.Quote, ("New website, 6 pages", 1, 14500m), ("Logo refresh", 1, 3200m));
 
@@ -163,12 +190,26 @@ invoice.ContactQuestion = "Karoo Coffee Roasters isn't in Xero yet. Add them as 
 invoice.OfferNewContact = true;
 Save("invoice-xero-contact");
 var karoo = store.List(DocumentKind.Invoice).First(d => d.Document.Reference == "Website November");
-var uncertain = store.Save(karoo with { XeroState = Webignite.Core.Xero.XeroWriteState.Uncertain, XeroContactId = "k1",
-    XeroProblems = ["The connection to Xero broke during the write. Use Check Xero."] });
+var uncertain = store.Save(karoo with {
+    Xero = karoo.Xero with
+    {
+        State = Webignite.Core.Xero.XeroWriteState.Uncertain,
+        ContactId = "k1",
+        Problems = ["The connection to Xero broke during the write. Use Check Xero."],
+    },
+});
 vm.Invoices.Editor = new DocumentEditorViewModel(uncertain, services, () => vm.Invoices.Editor = null);
 Save("invoice-xero-uncertain");
-var verified = store.Save(uncertain with { XeroState = Webignite.Core.Xero.XeroWriteState.Verified, XeroId = "3f2a", XeroNumber = "INV-0111",
-    Status = DocumentStatus.InXero, XeroProblems = [] });
+var verified = store.Save(uncertain with {
+    Status = DocumentStatus.InXero,
+    Xero = uncertain.Xero with
+    {
+        State = Webignite.Core.Xero.XeroWriteState.Verified,
+        Id = "3f2a",
+        Number = "INV-0111",
+        Problems = [],
+    },
+});
 vm.Invoices.Editor = new DocumentEditorViewModel(verified, services, () => vm.Invoices.Editor = null);
 Save("invoice-in-xero");
 vm.Invoices.Editor.StartEmailCommand.Execute(null);
@@ -218,10 +259,10 @@ store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t2", Title = "Renew web
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t0", Title = "Send Karoo the logo files", Due = today.AddDays(-2), Created = DateTimeOffset.UtcNow });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t3", Title = "Update portfolio with Fynbos Physio site", Created = DateTimeOffset.UtcNow });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t4", Title = "Back up client sites", Due = today.AddDays(-1), Done = true, DoneAt = DateTimeOffset.UtcNow, Created = DateTimeOffset.UtcNow });
-var overdue = store.List(DocumentKind.Invoice).First(d => d.XeroNumber is not null);
+var overdue = store.List(DocumentKind.Invoice).First(d => d.Xero.Number is not null);
 store.Save(overdue with { Document = overdue.Document with { Date = today.AddDays(-21), DueOrExpiryDate = today.AddDays(-14) } });
 var quote = store.List(DocumentKind.Quote)[0];
-store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031", XeroStatus = "SENT" });
+store.Save(quote with { Status = DocumentStatus.InXero, Xero = quote.Xero with { Number = "QU-0031", Status = "SENT" } });
 Open(Page.Overview); // away and back, so To-do reads the sample to-dos above
 Open(Page.Todo);
 Save("todo");
@@ -849,7 +890,7 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
 
 // Nothing typed is lost: an invoice replaced by another one, and one left open when the app closes, are both saved.
 {
-    var invoices = store.List(DocumentKind.Invoice).Where(d => d.XeroState == Webignite.Core.Xero.XeroWriteState.None).Take(2).ToList();
+    var invoices = store.List(DocumentKind.Invoice).Where(d => d.Xero.State == Webignite.Core.Xero.XeroWriteState.None).Take(2).ToList();
     vm.Invoices.OpenDocument(invoices[0]);
     vm.Invoices.Editor!.Reference = "Typed before another opened";
     vm.Invoices.OpenDocument(invoices[1]);

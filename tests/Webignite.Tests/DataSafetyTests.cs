@@ -127,13 +127,13 @@ public sealed class NoLostWorkTests : IDisposable
     public void Update_changes_the_document_as_it_is_now_not_an_old_copy()
     {
         var old = store.Save(new StoredDocument { Id = StoredDocument.NewId(), Document = Samples.Completed(Samples.NewInvoice()) });
-        store.Save(old with { XeroAmountPaid = 500m });
+        store.Save(old with { Xero = old.Xero with { AmountPaid = 500m } });
 
-        var updated = store.Update(old.Id, current => current with { EmailedTo = "Thandi" });
+        var updated = store.Update(old.Id, current => current with { Delivery = current.Delivery with { EmailedTo = "Thandi" } });
 
-        Assert.Equal(500m, updated!.XeroAmountPaid);
-        Assert.Equal("Thandi", store.Get(old.Id)!.EmailedTo);
-        Assert.Equal(500m, store.Get(old.Id)!.XeroAmountPaid);
+        Assert.Equal(500m, updated!.Xero.AmountPaid);
+        Assert.Equal("Thandi", store.Get(old.Id)!.Delivery.EmailedTo);
+        Assert.Equal(500m, store.Get(old.Id)!.Xero.AmountPaid);
     }
 
     [Fact]
@@ -163,14 +163,14 @@ public sealed class StoredStatusTests
     {
         var saved = System.Text.Json.JsonSerializer.Serialize(new StoredDocument
         {
-            Id = "d1", Document = Samples.Completed(Samples.NewInvoice()), SettledAs = Settlement.Paid,
+            Id = "d1", Document = Samples.Completed(Samples.NewInvoice()), Settled = new SettledState { On = DateTimeOffset.UnixEpoch, As = Settlement.Paid },
         }, StoredJson.Options);
-        Assert.Contains("\"settled_as\":\"paid\"", saved);
+        Assert.Contains("\"as\":\"paid\"", saved);
 
         foreach (var (text, expected) in new[] { ("paid", Settlement.Paid), ("accepted", Settlement.Accepted), ("invoiced", Settlement.Invoiced), ("voided", Settlement.Voided), ("deleted", Settlement.Deleted), ("declined", Settlement.Declined) })
         {
-            var old = saved.Replace("\"settled_as\":\"paid\"", $"\"settled_as\":\"{text}\"");
-            Assert.Equal(expected, System.Text.Json.JsonSerializer.Deserialize<StoredDocument>(old, StoredJson.Options)!.SettledAs);
+            var old = saved.Replace("\"as\":\"paid\"", $"\"as\":\"{text}\"");
+            Assert.Equal(expected, System.Text.Json.JsonSerializer.Deserialize<StoredDocument>(old, StoredJson.Options)!.Settled?.As);
         }
     }
 }

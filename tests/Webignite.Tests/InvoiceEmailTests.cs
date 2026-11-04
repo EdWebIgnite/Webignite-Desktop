@@ -81,7 +81,7 @@ public sealed class InvoiceEmailTests
 
         Assert.Equal(["Invoices/inv1"], xero.Posts.Select(p => p.Path));
         Assert.Equal("AUTHORISED", xero.Posts[0].Body["Status"]!.GetValue<string>());
-        Assert.NotNull(ready.Stored.Approved);
+        Assert.NotNull(ready.Stored.Delivery.Approved);
         Assert.Equal("https://in.xero.com/abc", ready.Values.OnlineLink);
         Assert.Equal("Thandi", ready.Values.FirstName);
         Assert.Equal("accounts@karoocoffee.co.za", ready.ContactEmail);
@@ -94,8 +94,8 @@ public sealed class InvoiceEmailTests
 
         var sent = await sending.MarkSentAsync(ready.Stored, [new Webignite.Core.Mail.MailPerson("Thandi Mokoena", "thandi@karoocoffee.co.za")],
             TestContext.Current.CancellationToken);
-        Assert.NotNull(sent.Emailed);
-        Assert.Equal("Thandi Mokoena", sent.EmailedTo);
+        Assert.NotNull(sent.Delivery.Emailed);
+        Assert.Equal("Thandi Mokoena", sent.Delivery.EmailedTo);
         Assert.True(xero.Posts[^1].Body["SentToContact"]!.GetValue<bool>());
     }
 
@@ -115,7 +115,7 @@ public sealed class InvoiceEmailTests
     public async Task Only_checked_Xero_drafts_can_be_emailed()
     {
         var sending = Make(new FakeXero(), []);
-        var stored = Stored(DocumentKind.Invoice) with { XeroState = XeroWriteState.Uncertain };
+        var stored = Stored(DocumentKind.Invoice).WithXero(x => x with { State = XeroWriteState.Uncertain });
         Assert.NotNull(XeroSending.CannotSend(stored));
         await Assert.ThrowsAsync<XeroException>(() => sending.PrepareAsync(stored, "Webignite", TestContext.Current.CancellationToken));
     }
@@ -130,14 +130,14 @@ public sealed class InvoiceEmailTests
                 new Webignite.Data.Vault(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)));
             var old = store.Save(Stored(DocumentKind.Invoice));
             // The payment check runs while Eddie is writing the mail.
-            store.Save(old with { XeroStatus = "PAID", XeroAmountDue = 0m, XeroAmountPaid = 2725m });
+            store.Save(old with { Xero = old.Xero with { Status = "PAID", AmountDue = 0m, AmountPaid = 2725m } });
 
             var sending = Make(new FakeXero(), (s, change) => store.Update(s.Id, change)!);
             var sent = await sending.MarkSentAsync(old, cancel: TestContext.Current.CancellationToken);
 
-            Assert.NotNull(sent.Emailed);
-            Assert.Equal("PAID", store.Get(old.Id)!.XeroStatus);
-            Assert.Equal(2725m, store.Get(old.Id)!.XeroAmountPaid);
+            Assert.NotNull(sent.Delivery.Emailed);
+            Assert.Equal("PAID", store.Get(old.Id)!.Xero.Status);
+            Assert.Equal(2725m, store.Get(old.Id)!.Xero.AmountPaid);
         }
         finally
         {
@@ -149,10 +149,13 @@ public sealed class InvoiceEmailTests
     {
         Id = StoredDocument.NewId(),
         Document = Samples.Completed(Samples.NewInvoice() with { Kind = kind }),
-        XeroId = kind == DocumentKind.Quote ? "q1" : "inv1",
-        XeroNumber = kind == DocumentKind.Quote ? "QU-0042" : "INV-0111",
-        XeroState = XeroWriteState.Verified,
         Status = DocumentStatus.InXero,
+        Xero = new()
+        {
+            Id = kind == DocumentKind.Quote ? "q1" : "inv1",
+            Number = kind == DocumentKind.Quote ? "QU-0042" : "INV-0111",
+            State = XeroWriteState.Verified,
+        },
     };
 
     private static XeroSending Make(FakeXero xero, List<StoredDocument> saves) =>

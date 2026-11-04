@@ -16,7 +16,7 @@ public sealed class PaymentTests
 
     private static StoredDocument Invoice(string id, decimal total, int dueInDays) => Samples.InXero(id, total, Today.AddDays(dueInDays));
 
-    private static StoredDocument Quote(string id, decimal total) => Samples.InXero(id, total, Today.AddDays(10), DocumentKind.Quote) with { XeroNumber = "INV-" + id };
+    private static StoredDocument Quote(string id, decimal total) => Samples.InXero(id, total, Today.AddDays(10), DocumentKind.Quote).WithXero(x => x with { Number = "INV-" + id });
 
     [Fact]
     public void Before_Xero_is_read_the_whole_total_is_owed()
@@ -35,8 +35,8 @@ public sealed class PaymentTests
         Assert.Equal(400m, Receivables.Overdue([part, paid], Today));
         Assert.Equal("Part paid", Receivables.Standing(part));
         Assert.Equal("Paid", Receivables.Standing(paid));
-        Assert.Equal(Settlement.Paid, paid.SettledAs);
-        Assert.Equal(Today, paid.PaidOn);
+        Assert.Equal(Settlement.Paid, paid.Settled?.As);
+        Assert.Equal(Today, paid.Xero.PaidOn);
         Assert.False(Receivables.NeedsChecking(paid));
     }
 
@@ -66,7 +66,7 @@ public sealed class PaymentTests
     {
         var (first, news) = Receivables.Apply(Invoice("1", 1000m, -5), new XeroStanding("AUTHORISED", 400m, 600m, null), Now);
         Assert.Null(news);
-        Assert.Equal(Now, first!.XeroChecked);
+        Assert.Equal(Now, first!.Xero.Checked);
 
         var (same, none) = Receivables.Apply(first, new XeroStanding("AUTHORISED", 400m, 600m, null), Now.AddMinutes(30));
         Assert.Null(same);

@@ -96,7 +96,7 @@ flowchart BT
 | Project | Holds | Outside packages |
 | --- | --- | --- |
 | `Webignite.Core` | Every business rule and record: documents, money, clients, mail rules, time, layout. Pure functions with dates passed in. | none |
-| `Webignite.Data` | `LocalStore` (SQLite, one table per kind of record, payload encrypted by `Vault`; one file per area on the shared helpers in `LocalStore.Rows.cs`, and `LocalStore.Schedules.cs` for what the calendar calls for), `VaultKey`, backups, secrets, `AppLog`, the assistant rules for documents and to-dos. | Microsoft.Data.Sqlite, ProtectedData |
+| `Webignite.Data` | `LocalStore` (SQLite, one table per kind of record, payload encrypted by `Vault`; one file per area on the shared helpers in `LocalStore.Rows.cs`, and `LocalStore.Schedules.cs` for what the calendar calls for, `LocalStore.Upgrades.cs` for the steps that bring older data up to date), `VaultKey`, backups, secrets, `AppLog`, the assistant rules for documents and to-dos. | Microsoft.Data.Sqlite, ProtectedData |
 | `Webignite.Xero` | `XeroSession` (sign-in, tokens), `XeroApi`, `XeroDrafts` (create and check drafts), `XeroSending` (PDFs, mark sent), `XeroStandings` (payments). | none |
 | `Webignite.Mail` | `MailService` (sync, read, mark, move, send; `MailRetry` decides when a dropped connection is tried again), `MailComposer`, `MailReader`, `AssistantTools` (what an assistant may do with mail). | MailKit |
 | `Webignite.Services` | `DocumentService` and `ClientService`, through which pages read and change quotes, invoices and clients (each change applied to the record as stored now); `PaymentWatch`, `UptimeWatch`, `SiteChecker`: each has `Due(now)` and `RunAsync`. | none |
@@ -189,7 +189,7 @@ flowchart LR
 
 | Table | Holds |
 | --- | --- |
-| `documents` | Quotes and invoices (`StoredDocument`), with their Xero state. |
+| `documents` | Quotes and invoices (`StoredDocument`): the document, then its `Xero` link and what Xero last said, its `Delivery` (approved, emailed, chased) and `Settled` (when and how). |
 | `clients` | Clients with notes, files, projects, onboarding, hourly rates. |
 | `tasks`, `events` | To-dos and calendar events. |
 | `entries`, `recurring` | Money in and out, and monthly costs. |
@@ -220,7 +220,7 @@ sequenceDiagram
     Editor->>Drafts: CreateAsync
     Drafts->>Xero: POST as DRAFT (never approved here)
     Xero-->>Drafts: number and id
-    Drafts->>Store: save with XeroNumber, InXero (Store.Update: on top of any change made meanwhile)
+    Drafts->>Store: save with Xero.Number, InXero (Store.Update: on top of any change made meanwhile)
     Editor-->>Eddie: "Draft in Xero" status
 ```
 

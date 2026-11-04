@@ -112,13 +112,13 @@ public static class Projection
 
         foreach (var d in documents)
         {
-            if (d.Document.Kind != DocumentKind.Invoice || Settlements.IsCancelled(d.SettledAs))
+            if (d.Document.Kind != DocumentKind.Invoice || Settlements.IsCancelled(d.Settled?.As))
                 continue;
             if ((d.Document.DueOrExpiryDate ?? d.Document.Date) is not { } due || !Ledger.InMonth(due, first))
                 continue;
             var total = d.Document.Total ?? Money.Cents(d.Document.NetSubtotal() + (d.Document.TaxTotal ?? 0));
             if (total > 0)
-                items.Add(new ExpectedItem(due, Name(d.Document.Customer.Name, d.XeroNumber ?? d.Document.Reference), total));
+                items.Add(new ExpectedItem(due, Name(d.Document.Customer.Name, d.Xero.Number ?? d.Document.Reference), total));
         }
 
         foreach (var r in retainers)
@@ -153,8 +153,8 @@ public static class Projection
         source == CameInSource.Money
             ? Ledger.Sum(entries.Where(e => Ledger.InMonth(e.Date, month)), EntryKind.Received)
             : documents
-                .Where(d => d.Document.Kind == DocumentKind.Invoice && d.PaidOn is { } paid && Ledger.InMonth(paid, month))
-                .Sum(d => d.XeroAmountPaid ?? d.Document.Total ?? 0);
+                .Where(d => d.Document.Kind == DocumentKind.Invoice && d.Xero.PaidOn is { } paid && Ledger.InMonth(paid, month))
+                .Sum(d => d.Xero.AmountPaid ?? d.Document.Total ?? 0);
 
     /// <summary>The 12 months the chart and table show, oldest first.</summary>
     public static IReadOnlyList<ProjectionMonth> Months(IncomePlan plan, IEnumerable<MoneyEntry> entries,

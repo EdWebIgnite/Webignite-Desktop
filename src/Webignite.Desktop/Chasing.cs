@@ -22,7 +22,7 @@ public static class Chasing
         {
             var (ready, settled) = await sending.PrepareChaserAsync(stored, services.Settings.Xero.TenantName ?? "Webignite");
             if (ready is null)
-                return ($"Xero says {stored.XeroNumber ?? "it"} is {(settled is { } how ? Settlements.Word(how) : "settled")}, so there's nothing to chase.", false);
+                return ($"Xero says {stored.Xero.Number ?? "it"} is {(settled is { } how ? Settlements.Word(how) : "settled")}, so there's nothing to chase.", false);
 
             var pdf = await services.Drafts.AttachAsync(ready.PdfName, ready.Pdf);
             var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.ChaserFor(stored.Document.Kind), ready.Values);

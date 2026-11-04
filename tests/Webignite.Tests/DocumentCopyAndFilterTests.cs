@@ -6,11 +6,7 @@ public sealed class DocumentCopyAndFilterTests
     private static StoredDocument Quote(string number, string reference = "") => new()
     {
         Id = "q1",
-        XeroId = "xq1",
-        XeroNumber = number,
-        XeroContactId = "contact-1",
         Status = DocumentStatus.InXero,
-        Approved = DateTimeOffset.UtcNow,
         Document = Samples.Completed(Samples.NewInvoice(Samples.Priced("New website, 6 pages", 1, 14500m))) with
         {
             Kind = DocumentKind.Quote,
@@ -18,6 +14,13 @@ public sealed class DocumentCopyAndFilterTests
             Reference = reference.Length > 0 ? reference : null,
             Notes = "Half up front.",
         },
+        Xero = new()
+        {
+            Id = "xq1",
+            Number = number,
+            ContactId = "contact-1",
+        },
+        Delivery = new() { Approved = DateTimeOffset.UtcNow },
     };
 
     [Fact]
@@ -27,10 +30,10 @@ public sealed class DocumentCopyAndFilterTests
 
         Assert.NotEqual("q1", copy.Id);
         Assert.Equal(DocumentStatus.Draft, copy.Status);
-        Assert.Null(copy.XeroId);
-        Assert.Null(copy.XeroNumber);
-        Assert.Null(copy.Approved);
-        Assert.Equal("contact-1", copy.XeroContactId);
+        Assert.Null(copy.Xero.Id);
+        Assert.Null(copy.Xero.Number);
+        Assert.Null(copy.Delivery.Approved);
+        Assert.Equal("contact-1", copy.Xero.ContactId);
         Assert.Equal("Karoo Coffee Roasters", copy.Document.Customer.Name);
         Assert.Equal("New website, 6 pages", Assert.Single(copy.Document.Lines).Description);
         Assert.Equal("Half up front.", copy.Document.Notes);
@@ -58,12 +61,12 @@ public sealed class DocumentCopyAndFilterTests
     private static StoredDocument Invoice(string customer, decimal price, DateOnly date, bool inXero, string? number = null, string line = "Monthly SEO") => new()
     {
         Id = customer,
-        XeroNumber = number,
         Status = inXero ? DocumentStatus.InXero : DocumentStatus.Draft,
         Document = Samples.Completed(Samples.NewInvoice(Samples.Priced(line, 1, price)) with { Date = date }) with
         {
             Customer = new Customer { Name = customer },
         },
+        Xero = new() { Number = number },
     };
 
     private static readonly StoredDocument[] List =

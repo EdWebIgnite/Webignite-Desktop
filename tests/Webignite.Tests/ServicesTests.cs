@@ -39,12 +39,14 @@ public sealed class ServicesTests : IDisposable
             Id = "inv1",
             Document = Samples.Completed(Samples.NewInvoice(Samples.Priced("Work", 1, 1000m))),
             Status = DocumentStatus.InXero,
-            XeroId = "x1",
-            XeroNumber = "INV-0001",
-            // Xero was read once before and nothing was paid, so this payment is news.
-            XeroChecked = Now.AddHours(-1),
-            XeroAmountPaid = 0m,
-            XeroAmountDue = 1000m,
+            Xero = new()
+            {
+                Id = "x1",
+                Number = "INV-0001",
+                Checked = Now.AddHours(-1),
+                AmountPaid = 0m,
+                AmountDue = 1000m,
+            },
         });
         store.SaveTask(new TaskItem { Id = "t1", Title = "Chase INV-0001", DocumentId = invoice.Id, AutoKey = "invoice-overdue:inv1" });
         var xero = new FakeXero("""{"InvoiceID":"x1","Status":"PAID","AmountDue":0,"AmountPaid":1000,"FullyPaidOnDate":"/Date(1762128000000+0000)/"}""");
@@ -56,7 +58,7 @@ public sealed class ServicesTests : IDisposable
         var payment = Assert.Single(news);
         Assert.Equal(1000m, payment.Amount);
         Assert.True(payment.PaidInFull);
-        Assert.Equal(Settlement.Paid, store.Get("inv1")!.SettledAs);
+        Assert.Equal(Settlement.Paid, store.Get("inv1")!.Settled?.As);
         Assert.True(store.ListTasks().Single(t => t.Id == "t1").Done);
         Assert.Equal(Now, watch.LastRun);
         Assert.False(watch.Due(Now.AddMinutes(10)));
@@ -76,7 +78,7 @@ public sealed class ServicesTests : IDisposable
     [Fact]
     public async Task A_Xero_outage_is_a_problem_to_show_not_a_crash()
     {
-        store.Save(new StoredDocument { Id = "inv1", Document = Samples.Completed(Samples.NewInvoice()), Status = DocumentStatus.InXero, XeroId = "x1" });
+        store.Save(new StoredDocument { Id = "inv1", Document = Samples.Completed(Samples.NewInvoice()), Status = DocumentStatus.InXero, Xero = new() { Id = "x1" } });
         var watch = new PaymentWatch(store, () => Api(new FakeXero(null)), new FixedClock(Now));
         var (_, problem) = await watch.RunAsync(TestContext.Current.CancellationToken);
         Assert.StartsWith("Couldn't read payments from Xero", problem);
