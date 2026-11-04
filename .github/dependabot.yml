@@ -26,3 +26,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+  # The .NET SDK in global.json.
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: monthly

@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# A newer push to the same pull request cancels the run still going for the older one.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -13,5 +18,34 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
       - run: dotnet build Webignite.slnx -c Release
       - run: dotnet test --solution Webignite.slnx -c Release --no-build
+
+  # The tests again on Linux, then every screen drawn by the screenshot tool. A screen that fails to load,
+  # or a check in the tool that fails, fails the run. The pictures are kept with the run to look at.
+  screens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - run: dotnet build Webignite.slnx -c Release
+      - run: dotnet test --solution Webignite.slnx -c Release --no-build
+      - run: dotnet run --project tools/Snapshot -c Release --no-build -- screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots/
+          retention-days: 14
