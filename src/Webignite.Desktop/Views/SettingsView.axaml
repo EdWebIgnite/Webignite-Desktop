@@ -357,6 +357,43 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="card" IsVisible="{Binding ShowFiles}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Tags" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Tag files and folders in Files by right-clicking them. Each tag has a spot in Files' side list showing everything with it, from every client. Tags stay in Webignite, so Windows Explorer doesn't show them, and they follow a file renamed or moved on the same drive." />
+        <ItemsControl ItemsSource="{Binding FileTagRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:FileTagRow">
+              <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,8">
+                <TextBox Text="{Binding Name}" Width="220" LostFocus="FileTagNameLost" KeyDown="FileTagNameKeys" />
+                <ItemsControl ItemsSource="{Binding Colours}" VerticalAlignment="Center">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FileTagColour">
+                      <Button Classes="link" Padding="4" Command="{Binding PickCommand}" ToolTip.Tip="{Binding Colour}">
+                        <Border Classes="swatch" Classes.chosen="{Binding Chosen}">
+                          <c:CategoryDot Colour="{Binding Colour}" Size="12" />
+                        </Border>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Classes="link" Content="Remove" Command="{Binding RemoveCommand}" VerticalAlignment="Center"
+                        ToolTip.Tip="Takes the tag off the list and off every file. The files themselves stay." />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox Text="{Binding NewFileTag}" Width="220" PlaceholderText="e.g. Needs client OK" KeyDown="NewFileTagKeys" />
+          <Button Classes="quiet" Content="Add tag" Command="{Binding AddFileTagCommand}" />
+        </StackPanel>
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding FileTagMessage}" TextWrapping="Wrap"
+                   IsVisible="{Binding FileTagMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding ShowDocuments}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="New documents" />

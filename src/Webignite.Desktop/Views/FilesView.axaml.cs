@@ -331,6 +331,9 @@ public partial class FilesView : UserControl
                 items.Add(Item("Open in a new tab", null, () => files.OpenPickedInNewTabCommand.Execute(null)));
             if (windows && picked.Count == 1 && !picked[0].IsFolder)
                 items.Add(Item("Open with…", null, () => files.OpenWithCommand.Execute(null)));
+            if (files.IsTagView && picked.Count == 1)
+                items.Add(Item("Show in its folder", null, () => files.ShowInItsFolder(picked[0])));
+            items.Add(TagsMenu(files));
             items.Add(new Separator());
             items.Add(Item("Cut", "Ctrl+X", () =>
             {
@@ -364,6 +367,57 @@ public partial class FilesView : UserControl
             items.Add(Item("More options", null, () => WindowsMenu(files)));
         }
         return items;
+    }
+
+    // Tags: each one ticked when everything picked has it; picking it puts it on or takes it off.
+    private static MenuItem TagsMenu(FilesViewModel files)
+    {
+        var menu = new MenuItem { Header = "Tags", Icon = new Controls.Icon { Data = Icon("Tag"), Size = 15 } };
+        foreach (var tag in files.AllTags)
+        {
+            var tagItem = new MenuItem
+            {
+                Header = tag.Name,
+                Icon = new Controls.CategoryDot { Colour = tag.Colour, Size = 10 },
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsChecked = files.Selected.Count > 0 && files.Selected.All(r => r.Tags.Any(t => t.Id == tag.Id)),
+            };
+            tagItem.Click += (_, _) => files.ToggleTagCommand.Execute(tag);
+            menu.Items.Add(tagItem);
+        }
+        if (files.AllTags.Count > 0)
+            menu.Items.Add(new Separator());
+        menu.Items.Add(Item("Make or change tags…", null, () => App.Services?.Go.Settings("files")));
+        return menu;
+    }
+
+    private static Avalonia.Media.Geometry? Icon(string name) =>
+        Controls.IconConverter.Instance.Convert(name, typeof(object), null, System.Globalization.CultureInfo.InvariantCulture) as Avalonia.Media.Geometry;
+
+    // The Tags button: all files, or only those with one tag.
+    private void TagFilterOpening(object? sender, EventArgs e)
+    {
+        if (Files is not { } files || sender is not MenuFlyout flyout)
+            return;
+        flyout.Items.Clear();
+        var all = new MenuItem { Header = "All files", ToggleType = MenuItemToggleType.Radio, IsChecked = !files.IsFiltered };
+        all.Click += (_, _) => files.FilterByCommand.Execute(null);
+        flyout.Items.Add(all);
+        flyout.Items.Add(new Separator());
+        foreach (var tag in files.AllTags)
+        {
+            var only = new MenuItem
+            {
+                Header = tag.Name,
+                Icon = new Controls.CategoryDot { Colour = tag.Colour, Size = 10 },
+                ToggleType = MenuItemToggleType.Radio,
+                IsChecked = files.FilterTag?.Id == tag.Id,
+            };
+            only.Click += (_, _) => files.FilterByCommand.Execute(tag);
+            flyout.Items.Add(only);
+        }
+        flyout.Items.Add(new Separator());
+        flyout.Items.Add(Item("Make or change tags…", null, () => App.Services?.Go.Settings("files")));
     }
 
     private static MenuItem Item(string header, string? keys, Action run)

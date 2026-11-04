@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Webignite.Desktop.ViewModels;
@@ -25,6 +26,30 @@ public partial class SettingsView : UserControl
         var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Where should backups go?" });
         if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
             settings.SetBackupFolder(path);
+    }
+
+    private void FileTagNameLost(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is FileTagRow row)
+            row.KeepCommand.Execute(null);
+    }
+
+    private void FileTagNameKeys(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && (sender as Control)?.DataContext is FileTagRow row)
+        {
+            row.KeepCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private void NewFileTagKeys(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && DataContext is SettingsViewModel settings && settings.AddFileTagCommand.CanExecute(null))
+        {
+            settings.AddFileTagCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     private void ChooseClientRoot(object? sender, RoutedEventArgs e) => ChooseClientRootAsync().Forget("Choosing the client folders", tell: true);

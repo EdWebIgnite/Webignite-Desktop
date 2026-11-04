@@ -829,6 +829,78 @@ Save("client-mail");
     Save("files-preview");
     files.ClosePreviewCommand.Execute(null);
 
+    // Tags: put on from the right-click menu, shown as dots and in the Tags column, kept through a rename and a
+    // move, with a spot in the side list that gathers every tagged file from all the client folders.
+    files.Selected = [Row("Bosveld website brief.pdf"), Row("Logo")];
+    var final = files.AllTags.First(t => t.Id == "final");
+    var needsOk = files.AllTags.First(t => t.Id == "needs-ok");
+    files.ToggleTagCommand.Execute(final);
+    files.Selected = [Row("Quote QU-0042.pdf")];
+    files.ToggleTagCommand.Execute(needsOk);
+    files.ToggleTagCommand.Execute(final);
+    Check("Tagged files show their tags", Row("Bosveld website brief.pdf").TagText == "Final" && Row("Logo").HasTags
+        && Row("Quote QU-0042.pdf").TagText == "Final, Needs client OK");
+    Save("files-tags");
+    files.Selected = [Row("Quote QU-0042.pdf")];
+    files.ToggleTagCommand.Execute(final);
+    Check("Picking a tag again takes it off", Row("Quote QU-0042.pdf").TagText == "Needs client OK");
+    files.ToggleTagCommand.Execute(final);
+
+    var briefRow = Row("Bosveld website brief.pdf");
+    files.StartRename(briefRow);
+    briefRow.RenameText = "Website brief v2.pdf";
+    files.FinishRename(briefRow);
+    Check("A tag stays on a renamed file", Row("Website brief v2.pdf").TagText == "Final");
+    files.Selected = [Row("Website brief v2.pdf")];
+    files.CutCommand.Execute(null);
+    files.GoTo(Path.Combine(projects, "Fynbos"));
+    files.Paste();
+    Check("A tag goes with a file moved to another folder", Row("Website brief v2.pdf").TagText == "Final");
+    files.UndoCommand.Execute(null);
+    files.GoTo(site);
+    Check("And comes back with it on Undo", Row("Website brief v2.pdf").TagText == "Final");
+
+    files.Selected = [Row("Site visit 1.png")];
+    files.ToggleTagCommand.Execute(needsOk);
+    files.GroupByCommand.Execute(Webignite.Core.Files.FileGrouping.Tag);
+    Check("Grouping by tag follows the tag list, untagged last",
+        files.Items.OfType<FileHeaderRow>().Select(h => h.Heading).SequenceEqual(["Final", "Needs client OK", Webignite.Core.Files.FileLists.NoTag]));
+    Save("files-by-tag");
+    files.GroupByCommand.Execute(Webignite.Core.Files.FileGrouping.None);
+    files.FilterByCommand.Execute(final);
+    Check("The Tags button shows only files with that tag", files.Items.OfType<FileRowViewModel>().Select(r => r.Name).SequenceEqual(["Logo", "Quote QU-0042.pdf", "Website brief v2.pdf"]));
+    files.FilterByCommand.Execute(null);
+
+    File.WriteAllText(Path.Combine(projects, "Lerato Designs", "Final logo.svg"), "<svg/>");
+    files.GoTo(Path.Combine(projects, "Lerato Designs"));
+    files.Selected = [Row("Final logo.svg")];
+    files.ToggleTagCommand.Execute(final);
+    Check("Each tag has a spot in the side list", files.Places.Any(g => g.Title == "TAGS" && g.Places.Any(p => p.Name == "Final" && p.HasColour)));
+    files.Places.First(g => g.Title == "TAGS").Places.First(p => p.Name == "Final").GoCommand.Execute(null);
+    Check("A tag's spot gathers its files from every client folder", files.IsTagView
+        && files.Items.OfType<FileRowViewModel>().Select(r => r.Name).Order().SequenceEqual(["Final logo.svg", "Logo", "Quote QU-0042.pdf", "Website brief v2.pdf"]));
+    Save("files-tag-view");
+    files.ShowInItsFolder(Row("Final logo.svg"));
+    Check("Show in its folder opens the folder with the file picked", files.Folder == Path.Combine(projects, "Lerato Designs") && files.Selected.Single().Name == "Final logo.svg");
+    files.BackCommand.Execute(null);
+    Check("Back returns to the tag's files", files.IsTagView);
+    files.GoTo(site);
+
+    // Settings: tags renamed and recoloured keep their files; a removed tag comes off them.
+    Open(Page.Settings);
+    var tagSettings = (SettingsViewModel)vm[Page.Settings].Main.Page;
+    tagSettings.Open("files");
+    tagSettings.FileTagRows.First(r => r.Tag.Id == "needs-ok").Colours.First(c => c.Colour == "pink").PickCommand.Execute(null);
+    tagSettings.NewFileTag = "Logo files";
+    tagSettings.AddFileTagCommand.Execute(null);
+    Check("A tag can be added and recoloured in Settings", services.FileTags.Tags.Any(t => t.Name == "Logo files")
+        && services.FileTags.Tags.First(t => t.Id == "needs-ok").Colour == "pink");
+    Save("settings-file-tags");
+    Open(Page.Files);
+    Check("Files shows a tag's new colour straight away", Row("Quote QU-0042.pdf").Tags.Any(t => t.Colour == "pink"));
+    tagSettings.FileTagRows.First(r => r.Tag.Id == "invoice-sent").RemoveCommand.Execute(null);
+    Check("A removed tag leaves the side list", !files.Places.First(g => g.Title == "TAGS").Places.Any(p => p.Name == "Invoice sent"));
+
     services.Go.Folder(Path.Combine(site, "Logo"), newTab: true);
     Check("A folder opens in a Files tab of its own", vm.Open.Count(h => h.Key == Page.Files) == 2 && vm.Files.Folder == Path.Combine(site, "Logo"));
     vm.Close(vm.Current);

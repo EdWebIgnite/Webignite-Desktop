@@ -5,6 +5,12 @@
              xmlns:files="using:Webignite.Core.Files"
              x:Class="Webignite.Desktop.Views.FilesView"
              x:DataType="vm:FilesViewModel">
+  <UserControl.Resources>
+    <!-- A tag's dot, as in Finder. -->
+    <DataTemplate x:Key="TagDot" x:DataType="files:FileTag">
+      <c:CategoryDot Colour="{Binding Colour}" Size="9" />
+    </DataTemplate>
+  </UserControl.Resources>
   <Grid ColumnDefinitions="220,*">
     <!-- Side list: client folders, the usual folders, every drive -->
     <Border Grid.Column="0" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
@@ -19,7 +25,10 @@
                     <DataTemplate x:DataType="vm:FilePlace">
                       <Button Classes="place" Command="{Binding GoCommand}" ToolTip.Tip="{Binding Path}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                          <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" VerticalAlignment="Center" />
+                          <Panel Width="16" VerticalAlignment="Center">
+                            <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" IsVisible="{Binding !HasColour}" />
+                            <c:CategoryDot Colour="{Binding Colour}" Size="10" IsVisible="{Binding HasColour}" HorizontalAlignment="Center" />
+                          </Panel>
                           <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="150" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
@@ -43,12 +52,22 @@
             <Button Classes="quiet format icon" Command="{Binding UpCommand}" ToolTip.Tip="Up a folder (Alt+Up)"><c:Icon Data="{StaticResource Icon.Up}" Size="16" /></Button>
           </StackPanel>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" Margin="10,0,0,0">
-            <Button Classes="quiet format icon" Command="{Binding NewFolderCommand}" ToolTip.Tip="New folder (Ctrl+Shift+N)"><c:Icon Data="{StaticResource Icon.FolderPlus}" Size="16" /></Button>
+            <Button Classes="quiet format icon" Command="{Binding NewFolderCommand}" ToolTip.Tip="New folder (Ctrl+Shift+N)" IsVisible="{Binding !IsTagView}"><c:Icon Data="{StaticResource Icon.FolderPlus}" Size="16" /></Button>
             <Button Classes="quiet format icon" Command="{Binding UndoCommand}" ToolTip.Tip="{Binding UndoText}"><c:Icon Data="{StaticResource Icon.Undo}" Size="16" /></Button>
             <Border Width="1" Background="{DynamicResource Line}" Margin="6,4" />
             <Button Classes="quiet format icon" Classes.on="{Binding IsThumbnails}" Command="{Binding ShowAsCommand}" CommandParameter="{x:Static files:FileView.Thumbnails}" ToolTip.Tip="Thumbnails"><c:Icon Data="{StaticResource Icon.Tiles}" Size="16" /></Button>
             <Button Classes="quiet format icon" Classes.on="{Binding IsList}" Command="{Binding ShowAsCommand}" CommandParameter="{x:Static files:FileView.List}" ToolTip.Tip="List"><c:Icon Data="{StaticResource Icon.Bullets}" Size="16" /></Button>
             <Button Classes="quiet format icon" Classes.on="{Binding IsDetails}" Command="{Binding ShowAsCommand}" CommandParameter="{x:Static files:FileView.Details}" ToolTip.Tip="Details"><c:Icon Data="{StaticResource Icon.Table}" Size="16" /></Button>
+            <Button Classes="quiet format" Classes.on="{Binding IsFiltered}" ToolTip.Tip="Show only files with a tag" IsVisible="{Binding !IsTagView}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <c:CategoryDot Colour="{Binding FilterTag.Colour, FallbackValue={x:Null}}" Size="8" IsVisible="{Binding IsFiltered}" />
+                <TextBlock Text="{Binding TagFilterText}" MaxWidth="110" TextTrimming="CharacterEllipsis" />
+                <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="TagFilterOpening" />
+              </Button.Flyout>
+            </Button>
             <Button Classes="quiet format" ToolTip.Tip="Group by">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <TextBlock Text="Group" />
@@ -59,6 +78,7 @@
                   <MenuItem Header="Not grouped" Command="{Binding GroupByCommand}" CommandParameter="{x:Static files:FileGrouping.None}" />
                   <MenuItem Header="By kind" Command="{Binding GroupByCommand}" CommandParameter="{x:Static files:FileGrouping.Kind}" />
                   <MenuItem Header="By date" Command="{Binding GroupByCommand}" CommandParameter="{x:Static files:FileGrouping.Date}" />
+                  <MenuItem Header="By tag" Command="{Binding GroupByCommand}" CommandParameter="{x:Static files:FileGrouping.Tag}" />
                 </MenuFlyout>
               </Button.Flyout>
             </Button>
@@ -105,15 +125,16 @@
         <DockPanel IsVisible="{Binding !IsPreviewing}">
           <!-- Column headings for the details view: click to sort, again for the other way round. -->
           <Border DockPanel.Dock="Top" Classes="stickyhead" Padding="16,0,24,0" IsVisible="{Binding IsDetails}">
-            <Grid ColumnDefinitions="*,170,150,90">
+            <Grid ColumnDefinitions="*,160,140,150,80">
               <Button Grid.Column="0" Classes="link sorthead" Content="Name" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Name}" />
               <Button Grid.Column="1" Classes="link sorthead" Content="Date changed" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Modified}" />
-              <Button Grid.Column="2" Classes="link sorthead" Content="Kind" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Kind}" />
-              <Button Grid.Column="3" Classes="link sorthead" Content="Size" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Size}" HorizontalAlignment="Right" />
+              <Button Grid.Column="2" Classes="link sorthead" Content="{Binding KindHeading}" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Kind}" />
+              <TextBlock Grid.Column="3" Classes="label" Text="Tags" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0" />
+              <Button Grid.Column="4" Classes="link sorthead" Content="Size" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Size}" HorizontalAlignment="Right" />
             </Grid>
           </Border>
           <Panel>
-            <c:EmptyState Title="This folder is empty" Text="Drag files here to copy them in, or make a new folder." IsVisible="{Binding IsEmpty}" Margin="0,60,0,0" />
+            <c:EmptyState Title="{Binding EmptyTitle}" Text="{Binding EmptyText}" IsVisible="{Binding IsEmpty}" Margin="0,60,0,0" />
             <ListBox x:Name="FileList" Classes="files" Classes.thumbs="{Binding IsThumbnails}" ItemsSource="{Binding Items}" SelectionMode="Multiple"
                      Background="Transparent" DragDrop.AllowDrop="True" Padding="8,6"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -127,19 +148,28 @@
                 <DataTemplate DataType="vm:FileRowViewModel">
                   <Panel Classes.cut="{Binding IsCut}">
                     <!-- Details -->
-                    <Grid ColumnDefinitions="*,170,150,90" IsVisible="{Binding Owner.IsDetails}" Height="30">
-                      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" Classes.folder="{Binding IsFolder}" />
+                    <Grid ColumnDefinitions="*,160,140,150,80" IsVisible="{Binding Owner.IsDetails}" Height="30">
+                      <DockPanel VerticalAlignment="Center">
+                        <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" Classes.folder="{Binding IsFolder}" Margin="0,0,10,0" />
                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" IsVisible="{Binding !IsRenaming}" VerticalAlignment="Center" />
-                      </StackPanel>
-                      <TextBlock Grid.Column="1" Classes="muted" Text="{Binding ModifiedText}" VerticalAlignment="Center" />
-                      <TextBlock Grid.Column="2" Classes="muted" Text="{Binding Kind}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Grid.Column="3" Classes="muted" Text="{Binding SizeText}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      </DockPanel>
+                      <TextBlock Grid.Column="1" Classes="muted" Text="{Binding ModifiedText}" VerticalAlignment="Center" Margin="6,0" />
+                      <TextBlock Grid.Column="2" Classes="muted" Text="{Binding KindText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0" ToolTip.Tip="{Binding Entry.Path}" />
+                      <DockPanel Grid.Column="3" VerticalAlignment="Center" Margin="6,0" IsVisible="{Binding HasTags}" ToolTip.Tip="{Binding TagText}">
+                        <ItemsControl DockPanel.Dock="Left" ItemsSource="{Binding Tags}" ItemTemplate="{StaticResource TagDot}" VerticalAlignment="Center" Margin="0,0,6,0">
+                          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <TextBlock Classes="muted" Text="{Binding TagText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                      </DockPanel>
+                      <TextBlock Grid.Column="4" Classes="muted" Text="{Binding SizeText}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                     </Grid>
                     <!-- List -->
                     <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding Owner.IsList}" Height="26">
                       <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" Classes.folder="{Binding IsFolder}" VerticalAlignment="Center" />
                       <TextBlock Text="{Binding Name}" IsVisible="{Binding !IsRenaming}" VerticalAlignment="Center" />
+                      <ItemsControl ItemsSource="{Binding Tags}" ItemTemplate="{StaticResource TagDot}" VerticalAlignment="Center" ToolTip.Tip="{Binding TagText}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                      </ItemsControl>
                     </StackPanel>
                     <!-- Thumbnails -->
                     <StackPanel IsVisible="{Binding Owner.IsThumbnails}" Width="{Binding Owner.ThumbnailSize}" Spacing="6" Margin="4">
@@ -152,6 +182,9 @@
                       </Border>
                       <TextBlock Text="{Binding Name}" TextAlignment="Center" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
                                  FontSize="12" IsVisible="{Binding !IsRenaming}" />
+                      <ItemsControl ItemsSource="{Binding Tags}" ItemTemplate="{StaticResource TagDot}" HorizontalAlignment="Center" IsVisible="{Binding HasTags}" ToolTip.Tip="{Binding TagText}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                      </ItemsControl>
                     </StackPanel>
                     <!-- Renaming, in any view -->
                     <StackPanel IsVisible="{Binding IsRenaming}" VerticalAlignment="Center" Margin="26,0,0,0">

@@ -126,6 +126,10 @@ public sealed partial class LocalStore : IDisposable
                 name TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS file_tags (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
             """);
         try
         {

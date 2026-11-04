@@ -32,6 +32,7 @@ public sealed class Navigator
     internal Action<Client>? OpenClientInNewTabAction { get; set; }
     internal Action<MailSummary>? OpenMailInNewTabAction { get; set; }
     internal Action<string, bool>? OpenFolderAction { get; set; }
+    internal Action<string>? OpenSettingsAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -59,6 +60,9 @@ public sealed class Navigator
 
     /// <summary>Opens a folder in Files, or in a Files tab of its own (Ctrl+click or a middle click on a folder).</summary>
     public void Folder(string path, bool newTab = false) => OpenFolderAction?.Invoke(path, newTab);
+
+    /// <summary>Opens Settings at a section, by its key (e.g. "files").</summary>
+    public void Settings(string section) => OpenSettingsAction?.Invoke(section);
 
     /// <summary>Opens a client in a tab of its own (Ctrl+click or a middle click on the client).</summary>
     public void ClientInNewTab(Client client) => OpenClientInNewTabAction?.Invoke(client);
