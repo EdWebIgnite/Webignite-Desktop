@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Clients;
 using Webignite.Core.Documents;
 using Webignite.Core.Time;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -63,7 +64,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         OnPropertyChanged(nameof(DayChoices));
         Day = wasToday ? DayChoices[0] : DayChoices.FirstOrDefault(c => c.Value == keep) ?? DayChoices[0];
 
-        var month = Webignite.Core.Dates.MonthStart(today);
+        var month = Dates.MonthStart(today);
         InvoiceMonths = [new("This month", month), new("Last month", month.AddMonths(-1))];
         OnPropertyChanged(nameof(InvoiceMonths));
         InvoiceMonth = InvoiceMonths.FirstOrDefault(c => c.Label == invoiceLabel) ?? InvoiceMonths[0];

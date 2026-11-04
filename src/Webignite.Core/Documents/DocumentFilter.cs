@@ -70,7 +70,7 @@ public sealed record DocumentFilter(string Text = "", DocumentShow Show = Docume
     /// <summary>The first and last day of a period, counted from today.</summary>
     public static (DateOnly From, DateOnly To) Range(DocumentPeriod period, DateOnly today)
     {
-        var month = Webignite.Core.Dates.MonthStart(today);
+        var month = Dates.MonthStart(today);
         return period switch
         {
             DocumentPeriod.ThisMonth => (month, month.AddMonths(1).AddDays(-1)),

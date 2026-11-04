@@ -14,7 +14,7 @@ public static class TimeInvoice
     /// <summary>The lines, and how much time had no rate and was left out.</summary>
     public static (IReadOnlyList<Line> Lines, int Unpriced) Lines(IEnumerable<TimeEntry> entries, Client client, DateOnly month)
     {
-        var start = Webignite.Core.Dates.MonthStart(month);
+        var start = Dates.MonthStart(month);
         var theirs = entries.Where(e => e.ClientId == client.Id && e.Date >= start && e.Date < start.AddMonths(1)).ToList();
         var lines = new List<Line>();
         var unpriced = 0;
@@ -52,7 +52,7 @@ public static class TimeInvoice
             Kind = DocumentKind.Invoice,
             Origin = DocumentOrigin.New,
             Customer = new Customer { Name = client.Name, Email = client.Email },
-            Reference = "Time, " + Webignite.Core.Dates.MonthStart(month).ToString("MMMM yyyy", CultureInfo.InvariantCulture),
+            Reference = "Time, " + Dates.MonthStart(month).ToString("MMMM yyyy", CultureInfo.InvariantCulture),
             Lines = lines,
         }, settings, today);
     }

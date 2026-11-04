@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Clients;
 using Webignite.Core.Time;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -24,7 +25,7 @@ public partial class ClientDetailViewModel
     {
         // All time for the client: a small business logs a few thousand entries at most, so reading them is cheap.
         var entries = services.Store.ListTime(DateOnly.MinValue, DateOnly.MaxValue).Where(e => e.ClientId == client.Id).ToList();
-        var month = Webignite.Core.Dates.MonthStart(Today);
+        var month = Dates.MonthStart(Today);
         var all = entries.Sum(e => e.Minutes);
         var thisMonth = entries.Where(e => e.Date >= month).Sum(e => e.Minutes);
         TimeSummary = all == 0 ? "No time logged yet." : $"{TimeRules.Format(all)} in all, {TimeRules.Format(thisMonth)} this month.";

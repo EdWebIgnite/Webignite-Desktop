@@ -6,8 +6,7 @@ public static class RecurringExpenses
     public static string Key(RecurringExpense recurring, DateOnly month) => string.Create(CultureInfo.InvariantCulture, $"recurring:{recurring.Id}:{month:yyyy-MM}");
 
     /// <summary>The day it goes off in a given month. Day 31 lands on the 30th in November, the 28th or 29th in February.</summary>
-    public static DateOnly DateIn(RecurringExpense recurring, DateOnly month) =>
-        new(month.Year, month.Month, Math.Min(Math.Clamp(recurring.DayOfMonth, 1, 31), DateTime.DaysInMonth(month.Year, month.Month)));
+    public static DateOnly DateIn(RecurringExpense recurring, DateOnly month) => MonthlySchedule.DateIn(recurring.DayOfMonth, month);
 
     /// <summary>
     /// The expenses that monthly items call for up to today and haven't been added yet.
@@ -20,8 +19,7 @@ public static class RecurringExpenses
         var due = new List<MoneyEntry>();
         foreach (var item in recurring.Where(r => !r.Paused))
         {
-            var last = Webignite.Core.Dates.MonthStart(item.Ends is { } ends && ends < today ? ends : today);
-            for (var month = Webignite.Core.Dates.MonthStart(item.Starts); month <= last; month = month.AddMonths(1))
+            foreach (var month in MonthlySchedule.MonthsSoFar(item.Starts, item.Ends, today))
             {
                 var date = DateIn(item, month);
                 var key = Key(item, month);
@@ -49,11 +47,11 @@ public static class RecurringExpenses
     /// </summary>
     public static RecurringExpense SetPaused(RecurringExpense recurring, bool paused, DateOnly today) => paused
         ? recurring with { Paused = true }
-        : recurring with { Paused = false, Starts = Webignite.Core.Dates.MonthStart(today) > recurring.Starts ? Webignite.Core.Dates.MonthStart(today) : recurring.Starts };
+        : recurring with { Paused = false, Starts = MonthlySchedule.ResumeFrom(recurring.Starts, today) };
 
     /// <summary>Monthly cost of everything that is running, for "R x a month" summaries.</summary>
     public static decimal MonthlyTotal(IEnumerable<RecurringExpense> recurring, DateOnly today) =>
-        recurring.Where(r => !r.Paused && (r.Ends is null || Webignite.Core.Dates.MonthStart(r.Ends.Value) >= Webignite.Core.Dates.MonthStart(today))).Sum(r => r.Amount);
+        recurring.Where(r => MonthlySchedule.IsRunning(r.Paused, r.Ends, today)).Sum(r => r.Amount);
 
     public static IReadOnlyList<string> Check(RecurringExpense recurring)
     {
@@ -64,7 +62,7 @@ public static class RecurringExpenses
             problems.Add("Type an amount more than R 0.");
         if (recurring.DayOfMonth is < 1 or > 31)
             problems.Add("The day of the month is 1 to 31.");
-        if (recurring.Ends is { } ends && Webignite.Core.Dates.MonthStart(ends) < Webignite.Core.Dates.MonthStart(recurring.Starts))
+        if (MonthlySchedule.EndsBeforeStart(recurring.Starts, recurring.Ends))
             problems.Add("It can't end before it starts.");
         return problems;
     }

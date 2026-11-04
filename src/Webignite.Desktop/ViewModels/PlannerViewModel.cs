@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Calendar;
 using Webignite.Core.Tasks;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -15,7 +16,7 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
     public PlannerViewModel(AppServices services)
     {
         this.services = services;
-        weekStart = Webignite.Core.Dates.WeekStart(Today);
+        weekStart = Dates.WeekStart(Today);
         Refresh();
     }
 
@@ -46,7 +47,7 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
     [RelayCommand]
     private void ThisWeek()
     {
-        weekStart = Webignite.Core.Dates.WeekStart(Today);
+        weekStart = Dates.WeekStart(Today);
         Refresh();
     }
 

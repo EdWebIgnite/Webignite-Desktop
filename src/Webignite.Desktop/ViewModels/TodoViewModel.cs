@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Layout;
 using Webignite.Core.Tasks;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -159,7 +160,7 @@ public partial class TaskRowViewModel : ViewModelBase
         {
             if (Task.Due is not { } due)
                 return "";
-            return Webignite.Core.Wording.Capital(Webignite.Core.Wording.Day(due, DateOnly.FromDateTime(DateTime.Today)));
+            return Wording.Capital(Wording.Day(due, DateOnly.FromDateTime(DateTime.Today)));
         }
     }
 

@@ -98,7 +98,7 @@ public static class Onboarding
     }
 
     // Item names are written for Eddie; the mail reads better without the bracketed notes.
-    private static string Plain(string name)
+    public static string Plain(string name)
     {
         var bracket = name.IndexOf(" (", StringComparison.Ordinal);
         return bracket > 0 ? name[..bracket] : name;

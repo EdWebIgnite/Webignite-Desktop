@@ -35,7 +35,13 @@ public sealed record MailViewSettings
 /// </summary>
 public static class MailThreads
 {
-    private static readonly string[] Prefixes = ["re:", "fw:", "fwd:", "aw:", "wg:", "sv:", "antw:"];
+    /// <summary>What mail programs put before a reply's subject, in English, German, Dutch and Scandinavian.</summary>
+    public static readonly IReadOnlyList<string> ReplyPrefixes = ["re:", "aw:", "sv:", "antw:"];
+
+    /// <summary>What mail programs put before a forwarded subject.</summary>
+    public static readonly IReadOnlyList<string> ForwardPrefixes = ["fw:", "fwd:", "wg:"];
+
+    private static readonly string[] Prefixes = [.. ReplyPrefixes, .. ForwardPrefixes];
 
     /// <summary>The subject without reply and forward prefixes, in lower case, for matching.</summary>
     public static string Topic(string? subject)

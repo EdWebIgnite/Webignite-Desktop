@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Documents;
 using Webignite.Core.Finance;
 using Webignite.Core.Retainers;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -97,7 +98,7 @@ public partial class RetainerRowViewModel(Retainer retainer, DateOnly? next, Ret
     public string Schedule => retainer.Paused
         ? "Paused"
         : next is { } date
-            ? $"On the {Webignite.Core.Wording.DayOfMonth(retainer.DayOfMonth)} of the month  ·  next draft {date:d MMM yyyy}"
+            ? $"On the {Wording.DayOfMonth(retainer.DayOfMonth)} of the month  ·  next draft {date:d MMM yyyy}"
             : "Ended";
     public string PauseLabel => retainer.Paused ? "Resume" : "Pause";
 
@@ -194,7 +195,7 @@ public partial class RetainerEditorViewModel : ViewModelBase
         ClientName = "",
         Title = "",
         Lines = [],
-        Starts = Webignite.Core.Dates.MonthStart(Today).AddMonths(Start?.MonthsFromNow ?? 0),
+        Starts = Dates.MonthStart(Today).AddMonths(Start?.MonthsFromNow ?? 0),
         Created = DateTimeOffset.UtcNow,
     }) with
     {

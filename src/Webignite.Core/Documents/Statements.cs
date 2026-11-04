@@ -19,7 +19,7 @@ public static class Statements
     /// </summary>
     public static IReadOnlyList<(string Customer, decimal Open)> Due(IEnumerable<StoredDocument> documents, IReadOnlyDictionary<string, DateOnly> sent, DateOnly today)
     {
-        var monthStart = Webignite.Core.Dates.MonthStart(today);
+        var monthStart = Dates.MonthStart(today);
         return documents
             .Where(d => d.XeroId is not null && Receivables.Outstanding(d) > 0)
             .GroupBy(d => Key(d.Document.Customer.Name))

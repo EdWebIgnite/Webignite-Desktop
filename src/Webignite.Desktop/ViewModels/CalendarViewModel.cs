@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Calendar;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -15,7 +16,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     {
         this.services = services;
         var today = Today;
-        month = Webignite.Core.Dates.MonthStart(today);
+        month = Dates.MonthStart(today);
         SelectedDate = today;
         Refresh();
     }
@@ -61,7 +62,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     private void GoToToday()
     {
         SelectedDate = Today;
-        Show(Webignite.Core.Dates.MonthStart(Today));
+        Show(Dates.MonthStart(Today));
     }
 
     [RelayCommand]
@@ -69,7 +70,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     {
         SelectedDate = day.Date;
         if (day.Date.Month != month.Month)
-            Show(Webignite.Core.Dates.MonthStart(day.Date));
+            Show(Dates.MonthStart(day.Date));
         else
             Refresh();
     }

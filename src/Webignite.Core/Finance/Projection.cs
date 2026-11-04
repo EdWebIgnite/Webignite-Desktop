@@ -84,7 +84,7 @@ public static class Projection
     public static string Key(DateOnly month) => month.ToString("yyyy-MM", CultureInfo.InvariantCulture);
 
     /// <summary>The 12 months the chart shows: 5 back, this month and 6 ahead.</summary>
-    public static DateOnly FirstMonth(DateOnly today) => Webignite.Core.Dates.MonthStart(today).AddMonths(-5);
+    public static DateOnly FirstMonth(DateOnly today) => Dates.MonthStart(today).AddMonths(-5);
 
     public const int MonthCount = 12;
 
@@ -108,7 +108,7 @@ public static class Projection
         IEnumerable<Retainer> retainers, IEnumerable<Renewal> renewals, IReadOnlySet<string> drafted)
     {
         var items = new List<ExpectedItem>();
-        var first = Webignite.Core.Dates.MonthStart(month);
+        var first = Dates.MonthStart(month);
 
         foreach (var d in documents)
         {
@@ -123,7 +123,7 @@ public static class Projection
 
         foreach (var r in retainers)
         {
-            if (r.Paused || Webignite.Core.Dates.MonthStart(r.Starts) > first || r.Ends is { } ends && Webignite.Core.Dates.MonthStart(ends) < first)
+            if (r.Paused || Dates.MonthStart(r.Starts) > first || r.Ends is { } ends && Dates.MonthStart(ends) < first)
                 continue;
             if (drafted.Contains(RetainerSchedule.Key(r, first)) || r.MonthlyAmount <= 0)
                 continue;
@@ -135,7 +135,7 @@ public static class Projection
             if (r.Price is not > 0 || string.IsNullOrWhiteSpace(r.ClientName) || r.PeriodMonths < 1)
                 continue;
             // Only the next renewal can have been invoiced already; later ones repeat every period.
-            for (var on = r.RenewsOn; Webignite.Core.Dates.MonthStart(on) <= first; on = on.AddMonths(r.PeriodMonths))
+            for (var on = r.RenewsOn; Dates.MonthStart(on) <= first; on = on.AddMonths(r.PeriodMonths))
             {
                 if (!Ledger.InMonth(on, first))
                     continue;
@@ -165,7 +165,7 @@ public static class Projection
         var money = entries.ToList();
         var ret = retainers.ToList();
         var ren = renewals.ToList();
-        var current = Webignite.Core.Dates.MonthStart(today);
+        var current = Dates.MonthStart(today);
         return Enumerable.Range(0, MonthCount)
             .Select(i => FirstMonth(today).AddMonths(i))
             .Select(m => new ProjectionMonth(m,

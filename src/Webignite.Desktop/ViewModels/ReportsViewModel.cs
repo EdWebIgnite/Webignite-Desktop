@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Webignite.Core.Documents;
 using Webignite.Core.Finance;
+using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -59,8 +60,8 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
     public void Refresh()
     {
         services.CatchUp();
-        var from = Webignite.Core.Dates.MonthStart(Today).AddMonths(-11);
-        var taxStart = Webignite.Core.Dates.TaxYear(Today).From;
+        var from = Dates.MonthStart(Today).AddMonths(-11);
+        var taxStart = Dates.TaxYear(Today).From;
         // Back to the start of last tax year, so this tax year can be set against it.
         var start = taxStart.AddYears(-1) < from ? taxStart.AddYears(-1) : from;
         var entries = services.Store.ListEntries(start, Today.AddYears(1));

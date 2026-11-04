@@ -86,11 +86,11 @@ public static class MailText
     }
 
     /// <summary>"Re: Invoice" stays "Re: Invoice", and "RE: Fwd: x" isn't stacked again.</summary>
-    public static string ReplySubject(string subject) => Prefixed("Re: ", subject, "re:");
+    public static string ReplySubject(string subject) => Prefixed("Re: ", subject, MailThreads.ReplyPrefixes);
 
-    public static string ForwardSubject(string subject) => Prefixed("Fwd: ", subject, "fwd:", "fw:");
+    public static string ForwardSubject(string subject) => Prefixed("Fwd: ", subject, MailThreads.ForwardPrefixes);
 
-    private static string Prefixed(string prefix, string subject, params string[] existing)
+    private static string Prefixed(string prefix, string subject, IReadOnlyList<string> existing)
     {
         var trimmed = subject.Trim();
         return existing.Any(e => trimmed.StartsWith(e, StringComparison.OrdinalIgnoreCase)) ? trimmed : prefix + trimmed;

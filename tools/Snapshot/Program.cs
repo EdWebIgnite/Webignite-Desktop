@@ -10,6 +10,7 @@ using Webignite.Desktop;
 using Webignite.Desktop.ViewModels;
 using Webignite.Desktop.Views;
 using Webignite.Xero.Auth;
+using Webignite.Core;
 
 // Usage: dotnet run --project tools/Snapshot -- <output folder>
 // Uses a throwaway database with sample documents, never the real one.
@@ -235,7 +236,7 @@ store.SaveClient(bosveld);
 void Time(DateOnly date, int minutes, string note, string? client = null, string? project = null) =>
     store.SaveTime(new Webignite.Core.Time.TimeEntry { Id = Webignite.Core.Time.TimeEntry.NewId(), Date = date, Minutes = minutes, Note = note,
         ClientId = client, ProjectId = project, Created = DateTimeOffset.Now.AddMinutes(-minutes) });
-var weekStart = Webignite.Core.Dates.WeekStart(today);
+var weekStart = Dates.WeekStart(today);
 Time(today, 95, "Homepage layout", "c1", "p1");
 Time(today, 30, "Bookkeeping");
 Time(today.AddDays(-1) < weekStart ? today : today.AddDays(-1), 140, "Services pages", "c1", "p1");
@@ -276,7 +277,7 @@ window.Height = 1250;
 Save("client-tall");
 window.Height = 860;
 vm.Clients.Detail!.BackCommand.Execute(null);
-var month = Webignite.Core.Dates.MonthStart(today);
+var month = Dates.MonthStart(today);
 void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>
     store.SaveEntry(new Webignite.Core.Finance.MoneyEntry { Id = Webignite.Core.Finance.MoneyEntry.NewId(), Kind = kind, Date = date, Amount = amount, Party = party, Category = category, Note = note });
 var received = Webignite.Core.Finance.EntryKind.Received;

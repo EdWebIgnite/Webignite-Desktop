@@ -36,8 +36,7 @@ public static class RetainerSchedule
 
     public static string Key(Retainer retainer, DateOnly month) => string.Create(CultureInfo.InvariantCulture, $"retainer:{retainer.Id}:{month:yyyy-MM}");
 
-    public static DateOnly DateIn(Retainer retainer, DateOnly month) =>
-        new(month.Year, month.Month, Math.Min(Math.Clamp(retainer.DayOfMonth, 1, 31), DateTime.DaysInMonth(month.Year, month.Month)));
+    public static DateOnly DateIn(Retainer retainer, DateOnly month) => MonthlySchedule.DateIn(retainer.DayOfMonth, month);
 
     private static string MonthName(DateOnly month) => month.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
 
@@ -65,8 +64,7 @@ public static class RetainerSchedule
         var due = new List<(string, Document)>();
         foreach (var retainer in retainers.Where(r => !r.Paused))
         {
-            var last = Webignite.Core.Dates.MonthStart(retainer.Ends is { } ends && ends < today ? ends : today);
-            for (var month = Webignite.Core.Dates.MonthStart(retainer.Starts); month <= last; month = month.AddMonths(1))
+            foreach (var month in MonthlySchedule.MonthsSoFar(retainer.Starts, retainer.Ends, today))
             {
                 var key = Key(retainer, month);
                 if (DateIn(retainer, month) <= today && !drafted.Contains(key))
@@ -81,10 +79,10 @@ public static class RetainerSchedule
     {
         if (retainer.Paused)
             return null;
-        var month = Webignite.Core.Dates.MonthStart(retainer.Starts > today ? retainer.Starts : today);
+        var month = Dates.MonthStart(retainer.Starts > today ? retainer.Starts : today);
         for (var i = 0; i < 24; i++, month = month.AddMonths(1))
         {
-            if (retainer.Ends is { } ends && month > Webignite.Core.Dates.MonthStart(ends))
+            if (retainer.Ends is { } ends && month > Dates.MonthStart(ends))
                 return null;
             if (!drafted.Contains(Key(retainer, month)))
                 return DateIn(retainer, month);
@@ -95,10 +93,10 @@ public static class RetainerSchedule
     /// <summary>Resuming starts again from this month, so the months it was paused aren't drafted afterwards.</summary>
     public static Retainer SetPaused(Retainer retainer, bool paused, DateOnly today) => paused
         ? retainer with { Paused = true }
-        : retainer with { Paused = false, Starts = Webignite.Core.Dates.MonthStart(today) > retainer.Starts ? Webignite.Core.Dates.MonthStart(today) : retainer.Starts };
+        : retainer with { Paused = false, Starts = MonthlySchedule.ResumeFrom(retainer.Starts, today) };
 
     public static decimal MonthlyTotal(IEnumerable<Retainer> retainers, DateOnly today) =>
-        retainers.Where(r => !r.Paused && (r.Ends is null || Webignite.Core.Dates.MonthStart(r.Ends.Value) >= Webignite.Core.Dates.MonthStart(today))).Sum(r => r.MonthlyAmount);
+        retainers.Where(r => MonthlySchedule.IsRunning(r.Paused, r.Ends, today)).Sum(r => r.MonthlyAmount);
 
     public static IReadOnlyList<string> Check(Retainer retainer)
     {
@@ -117,7 +115,7 @@ public static class RetainerSchedule
             problems.Add("Every line needs a description.");
         if (retainer.Lines.Any(l => l.Quantity is null || l.UnitPrice is null))
             problems.Add("Every line needs a quantity and a price.");
-        if (retainer.Ends is { } ends && Webignite.Core.Dates.MonthStart(ends) < Webignite.Core.Dates.MonthStart(retainer.Starts))
+        if (MonthlySchedule.EndsBeforeStart(retainer.Starts, retainer.Ends))
             problems.Add("It can't end before it starts.");
         return problems;
     }

@@ -79,7 +79,7 @@ public static class MorningSummary
         if (reminders.Count > MaxChaseLines)
             lines.Add(new($"{reminders.Count - MaxChaseLines} more overdue invoices.", SummaryTarget.Invoices, Problem: true));
 
-        foreach (var renewal in input.Renewals.Where(r => r.RenewsOn < today).OrderBy(r => r.RenewsOn))
+        foreach (var renewal in input.Renewals.Where(r => RenewalRules.State(r, today) == RenewalState.Overdue).OrderBy(r => r.RenewsOn))
             lines.Add(new($"{renewal.Name} was due for renewal {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals, Problem: true));
 
         var waiting = Approvals.Waiting(input.Documents).Count;
@@ -104,7 +104,7 @@ public static class MorningSummary
         foreach (var (client, days) in Onboarding.Stalled(input.Clients, today).Take(MaxChaseLines))
         {
             var outstanding = Onboarding.Outstanding(client);
-            var list = string.Join(", ", outstanding.Take(3).Select(w => w.Split(" (")[0].ToLowerInvariant())) + (outstanding.Count > 3 ? $", and {outstanding.Count - 3} more" : "");
+            var list = string.Join(", ", outstanding.Take(3).Select(w => Onboarding.Plain(w).ToLowerInvariant())) + (outstanding.Count > 3 ? $", and {outstanding.Count - 3} more" : "");
             lines.Add(new($"Nothing in from {client.Name} for {Days(days)}. Still waiting on {list}.", SummaryTarget.Clients, Client: client));
         }
 
@@ -114,8 +114,7 @@ public static class MorningSummary
             lines.Add(new($"{renewal.Name}{who} renews {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals));
         }
 
-        var monthStart = Webignite.Core.Dates.MonthStart(today);
-        var received = input.Entries.Where(e => e.Kind == EntryKind.Received && e.Date >= monthStart && e.Date <= today).Sum(e => e.Amount);
+        var received = Trends.ReceivedThisMonth(input.Entries, today);
         if (received > 0)
             lines.Add(new($"{Money.Rand(received)} has come in so far in {today.ToString("MMMM", CultureInfo.InvariantCulture)}.", SummaryTarget.Money));
 
