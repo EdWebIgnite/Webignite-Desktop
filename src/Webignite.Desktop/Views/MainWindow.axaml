@@ -245,10 +245,10 @@
           </Border>
           <Panel>
             <ScrollViewer IsVisible="{Binding Beside.Scrolls, FallbackValue=False}" HorizontalScrollBarVisibility="Auto">
-              <TransitioningContentControl Content="{Binding Beside.ScrollingPage, FallbackValue={x:Null}}" Margin="28,24" MaxWidth="1040" MinWidth="600" HorizontalAlignment="Stretch" />
+              <ContentControl Content="{Binding Beside.ScrollingPage, FallbackValue={x:Null}}" Margin="28,24" MaxWidth="1040" MinWidth="600" HorizontalAlignment="Stretch" />
             </ScrollViewer>
             <ScrollViewer IsVisible="{Binding Beside.FullBleed, FallbackValue=False}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-              <TransitioningContentControl Content="{Binding Beside.FullPage, FallbackValue={x:Null}}" MinWidth="760" />
+              <ContentControl Content="{Binding Beside.FullPage, FallbackValue={x:Null}}" MinWidth="760" />
             </ScrollViewer>
           </Panel>
         </DockPanel>
