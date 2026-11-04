@@ -199,7 +199,7 @@ public partial class FilesView : UserControl
                 files.OpenPickedCommand.Execute(null);
                 break;
             case Key.F2:
-                files.StartRename();
+                files.StartBulkRename();
                 break;
             case Key.Delete:
                 files.DeleteCommand.Execute(null);
@@ -394,8 +394,7 @@ public partial class FilesView : UserControl
         items.Add(new Separator());
         if (picked.Count > 0)
         {
-            if (picked.Count == 1)
-                items.Add(Item("Rename", "F2", () => files.StartRename()));
+            items.Add(Item(picked.Count == 1 ? "Rename" : $"Rename {picked.Count} items…", "F2", files.StartBulkRename));
             items.Add(Item("Delete", "Delete", () => files.DeleteCommand.Execute(null)));
             items.Add(new Separator());
         }
@@ -453,6 +452,29 @@ public partial class FilesView : UserControl
 
     private static Avalonia.Media.Geometry? Icon(string name) =>
         Controls.IconConverter.Instance.Convert(name, typeof(object), null, System.Globalization.CultureInfo.InvariantCulture) as Avalonia.Media.Geometry;
+
+    // The Show button: one kind of file, files from a time, or everything.
+    private void ShowFilterOpening(object? sender, EventArgs e)
+    {
+        if (Files is not { } files || sender is not MenuFlyout flyout)
+            return;
+        flyout.Items.Clear();
+        foreach (var kind in Enum.GetValues<Webignite.Core.Files.KindFilter>())
+        {
+            var item = new MenuItem { Header = Webignite.Core.Files.FileFilters.Name(kind), ToggleType = MenuItemToggleType.Radio, IsChecked = files.ShowKind == kind, GroupName = "kind" };
+            item.Click += (_, _) => files.ShowOnlyCommand.Execute(kind);
+            flyout.Items.Add(item);
+        }
+        flyout.Items.Add(new Separator());
+        foreach (var date in Enum.GetValues<Webignite.Core.Files.DateFilter>())
+        {
+            var item = new MenuItem { Header = Webignite.Core.Files.FileFilters.Name(date), ToggleType = MenuItemToggleType.Radio, IsChecked = files.ShowDate == date, GroupName = "date" };
+            item.Click += (_, _) => files.ShowFromCommand.Execute(date);
+            flyout.Items.Add(item);
+        }
+        flyout.Items.Add(new Separator());
+        flyout.Items.Add(Item("Show everything", null, () => files.ShowEverythingCommand.Execute(null)));
+    }
 
     // The Tags button: all files, or only those with one tag.
     private void TagFilterOpening(object? sender, EventArgs e)

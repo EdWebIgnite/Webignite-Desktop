@@ -1008,6 +1008,70 @@ Save("client-mail");
         Check("Zip puts folders and files in one zip", zip.Entries.Any(z => z.FullName == "Logo/Sitemap.docx") && zip.Entries.Any(z => z.FullName == "Quote QU-0042.pdf"));
     files.UndoCommand.Execute(null);
 
+    // Power tools: Show by kind and date, Space (folder sizes), renaming many at once, and the copy queue.
+    files.GoTo(site);
+    File.SetLastWriteTime(Path.Combine(site, "Finished house.png"), DateTime.Now.AddYears(-2));
+    files.Refresh();
+    files.ShowOnlyCommand.Execute(Webignite.Core.Files.KindFilter.Pictures);
+    Check("Show, Pictures keeps only the pictures", files.Items.OfType<FileRowViewModel>().All(r => r.IsPicture) && files.Items.OfType<FileRowViewModel>().Count() == 3);
+    files.ShowFromCommand.Execute(Webignite.Core.Files.DateFilter.OlderThanAYear);
+    Check("And older than a year keeps the old one", files.Items.OfType<FileRowViewModel>().Select(r => r.Name).SequenceEqual(["Finished house.png"])
+        && files.FilterLabel == "Pictures, older than a year");
+    Save("files-show-filter");
+    files.ShowEverythingCommand.Execute(null);
+
+    File.WriteAllBytes(Path.Combine(site, "Photos", "Drone shot.jpg"), new byte[3_000_000]);
+    File.WriteAllBytes(Path.Combine(site, "Logo", "logo-print.pdf"), new byte[400_000]);
+    files.ToggleSpaceCommand.Execute(null);
+    Check("Space adds up the folders and puts the biggest first",
+        Until(() => files.StatusText.Contains("in all", StringComparison.Ordinal))
+        && files.Items.OfType<FileRowViewModel>().First().Name == "Photos" && files.Items.OfType<FileRowViewModel>().First().SizeText == "2.9 MB".Replace('.', System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0]));
+    Save("files-space");
+    files.ToggleSpaceCommand.Execute(null);
+
+    files.Selected = [Row("Site visit 1.png"), Row("Site visit 2.png"), Row("Finished house.png")];
+    files.StartBulkRename();
+    var bulk = files.BulkRename!;
+    bulk.Find = "Site visit 1";
+    bulk.Replace = "Site visit 2";
+    Check("Bulk rename won't give two files one name", !bulk.CanApply && bulk.Problem.Length > 0);
+    bulk.Find = "";
+    bulk.Numbered = true;
+    bulk.NumberedName = "Bosveld";
+    Check("Name and number them shows each new name first", bulk.Changes.Select(c => c.To).SequenceEqual(["Bosveld 01.png", "Bosveld 02.png", "Bosveld 03.png"]) && bulk.CanApply);
+    Save("files-bulk-rename");
+    bulk.ApplyCommand.Execute(null);
+    Check("Renaming many at once renames them all, tags and all", files.BulkRename is null
+        && File.Exists(Path.Combine(site, "Bosveld 01.png")) && !File.Exists(Path.Combine(site, "Site visit 1.png")) && Row("Bosveld 01.png").TagText == "Needs client OK");
+    files.UndoCommand.Execute(null);
+    Check("Undo puts every name back", File.Exists(Path.Combine(site, "Site visit 1.png")) && File.Exists(Path.Combine(site, "Finished house.png")) && Row("Site visit 1.png").HasTags);
+
+    var fynbosFolder = Path.Combine(projects, "Fynbos");
+    files.Bring([Path.Combine(site, "Photos")], move: false, into: fynbosFolder);
+    Check("A folder goes to the copy queue and arrives", files.CopyJobs.Count > 0 && Until(() => files.CopyJobs.Count == 0)
+        && File.Exists(Path.Combine(fynbosFolder, "Photos", "Drone shot.jpg")));
+    files.UndoCommand.Execute(null);
+    Check("Undo takes the queued copy away again", !Directory.Exists(Path.Combine(fynbosFolder, "Photos")));
+    var big = Path.Combine(site, "Walkthrough.mp4");
+    File.WriteAllBytes(big, new byte[120_000_000]);
+    files.Bring([big], move: false, into: fynbosFolder);
+    var job = files.CopyJobs.Last();
+    job.PauseCommand.Execute(null);
+    Thread.Sleep(300);
+    Dispatcher.UIThread.RunJobs();
+    Check("A big copy can be paused part way", job.IsPaused && job.BytesDone < job.BytesTotal);
+    Save("files-copy-queue");
+    job.ResumeCommand.Execute(null);
+    Check("And carries on to the end", Until(() => !files.CopyJobs.Contains(job)) && new FileInfo(Path.Combine(fynbosFolder, "Walkthrough.mp4")).Length == 120_000_000);
+    File.Delete(Path.Combine(fynbosFolder, "Walkthrough.mp4"));
+    files.Bring([big], move: false, into: fynbosFolder);
+    job = files.CopyJobs.Last();
+    job.PauseCommand.Execute(null);
+    job.StopCommand.Execute(null);
+    Check("Stop ends it and drops the half-copied file", Until(() => job.State == Webignite.Desktop.Files.CopyState.Stopped) && !File.Exists(Path.Combine(fynbosFolder, "Walkthrough.mp4")));
+    job.DismissCommand.Execute(null);
+    File.Delete(big);
+
     services.Go.Folder(Path.Combine(site, "Logo"), newTab: true);
     Check("A folder opens in a Files tab of its own", vm.Open.Count(h => h.Key == Page.Files) == 2 && vm.Files.Folder == Path.Combine(site, "Logo"));
     vm.Close(vm.Current);

@@ -144,6 +144,10 @@ public sealed class AppServices : IDisposable
     public Files.FileClipboard FileClipboard { get; } = new();
 
     private Files.FileTagBook? fileTags;
+    private Files.CopyQueue? copyQueue;
+
+    /// <summary>Big copies and moves from Files, one at a time, shared by every Files tab and window.</summary>
+    public Files.CopyQueue CopyQueue => copyQueue ??= new Files.CopyQueue(() => FileTags);
 
     /// <summary>Tags on files and folders, read from the database the first time Files needs them.</summary>
     public Files.FileTagBook FileTags => fileTags ??= new Files.FileTagBook(Store, Settings);

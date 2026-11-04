@@ -204,6 +204,35 @@ public static class FileOps
         return target;
     }
 
+    /// <summary>
+    /// Renames several at once. Each goes to a passing name first, so names can swap ("Page 1" and "Page 2") without
+    /// one getting in the other's way. If one fails, those done so far are put back.
+    /// </summary>
+    public static void RenameMany(IReadOnlyList<(string From, string To)> renames)
+    {
+        var steps = renames.Select(r => (r.From, Step: r.From.TrimEnd('\\', '/') + "." + Guid.NewGuid().ToString("N")[..8] + ".renaming", r.To)).ToList();
+        var done = new List<(string From, string To)>();
+        try
+        {
+            foreach (var (from, step, _) in steps)
+            {
+                MoveOne(from, step);
+                done.Add((from, step));
+            }
+            foreach (var (_, step, to) in steps)
+            {
+                MoveOne(step, to);
+                done.Add((step, to));
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            for (var i = done.Count - 1; i >= 0; i--)
+                MoveOne(done[i].To, done[i].From);
+            throw;
+        }
+    }
+
     public static string NewFolder(string into)
     {
         var path = Path.Combine(into, FileNames.NewFolder(Names(into)));
@@ -265,6 +294,7 @@ public abstract record FileChange(string What)
     public sealed record Renamed(string From, string To) : FileChange($"Renamed {Path.GetFileName(From)}");
     public sealed record Moved(IReadOnlyList<(string From, string To)> Items) : FileChange(Items.Count == 1 ? $"Moved {Path.GetFileName(Items[0].From)}" : $"Moved {Items.Count} items");
     public sealed record Made(IReadOnlyList<string> Paths) : FileChange(Paths.Count == 1 ? $"Made {Path.GetFileName(Paths[0])}" : $"Made {Paths.Count} items");
+    public sealed record RenamedMany(IReadOnlyList<(string From, string To)> Items) : FileChange($"Renamed {Items.Count} items");
     public sealed record Rotated(IReadOnlyList<string> Paths, int Degrees) : FileChange(Paths.Count == 1 ? $"Turned {Path.GetFileName(Paths[0])}" : $"Turned {Paths.Count} pictures");
 
     /// <summary>Puts it back: a rename or move the other way; anything made (a copy, a new folder) to the Recycle Bin.</summary>
@@ -278,6 +308,9 @@ public abstract record FileChange(string What)
             case Moved m:
                 foreach (var (from, to) in m.Items.Reverse())
                     FileOps.MoveOne(to, from);
+                break;
+            case RenamedMany many:
+                FileOps.RenameMany([.. many.Items.Select(i => (i.To, i.From))]);
                 break;
             case Rotated rotated:
                 QuickActionRunner.RotateNow(rotated.Paths, -rotated.Degrees);

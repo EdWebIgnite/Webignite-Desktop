@@ -23,6 +23,7 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     private FileSystemWatcher? watcher;
     private IReadOnlyList<FileEntry> entries = [];
     private bool loaded;
+    private bool disposed;
 
     public FilesViewModel(AppServices services, string? start = null)
     {
@@ -89,13 +90,14 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     public string TagFilterText => FilterTag?.Name ?? "Tags";
 
     /// <summary>A tag's files come from many folders, so that column says which.</summary>
-    public string KindHeading => IsGathered ? "Folder" : "Kind";
+    public string KindHeading => IsGathered ? "Folder" : ShowingSpace ? "Share" : "Kind";
 
     public string EmptyTitle =>
         IsSearching ? (searchRunning ? "Searching…" : $"Nothing found for “{SearchText.Trim()}”")
         : IsTagView ? "Nothing has this tag yet"
         : ShowingRecents ? "No recent files yet"
         : IsFiltered ? $"Nothing here is tagged {FilterTag!.Name}"
+        : IsShowFiltered ? $"Nothing here is {FilterLabel.ToLowerInvariant()}"
         : "This folder is empty";
 
     public string EmptyText =>
@@ -103,6 +105,7 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         : IsTagView ? "Right-click a file or folder and choose Tags to add it."
         : ShowingRecents ? "Files you open from here show up in this list."
         : IsFiltered ? "Pick Tags, then All files, to see everything again."
+        : IsShowFiltered ? "Pick Show, then Show everything, to see it all again."
         : "Drag files here to copy them in, or make a new folder.";
 
     /// <summary>The tags, for the Tags button and the right-click menu.</summary>
@@ -254,6 +257,8 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         else
             Watch();
         BuildColumns();
+        BulkRename = null;
+        CountSizes();
         BackCommand.NotifyCanExecuteChanged();
         ForwardCommand.NotifyCanExecuteChanged();
         UpCommand.NotifyCanExecuteChanged();
@@ -380,11 +385,18 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         Items.Clear();
         var tags = services.FileTags;
         var shown = FilterTag is { } filter ? entries.Where(e => tags.TagsOf(e.Path).Any(t => t.Id == filter.Id)) : entries;
+        if (ShowKind != KindFilter.All || ShowDate != DateFilter.Any)
+        {
+            var day = DateOnly.FromDateTime(DateTime.Today);
+            shown = shown.Where(e => FileFilters.Keeps(e, ShowKind, ShowDate, day));
+        }
         // Searching a tag's files or Recents: only the names, as you type; a folder is searched below by the searcher.
         if (IsSearching && searchHits is null)
             shown = shown.Where(e => FileSearch.NameMatches(e.Name, SearchText));
         // Recents keep the order they were opened in, newest first, unless sorted by another column.
-        var sorted = ShowingRecents && Sort == FileSort.Name && !IsSearching ? [.. shown] : FileLists.Sort(shown, Sort, Descending);
+        var sorted = ShowingSpace ? BySpace(shown)
+            : ShowingRecents && Sort == FileSort.Name && !IsSearching ? [.. shown]
+            : FileLists.Sort(shown, Sort, Descending);
         var today = DateOnly.FromDateTime(DateTime.Today);
         var rows = new List<FileRowViewModel>();
         var groups = FileLists.Group(sorted, Grouping, today, e => tags.TagsOf(e.Path).FirstOrDefault()?.Name, [.. tags.Tags.Select(t => t.Name)]);
@@ -399,6 +411,8 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
                     IsCut = services.FileClipboard.IsCut(entry.Path),
                     Tags = tags.TagsOf(entry.Path),
                     Snippet = searchHits is { } hits && hits.TryGetValue(entry.Path, out var hit) ? hit.Snippet : null,
+                    FolderSize = entry.IsFolder && folderSizes.TryGetValue(entry.Path, out var counted) ? counted : null,
+                    SpacePart = SpacePart(entry),
                 };
                 rows.Add(row);
                 Items.Add(row);
@@ -419,6 +433,8 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         var items = (count == 1 ? "1 item" : $"{count} items") + (ShowingTag is { } tag ? $" tagged {tag.Name}" : FilterTag is { } filter ? $" tagged {filter.Name}" : "");
         if (IsSearching && searchHits is not null)
             items = SearchStatus(count);
+        if (SpaceStatus() is { } space)
+            items += ", " + space;
         StatusText = Selected.Count switch
         {
             0 => items,
@@ -531,6 +547,9 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     /// <summary>Closed or let go: the folder stops being watched and every thumbnail and preview is let go.</summary>
     public void Dispose()
     {
+        disposed = true;
+        StopCounting();
+        StopWatchingJobs();
         services.FileTags.Changed -= TagsChanged;
         StopSearch(clear: false);
         searchSoon.Stop();
@@ -574,7 +593,17 @@ public sealed partial class FileRowViewModel(FileEntry entry, FilesViewModel own
     public FilesViewModel Owner => owner;
     public string Name => entry.Name;
     public string Kind => entry.Kind;
-    public string SizeText => FileSizes.Format(entry.Size);
+    public string SizeText => FileSizes.Format(entry.Size ?? FolderSize);
+
+    /// <summary>A folder's size with everything in it, once added up (Space).</summary>
+    public long? FolderSize { get; init; }
+
+    /// <summary>Its share of the folder's space, 0 to 1, for the bar in Space.</summary>
+    public double SpacePart { get; init; }
+
+    public double SpaceBar => Math.Max(2, SpacePart * 120);
+    public string SpaceText => SpacePart <= 0 ? "" : SpacePart < 0.01 ? "under 1%" : SpacePart.ToString("P0", System.Globalization.CultureInfo.CurrentCulture);
+    public bool HasSpace => owner.ShowingSpace;
     public string ModifiedText => entry.Modified.ToString("g", System.Globalization.CultureInfo.CurrentCulture);
     public bool IsFolder => entry.IsFolder;
     public bool IsPicture => !entry.IsFolder && FileKinds.IsPicture(entry.Name);
