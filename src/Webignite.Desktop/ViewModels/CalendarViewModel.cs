@@ -15,7 +15,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     {
         this.services = services;
         var today = Today;
-        month = new DateOnly(today.Year, today.Month, 1);
+        month = Webignite.Core.Dates.MonthStart(today);
         SelectedDate = today;
         Refresh();
     }
@@ -61,7 +61,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     private void GoToToday()
     {
         SelectedDate = Today;
-        Show(new DateOnly(Today.Year, Today.Month, 1));
+        Show(Webignite.Core.Dates.MonthStart(Today));
     }
 
     [RelayCommand]
@@ -69,7 +69,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     {
         SelectedDate = day.Date;
         if (day.Date.Month != month.Month)
-            Show(new DateOnly(day.Date.Year, day.Date.Month, 1));
+            Show(Webignite.Core.Dates.MonthStart(day.Date));
         else
             Refresh();
     }

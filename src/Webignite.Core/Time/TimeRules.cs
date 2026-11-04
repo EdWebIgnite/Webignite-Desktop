@@ -78,9 +78,6 @@ public static partial class TimeRules
         };
     }
 
-    /// <summary>Monday of the week a date falls in.</summary>
-    public static DateOnly WeekStart(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
-
     /// <summary>
     /// Totals per client, and per project under each client, biggest first. Time not for a client is one line at the end.
     /// Labels read "Karoo Coffee Roasters" or "Karoo Coffee Roasters: New website".

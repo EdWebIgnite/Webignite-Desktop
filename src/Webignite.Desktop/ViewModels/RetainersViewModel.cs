@@ -189,7 +189,7 @@ public partial class RetainerEditorViewModel : ViewModelBase
         ClientName = "",
         Title = "",
         Lines = [],
-        Starts = Ledger.MonthOf(Today).AddMonths(Start?.MonthsFromNow ?? 0),
+        Starts = Webignite.Core.Dates.MonthStart(Today).AddMonths(Start?.MonthsFromNow ?? 0),
         Created = DateTimeOffset.UtcNow,
     }) with
     {

@@ -15,7 +15,7 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
     public PlannerViewModel(AppServices services)
     {
         this.services = services;
-        weekStart = Agenda.StartOfWeek(Today);
+        weekStart = Webignite.Core.Dates.WeekStart(Today);
         Refresh();
     }
 
@@ -46,7 +46,7 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
     [RelayCommand]
     private void ThisWeek()
     {
-        weekStart = Agenda.StartOfWeek(Today);
+        weekStart = Webignite.Core.Dates.WeekStart(Today);
         Refresh();
     }
 

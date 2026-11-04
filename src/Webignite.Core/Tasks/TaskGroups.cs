@@ -52,10 +52,5 @@ public static class TaskGroups
         return "Overdue invoices, quotes waiting on a client and forgotten drafts land here by themselves.";
     }
 
-    private static string Day(DateOnly due, DateOnly today) => (due.DayNumber - today.DayNumber) switch
-    {
-        1 => "tomorrow",
-        < 7 => due.ToString("dddd", CultureInfo.InvariantCulture),
-        _ => due.ToString("d MMM", CultureInfo.InvariantCulture),
-    };
+    private static string Day(DateOnly due, DateOnly today) => Wording.Day(due, today);
 }

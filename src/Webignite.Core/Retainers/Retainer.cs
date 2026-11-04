@@ -65,8 +65,8 @@ public static class RetainerSchedule
         var due = new List<(string, Document)>();
         foreach (var retainer in retainers.Where(r => !r.Paused))
         {
-            var last = Ledger.MonthOf(retainer.Ends is { } ends && ends < today ? ends : today);
-            for (var month = Ledger.MonthOf(retainer.Starts); month <= last; month = month.AddMonths(1))
+            var last = Webignite.Core.Dates.MonthStart(retainer.Ends is { } ends && ends < today ? ends : today);
+            for (var month = Webignite.Core.Dates.MonthStart(retainer.Starts); month <= last; month = month.AddMonths(1))
             {
                 var key = Key(retainer, month);
                 if (DateIn(retainer, month) <= today && !drafted.Contains(key))
@@ -81,10 +81,10 @@ public static class RetainerSchedule
     {
         if (retainer.Paused)
             return null;
-        var month = Ledger.MonthOf(retainer.Starts > today ? retainer.Starts : today);
+        var month = Webignite.Core.Dates.MonthStart(retainer.Starts > today ? retainer.Starts : today);
         for (var i = 0; i < 24; i++, month = month.AddMonths(1))
         {
-            if (retainer.Ends is { } ends && month > Ledger.MonthOf(ends))
+            if (retainer.Ends is { } ends && month > Webignite.Core.Dates.MonthStart(ends))
                 return null;
             if (!drafted.Contains(Key(retainer, month)))
                 return DateIn(retainer, month);
@@ -95,10 +95,10 @@ public static class RetainerSchedule
     /// <summary>Resuming starts again from this month, so the months it was paused aren't drafted afterwards.</summary>
     public static Retainer SetPaused(Retainer retainer, bool paused, DateOnly today) => paused
         ? retainer with { Paused = true }
-        : retainer with { Paused = false, Starts = Ledger.MonthOf(today) > retainer.Starts ? Ledger.MonthOf(today) : retainer.Starts };
+        : retainer with { Paused = false, Starts = Webignite.Core.Dates.MonthStart(today) > retainer.Starts ? Webignite.Core.Dates.MonthStart(today) : retainer.Starts };
 
     public static decimal MonthlyTotal(IEnumerable<Retainer> retainers, DateOnly today) =>
-        retainers.Where(r => !r.Paused && (r.Ends is null || Ledger.MonthOf(r.Ends.Value) >= Ledger.MonthOf(today))).Sum(r => r.MonthlyAmount);
+        retainers.Where(r => !r.Paused && (r.Ends is null || Webignite.Core.Dates.MonthStart(r.Ends.Value) >= Webignite.Core.Dates.MonthStart(today))).Sum(r => r.MonthlyAmount);
 
     public static IReadOnlyList<string> Check(Retainer retainer)
     {
@@ -117,7 +117,7 @@ public static class RetainerSchedule
             problems.Add("Every line needs a description.");
         if (retainer.Lines.Any(l => l.Quantity is null || l.UnitPrice is null))
             problems.Add("Every line needs a quantity and a price.");
-        if (retainer.Ends is { } ends && Ledger.MonthOf(ends) < Ledger.MonthOf(retainer.Starts))
+        if (retainer.Ends is { } ends && Webignite.Core.Dates.MonthStart(ends) < Webignite.Core.Dates.MonthStart(retainer.Starts))
             problems.Add("It can't end before it starts.");
         return problems;
     }

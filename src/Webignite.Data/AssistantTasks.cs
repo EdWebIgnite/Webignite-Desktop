@@ -67,7 +67,7 @@ public sealed class AssistantTasks(LocalStore store, TimeProvider? clock = null)
                 true, "That to-do is already on Eddie's list, so it wasn't added again.");
 
         var client = string.IsNullOrWhiteSpace(customer) ? null
-            : store.ListClients().FirstOrDefault(c => XeroRules.Normalise(c.Name) == XeroRules.Normalise(customer));
+            : Webignite.Core.Clients.ClientDirectory.Find(store.ListClients(), customer);
         var task = store.SaveTask(new TaskItem
         {
             Id = TaskItem.NewId(),

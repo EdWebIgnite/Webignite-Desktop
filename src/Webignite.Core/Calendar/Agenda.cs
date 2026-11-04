@@ -51,11 +51,9 @@ public static class Agenda
     public static (DateOnly First, DateOnly Last) MonthGrid(int year, int month)
     {
         var first = new DateOnly(year, month, 1);
-        var start = first.AddDays(-(((int)first.DayOfWeek + 6) % 7));
+        var start = Dates.WeekStart(first);
         var lastOfMonth = first.AddMonths(1).AddDays(-1);
         var end = lastOfMonth.AddDays((7 - (int)lastOfMonth.DayOfWeek) % 7);
         return (start, end);
     }
-
-    public static DateOnly StartOfWeek(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 }

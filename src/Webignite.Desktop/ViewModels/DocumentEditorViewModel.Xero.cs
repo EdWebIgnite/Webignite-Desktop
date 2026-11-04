@@ -223,9 +223,7 @@ public partial class DocumentEditorViewModel
     /// <summary>The first address saved on the matching client, used when a new Xero contact is made.</summary>
     private string? ClientEmail(string customer)
     {
-        var wanted = XeroRules.Normalise(customer);
-        var client = services.Store.ListClients().FirstOrDefault(c => XeroRules.Normalise(c.Name) == wanted);
-        return Webignite.Core.Mail.ClientMail.First(client?.Email);
+        return Webignite.Core.Mail.ClientMail.First(Webignite.Core.Clients.ClientDirectory.Find(services.Store.ListClients(), customer)?.Email);
     }
 }
 

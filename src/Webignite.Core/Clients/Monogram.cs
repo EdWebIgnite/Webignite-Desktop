@@ -52,7 +52,7 @@ public static class Monogram
     /// </summary>
     public static string Colour(string? name)
     {
-        var key = ClientDirectory.Key(name);
+        var key = ClientDirectory.Key(name).ToUpperInvariant(); // upper case, so colours stay as they were
         if (key.Length == 0)
             return "grey";
         var hash = 2166136261u;

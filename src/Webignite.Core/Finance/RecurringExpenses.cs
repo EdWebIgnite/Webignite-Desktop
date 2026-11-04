@@ -20,8 +20,8 @@ public static class RecurringExpenses
         var due = new List<MoneyEntry>();
         foreach (var item in recurring.Where(r => !r.Paused))
         {
-            var last = Ledger.MonthOf(item.Ends is { } ends && ends < today ? ends : today);
-            for (var month = Ledger.MonthOf(item.Starts); month <= last; month = month.AddMonths(1))
+            var last = Webignite.Core.Dates.MonthStart(item.Ends is { } ends && ends < today ? ends : today);
+            for (var month = Webignite.Core.Dates.MonthStart(item.Starts); month <= last; month = month.AddMonths(1))
             {
                 var date = DateIn(item, month);
                 var key = Key(item, month);
@@ -49,11 +49,11 @@ public static class RecurringExpenses
     /// </summary>
     public static RecurringExpense SetPaused(RecurringExpense recurring, bool paused, DateOnly today) => paused
         ? recurring with { Paused = true }
-        : recurring with { Paused = false, Starts = Ledger.MonthOf(today) > recurring.Starts ? Ledger.MonthOf(today) : recurring.Starts };
+        : recurring with { Paused = false, Starts = Webignite.Core.Dates.MonthStart(today) > recurring.Starts ? Webignite.Core.Dates.MonthStart(today) : recurring.Starts };
 
     /// <summary>Monthly cost of everything that is running, for "R x a month" summaries.</summary>
     public static decimal MonthlyTotal(IEnumerable<RecurringExpense> recurring, DateOnly today) =>
-        recurring.Where(r => !r.Paused && (r.Ends is null || Ledger.MonthOf(r.Ends.Value) >= Ledger.MonthOf(today))).Sum(r => r.Amount);
+        recurring.Where(r => !r.Paused && (r.Ends is null || Webignite.Core.Dates.MonthStart(r.Ends.Value) >= Webignite.Core.Dates.MonthStart(today))).Sum(r => r.Amount);
 
     public static IReadOnlyList<string> Check(RecurringExpense recurring)
     {
@@ -64,7 +64,7 @@ public static class RecurringExpenses
             problems.Add("Type an amount more than R 0.");
         if (recurring.DayOfMonth is < 1 or > 31)
             problems.Add("The day of the month is 1 to 31.");
-        if (recurring.Ends is { } ends && Ledger.MonthOf(ends) < Ledger.MonthOf(recurring.Starts))
+        if (recurring.Ends is { } ends && Webignite.Core.Dates.MonthStart(ends) < Webignite.Core.Dates.MonthStart(recurring.Starts))
             problems.Add("It can't end before it starts.");
         return problems;
     }

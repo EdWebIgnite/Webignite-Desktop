@@ -17,7 +17,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
     public MoneyViewModel(AppServices services)
     {
         this.services = services;
-        Month = Ledger.MonthOf(Today);
+        Month = Webignite.Core.Dates.MonthStart(Today);
         OutCategory = ExpenseCategories.All[0];
         RecCategory = ExpenseCategories.All[0];
         Refresh();
@@ -36,7 +36,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
     public partial DateOnly Month { get; set; }
 
     public string MonthTitle => Month.ToString("MMMM yyyy");
-    public bool IsThisMonth => Month == Ledger.MonthOf(Today);
+    public bool IsThisMonth => Month == Webignite.Core.Dates.MonthStart(Today);
 
     [ObservableProperty] public partial string Received { get; set; } = "";
     [ObservableProperty] public partial string Expenses { get; set; } = "";
@@ -76,7 +76,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
     private void NextMonth() => ShowMonth(Month.AddMonths(1));
 
     [RelayCommand]
-    private void ThisMonth() => ShowMonth(Ledger.MonthOf(Today));
+    private void ThisMonth() => ShowMonth(Webignite.Core.Dates.MonthStart(Today));
 
     private void ShowMonth(DateOnly month)
     {
@@ -104,7 +104,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
         }
         services.Store.SaveEntry(entry);
         InAmount = InFrom = InNote = InMessage = "";
-        ShowMonth(Ledger.MonthOf(entry.Date));
+        ShowMonth(Webignite.Core.Dates.MonthStart(entry.Date));
     }
 
     [RelayCommand]
@@ -127,7 +127,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
         }
         services.Store.SaveEntry(entry);
         OutAmount = OutTo = OutMessage = "";
-        ShowMonth(Ledger.MonthOf(entry.Date));
+        ShowMonth(Webignite.Core.Dates.MonthStart(entry.Date));
     }
 
     private static string? Problem(MoneyEntry entry) => Ledger.Check(entry, Today).FirstOrDefault();
@@ -142,7 +142,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
             Amount = Money.Parse(RecAmount) ?? 0,
             DayOfMonth = int.TryParse(RecDay.Trim(), out var day) ? day : 0,
             Category = RecCategory,
-            Starts = Ledger.MonthOf(Today),
+            Starts = Webignite.Core.Dates.MonthStart(Today),
             Created = DateTimeOffset.UtcNow,
         };
         if (RecurringExpenses.Check(recurring).FirstOrDefault() is { } problem)

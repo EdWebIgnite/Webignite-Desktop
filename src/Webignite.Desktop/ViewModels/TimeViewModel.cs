@@ -58,12 +58,12 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         choicesMadeFor = today;
 
         DayChoices = Enumerable.Range(0, 14).Select(back => today.AddDays(-back))
-            .Select(day => new Choice<DateOnly>(day == today ? "Today" : day == today.AddDays(-1) ? "Yesterday" : day.ToString("ddd d MMM"), day))
+            .Select(day => new Choice<DateOnly>(ClientRecords.Day(day, today), day))
             .ToList();
         OnPropertyChanged(nameof(DayChoices));
         Day = wasToday ? DayChoices[0] : DayChoices.FirstOrDefault(c => c.Value == keep) ?? DayChoices[0];
 
-        var month = new DateOnly(today.Year, today.Month, 1);
+        var month = Webignite.Core.Dates.MonthStart(today);
         InvoiceMonths = [new("This month", month), new("Last month", month.AddMonths(-1))];
         OnPropertyChanged(nameof(InvoiceMonths));
         InvoiceMonth = InvoiceMonths.FirstOrDefault(c => c.Label == invoiceLabel) ?? InvoiceMonths[0];
@@ -226,8 +226,8 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
 
     private (DateOnly From, DateOnly To) Range()
     {
-        var week = TimeRules.WeekStart(Today);
-        var month = new DateOnly(Today.Year, Today.Month, 1);
+        var week = Webignite.Core.Dates.WeekStart(Today);
+        var month = Webignite.Core.Dates.MonthStart(Today);
         return Period?.Value switch
         {
             1 => (week.AddDays(-7), week.AddDays(-1)),

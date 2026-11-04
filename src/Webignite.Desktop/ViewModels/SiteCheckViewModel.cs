@@ -39,12 +39,12 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
     public bool SpeedIsProblem => Speed?.Problem ?? false;
     public bool HasFixes => Speed?.Fixes.Count > 0;
 
-    private bool CanCheck() => DomainReport.Normalise(Address) is not null && !CheckDomainCommand.IsRunning && !TestSpeedCommand.IsRunning;
+    private bool CanCheck() => Domains.Of(Address) is not null && !CheckDomainCommand.IsRunning && !TestSpeedCommand.IsRunning;
 
     [RelayCommand(CanExecute = nameof(CanCheck))]
     private async Task CheckDomain()
     {
-        if (DomainReport.Normalise(Address) is not { } domain)
+        if (Domains.Of(Address) is not { } domain)
             return;
         Findings.Clear();
         OnPropertyChanged(nameof(HasDomain));
@@ -95,7 +95,7 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
     // Keeps the score, and says how it compares with the last test of the same site.
     private void Remember(string address, SpeedReport report)
     {
-        speedDomain = DomainReport.Normalise(address) ?? address;
+        speedDomain = Domains.Of(address) ?? address;
         var today = DateOnly.FromDateTime(DateTime.Today);
         var history = services.Settings.SpeedHistory;
         previousRun = SpeedHistory.Previous(history, speedDomain, today);

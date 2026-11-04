@@ -24,7 +24,7 @@ public partial class ClientDetailViewModel
     {
         // All time for the client: a small business logs a few thousand entries at most, so reading them is cheap.
         var entries = services.Store.ListTime(DateOnly.MinValue, DateOnly.MaxValue).Where(e => e.ClientId == client.Id).ToList();
-        var month = new DateOnly(Today.Year, Today.Month, 1);
+        var month = Webignite.Core.Dates.MonthStart(Today);
         var all = entries.Sum(e => e.Minutes);
         var thisMonth = entries.Where(e => e.Date >= month).Sum(e => e.Minutes);
         TimeSummary = all == 0 ? "No time logged yet." : $"{TimeRules.Format(all)} in all, {TimeRules.Format(thisMonth)} this month.";

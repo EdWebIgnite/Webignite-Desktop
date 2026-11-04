@@ -204,23 +204,7 @@ public partial class RenewalRowViewModel(Renewal renewal, RenewalState state, Re
     public bool IsOverdue => state == RenewalState.Overdue;
     public bool IsFine => state == RenewalState.Fine;
 
-    public string When
-    {
-        get
-        {
-            var days = renewal.RenewsOn.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber;
-            var date = renewal.RenewsOn.ToString("d MMM yyyy");
-            return days switch
-            {
-                0 => $"{date}, today",
-                1 => $"{date}, tomorrow",
-                -1 => $"{date}, yesterday",
-                < 0 => $"{date}, {-days} days ago",
-                < 60 => $"{date}, in {days} days",
-                _ => date,
-            };
-        }
-    }
+    public string When => RenewalRules.When(renewal, DateOnly.FromDateTime(DateTime.Today));
 
     public string Amounts => string.Join("  ·  ", new[]
     {

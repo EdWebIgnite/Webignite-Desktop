@@ -60,12 +60,12 @@ public static class Uptime
         var list = new List<WatchedDomain>();
         foreach (var client in clients.OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase))
         {
-            if (DomainReport.Normalise(client.Website) is { } domain && !off.Contains(domain) && seen.Add(domain))
+            if (Webignite.Core.Web.Domains.Of(client.Website) is { } domain && !off.Contains(domain) && seen.Add(domain))
                 list.Add(new(domain, client.Name));
         }
         foreach (var extra in settings.Extra)
         {
-            if (DomainReport.Normalise(extra) is { } domain && !off.Contains(domain) && seen.Add(domain))
+            if (Webignite.Core.Web.Domains.Of(extra) is { } domain && !off.Contains(domain) && seen.Add(domain))
                 list.Add(new(domain, null));
         }
         return list;
@@ -76,7 +76,7 @@ public static class Uptime
     {
         if (settings.Off.Contains(domain, StringComparer.OrdinalIgnoreCase))
             return settings with { Off = settings.Off.Where(d => !string.Equals(d, domain, StringComparison.OrdinalIgnoreCase)).ToList() };
-        if (clients.Any(c => string.Equals(DomainReport.Normalise(c.Website), domain, StringComparison.OrdinalIgnoreCase))
+        if (clients.Any(c => string.Equals(Webignite.Core.Web.Domains.Of(c.Website), domain, StringComparison.OrdinalIgnoreCase))
             || settings.Extra.Contains(domain, StringComparer.OrdinalIgnoreCase))
             return settings;
         return settings with { Extra = [.. settings.Extra, domain] };
@@ -86,7 +86,7 @@ public static class Uptime
     public static UptimeSettings Remove(UptimeSettings settings, string domain, IEnumerable<Client> clients)
     {
         var sites = settings.Sites.Where(s => !string.Equals(s.Key, domain, StringComparison.OrdinalIgnoreCase)).ToDictionary(s => s.Key, s => s.Value);
-        var isClient = clients.Any(c => string.Equals(DomainReport.Normalise(c.Website), domain, StringComparison.OrdinalIgnoreCase));
+        var isClient = clients.Any(c => string.Equals(Webignite.Core.Web.Domains.Of(c.Website), domain, StringComparison.OrdinalIgnoreCase));
         return settings with
         {
             Extra = settings.Extra.Where(d => !string.Equals(d, domain, StringComparison.OrdinalIgnoreCase)).ToList(),
@@ -209,5 +209,5 @@ public static class Uptime
         return Count((int)span.TotalDays, "day");
     }
 
-    private static string Count(int n, string unit) => n == 1 ? $"1 {unit}" : $"{n} {unit}s";
+    private static string Count(int n, string unit) => Wording.Count(n, unit);
 }

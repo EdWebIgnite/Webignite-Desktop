@@ -37,7 +37,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             throw new ArgumentException("Quantities and prices can't be negative. Use a separate credit note in Xero for refunds.");
 
         var name = customer.Trim();
-        var client = store.ListClients().FirstOrDefault(c => XeroRules.Normalise(c.Name) == XeroRules.Normalise(name));
+        var client = Webignite.Core.Clients.ClientDirectory.Find(store.ListClients(), name);
         var email = string.IsNullOrWhiteSpace(customerEmail)
             ? Webignite.Core.Mail.ClientMail.First(client?.Email)
             : customerEmail.Trim();
@@ -85,9 +85,9 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             "invoice" or "invoices" => DocumentKind.Invoice,
             _ => null,
         };
-        var wanted = XeroRules.Normalise(customer);
+        var wanted = Webignite.Core.Clients.ClientDirectory.Key(customer);
         return store.List(only)
-            .Where(s => wanted.Length == 0 || XeroRules.Normalise(s.Document.Customer.Name).Contains(wanted, StringComparison.Ordinal))
+            .Where(s => wanted.Length == 0 || Webignite.Core.Clients.ClientDirectory.Key(s.Document.Customer.Name).Contains(wanted, StringComparison.Ordinal))
             .Take(Math.Clamp(limit <= 0 ? 20 : limit, 1, 100))
             .Select(s => new Listed(s.Id, s.Document.Kind.ToString().ToLowerInvariant(), s.XeroNumber, s.Document.Customer.Name, s.Document.Reference,
                 s.Document.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", Money.Rand(s.Document.Total ?? 0), StatusText(s),

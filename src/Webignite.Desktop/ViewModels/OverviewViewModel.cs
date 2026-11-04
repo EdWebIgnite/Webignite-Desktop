@@ -101,7 +101,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
         OverdueLine = OverviewCards.Overdue(documents, today);
         QuotesLine = OverviewCards.QuotesOut(documents, today);
 
-        var entries = services.Store.ListEntries(Ledger.MonthOf(today).AddMonths(-5), today);
+        var entries = services.Store.ListEntries(Webignite.Core.Dates.MonthStart(today).AddMonths(-5), today);
         CameIn = Money.Rand(Trends.ReceivedThisMonth(entries, today));
         CameInLine = Trends.AgainstLastMonth(entries, today) ?? "Add money received under Money to see it here.";
         CameInTrend = Trends.ReceivedByMonth(entries, today).Select(m => (double)m).ToList();
@@ -131,7 +131,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
             Today = today,
             Documents = documents,
             Renewals = services.Store.ListRenewals(),
-            Entries = services.Store.ListEntries(new DateOnly(today.Year, today.Month, 1), today),
+            Entries = services.Store.ListEntries(Webignite.Core.Dates.MonthStart(today), today),
             Inbox = inbox,
             Clients = services.Store.ListClients(),
             OwnAddresses = accounts.Select(a => a.Address).ToList(),

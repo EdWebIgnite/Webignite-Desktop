@@ -44,12 +44,12 @@ public sealed partial class SiteCheckViewModel
         OnPropertyChanged(nameof(WatchOn));
     }
 
-    private bool CanWatch() => DomainReport.Normalise(Address) is not null;
+    private bool CanWatch() => Domains.Of(Address) is not null;
 
     [RelayCommand(CanExecute = nameof(CanWatch))]
     private async Task Watch()
     {
-        if (DomainReport.Normalise(Address) is not { } domain)
+        if (Domains.Of(Address) is not { } domain)
             return;
         services.Settings.Uptime = Uptime.Add(services.Settings.Uptime, domain, services.Store.ListClients());
         RefreshWatched();

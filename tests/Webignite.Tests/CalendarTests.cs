@@ -23,7 +23,7 @@ public sealed class CalendarTests : IDisposable
 
     [Fact]
     public void Week_starts_on_monday() =>
-        Assert.Equal(new DateOnly(2026, 10, 26), Agenda.StartOfWeek(Today));
+        Assert.Equal(new DateOnly(2026, 10, 26), Webignite.Core.Dates.WeekStart(Today));
 
     [Fact]
     public void Agenda_brings_events_tasks_and_document_dates_together()

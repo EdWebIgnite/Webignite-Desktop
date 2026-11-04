@@ -19,11 +19,17 @@ public sealed record ClientSummary(
 
 public static class ClientDirectory
 {
-    /// <summary>Names match ignoring case and extra spaces, so "Karoo Coffee  roasters" is the same client.</summary>
+    /// <summary>
+    /// The one way names are compared everywhere (clients, Xero contacts, statements, payers): ignoring case
+    /// and extra spaces, so "Karoo Coffee  roasters" is the same client. Lower case, as statement keys are stored.
+    /// </summary>
     public static string Key(string? name) =>
-        string.Join(' ', (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
+        string.Join(' ', (name ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
 
     public static bool Matches(Client client, string? name) => Key(client.Name) == Key(name) && Key(name).Length > 0;
+
+    /// <summary>The client with this name, if there is one.</summary>
+    public static Client? Find(IEnumerable<Client> clients, string? name) => clients.FirstOrDefault(c => Matches(c, name));
 
     public static ClientSummary Summarise(Client client, IEnumerable<StoredDocument> documents, IEnumerable<TaskItem> tasks,
         IEnumerable<CalendarEvent> events, DateOnly today) => new(

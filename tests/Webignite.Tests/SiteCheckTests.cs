@@ -11,14 +11,14 @@ public sealed class SiteCheckTests
     [InlineData("karoo.co.za.", "karoo.co.za")]
     [InlineData("hello@fynbosphysio.co.za", "fynbosphysio.co.za")]
     [InlineData("shop.karoo.co.za:8080", "shop.karoo.co.za")]
-    public void Domains_are_tidied(string input, string expected) => Assert.Equal(expected, DomainReport.Normalise(input));
+    public void Domains_are_tidied(string input, string expected) => Assert.Equal(expected, Domains.Of(input));
 
     [Theory]
     [InlineData("")]
     [InlineData("localhost")]
     [InlineData("bad_name.co.za")]
     [InlineData("-x.co.za")]
-    public void Non_domains_are_refused(string input) => Assert.Null(DomainReport.Normalise(input));
+    public void Non_domains_are_refused(string input) => Assert.Null(Domains.Of(input));
 
     [Fact]
     public void Dns_answers_are_read()

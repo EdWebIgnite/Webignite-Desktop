@@ -59,8 +59,8 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
     public void Refresh()
     {
         services.CatchUp();
-        var from = Ledger.MonthOf(Today).AddMonths(-11);
-        var taxStart = Ledger.TaxYearStart(Today);
+        var from = Webignite.Core.Dates.MonthStart(Today).AddMonths(-11);
+        var taxStart = Webignite.Core.Dates.TaxYear(Today).From;
         // Back to the start of last tax year, so this tax year can be set against it.
         var start = taxStart.AddYears(-1) < from ? taxStart.AddYears(-1) : from;
         var entries = services.Store.ListEntries(start, Today.AddYears(1));
@@ -89,7 +89,7 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
         ClientShares.Clear();
         var known = services.Store.ListClients();
         foreach (var share in Ledger.ByClient(entries, ClientsTaxYear ? taxStart : from, Today))
-            ClientShares.Add(new ClientShareRowViewModel(share, known.FirstOrDefault(c => ClientDirectory.Matches(c, share.Name)), services));
+            ClientShares.Add(new ClientShareRowViewModel(share, ClientDirectory.Find(known, share.Name), services));
         Categories.Clear();
         var categories = Ledger.ByCategory(lastYear, from, Today);
         foreach (var c in categories)

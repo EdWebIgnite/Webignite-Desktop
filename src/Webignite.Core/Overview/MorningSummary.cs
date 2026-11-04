@@ -43,7 +43,7 @@ public static class MorningSummary
     public const int RenewalDays = 14;
     private const int MaxChaseLines = 5;
 
-    private static string Days(int days) => days == 1 ? "1 day" : $"{days} days";
+    private static string Days(int days) => Wording.Days(days);
 
     public static IReadOnlyList<SummaryLine> Build(SummaryInput input)
     {
@@ -114,7 +114,7 @@ public static class MorningSummary
             lines.Add(new($"{renewal.Name}{who} renews {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals));
         }
 
-        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var monthStart = Webignite.Core.Dates.MonthStart(today);
         var received = input.Entries.Where(e => e.Kind == EntryKind.Received && e.Date >= monthStart && e.Date <= today).Sum(e => e.Amount);
         if (received > 0)
             lines.Add(new($"{Money.Rand(received)} has come in so far in {today.ToString("MMMM", CultureInfo.InvariantCulture)}.", SummaryTarget.Money));

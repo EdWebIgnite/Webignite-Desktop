@@ -12,7 +12,7 @@ public static class Trends
 {
     /// <summary>Money received from the first of this month to today.</summary>
     public static decimal ReceivedThisMonth(IEnumerable<MoneyEntry> entries, DateOnly today) =>
-        Received(entries, Ledger.MonthOf(today), today);
+        Received(entries, Webignite.Core.Dates.MonthStart(today), today);
 
     /// <summary>
     /// "R 2 800.00 more than by 3 Oct." or "R 500.00 less than by 3 Oct." or "The same as by 3 Oct." Last month
@@ -21,9 +21,9 @@ public static class Trends
     public static string? AgainstLastMonth(IEnumerable<MoneyEntry> entries, DateOnly today)
     {
         var list = entries.ToList();
-        var lastStart = Ledger.MonthOf(today).AddMonths(-1);
+        var lastStart = Webignite.Core.Dates.MonthStart(today).AddMonths(-1);
         var sameDay = lastStart.AddDays(Math.Min(today.Day, DateTime.DaysInMonth(lastStart.Year, lastStart.Month)) - 1);
-        return Compare(Received(list, Ledger.MonthOf(today), today), Received(list, lastStart, sameDay),
+        return Compare(Received(list, Webignite.Core.Dates.MonthStart(today), today), Received(list, lastStart, sameDay),
             "by " + sameDay.ToString("d MMM", CultureInfo.InvariantCulture));
     }
 
@@ -34,7 +34,7 @@ public static class Trends
     public static string? AgainstLastTaxYear(IEnumerable<MoneyEntry> entries, DateOnly today)
     {
         var list = entries.ToList();
-        var start = Ledger.TaxYearStart(today);
+        var start = Webignite.Core.Dates.TaxYear(today).From;
         var lastStart = start.AddYears(-1);
         // 29 February has no match a year earlier; AddYears lands on the 28th.
         var sameDate = today.AddYears(-1);

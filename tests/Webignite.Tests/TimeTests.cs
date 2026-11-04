@@ -58,8 +58,8 @@ public sealed class TimeTests
     [Fact]
     public void Weeks_start_on_Monday()
     {
-        Assert.Equal(new DateOnly(2026, 10, 26), TimeRules.WeekStart(new DateOnly(2026, 11, 1)));
-        Assert.Equal(new DateOnly(2026, 11, 2), TimeRules.WeekStart(new DateOnly(2026, 11, 2)));
+        Assert.Equal(new DateOnly(2026, 10, 26), Webignite.Core.Dates.WeekStart(new DateOnly(2026, 11, 1)));
+        Assert.Equal(new DateOnly(2026, 11, 2), Webignite.Core.Dates.WeekStart(new DateOnly(2026, 11, 2)));
     }
 
     private static readonly Client[] Clients =

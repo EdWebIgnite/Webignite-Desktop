@@ -108,8 +108,8 @@ public sealed class DocumentCopyAndFilterTests
     [Fact]
     public void Tax_year_starts_in_March()
     {
-        Assert.Equal((new DateOnly(2026, 3, 1), new DateOnly(2027, 2, 28)), DocumentFilter.TaxYear(new DateOnly(2026, 11, 1)));
-        Assert.Equal((new DateOnly(2027, 3, 1), new DateOnly(2028, 2, 29)), DocumentFilter.TaxYear(new DateOnly(2027, 3, 1)));
-        Assert.Equal((new DateOnly(2025, 3, 1), new DateOnly(2026, 2, 28)), DocumentFilter.TaxYear(new DateOnly(2026, 2, 28)));
+        Assert.Equal((new DateOnly(2026, 3, 1), new DateOnly(2027, 2, 28)), Webignite.Core.Dates.TaxYear(new DateOnly(2026, 11, 1)));
+        Assert.Equal((new DateOnly(2027, 3, 1), new DateOnly(2028, 2, 29)), Webignite.Core.Dates.TaxYear(new DateOnly(2027, 3, 1)));
+        Assert.Equal((new DateOnly(2025, 3, 1), new DateOnly(2026, 2, 28)), Webignite.Core.Dates.TaxYear(new DateOnly(2026, 2, 28)));
     }
 }
