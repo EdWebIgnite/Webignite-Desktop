@@ -12,5 +12,6 @@ Native Windows app (C#, .NET 10, Avalonia 12, MVVM with CommunityToolkit.Mvvm). 
 - Don't pin a country or culture: dates on screen follow the PC's Windows region, as users may be outside South Africa later. Keys that are stored, and text sent to clients or Xero, use `CultureInfo.InvariantCulture`.
 - Colours come only from `Styles/Palette.axaml`. Red and green mean problem and done, nothing else.
 - Recipes for adding a page, setting, table, background check or assistant tool: `docs/adding-things.md`.
+- Map of the projects, pages, stores and main flows: `docs/architecture.md`. Update it in the same PR when one of those changes.
 - Dropped tasks go through `Background.Forget("What it was doing")`, never `_ =` and never `async void`; add `tell: true` when the person started it, so a failure shows a note. Problems go to `AppLog`. An error nobody caught on the screen's thread is logged and shown by `Background.CatchUnhandled`, and the app carries on.
 - A change to a saved document goes through `Store.Update(id, change)`, which applies it to the document as stored now. Never save an older copy back with `Save(old with { ... })`: it undoes whatever changed meanwhile, such as a payment. Editors call `Keep()` before they are replaced, and anything open is saved in `MainViewModel.PrepareToCloseAsync` before the app closes.
