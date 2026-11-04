@@ -88,6 +88,15 @@ public partial class MainWindow
         var at = e.GetPosition(this);
         var strip = TabStrip.TranslatePoint(new Point(0, TabStrip.Bounds.Height), this)?.Y ?? 0;
         var outside = at.X < 0 || at.Y < 0 || at.X > Bounds.Width || at.Y > Bounds.Height;
+        // Let go near the left or right edge of the page: side by side.
+        var inPage = e.GetPosition(PageArea);
+        if (!outside && inPage.Y > 0 && Math.Abs(at.X - dragStart.X) > 30
+            && Webignite.Core.Layout.TabRules.SideAt(inPage.X, PageArea.Bounds.Width) is { } left)
+        {
+            main.ShowBeside(tab, left);
+            e.Handled = true;
+            return;
+        }
         if (!outside && at.Y < strip + 60)
             return;
         if (Math.Abs(at.Y - dragStart.Y) + Math.Abs(at.X - dragStart.X) < 30)

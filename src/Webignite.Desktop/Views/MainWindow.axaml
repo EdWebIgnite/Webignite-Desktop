@@ -186,6 +186,10 @@
                     <ContextMenu>
                       <MenuItem Header="Close tab" InputGesture="Ctrl+W"
                                 Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseThisTabCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Show on the right"
+                                Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShowOnRightCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Show on the left"
+                                Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShowOnLeftCommand}" CommandParameter="{Binding}" />
                       <MenuItem Header="Open in new window"
                                 Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).PopOutTabCommand}" CommandParameter="{Binding}" />
                       <Separator />
@@ -205,12 +209,50 @@
           </ListBox>
         </DockPanel>
       </Border>
-      <Panel>
-        <ScrollViewer IsVisible="{Binding Current.Scrolls}">
-          <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
-        </ScrollViewer>
-        <TransitioningContentControl x:Name="FullHost" Content="{Binding Current.FullPage}" IsVisible="{Binding Current.FullBleed}" />
-      </Panel>
+      <!-- The page on screen, and when the window is split, a second page beside it (arranged in MainWindow.Split.cs). -->
+      <Grid x:Name="PageArea" ColumnDefinitions="*,0,0">
+        <!-- A page narrower than it can be laid out in (one side of a split) scrolls sideways rather than squash. -->
+        <Panel x:Name="MainPane" Grid.Column="0">
+          <ScrollViewer IsVisible="{Binding Current.Scrolls}" HorizontalScrollBarVisibility="Auto">
+            <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="1040" MinWidth="600" HorizontalAlignment="Stretch" />
+          </ScrollViewer>
+          <ScrollViewer IsVisible="{Binding Current.FullBleed}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <TransitioningContentControl x:Name="FullHost" Content="{Binding Current.FullPage}" MinWidth="760" />
+          </ScrollViewer>
+        </Panel>
+        <GridSplitter x:Name="Divider" Grid.Column="1" Classes="divider" IsVisible="{Binding IsSplit}" ResizeDirection="Columns" />
+        <DockPanel x:Name="BesidePane" Grid.Column="2" IsVisible="{Binding IsSplit}">
+          <Border DockPanel.Dock="Top" Classes="tabstrip">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,0,0,4">
+                <Button Classes="tabplus" Command="{Binding SwapSidesCommand}" ToolTip.Tip="Swap sides">
+                  <TextBlock Text="Swap sides" FontSize="12" />
+                </Button>
+                <Button Classes="tabplus" Command="{Binding PutBesideBackCommand}" ToolTip.Tip="Put it back as a tab">
+                  <TextBlock Text="Back to a tab" FontSize="12" />
+                </Button>
+                <Button Classes="tabclose" Command="{Binding CloseBesideCommand}" ToolTip.Tip="Close it" Margin="4,0,0,0">
+                  <c:Icon Data="{StaticResource Icon.Close}" Size="10" />
+                </Button>
+              </StackPanel>
+              <Border Classes="poptab" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                  <c:Icon Data="{Binding Beside.Module.Icon, Converter={x:Static c:IconConverter.Instance}, FallbackValue={x:Null}}" Size="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding Beside.Title, FallbackValue=''}" MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </StackPanel>
+              </Border>
+            </DockPanel>
+          </Border>
+          <Panel>
+            <ScrollViewer IsVisible="{Binding Beside.Scrolls, FallbackValue=False}" HorizontalScrollBarVisibility="Auto">
+              <ContentControl Content="{Binding Beside.ScrollingPage, FallbackValue={x:Null}}" Margin="28,24" MaxWidth="1040" MinWidth="600" HorizontalAlignment="Stretch" />
+            </ScrollViewer>
+            <ScrollViewer IsVisible="{Binding Beside.FullBleed, FallbackValue=False}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+              <ContentControl Content="{Binding Beside.FullPage, FallbackValue={x:Null}}" MinWidth="760" />
+            </ScrollViewer>
+          </Panel>
+        </DockPanel>
+      </Grid>
     </DockPanel>
 
     <!-- Ctrl+K search, over everything -->

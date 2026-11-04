@@ -53,4 +53,21 @@ public sealed class TabTests
         }, Known, "Overview");
         Assert.Equal([new PopOutPlacement("Mail", 1920, 40, 900, 700)], back.PoppedOut);
     }
+
+    [Fact]
+    public void A_split_comes_back_with_its_side_and_width_kept_usable()
+    {
+        var back = TabRules.Restore(new TabSettings { Pages = ["Overview"], Beside = "Mail", BesideOnLeft = true, MainShare = 0.95 }, Known, "Overview");
+        Assert.Equal("Mail", back.Beside);
+        Assert.True(back.BesideOnLeft);
+        Assert.Equal(0.8, back.MainShare);
+        Assert.Null(TabRules.Restore(new TabSettings { Beside = "Gone" }, Known, "Overview").Beside);
+        Assert.Equal(0.5, TabRules.Share(double.NaN));
+    }
+
+    [Theory]
+    [InlineData(10, 1000, true)]
+    [InlineData(990, 1000, false)]
+    [InlineData(500, 1000, null)]
+    public void A_tab_let_go_near_an_edge_goes_to_that_side(double x, double width, bool? left) => Assert.Equal(left, TabRules.SideAt(x, width));
 }

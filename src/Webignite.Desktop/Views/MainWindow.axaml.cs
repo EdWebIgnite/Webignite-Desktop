@@ -37,6 +37,7 @@ public partial class MainWindow : Window
             return;
         wired = main;
         WirePopOuts(main);
+        WireSplit(main);
         main.WindowIsActive = () => IsActive && WindowState != WindowState.Minimized;
         main.FlashTaskbar = Flash;
         main.Search.PropertyChanged += (_, args) =>

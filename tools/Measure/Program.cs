@@ -77,6 +77,17 @@ for (var round = 1; round <= 2; round++)
     if (round == 1)
         firstRoundBytes = Settle();
 }
+
+// Measured straight after the second round, before the checks below open tabs of their own.
+var endBytes = Settle();
+var firstGrowth = firstRoundBytes - startBytes;
+var repeatGrowth = endBytes - firstRoundBytes;
+Line("Growth after the first round of every page (one-off costs)", Mb(firstGrowth), $"{limits.FirstRoundGrowthMegabytes} MB");
+Line("Growth after a second round (left behind each time)", Mb(repeatGrowth), $"{limits.RepeatGrowthMegabytes} MB");
+Check($"First round of every page grew memory by {Mb(firstGrowth)} (limit {limits.FirstRoundGrowthMegabytes} MB)",
+    firstGrowth <= limits.FirstRoundGrowthMegabytes * 1024L * 1024);
+Check($"Opening and closing every page again left {Mb(repeatGrowth)} behind (limit {limits.RepeatGrowthMegabytes} MB)",
+    repeatGrowth <= limits.RepeatGrowthMegabytes * 1024 * 1024);
 // Copies opened beside the first (two Mails, two Clients) must go too when closed.
 foreach (var twice in new[] { Page.Mail, Page.Clients })
 {
@@ -92,15 +103,13 @@ foreach (var twice in new[] { Page.Mail, Page.Clients })
     Check("A popped-out window gives its memory back when closed", !page.IsAlive && !popped.IsAlive);
 }
 
-var endBytes = Settle();
-var firstGrowth = firstRoundBytes - startBytes;
-var repeatGrowth = endBytes - firstRoundBytes;
-Line("Growth after the first round of every page (one-off costs)", Mb(firstGrowth), $"{limits.FirstRoundGrowthMegabytes} MB");
-Line("Growth after a second round (left behind each time)", Mb(repeatGrowth), $"{limits.RepeatGrowthMegabytes} MB");
-Check($"First round of every page grew memory by {Mb(firstGrowth)} (limit {limits.FirstRoundGrowthMegabytes} MB)",
-    firstGrowth <= limits.FirstRoundGrowthMegabytes * 1024L * 1024);
-Check($"Opening and closing every page again left {Mb(repeatGrowth)} behind (limit {limits.RepeatGrowthMegabytes} MB)",
-    repeatGrowth <= limits.RepeatGrowthMegabytes * 1024 * 1024);
+// A page shown beside the main one must go when the side is closed.
+{
+    var page = ShowBesideAndClose(vm, window);
+    Settle();
+    Check("A page side by side gives its memory back when closed", !page.IsAlive);
+}
+
 Line("Process working set (for reference)", Mb(Process.GetCurrentProcess().WorkingSet64));
 
 Console.WriteLine();
@@ -164,6 +173,21 @@ static (WeakReference Page, WeakReference Window) PopOutAndClose(MainViewModel v
     popped.Close();
     Draw(window);
     return (page, poppedRef);
+}
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+static WeakReference ShowBesideAndClose(MainViewModel vm, MainWindow window)
+{
+    var host = vm.OpenInNewTab(vm[Page.Clients]);
+    if (host.IsMain)
+        host = vm.OpenInNewTab(vm[Page.Clients]);
+    Draw(window);
+    vm.ShowBeside(host, onLeft: false);
+    Draw(window);
+    var page = new WeakReference(host.Page);
+    vm.CloseBeside();
+    Draw(window);
+    return page;
 }
 
 static (MainViewModel, MainWindow) Open()

@@ -113,6 +113,9 @@ public partial class MainViewModel
         Pages = [.. Tabs.Select(t => t.Key.ToString())],
         Active = Math.Max(Tabs.IndexOf(Current), 0),
         PoppedOut = [.. PoppedOut.Select(h => where?.Invoke(h)).OfType<PopOutPlacement>()],
+        Beside = Beside?.Key.ToString(),
+        BesideOnLeft = BesideOnLeft,
+        MainShare = MainShare,
     };
 
     /// <summary>Puts the tabs back as they were. Only the one showing is built; the rest wait to be clicked.</summary>
@@ -135,6 +138,8 @@ public partial class MainViewModel
             Tabs.Add(host);
         OnPropertyChanged(nameof(ShowTabs));
         Current = hosts[back.Active];
+        Beside = null;
+        RestoreBeside(back);
     }
 
     /// <summary>The popped-out pages to open again in windows of their own, each with where it was.</summary>
