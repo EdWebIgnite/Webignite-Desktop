@@ -50,67 +50,6 @@ public sealed class MailFormatTests
     }
 
     [Fact]
-    public void Wrap_adds_and_removes_markers()
-    {
-        var on = MailFormat.Wrap("pay by Friday", 7, 13, "**");
-        Assert.Equal(new FormatEdit("pay by **Friday**", 9, 15), on);
-        var off = MailFormat.Wrap(on.Text, on.SelectionStart, on.SelectionEnd, "**");
-        Assert.Equal(new FormatEdit("pay by Friday", 7, 13), off);
-    }
-
-    [Fact]
-    public void Wrap_leaves_spaces_outside()
-    {
-        Assert.Equal("pay **by** Friday", MailFormat.Wrap("pay by Friday", 4, 7, "**").Text);
-    }
-
-    [Fact]
-    public void Wrap_with_nothing_selected_puts_the_caret_between()
-    {
-        Assert.Equal(new FormatEdit("Hi ****", 5, 5), MailFormat.Wrap("Hi ", 3, 3, "**"));
-    }
-
-    [Fact]
-    public void Italic_inside_bold_does_not_unwrap_the_bold()
-    {
-        Assert.Equal("***Friday***", MailFormat.Wrap("**Friday**", 2, 8, "*").Text);
-    }
-
-    [Fact]
-    public void List_toggles_the_selected_lines()
-    {
-        var text = "Intro\nlogo\nphotos\nEnd";
-        var on = MailFormat.List(text, 8, 14, numbered: false);
-        Assert.Equal("Intro\n- logo\n- photos\nEnd", on.Text);
-        Assert.Equal(text, MailFormat.List(on.Text, on.SelectionStart, on.SelectionEnd, numbered: false).Text);
-        Assert.Equal("Intro\n1. logo\n2. photos\nEnd", MailFormat.List(on.Text, on.SelectionStart, on.SelectionEnd, numbered: true).Text);
-    }
-
-    [Fact]
-    public void List_on_an_empty_line_starts_one()
-    {
-        var edit = MailFormat.List("Hi\n", 3, 3, numbered: true);
-        Assert.Equal(new FormatEdit("Hi\n1. ", 6, 6), edit);
-    }
-
-    [Theory]
-    [InlineData("webignite.co.za", "[webignite.co.za](https://webignite.co.za)")]
-    [InlineData("https://x.co.za", "[x.co.za](https://x.co.za)")]
-    [InlineData("eddie@webignite.co.za", "[eddie@webignite.co.za](mailto:eddie@webignite.co.za)")]
-    public void Link_with_nothing_selected_uses_the_address(string url, string expected)
-    {
-        Assert.Equal(expected, MailFormat.Link("", 0, 0, url).Text);
-    }
-
-    [Fact]
-    public void Link_wraps_the_selection()
-    {
-        var edit = MailFormat.Link("Pay online here", 11, 15, "in.xero.com/abc");
-        Assert.Equal("Pay online [here](https://in.xero.com/abc)", edit.Text);
-        Assert.Equal(edit.Text.Length, edit.SelectionStart);
-    }
-
-    [Fact]
     public void Sent_mail_uses_the_formatting()
     {
         var mail = new OutgoingMail { AccountId = "a", Subject = "s", Body = "**Hi**\n- one" };

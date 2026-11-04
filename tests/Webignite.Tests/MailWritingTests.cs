@@ -67,7 +67,7 @@ public sealed class MailWritingTests
     }
 
     [Fact]
-    public void A_reply_quotes_the_original_keeps_the_thread_and_adds_the_signature()
+    public void A_reply_quotes_the_original_and_keeps_the_thread()
     {
         var original = Original();
         var reply = MailComposer.Reply(original, Eddie, Mine, all: true);
@@ -77,7 +77,7 @@ public sealed class MailWritingTests
         Assert.Equal(["desk@fynbosphysio.co.za"], reply.Cc.Select(p => p.Address));
         Assert.Equal("original@fynbosphysio.co.za", reply.InReplyTo);
         Assert.Equal(["first@fynbosphysio.co.za", "original@fynbosphysio.co.za"], reply.References);
-        Assert.Equal("\n\nEddie\nWebignite", reply.Body);
+        Assert.Equal("", reply.Body); // the editor puts the signature in, as writing it can change
 
         var message = MailComposer.Build(reply with { Body = "Looking at it now." + reply.Body }, Eddie);
         Assert.Equal("Eddie, Webignite", message.From.Mailboxes.Single().Name);
@@ -117,6 +117,40 @@ public sealed class MailWritingTests
         Assert.NotNull(opened.Quote);
         Assert.Contains("It just spins.", opened.Quote!.Text);
         Assert.DoesNotContain("> ", opened.Quote.Text);
+    }
+
+    [Fact]
+    public void A_draft_written_in_the_editor_comes_back_exactly_with_its_pictures_and_reply_to()
+    {
+        var picture = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEklEQVR4nGP4z8DwH4QZYAwAR8oH+Rq28akAAAAASUVORK5CYII=");
+        var writing = Webignite.Core.Writing.RichText.Starting("Hi **Lerato**,", Webignite.Core.Writing.RichText.Signature("Eddie", picture, "image/png"));
+        var html = Webignite.Core.Writing.RichHtml.Write(writing, _ => "cid:logo@webignite");
+        var reply = MailComposer.Reply(Original(), Eddie, Mine, all: false) with
+        {
+            Body = Webignite.Core.Writing.RichText.ToText(writing),
+            Html = html,
+            Images = [new InlineImage("logo@webignite", picture, "image/png")],
+            ReplyTo = [new MailPerson("Accounts", "accounts@webignite.co.za")],
+        };
+        var message = MailComposer.Build(reply, Eddie);
+        Assert.Single(message.BodyParts.OfType<MimePart>(), p => p.ContentId == "logo@webignite");
+        Assert.Equal("accounts@webignite.co.za", message.ReplyTo.Mailboxes.Single().Address);
+        Assert.StartsWith("Hi Lerato,", message.TextBody);
+
+        var opened = MailComposer.FromDraft(MailComposer.ToBytes(message), Eddie, uid: 9);
+        Assert.Equal(html, opened.Html);
+        Assert.Equal(picture, Assert.Single(opened.Images).Data);
+        Assert.Equal("accounts@webignite.co.za", opened.ReplyTo.Single().Address);
+        Assert.NotNull(opened.Quote);
+    }
+
+    [Fact]
+    public void Mail_from_the_editor_never_gets_a_second_signature_picture()
+    {
+        var withPicture = Eddie with { SignatureImage = [0x89, (byte)'P', (byte)'N', (byte)'G'], SignatureImageType = "image/png" };
+        var mail = new OutgoingMail { AccountId = "m1", To = [new(null, "x@y.co.za")], Body = "Hi\n\nEddie\nWebignite", Html = "<p>Hi</p>" };
+        var message = MailComposer.Build(mail, withPicture);
+        Assert.DoesNotContain(message.BodyParts.OfType<MimePart>(), p => p.ContentId is not null);
     }
 
     [Fact]

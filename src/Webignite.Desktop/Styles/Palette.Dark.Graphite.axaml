@@ -8,6 +8,12 @@
   <SolidColorBrush x:Key="Surface" Color="#1F2024" />
   <!-- Behind a page of a PDF or a picture: white, as on paper, in every look. -->
   <SolidColorBrush x:Key="Paper" Color="#FFFFFF" />
+  <!-- Writing on paper (the mail editor): the paper stays white in every palette, so its ink does too. -->
+  <SolidColorBrush x:Key="PaperText" Color="#1F2A26" />
+  <SolidColorBrush x:Key="PaperLine" Color="#C8CDD0" />
+  <SolidColorBrush x:Key="PaperShade" Color="#F4F5F5" />
+  <SolidColorBrush x:Key="PaperLink" Color="#1A5FB4" />
+  <SolidColorBrush x:Key="PaperSelection" Color="#B9D3F5" />
   <SolidColorBrush x:Key="Surface2" Color="#26282C" />
   <SolidColorBrush x:Key="TableHead" Color="#2A2C31" />
   <SolidColorBrush x:Key="Line" Color="#33363C" />

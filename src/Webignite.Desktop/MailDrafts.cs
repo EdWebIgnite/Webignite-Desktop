@@ -57,7 +57,7 @@ public sealed class MailDrafts(AppServices services)
             AccountId = draft.From.Id,
             To = to.People,
             Subject = draft.Subject,
-            Body = draft.Body + Replies.StartBody(draft.From.Signature),
+            Body = draft.Body,
             Attachments = draft.Attachments,
         };
         return services.Go.ComposeMail(mail, DraftNotes.For(to.People.Count, draft.NoAddress, draft.Unfilled, draft.Note), draft.AfterSent);

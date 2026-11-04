@@ -4,7 +4,7 @@ using Webignite.Core.Mail;
 
 namespace Webignite.Desktop.ViewModels;
 
-public enum AddressField { To, Cc, Bcc }
+public enum AddressField { To, Cc, Bcc, ReplyTo }
 
 // Name and address suggestions while typing in To, Cc or Bcc.
 public partial class ComposeViewModel
@@ -52,13 +52,14 @@ public partial class ComposeViewModel
     {
         if ((contact ?? ChosenSuggestion) is not { } chosen)
             return null;
-        var text = SuggestingFor switch { AddressField.Cc => Cc, AddressField.Bcc => Bcc, _ => To };
+        var text = SuggestingFor switch { AddressField.Cc => Cc, AddressField.Bcc => Bcc, AddressField.ReplyTo => ReplyTo, _ => To };
         var completed = AddressBook.Complete(text, chosen.Display);
         suggestRun++;
         switch (SuggestingFor)
         {
             case AddressField.Cc: Cc = completed; break;
             case AddressField.Bcc: Bcc = completed; break;
+            case AddressField.ReplyTo: ReplyTo = completed; break;
             default: To = completed; break;
         }
         CloseSuggestions();

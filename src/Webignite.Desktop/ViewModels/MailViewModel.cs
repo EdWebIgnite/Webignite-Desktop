@@ -418,7 +418,7 @@ public partial class MailViewModel : ViewModelBase
         if (accounts.Count == 0)
             return;
         var from = CurrentFolder is { Kind: FolderKind.Folder } folder ? folder.Mailbox : accounts[0];
-        Compose(new OutgoingMail { AccountId = from.Id, Body = Replies.StartBody(from.Signature) });
+        Compose(new OutgoingMail { AccountId = from.Id });
     }
 
     /// <summary>A new mail to these people, from Eddie's own mailbox rather than the accounts one.</summary>
@@ -427,7 +427,7 @@ public partial class MailViewModel : ViewModelBase
         if (accounts.Count == 0)
             return;
         var from = Webignite.Core.Mail.MailAccounts.ForEveryday(accounts)!;
-        Compose(new OutgoingMail { AccountId = from.Id, To = to, Body = Replies.StartBody(from.Signature) });
+        Compose(new OutgoingMail { AccountId = from.Id, To = to });
     }
 
     /// <summary>Shows one mail, opening its folder first. Used from client pages.</summary>
