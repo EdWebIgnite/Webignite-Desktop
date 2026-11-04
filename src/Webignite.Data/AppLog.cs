@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Webignite.Data;
@@ -20,7 +21,7 @@ public static class AppLog
     public static void UseRoot(string? dataRoot) => root = dataRoot;
 
     /// <summary>Today's file, whether or not it exists yet.</summary>
-    public static string CurrentFile(DateTimeOffset now) => Path.Combine(Folder, $"webignite-{now:yyyy-MM-dd}.log");
+    public static string CurrentFile(DateTimeOffset now) => Path.Combine(Folder, "webignite-" + now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".log");
 
     /// <summary>Writes one line: the time, what was happening, and the error if there was one.</summary>
     public static void Write(string what, Exception? error = null) => Write(what, error, DateTimeOffset.Now);
@@ -30,7 +31,7 @@ public static class AppLog
         try
         {
             var line = new StringBuilder()
-                .Append(now.ToString("yyyy-MM-dd HH:mm:ss zzz"))
+                .Append(now.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture))
                 .Append("  ")
                 .Append(what);
             if (error is not null)
@@ -59,7 +60,7 @@ public static class AppLog
             foreach (var file in Directory.EnumerateFiles(Folder, "webignite-*.log"))
             {
                 var name = Path.GetFileNameWithoutExtension(file)["webignite-".Length..];
-                if (DateTime.TryParseExact(name, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var day) && day < cutoff)
+                if (DateTime.TryParseExact(name, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day) && day < cutoff)
                     File.Delete(file);
             }
         }

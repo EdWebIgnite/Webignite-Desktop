@@ -51,9 +51,16 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
     internal void Reject(ApprovalRowViewModel row)
     {
         // Only documents that never reached Xero can be thrown away here.
-        if (row.Item.Kind == WaitingKind.FromAssistant && row.Item.Stored.XeroId is null)
-            services.Store.DeleteDocument(row.Item.Stored.Id);
+        if (row.Item.Kind != WaitingKind.FromAssistant || row.Item.Stored.XeroId is not null)
+            return;
+        var gone = services.Store.Get(row.Item.Stored.Id) ?? row.Item.Stored;
+        services.Store.DeleteDocument(gone.Id);
         Refresh();
+        services.OfferUndo($"Rejected the {(gone.Document.Kind == DocumentKind.Quote ? "quote" : "invoice")} for {gone.Document.Customer.Name}", () =>
+        {
+            services.Store.Save(gone);
+            Refresh();
+        });
     }
 }
 

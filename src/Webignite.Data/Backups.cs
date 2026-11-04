@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO.Compression;
 using System.IO.Pipes;
 using System.Text.Json;
@@ -176,7 +177,7 @@ public static class Backups
             throw new BackupInUseException();
         var restoredKey = (unprotectKey ?? (k => k))(File.ReadAllBytes(Path.Combine(pending, KeyEntry)));
 
-        var aside = Path.Combine(dataRoot, "before-restore " + now.ToLocalTime().ToString("yyyy-MM-dd HHmmss"));
+        var aside = Path.Combine(dataRoot, "before-restore " + now.ToLocalTime().ToString("yyyy-MM-dd HHmmss", CultureInfo.InvariantCulture));
         Directory.CreateDirectory(aside);
         foreach (var name in new[] { "webignite.db", "webignite.db-wal", "webignite.db-shm", "vault.key" })
         {

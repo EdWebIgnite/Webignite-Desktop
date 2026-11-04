@@ -10,6 +10,39 @@ namespace Webignite.Xero;
 /// </summary>
 public static class XeroPayload
 {
+    /// <summary>
+    /// A new Xero contact for a customer: name, email, phone and the postal address an assistant or import gave.
+    /// Only used when Webignite makes a contact; an existing Xero contact is never changed. The postal address
+    /// (POBOX in Xero) is the one Xero prints on invoices.
+    /// </summary>
+    public static JsonObject NewContact(Customer customer, string? email)
+    {
+        var contact = new JsonObject { ["Name"] = customer.Name.Trim() };
+        // Xero holds one address per contact: the first, when the customer has several.
+        if (Webignite.Core.Mail.ClientMail.First(email ?? customer.Email) is { } address)
+            contact["EmailAddress"] = address;
+        if (!string.IsNullOrWhiteSpace(customer.Phone))
+            contact["Phones"] = new JsonArray(new JsonObject { ["PhoneType"] = "DEFAULT", ["PhoneNumber"] = customer.Phone.Trim() });
+
+        var postal = new JsonObject { ["AddressType"] = "POBOX" };
+        void Put(string key, string? value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                postal[key] = value.Trim();
+        }
+        Put("AttentionTo", customer.Attention);
+        var lines = customer.AddressLines.Where(l => !string.IsNullOrWhiteSpace(l)).Take(4).ToList();
+        for (var i = 0; i < lines.Count; i++)
+            Put($"AddressLine{i + 1}", lines[i]);
+        Put("City", customer.City);
+        Put("Region", customer.Region);
+        Put("PostalCode", customer.PostalCode);
+        Put("Country", customer.Country);
+        if (postal.Count > 1)
+            contact["Addresses"] = new JsonArray(postal);
+        return contact;
+    }
+
     public static JsonObject Build(Document doc, string contactId, string accountCode, string taxType, string? number = null)
     {
         var lines = new JsonArray();

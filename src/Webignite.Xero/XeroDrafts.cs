@@ -70,9 +70,7 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
         {
             if (contact is null)
             {
-                var newContact = new JsonObject { ["Name"] = doc.Customer.Name.Trim() };
-                if ((customerEmail ?? doc.Customer.Email) is { Length: > 0 } email)
-                    newContact["EmailAddress"] = email.Trim();
+                var newContact = XeroPayload.NewContact(doc.Customer, customerEmail);
                 var made = await api.PutAsync("Contacts", new JsonObject { ["Contacts"] = new JsonArray(newContact) }, stored.Id + "-contact", cancel);
                 var id = XeroApi.Str(made["Contacts"]?[0]?["ContactID"]);
                 if (id.Length == 0)

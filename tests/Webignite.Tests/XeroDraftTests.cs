@@ -12,6 +12,33 @@ public sealed class XeroDraftTests
     private static readonly XeroContact Karoo = new("k1", "Karoo Coffee Roasters", "accounts@karoocoffee.co.za", true);
 
     [Fact]
+    public void A_new_contact_takes_the_customers_address_phone_and_email()
+    {
+        var customer = new Webignite.Core.Documents.Customer
+        {
+            Name = " Karoo Coffee Roasters ", Email = "accounts@karoocoffee.co.za", Phone = "023 123 4567",
+            Attention = "Thandi Mokoena", AddressLines = ["12 Church Street", ""], City = "Prince Albert",
+            Region = "Western Cape", PostalCode = "6930", Country = "South Africa",
+        };
+        var contact = XeroPayload.NewContact(customer, null);
+        Assert.Equal("Karoo Coffee Roasters", contact["Name"]!.GetValue<string>());
+        Assert.Equal("accounts@karoocoffee.co.za", contact["EmailAddress"]!.GetValue<string>());
+        Assert.Equal("023 123 4567", contact["Phones"]![0]!["PhoneNumber"]!.GetValue<string>());
+        var address = contact["Addresses"]![0]!;
+        Assert.Equal("POBOX", address["AddressType"]!.GetValue<string>());
+        Assert.Equal("Thandi Mokoena", address["AttentionTo"]!.GetValue<string>());
+        Assert.Equal("12 Church Street", address["AddressLine1"]!.GetValue<string>());
+        Assert.Null(address["AddressLine2"]);
+        Assert.Equal("6930", address["PostalCode"]!.GetValue<string>());
+
+        // Only a name: no empty address or phone is sent.
+        var bare = XeroPayload.NewContact(new Webignite.Core.Documents.Customer { Name = "Fynbos Physio" }, "admin@fynbosphysio.co.za");
+        Assert.Null(bare["Addresses"]);
+        Assert.Null(bare["Phones"]);
+        Assert.Equal("admin@fynbosphysio.co.za", bare["EmailAddress"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void Contacts_match_on_name_and_email_and_doubt_goes_to_a_person()
     {
         XeroContact[] contacts = [Karoo, new("f1", "Fynbos Physio", null, true), new("o1", "Old Client", null, false)];

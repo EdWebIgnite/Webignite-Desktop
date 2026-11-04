@@ -1,3 +1,4 @@
+using System.Globalization;
 using Webignite.Core.Documents;
 using Webignite.Core.Xero;
 
@@ -38,7 +39,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         var name = customer.Trim();
         var client = store.ListClients().FirstOrDefault(c => XeroRules.Normalise(c.Name) == XeroRules.Normalise(name));
         var email = string.IsNullOrWhiteSpace(customerEmail)
-            ? client?.Email?.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault()
+            ? Webignite.Core.Mail.ClientMail.First(client?.Email)
             : customerEmail.Trim();
 
         var settings = store.GetSetting<DocumentSettings>("documents") ?? new DocumentSettings();
@@ -66,8 +67,8 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             Source = source,
         });
         var problems = DocumentValidator.Validate(document);
-        return new Prepared(stored.Id, kind.Trim().ToLowerInvariant(), document.Customer.Name, document.Date?.ToString("yyyy-MM-dd") ?? "",
-            document.DueOrExpiryDate?.ToString("yyyy-MM-dd") ?? "", Money.Rand(document.Total ?? 0), problems,
+        return new Prepared(stored.Id, kind.Trim().ToLowerInvariant(), document.Customer.Name, document.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "",
+            document.DueOrExpiryDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", Money.Rand(document.Total ?? 0), problems,
             "Saved in Webignite under To approve for Eddie to check. Nothing has gone to Xero, and it is not sent to the customer."
             + (problems.Count > 0 ? " It still needs: " + string.Join(" ", problems) : ""));
     }
@@ -89,7 +90,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             .Where(s => wanted.Length == 0 || XeroRules.Normalise(s.Document.Customer.Name).Contains(wanted, StringComparison.Ordinal))
             .Take(Math.Clamp(limit <= 0 ? 20 : limit, 1, 100))
             .Select(s => new Listed(s.Id, s.Document.Kind.ToString().ToLowerInvariant(), s.XeroNumber, s.Document.Customer.Name, s.Document.Reference,
-                s.Document.Date?.ToString("yyyy-MM-dd") ?? "", Money.Rand(s.Document.Total ?? 0), StatusText(s),
+                s.Document.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", Money.Rand(s.Document.Total ?? 0), StatusText(s),
                 s.Document.Lines.Select(l => l.IsPriced ? $"{l.Description}: {l.Quantity:0.##} x {Money.Rand(l.UnitPrice ?? 0)}" : l.Description).ToList()))
             .ToList();
     }

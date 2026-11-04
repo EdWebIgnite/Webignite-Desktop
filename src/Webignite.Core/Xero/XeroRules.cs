@@ -56,7 +56,8 @@ public static class XeroRules
     public static ContactMatch MatchContact(string customerName, string? customerEmail, IReadOnlyList<XeroContact> contacts)
     {
         var name = Normalise(customerName);
-        var email = Normalise(customerEmail);
+        // The customer may have several addresses; the first one is the one matched.
+        var email = Normalise(Webignite.Core.Mail.ClientMail.First(customerEmail) ?? customerEmail);
         var matches = contacts
             .Where(c => Normalise(c.Name) == name || (email.Length > 0 && Normalise(c.Email) == email))
             .ToList();

@@ -18,29 +18,8 @@ public static class SavedReplies
     public const string NameField = "{name}";
     public const string ClientField = "{client}";
 
-    /// <summary>Free mail services, where sharing a domain doesn't make two people the same client.</summary>
-    private static readonly HashSet<string> FreeMail = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "yahoo.com", "icloud.com", "me.com",
-        "webmail.co.za", "mweb.co.za", "telkomsa.net", "vodamail.co.za", "iafrica.com", "absamail.co.za", "lantic.net",
-    };
-
-    /// <summary>The client a mail is to: one with that exact address, else one whose address or website shares the domain.</summary>
-    public static Client? ClientFor(IEnumerable<Client> clients, string? address)
-    {
-        if (string.IsNullOrWhiteSpace(address) || !address.Contains('@'))
-            return null;
-        var list = clients.ToList();
-        var exact = list.FirstOrDefault(c => string.Equals(c.Email?.Trim(), address.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (exact is not null)
-            return exact;
-        var domain = address[(address.LastIndexOf('@') + 1)..].Trim();
-        if (FreeMail.Contains(domain))
-            return null;
-        return list.FirstOrDefault(c =>
-            (c.Email is { } email && email.Contains('@') && email[(email.LastIndexOf('@') + 1)..].Trim().Equals(domain, StringComparison.OrdinalIgnoreCase))
-            || string.Equals(ClientMail.WebsiteDomain(c.Website), domain, StringComparison.OrdinalIgnoreCase));
-    }
+    /// <summary>The client a mail is to, by address or domain, the same way as everywhere else (<see cref="ClientMail.For"/>).</summary>
+    public static Client? ClientFor(IEnumerable<Client> clients, string? address) => ClientMail.For(clients, address);
 
     /// <summary>
     /// The first name to greet: the client's contact person when the mail is to the client's own address, else
@@ -48,7 +27,7 @@ public static class SavedReplies
     /// </summary>
     public static string? FirstName(MailPerson? to, Client? client)
     {
-        var name = client is { ContactPerson: { Length: > 0 } contact } && (string.Equals(client.Email?.Trim(), to?.Address, StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(to?.Name))
+        var name = client is { ContactPerson: { Length: > 0 } contact } && (new ClientMail(client).IsOwn(to?.Address) || string.IsNullOrWhiteSpace(to?.Name))
             ? contact
             : to?.Name;
         var first = (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();

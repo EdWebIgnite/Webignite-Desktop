@@ -92,3 +92,44 @@ public sealed class ClientTests : IDisposable
         Directory.Delete(folder, recursive: true);
     }
 }
+
+/// <summary>A client can have several email addresses, read the same way everywhere.</summary>
+public sealed class ClientEmailTests
+{
+    private static readonly Webignite.Core.Clients.Client Karoo = new()
+    {
+        Id = "c1", Name = "Karoo Coffee Roasters", ContactPerson = "Thandi Mokoena",
+        Email = "thandi@karoocoffee.co.za; accounts.karoo@gmail.com",
+    };
+
+    [Fact]
+    public void Several_addresses_can_be_saved_and_a_wrong_one_is_named()
+    {
+        Assert.Empty(Webignite.Core.Clients.ClientDirectory.Check(Karoo, []));
+        Assert.Equal(["\"accounts@\" doesn't look like an email address."],
+            Webignite.Core.Clients.ClientDirectory.Check(Karoo with { Email = "thandi@karoocoffee.co.za; accounts@" }, []));
+    }
+
+    [Fact]
+    public void Every_address_finds_the_client()
+    {
+        Assert.Equal(Karoo, Webignite.Core.Mail.SavedReplies.ClientFor([Karoo], "accounts.karoo@gmail.com"));
+        Assert.Equal(Karoo, Webignite.Core.Overview.MorningSummary.ClientFor("accounts.karoo@gmail.com", [Karoo]));
+        Assert.Equal(Karoo, Webignite.Core.Overview.MorningSummary.ClientFor("pieter@karoocoffee.co.za", [Karoo]));
+        // Gmail is shared, so another Gmail sender is nobody's client.
+        Assert.Null(Webignite.Core.Mail.SavedReplies.ClientFor([Karoo], "someone@gmail.com"));
+        Assert.Equal("Thandi", Webignite.Core.Mail.SavedReplies.FirstName(
+            new Webignite.Core.Mail.MailPerson("Accounts", "accounts.karoo@gmail.com"), Karoo));
+    }
+
+    [Fact]
+    public void Where_only_one_fits_the_first_is_used()
+    {
+        Assert.Equal("thandi@karoocoffee.co.za", Webignite.Core.Mail.ClientMail.First(Karoo.Email));
+        Assert.Null(Webignite.Core.Mail.ClientMail.First(""));
+        var contact = new Webignite.Core.Xero.XeroContact("k1", "Karoo Coffee Roasters", "thandi@karoocoffee.co.za", true);
+        Assert.IsType<Webignite.Core.Xero.ContactMatch.Use>(Webignite.Core.Xero.XeroRules.MatchContact("Karoo Coffee Roasters", Karoo.Email, [contact]));
+        Assert.Equal("thandi@karoocoffee.co.za",
+            Webignite.Xero.XeroPayload.NewContact(new Customer { Name = "Karoo", Email = Karoo.Email }, null)["EmailAddress"]!.GetValue<string>());
+    }
+}

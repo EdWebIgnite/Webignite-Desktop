@@ -42,8 +42,8 @@ public static class AddressBook
 
         foreach (var client in clients)
         {
-            foreach (var email in (client.Email ?? "").Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                Add(client.ContactPerson ?? client.Name, email, 50, DateTimeOffset.MinValue);
+            foreach (var person in Recipients.Parse(client.Email).People)
+                Add(client.ContactPerson ?? client.Name, person.Address, 50, DateTimeOffset.MinValue);
         }
 
         foreach (var m in mail)

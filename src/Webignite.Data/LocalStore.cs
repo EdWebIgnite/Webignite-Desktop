@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Webignite.Core.Calendar;
@@ -297,6 +298,16 @@ public sealed partial class LocalStore : IDisposable
         command.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// Ticks off a document's open follow-up and reminder to-dos: the chasing mail went, or Xero says it's paid,
+    /// accepted or declined, so they're done.
+    /// </summary>
+    public void TickOffChasing(string documentId, DateTimeOffset now)
+    {
+        foreach (var task in ListTasks().Where(t => t.DocumentId == documentId && AutomaticTasks.IsChase(t)))
+            SaveTask(task with { Done = true, DoneAt = now });
+    }
+
     public IReadOnlyList<TaskItem> ListTasks()
     {
         using var command = connection.CreateCommand();
@@ -337,10 +348,18 @@ public sealed partial class LocalStore : IDisposable
             ON CONFLICT (id) DO UPDATE SET date = $date, payload = $payload
             """;
         command.Parameters.AddWithValue("$id", calendarEvent.Id);
-        command.Parameters.AddWithValue("$date", calendarEvent.Date.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$date", calendarEvent.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$payload", Seal("event:" + calendarEvent.Id, calendarEvent));
         command.ExecuteNonQuery();
         return calendarEvent;
+    }
+
+    public CalendarEvent? GetEvent(string id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT payload FROM events WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        return command.ExecuteScalar() is byte[] payload ? Open<CalendarEvent>("event:" + id, payload) : null;
     }
 
     public void DeleteEvent(string id)
@@ -356,8 +375,8 @@ public sealed partial class LocalStore : IDisposable
     {
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT id, payload FROM events WHERE date BETWEEN $from AND $to";
-        command.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd"));
-        command.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         using var reader = command.ExecuteReader();
         var list = new List<CalendarEvent>();
         while (reader.Read())
@@ -404,7 +423,7 @@ public sealed partial class LocalStore : IDisposable
             """;
         command.Parameters.AddWithValue("$id", entry.Id);
         command.Parameters.AddWithValue("$kind", entry.Kind.ToString());
-        command.Parameters.AddWithValue("$date", entry.Date.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$date", entry.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$key", (object?)entry.RecurringKey ?? DBNull.Value);
         command.Parameters.AddWithValue("$payload", Seal("entry:" + entry.Id, entry));
         command.ExecuteNonQuery();
@@ -428,8 +447,8 @@ public sealed partial class LocalStore : IDisposable
     {
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT id, payload FROM entries WHERE deleted = 0 AND date >= $from AND date <= $to ORDER BY date, id";
-        command.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd"));
-        command.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         using var reader = command.ExecuteReader();
         var list = new List<MoneyEntry>();
         while (reader.Read())

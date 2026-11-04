@@ -6,8 +6,8 @@ namespace Webignite.Core.Time;
 
 /// <summary>
 /// A draft invoice from a client's logged time for one month: a line per project (and one for time on no
-/// project), hours to two decimals at the rate that applies. Time with no rate can't be priced, so it is left
-/// out and said so.
+/// project), hours to two decimals, priced so each line comes to exactly what the minutes are worth at the rate
+/// that applies. Time with no rate can't be priced, so it is left out and said so.
 /// </summary>
 public static class TimeInvoice
 {
@@ -30,11 +30,12 @@ public static class TimeInvoice
                 continue;
             }
             var what = project is null ? "Work" : project.Name;
+            var hours = Math.Round(minutes / 60m, 2, MidpointRounding.AwayFromZero);
             lines.Add(new Line
             {
                 Description = $"{what}, {monthName} ({TimeRules.Format(minutes)})",
-                Quantity = Math.Round(minutes / 60m, 2, MidpointRounding.AwayFromZero),
-                UnitPrice = rate,
+                Quantity = hours,
+                UnitPrice = PriceFor(hours, TimeRules.Value(minutes, rate.Value), rate.Value),
             });
         }
         return (lines, unpriced);
@@ -54,6 +55,21 @@ public static class TimeInvoice
             Reference = "Time, " + new DateOnly(month.Year, month.Month, 1).ToString("MMMM yyyy", CultureInfo.InvariantCulture),
             Lines = lines,
         }, settings, today);
+    }
+
+    /// <summary>
+    /// The unit price (to four decimals, as Xero takes it) that makes the rounded hours come to exactly what the
+    /// minutes are worth, so the invoice and the Time page agree: 3.92 h of 3 h 55 min at R 750 is R 2 937.50.
+    /// When the rounded hours already come out right, it is simply the rate.
+    /// </summary>
+    public static decimal PriceFor(decimal hours, decimal worth, decimal rate)
+    {
+        if (hours <= 0 || Money.Cents(hours * rate) == worth)
+            return rate;
+        var price = Math.Round(worth / hours, 4, MidpointRounding.AwayFromZero);
+        for (var step = 0; step < 100 && Money.Cents(hours * price) != worth; step++)
+            price += Money.Cents(hours * price) < worth ? 0.0001m : -0.0001m;
+        return price;
     }
 
     private static string ProjectName(Client client, string? id) => id is null ? "" : client.Projects.FirstOrDefault(p => p.Id == id)?.Name ?? "";

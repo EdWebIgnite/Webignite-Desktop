@@ -193,9 +193,16 @@ public partial class ClientDetailViewModel : ViewModelBase
     [RelayCommand]
     private void Delete()
     {
-        // Only the client page goes. Quotes, invoices and to-dos stay as they are.
-        services.Store.DeleteClient(client.Id);
+        // Only the client page goes. Quotes, invoices and to-dos stay as they are. It asked first (AskDelete),
+        // and Undo still brings it back.
+        var gone = client;
+        services.Store.DeleteClient(gone.Id);
         close();
+        services.OfferUndo($"Deleted {gone.Name}", () =>
+        {
+            services.Store.SaveClient(gone);
+            services.Go.Client(gone);
+        });
     }
 
     [RelayCommand]

@@ -33,12 +33,28 @@ public sealed class TimeInvoiceTests
         var (lines, unpriced) = TimeInvoice.Lines(entries, Karoo, November);
 
         Assert.Equal(0, unpriced);
+        // Hours to two decimals, and each line comes to what the minutes are worth, as on the Time page.
         Assert.Equal(
         [
-            ("Logo, November 2026 (1 h)", 1.00m, 600m),
-            ("New website, November 2026 (3 h 55 min)", 3.92m, 750m),
-            ("Work, November 2026 (20 min)", 0.33m, 600m),
-        ], lines.Select(l => (l.Description, l.Quantity!.Value, l.UnitPrice!.Value)));
+            ("Logo, November 2026 (1 h)", 1.00m, 600.00m),
+            ("New website, November 2026 (3 h 55 min)", 3.92m, 2937.50m),
+            ("Work, November 2026 (20 min)", 0.33m, 200.00m),
+        ], lines.Select(l => (l.Description, l.Quantity!.Value, l.Amount())));
+        Assert.Equal(600m, lines[0].UnitPrice); // whole hours keep the plain rate
+    }
+
+    [Theory]
+    [InlineData(235, 750)]
+    [InlineData(20, 600)]
+    [InlineData(1, 650)]
+    [InlineData(6007, 875.50)]
+    [InlineData(59, 1234.56)]
+    public void A_line_always_comes_to_what_the_minutes_are_worth(int minutes, decimal rate)
+    {
+        var hours = Math.Round(minutes / 60m, 2, MidpointRounding.AwayFromZero);
+        var price = TimeInvoice.PriceFor(hours, TimeRules.Value(minutes, rate), rate);
+        Assert.Equal(TimeRules.Value(minutes, rate), new Line { Description = "x", Quantity = hours, UnitPrice = price }.Amount());
+        Assert.Equal(price, Math.Round(price, 4));
     }
 
     [Fact]

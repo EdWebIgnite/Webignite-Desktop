@@ -48,6 +48,7 @@ public static class Chasing
             var opened = services.Go.ComposeMail(mail, notes.Count > 0 ? string.Join(" ", notes) : null, _ =>
             {
                 sending.MarkChased(services.Store.Get(stored.Id) ?? ready.Stored);
+                services.Store.TickOffChasing(stored.Id, DateTimeOffset.Now);
                 return Task.CompletedTask;
             });
             return opened ? (null, false) : ("Another mail is open in Mail with changes. Send or close it first, then try again.", true);

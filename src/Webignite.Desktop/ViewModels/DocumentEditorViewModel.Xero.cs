@@ -225,7 +225,7 @@ public partial class DocumentEditorViewModel
     {
         var wanted = XeroRules.Normalise(customer);
         var client = services.Store.ListClients().FirstOrDefault(c => XeroRules.Normalise(c.Name) == wanted);
-        return client?.Email?.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+        return Webignite.Core.Mail.ClientMail.First(client?.Email);
     }
 }
 
