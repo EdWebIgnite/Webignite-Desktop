@@ -21,6 +21,8 @@ public partial class MainViewModel
     {
         if (PoppedOut.Contains(host))
             return false;
+        if (host == Beside)
+            Beside = null;
         if (!Open.Contains(host))
             Open.Add(host);
         if (Tabs.Contains(host))

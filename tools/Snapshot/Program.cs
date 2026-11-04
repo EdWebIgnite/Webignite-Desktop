@@ -471,6 +471,34 @@ vm.Clients.Detail!.BackCommand.Execute(null);
     Check("Closing a popped-out window with nothing open closes it", !vm.PoppedOut.Contains(clientTab) && !vm.Tabs.Contains(clientTab) && window.PopOutWindows.Count == 0);
     vm.CloseOtherTabsCommand.Execute(vm.Tabs[0]);
 }
+// Side by side: a client beside the invoices, in the same window.
+{
+    Open(Page.Invoices);
+    services.Go.ClientInNewTab(bosveld);
+    var clientTab = vm.Current;
+    vm.ShowOnRightCommand.Execute(clientTab);
+    Dispatcher.UIThread.RunJobs();
+    Check("A tab shown on the right leaves the strip and the main side keeps its page",
+        vm.IsSplit && vm.Beside == clientTab && !vm.Tabs.Contains(clientTab) && vm.Current.Key == Page.Invoices);
+    // Side by side is for a wide screen: drawn at the width of a desktop monitor.
+    window.Width = 1900;
+    Save("side-by-side");
+    window.Width = 1280;
+    Open(Page.Clients);
+    Check("The sidebar opens Clients on the main side and leaves the one beside be", vm.Current.Key == Page.Clients && vm.Current != clientTab && vm.Beside == clientTab);
+    vm.SwapSidesCommand.Execute(null);
+    var saved = vm.TabState();
+    Check("Swapped to the left and saved that way", vm.BesideOnLeft && saved.Beside == "Clients" && saved.BesideOnLeft);
+    vm.CloseBesideCommand.Execute(null);
+    Check("Closing the side with a client open puts it back as a tab", !vm.IsSplit && vm.Tabs.Contains(clientTab));
+    ((ClientsViewModel)clientTab.Page).Detail!.BackCommand.Execute(null);
+    vm.RestoreTabs(saved);
+    Dispatcher.UIThread.RunJobs();
+    Check("The split comes back as it was", vm.IsSplit && vm.Beside?.Key == Page.Clients && vm.BesideOnLeft);
+    vm.PutBesideBackCommand.Execute(null);
+    Check("Back to a tab: the window is whole again", !vm.IsSplit && vm.Tabs.Any(t => t.Key == Page.Clients && t != vm.Current));
+    vm.CloseOtherTabsCommand.Execute(vm.Tabs[0]);
+}
 var month = Dates.MonthStart(today);
 void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>
     store.SaveEntry(new Webignite.Core.Finance.MoneyEntry { Id = Webignite.Core.Finance.MoneyEntry.NewId(), Kind = kind, Date = date, Amount = amount, Party = party, Category = category, Note = note });

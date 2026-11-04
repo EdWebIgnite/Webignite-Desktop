@@ -92,6 +92,13 @@ foreach (var twice in new[] { Page.Mail, Page.Clients })
     Check("A popped-out window gives its memory back when closed", !page.IsAlive && !popped.IsAlive);
 }
 
+// A page shown beside the main one must go when the side is closed.
+{
+    var page = ShowBesideAndClose(vm, window);
+    Settle();
+    Check("A page side by side gives its memory back when closed", !page.IsAlive);
+}
+
 var endBytes = Settle();
 var firstGrowth = firstRoundBytes - startBytes;
 var repeatGrowth = endBytes - firstRoundBytes;
@@ -164,6 +171,21 @@ static (WeakReference Page, WeakReference Window) PopOutAndClose(MainViewModel v
     popped.Close();
     Draw(window);
     return (page, poppedRef);
+}
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+static WeakReference ShowBesideAndClose(MainViewModel vm, MainWindow window)
+{
+    var host = vm.OpenInNewTab(vm[Page.Clients]);
+    if (host.IsMain)
+        host = vm.OpenInNewTab(vm[Page.Clients]);
+    Draw(window);
+    vm.ShowBeside(host, onLeft: false);
+    Draw(window);
+    var page = new WeakReference(host.Page);
+    vm.CloseBeside();
+    Draw(window);
+    return page;
 }
 
 static (MainViewModel, MainWindow) Open()

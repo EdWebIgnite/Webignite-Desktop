@@ -572,6 +572,11 @@
     <Setter Property="Background" Value="{DynamicResource Canvas}" />
     <Setter Property="Foreground" Value="{DynamicResource Ink}" />
   </Style>
+  <!-- The bar between two pages side by side: drag it to share the width differently. -->
+  <Style Selector="GridSplitter.divider">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+    <Setter Property="MinWidth" Value="5" />
+  </Style>
   <!-- A popped-out window's own tab, joined to its page like the main window's tab on screen. -->
   <Style Selector="Border.poptab">
     <Setter Property="Background" Value="{DynamicResource Canvas}" />
