@@ -9,13 +9,13 @@
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
         <Button x:Name="SnipButton" Classes="primary" Content="Take a screenshot" Click="TakeScreenshot"
-                ToolTip.Tip="Opens the Windows snipping bar. Drag over the part of the site you want." />
+                ToolTip.Tip="The screen freezes: drag over a part, click a window, or press Enter for all of it. Your shortcut does the same from any program." />
         <Button Classes="quiet" Content="Paste" Click="PasteImage" ToolTip.Tip="Ctrl+V. Paste a screenshot you've already copied" />
         <Button Classes="quiet" Content="Open an image" Click="OpenImage" />
       </StackPanel>
       <StackPanel Spacing="4">
         <TextBlock Classes="h1" Text="Mark-up" />
-        <TextBlock Classes="muted" Text="Mark up a client's site with numbered notes, then mail it to them." />
+        <TextBlock Classes="muted" Text="Mark up a screenshot with notes, arrows, text and blur, then save it, copy it or mail it." />
       </StackPanel>
     </DockPanel>
 
@@ -23,10 +23,14 @@
       <Border Grid.Column="0" Classes="card" Padding="8" Height="620">
         <Panel>
           <c:MarkupCanvas x:Name="Canvas" Image="{Binding Image}" Marks="{Binding Marks}" Tool="{Binding Tool}" Pen="{Binding Pen}" />
+          <!-- The Text tool: words typed where the picture was clicked. Enter keeps them, Esc drops them. -->
+          <Canvas x:Name="TextLayer" IsHitTestVisible="True" Background="{x:Null}">
+            <TextBox x:Name="TextEntry" IsVisible="False" MinWidth="200" PlaceholderText="Type, then Enter" KeyDown="TextEntryKeys" LostFocus="TextEntryLost" />
+          </Canvas>
           <StackPanel IsVisible="{Binding !HasImage}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6" MaxWidth="420">
             <TextBlock Classes="h2" Text="No screenshot yet" HorizontalAlignment="Center" />
             <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center"
-                       Text="Click Take a screenshot and drag over the site, or press Win+Shift+S yourself and then Paste here. You can also drop an image file on this box." />
+                       Text="Click Take a screenshot, or press your shortcut (Ctrl+Alt+S unless you changed it in Settings) from any program. You can also paste a picture or drop an image file on this box." />
           </StackPanel>
         </Panel>
       </Border>
@@ -92,10 +96,14 @@
             </ComboBox>
             <TextBox Text="{Binding Page}" PlaceholderText="Which page, e.g. the home page" />
             <Button Classes="primary" Content="Email it" Command="{Binding EmailCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <WrapPanel ItemSpacing="8" LineSpacing="8">
               <Button Classes="quiet" Content="Copy picture" Command="{Binding CopyImageCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
-              <Button Classes="quiet" Content="Save as PNG" Click="SavePng" />
-            </StackPanel>
+              <Button Classes="quiet" Content="{Binding SaveToText}" Command="{Binding SaveToFolderCommand}"
+                      ToolTip.Tip="Saves it as a PNG in the client's folder when they have one, else in your Screenshots folder" />
+              <Button Classes="quiet" Content="Add to my to-do list" Command="{Binding AddToTodoCommand}" ToolTip.Tip="Saves it and adds a to-do that says where it is" />
+              <Button Classes="link" Content="Save as…" Click="SavePng" />
+              <Button Classes="link" Content="Show in Files" Command="{Binding ShowSavedCommand}" IsVisible="{Binding HasSaved}" />
+            </WrapPanel>
           </StackPanel>
         </Border>
 

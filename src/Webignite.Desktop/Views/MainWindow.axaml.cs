@@ -51,6 +51,7 @@ public partial class MainWindow : Window
             Restore(services.Settings.Window, main);
             ApplyAppearance(services.Settings.Appearance);
             services.Settings.AppearanceChanged += ApplyAppearance;
+            WireScreenshots(main, services);
         }
     }
 

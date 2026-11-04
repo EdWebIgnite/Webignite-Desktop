@@ -143,6 +143,9 @@ public sealed class AppServices : IDisposable
     /// <summary>Files copied or cut in Files, waiting to be pasted, in any Files tab or window.</summary>
     public Files.FileClipboard FileClipboard { get; } = new();
 
+    /// <summary>Set by the main window: takes the screenshot shortcut from Settings again. Returns why not, when it can't.</summary>
+    public Func<string?>? ApplyScreenshotShortcut { get; set; }
+
     private Files.FileTagBook? fileTags;
     private Files.CopyQueue? copyQueue;
 

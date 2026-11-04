@@ -29,6 +29,16 @@ public sealed class MarkupCanvas : Control
     /// <summary>Called with each finished mark; the owner decides whether to keep it.</summary>
     public Action<Mark>? MarkDrawn { get; set; }
 
+    /// <summary>A click with the Text tool: where, on the picture and on this control, so the view can ask for the words.</summary>
+    public Action<MarkPoint, Point>? TextAsked { get; set; }
+
+    /// <summary>Where a point on the picture is on this control.</summary>
+    public Point ToControl(MarkPoint p)
+    {
+        var (scale, offset) = Fit();
+        return new Point(p.X * scale + offset.X, p.Y * scale + offset.Y);
+    }
+
     private List<MarkPoint>? drawing;
 
     public MarkupCanvas()
@@ -60,6 +70,12 @@ public sealed class MarkupCanvas : Control
         base.OnPointerPressed(e);
         if (Image is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
+        if (Tool == MarkKind.Text)
+        {
+            TextAsked?.Invoke(ToImage(e.GetPosition(this)), e.GetPosition(this));
+            e.Handled = true;
+            return;
+        }
         drawing = [ToImage(e.GetPosition(this))];
         e.Pointer.Capture(this);
         e.Handled = true;
@@ -103,13 +119,15 @@ public sealed class MarkupCanvas : Control
         {
             context.DrawImage(image, new Rect(0, 0, image.PixelSize.Width, image.PixelSize.Height));
             var marks = drawing is { Count: > 0 } ? [.. Marks, new Mark(Tool, Pen, drawing) { Number = Markup.NextNumber(Marks) }] : Marks;
-            Draw(context, marks, image.PixelSize.Width, image.PixelSize.Height);
+            Draw(context, marks, image);
         }
     }
 
     /// <summary>Draws marks in image pixels. Used on screen and for the saved picture.</summary>
-    public static void Draw(DrawingContext context, IEnumerable<Mark> marks, int width, int height)
+    public static void Draw(DrawingContext context, IEnumerable<Mark> marks, Bitmap image)
     {
+        var width = image.PixelSize.Width;
+        var height = image.PixelSize.Height;
         var stroke = Markup.StrokeFor(width, height);
         foreach (var mark in marks)
         {
@@ -143,6 +161,21 @@ public sealed class MarkupCanvas : Control
                     var (hx, hy, hw, hh) = Markup.Box(p[0], p[^1]);
                     context.DrawRectangle(new SolidColorBrush(colour, 0.35), null, new Rect(hx, hy, hw, hh));
                     break;
+                case MarkKind.Blur when p.Count > 1:
+                    var pixels = Pixels(image);
+                    foreach (var (bx, by, bw, bh, b, g, r) in Markup.Pixelate(pixels, width * 4, width, height, p[0], p[^1], Markup.BlurBlock(width, height)))
+                        context.FillRectangle(new SolidColorBrush(Color.FromRgb(r, g, b)), new Rect(bx, by, bw, bh));
+                    break;
+                case MarkKind.Text when mark.Comment.Length > 0:
+                    var words = new FormattedText(mark.Comment, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                        new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Bold), Markup.TextSize(width, height), new SolidColorBrush(colour));
+                    var pad = stroke * 1.5;
+                    var corner = new Point(p[0].X, p[0].Y);
+                    // A light backing so the words read on any picture.
+                    context.DrawRectangle(new SolidColorBrush(Colour("MarkOutline"), 0.85), null,
+                        new Rect(corner.X - pad, corner.Y - pad, words.Width + pad * 2, words.Height + pad * 2), pad, pad);
+                    context.DrawText(words, corner);
+                    break;
                 case MarkKind.Pen when p.Count > 1:
                     var geometry = new StreamGeometry();
                     using (var g = geometry.Open())
@@ -157,6 +190,35 @@ public sealed class MarkupCanvas : Control
             }
         }
     }
+
+    // The picture's pixels, read once per picture for blurs and kept only while the picture is.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Bitmap, byte[]> PixelCache = [];
+
+    private static byte[] Pixels(Bitmap image) => PixelCache.GetValue(image, picture =>
+    {
+        var size = picture.PixelSize;
+        var bytes = new byte[size.Width * size.Height * 4];
+        // Drawn onto a surface first, so any picture format reads the same way.
+        using (var target = new RenderTargetBitmap(size, picture.Dpi))
+        {
+            using (var context = target.CreateDrawingContext())
+                context.DrawImage(picture, new Rect(0, 0, size.Width, size.Height));
+            var handle = System.Runtime.InteropServices.GCHandle.Alloc(bytes, System.Runtime.InteropServices.GCHandleType.Pinned);
+            try
+            {
+                target.CopyPixels(new PixelRect(size), handle.AddrOfPinnedObject(), bytes.Length, size.Width * 4);
+            }
+            finally
+            {
+                handle.Free();
+            }
+            // Blurs read blue, green, red; some systems draw red first.
+            if (target.Format == Avalonia.Platform.PixelFormat.Rgba8888)
+                for (var i = 0; i < bytes.Length; i += 4)
+                    (bytes[i], bytes[i + 2]) = (bytes[i + 2], bytes[i]);
+        }
+        return bytes;
+    });
 
     public static Color ColourOf(MarkColour colour) =>
         Colour(colour switch { MarkColour.Yellow => "MarkYellow", MarkColour.Blue => "MarkBlue", _ => "MarkRed" });
@@ -173,7 +235,7 @@ public sealed class MarkupCanvas : Control
         using (var context = target.CreateDrawingContext())
         {
             context.DrawImage(image, new Rect(0, 0, size.Width, size.Height));
-            Draw(context, marks, size.Width, size.Height);
+            Draw(context, marks, image);
         }
         using var stream = new MemoryStream();
         target.Save(stream, new PngBitmapEncoderOptions());

@@ -52,6 +52,44 @@ public partial class SettingsView : UserControl
         }
     }
 
+    // The shortcut box: whatever keys are pressed in it become the shortcut.
+    private void ShortcutKeys(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel settings || e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
+            or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin or Key.Tab)
+            return;
+        e.Handled = true;
+        var parts = new List<string>();
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            parts.Add("Ctrl");
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+            parts.Add("Alt");
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            parts.Add("Shift");
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+            parts.Add("Win");
+        parts.Add(e.Key switch
+        {
+            >= Key.D0 and <= Key.D9 => ((int)(e.Key - Key.D0)).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            >= Key.NumPad0 and <= Key.NumPad9 => ((int)(e.Key - Key.NumPad0)).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Key.Snapshot => "PrintScreen",
+            Key.Scroll => "ScrollLock",
+            _ => e.Key.ToString(),
+        });
+        settings.SetShortcut(string.Join('+', parts));
+    }
+
+    private void ChooseScreenshotFolder(object? sender, RoutedEventArgs e) => ChooseScreenshotFolderAsync().Forget("Choosing the screenshot folder", tell: true);
+
+    private async Task ChooseScreenshotFolderAsync()
+    {
+        if (DataContext is not SettingsViewModel settings || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
+        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Where should screenshots go?" });
+        if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
+            settings.SetScreenshotFolder(path);
+    }
+
     private void ChooseClientRoot(object? sender, RoutedEventArgs e) => ChooseClientRootAsync().Forget("Choosing the client folders", tell: true);
 
     private async Task ChooseClientRootAsync()
