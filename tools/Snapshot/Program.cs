@@ -42,7 +42,7 @@ Sample("Bosveld Builders", DocumentKind.Invoice, ("Website deposit", 1, 7250m));
         Emailed = DateTimeOffset.Now.AddDays(-39), EmailedTo = "Lerato Dlamini" });
     var bosveldInvoice = invoices.First(d => d.Document.Customer.Name == "Bosveld Builders");
     store.Save(bosveldInvoice with { Status = DocumentStatus.InXero, XeroNumber = "INV-0105", XeroId = "x105", XeroStatus = "PAID", XeroAmountDue = 0m, XeroAmountPaid = 7250m,
-        XeroChecked = DateTimeOffset.Now, Settled = DateTimeOffset.Now, SettledAs = "paid", PaidOn = DateOnly.FromDateTime(DateTime.Today) });
+        XeroChecked = DateTimeOffset.Now, Settled = DateTimeOffset.Now, SettledAs = Settlement.Paid, PaidOn = DateOnly.FromDateTime(DateTime.Today) });
 }
 Sample("Bosveld Builders", DocumentKind.Quote, ("New website, 6 pages", 1, 14500m), ("Logo refresh", 1, 3200m));
 

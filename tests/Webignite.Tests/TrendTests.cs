@@ -59,7 +59,7 @@ public sealed class TrendTests
         Assert.Equal([0m, 1000m, 2800m], months);
     }
 
-    private static StoredDocument Invoice(decimal amount, DateOnly date, DateOnly due, string? settledAs = null) => new()
+    private static StoredDocument Invoice(decimal amount, DateOnly date, DateOnly due, Settlement? settledAs = null) => new()
     {
         Id = StoredDocument.NewId(),
         Status = DocumentStatus.InXero,
@@ -79,7 +79,7 @@ public sealed class TrendTests
     public void Owed_says_how_many_invoices_and_the_oldest()
     {
         StoredDocument[] docs = [Invoice(1000m, new(2026, 10, 13), new(2026, 10, 20)), Invoice(500m, new(2026, 10, 28), new(2026, 11, 4)),
-            Invoice(700m, new(2026, 9, 1), new(2026, 9, 8), settledAs: "paid")];
+            Invoice(700m, new(2026, 9, 1), new(2026, 9, 8), settledAs: Settlement.Paid)];
         Assert.Equal("From 2 invoices, the oldest dated 13 Oct.", OverviewCards.Owed(docs));
         Assert.Equal("Nothing owed right now.", OverviewCards.Owed([]));
     }

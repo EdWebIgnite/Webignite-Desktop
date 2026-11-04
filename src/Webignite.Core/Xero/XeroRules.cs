@@ -111,7 +111,7 @@ public static class XeroRules
     /// </summary>
     public static XeroExisting? FindOurs(Document doc, string contactId, IEnumerable<XeroExisting> existing, IReadOnlyCollection<string> claimed)
     {
-        var found = existing.Where(r => !claimed.Contains(r.Id) && r.ContactId == contactId && r.Status == "DRAFT"
+        var found = existing.Where(r => !claimed.Contains(r.Id) && r.ContactId == contactId && r.Status == Documents.XeroStatuses.Draft
             && r.Date == doc.Date && r.Total is { } t && doc.Total is { } mine && Money.Cents(t) == Money.Cents(mine)).ToList();
         return found.Count == 1 ? found[0] : null;
     }

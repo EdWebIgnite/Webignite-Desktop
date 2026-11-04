@@ -90,7 +90,7 @@ public static class XeroPayload
         {
             ["Contact"] = new JsonObject { ["ContactID"] = contactId },
             ["Date"] = Iso(doc.Date ?? throw new InvalidOperationException("Document has no date.")),
-            ["Status"] = "DRAFT",
+            ["Status"] = XeroStatuses.Draft,
             ["CurrencyCode"] = doc.Currency,
             ["LineItems"] = lines,
             // Xero spells this differently for quotes and invoices.

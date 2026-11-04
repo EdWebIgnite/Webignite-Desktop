@@ -45,7 +45,7 @@ public sealed class PaymentTests
         Assert.Equal(400m, Receivables.Overdue([part, paid], Today));
         Assert.Equal("Part paid", Receivables.Standing(part));
         Assert.Equal("Paid", Receivables.Standing(paid));
-        Assert.Equal("paid", paid.SettledAs);
+        Assert.Equal(Settlement.Paid, paid.SettledAs);
         Assert.Equal(Today, paid.PaidOn);
         Assert.False(Receivables.NeedsChecking(paid));
     }

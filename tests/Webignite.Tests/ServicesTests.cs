@@ -56,7 +56,7 @@ public sealed class ServicesTests : IDisposable
         var payment = Assert.Single(news);
         Assert.Equal(1000m, payment.Amount);
         Assert.True(payment.PaidInFull);
-        Assert.Equal("paid", store.Get("inv1")!.SettledAs);
+        Assert.Equal(Settlement.Paid, store.Get("inv1")!.SettledAs);
         Assert.True(store.ListTasks().Single(t => t.Id == "t1").Done);
         Assert.Equal(Now, watch.LastRun);
         Assert.False(watch.Due(Now.AddMinutes(10)));

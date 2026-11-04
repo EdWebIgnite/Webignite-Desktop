@@ -12,6 +12,53 @@ public enum DocumentStatus
     InXero,
 }
 
+/// <summary>
+/// How Xero settled a quote or invoice, so there's nothing left to chase. Saved as lower-case text ("paid"),
+/// the same as before it was typed.
+/// </summary>
+public enum Settlement
+{
+    Paid,
+    Voided,
+    Deleted,
+    Accepted,
+    Declined,
+    Invoiced,
+}
+
+public static class Settlements
+{
+    /// <summary>Settled well: paid, or a quote accepted or turned into an invoice. Shown in green.</summary>
+    public static bool IsGood(Settlement? s) => s is Settlement.Paid or Settlement.Accepted or Settlement.Invoiced;
+
+    /// <summary>Gone in Xero: voided or deleted, so it no longer counts for anything.</summary>
+    public static bool IsCancelled(Settlement? s) => s is Settlement.Voided or Settlement.Deleted;
+
+    /// <summary>The word for it: "Paid", "Accepted".</summary>
+    public static string Label(Settlement s) => s.ToString();
+
+    /// <summary>The same in a sentence: "paid", "accepted".</summary>
+    public static string Word(Settlement s) => s.ToString().ToLowerInvariant();
+}
+
+/// <summary>The statuses Xero gives quotes and invoices, as Xero spells them.</summary>
+public static class XeroStatuses
+{
+    public const string Draft = "DRAFT";
+    public const string Submitted = "SUBMITTED";
+    public const string Authorised = "AUTHORISED";
+    public const string Sent = "SENT";
+    public const string Paid = "PAID";
+    public const string Voided = "VOIDED";
+    public const string Deleted = "DELETED";
+    public const string Accepted = "ACCEPTED";
+    public const string Declined = "DECLINED";
+    public const string Invoiced = "INVOICED";
+
+    /// <summary>Not yet approved in Xero, so the customer hasn't got it.</summary>
+    public static bool IsDraft(string? status) => status is Draft or Submitted;
+}
+
 /// <summary>Who wrote the document.</summary>
 public enum DocumentSource
 {
@@ -54,7 +101,7 @@ public sealed record StoredDocument
 
     /// <summary>When Xero said there's nothing left to chase: the invoice is paid, or the quote accepted or declined.</summary>
     public DateTimeOffset? Settled { get; init; }
-    public string? SettledAs { get; init; }
+    public Settlement? SettledAs { get; init; }
 
     /// <summary>What Xero last said: its status (AUTHORISED, PAID, ACCEPTED...), what's still due and what's been paid.</summary>
     public string? XeroStatus { get; init; }

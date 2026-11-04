@@ -84,7 +84,7 @@ public sealed class ProjectionTests
     [Fact]
     public void Voided_invoices_are_not_expected()
     {
-        var voided = Invoice("1", 1000m, new DateOnly(2026, 11, 14)) with { SettledAs = "voided" };
+        var voided = Invoice("1", 1000m, new DateOnly(2026, 11, 14)) with { SettledAs = Settlement.Voided };
         Assert.Empty(Projection.ExpectedIn(Nov, [voided], [], [], None));
     }
 

@@ -28,7 +28,7 @@ public static class Receivables
     /// <summary>An invoice the customer has and hasn't settled. Drafts still waiting for approval in Xero don't count.</summary>
     public static bool IsOpenInvoice(StoredDocument d) =>
         d.Document.Kind == DocumentKind.Invoice && d.Status == DocumentStatus.InXero && d.Settled is null
-        && d.XeroStatus is not ("DRAFT" or "SUBMITTED");
+        && !XeroStatuses.IsDraft(d.XeroStatus);
 
     /// <summary>What's still owed on an invoice: Xero's amount due when known, otherwise the total.</summary>
     public static decimal Outstanding(StoredDocument d) =>
@@ -43,7 +43,7 @@ public static class Receivables
     /// </summary>
     public static bool IsOpenQuote(StoredDocument d, DateOnly today) =>
         d.Document.Kind == DocumentKind.Quote && d.Status == DocumentStatus.InXero && d.Settled is null
-        && (d.Emailed is not null || d.XeroStatus == "SENT")
+        && (d.Emailed is not null || d.XeroStatus == XeroStatuses.Sent)
         && !(d.Document.DueOrExpiryDate < today);
 
     /// <summary>The word on a quote or invoice row: Draft, To approve, Overdue, Paid, Accepted and so on.</summary>
@@ -60,7 +60,7 @@ public static class Receivables
     /// Shown in green: paid, accepted or invoiced, or in Xero before Xero has been read for payments (and not
     /// overdue).
     /// </summary>
-    public static bool IsDone(StoredDocument d, DateOnly today) => d.SettledAs is "paid" or "accepted" or "invoiced"
+    public static bool IsDone(StoredDocument d, DateOnly today) => Settlements.IsGood(d.SettledAs)
         || (d.Status == DocumentStatus.InXero && d.XeroChecked is null && !IsOverdue(d, today));
 
     public static decimal Owed(IEnumerable<StoredDocument> documents) => documents.Sum(Outstanding);
@@ -79,7 +79,7 @@ public static class Receivables
     public static (StoredDocument? Changed, PaymentNews? News) Apply(StoredDocument stored, XeroStanding xero, DateTimeOffset now)
     {
         // A draft invoice says nothing about payment, even when its total is nil.
-        var settledAs = xero.Status is "DRAFT" or "SUBMITTED" ? null : Chasers.SettledBy(stored.Document.Kind, xero.Status, xero.AmountDue);
+        var settledAs = XeroStatuses.IsDraft(xero.Status) ? null : Chasers.SettledBy(stored.Document.Kind, xero.Status, xero.AmountDue);
 
         var updated = stored with
         {
@@ -95,7 +95,7 @@ public static class Receivables
         var paidBefore = stored.XeroAmountPaid ?? 0;
         if (stored.Document.Kind == DocumentKind.Invoice && stored.XeroChecked is not null
             && xero.AmountPaid is { } paid && Money.Cents(paid) > Money.Cents(paidBefore))
-            news = new PaymentNews(updated, paid - paidBefore, settledAs == "paid");
+            news = new PaymentNews(updated, paid - paidBefore, settledAs == Settlement.Paid);
 
         var same = updated with { XeroChecked = stored.XeroChecked } == stored;
         if (same && stored.XeroChecked is not null)
@@ -106,16 +106,12 @@ public static class Receivables
     /// <summary>How the invoice or quote stands, for the lists: "Paid", "Part paid", "Accepted", or null when Xero hasn't said.</summary>
     public static string? Standing(StoredDocument d) => d.SettledAs switch
     {
-        "paid" => "Paid",
-        "voided" => "Voided",
-        "deleted" => "Deleted in Xero",
-        "accepted" => "Accepted",
-        "declined" => "Declined",
-        "invoiced" => "Invoiced",
+        Settlement.Deleted => "Deleted in Xero",
+        { } settled => Settlements.Label(settled),
         _ when d.Document.Kind == DocumentKind.Invoice && d.XeroAmountPaid > 0 && d.XeroAmountDue > 0 => "Part paid",
-        _ when d.XeroStatus is "DRAFT" or "SUBMITTED" => "Draft in Xero",
-        _ when d.XeroStatus == "AUTHORISED" => "Approved",
-        _ when d.XeroStatus == "SENT" => "Sent",
+        _ when XeroStatuses.IsDraft(d.XeroStatus) => "Draft in Xero",
+        _ when d.XeroStatus == XeroStatuses.Authorised => "Approved",
+        _ when d.XeroStatus == XeroStatuses.Sent => "Sent",
         _ => null,
     };
 }

@@ -112,7 +112,7 @@ public static class Projection
 
         foreach (var d in documents)
         {
-            if (d.Document.Kind != DocumentKind.Invoice || d.SettledAs is "voided" or "deleted")
+            if (d.Document.Kind != DocumentKind.Invoice || Settlements.IsCancelled(d.SettledAs))
                 continue;
             if ((d.Document.DueOrExpiryDate ?? d.Document.Date) is not { } due || !Ledger.InMonth(due, first))
                 continue;
