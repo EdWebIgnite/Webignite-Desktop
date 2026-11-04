@@ -37,7 +37,7 @@ public partial class MainViewModel
     /// </summary>
     public bool GoBack()
     {
-        switch (Selected.Page)
+        switch (Current.Page)
         {
             case DocumentsViewModel { Editor: { } editor }:
                 editor.BackCommand.Execute(null);
@@ -65,7 +65,7 @@ public partial class MainViewModel
     [RelayCommand]
     private void New()
     {
-        switch (Selected.Page)
+        switch (Current.Page)
         {
             // Never over the top of something already open, so nothing typed is lost.
             case DocumentsViewModel { Editor: null } documents: documents.NewCommand.Execute(null); break;
@@ -80,9 +80,9 @@ public partial class MainViewModel
     [RelayCommand]
     private async Task RefreshPage()
     {
-        if (Selected.Key == Page.Mail)
+        if (Current.Key == Page.Mail)
             await CheckMailAsync();
-        else if (Selected.Page is IRefreshable page)
+        else if (Current.Page is IRefreshable page)
             page.Refresh();
     }
 }

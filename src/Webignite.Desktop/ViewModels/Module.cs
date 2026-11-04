@@ -4,43 +4,39 @@ using CommunityToolkit.Mvvm.Input;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>
-/// One entry in the sidebar. The app is a shell of modules, so Mail and later tools slot in as
-/// another entry without touching the rest. A page is built the first time it is opened, and an
-/// unused one can be let go to free its memory (<see cref="Release"/>); it is built again when next opened.
+/// One entry in the sidebar. The app is a shell of modules, so Mail and later tools slot in as another entry
+/// without touching the rest. What is open is a <see cref="PageHost"/>: each module has its main one, and
+/// pages that can be open more than once make more with <see cref="NewHost"/>.
 /// </summary>
-public sealed partial class Module(Page key, string title, Func<ViewModelBase> build, string icon, bool fullBleed = false) : ObservableObject
+public sealed partial class Module : ObservableObject
 {
-    private ViewModelBase? page;
-    /// <summary>Which page this is. Jumps from other pages use this, so a title can change freely.</summary>
-    public Page Key { get; } = key;
+    private readonly Func<ViewModelBase> build;
 
-    public string Title { get; } = title;
+    public Module(Page key, string title, Func<ViewModelBase> build, string icon, bool fullBleed = false)
+    {
+        Key = key;
+        Title = title;
+        Icon = icon;
+        FullBleed = fullBleed;
+        this.build = build;
+        Main = new PageHost(this, build);
+    }
+
+    /// <summary>Which page this is. Jumps from other pages use this, so a title can change freely.</summary>
+    public Page Key { get; }
+
+    public string Title { get; }
 
     /// <summary>The key of its line icon in Styles/Icons.axaml, without the "Icon." in front.</summary>
-    public string Icon { get; } = icon;
-    /// <summary>The page, built now if it hasn't been yet.</summary>
-    public ViewModelBase Page => page ??= build();
+    public string Icon { get; }
 
-    /// <summary>Whether the page has been built and not let go since.</summary>
-    public bool IsBuilt => page is not null;
+    public bool FullBleed { get; }
 
-    /// <summary>When the page was last on screen, for letting go of pages nobody is looking at.</summary>
-    public DateTimeOffset LastSeen { get; internal set; } = DateTimeOffset.Now;
+    /// <summary>The module's own open copy, the one the sidebar shows.</summary>
+    public PageHost Main { get; }
 
-    /// <summary>
-    /// Lets the page go so its memory can be freed, unless it holds open work. Returns true when it went.
-    /// </summary>
-    public bool Release()
-    {
-        if (page is null || page is IHoldsWork { HoldsWork: true })
-            return false;
-        var old = page;
-        page = null;
-        (old as IDisposable)?.Dispose();
-        OnPropertyChanged(nameof(IsBuilt));
-        return true;
-    }
-    public bool FullBleed { get; } = fullBleed;
+    /// <summary>Another copy of the page, open alongside the first.</summary>
+    public PageHost NewHost() => new(this, build);
 
     /// <summary>The heading this page sits under, if any. Folding the group takes the page off the list.</summary>
     public NavGroup? Group { get; internal set; }
@@ -75,12 +71,6 @@ public sealed partial class Module(Page key, string title, Func<ViewModelBase> b
 
     public bool HasBadge => Badge > 0;
 
-    /// <summary>Most pages scroll inside a centred column; Mail fills the window with its own panes.</summary>
-    public bool Scrolls => !FullBleed;
-
-    // Each page is handed to only one of the two hosts, so its view is never built twice.
-    public ViewModelBase? ScrollingPage => FullBleed ? null : Page;
-    public ViewModelBase? FullPage => FullBleed ? Page : null;
 }
 
 /// <summary>

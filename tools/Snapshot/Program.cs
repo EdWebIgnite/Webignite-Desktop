@@ -114,7 +114,7 @@ static void ShrinkPhotos(string photos, ToolsViewModel tools)
 
 // Light by design: opening the app builds Overview and nothing else, and reads no heavy tool from disk.
 Dispatcher.UIThread.RunJobs();
-Check("Opening the app builds Overview and no other page", vm.Modules.Where(m => m.IsBuilt).Select(m => m.Key).SequenceEqual([Page.Overview]));
+Check("Opening the app builds Overview and no other page", vm.Open.Where(h => h.IsBuilt).Select(h => h.Key).SequenceEqual([Page.Overview]));
 {
     string[] heavy = ["Webignite.Tools", "Docnet.Core", "QRCoder", "HtmlRenderer", "Avalonia.HtmlRenderer"];
     var loaded = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name ?? "").Where(heavy.Contains).ToList();
@@ -268,7 +268,7 @@ services.Secrets.Write(AppServices.BackupPasswordName, "a long sample password")
 var backupAt = DateTimeOffset.Now.AddMinutes(-20);
 var backupFile = Backups.Seal(Backups.Snapshot(store), snapshotKey, "a long sample password", services.BackupFolder, backupAt, "0.2.2", 1000);
 services.Settings.Backups = services.Settings.Backups with { LastBackup = backupAt, LastFile = backupFile };
-var settingsPage = (SettingsViewModel)vm.Selected.Page;
+var settingsPage = (SettingsViewModel)vm.Current.Page;
 settingsPage.Refresh();
 settingsPage.Open("backups");
 Save("settings-backups");
@@ -356,7 +356,7 @@ var started = store.RunningTimer! with { Started = DateTimeOffset.Now.AddMinutes
 services.Timer.Start(started);
 Save("time-running");
 Open(Page.Overview);
-Check("The running timer shows in the sidebar with Time let go", vm.ReleaseIdle(TimeSpan.Zero) > 0 && !vm[Page.Time].IsBuilt && vm.Timer.IsRunning);
+Check("The running timer shows in the sidebar with Time let go", vm.ReleaseIdle(TimeSpan.Zero) > 0 && !vm[Page.Time].Main.IsBuilt && vm.Timer.IsRunning);
 Open(Page.Time);
 services.Timer.Stop();
 vm.Time.Note = "";
@@ -368,6 +368,26 @@ window.Height = 1250;
 Save("client-tall");
 window.Height = 860;
 vm.Clients.Detail!.BackCommand.Execute(null);
+// Pages that can be open more than once: a second Clients beside the first, each with its own client open.
+{
+    var first = vm.Clients;
+    var second = vm.OpenAnother(Page.Clients);
+    Dispatcher.UIThread.RunJobs();
+    var copy = (ClientsViewModel)second.Page;
+    copy.OpenCommand.Execute(copy.Rows[1]);
+    first.OpenCommand.Execute(first.Rows[0]);
+    Check("A second Clients opens beside the first, each with its own client",
+        !ReferenceEquals(first, copy) && vm.Current == second && first.Detail is { } a && copy.Detail is { } b && a.Title != b.Title);
+    Open(Page.Overview);
+    Open(Page.Clients);
+    Check("The sidebar goes back to the copy used last", vm.Current == second && vm.Clients == copy);
+    Check("A copy with a client open isn't closed", !vm.Close(second));
+    copy.Detail!.BackCommand.Execute(null);
+    // That a closed copy is freed is checked by tools/Measure, which runs in Release where that can be seen.
+    Check("Closing the extra copy goes back to the first", vm.Close(second) && vm.Current == vm[Page.Clients].Main && !vm.Open.Contains(second));
+    Check("The sidebar's own copy is never closed", !vm.Close(vm[Page.Clients].Main));
+    first.Detail!.BackCommand.Execute(null);
+}
 var month = Dates.MonthStart(today);
 void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>
     store.SaveEntry(new Webignite.Core.Finance.MoneyEntry { Id = Webignite.Core.Finance.MoneyEntry.NewId(), Kind = kind, Date = date, Amount = amount, Party = party, Category = category, Note = note });
@@ -410,7 +430,7 @@ store.SaveRetainer(new Webignite.Core.Retainers.Retainer
 });
 Open(Page.Retainers);
 Save("retainers");
-var retainersPage = (RetainersViewModel)vm.Selected.Page;
+var retainersPage = (RetainersViewModel)vm.Current.Page;
 retainersPage.Edit(seo);
 Save("retainer-editor");
 retainersPage.Editor!.CancelCommand.Execute(null);
@@ -428,7 +448,7 @@ Save("domains");
 
 // Income projection, once retainers and renewals exist, in each chart style and with typed-in amounts.
 Open(Page.Money);
-var moneyPage = (MoneyViewModel)vm.Selected.Page;
+var moneyPage = (MoneyViewModel)vm.Current.Page;
 moneyPage.Refresh();
 window.Height = 1180;
 Save("income-default"); // Lines until a style is picked
