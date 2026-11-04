@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:v="using:Webignite.Desktop.Views"
              x:Class="Webignite.Desktop.Views.RetainerEditorView"
              x:DataType="vm:RetainerEditorViewModel"
              x:Name="Root">
@@ -36,31 +37,7 @@
 
     <Border Classes="card" Padding="0">
       <StackPanel>
-        <Border Classes="stickyhead" c:Sticky.IsEnabled="True" Background="{DynamicResource TableHead}" Height="36">
-        <Grid ColumnDefinitions="*,90,130,130,44">
-            <TextBlock Grid.Column="0" Classes="label" Text="Description" Margin="20,0,0,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="1" Classes="label" Text="Qty" Margin="8,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="2" Classes="label" Text="Price" Margin="8,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="3" Classes="label" Text="Amount" Margin="8,0,12,0" VerticalAlignment="Center" HorizontalAlignment="Right" />
-          </Grid>
-        </Border>
-        <ItemsControl ItemsSource="{Binding Lines}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:LineRowViewModel">
-              <Grid ColumnDefinitions="*,90,130,130,44" Margin="12,8,4,0">
-                <TextBox Grid.Column="0" Text="{Binding Description}" PlaceholderText="What it covers" Margin="0,0,8,0" />
-                <TextBox Grid.Column="1" Text="{Binding Quantity}" LostFocus="SettleSum" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
-                <TextBox Grid.Column="2" Text="{Binding Price}" PlaceholderText="0.00" LostFocus="SettleSum"
-                         ToolTip.Tip="Type an amount, or a sum like 3.5 x 650" HorizontalContentAlignment="Right" Margin="0,0,8,0" />
-                <TextBlock Grid.Column="3" Classes="amount" Text="{Binding AmountText}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <Button Grid.Column="4" Classes="link" ToolTip.Tip="Remove line"
-                        Command="{Binding #Root.((vm:RetainerEditorViewModel)DataContext).RemoveLineCommand}" CommandParameter="{Binding}">
-                  <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
-                </Button>
-              </Grid>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <v:LinesEditor Lines="{Binding Lines}" RemoveCommand="{Binding RemoveLineCommand}" Placeholder="What it covers" />
         <DockPanel Margin="12,12,20,16">
           <TextBlock DockPanel.Dock="Right" Classes="figure" FontSize="18" Text="{Binding Total}" VerticalAlignment="Center" />
           <Button Classes="quiet" Content="+ Add line" Command="{Binding AddLineCommand}" />

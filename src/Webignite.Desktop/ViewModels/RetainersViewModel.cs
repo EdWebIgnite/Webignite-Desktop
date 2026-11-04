@@ -134,7 +134,7 @@ public partial class RetainerEditorViewModel : ViewModelBase
         // Read once: the preview below updates on every key.
         draftsMade = services.Store.DraftsMade().Keys.ToHashSet();
         documentSettings = services.Settings.Documents;
-        ClientNames = services.Clients.List().Select(c => c.Name).ToList();
+        ClientNames = ClientPicker.Names(services.Clients.List());
         StartChoices = [new("This month", 0), new("Next month", 1)];
         Start = StartChoices[0];
         if (existing is not null)

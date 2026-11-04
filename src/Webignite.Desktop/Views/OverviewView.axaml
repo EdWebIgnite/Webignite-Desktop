@@ -97,14 +97,13 @@
         <ItemsControl ItemsSource="{Binding Today}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:AgendaItemViewModel">
-              <Border Classes="chip" Classes.task="{Binding IsTask}" Classes.quote="{Binding IsQuote}"
-                      Classes.invoice="{Binding IsInvoice}" Padding="10,7" Margin="0,0,0,6">
+              <c:AgendaChip Padding="10,7" Margin="0,0,0,6">
                 <DockPanel>
                   <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding KindLabel}" VerticalAlignment="Center" />
                   <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="52" IsVisible="{Binding HasTime}" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
                 </DockPanel>
-              </Border>
+              </c:AgendaChip>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
