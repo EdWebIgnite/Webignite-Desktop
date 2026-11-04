@@ -824,6 +824,22 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
         }, new DocumentSettings(), DateOnly.FromDateTime(DateTime.Today)),
     });
 
+// Nothing typed is lost: an invoice replaced by another one, and one left open when the app closes, are both saved.
+{
+    var invoices = store.List(DocumentKind.Invoice).Where(d => d.XeroState == Webignite.Core.Xero.XeroWriteState.None).Take(2).ToList();
+    vm.Invoices.OpenDocument(invoices[0]);
+    vm.Invoices.Editor!.Reference = "Typed before another opened";
+    vm.Invoices.OpenDocument(invoices[1]);
+    vm.Invoices.Editor!.Reference = "Typed before closing";
+    var problem = vm.PrepareToCloseAsync().GetAwaiter().GetResult();
+    var kept = store.Get(invoices[0].Id)!.Document.Reference == "Typed before another opened"
+        && store.Get(invoices[1].Id)!.Document.Reference == "Typed before closing" && problem is null;
+    Console.WriteLine("Open invoices were saved when replaced and on closing: " + kept);
+    vm.Invoices.Editor = null;
+    if (!kept)
+        Environment.Exit(1);
+}
+
 // Last, as its note stays on screen while the snapshot clock stands still.
 // An error on the screen's thread is logged and shown as a note; the app keeps going. Exits with an error if not.
 {

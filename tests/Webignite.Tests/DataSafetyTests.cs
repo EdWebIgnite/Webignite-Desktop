@@ -108,3 +108,49 @@ public sealed class DataSafetyTests : IDisposable
         Assert.False(Directory.Exists(snapshot));
     }
 }
+
+/// <summary>Changes made at the same time both stay, and Undo puts back only what was removed.</summary>
+public sealed class NoLostWorkTests : IDisposable
+{
+    private readonly string root = Directory.CreateTempSubdirectory("webignite-lost-").FullName;
+    private readonly LocalStore store;
+
+    public NoLostWorkTests() => store = new LocalStore(Path.Combine(root, "webignite.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
+
+    public void Dispose()
+    {
+        store.Dispose();
+        Directory.Delete(root, recursive: true);
+    }
+
+    [Fact]
+    public void Update_changes_the_document_as_it_is_now_not_an_old_copy()
+    {
+        var old = store.Save(new StoredDocument { Id = StoredDocument.NewId(), Document = Samples.Completed(Samples.NewInvoice()) });
+        store.Save(old with { XeroAmountPaid = 500m });
+
+        var updated = store.Update(old.Id, current => current with { EmailedTo = "Thandi" });
+
+        Assert.Equal(500m, updated!.XeroAmountPaid);
+        Assert.Equal("Thandi", store.Get(old.Id)!.EmailedTo);
+        Assert.Equal(500m, store.Get(old.Id)!.XeroAmountPaid);
+    }
+
+    [Fact]
+    public void Update_can_leave_it_alone_and_says_when_it_is_gone()
+    {
+        var doc = store.Save(new StoredDocument { Id = StoredDocument.NewId(), Document = Samples.Completed(Samples.NewInvoice()) });
+        Assert.Equal(doc.Updated, store.Update(doc.Id, _ => null)!.Updated);
+        Assert.Null(store.Update("not-there", d => d));
+    }
+
+    [Fact]
+    public void Undo_puts_back_only_the_removed_item_in_its_place()
+    {
+        IReadOnlyList<string> before = ["a", "b", "c"];
+        IReadOnlyList<string> now = ["a", "c", "d"]; // b removed, then d added
+        Assert.Equal(["a", "b", "c", "d"], Webignite.Core.Layout.ListUndo.PutBack(now, "b", 1, x => x));
+        Assert.Equal(["a", "b", "c"], Webignite.Core.Layout.ListUndo.PutBack(before, "b", 1, x => x));
+        Assert.Equal(["z"], Webignite.Core.Layout.ListUndo.PutBack([], "z", 5, x => x));
+    }
+}

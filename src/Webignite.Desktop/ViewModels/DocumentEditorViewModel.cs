@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Documents;
+using Webignite.Core.Xero;
 
 namespace Webignite.Desktop.ViewModels;
 
@@ -15,6 +16,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     private readonly Action close;
     private StoredDocument? stored;
     private bool loading;
+    private bool changed; // typed into since it was opened or last saved
 
     public DocumentEditorViewModel(DocumentKind kind, AppServices services, Action close)
     {
@@ -23,6 +25,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         this.close = close;
         Lines.Add(NewRow());
         Recalculate();
+        changed = false;
     }
 
     public DocumentEditorViewModel(StoredDocument stored, AppServices services, Action close)
@@ -41,6 +44,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
             Lines.Add(NewRow());
         loading = false;
         Recalculate();
+        changed = false;
     }
 
     public DocumentKind Kind { get; }
@@ -151,11 +155,35 @@ public partial class DocumentEditorViewModel : ViewModelBase
     {
         if (!IsEditable)
             return; // Once it has gone to Xero, Xero holds the real copy.
-        stored = services.Store.Save((stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = Build() })
-            with { Document = Build() });
+        var doc = Build();
+        // Saved onto the document as it is now, and only while it still hasn't gone to Xero. An editor left open
+        // on another page mustn't wipe a Xero link made from here meanwhile, or the next Create makes a second one.
+        var latest = stored is null ? null
+            : services.Store.Update(stored.Id, current => current.XeroState == XeroWriteState.None ? current with { Document = doc } : null);
+        if (latest is { XeroState: not XeroWriteState.None })
+        {
+            stored = latest;
+            RefreshXero();
+            OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(NumberNote));
+            SaveState = "Not saved: it went to Xero from another page while this was open, so Xero holds it now.";
+            return;
+        }
+        stored = latest ?? services.Store.Save((stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = doc }) with { Document = doc });
+        changed = false;
         SaveState = $"Saved on this PC at {stored.Updated.ToLocalTime():HH:mm}";
         SavedStamp++;
         OnPropertyChanged(nameof(Title));
+    }
+
+    /// <summary>
+    /// Saves what was typed before the editor goes away for any reason: another document opened over it, another
+    /// client picked, or the app closing. Back already saves; this covers every other way out.
+    /// </summary>
+    public void Keep()
+    {
+        if (changed && HasContent)
+            Save();
     }
 
     /// <summary>Counts up on each save, so the short "Saved" note beside the Save button shows again.</summary>
@@ -191,6 +219,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     {
         if (loading)
             return;
+        changed = true;
         var doc = Build();
         Subtotal = Money.Rand(doc.Subtotal ?? 0);
         Total = Money.Rand(doc.Total ?? 0);

@@ -131,6 +131,9 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
     [NotifyPropertyChangedFor(nameof(IsListing))]
     public partial DocumentEditorViewModel? Editor { get; set; }
 
+    // Whatever replaces an open editor, what was typed in it is saved first.
+    partial void OnEditorChanging(DocumentEditorViewModel? oldValue, DocumentEditorViewModel? newValue) => oldValue?.Keep();
+
     public bool IsListing => Editor is null;
 
     [RelayCommand]

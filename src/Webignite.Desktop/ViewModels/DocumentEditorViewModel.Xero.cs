@@ -110,6 +110,8 @@ public partial class DocumentEditorViewModel
         if (!CanCreate || services.XeroDrafts is not { } drafts || services.Settings.Xero.AccountCode is not { } account)
             return;
         Save();
+        if (!IsEditable)
+            return; // It went to Xero from another page meanwhile; Save said so.
         var target = new XeroTarget(account);
         var email = ClientEmail(CustomerName);
         await Run(() => drafts.CreateAsync(stored!, target, contactId, createContact, email));
@@ -276,6 +278,8 @@ public partial class DocumentEditorViewModel
             ShowXero("Connect Xero in Settings first.", problem: true);
             return;
         }
+        // The editor may have been open on another page while this changed (emailed, approved, paid).
+        stored = services.Store.Get(stored.Id) ?? stored;
         if (services.Store.ListMailAccounts().FirstOrDefault(a => a.SendsInvoices) is not { } mailbox)
         {
             ShowXero("No mailbox is set up to send invoices. In Mail, Manage mailboxes, tick \"Invoices are sent from this mailbox\" on accounts@.", problem: true);

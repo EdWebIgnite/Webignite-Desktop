@@ -17,6 +17,9 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
     [NotifyPropertyChangedFor(nameof(IsListing))]
     public partial DocumentEditorViewModel? Editor { get; set; }
 
+    // Whatever replaces an open editor, what was typed in it is saved first.
+    partial void OnEditorChanging(DocumentEditorViewModel? oldValue, DocumentEditorViewModel? newValue) => oldValue?.Keep();
+
     public bool IsListing => Editor is null;
     public bool IsEmpty => Rows.Count == 0;
     public string Summary => Rows.Count switch

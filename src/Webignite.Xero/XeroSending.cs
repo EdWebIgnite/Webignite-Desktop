@@ -8,9 +8,10 @@ namespace Webignite.Xero;
 /// <summary>
 /// Gets a checked Xero draft ready to email from Webignite's own mailbox: approves invoices (only when a
 /// person clicked to), downloads Xero's PDF and online link, and afterwards tells Xero it was sent.
-/// Nothing here sends mail; that stays with the Send button.
+/// Nothing here sends mail; that stays with the Send button. Each change goes through <c>update</c>, which applies
+/// it to the document as it is stored now, so a payment the check found meanwhile isn't undone by an older copy.
 /// </summary>
-public sealed class XeroSending(XeroApi api, Func<StoredDocument, StoredDocument> save)
+public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDocument, StoredDocument>, StoredDocument> update)
 {
     /// <summary>Everything the email needs, read from Xero so it matches the PDF.</summary>
     public sealed record Ready(StoredDocument Stored, byte[] Pdf, string PdfName, DocumentEmailValues Values, string? ContactEmail);
@@ -51,7 +52,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, StoredDocument
             record = await ReadAsync(stored, cancel);
             if (XeroApi.Str(record["Status"]) is not "AUTHORISED")
                 throw new XeroException("Couldn't tell whether Xero approved it. Look at it in Xero, then try again.");
-            stored = save(stored with { Approved = DateTimeOffset.UtcNow });
+            stored = update(stored, s => s with { Approved = DateTimeOffset.UtcNow });
         }
 
         return await GatherAsync(stored, record, tradingName, cancel);
@@ -68,7 +69,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, StoredDocument
         var record = await ReadAsync(stored, cancel);
         if (Chasers.SettledBy(stored.Document.Kind, XeroApi.Str(record["Status"]), Amount(record["AmountDue"])) is { } settled)
         {
-            save(stored with { Settled = DateTimeOffset.UtcNow, SettledAs = settled });
+            update(stored, s => s with { Settled = DateTimeOffset.UtcNow, SettledAs = settled });
             return (null, settled);
         }
         if (!IsQuote(stored) && XeroApi.Str(record["Status"]) is not "AUTHORISED")
@@ -122,7 +123,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, StoredDocument
 
     /// <summary>After a reminder or follow-up went out. Kept on this PC only; Xero isn't changed.</summary>
     public StoredDocument MarkChased(StoredDocument stored) =>
-        save(stored with { Chased = DateTimeOffset.UtcNow, ChaseCount = stored.ChaseCount + 1 });
+        update(stored, s => s with { Chased = DateTimeOffset.UtcNow, ChaseCount = s.ChaseCount + 1 });
 
     // The PDF, online link, contact and amounts, all as Xero has them now.
     private async Task<Ready> GatherAsync(StoredDocument stored, JsonObject record, string tradingName, CancellationToken cancel)
@@ -162,10 +163,10 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, StoredDocument
     /// </summary>
     public async Task<StoredDocument> MarkSentAsync(StoredDocument stored, IReadOnlyList<Webignite.Core.Mail.MailPerson>? sentTo = null, CancellationToken cancel = default)
     {
-        stored = save(stored with
+        stored = update(stored, s => s with
         {
             Emailed = DateTimeOffset.UtcNow,
-            EmailedTo = sentTo is { Count: > 0 } ? Webignite.Core.Mail.Recipients.Short(sentTo) : stored.EmailedTo,
+            EmailedTo = sentTo is { Count: > 0 } ? Webignite.Core.Mail.Recipients.Short(sentTo) : s.EmailedTo,
         });
         if (IsQuote(stored))
         {

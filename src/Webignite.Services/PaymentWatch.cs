@@ -45,12 +45,16 @@ public sealed class PaymentWatch(LocalStore store, Func<XeroApi?> xero, TimeProv
                 var found = doc.Document.Kind == DocumentKind.Invoice ? invoices : quotes;
                 if (!found.TryGetValue(doc.XeroId!, out var standing))
                     continue;
-                // Read again: the document may have been changed while Xero was being read.
-                var current = store.Get(doc.Id) ?? doc;
-                var (changed, payment) = Receivables.Apply(current, standing, now);
+                // Applied to the document as it is now: it may have been changed while Xero was being read.
+                StoredDocument? changed = null;
+                PaymentNews? payment = null;
+                store.Update(doc.Id, current =>
+                {
+                    (changed, payment) = Receivables.Apply(current, standing, now);
+                    return changed;
+                });
                 if (changed is null)
                     continue;
-                store.Save(changed);
                 if (payment is not null)
                     news.Add(payment);
                 if (changed.Settled is not null)

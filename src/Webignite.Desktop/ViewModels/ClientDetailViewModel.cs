@@ -68,6 +68,9 @@ public partial class ClientDetailViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsShowingClient))]
     public partial DocumentEditorViewModel? Editor { get; set; }
 
+    // Whatever replaces an open editor, what was typed in it is saved first.
+    partial void OnEditorChanging(DocumentEditorViewModel? oldValue, DocumentEditorViewModel? newValue) => oldValue?.Keep();
+
     public bool IsShowingClient => Editor is null;
 
     public ObservableCollection<string> Problems { get; } = [];
@@ -172,7 +175,11 @@ public partial class ClientDetailViewModel : ViewModelBase
     /// Gets ready to close or switch to another client: saves what was typed. A brand new client with nothing
     /// typed is simply dropped. Returns false when something needs fixing first; the problems are showing.
     /// </summary>
-    internal bool Leave() => (isNew && string.IsNullOrWhiteSpace(Name)) || TrySave();
+    internal bool Leave()
+    {
+        Editor?.Keep();
+        return (isNew && string.IsNullOrWhiteSpace(Name)) || TrySave();
+    }
 
     /// <summary>The client this page is for, so the list can mark it as the open one.</summary>
     internal string ClientId => client.Id;

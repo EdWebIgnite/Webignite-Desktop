@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia;
+using Webignite.Data;
 using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
@@ -44,6 +45,37 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task CloseWhenReady(MainViewModel main, AppServices services)
+    {
+        preparing = true;
+        try
+        {
+            string? problem;
+            try
+            {
+                problem = await main.PrepareToCloseAsync();
+            }
+            catch (Exception e)
+            {
+                AppLog.Write("Saving open work before closing failed", e);
+                problem = "Open work couldn't all be saved: " + e.Message;
+            }
+            if (problem is not null && !warned)
+            {
+                // Said once. Closing again leaves anyway, so a mail server that's down can't keep the app open.
+                warned = true;
+                services.ShowNote?.Invoke("Not closed yet", problem + " Close again to leave without it.", null);
+                return;
+            }
+        }
+        finally
+        {
+            preparing = false;
+        }
+        readyToClose = true;
+        Close();
+    }
+
     /// <summary>Opens the window where it was last time, at the same size and on the same page.</summary>
     private void Restore(WindowPlacement? placement, MainViewModel main)
     {
@@ -69,11 +101,22 @@ public partial class MainWindow : Window
                 screen.WorkingArea.Y + Math.Max(0, (screen.WorkingArea.Height - (int)(Height * screen.Scaling)) / 2));
     }
 
+    private bool readyToClose, preparing, warned;
+
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
         if (e.Cancel || App.Services is not { } services || DataContext is not MainViewModel main)
             return;
+        // Closing waits until open work is saved and a mail in its undo wait has gone. Shutting Windows down
+        // can't wait, so it skips this.
+        if (!readyToClose && e.CloseReason == WindowCloseReason.WindowClosing)
+        {
+            e.Cancel = true;
+            if (!preparing)
+                CloseWhenReady(main, services).Forget("Getting ready to close");
+            return;
+        }
         var before = services.Settings.Window;
         var normal = WindowState == WindowState.Normal;
         services.Settings.Window = new WindowPlacement

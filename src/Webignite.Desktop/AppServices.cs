@@ -153,7 +153,7 @@ public sealed class AppServices : IDisposable
             : null;
 
     /// <summary>Approves, fetches Xero's PDF and marks documents sent, for emailing from Webignite's own mailbox.</summary>
-    public Webignite.Xero.XeroSending? XeroSending => XeroApi is { } api ? new Webignite.Xero.XeroSending(api, Store.Save) : null;
+    public Webignite.Xero.XeroSending? XeroSending => XeroApi is { } api ? new Webignite.Xero.XeroSending(api, (stored, change) => Store.Update(stored.Id, change) ?? Store.Save(change(stored))) : null;
 
     // The PC
 

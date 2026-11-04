@@ -302,9 +302,22 @@ public partial class ComposeViewModel : ViewModelBase
     [RelayCommand]
     private async Task SaveAndClose()
     {
-        await SaveDraft();
-        if (!MessageIsProblem)
+        if (await KeepAsync())
             owner.CloseComposer(this);
+        else if (!MessageIsProblem)
+            Say("Still saving. Try again in a moment.", false);
+    }
+
+    /// <summary>
+    /// Saves the draft when it has changes. True once everything typed is in Drafts. False while another save or
+    /// a send is still running, or when saving failed (the reason is showing).
+    /// </summary>
+    internal async Task<bool> KeepAsync()
+    {
+        if (!HasChanges)
+            return true;
+        await SaveDraft();
+        return !HasChanges;
     }
 
     private void Say(string message, bool problem)

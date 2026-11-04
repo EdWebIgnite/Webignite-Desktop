@@ -288,7 +288,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     {
         App.RestartAfterExit = true;
         if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-            desktop.Shutdown();
+            desktop.MainWindow?.Close(); // the usual way out, so open work is saved first
     }
 
     // Invoice and quote emails

@@ -120,6 +120,31 @@ public sealed class InvoiceEmailTests
         await Assert.ThrowsAsync<XeroException>(() => sending.PrepareAsync(stored, "Webignite", TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task Marking_sent_keeps_a_payment_found_while_the_mail_was_written()
+    {
+        var folder = Directory.CreateTempSubdirectory("webignite-sent-").FullName;
+        try
+        {
+            using var store = new Webignite.Data.LocalStore(Path.Combine(folder, "webignite.db"),
+                new Webignite.Data.Vault(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)));
+            var old = store.Save(Stored(DocumentKind.Invoice));
+            // The payment check runs while Eddie is writing the mail.
+            store.Save(old with { XeroStatus = "PAID", XeroAmountDue = 0m, XeroAmountPaid = 2725m });
+
+            var sending = Make(new FakeXero(), (s, change) => store.Update(s.Id, change)!);
+            var sent = await sending.MarkSentAsync(old, cancel: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(sent.Emailed);
+            Assert.Equal("PAID", store.Get(old.Id)!.XeroStatus);
+            Assert.Equal(2725m, store.Get(old.Id)!.XeroAmountPaid);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
     private static StoredDocument Stored(DocumentKind kind) => new()
     {
         Id = StoredDocument.NewId(),
@@ -130,13 +155,16 @@ public sealed class InvoiceEmailTests
         Status = DocumentStatus.InXero,
     };
 
-    private static XeroSending Make(FakeXero xero, List<StoredDocument> saves)
+    private static XeroSending Make(FakeXero xero, List<StoredDocument> saves) =>
+        Make(xero, (s, change) => { var changed = change(s); saves.Add(changed); return changed; });
+
+    private static XeroSending Make(FakeXero xero, Func<StoredDocument, Func<StoredDocument, StoredDocument>, StoredDocument> update)
     {
         var tokens = new MemoryTokenStore();
         tokens.WriteRefreshToken("refresh");
         var http = new HttpClient(xero);
         var api = new XeroApi(new XeroSession(new XeroOptions { ClientId = "abc" }, http, tokens), http, "t1");
-        return new XeroSending(api, s => { saves.Add(s); return s; });
+        return new XeroSending(api, update);
     }
 
     private sealed class FakeXero : HttpMessageHandler

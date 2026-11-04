@@ -212,6 +212,29 @@ public sealed partial class LocalStore : IDisposable
         return stored;
     }
 
+    /// <summary>
+    /// Changes a document as it is in the database now, not as some screen last read it, so two changes made at
+    /// once (a payment found by the check while an invoice is emailed, say) both stay. <paramref name="change"/>
+    /// returns null to leave it as it is. Returns the document as it now stands, or null when it was deleted.
+    /// </summary>
+    public StoredDocument? Update(string id, Func<StoredDocument, StoredDocument?> change)
+    {
+        Execute("BEGIN IMMEDIATE");
+        try
+        {
+            var current = Get(id);
+            var changed = current is null ? null : change(current);
+            var result = changed is null ? current : Save(changed with { Id = id });
+            Execute("COMMIT");
+            return result;
+        }
+        catch
+        {
+            Execute("ROLLBACK");
+            throw;
+        }
+    }
+
     public StoredDocument? Get(string id)
     {
         using var command = connection.CreateCommand();
