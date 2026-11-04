@@ -36,6 +36,7 @@ public partial class MainWindow : Window
         if (wired is not null)
             return;
         wired = main;
+        WirePopOuts(main);
         main.WindowIsActive = () => IsActive && WindowState != WindowState.Minimized;
         main.FlashTaskbar = Flash;
         main.Search.PropertyChanged += (_, args) =>
@@ -96,7 +97,10 @@ public partial class MainWindow : Window
             WindowState = WindowState.Maximized;
         // The tabs come back as they were; before there were tabs, the page that was open.
         if (App.Services?.Settings.Tabs is { Pages.Count: > 0 } tabs)
+        {
             main.RestoreTabs(tabs);
+            Dispatcher.UIThread.Post(() => RestorePopOuts(main, tabs));
+        }
         else if (Enum.TryParse<Page>(placement.LastPage, out var key) && main.Modules.FirstOrDefault(m => m.Key == key) is { } page)
             main.Selected = page;
     }
@@ -139,7 +143,8 @@ public partial class MainWindow : Window
             Maximized = WindowState == WindowState.Maximized,
             LastPage = main.Selected.Key.ToString(),
         };
-        services.Settings.Tabs = main.TabState();
+        services.Settings.Tabs = main.TabState(Placement);
+        ClosePopOutsQuietly();
     }
 
     /// <summary>Motion: the window's class switches the eased styles in Styles/Motion.axaml, and pages get their fade.</summary>

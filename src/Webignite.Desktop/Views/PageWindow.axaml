@@ -1,0 +1,33 @@
+<!-- A page popped out of the main window into a window of its own. Drag the header back onto the main window's tabs to put it back. -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Webignite.Desktop.ViewModels"
+        xmlns:c="using:Webignite.Desktop.Controls"
+        x:Class="Webignite.Desktop.Views.PageWindow"
+        x:DataType="vm:PageHost"
+        Icon="/Assets/icon.png"
+        Title="{Binding Title, StringFormat='{}{0} · Webignite'}"
+        Width="1000" Height="760" MinWidth="600" MinHeight="400">
+  <DockPanel>
+    <Border x:Name="Header" DockPanel.Dock="Top" Classes="tabstrip" Cursor="SizeAll"
+            ToolTip.Tip="Drag onto the main window's tabs to put it back">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="tabplus" Click="PutBack" VerticalAlignment="Center" Cursor="Arrow">
+          <TextBlock Text="Put back in the main window" FontSize="12" />
+        </Button>
+        <Border Classes="poptab" HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal">
+            <c:Icon Data="{Binding Module.Icon, Converter={x:Static c:IconConverter.Instance}}" Size="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Title}" MaxWidth="260" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </StackPanel>
+        </Border>
+      </DockPanel>
+    </Border>
+    <Panel>
+      <ScrollViewer IsVisible="{Binding Scrolls}">
+        <TransitioningContentControl Content="{Binding ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
+      </ScrollViewer>
+      <TransitioningContentControl Content="{Binding FullPage}" IsVisible="{Binding FullBleed}" />
+    </Panel>
+  </DockPanel>
+</Window>

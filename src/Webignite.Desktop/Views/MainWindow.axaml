@@ -186,6 +186,9 @@
                     <ContextMenu>
                       <MenuItem Header="Close tab" InputGesture="Ctrl+W"
                                 Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseThisTabCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Open in new window"
+                                Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).PopOutTabCommand}" CommandParameter="{Binding}" />
+                      <Separator />
                       <MenuItem Header="Close the other tabs"
                                 Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CloseOtherTabsCommand}" CommandParameter="{Binding}" />
                     </ContextMenu>
