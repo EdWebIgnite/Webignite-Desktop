@@ -2,6 +2,11 @@ namespace Webignite.Core.Documents;
 
 public static class DocumentDefaults
 {
+    /// <summary>Days typed for "due after" or "expires after": a whole number from 0 to 365, else null.</summary>
+    public static int? ParseDays(string? text) =>
+        int.TryParse(text?.Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var days)
+        && days is >= 0 and <= 365 ? days : null;
+
     /// <summary>
     /// Fills in what nobody should have to type on a new quote or invoice: today's date, the currency,
     /// the due or expiry date from settings, and the totals from the lines. Imported documents are

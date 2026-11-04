@@ -233,15 +233,6 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
         OnPropertyChanged(nameof(HasRecurring));
         LoadIncome();
     }
-
-    internal static string Ordinal(int day) => day switch
-    {
-        31 => "last day",
-        1 or 21 => $"{day}st",
-        2 or 22 => $"{day}nd",
-        3 or 23 => $"{day}rd",
-        _ => $"{day}th",
-    };
 }
 
 public partial class EntryRowViewModel(MoneyEntry entry, MoneyViewModel owner) : ViewModelBase
@@ -266,7 +257,7 @@ public partial class RecurringRowViewModel(RecurringExpense recurring, MoneyView
     public string Name => recurring.Name;
     public string Detail => recurring.Paused
         ? "Paused"
-        : $"On the {MoneyViewModel.Ordinal(recurring.DayOfMonth)} of the month" + (recurring.Category is { } c ? $"  ·  {c}" : "");
+        : $"On the {Webignite.Core.Wording.DayOfMonth(recurring.DayOfMonth)} of the month" + (recurring.Category is { } c ? $"  ·  {c}" : "");
     public string Amount => Money.Rand(recurring.Amount);
     public string PauseLabel => recurring.Paused ? "Resume" : "Pause";
     public bool IsPaused => recurring.Paused;

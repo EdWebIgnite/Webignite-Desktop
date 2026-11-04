@@ -31,6 +31,17 @@ public static class Ledger
             .ToList();
     }
 
+    /// <summary>
+    /// "On average R 12 500.00 a month came in over the last 9 full months.", from monthly totals oldest first
+    /// ending with this month. This month isn't full yet, and empty months don't count. Empty when there's nothing.
+    /// </summary>
+    public static string AverageReceived(IReadOnlyList<MonthTotals> months)
+    {
+        var full = months.Take(months.Count - 1).Where(m => m.Received > 0 || m.Expenses > 0).ToList();
+        return full.Count == 0 ? ""
+            : $"On average {Webignite.Core.Documents.Money.Rand(full.Average(m => m.Received))} a month came in over the last {Wording.Count(full.Count, "full month")}.";
+    }
+
     public static decimal Sum(IEnumerable<MoneyEntry> entries, EntryKind kind) =>
         entries.Where(e => e.Kind == kind).Sum(e => e.Amount);
 

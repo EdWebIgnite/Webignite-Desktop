@@ -82,7 +82,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
         TimeOnly? start = null;
         if (!string.IsNullOrWhiteSpace(NewTime))
         {
-            if (!TryParseTime(NewTime, out var parsed))
+            if (!CalendarEvents.TryParseTime(NewTime, out var parsed))
             {
                 FormMessage = "Type the time like 9:30 or 14:00, or leave it empty for all day.";
                 return;
@@ -113,17 +113,6 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
                 services.Store.SaveEvent(gone);
                 Refresh();
             });
-    }
-
-    internal static bool TryParseTime(string text, out TimeOnly time)
-    {
-        var cleaned = text.Trim().Replace('h', ':').Replace('.', ':');
-        if (!cleaned.Contains(':') && int.TryParse(cleaned, out var hour) && hour is >= 0 and < 24)
-        {
-            time = new TimeOnly(hour, 0);
-            return true;
-        }
-        return TimeOnly.TryParseExact(cleaned, ["H:mm", "HH:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
     }
 
     private void Show(DateOnly firstOfMonth)

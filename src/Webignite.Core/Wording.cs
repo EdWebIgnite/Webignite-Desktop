@@ -38,6 +38,16 @@ public static class Wording
             : day.ToString("d MMM yyyy", CultureInfo.InvariantCulture),
     };
 
+    /// <summary>A day of the month for "On the ... of the month": "1st", "22nd", "3rd", "15th", and 31 as "last day".</summary>
+    public static string DayOfMonth(int day) => day switch
+    {
+        >= 31 => "last day",
+        1 or 21 => $"{day}st",
+        2 or 22 => $"{day}nd",
+        3 or 23 => $"{day}rd",
+        _ => $"{day}th",
+    };
+
     /// <summary>The first letter in capitals, for a word that starts a label: "Yesterday".</summary>
     public static string Capital(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 }

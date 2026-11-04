@@ -2,6 +2,12 @@ namespace Webignite.Core.Mail;
 
 public static class MailFolders
 {
+    /// <summary>
+    /// Mail Eddie sent or is writing, where a list shows who it's to rather than who it's from. Decided by the
+    /// folder's role, so "Sent Items" and "Sent Messages" count as well as "Sent".
+    /// </summary>
+    public static bool IsOutgoing(FolderRole? role) => role is FolderRole.Sent or FolderRole.Drafts;
+
     /// <summary>Inbox first, then drafts, sent, archive, junk and trash, then the rest A to Z.</summary>
     public static IReadOnlyList<MailFolder> Sort(IEnumerable<MailFolder> folders) =>
         folders.OrderBy(f => f.Role).ThenBy(f => f.Path, StringComparer.OrdinalIgnoreCase).ToList();

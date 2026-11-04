@@ -65,6 +65,15 @@ public sealed record ProjectionMonth(DateOnly Month, decimal? Expected, decimal 
 
     /// <summary>Expected less what came in. Positive means still to come, or short for a past month.</summary>
     public decimal Gap => (Expected ?? 0) - CameIn;
+
+    /// <summary>A past month that brought in less than expected: shown in red.</summary>
+    public bool IsShort => IsPast && Expected is > 0 && Gap > 0;
+
+    /// <summary>"R 1 200.00 short", "R 800.00 to come", "R 300.00 more" or "On target". Empty with nothing expected, or ahead.</summary>
+    public string GapText => Expected is not > 0 || IsFuture ? ""
+        : Gap > 0 ? (IsPast ? $"{Money.Rand(Gap)} short" : $"{Money.Rand(Gap)} to come")
+        : Gap < 0 ? $"{Money.Rand(-Gap)} more"
+        : "On target";
 }
 
 /// <summary>What the money behind an auto expected figure is, for showing under the chart.</summary>

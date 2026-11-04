@@ -78,6 +78,28 @@ public static partial class TimeRules
         };
     }
 
+    /// <summary>The periods the Time page totals over, in the order the picker shows them.</summary>
+    public enum Period { ThisWeek, LastWeek, ThisMonth, LastMonth }
+
+    /// <summary>The first and last day of a period, both included. Weeks run Monday to Sunday.</summary>
+    public static (DateOnly From, DateOnly To) Range(Period period, DateOnly today)
+    {
+        var week = Dates.WeekStart(today);
+        var month = Dates.MonthStart(today);
+        return period switch
+        {
+            Period.LastWeek => (week.AddDays(-7), week.AddDays(-1)),
+            Period.ThisMonth => (month, month.AddMonths(1).AddDays(-1)),
+            Period.LastMonth => (month.AddMonths(-1), month.AddDays(-1)),
+            _ => (week, week.AddDays(6)),
+        };
+    }
+
+    /// <summary>Clients whose time can be invoiced: a rate on them or one of their projects. By name.</summary>
+    public static IReadOnlyList<Client> Invoiceable(IEnumerable<Client> clients) =>
+        clients.Where(c => c.HourlyRate is not null || c.Projects.Any(p => p.HourlyRate is not null))
+            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
     /// <summary>
     /// Totals per client, and per project under each client, biggest first. Time not for a client is one line at the end.
     /// Labels read "Karoo Coffee Roasters" or "Karoo Coffee Roasters: New website".

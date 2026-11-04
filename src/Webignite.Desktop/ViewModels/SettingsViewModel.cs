@@ -172,8 +172,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
         BackupFolder = services.BackupFolder;
         var now = DateTimeOffset.Now;
         BackupStatus = BackupRules.Status(settings, HasBackupPassword, now);
-        BackupProblem = !HasBackupPassword || BackupStatus.StartsWith("The last backup failed", StringComparison.Ordinal)
-                        || BackupRules.Overdue(settings, HasBackupPassword, now);
+        BackupProblem = BackupRules.IsProblem(settings, HasBackupPassword, now);
     }
 
     private void Say(string message, bool problem = false)
@@ -434,8 +433,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     [RelayCommand]
     private void SaveDefaults()
     {
-        if (!int.TryParse(InvoiceDueDays, out var due) || due is < 0 or > 365
-            || !int.TryParse(QuoteExpiryDays, out var expiry) || expiry is < 0 or > 365)
+        if (DocumentDefaults.ParseDays(InvoiceDueDays) is not { } due || DocumentDefaults.ParseDays(QuoteExpiryDays) is not { } expiry)
         {
             DefaultsMessage = "Use whole days between 0 and 365.";
             return;
@@ -450,7 +448,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
     private async Task Connect()
     {
         var clientId = ClientId.Trim();
-        if (clientId.Length != 32 || !clientId.All(Uri.IsHexDigit))
+        if (!Webignite.Core.Xero.XeroRules.LooksLikeClientId(clientId))
         {
             XeroStatus = "That doesn't look like a Xero Client ID. It's 32 letters and numbers, from your app at developer.xero.com.";
             return;
@@ -491,14 +489,9 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
 
     // Which Xero account sales go to
 
-    public sealed record SalesAccount(string Code, string Name)
-    {
-        public override string ToString() => $"{Code}  {Name}";
-    }
+    public System.Collections.ObjectModel.ObservableCollection<Webignite.Core.Xero.XeroSalesAccount> SalesAccounts { get; } = [];
 
-    public System.Collections.ObjectModel.ObservableCollection<SalesAccount> SalesAccounts { get; } = [];
-
-    [ObservableProperty] public partial SalesAccount? ChosenAccount { get; set; }
+    [ObservableProperty] public partial Webignite.Core.Xero.XeroSalesAccount? ChosenAccount { get; set; }
     [ObservableProperty] public partial string AccountMessage { get; set; } = "";
     [ObservableProperty] public partial bool AccountProblem { get; set; }
 
@@ -517,14 +510,12 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
         AccountProblem = false;
         try
         {
-            var accounts = await api.GetAsync("Accounts");
-            var taxes = await api.GetAsync("TaxRates");
+            var accounts = await api.SalesAccountsAsync();
+            var noVat = await api.HasNoVatRateAsync();
             SalesAccounts.Clear();
-            foreach (var a in (accounts["Accounts"] as System.Text.Json.Nodes.JsonArray ?? []).OfType<System.Text.Json.Nodes.JsonObject>())
-                if (Webignite.Core.Xero.XeroRules.IsSalesAccount(Str(a["Type"]), Str(a["Status"])) && Str(a["Code"]) is { Length: > 0 } code)
-                    SalesAccounts.Add(new SalesAccount(code, Str(a["Name"])));
+            foreach (var account in accounts)
+                SalesAccounts.Add(account);
             OnPropertyChanged(nameof(HasAccounts));
-            var noVat = (taxes["TaxRates"] as System.Text.Json.Nodes.JsonArray ?? []).Any(t => Str(t?["TaxType"]) == "NONE");
             ChosenAccount = SalesAccounts.FirstOrDefault(a => a.Code == services.Settings.Xero.AccountCode)
                 ?? SalesAccounts.FirstOrDefault(a => a.Code == "200") ?? SalesAccounts.FirstOrDefault();
             AccountMessage = SalesAccounts.Count == 0 ? "Xero has no active sales accounts with a code."
@@ -549,8 +540,6 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
         AccountProblem = false;
         OnPropertyChanged(nameof(AccountText));
     }
-
-    private static string Str(System.Text.Json.Nodes.JsonNode? node) => node?.GetValue<string>() ?? "";
 
     [RelayCommand]
     private void Disconnect()

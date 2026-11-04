@@ -278,7 +278,7 @@ public partial class DocumentEditorViewModel
         }
         // The editor may have been open on another page while this changed (emailed, approved, paid).
         stored = services.Store.Get(stored.Id) ?? stored;
-        if (services.Store.ListMailAccounts().FirstOrDefault(a => a.SendsInvoices) is not { } mailbox)
+        if (Webignite.Core.Mail.MailAccounts.ForInvoices(services.Store.ListMailAccounts()) is not { } mailbox)
         {
             ShowXero("No mailbox is set up to send invoices. In Mail, Manage mailboxes, tick \"Invoices are sent from this mailbox\" on accounts@.", problem: true);
             return;

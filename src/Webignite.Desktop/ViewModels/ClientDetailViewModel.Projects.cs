@@ -36,7 +36,7 @@ public partial class ClientDetailViewModel
 
     private void SaveProjects(IReadOnlyList<ClientProject> projects)
     {
-        var stored = services.Store.ListClients().FirstOrDefault(c => c.Id == client.Id) ?? client;
+        var stored = Current();
         client = services.Store.SaveClient(stored with { Projects = projects });
         LoadProjects();
     }

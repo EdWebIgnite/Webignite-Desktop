@@ -36,7 +36,7 @@ public partial class ClientDetailViewModel
 
     private void SaveRecords(Client changed)
     {
-        var stored = services.Store.ListClients().FirstOrDefault(c => c.Id == client.Id) ?? client;
+        var stored = Current();
         client = services.Store.SaveClient(stored with { Log = changed.Log, Files = changed.Files });
         LoadRecords();
     }
@@ -68,7 +68,7 @@ public partial class ClientDetailViewModel
     }
 
     /// <summary>The client as saved now, so an Undo later doesn't bring back older edits with it.</summary>
-    private Client Current() => services.Store.ListClients().FirstOrDefault(c => c.Id == client.Id) ?? client;
+    internal Client Current() => services.Store.GetClient(client.Id) ?? client;
 
     /// <summary>Links files to the client. They stay where they are; only the link is kept.</summary>
     public void AddFiles(IEnumerable<string> paths)

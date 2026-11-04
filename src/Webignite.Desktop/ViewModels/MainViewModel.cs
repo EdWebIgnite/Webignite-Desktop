@@ -227,7 +227,7 @@ public partial class MainViewModel : ViewModelBase
         go.OpenClientAction = client =>
         {
             Selected = this[Page.Clients];
-            Clients.OpenClient(services.Store.ListClients().FirstOrDefault(c => c.Id == client.Id) ?? client);
+            Clients.OpenClient(services.Store.GetClient(client.Id) ?? client);
         };
         go.AddToInvoiceAction = (amount, description) =>
         {

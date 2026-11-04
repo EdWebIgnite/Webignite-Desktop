@@ -123,6 +123,17 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
         throw new XeroException($"Xero has too many {resource.ToLowerInvariant()} to read in one go.");
     }
 
+    /// <summary>The active sales accounts that have a code, for choosing where quotes and invoices go.</summary>
+    public async Task<IReadOnlyList<XeroSalesAccount>> SalesAccountsAsync(CancellationToken cancel = default) =>
+        ((await GetAsync("Accounts", cancel))["Accounts"] as JsonArray ?? []).OfType<JsonObject>()
+            .Where(a => XeroRules.IsSalesAccount(Str(a["Type"]), Str(a["Status"])) && Str(a["Code"]).Length > 0)
+            .Select(a => new XeroSalesAccount(Str(a["Code"]), Str(a["Name"])))
+            .ToList();
+
+    /// <summary>Whether the organisation has the "No VAT" tax rate drafts are written with.</summary>
+    public async Task<bool> HasNoVatRateAsync(CancellationToken cancel = default) =>
+        XeroRules.HasNoVatRate(((await GetAsync("TaxRates", cancel))["TaxRates"] as JsonArray ?? []).Select(t => Str(t?["TaxType"])));
+
     public async Task<IReadOnlyList<XeroContact>> ContactsAsync(CancellationToken cancel = default) =>
         (await AllAsync("Contacts", "&includeArchived=true", cancel)).Select(ToContact).ToList();
 

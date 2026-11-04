@@ -144,7 +144,7 @@ public sealed partial class MarkupViewModel : ViewModelBase
     private async Task Email()
     {
         var accounts = services.Store.ListMailAccounts();
-        if ((accounts.FirstOrDefault(a => !a.SendsInvoices) ?? accounts.FirstOrDefault()) is not { } mailbox)
+        if (Webignite.Core.Mail.MailAccounts.ForEveryday(accounts) is not { } mailbox)
         {
             Say("Add a mailbox under Mail first.", problem: true);
             return;

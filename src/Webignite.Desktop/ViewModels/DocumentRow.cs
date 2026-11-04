@@ -18,18 +18,10 @@ public sealed record DocumentRow(StoredDocument Stored, DateOnly Today)
     /// <summary>Waiting for you to approve it: an orange dot.</summary>
     public bool IsWaiting => Stored.Status == DocumentStatus.AwaitingApproval;
 
-    public string Status => Stored.Status switch
-    {
-        DocumentStatus.Draft => "Draft",
-        DocumentStatus.AwaitingApproval => "To approve",
-        DocumentStatus.InXero when IsOverdue => "Overdue",
-        DocumentStatus.InXero => Receivables.Standing(Stored) ?? "In Xero",
-        _ => Stored.Status.ToString(),
-    };
+    public string Status => Receivables.StatusText(Stored, Today);
 
     /// <summary>Paid or accepted, or in Xero before Xero has been read for payments: shown in green.</summary>
-    public bool IsDone => Stored.SettledAs is "paid" or "accepted" or "invoiced"
-        || (IsInXero && Stored.XeroChecked is null && !IsOverdue);
+    public bool IsDone => Receivables.IsDone(Stored, Today);
 
     /// <summary>Past its due date with money still owed: shown in red.</summary>
     public bool IsOverdue => Receivables.IsOverdue(Stored, Today);

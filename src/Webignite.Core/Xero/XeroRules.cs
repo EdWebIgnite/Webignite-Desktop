@@ -46,6 +46,12 @@ public enum XeroWriteState
     Verified,
 }
 
+/// <summary>A Xero account sales can be coded to, e.g. 200 Sales.</summary>
+public sealed record XeroSalesAccount(string Code, string Name)
+{
+    public override string ToString() => $"{Code}  {Name}";
+}
+
 public static class XeroRules
 {
     /// <summary>
@@ -111,6 +117,12 @@ public static class XeroRules
     }
 
     /// <summary>Accounts Webignite's sales can go to.</summary>
+    /// <summary>A Xero app's Client ID: 32 letters and numbers (hex), as developer.xero.com shows it.</summary>
+    public static bool LooksLikeClientId(string? text) => text is { Length: 32 } id && id.All(Uri.IsHexDigit);
+
+    /// <summary>Whether Xero has the "No VAT" tax rate (NONE) that drafts are written with.</summary>
+    public static bool HasNoVatRate(IEnumerable<string> taxTypes) => taxTypes.Contains("NONE", StringComparer.Ordinal);
+
     public static bool IsSalesAccount(string? type, string? status) =>
         status == "ACTIVE" && type is "REVENUE" or "SALES" or "OTHERINCOME";
 }

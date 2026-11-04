@@ -83,8 +83,7 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
         TaxYearShort = received < expenses;
         TaxYearChange = Trends.AgainstLastTaxYear(entries, Today) ?? "";
 
-        var fullMonths = months.Take(11).Where(m => m.Received > 0 || m.Expenses > 0).ToList();
-        AverageReceived = fullMonths.Count == 0 ? "" : $"On average {Money.Rand(fullMonths.Average(m => m.Received))} a month came in over the last {fullMonths.Count} full months.";
+        AverageReceived = Ledger.AverageReceived(months);
 
         ClientShares.Clear();
         var known = services.Store.ListClients();

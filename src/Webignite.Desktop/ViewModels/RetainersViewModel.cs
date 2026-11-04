@@ -97,7 +97,7 @@ public partial class RetainerRowViewModel(Retainer retainer, DateOnly? next, Ret
     public string Schedule => retainer.Paused
         ? "Paused"
         : next is { } date
-            ? $"On the {MoneyViewModel.Ordinal(retainer.DayOfMonth)} of the month  ·  next draft {date:d MMM yyyy}"
+            ? $"On the {Webignite.Core.Wording.DayOfMonth(retainer.DayOfMonth)} of the month  ·  next draft {date:d MMM yyyy}"
             : "Ended";
     public string PauseLabel => retainer.Paused ? "Resume" : "Pause";
 
@@ -122,12 +122,17 @@ public partial class RetainerEditorViewModel : ViewModelBase
     private readonly AppServices services;
     private readonly Action<bool> close;
     private readonly Retainer? existing;
+    private readonly HashSet<string> draftsMade;
+    private readonly DocumentSettings documentSettings;
 
     public RetainerEditorViewModel(Retainer? existing, AppServices services, Action<bool> close)
     {
         this.existing = existing;
         this.services = services;
         this.close = close;
+        // Read once: the preview below updates on every key.
+        draftsMade = services.Store.DraftsMade().Keys.ToHashSet();
+        documentSettings = services.Settings.Documents;
         ClientNames = services.Store.ListClients().Select(c => c.Name).ToList();
         StartChoices = [new("This month", 0), new("Next month", 1)];
         Start = StartChoices[0];
@@ -205,9 +210,9 @@ public partial class RetainerEditorViewModel : ViewModelBase
             return;
         var retainer = Build();
         Total = $"{Money.Rand(retainer.MonthlyAmount)} a month";
-        var next = RetainerSchedule.NextDate(retainer, services.Store.DraftsMade().Keys.ToHashSet(), Today);
+        var next = RetainerSchedule.NextDate(retainer, draftsMade, Today);
         Preview = next is { } date && RetainerSchedule.Check(retainer).Count == 0
-            ? $"Next draft dated {date:d MMM yyyy}, reference \"{RetainerSchedule.InvoiceFor(retainer, date, services.Settings.Documents).Reference}\"."
+            ? $"Next draft dated {date:d MMM yyyy}, reference \"{RetainerSchedule.InvoiceFor(retainer, date, documentSettings).Reference}\"."
               + (date <= Today ? " That day has passed, so it is drafted as soon as you save." : "")
             : "";
     }

@@ -61,7 +61,7 @@ public static class BackupRules
     {
         if (!hasPassword)
             return "Backups are off. Choose a backup password to turn them on.";
-        if (settings.LastProblem is { } problem && (settings.LastBackup is not { } ok || settings.LastProblemAt > ok))
+        if (LastFailed(settings) && settings.LastProblem is { } problem)
             return "The last backup failed: " + problem;
         if (settings.LastBackup is not { } last)
             return "No backup yet. The first one runs in a moment.";
@@ -69,6 +69,14 @@ public static class BackupRules
         var when = local.Date == now.ToLocalTime().Date ? "today" : local.ToString("d MMMM yyyy", CultureInfo.InvariantCulture);
         return $"Last backup {when} at {local.ToString("HH:mm", CultureInfo.InvariantCulture)}.";
     }
+
+    /// <summary>The newest attempt failed: a problem newer than the last good backup.</summary>
+    public static bool LastFailed(BackupSettings settings) =>
+        settings.LastProblem is not null && (settings.LastBackup is not { } ok || settings.LastProblemAt > ok);
+
+    /// <summary>Whether Settings shows backups in red: off, the last one failed, or none for over two days.</summary>
+    public static bool IsProblem(BackupSettings settings, bool hasPassword, DateTimeOffset now) =>
+        !hasPassword || LastFailed(settings) || Overdue(settings, hasPassword, now);
 
     /// <summary>True when backups have been failing or missing for more than two days, worth a red note.</summary>
     public static bool Overdue(BackupSettings settings, bool hasPassword, DateTimeOffset now) =>
