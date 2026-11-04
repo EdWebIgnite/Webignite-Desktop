@@ -16,9 +16,17 @@ namespace Webignite.Data;
 /// </summary>
 public sealed partial class LocalStore : IDisposable
 {
-    private readonly SqliteConnection connection;
+    // One connection per thread. The app and the connector both use the store from more than one thread (a
+    // lookup in the background, two assistant requests at once), and one shared connection let a write from one
+    // thread land inside another thread's transaction and be rolled back with it. SQLite keeps separate
+    // connections apart and makes a writer wait for the other (WAL mode, and the command timeout as busy wait).
+    // Every transaction here is opened and finished in one synchronous method, so it stays on one thread.
+    private readonly ThreadLocal<SqliteConnection> connections;
+    private readonly string connectionString;
     private readonly Vault vault;
     private readonly TimeProvider clock;
+
+    private SqliteConnection connection => connections.Value!;
 
     public LocalStore(string databasePath, Vault vault, TimeProvider? clock = null)
     {
@@ -26,11 +34,10 @@ public sealed partial class LocalStore : IDisposable
         this.clock = clock ?? TimeProvider.System;
         if (Path.GetDirectoryName(databasePath) is { Length: > 0 } folder)
             Directory.CreateDirectory(folder);
-        connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = databasePath, Pooling = false }.ToString());
-        connection.Open();
+        connectionString = new SqliteConnectionStringBuilder { DataSource = databasePath, Pooling = false, DefaultTimeout = 30 }.ToString();
+        connections = new ThreadLocal<SqliteConnection>(OpenConnection, trackAllValues: true);
         Execute("""
             PRAGMA journal_mode = WAL;
-            PRAGMA foreign_keys = ON;
             CREATE TABLE IF NOT EXISTS documents (
                 id TEXT PRIMARY KEY,
                 kind TEXT NOT NULL,
@@ -151,11 +158,36 @@ public sealed partial class LocalStore : IDisposable
         transaction.Commit();
     }
 
-    /// <summary>Opens the database in the normal place, with the normal key.</summary>
+    private SqliteConnection OpenConnection()
+    {
+        var opened = new SqliteConnection(connectionString);
+        opened.Open();
+        using var command = opened.CreateCommand();
+        command.CommandText = "PRAGMA foreign_keys = ON;";
+        command.ExecuteNonQuery();
+        return opened;
+    }
+
+    /// <summary>
+    /// Opens the database in the normal place, with the normal key, and checks the key fits before anything is
+    /// written, so a wrong key stops here with a clear message instead of failing record by record later.
+    /// </summary>
     public static LocalStore OpenDefault()
     {
         var root = DataPaths.Root();
-        return new LocalStore(Path.Combine(root, "webignite.db"), new Vault(VaultKey.Load(root)));
+        var store = new LocalStore(Path.Combine(root, "webignite.db"), new Vault(VaultKey.Load(root)));
+        try
+        {
+            store.Check();
+        }
+        catch (System.Security.Cryptography.CryptographicException e)
+        {
+            store.Dispose();
+            throw new InvalidOperationException(
+                "Webignite's data on this PC can't be unlocked with the key on this PC. Nothing was changed. " +
+                "Restore your latest backup, which carries the right key.", e);
+        }
+        return store;
     }
 
     public StoredDocument Save(StoredDocument stored)
@@ -479,8 +511,9 @@ public sealed partial class LocalStore : IDisposable
     /// </summary>
     private StoredDocument SaveAutomaticDraft(string key, Document invoice)
     {
-        // Raw BEGIN so Save's own commands join in.
-        Execute("BEGIN");
+        // Raw BEGIN so Save's own commands join in. IMMEDIATE claims the write lock now, so the read inside Save
+        // can't be overtaken by the connector writing in between (which would fail the commit).
+        Execute("BEGIN IMMEDIATE");
         try
         {
             var stored = Save(new StoredDocument { Id = StoredDocument.NewId(), Document = invoice });
@@ -603,6 +636,11 @@ public sealed partial class LocalStore : IDisposable
             ("SELECT id, payload FROM tasks LIMIT 1", "task:"),
             ("SELECT id, payload FROM entries LIMIT 1", "entry:"),
             ("SELECT id, payload FROM time_entries LIMIT 1", "time:"),
+            ("SELECT id, payload FROM events LIMIT 1", "event:"),
+            ("SELECT id, payload FROM recurring LIMIT 1", "recurring:"),
+            ("SELECT id, payload FROM retainers LIMIT 1", "retainer:"),
+            ("SELECT id, payload FROM renewals LIMIT 1", "renewal:"),
+            ("SELECT id, payload FROM mail_accounts LIMIT 1", "mail-account:"),
         };
         foreach (var (sql, prefix) in samples)
         {
@@ -614,7 +652,12 @@ public sealed partial class LocalStore : IDisposable
         }
     }
 
-    public void Dispose() => connection.Dispose();
+    public void Dispose()
+    {
+        foreach (var opened in connections.Values)
+            opened.Dispose();
+        connections.Dispose();
+    }
 
     private byte[] Seal<T>(string context, T value) =>
         vault.Encrypt(JsonSerializer.SerializeToUtf8Bytes(value, StoredJson.Options), context);

@@ -31,7 +31,9 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
     /// <summary>How many of the newest messages a folder fetches the first time. Older ones come with "Load older".</summary>
     public const int FirstSync = 300;
 
-    private readonly Dictionary<string, Connection> connections = [];
+    // Shared by every request: the connector serves two assistant requests at once, so a plain dictionary could
+    // give one mailbox two connections or lose one.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Connection> connections = new();
 
     public static string SecretName(MailAccount account) => "Mail/" + account.Address;
 
@@ -41,8 +43,8 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
 
     public async Task RemoveAccountAsync(MailAccount account)
     {
-        if (connections.Remove(account.Id, out var connection))
-            await connection.DisposeAsync();
+        if (connections.TryRemove(account.Id, out var connection))
+            await connection.DisposeWhenFreeAsync();
         secrets.Delete(SecretName(account));
         store.DeleteMailAccount(account.Id);
     }
@@ -304,13 +306,19 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
     public Task DeleteAsync(MailAccount account, MailSummary summary, CancellationToken cancel = default) =>
         DeleteAsync(account, [summary], cancel);
 
-    /// <summary>Mail from one mailbox goes to its Trash. What is already in Trash is removed for good.</summary>
+    /// <summary>
+    /// Mail from one mailbox goes to its Trash, making a Trash folder first if the mailbox has none Webignite
+    /// knows of. Only mail already in Trash is removed for good, so nothing outside Trash is ever expunged.
+    /// </summary>
     public async Task DeleteAsync(MailAccount account, IReadOnlyList<MailSummary> mail, CancellationToken cancel = default)
     {
-        var trash = store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == FolderRole.Trash);
-        var toTrash = trash is null ? [] : mail.Where(m => m.Folder != trash.Path).ToList();
+        var trash = store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == FolderRole.Trash)
+            ?? await CreateFolderAsync(account, null, "Trash", cancel);
+        if (trash.Role != FolderRole.Trash)
+            throw new MailException("This mailbox has no Trash folder Webignite can use, so nothing was deleted.");
+        var toTrash = mail.Where(m => m.Folder != trash.Path).ToList();
         if (toTrash.Count > 0)
-            await MoveAsync(account, toTrash, trash!.Path, cancel);
+            await MoveAsync(account, toTrash, trash.Path, cancel);
         var forGood = mail.Except(toTrash).ToList();
         if (forGood.Count == 0)
             return;
@@ -574,8 +582,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
     /// <summary>Runs one job on the mailbox's connection, connecting or reconnecting first if needed.</summary>
     private async Task<T> WithImap<T>(MailAccount account, Func<ImapClient, Task<T>> job, CancellationToken cancel)
     {
-        if (!connections.TryGetValue(account.Id, out var connection))
-            connections[account.Id] = connection = new Connection();
+        var connection = connections.GetOrAdd(account.Id, _ => new Connection());
         await connection.Lock.WaitAsync(cancel);
         try
         {
@@ -622,9 +629,9 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
 
     public async ValueTask DisposeAsync()
     {
-        foreach (var connection in connections.Values)
-            await connection.DisposeAsync();
-        connections.Clear();
+        foreach (var id in connections.Keys)
+            if (connections.TryRemove(id, out var connection))
+                await connection.DisposeWhenFreeAsync();
     }
 
     private sealed class Connection : IAsyncDisposable
@@ -636,6 +643,24 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
         {
             Client.Dispose();
             Client = new ImapClient { Timeout = 60_000 };
+        }
+
+        /// <summary>
+        /// Waits for a job still running on this connection (up to a few seconds) before closing it, so a sync in
+        /// progress isn't cut off with a confusing error.
+        /// </summary>
+        public async Task DisposeWhenFreeAsync()
+        {
+            var free = await Lock.WaitAsync(TimeSpan.FromSeconds(5));
+            try
+            {
+                await DisposeAsync();
+            }
+            finally
+            {
+                if (free)
+                    Lock.Release();
+            }
         }
 
         public async ValueTask DisposeAsync()

@@ -47,6 +47,15 @@ public partial class App : Application
         if (!OperatingSystem.IsWindows())
             return;
         var root = DataPaths.Root();
-        RestoredAtStart = Backups.ApplyPending(root, key => { if (OperatingSystem.IsWindows()) VaultKey.Save(root, key); }, DateTimeOffset.Now);
+        try
+        {
+            RestoredAtStart = Backups.ApplyPending(root, key => { if (OperatingSystem.IsWindows()) VaultKey.Save(root, key); }, DateTimeOffset.Now, VaultKey.Unprotect);
+        }
+        catch (Exception e)
+        {
+            // The restore stays staged and the current data is untouched, so start as normal and say why. The note
+            // is posted now and shown once the window is up.
+            Background.Report("Finishing the restore", e);
+        }
     }
 }

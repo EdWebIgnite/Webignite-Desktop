@@ -59,7 +59,9 @@ public partial class MarkupView : UserControl
         }
     }
 
-    private async void PasteImage(object? sender, RoutedEventArgs e)
+    private void PasteImage(object? sender, RoutedEventArgs e) => PasteImageAsync(sender, e).Forget("Pasting the picture", tell: true);
+
+    private async Task PasteImageAsync(object? sender, RoutedEventArgs e)
     {
         if (Markup is not { } markup || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
             return;
@@ -70,7 +72,9 @@ public partial class MarkupView : UserControl
     }
 
     // Windows: opens the snipping bar, then watches the clipboard for the new picture for a minute.
-    private async void TakeScreenshot(object? sender, RoutedEventArgs e)
+    private void TakeScreenshot(object? sender, RoutedEventArgs e) => TakeScreenshotAsync(sender, e).Forget("Taking the screenshot", tell: true);
+
+    private async Task TakeScreenshotAsync(object? sender, RoutedEventArgs e)
     {
         if (!OperatingSystem.IsWindows() || Markup is not { } markup || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
             return;
@@ -116,7 +120,9 @@ public partial class MarkupView : UserControl
         waitingForSnip = null;
     }
 
-    private async void OpenImage(object? sender, RoutedEventArgs e)
+    private void OpenImage(object? sender, RoutedEventArgs e) => OpenImageAsync(sender, e).Forget("Opening the picture", tell: true);
+
+    private async Task OpenImageAsync(object? sender, RoutedEventArgs e)
     {
         if (Markup is not { } markup || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
             return;
@@ -147,7 +153,9 @@ public partial class MarkupView : UserControl
         }
     }
 
-    private async void SavePng(object? sender, RoutedEventArgs e)
+    private void SavePng(object? sender, RoutedEventArgs e) => SavePngAsync(sender, e).Forget("Saving the picture", tell: true);
+
+    private async Task SavePngAsync(object? sender, RoutedEventArgs e)
     {
         if (Markup is not { } markup || markup.Png() is not { } png || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
             return;

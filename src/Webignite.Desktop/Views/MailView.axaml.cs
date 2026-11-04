@@ -138,7 +138,9 @@ public partial class MailView : UserControl
         pressedAt = e.GetPosition(MessageList);
     }
 
-    private async void MessageMoved(object? sender, PointerEventArgs e)
+    private void MessageMoved(object? sender, PointerEventArgs e) => MessageMovedAsync(sender, e).Forget("Moving the mail", tell: true);
+
+    private async Task MessageMovedAsync(object? sender, PointerEventArgs e)
     {
         if (pressed is not { } start || !e.GetCurrentPoint(MessageList).Properties.IsLeftButtonPressed)
             return;
@@ -218,7 +220,9 @@ public partial class MailView : UserControl
         mail.SetCategory(category.Keyword, true, drag.Mail).Forget("Adding mail to a category");
     }
 
-    private async void ChooseSignatureImage(object? sender, RoutedEventArgs e)
+    private void ChooseSignatureImage(object? sender, RoutedEventArgs e) => ChooseSignatureImageAsync(sender, e).Forget("Choosing the signature picture", tell: true);
+
+    private async Task ChooseSignatureImageAsync(object? sender, RoutedEventArgs e)
     {
         if ((sender as Control)?.DataContext is not MailSetupViewModel setup || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
             return;

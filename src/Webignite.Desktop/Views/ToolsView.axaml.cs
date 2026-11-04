@@ -21,7 +21,9 @@ public partial class ToolsView : UserControl
         ImageDrop.AddHandler(DragDrop.DropEvent, ImagesDropped);
     }
 
-    private async void ChooseImages(object? sender, RoutedEventArgs e)
+    private void ChooseImages(object? sender, RoutedEventArgs e) => ChooseImagesAsync(sender, e).Forget("Making the images smaller", tell: true);
+
+    private async Task ChooseImagesAsync(object? sender, RoutedEventArgs e)
     {
         if (Tools is not { } tools || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
             return;
@@ -37,7 +39,9 @@ public partial class ToolsView : UserControl
     private void ImagesOver(object? sender, DragEventArgs e) =>
         e.DragEffects = e.DataTransfer.Contains(DataFormat.File) && Tools is { ImagesBusy: false } ? DragDropEffects.Copy : DragDropEffects.None;
 
-    private async void ImagesDropped(object? sender, DragEventArgs e)
+    private void ImagesDropped(object? sender, DragEventArgs e) => ImagesDroppedAsync(sender, e).Forget("Making the images smaller", tell: true);
+
+    private async Task ImagesDroppedAsync(object? sender, DragEventArgs e)
     {
         if (Tools is not { ImagesBusy: false } tools || e.DataTransfer.TryGetFiles() is not { } items)
             return;
@@ -57,7 +61,9 @@ public partial class ToolsView : UserControl
 
     private ToolsViewModel? Tools => DataContext as ToolsViewModel;
 
-    private async void SaveQrPng(object? sender, RoutedEventArgs e)
+    private void SaveQrPng(object? sender, RoutedEventArgs e) => SaveQrPngAsync(sender, e).Forget("Saving the QR code", tell: true);
+
+    private async Task SaveQrPngAsync(object? sender, RoutedEventArgs e)
     {
         if (Tools?.QrPng() is not { } png || await PickFile("QR code.png", "PNG image", "*.png") is not { } file)
             return;
@@ -66,7 +72,9 @@ public partial class ToolsView : UserControl
         Tools.QrSaved(file.Name);
     }
 
-    private async void SaveQrSvg(object? sender, RoutedEventArgs e)
+    private void SaveQrSvg(object? sender, RoutedEventArgs e) => SaveQrSvgAsync(sender, e).Forget("Saving the QR code", tell: true);
+
+    private async Task SaveQrSvgAsync(object? sender, RoutedEventArgs e)
     {
         if (Tools?.QrSvg() is not { } svg || await PickFile("QR code.svg", "SVG image", "*.svg") is not { } file)
             return;

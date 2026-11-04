@@ -84,7 +84,7 @@ public sealed partial class LocalStore
 
     public void SaveMailSummaries(IEnumerable<MailSummary> summaries)
     {
-        Execute("BEGIN");
+        Execute("BEGIN IMMEDIATE");
         try
         {
             foreach (var summary in summaries)

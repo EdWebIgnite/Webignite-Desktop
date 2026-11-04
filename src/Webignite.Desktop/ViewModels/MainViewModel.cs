@@ -29,6 +29,12 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>Shows a note for each site that went down, came back, or has a certificate about to run out.</summary>
+    private async Task CheckSitesAsync()
+    {
+        AnnounceSites(await services.SiteWatch.RunAsync());
+        SiteCheck.RefreshWatched();
+    }
+
     private void AnnounceSites(IReadOnlyList<Webignite.Core.Web.UptimeAlert> alerts)
     {
         foreach (var alert in alerts.Take(3))
@@ -128,21 +134,19 @@ public partial class MainViewModel : ViewModelBase
         SiteCheck.RefreshWatched();
         // Client websites are visited every 15 minutes while the app is open.
         uptimeTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
-        uptimeTimer.Tick += async (_, _) =>
+        uptimeTimer.Tick += (_, _) =>
         {
-            if (!services.SiteWatch.Due(DateTimeOffset.Now))
-                return;
-            AnnounceSites(await services.SiteWatch.RunAsync());
-            SiteCheck.RefreshWatched();
+            if (services.SiteWatch.Due(DateTimeOffset.Now))
+                CheckSitesAsync().Forget("Checking client websites");
         };
         uptimeTimer.Start();
         // Payments are read from Xero when the app opens and every half hour after that.
         Overview.CheckPayments = () => CheckPaymentsAsync(byHand: true);
         paymentTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
-        paymentTimer.Tick += async (_, _) =>
+        paymentTimer.Tick += (_, _) =>
         {
             if (services.XeroApi is not null && services.Payments.Due(DateTimeOffset.Now))
-                await CheckPaymentsAsync();
+                CheckPaymentsAsync().Forget("Checking payments in Xero");
         };
         paymentTimer.Start();
         Markup = new MarkupViewModel(services);

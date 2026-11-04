@@ -165,12 +165,13 @@ public partial class ComposeView : UserControl
     // Suggest names and addresses only while the person is typing in the box, not when it's filled in for them.
     private void Watch(TextBox box, AddressField field)
     {
-        box.TextChanged += async (_, _) =>
+        box.TextChanged += (_, _) =>
         {
             if (box.IsFocused && Compose is { } compose)
             {
                 SuggestionsPopup.PlacementTarget = box;
-                await compose.SuggestAsync(field, box.Text);
+                // Suggestions are a help, not a must: a failed lookup is logged, not shown while typing.
+                compose.SuggestAsync(field, box.Text).Forget("Suggesting addresses");
             }
         };
         box.AddHandler(KeyDownEvent, (_, e) =>
@@ -208,7 +209,9 @@ public partial class ComposeView : UserControl
             Accept(box, contact);
     }
 
-    private async void OnAttach(object? sender, RoutedEventArgs e)
+    private void OnAttach(object? sender, RoutedEventArgs e) => OnAttachAsync(sender, e).Forget("Attaching files", tell: true);
+
+    private async Task OnAttachAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ComposeViewModel compose || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
             return;

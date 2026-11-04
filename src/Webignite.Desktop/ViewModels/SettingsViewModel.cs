@@ -217,8 +217,15 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
             return;
         }
         BackingUp = true;
-        var problem = await services.BackUpAsync(now: true);
-        BackingUp = false;
+        string? problem;
+        try
+        {
+            problem = await services.BackUpAsync(now: true);
+        }
+        finally
+        {
+            BackingUp = false; // a surprise error still frees the Back up now button
+        }
         UpdateBackupStatus();
         if (problem is not null)
             Say(problem, true);
@@ -264,7 +271,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable
         var root = DataPaths.Root();
         try
         {
-            var made = await Task.Run(() => Backups.Stage(file, password, root));
+            var made = await Task.Run(() => Backups.Stage(file, password, root, OperatingSystem.IsWindows() ? VaultKey.Protect : null));
             RestorePassword = "";
             RestoreReady = true;
             Say($"The backup from {made.ToLocalTime():d MMMM yyyy} at {made.ToLocalTime():HH:mm} is unlocked. Restart Webignite to switch to it. Your current data is kept in a \"before-restore\" folder.");
