@@ -5,7 +5,13 @@ public sealed record TabSettings
 {
     public IReadOnlyList<string> Pages { get; init; } = [];
     public int Active { get; init; }
+
+    /// <summary>Pages popped out into windows of their own, and where those windows were.</summary>
+    public IReadOnlyList<PopOutPlacement> PoppedOut { get; init; } = [];
 }
+
+/// <summary>A popped-out window: its page and where it was on screen.</summary>
+public sealed record PopOutPlacement(string Page, int X, int Y, double Width, double Height, bool Maximized = false);
 
 /// <summary>How the tab strip behaves: bringing tabs back, moving between them, and which shows after a close.</summary>
 public static class TabRules
@@ -26,7 +32,10 @@ public static class TabRules
                 active = pages.Count;
             pages.Add(saved.Pages[i]);
         }
-        return pages.Count == 0 ? new TabSettings { Pages = [home] } : new TabSettings { Pages = pages, Active = Math.Clamp(active, 0, pages.Count - 1) };
+        var poppedOut = saved.PoppedOut.Where(p => known.Contains(p.Page) && p.Width > 0 && p.Height > 0).ToList();
+        return pages.Count == 0
+            ? new TabSettings { Pages = [home], PoppedOut = poppedOut }
+            : new TabSettings { Pages = pages, Active = Math.Clamp(active, 0, pages.Count - 1), PoppedOut = poppedOut };
     }
 
     /// <summary>The tab one step on (Ctrl+Tab) or back (Ctrl+Shift+Tab), going round at the ends.</summary>

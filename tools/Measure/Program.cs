@@ -85,6 +85,13 @@ foreach (var twice in new[] { Page.Mail, Page.Clients })
     Check($"A second {vm[twice].Title} gives its memory back when closed", !page.IsAlive && !view.IsAlive);
 }
 
+// A page popped out into a window of its own must go, window and all, when that window is closed.
+{
+    var (page, popped) = PopOutAndClose(vm, window);
+    Settle();
+    Check("A popped-out window gives its memory back when closed", !page.IsAlive && !popped.IsAlive);
+}
+
 var endBytes = Settle();
 var firstGrowth = firstRoundBytes - startBytes;
 var repeatGrowth = endBytes - firstRoundBytes;
@@ -138,6 +145,25 @@ static (WeakReference Page, WeakReference View) OpenAnotherAndClose(MainViewMode
         throw new InvalidOperationException($"The second {key} wouldn't close.");
     Draw(window);
     return (page, view);
+}
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+static (WeakReference Page, WeakReference Window) PopOutAndClose(MainViewModel vm, MainWindow window)
+{
+    var host = vm.OpenInNewTab(vm[Page.Clients]);
+    if (host.IsMain)
+        host = vm.OpenInNewTab(vm[Page.Clients]);
+    Draw(window);
+    vm.PopOut(host);
+    Draw(window);
+    var popped = window.PopOutWindows.Single();
+    Dispatcher.UIThread.RunJobs();
+    popped.CaptureRenderedFrame()?.Dispose();
+    var page = new WeakReference(host.Page);
+    var poppedRef = new WeakReference(popped);
+    popped.Close();
+    Draw(window);
+    return (page, poppedRef);
 }
 
 static (MainViewModel, MainWindow) Open()

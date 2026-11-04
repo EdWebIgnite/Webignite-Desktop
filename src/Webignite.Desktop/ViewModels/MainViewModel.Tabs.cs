@@ -108,7 +108,12 @@ public partial class MainViewModel
     }
 
     /// <summary>What to save: the tabs by page name, and which was showing.</summary>
-    public TabSettings TabState() => new() { Pages = [.. Tabs.Select(t => t.Key.ToString())], Active = Math.Max(Tabs.IndexOf(Current), 0) };
+    public TabSettings TabState(Func<PageHost, PopOutPlacement?>? where = null) => new()
+    {
+        Pages = [.. Tabs.Select(t => t.Key.ToString())],
+        Active = Math.Max(Tabs.IndexOf(Current), 0),
+        PoppedOut = [.. PoppedOut.Select(h => where?.Invoke(h)).OfType<PopOutPlacement>()],
+    };
 
     /// <summary>Puts the tabs back as they were. Only the one showing is built; the rest wait to be clicked.</summary>
     public void RestoreTabs(TabSettings saved)
@@ -130,5 +135,20 @@ public partial class MainViewModel
             Tabs.Add(host);
         OnPropertyChanged(nameof(ShowTabs));
         Current = hosts[back.Active];
+    }
+
+    /// <summary>The popped-out pages to open again in windows of their own, each with where it was.</summary>
+    public IReadOnlyList<(PageHost Host, PopOutPlacement Where)> RestorePoppedOut(TabSettings saved)
+    {
+        var known = Modules.Select(m => m.Key.ToString()).ToHashSet();
+        var back = new List<(PageHost, PopOutPlacement)>();
+        foreach (var place in TabRules.Restore(saved, known, nameof(Page.Overview)).PoppedOut)
+        {
+            var module = this[Enum.Parse<Page>(place.Page)];
+            var host = Open.Contains(module.Main) && !Tabs.Contains(module.Main) && !PoppedOut.Contains(module.Main) ? module.Main : module.NewHost();
+            if (PopOut(host))
+                back.Add((host, place));
+        }
+        return back;
     }
 }

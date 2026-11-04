@@ -42,4 +42,15 @@ public sealed class TabTests
     [InlineData(0, 0, 0)]
     public void After_closing_the_next_tab_along_shows(int closed, int countAfter, int expected) =>
         Assert.Equal(expected, TabRules.AfterClose(closed, countAfter));
+
+    [Fact]
+    public void Popped_out_windows_come_back_where_they_were_unless_their_page_is_gone()
+    {
+        var back = TabRules.Restore(new TabSettings
+        {
+            Pages = ["Overview"],
+            PoppedOut = [new("Mail", 1920, 40, 900, 700), new("Gone", 0, 0, 800, 600), new("Clients", 10, 10, 0, 0)],
+        }, Known, "Overview");
+        Assert.Equal([new PopOutPlacement("Mail", 1920, 40, 900, 700)], back.PoppedOut);
+    }
 }

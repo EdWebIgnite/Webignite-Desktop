@@ -572,6 +572,13 @@
     <Setter Property="Background" Value="{DynamicResource Canvas}" />
     <Setter Property="Foreground" Value="{DynamicResource Ink}" />
   </Style>
+  <!-- A popped-out window's own tab, joined to its page like the main window's tab on screen. -->
+  <Style Selector="Border.poptab">
+    <Setter Property="Background" Value="{DynamicResource Canvas}" />
+    <Setter Property="CornerRadius" Value="8,8,0,0" />
+    <Setter Property="Padding" Value="12,6,12,7" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Ink}" />
+  </Style>
   <Style Selector="Button.tabclose, Button.tabplus">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource Muted}" />

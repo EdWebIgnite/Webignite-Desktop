@@ -249,8 +249,19 @@ public partial class MainViewModel : ViewModelBase
     public partial PageHost Current { get; set; }
 
     /// <summary>The copy of a module used last, which is where the sidebar and jumps take you.</summary>
-    private PageHost LastUsed(Module module) =>
-        Current.Module == module && Open.Contains(Current) ? Current : Open.Where(h => h.Module == module).MaxBy(h => h.LastSeen) ?? module.Main;
+    private PageHost LastUsed(Module module)
+    {
+        if (Current?.Module == module && Open.Contains(Current) && !PoppedOut.Contains(Current))
+            return Current;
+        // A page popped out into its own window stays there; the main window gets its own copy.
+        if (Open.Where(h => h.Module == module && !PoppedOut.Contains(h)).MaxBy(h => h.LastSeen) is { } here)
+            return here;
+        if (!PoppedOut.Contains(module.Main))
+            return module.Main;
+        var copy = module.NewHost();
+        Open.Add(copy);
+        return copy;
+    }
 
     /// <summary>A page, built now if it hasn't been: the copy on screen, or the one used last.</summary>
     private T PageOf<T>(Page key) where T : ViewModelBase => (T)LastUsed(this[key]).Page;
@@ -290,7 +301,7 @@ public partial class MainViewModel : ViewModelBase
     public int ReleaseIdle(TimeSpan idle)
     {
         var now = DateTimeOffset.Now;
-        return Open.Count(h => h != Current && h.IsBuilt && now - h.LastSeen >= idle && h.Release());
+        return Open.Count(h => h != Current && !PoppedOut.Contains(h) && h.IsBuilt && now - h.LastSeen >= idle && h.Release());
     }
 
     public QuickSearchViewModel Search { get; }

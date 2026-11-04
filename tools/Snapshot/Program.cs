@@ -429,6 +429,48 @@ vm.Clients.Detail!.BackCommand.Execute(null);
         ((ClientsViewModel)host.Page).Detail!.BackCommand.Execute(null);
     Check("After putting the client away, one tab is left and the strip goes", vm.Tabs.Count == 1 && !vm.ShowTabs && vm.Current.Key == Page.Overview);
 }
+// Pop-out windows: a tab taken into a window of its own, put back, and closed with work open.
+{
+    Open(Page.Overview);
+    services.Go.ClientInNewTab(bosveld);
+    var clientTab = vm.Current;
+    vm.PopOutTabCommand.Execute(clientTab);
+    Dispatcher.UIThread.RunJobs();
+    var popped = window.PopOutWindows.SingleOrDefault();
+    Check("A tab opens in a window of its own and leaves the strip",
+        popped?.Host == clientTab && !vm.Tabs.Contains(clientTab) && vm.PoppedOut.Contains(clientTab) && vm.Current.Key == Page.Overview);
+    if (popped is not null)
+    {
+        popped.Width = 1100;
+        popped.Height = 760;
+        Dispatcher.UIThread.RunJobs();
+        using var frame = popped.CaptureRenderedFrame();
+        frame?.Save(Path.Combine(output, "pop-out.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        Console.WriteLine("Saved pop-out");
+    }
+    Open(Page.Clients);
+    Check("The sidebar opens Clients in the main window and leaves the popped-out one be",
+        vm.Current.Key == Page.Clients && vm.Current != clientTab && vm.PoppedOut.Contains(clientTab));
+    vm.DockBack(clientTab);
+    Dispatcher.UIThread.RunJobs();
+    Check("Put back, it is a tab again and its window is gone", vm.Tabs.Contains(clientTab) && vm.Current == clientTab && window.PopOutWindows.Count == 0);
+    vm.PopOut(clientTab);
+    Dispatcher.UIThread.RunJobs();
+    window.PopOutWindows.Single().Close();
+    Dispatcher.UIThread.RunJobs();
+    Check("Closing a popped-out window with a client open puts it back instead", vm.Tabs.Contains(clientTab) && !vm.PoppedOut.Contains(clientTab));
+    var state = vm.TabState(h => new Webignite.Core.Layout.PopOutPlacement(h.Key.ToString(), 1, 2, 3, 4));
+    ((ClientsViewModel)clientTab.Page).Detail!.BackCommand.Execute(null);
+    vm.PopOut(clientTab);
+    Dispatcher.UIThread.RunJobs();
+    var saved = vm.TabState(h => new Webignite.Core.Layout.PopOutPlacement(h.Key.ToString(), 100, 80, 900, 700));
+    Check("A popped-out window is saved with where it is", saved.PoppedOut.SingleOrDefault() is { Page: "Clients", X: 100, Width: 900 } && state.PoppedOut.Count == 0);
+    window.PopOutWindows.Single().Close();
+    Dispatcher.UIThread.RunJobs();
+    // This was Clients' own copy, which stays to be let go when idle; an extra copy would be closed outright.
+    Check("Closing a popped-out window with nothing open closes it", !vm.PoppedOut.Contains(clientTab) && !vm.Tabs.Contains(clientTab) && window.PopOutWindows.Count == 0);
+    vm.CloseOtherTabsCommand.Execute(vm.Tabs[0]);
+}
 var month = Dates.MonthStart(today);
 void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>
     store.SaveEntry(new Webignite.Core.Finance.MoneyEntry { Id = Webignite.Core.Finance.MoneyEntry.NewId(), Kind = kind, Date = date, Amount = amount, Party = party, Category = category, Note = note });
