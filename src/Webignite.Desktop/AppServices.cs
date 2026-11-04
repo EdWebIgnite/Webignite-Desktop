@@ -42,6 +42,11 @@ public sealed class AppServices : IDisposable
     /// <summary>Opens pages, clients, documents and mail from anywhere. Wired by the main window.</summary>
     public Navigator Go { get; } = new();
 
+    private MailDrafts? drafts;
+
+    /// <summary>Prepares mail for the person to send: invoices, reminders, statements, onboarding and mark-ups.</summary>
+    public MailDrafts Drafts => drafts ??= new MailDrafts(this);
+
     /// <summary>Background jobs, shown with a spinner in the sidebar.</summary>
     public WorkInProgress Work { get; } = new();
 
