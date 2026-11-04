@@ -181,7 +181,7 @@ public sealed class XeroDraftTests
                 }
                 var inv = body["Invoices"]![0]!.AsObject().DeepClone().AsObject();
                 inv["InvoiceID"] = "inv" + (invoices.Count + 1);
-                inv["InvoiceNumber"] = "INV-" + (111 + invoices.Count).ToString("0000");
+                inv["InvoiceNumber"] = "INV-" + (111 + invoices.Count).ToString("0000", System.Globalization.CultureInfo.InvariantCulture);
                 inv["DateString"] = inv["Date"]!.GetValue<string>() + "T00:00:00";
                 decimal total = 0;
                 foreach (var line in inv["LineItems"]!.AsArray().OfType<JsonObject>())

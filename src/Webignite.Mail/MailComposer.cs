@@ -62,7 +62,7 @@ public static class MailComposer
     public static OutgoingMail Reply(byte[] mime, MailAccount account, IReadOnlyCollection<string> myAddresses, bool all)
     {
         var original = MailReader.Parse(mime);
-        var from = MailService.People(original.From).FirstOrDefault();
+        var from = MailService.People(original.From) is [var first, ..] ? first : null;
         var (to, cc) = Replies.Recipients(from, MailService.People(original.ReplyTo), MailService.People(original.To),
             MailService.People(original.Cc), myAddresses, all);
         var body = MailReader.Read(mime, allowRemoteImages: true);
@@ -83,7 +83,7 @@ public static class MailComposer
     public static OutgoingMail Forward(byte[] mime, MailAccount account)
     {
         var original = MailReader.Parse(mime);
-        var from = MailService.People(original.From).FirstOrDefault();
+        var from = MailService.People(original.From) is [var first, ..] ? first : null;
         var body = MailReader.Read(mime, allowRemoteImages: true);
         return new OutgoingMail
         {
@@ -116,7 +116,7 @@ public static class MailComposer
                 var header = newline > 0 ? rest[..newline] : rest;
                 var quoted = newline > 0 ? rest[(newline + 1)..] : "";
                 if (kind != "forward")
-                    quoted = string.Join('\n', quoted.Split('\n').Select(l => l.StartsWith("> ") ? l[2..] : l == ">" ? "" : l));
+                    quoted = string.Join('\n', quoted.Split('\n').Select(l => l.StartsWith("> ", StringComparison.Ordinal) ? l[2..] : l == ">" ? "" : l));
                 quote = new Quoted(header, quoted.TrimEnd(), null, kind == "forward");
                 text = text[..marker].TrimEnd();
             }

@@ -77,11 +77,13 @@ public static class Colours
 
     private static byte Byte(double v) => (byte)Math.Clamp(Math.Round(v * 255), 0, 255);
 
+    private static readonly double[] ShadeSteps = [0.15, 0.3, 0.45, 0.6, 0.75, 0.9];
+
     /// <summary>Lighter and darker versions of the colour, for hover states and backgrounds, darkest first.</summary>
     public static IReadOnlyList<Rgb> Shades(Rgb colour)
     {
         var (h, s, _) = ToHsl(colour);
-        return new[] { 0.15, 0.3, 0.45, 0.6, 0.75, 0.9 }.Select(l => FromHsl(h, s, l)).ToList();
+        return ShadeSteps.Select(l => FromHsl(h, s, l)).ToList();
     }
 
     /// <summary>The WCAG contrast ratio between two colours, from 1 to 21.</summary>

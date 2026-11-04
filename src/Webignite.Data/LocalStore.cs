@@ -140,7 +140,7 @@ public sealed partial class LocalStore : IDisposable
         {
             using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version";
-            return Convert.ToInt32(command.ExecuteScalar());
+            return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
         }
     }
 

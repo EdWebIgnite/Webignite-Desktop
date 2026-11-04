@@ -126,7 +126,7 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
     public StoredDocument StartOver(StoredDocument stored) =>
         stored.XeroId is not null ? stored : save(stored with { XeroState = XeroWriteState.None, XeroSent = null, XeroProblems = [] });
 
-    private Result Unsure(StoredDocument stored, string message)
+    private Result.Stopped Unsure(StoredDocument stored, string message)
     {
         stored = save(stored with { XeroState = XeroWriteState.Uncertain, XeroProblems = [message] });
         return new Result.Stopped(stored, message);

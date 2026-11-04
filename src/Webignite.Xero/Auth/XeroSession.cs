@@ -9,13 +9,15 @@ namespace Webignite.Xero.Auth;
 /// Signs in to Xero from the desktop and keeps a valid access token. Xero issues a new refresh token
 /// on every refresh, so the new one is saved straight away; losing it would mean signing in again.
 /// </summary>
-public sealed class XeroSession(XeroOptions options, HttpClient http, ITokenStore store, TimeProvider? clock = null)
+public sealed class XeroSession(XeroOptions options, HttpClient http, ITokenStore store, TimeProvider? clock = null) : IDisposable
 {
     private readonly TimeProvider clock = clock ?? TimeProvider.System;
     private readonly SemaphoreSlim gate = new(1, 1);
     private TokenSet? tokens;
 
     public bool HasSavedSignIn => store.ReadRefreshToken() is not null;
+
+    public void Dispose() => gate.Dispose();
 
     public Uri AuthorizeUrl(string state, string challenge)
     {

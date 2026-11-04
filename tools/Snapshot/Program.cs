@@ -455,7 +455,7 @@ vm.Mail.CancelSnoozePickCommand.Execute(null);
 
 // Mail rules: two rules, then the page with the form.
 {
-    var work = services.Store.ListMailAccounts().First(a => a.Address.StartsWith("eddie"));
+    var work = services.Store.ListMailAccounts().First(a => a.Address.StartsWith("eddie", StringComparison.Ordinal));
     services.Settings.MailRules = new Webignite.Core.Mail.MailRuleSettings
     {
         Rules =
@@ -613,7 +613,7 @@ foreach (var (name, w, h) in new[] { ("Shop Front (1).jpg", 4032, 3024), ("Team 
             c.DrawCircle(rng.Next(w), rng.Next(h), rng.Next(2, 30), new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor((byte)rng.Next(256), (byte)rng.Next(256), (byte)rng.Next(256)) });
     }
     using var img = SkiaSharp.SKImage.FromBitmap(bmp);
-    using var encoded = img.Encode(name.EndsWith(".png") ? SkiaSharp.SKEncodedImageFormat.Png : SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
+    using var encoded = img.Encode(name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? SkiaSharp.SKEncodedImageFormat.Png : SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
     File.WriteAllBytes(Path.Combine(photos, name), encoded.ToArray());
 }
 long shrunkBefore = 0, shrunkAfter = 0;

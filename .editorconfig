@@ -9,3 +9,31 @@ indent_size = 4
 
 [*.{json,props,csproj,slnx,axaml,yml,yaml}]
 indent_size = 2
+
+[*.cs]
+# The code analysers run at "recommended" (Directory.Build.props). These three are about names a library
+# shares with other .NET languages, which an app like this doesn't: Single and Short as method names, and
+# ContactMatch.New as a case of a match, read best as they are.
+dotnet_diagnostic.CA1711.severity = none
+dotnet_diagnostic.CA1716.severity = none
+dotnet_diagnostic.CA1720.severity = none
+# Pulling the first item with LINQ reads better here than indexing, and the lists are small.
+dotnet_diagnostic.CA1826.severity = none
+
+[src/Webignite.Desktop/**.cs]
+# Dates and numbers on screen follow the PC's Windows region on purpose (CLAUDE.md), so the current culture is
+# right here. Core, Data, Mail, Xero and Services keep the rule: what they store or send uses the invariant culture.
+dotnet_diagnostic.CA1305.severity = none
+# View models expose instance properties for the screen to bind to, even when they don't use instance data.
+dotnet_diagnostic.CA1822.severity = none
+
+[tools/**.cs]
+dotnet_diagnostic.CA1305.severity = none
+
+[src/Webignite.Connector/**.cs]
+# Tool parameters are named the way Claude and ChatGPT see them, in snake_case (unread_only).
+dotnet_diagnostic.CA1707.severity = none
+
+[tests/**.cs]
+# Test names are sentences: A_reply_draft_is_addressed_threaded_and_signed.
+dotnet_diagnostic.CA1707.severity = none

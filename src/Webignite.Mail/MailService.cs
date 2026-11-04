@@ -554,7 +554,7 @@ public sealed class MailService(LocalStore store, ISecretStore secrets) : IAsync
             MessageId = envelope?.MessageId,
             InReplyTo = envelope?.InReplyTo,
             Date = envelope?.Date ?? s.InternalDate ?? DateTimeOffset.MinValue,
-            From = People(envelope?.From).FirstOrDefault(),
+            From = People(envelope?.From) is [var first, ..] ? first : null,
             To = People(envelope?.To),
             Cc = People(envelope?.Cc),
             Subject = envelope?.Subject ?? "",

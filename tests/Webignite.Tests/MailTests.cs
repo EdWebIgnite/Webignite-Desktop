@@ -134,8 +134,8 @@ public sealed class MailTests : IDisposable
 
             store.SaveMailSummaries(
             [
-                Summary(account.Id, 1, "Bosveld sitemap", "Pieter", DateTimeOffset.Parse("2026-10-30T09:00:00+02:00")),
-                Summary(account.Id, 2, "Fynbos photos", "Anri", DateTimeOffset.Parse("2026-10-31T09:00:00+02:00")),
+                Summary(account.Id, 1, "Bosveld sitemap", "Pieter", DateTimeOffset.Parse("2026-10-30T09:00:00+02:00", System.Globalization.CultureInfo.InvariantCulture)),
+                Summary(account.Id, 2, "Fynbos photos", "Anri", DateTimeOffset.Parse("2026-10-31T09:00:00+02:00", System.Globalization.CultureInfo.InvariantCulture)),
             ]);
             Assert.Equal([2u, 1u], store.ListMailSummaries(account.Id, "INBOX").Select(s => s.Uid));
             Assert.Equal([1u], store.SearchMail([account.Id], "pieter sitemap", cancel: TestContext.Current.CancellationToken).Select(s => s.Uid));

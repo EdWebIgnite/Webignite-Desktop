@@ -54,7 +54,7 @@ public sealed record DocumentFilter(string Text = "", DocumentShow Show = Docume
         return shows && InPeriod(stored.Document.Date, today) && Words().All(word => Found(stored, word));
     }
 
-    private IEnumerable<string> Words() => Text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) is var words
+    private string[] Words() => Text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) is var words
         && AsAmount(Text) is not null ? [Text.Trim()] : words;
 
     private bool InPeriod(DateOnly? date, DateOnly today)

@@ -62,7 +62,7 @@ public sealed class AssistantMailTests : IDisposable
         store.SaveMailAccount(Accounts with { AssistantsMayRead = false });
 
         Assert.Equal(["eddie@webignite.co.za"], tools.ListMailboxes().Select(m => m.Address));
-        var all = await tools.SearchAsync(null, null, null, false, 20, TestContext.Current.CancellationToken);
+        var all = await tools.SearchAsync(null, null, null, false, 20, cancel: TestContext.Current.CancellationToken);
         Assert.All(all.Mail, m => Assert.Equal("eddie@webignite.co.za", m.Mailbox));
         await Assert.ThrowsAsync<AssistantException>(() => tools.ReadAsync("accounts/1/INBOX", TestContext.Current.CancellationToken));
     }
@@ -71,13 +71,13 @@ public sealed class AssistantMailTests : IDisposable
     public async Task Search_uses_the_copy_on_this_PC_when_the_server_cannot_be_reached()
     {
         Seed();
-        var result = await tools.SearchAsync("karoo", null, null, unreadOnly: false, limit: 10, TestContext.Current.CancellationToken);
+        var result = await tools.SearchAsync("karoo", null, null, unreadOnly: false, limit: 10, cancel: TestContext.Current.CancellationToken);
         var found = Assert.Single(result.Mail);
         Assert.Equal("Proof of payment INV-0107", found.Subject);
         Assert.Equal("accounts@webignite.co.za", found.Mailbox);
         Assert.Contains("copy on Eddie's PC", result.Note);
 
-        var unread = await tools.SearchAsync(null, "eddie", null, unreadOnly: true, limit: 10, TestContext.Current.CancellationToken);
+        var unread = await tools.SearchAsync(null, "eddie", null, unreadOnly: true, limit: 10, cancel: TestContext.Current.CancellationToken);
         Assert.Equal(["Booking page"], unread.Mail.Select(m => m.Subject));
     }
 
@@ -86,9 +86,9 @@ public sealed class AssistantMailTests : IDisposable
     {
         Seed();
         store.SaveClient(new Webignite.Core.Clients.Client { Id = "c", Name = "Fynbos Physio", Website = "fynbosphysio.co.za" });
-        var result = await tools.SearchAsync(null, null, null, false, 20, TestContext.Current.CancellationToken, client: "fynbos");
+        var result = await tools.SearchAsync(null, null, null, false, 20, client: "fynbos", cancel: TestContext.Current.CancellationToken);
         Assert.Equal(["Booking page"], result.Mail.Select(m => m.Subject));
-        var none = await tools.SearchAsync(null, null, null, false, 20, TestContext.Current.CancellationToken, client: "Nobody");
+        var none = await tools.SearchAsync(null, null, null, false, 20, client: "Nobody", cancel: TestContext.Current.CancellationToken);
         Assert.Empty(none.Mail);
         Assert.Contains("No client called", none.Note);
     }

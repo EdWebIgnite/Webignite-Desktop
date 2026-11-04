@@ -29,7 +29,7 @@ public sealed class MailTools(AssistantTools tools)
         [Description("Only unread mail.")] bool unread_only = false,
         [Description("How many to return, 1 to 50. Default 20.")] int limit = 20,
         CancellationToken cancellationToken = default) =>
-        Run(async () => Json(await tools.SearchAsync(query, mailbox, folder, unread_only, limit, cancellationToken, client)));
+        Run(async () => Json(await tools.SearchAsync(query, mailbox, folder, unread_only, limit, client, cancellationToken)));
 
     [McpServerTool(Name = "read_mail", Title = "Read a mail", ReadOnly = true, OpenWorld = false)]
     [Description("Reads one mail as plain text with its sender, recipients, date and attachment names. "

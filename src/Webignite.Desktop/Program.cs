@@ -68,7 +68,8 @@ internal sealed class Program
         if (OperatingSystem.IsWindows())
         {
             var text = $"Something went wrong and Webignite has to close.\n\nWhat happened is written in\n{AppLog.CurrentFile(DateTimeOffset.Now)}\n\n{error.GetType().Name}: {error.Message}";
-            MessageBoxW(IntPtr.Zero, text, "Webignite", 0x10 /* MB_ICONERROR */);
+            if (MessageBoxW(IntPtr.Zero, text, "Webignite", 0x10 /* MB_ICONERROR */) == 0)
+                AppLog.Write("The crash message couldn't be shown", error);
         }
     }
 

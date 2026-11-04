@@ -207,6 +207,7 @@ public sealed class AppServices : IDisposable
     public void Dispose()
     {
         mail?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(3));
+        xero?.Dispose();
         Store.Dispose();
     }
 }
