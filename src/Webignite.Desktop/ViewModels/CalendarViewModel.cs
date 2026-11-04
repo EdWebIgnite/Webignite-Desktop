@@ -125,7 +125,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     public void Refresh()
     {
         var (first, last) = Agenda.MonthGrid(month.Year, month.Month);
-        var items = Agenda.Build(first, last, services.Store.ListEvents(first, last), services.Store.ListTasks(), services.Store.List());
+        var items = Agenda.Build(first, last, services.Store.ListEvents(first, last), services.Store.ListTasks(), services.Documents.List());
         var byDay = items.ToLookup(i => i.Date);
 
         MonthTitle = month.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
@@ -137,7 +137,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
         SelectedItems.Clear();
         var selected = SelectedDate >= first && SelectedDate <= last
             ? byDay[SelectedDate]
-            : Agenda.Build(SelectedDate, SelectedDate, services.Store.ListEvents(SelectedDate, SelectedDate), services.Store.ListTasks(), services.Store.List());
+            : Agenda.Build(SelectedDate, SelectedDate, services.Store.ListEvents(SelectedDate, SelectedDate), services.Store.ListTasks(), services.Documents.List());
         foreach (var item in selected)
             SelectedItems.Add(new AgendaItemViewModel(item, DeleteEvent));
         OnPropertyChanged(nameof(SelectedIsEmpty));

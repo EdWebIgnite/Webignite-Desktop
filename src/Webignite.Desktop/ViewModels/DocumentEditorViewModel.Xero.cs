@@ -143,7 +143,7 @@ public partial class DocumentEditorViewModel
         catch (Exception e) when (e is XeroException or HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             // Reads failed (or the check after a write). Whatever was saved along the way is in the store.
-            if (stored is not null && services.Store.Get(stored.Id) is { } latest)
+            if (stored is not null && services.Documents.Get(stored.Id) is { } latest)
                 stored = latest;
             ShowXero("Couldn't reach Xero: " + e.Message, problem: true);
         }
@@ -223,7 +223,7 @@ public partial class DocumentEditorViewModel
     /// <summary>The first address saved on the matching client, used when a new Xero contact is made.</summary>
     private string? ClientEmail(string customer)
     {
-        return Webignite.Core.Mail.ClientMail.First(Webignite.Core.Clients.ClientDirectory.Find(services.Store.ListClients(), customer)?.Email);
+        return Webignite.Core.Mail.ClientMail.First(Webignite.Core.Clients.ClientDirectory.Find(services.Clients.List(), customer)?.Email);
     }
 }
 
@@ -277,7 +277,7 @@ public partial class DocumentEditorViewModel
             return;
         }
         // The editor may have been open on another page while this changed (emailed, approved, paid).
-        stored = services.Store.Get(stored.Id) ?? stored;
+        stored = services.Documents.Get(stored.Id) ?? stored;
         if (services.Drafts.InvoiceMailbox is not { } mailbox)
         {
             ShowXero(MailDrafts.NoInvoiceMailbox, problem: true);
@@ -309,7 +309,7 @@ public partial class DocumentEditorViewModel
         }
         catch (Exception e) when (e is XeroException or HttpRequestException or IOException or TaskCanceledException or InvalidOperationException)
         {
-            if (services.Store.Get(stored.Id) is { } latest)
+            if (services.Documents.Get(stored.Id) is { } latest)
                 stored = latest;
             ShowXero("Couldn't get it ready: " + e.Message, problem: true);
         }

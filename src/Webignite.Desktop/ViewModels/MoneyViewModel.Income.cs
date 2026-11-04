@@ -103,7 +103,7 @@ public partial class MoneyViewModel
         if (rows || incomeData is null)
         {
             var first = Projection.FirstMonth(Today);
-            incomeData = (services.Store.List(DocumentKind.Invoice),
+            incomeData = (services.Documents.List(DocumentKind.Invoice),
                 services.Store.ListEntries(first, first.AddMonths(Projection.MonthCount).AddDays(-1)),
                 services.Store.ListRetainers(), services.Store.ListRenewals(), services.Store.DraftsMade().Keys.ToHashSet());
         }

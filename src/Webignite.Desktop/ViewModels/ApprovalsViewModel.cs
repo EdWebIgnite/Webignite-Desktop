@@ -32,7 +32,7 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
     public void Refresh()
     {
         Rows.Clear();
-        foreach (var item in Approvals.Waiting(services.Store.List()))
+        foreach (var item in Approvals.Waiting(services.Documents.List()))
             Rows.Add(new ApprovalRowViewModel(item, this));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(Summary));
@@ -40,7 +40,7 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
 
     internal void Open(ApprovalRowViewModel row)
     {
-        if (services.Store.Get(row.Item.Stored.Id) is { } latest)
+        if (services.Documents.Get(row.Item.Stored.Id) is { } latest)
             Editor = new DocumentEditorViewModel(latest, services, () =>
             {
                 Editor = null;
@@ -51,14 +51,12 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
     internal void Reject(ApprovalRowViewModel row)
     {
         // Only documents that never reached Xero can be thrown away here.
-        if (!Approvals.CanReject(row.Item))
+        if (services.Documents.Reject(row.Item) is not { } gone)
             return;
-        var gone = services.Store.Get(row.Item.Stored.Id) ?? row.Item.Stored;
-        services.Store.DeleteDocument(gone.Id);
         Refresh();
         services.OfferUndo($"Rejected the {(gone.Document.Kind == DocumentKind.Quote ? "quote" : "invoice")} for {gone.Document.Customer.Name}", () =>
         {
-            services.Store.Save(gone);
+            services.Documents.Restore(gone);
             Refresh();
         });
     }

@@ -34,10 +34,11 @@ public partial class ClientDetailViewModel
         OnPropertyChanged(nameof(HasFiles));
     }
 
-    private void SaveRecords(Client changed)
+    // Notes and files are changed on the client as stored now, so unsaved typing in the details stays typed
+    // and nothing saved meanwhile is lost.
+    private void SaveRecords(Func<Client, Client> change)
     {
-        var stored = Current();
-        client = services.Store.SaveClient(stored with { Log = changed.Log, Files = changed.Files });
+        client = services.Clients.Change(client.Id, change) ?? client;
         LoadRecords();
     }
 
@@ -48,7 +49,7 @@ public partial class ClientDetailViewModel
     {
         try
         {
-            SaveRecords(ClientRecords.AddNote(client, NewLogText, Today));
+            SaveRecords(c => ClientRecords.AddNote(c, NewLogText, Today));
             NewLogText = "";
             RecordsMessage = "";
         }
@@ -63,12 +64,10 @@ public partial class ClientDetailViewModel
     {
         if (client.Log.FirstOrDefault(n => n.Id == id) is not { } note)
             return;
-        SaveRecords(ClientRecords.RemoveNote(client, id));
-        services.OfferUndo("Removed a note", () => SaveRecords(ClientRecords.PutBack(Current(), note)));
+        SaveRecords(c => ClientRecords.RemoveNote(c, id));
+        services.OfferUndo("Removed a note", () => SaveRecords(c => ClientRecords.PutBack(c, note)));
     }
 
-    /// <summary>The client as saved now, so an Undo later doesn't bring back older edits with it.</summary>
-    internal Client Current() => services.Store.GetClient(client.Id) ?? client;
 
     /// <summary>Links files to the client. They stay where they are; only the link is kept.</summary>
     public void AddFiles(IEnumerable<string> paths)
@@ -81,7 +80,7 @@ public partial class ClientDetailViewModel
             RecordsMessage = "Drop files, not folders.";
             return;
         }
-        SaveRecords(ClientRecords.AddFiles(client, files, Today));
+        SaveRecords(c => ClientRecords.AddFiles(c, files, Today));
         RecordsMessage = "";
     }
 
@@ -90,8 +89,8 @@ public partial class ClientDetailViewModel
     {
         if (client.Files.FirstOrDefault(f => string.Equals(f.Path, path, StringComparison.OrdinalIgnoreCase)) is not { } file)
             return;
-        SaveRecords(ClientRecords.RemoveFile(client, path));
-        services.OfferUndo($"Unlinked {file.Name}", () => SaveRecords(ClientRecords.PutBack(Current(), file)));
+        SaveRecords(c => ClientRecords.RemoveFile(c, path));
+        services.OfferUndo($"Unlinked {file.Name}", () => SaveRecords(c => ClientRecords.PutBack(c, file)));
     }
 
     internal void Say(string message) => RecordsMessage = message;

@@ -230,7 +230,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     public void Refresh()
     {
         CatchUpDays();
-        clients = services.Store.ListClients();
+        clients = services.Clients.List();
         var keepClient = ClientChoice?.Client?.Id;
         ClientChoices.Clear();
         ClientChoices.Add(new ClientChoice(TimeRules.NoClient, null));

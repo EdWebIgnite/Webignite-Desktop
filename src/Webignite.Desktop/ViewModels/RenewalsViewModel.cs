@@ -188,7 +188,7 @@ public partial class RenewalsViewModel : ViewModelBase, IRefreshable
             (row.IsFine ? Later : Soon).Add(row);
         }
         ClientNames.Clear();
-        foreach (var client in services.Store.ListClients())
+        foreach (var client in services.Clients.List())
             ClientNames.Add(client.Name);
         OnPropertyChanged(nameof(HasSoon));
         OnPropertyChanged(nameof(HasLater));

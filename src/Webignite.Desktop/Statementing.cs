@@ -20,7 +20,7 @@ public static class Statementing
         var today = DateOnly.FromDateTime(DateTime.Today);
         try
         {
-            var contactId = Statements.ContactIdFor(customer, services.Store.List(), services.Store.ListClients());
+            var contactId = Statements.ContactIdFor(customer, services.Documents.List(), services.Clients.List());
             var ready = await sending.PrepareStatementAsync(customer, contactId);
             if (ready.Lines.Count == 0)
             {

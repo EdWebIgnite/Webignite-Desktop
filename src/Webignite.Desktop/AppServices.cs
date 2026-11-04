@@ -19,6 +19,8 @@ public sealed class AppServices : IDisposable
     public AppServices(LocalStore store)
     {
         Store = store;
+        Documents = new DocumentService(store);
+        Clients = new ClientService(store);
         Settings = new AppSettings(store);
         Settings.XeroClientChanged += () => xero = null;
         Payments = new PaymentWatch(store, () => XeroApi);
@@ -40,6 +42,12 @@ public sealed class AppServices : IDisposable
     public AppSettings Settings { get; }
 
     /// <summary>Opens pages, clients, documents and mail from anywhere. Wired by the main window.</summary>
+    /// <summary>Quotes and invoices: pages read and change them here, never on the store directly.</summary>
+    public DocumentService Documents { get; }
+
+    /// <summary>Clients: pages read and change them here, never on the store directly.</summary>
+    public ClientService Clients { get; }
+
     public Navigator Go { get; } = new();
 
     private MailDrafts? drafts;
@@ -162,11 +170,11 @@ public sealed class AppServices : IDisposable
     /// <summary>Creates Xero drafts, saving each step to this PC as it goes.</summary>
     public Webignite.Xero.XeroDrafts? XeroDrafts =>
         XeroApi is { } api
-            ? new Webignite.Xero.XeroDrafts(api, Store.Save, () => Store.List().Select(d => d.XeroId).OfType<string>().ToHashSet())
+            ? new Webignite.Xero.XeroDrafts(api, Documents.Put, () => Documents.List().Select(d => d.XeroId).OfType<string>().ToHashSet())
             : null;
 
     /// <summary>Approves, fetches Xero's PDF and marks documents sent, for emailing from Webignite's own mailbox.</summary>
-    public Webignite.Xero.XeroSending? XeroSending => XeroApi is { } api ? new Webignite.Xero.XeroSending(api, (stored, change) => Store.Update(stored.Id, change) ?? Store.Save(change(stored))) : null;
+    public Webignite.Xero.XeroSending? XeroSending => XeroApi is { } api ? new Webignite.Xero.XeroSending(api, (stored, change) => Documents.Change(stored.Id, change) ?? Documents.Put(change(stored))) : null;
 
     // The PC
 

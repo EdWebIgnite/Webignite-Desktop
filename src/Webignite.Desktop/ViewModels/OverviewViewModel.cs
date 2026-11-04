@@ -87,7 +87,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
         var today = DateOnly.FromDateTime(DateTime.Today);
         services.Store.RaiseAutomaticTasks(services.Settings.Tasks, today);
         var tasks = services.Store.ListTasks();
-        var documents = services.Store.List();
+        var documents = services.Documents.List();
 
         Today.Clear();
         foreach (var item in Agenda.Build(today, today, services.Store.ListEvents(today, today), tasks, documents).Where(i => !i.Done))
@@ -134,10 +134,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
             Renewals = services.Store.ListRenewals(),
             Entries = services.Store.ListEntries(Dates.MonthStart(today), today),
             Inbox = inbox,
-            Clients = services.Store.ListClients(),
+            Clients = services.Clients.List(),
             OwnAddresses = accounts.Select(a => a.Address).ToList(),
             StatementsSent = services.Settings.StatementsSent,
-            Sites = Webignite.Core.Web.Uptime.Domains(services.Store.ListClients(), services.Settings.Uptime)
+            Sites = Webignite.Core.Web.Uptime.Domains(services.Clients.List(), services.Settings.Uptime)
                 .Select(d => services.Settings.Uptime.Sites.GetValueOrDefault(d.Domain)).OfType<Webignite.Core.Web.WatchedSite>().ToList(),
             BackupsOn = hasPassword,
             BackupOverdue = BackupRules.Overdue(services.Settings.Backups, hasPassword, DateTimeOffset.Now),
@@ -186,7 +186,7 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
         {
             var (message, problem) = line.Target == SummaryTarget.Statement
                 ? await Webignite.Desktop.Statementing.DraftAsync(services, line.Customer!)
-                : await Webignite.Desktop.Chasing.DraftAsync(services, services.Store.Get(line.Chase!.Stored.Id) ?? line.Chase.Stored);
+                : await Webignite.Desktop.Chasing.DraftAsync(services, services.Documents.Get(line.Chase!.Stored.Id) ?? line.Chase.Stored);
             if (message is not null)
                 services.ShowNote?.Invoke(problem ? "Couldn't draft it" : line.Target == SummaryTarget.Statement ? "Nothing owed" : "Nothing to chase", message, null);
         }

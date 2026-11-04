@@ -11,6 +11,18 @@ public sealed partial class LocalStore
 
     public void DeleteClient(string id) => Remove("clients", id);
 
+    /// <summary>
+    /// Changes a client as it is stored now, in one go, so a change made meanwhile (a note added, a project
+    /// ticked off) stays. <paramref name="change"/> returns null to leave it. Returns the client as it now stands,
+    /// or null when it was deleted.
+    /// </summary>
+    public Client? UpdateClient(string id, Func<Client, Client?> change) => InOneGo(() =>
+    {
+        var current = GetClient(id);
+        var changed = current is null ? null : change(current);
+        return changed is null ? current : SaveClient(changed with { Id = id });
+    });
+
     /// <summary>One client by id, without unlocking all of them.</summary>
     public Client? GetClient(string id) => Find<Client>("clients", ClientContext, id);
 

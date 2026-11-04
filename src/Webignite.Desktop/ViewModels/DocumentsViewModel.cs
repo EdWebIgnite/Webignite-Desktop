@@ -141,7 +141,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
     private void Open(DocumentRow row) => Editor = new DocumentEditorViewModel(row.Stored, services, Close);
 
     /// <summary>Opens a quote or invoice, e.g. from search.</summary>
-    public void OpenDocument(StoredDocument stored) => Editor = new DocumentEditorViewModel(services.Store.Get(stored.Id) ?? stored, services, Close);
+    public void OpenDocument(StoredDocument stored) => Editor = new DocumentEditorViewModel(services.Documents.Get(stored.Id) ?? stored, services, Close);
 
     private void Close()
     {
@@ -151,7 +151,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable
 
     public void Refresh()
     {
-        var all = services.Store.List(Kind);
+        var all = services.Documents.List(Kind);
         var today = DateOnly.FromDateTime(DateTime.Today);
         var shown = Filter.Apply(all, today);
         Rows.Clear();

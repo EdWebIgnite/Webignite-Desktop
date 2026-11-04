@@ -147,7 +147,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         if (IsEditable)
             Save();
         var source = stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = Build() };
-        var copy = services.Store.Save(DocumentCopies.Copy(source, kind, services.Settings.Documents, DateOnly.FromDateTime(DateTime.Today)));
+        var copy = services.Documents.Copy(source, kind, services.Settings.Documents, DateOnly.FromDateTime(DateTime.Today));
         services.Go.Document(copy);
     }
 
@@ -157,11 +157,9 @@ public partial class DocumentEditorViewModel : ViewModelBase
     {
         if (!IsEditable)
             return; // Once it has gone to Xero, Xero holds the real copy.
-        var doc = Build();
         // Saved onto the document as it is now, and only while it still hasn't gone to Xero. An editor left open
         // on another page mustn't wipe a Xero link made from here meanwhile, or the next Create makes a second one.
-        var latest = stored is null ? null
-            : services.Store.Update(stored.Id, current => current.XeroState == XeroWriteState.None ? current with { Document = doc } : null);
+        var latest = services.Documents.SaveDraft(stored?.Id ?? StoredDocument.NewId(), Build());
         if (latest is { XeroState: not XeroWriteState.None })
         {
             stored = latest;
@@ -171,7 +169,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
             SaveState = "Not saved: it went to Xero from another page while this was open, so Xero holds it now.";
             return;
         }
-        stored = latest ?? services.Store.Save((stored ?? new StoredDocument { Id = StoredDocument.NewId(), Document = doc }) with { Document = doc });
+        stored = latest;
         changed = false;
         SaveState = $"Saved on this PC at {stored.Updated.ToLocalTime():HH:mm}";
         SavedStamp++;

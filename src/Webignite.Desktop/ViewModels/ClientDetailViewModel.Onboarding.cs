@@ -33,32 +33,35 @@ public partial class ClientDetailViewModel
         OnPropertyChanged(nameof(OnboardingProgress));
     }
 
-    private void SaveOnboarding(Client changed)
+    // Only the checklist is changed here, on the client as stored now; unsaved typing in the details stays typed.
+    private void SaveOnboarding(Func<Client, Client> change)
     {
-        // Keep any unsaved typing in the details; only the checklist is saved here.
-        var stored = Current();
-        client = services.Store.SaveClient(stored with { Onboarding = changed.Onboarding, OnboardingStarted = changed.OnboardingStarted });
+        client = services.Clients.Change(client.Id, c =>
+        {
+            var changed = change(c);
+            return c with { Onboarding = changed.Onboarding, OnboardingStarted = changed.OnboardingStarted };
+        }) ?? client;
         LoadOnboarding();
     }
 
     [RelayCommand]
-    private void StartOnboarding() => SaveOnboarding(Onboarding.Start(client, Today));
+    private void StartOnboarding() => SaveOnboarding(c => Onboarding.Start(c, Today));
 
-    internal void Tick(string name, bool done) => SaveOnboarding(Onboarding.Tick(client, name, done, Today));
+    internal void Tick(string name, bool done) => SaveOnboarding(c => Onboarding.Tick(c, name, done, Today));
 
-    internal void RemoveOnboardingItem(string name) => SaveOnboarding(Onboarding.Remove(client, name));
+    internal void RemoveOnboardingItem(string name) => SaveOnboarding(c => Onboarding.Remove(c, name));
 
     private bool CanAddOnboardingItem() => !string.IsNullOrWhiteSpace(NewOnboardingItem);
 
     [RelayCommand(CanExecute = nameof(CanAddOnboardingItem))]
     private void AddOnboardingItem()
     {
-        SaveOnboarding(Onboarding.Add(client, NewOnboardingItem));
+        SaveOnboarding(c => Onboarding.Add(c, NewOnboardingItem));
         NewOnboardingItem = "";
     }
 
     [RelayCommand]
-    private void ClearOnboarding() => SaveOnboarding(client with { Onboarding = [], OnboardingStarted = null });
+    private void ClearOnboarding() => SaveOnboarding(c => c with { Onboarding = [], OnboardingStarted = null });
 
     /// <summary>Opens a mail to the client listing what's still needed. Nothing is sent until Send is clicked.</summary>
     [RelayCommand]

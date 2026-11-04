@@ -99,7 +99,7 @@ flowchart BT
 | `Webignite.Data` | `LocalStore` (SQLite, one table per kind of record, payload encrypted by `Vault`; one file per area on the shared helpers in `LocalStore.Rows.cs`, and `LocalStore.Schedules.cs` for what the calendar calls for), `VaultKey`, backups, secrets, `AppLog`, the assistant rules for documents and to-dos. | Microsoft.Data.Sqlite, ProtectedData |
 | `Webignite.Xero` | `XeroSession` (sign-in, tokens), `XeroApi`, `XeroDrafts` (create and check drafts), `XeroSending` (PDFs, mark sent), `XeroStandings` (payments). | none |
 | `Webignite.Mail` | `MailService` (sync, read, mark, move, send; `MailRetry` decides when a dropped connection is tried again), `MailComposer`, `MailReader`, `AssistantTools` (what an assistant may do with mail). | MailKit |
-| `Webignite.Services` | `PaymentWatch`, `UptimeWatch`, `SiteChecker`: each has `Due(now)` and `RunAsync`. | none |
+| `Webignite.Services` | `DocumentService` and `ClientService`, through which pages read and change quotes, invoices and clients (each change applied to the record as stored now); `PaymentWatch`, `UptimeWatch`, `SiteChecker`: each has `Due(now)` and `RunAsync`. | none |
 | `Webignite.Connector` | The MCP server and its tools: documents, to-dos, mail. Logs go to stderr only. | ModelContextProtocol, Hosting |
 | `Webignite.Desktop` | The app: `AppServices`, `AppSettings`, `Navigator`, `MailDrafts`, pages (view models and views), controls, styles. | Avalonia, CommunityToolkit.Mvvm, HtmlRenderer, QRCoder, Docnet.Core, Velopack |
 | `tests/Webignite.Tests` | xUnit v3 tests, one file per area. | xunit.v3 |
@@ -146,7 +146,7 @@ flowchart LR
     main["MainViewModel<br/>modules, timers, shortcuts"]
     page["Page view model<br/>e.g. DocumentsViewModel"]
     view["Page view<br/>e.g. DocumentsView.axaml"]
-    services["AppServices<br/>Store, Settings, Mail, Xero,<br/>watches, Go, ShowNote, Work"]
+    services["AppServices<br/>Documents, Clients, Store, Settings,<br/>Mail, Xero, Drafts, watches, Go"]
     core["Core rules"]
 
     window --> main
@@ -161,7 +161,7 @@ flowchart LR
 
 | Piece | Job |
 | --- | --- |
-| `AppServices` | One of each long-lived thing: the store, settings, mail, Xero session, watches, `Navigator`, `MailDrafts`, notes, background work. |
+| `AppServices` | One of each long-lived thing: the store, `Documents` and `Clients` (the services pages use for those), settings, mail, Xero session, watches, `Navigator`, `MailDrafts`, notes, background work. |
 | `MailDrafts` (`services.Drafts`) | The one way a mail is prepared for the person to send: invoice and quote mail, reminders, statements, onboarding reminders, mark-ups. Nothing is sent from code. |
 | `IRefreshable` | A page that shows what other pages change reads it again when it is opened and on F5. |
 | `MainViewModel.PrepareToCloseAsync` | Runs before the window closes: saves open editors, the open client and typed amounts, sends a mail still in its undo wait and saves the mail being written. |

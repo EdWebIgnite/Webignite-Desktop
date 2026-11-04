@@ -86,7 +86,7 @@ public partial class MailViewModel : ViewModelBase
     private void LoadClientChoices()
     {
         var keep = ClientFilter?.Value?.Id;
-        ClientChoices = [new("All clients", null), .. services.Store.ListClients()
+        ClientChoices = [new("All clients", null), .. services.Clients.List()
             .Where(c => !new ClientMail(c).IsEmpty)
             .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
             .Select(c => new Choice<Webignite.Core.Clients.Client?>(c.Name, c))];
@@ -311,7 +311,7 @@ public partial class MailViewModel : ViewModelBase
             var theirs = new ClientMail(onlyClient);
             kept = kept.Where(theirs.Matches);
         }
-        var clientOf = ClientMail.Finder(services.Store.ListClients());
+        var clientOf = ClientMail.Finder(services.Clients.List());
         var arrival = Arrival();
         var threads = Conversations ? MailThreads.Group(kept, arrival) : MailThreads.Single(kept, arrival);
         rebuilding = true;

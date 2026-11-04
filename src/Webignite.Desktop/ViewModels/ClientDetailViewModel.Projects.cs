@@ -35,10 +35,9 @@ public partial class ClientDetailViewModel
         OnPropertyChanged(nameof(HasProjects));
     }
 
-    private void SaveProjects(IReadOnlyList<ClientProject> projects)
+    private void SaveProjects(Func<IReadOnlyList<ClientProject>, IReadOnlyList<ClientProject>> change)
     {
-        var stored = Current();
-        client = services.Store.SaveClient(stored with { Projects = projects });
+        client = services.Clients.Change(client.Id, c => c with { Projects = change(c.Projects) }) ?? client;
         LoadProjects();
     }
 
@@ -47,7 +46,7 @@ public partial class ClientDetailViewModel
     [RelayCommand(CanExecute = nameof(CanAddProject))]
     private void AddProject()
     {
-        SaveProjects([.. client.Projects, new ClientProject { Id = ClientProject.NewId(), Name = NewProjectName.Trim() }]);
+        SaveProjects(projects => [.. projects, new ClientProject { Id = ClientProject.NewId(), Name = NewProjectName.Trim() }]);
         NewProjectName = "";
     }
 
@@ -57,12 +56,12 @@ public partial class ClientDetailViewModel
         if (!TimeRules.TryParseRate(text, out var rate))
             return false;
         if (rate != project.HourlyRate)
-            SaveProjects(client.Projects.Select(p => p.Id == project.Id ? p with { HourlyRate = rate } : p).ToList());
+            SaveProjects(projects => projects.Select(p => p.Id == project.Id ? p with { HourlyRate = rate } : p).ToList());
         return true;
     }
 
     internal void SetProjectFinished(ClientProject project, bool finished) =>
-        SaveProjects(client.Projects.Select(p => p.Id == project.Id ? p with { Finished = finished } : p).ToList());
+        SaveProjects(projects => projects.Select(p => p.Id == project.Id ? p with { Finished = finished } : p).ToList());
 }
 
 /// <summary>A project on the client's page. Ticking it finished keeps its time but stops offering it on the Time page.</summary>
