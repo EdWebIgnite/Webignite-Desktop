@@ -78,6 +78,38 @@ public class XeroAuthTests
     }
 
     [Fact]
+    public async Task A_new_token_is_kept_when_cancel_is_pressed_as_it_arrives()
+    {
+        var store = new MemoryTokenStore();
+        store.WriteRefreshToken("refresh-0");
+        using var cancel = new CancellationTokenSource();
+        var xero = new FakeXero { OnTokenReply = cancel.Cancel };
+        var session = new XeroSession(new XeroOptions { ClientId = "abc" }, new HttpClient(xero), store);
+
+        try
+        {
+            await session.AccessTokenAsync(cancel.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        // Xero rotated the refresh token: the new one must be saved, or the next refresh signs Eddie out.
+        Assert.Equal("refresh-1", store.ReadRefreshToken());
+    }
+
+    [Fact]
+    public async Task A_xero_outage_keeps_the_saved_sign_in()
+    {
+        var store = new MemoryTokenStore();
+        store.WriteRefreshToken("refresh-0");
+        var session = new XeroSession(new XeroOptions { ClientId = "abc" }, new HttpClient(new FakeXero { Fail = HttpStatusCode.ServiceUnavailable }), store);
+
+        var error = await Assert.ThrowsAsync<XeroSignInException>(() => session.AccessTokenAsync(TestContext.Current.CancellationToken));
+        Assert.Contains("503", error.Message);
+        Assert.Equal("refresh-0", store.ReadRefreshToken());
+    }
+
+    [Fact]
     public async Task Wrong_state_is_refused()
     {
         var port = FreePort();
@@ -105,6 +137,8 @@ public class XeroAuthTests
     {
         public List<string> TokenRequests { get; } = [];
         public bool RejectRefresh { get; init; }
+        public HttpStatusCode? Fail { get; init; }
+        public Action? OnTokenReply { get; init; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancel)
         {
@@ -114,7 +148,10 @@ public class XeroAuthTests
                 TokenRequests.Add(body);
                 if (RejectRefresh)
                     return new HttpResponseMessage(HttpStatusCode.BadRequest);
+                if (Fail is { } status)
+                    return new HttpResponseMessage(status);
                 var n = TokenRequests.Count;
+                OnTokenReply?.Invoke();
                 return Json($$"""{"access_token":"access-{{n}}","refresh_token":"refresh-{{n}}","expires_in":1800}""");
             }
             if (request.RequestUri.AbsolutePath == "/connections")

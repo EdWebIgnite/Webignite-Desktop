@@ -16,7 +16,7 @@ public sealed class BackupTests : IDisposable
     private string Folder => Path.Combine(root, "backups");
     private LocalStore Open(byte[]? withKey = null) => new(Path.Combine(Data, "webignite.db"), new Vault(withKey ?? key));
 
-    private static StoredDocument Stored(Document doc) => new() { Id = StoredDocument.NewId(), Document = doc };
+    private static StoredDocument Stored(Document doc) => Samples.Stored(doc);
 
     private string MakeBackup(LocalStore store, DateTimeOffset? at = null) =>
         Backups.Seal(Backups.Snapshot(store), key, Password, Folder, at ?? Now, "test", FastIterations);

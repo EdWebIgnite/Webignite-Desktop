@@ -14,19 +14,9 @@ public sealed class PaymentTests
     private static readonly DateOnly Today = Samples.Today;
     private static readonly DateTimeOffset Now = new(2026, 10, 31, 10, 0, 0, TimeSpan.FromHours(2));
 
-    private static StoredDocument Invoice(string id, decimal total, int dueInDays) => new()
-    {
-        Id = id,
-        Document = Samples.Completed(Samples.NewInvoice(Samples.Priced("Work", 1, total))) with { DueOrExpiryDate = Today.AddDays(dueInDays) },
-        Status = DocumentStatus.InXero,
-        XeroId = "x-" + id,
-        XeroNumber = "INV-" + id,
-    };
+    private static StoredDocument Invoice(string id, decimal total, int dueInDays) => Samples.InXero(id, total, Today.AddDays(dueInDays));
 
-    private static StoredDocument Quote(string id, decimal total) => Invoice(id, total, 10) with
-    {
-        Document = Samples.Completed(Samples.NewInvoice(Samples.Priced("Site", 1, total))) with { Kind = DocumentKind.Quote, DueOrExpiryDate = Today.AddDays(10) },
-    };
+    private static StoredDocument Quote(string id, decimal total) => Samples.InXero(id, total, Today.AddDays(10), DocumentKind.Quote) with { XeroNumber = "INV-" + id };
 
     [Fact]
     public void Before_Xero_is_read_the_whole_total_is_owed()

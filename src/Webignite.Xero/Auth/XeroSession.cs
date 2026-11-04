@@ -108,7 +108,9 @@ public sealed class XeroSession(XeroOptions options, HttpClient http, ITokenStor
             }
             throw new XeroSignInException($"Xero sign-in failed ({(int)response.StatusCode}).");
         }
-        var token = await response.Content.ReadFromJsonAsync<TokenResponse>(cancel)
+        // Xero has issued a new refresh token and the old one no longer works, so the reply is read and saved
+        // even if the person cancels now. Dropping it here would lose the sign-in.
+        var token = await response.Content.ReadFromJsonAsync<TokenResponse>(CancellationToken.None)
                     ?? throw new XeroSignInException("Xero sent an empty sign-in reply.");
         store.WriteRefreshToken(token.RefreshToken);
         tokens = new TokenSet(token.AccessToken, token.RefreshToken, clock.GetUtcNow().AddSeconds(token.ExpiresIn));
