@@ -18,7 +18,7 @@ public sealed class ScreenGrabWindow : Window
     private readonly GrabCanvas canvas;
     private readonly TaskCompletionSource<ScreenGrab.Area?> chosen = new();
 
-    public ScreenGrabWindow(Bitmap frozen, PixelRect bounds, double scaling, IReadOnlyList<ScreenGrab.Area> windows)
+    public ScreenGrabWindow(Bitmap frozen, PixelRect bounds, double scaling, IReadOnlyList<ScreenGrab.Area> windows, bool recording = false)
     {
         WindowDecorations = WindowDecorations.None;
         Topmost = true;
@@ -29,7 +29,13 @@ public sealed class ScreenGrabWindow : Window
         Width = bounds.Width / scaling;
         Height = bounds.Height / scaling;
         Cursor = new Cursor(StandardCursorType.Cross);
-        canvas = new GrabCanvas(frozen, scaling, windows) { Done = area => Finish(area) };
+        canvas = new GrabCanvas(frozen, scaling, windows)
+        {
+            Done = area => Finish(area),
+            Help = recording
+                ? "Drag over the part to record, click a window, or press Enter for the whole screen. Esc to stop."
+                : "Drag to pick an area, click a window, or press Enter for the whole screen. Esc to stop.",
+        };
         Content = canvas;
         Closed += (_, _) => chosen.TrySetResult(null);
     }
@@ -81,6 +87,8 @@ public sealed class GrabCanvas : Control
     }
 
     internal Action<ScreenGrab.Area?>? Done { get; init; }
+
+    internal string Help { get; init; } = "";
 
     private ScreenGrab.Area Whole => new(0, 0, frozen.PixelSize.Width, frozen.PixelSize.Height);
 
@@ -173,7 +181,7 @@ public sealed class GrabCanvas : Control
             context.FillRectangle(Brush("Nav", Colors.Black), new Rect(label.X, label.Y, size.Width + 12, size.Height + 4), 4);
             context.DrawText(size, new Point(label.X + 6, label.Y + 2));
         }
-        var help = Text("Drag to pick an area, click a window, or press Enter for the whole screen. Esc to stop.", 14);
+        var help = Text(Help, 14);
         var at = new Point((all.Width - help.Width) / 2, 24);
         context.FillRectangle(Brush("Nav", Colors.Black), new Rect(at.X - 14, at.Y - 8, help.Width + 28, help.Height + 16), 8);
         context.DrawText(help, at);

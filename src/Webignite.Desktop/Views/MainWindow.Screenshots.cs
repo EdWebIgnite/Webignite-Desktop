@@ -23,7 +23,7 @@ public partial class MainWindow
         {
             if (!OperatingSystem.IsWindows())
                 return;
-            screenshotKey = new GlobalHotkey(this, () => services.Go.Screenshot(hideApp: false));
+            screenshotKey = new GlobalHotkey(this, 0x5747, () => services.Go.Screenshot(hideApp: false));
             if (ApplyShortcut(services) is { } problem)
                 ShowNote("Screenshot shortcut not set", problem, () => services.Go.Settings("screenshots"));
         };

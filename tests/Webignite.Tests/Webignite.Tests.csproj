@@ -16,5 +16,6 @@
     <ProjectReference Include="..\..\src\Webignite.Data\Webignite.Data.csproj" />
     <ProjectReference Include="..\..\src\Webignite.Mail\Webignite.Mail.csproj" />
     <ProjectReference Include="..\..\src\Webignite.Services\Webignite.Services.csproj" />
+    <ProjectReference Include="..\..\src\Webignite.Tools\Webignite.Tools.csproj" />
   </ItemGroup>
 </Project>

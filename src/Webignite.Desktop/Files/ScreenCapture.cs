@@ -131,16 +131,18 @@ public static class ScreenCapture
 [SupportedOSPlatform("windows")]
 public sealed class GlobalHotkey
 {
-    private const int Id = 0x5747; // "WG"
     private const uint WmHotkey = 0x0312;
+    private readonly int id;
     private readonly Avalonia.Controls.TopLevel window;
     private readonly IntPtr handle;
     private readonly Action pressed;
     private readonly Avalonia.Controls.Win32Properties.CustomWndProcHookCallback hook;
     private bool registered;
 
-    public GlobalHotkey(Avalonia.Controls.TopLevel window, Action pressed)
+    /// <param name="id">Different for each shortcut the window holds, e.g. one for screenshots and one for recording.</param>
+    public GlobalHotkey(Avalonia.Controls.TopLevel window, int id, Action pressed)
     {
+        this.id = id;
         this.window = window;
         this.pressed = pressed;
         handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
@@ -159,7 +161,7 @@ public sealed class GlobalHotkey
         if (keys.Ctrl) modifiers |= 0x2;
         if (keys.Shift) modifiers |= 0x4;
         if (keys.Win) modifiers |= 0x8;
-        registered = RegisterHotKey(handle, Id, modifiers, VirtualKey(keys.Key));
+        registered = RegisterHotKey(handle, id, modifiers, VirtualKey(keys.Key));
         return registered ? null : $"Another program already uses {keys}. Pick other keys in Settings, Screenshots.";
     }
 
@@ -175,7 +177,7 @@ public sealed class GlobalHotkey
 
     private IntPtr Hook(IntPtr window, uint message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (message == WmHotkey && wParam == Id)
+        if (message == WmHotkey && wParam == id)
         {
             handled = true;
             pressed();
@@ -186,7 +188,7 @@ public sealed class GlobalHotkey
     private void Clear()
     {
         if (registered)
-            UnregisterHotKey(handle, Id);
+            UnregisterHotKey(handle, id);
         registered = false;
     }
 

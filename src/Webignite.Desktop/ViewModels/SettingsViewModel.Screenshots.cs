@@ -15,7 +15,44 @@ public partial class SettingsViewModel
         ? folder
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screenshots");
 
-    private void LoadScreenshots() => ScreenshotShortcut = services.Settings.Screenshots.Shortcut is { Length: > 0 } keys ? keys : "Off";
+    [ObservableProperty] public partial string RecordShortcut { get; private set; } = "";
+
+    /// <summary>Record the microphone with the screen.</summary>
+    public bool RecordMicrophone
+    {
+        get => services.Settings.Screenshots.Microphone;
+        set
+        {
+            services.Settings.Screenshots = services.Settings.Screenshots with { Microphone = value };
+            OnPropertyChanged();
+        }
+    }
+
+    private void LoadScreenshots()
+    {
+        ScreenshotShortcut = services.Settings.Screenshots.Shortcut is { Length: > 0 } keys ? keys : "Off";
+        RecordShortcut = services.Settings.Screenshots.RecordShortcut is { Length: > 0 } record ? record : "Off";
+    }
+
+    /// <summary>The keys pressed in the recording shortcut box.</summary>
+    public void SetRecordShortcut(string keys)
+    {
+        var (hotkey, problem) = Hotkey.Parse(keys);
+        if (hotkey is null)
+        {
+            Shortcut(problem!, true);
+            return;
+        }
+        if (hotkey.ToString() == services.Settings.Screenshots.Shortcut)
+        {
+            Shortcut("That's the screenshot shortcut already. Pick other keys for recording.", true);
+            return;
+        }
+        services.Settings.Screenshots = services.Settings.Screenshots with { RecordShortcut = hotkey.ToString() };
+        RecordShortcut = hotkey.ToString();
+        var taken = services.ApplyRecordShortcut?.Invoke();
+        Shortcut(taken ?? $"Press {hotkey} in any program to start recording, and again to stop.", taken is not null);
+    }
 
     /// <summary>The keys pressed in the shortcut box. Kept and taken from Windows straight away, or refused with why.</summary>
     public void SetShortcut(string keys)
@@ -24,6 +61,11 @@ public partial class SettingsViewModel
         if (hotkey is null)
         {
             Shortcut(problem!, true);
+            return;
+        }
+        if (hotkey.ToString() == services.Settings.Screenshots.RecordShortcut)
+        {
+            Shortcut("That's the recording shortcut already. Pick other keys for screenshots.", true);
             return;
         }
         services.Settings.Screenshots = services.Settings.Screenshots with { Shortcut = hotkey.ToString() };

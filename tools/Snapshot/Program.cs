@@ -140,6 +140,19 @@ void Wait(Task task, string what)
     Check(what, task.IsCompletedSuccessfully);
 }
 
+// Runs the screen's jobs until something is true, or ten seconds pass. Says whether it came true.
+bool Until(Func<bool> done)
+{
+    var until = DateTime.UtcNow.AddSeconds(10);
+    while (!done() && DateTime.UtcNow < until)
+    {
+        Dispatcher.UIThread.RunJobs();
+        Thread.Sleep(15);
+    }
+    Dispatcher.UIThread.RunJobs();
+    return done();
+}
+
 void Save(string name)
 {
     Dispatcher.UIThread.RunJobs();
@@ -906,17 +919,6 @@ Save("client-mail");
 
     // Finder extras: search as you type (and inside files), the details pane, Quick Look, column view,
     // Favourites and Recents, and quick actions on pictures, PDFs and zips.
-    bool Until(Func<bool> done)
-    {
-        var until = DateTime.UtcNow.AddSeconds(10);
-        while (!done() && DateTime.UtcNow < until)
-        {
-            Dispatcher.UIThread.RunJobs();
-            Thread.Sleep(15);
-        }
-        Dispatcher.UIThread.RunJobs();
-        return done();
-    }
     using (var docx = new System.IO.Compression.ZipArchive(File.Create(Path.Combine(site, "Logo", "Sitemap.docx")), System.IO.Compression.ZipArchiveMode.Create))
     using (var xml = new StreamWriter(docx.CreateEntry("word/document.xml").Open()))
         xml.Write("<w:document><w:body><w:p><w:r><w:t>Home, About, Projects, and online booking for site visits.</w:t></w:r></w:p></w:body></w:document>");
@@ -1397,7 +1399,38 @@ Save("site-check");
     Open(Page.Settings);
     Save("settings-screenshots");
     shortcutSettings.ShortcutBackCommand.Execute(null);
+    shortcutSettings.SetRecordShortcut("Ctrl+Alt+S");
+    Check("The recording shortcut can't be the screenshot one", shortcutSettings.ShortcutProblem && services.Settings.Screenshots.RecordShortcut == "Ctrl+Alt+R");
     Open(Page.Markup);
+
+    // Screen recording: the bar while recording, then the recording in Mark-up to trim and save. The video
+    // itself is Windows' Media Foundation (tested on the Windows build); here a stand-in gives frames.
+    var bar = new RecordingBar(() => TimeSpan.FromSeconds(73), () => { }, sound: true);
+    bar.Show();
+    Dispatcher.UIThread.RunJobs();
+    Check("The bar shows how long it has been recording", Until(() => bar.TimeText == "1:13"));
+    using (var barFrame = bar.CaptureRenderedFrame())
+    using (var barFile = File.Create(Path.Combine(output, "recording-bar.png")))
+        barFrame?.Save(barFile, new PngBitmapEncoderOptions());
+    bar.Close();
+
+    var video = Path.Combine(data, "recording.mp4");
+    File.WriteAllBytes(video, new byte[2_400_000]);
+    var standIn = new StandInVideo(site);
+    Check("The client picked in Mark-up stays picked after going to another page", vm.Markup.Client?.Name == "Bosveld Builders");
+    vm.Markup.ShowRecording(video, TimeSpan.FromSeconds(42), standIn, null);
+    var take = vm.Markup.Recording!;
+    take.Start = 3.2;
+    take.End = 30;
+    Check("Moving a handle shows the frame there", Until(() => take.Frame is not null && take.FrameText == "0:30"));
+    Check("The part kept is spelled out", take.KeptText == "Keeping 0:03 to 0:30, 0:26 of 0:42");
+    Save("markup-recording");
+    Wait(take.SaveCommand.ExecuteAsync(null), "Saving the recording");
+    Check("Saving cuts it and puts it in the client's folder",
+        take.SavedPath is { } savedVideo && Path.GetDirectoryName(savedVideo) == Path.Combine(projects, "Bosveld Builders")
+        && standIn.Trimmed == (TimeSpan.FromSeconds(3.2), TimeSpan.FromSeconds(30)));
+    take.CloseCommand.Execute(null);
+    Check("Done throws the temporary recording away", vm.Markup.Recording is null && !File.Exists(video));
 }
 
 // Ctrl+K search
@@ -1577,4 +1610,24 @@ static byte[] SamplePdf(params string[] lines)
         pdf.Append($"{offset:D10} 00000 n \n");
     pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
     return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
+}
+
+// Stands in for Windows' Media Foundation in the screenshots: frames from a picture, and a note of what was trimmed.
+sealed class StandInVideo(SkiaSharp.SKBitmap picture) : IVideoTools
+{
+    public (TimeSpan Start, TimeSpan End)? Trimmed { get; private set; }
+
+    public TimeSpan Length(string path) => TimeSpan.FromSeconds(42);
+
+    public RecordingFrame? FrameAt(string path, TimeSpan at)
+    {
+        using var bgra = picture.Copy(SkiaSharp.SKColorType.Bgra8888);
+        return new RecordingFrame(bgra.Bytes, bgra.Width, bgra.Height);
+    }
+
+    public void Trim(string path, string output, TimeSpan start, TimeSpan end)
+    {
+        Trimmed = (start, end);
+        File.Copy(path, output, overwrite: true);
+    }
 }

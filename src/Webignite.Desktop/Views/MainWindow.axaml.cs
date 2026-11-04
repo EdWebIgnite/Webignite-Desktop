@@ -52,6 +52,7 @@ public partial class MainWindow : Window
             ApplyAppearance(services.Settings.Appearance);
             services.Settings.AppearanceChanged += ApplyAppearance;
             WireScreenshots(main, services);
+            WireRecording(main, services);
         }
     }
 
@@ -60,6 +61,7 @@ public partial class MainWindow : Window
         preparing = true;
         try
         {
+            await FinishRecordingBeforeClose();
             string? problem;
             try
             {

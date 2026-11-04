@@ -34,6 +34,7 @@ public sealed class Navigator
     internal Action<string, bool>? OpenFolderAction { get; set; }
     internal Action<string>? OpenSettingsAction { get; set; }
     internal Action<bool>? ScreenshotAction { get; set; }
+    internal Action<bool>? RecordAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -67,6 +68,9 @@ public sealed class Navigator
     /// window steps aside first (<paramref name="hideApp"/>); from the shortcut it is left as it is.
     /// </summary>
     public void Screenshot(bool hideApp = true) => ScreenshotAction?.Invoke(hideApp);
+
+    /// <summary>Starts recording part of the screen, or stops the recording under way and opens it in Mark-up.</summary>
+    public void Record(bool hideApp = true) => RecordAction?.Invoke(hideApp);
 
     /// <summary>Opens Settings at a section, by its key (e.g. "files").</summary>
     public void Settings(string section) => OpenSettingsAction?.Invoke(section);
