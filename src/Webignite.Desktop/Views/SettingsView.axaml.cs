@@ -65,6 +65,18 @@ public partial class SettingsView : UserControl
             settings.SetRecordShortcut(keys);
     }
 
+    private void QuickNoteShortcutKeys(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
+            settings.SetQuickNoteShortcut(keys);
+    }
+
+    private void QuickNotebookPicked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && (sender as ComboBox)?.SelectedItem is Webignite.Core.Notes.Notebook notebook)
+            settings.PickQuickNotebook(notebook);
+    }
+
     private static string? Pressed(KeyEventArgs e)
     {
         if (e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt

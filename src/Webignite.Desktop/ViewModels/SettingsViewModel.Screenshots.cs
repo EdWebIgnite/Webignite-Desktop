@@ -48,6 +48,11 @@ public partial class SettingsViewModel
             Shortcut("That's the screenshot shortcut already. Pick other keys for recording.", true);
             return;
         }
+        if (hotkey.ToString() == services.Settings.Notes.QuickShortcut)
+        {
+            Shortcut("That's the quick-note shortcut already. Pick other keys for recording.", true);
+            return;
+        }
         services.Settings.Screenshots = services.Settings.Screenshots with { RecordShortcut = hotkey.ToString() };
         RecordShortcut = hotkey.ToString();
         var taken = services.ApplyRecordShortcut?.Invoke();
@@ -66,6 +71,11 @@ public partial class SettingsViewModel
         if (hotkey.ToString() == services.Settings.Screenshots.RecordShortcut)
         {
             Shortcut("That's the recording shortcut already. Pick other keys for screenshots.", true);
+            return;
+        }
+        if (hotkey.ToString() == services.Settings.Notes.QuickShortcut)
+        {
+            Shortcut("That's the quick-note shortcut already. Pick other keys for screenshots.", true);
             return;
         }
         services.Settings.Screenshots = services.Settings.Screenshots with { Shortcut = hotkey.ToString() };

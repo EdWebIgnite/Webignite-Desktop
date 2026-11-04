@@ -11,7 +11,7 @@ public partial class MainViewModel
     public static IReadOnlyList<Shortcut> Shortcuts { get; } =
     [
         new("Ctrl+K", "Search clients, quotes, invoices and mail"),
-        new("Ctrl+N", "New on this page: quote, invoice, client, retainer, domain or mail"),
+        new("Ctrl+N", "New on this page: quote, invoice, client, retainer, domain, mail or note"),
         new("Ctrl+1 to Ctrl+9", "Jump to a page, in sidebar order"),
         new("Ctrl+B", "Fold the sidebar to icons, tuck it away, or bring it back"),
         new("Ctrl+click", "In the sidebar: open the page in a new tab (or click with the middle button)"),
@@ -32,6 +32,8 @@ public partial class MainViewModel
         new("Ctrl+L", "Files: type a path"),
         new("Ctrl+Alt+S", "From any program: a screenshot (change it in Settings, Screenshots)"),
         new("Ctrl+Alt+R", "From any program: start or stop recording the screen"),
+        new("Ctrl+Alt+N", "From any program: a quick note (change it in Settings, Notes)"),
+        new("Ctrl+F", "Notes: search all notes"),
         new("Ctrl+F", "Files: search this folder and everything below it"),
         new("Space", "Files: Quick Look, a big preview; arrows go through the folder"),
         new("Left, Right", "Files, column view: back a column, or open the picked folder"),
@@ -88,6 +90,7 @@ public partial class MainViewModel
             case RetainersViewModel { Editor: null } retainers: retainers.NewCommand.Execute(null); break;
             case RenewalsViewModel { ShowForm: false } renewals: renewals.NewCommand.Execute(null); break;
             case MailViewModel { Composer: null } mail: mail.WriteCommand.Execute(null); break;
+            case NotesViewModel notes: notes.NewNoteCommand.Execute(null); break;
         }
     }
 

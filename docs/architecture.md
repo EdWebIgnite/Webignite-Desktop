@@ -95,11 +95,11 @@ flowchart BT
 
 | Project | Holds | Outside packages |
 | --- | --- | --- |
-| `Webignite.Core` | Every business rule and record: documents, money, clients, mail rules, time, layout, and `Writing` (formatted writing for the mail editor). Pure functions with dates passed in. | none |
+| `Webignite.Core` | Every business rule and record: documents, money, clients, mail rules, time, layout, `Notes` (notebooks, folders, search, the quick note) and `Writing` (formatted writing for the mail editor and notes, checklists included). Pure functions with dates passed in. | none |
 | `Webignite.Data` | `LocalStore` (SQLite, one table per kind of record, payload encrypted by `Vault`; one file per area on the shared helpers in `LocalStore.Rows.cs`, and `LocalStore.Schedules.cs` for what the calendar calls for, `LocalStore.Upgrades.cs` for the steps that bring older data up to date), `VaultKey`, backups, secrets, `AppLog`, the assistant rules for documents and to-dos. | Microsoft.Data.Sqlite, ProtectedData |
 | `Webignite.Xero` | `XeroSession` (sign-in, tokens), `XeroApi`, `XeroDrafts` (create and check drafts), `XeroSending` (PDFs, mark sent), `XeroStandings` (payments). | none |
 | `Webignite.Mail` | `MailService` (sync, read, mark, move, send; `MailRetry` decides when a dropped connection is tried again), `MailComposer`, `MailReader`, `AssistantTools` (what an assistant may do with mail). | MailKit |
-| `Webignite.Services` | `DocumentService` and `ClientService`, through which pages read and change quotes, invoices and clients (each change applied to the record as stored now); `PaymentWatch`, `UptimeWatch`, `SiteChecker`: each has `Due(now)` and `RunAsync`. | none |
+| `Webignite.Services` | `DocumentService`, `ClientService` and `NoteService`, through which pages read and change quotes, invoices, clients and notes (each change applied to the record as stored now); `PaymentWatch`, `UptimeWatch`, `SiteChecker`: each has `Due(now)` and `RunAsync`. | none |
 | `Webignite.Connector` | The MCP server and its tools: documents, to-dos, mail. Logs go to stderr only. | ModelContextProtocol, Hosting |
 | `Webignite.Desktop` | The app: `AppServices`, `AppSettings`, `Navigator`, `MailDrafts`, `BackgroundJobs`, `MailCheck`, `TimerClock`, pages (view models and views), controls, styles. | Avalonia, CommunityToolkit.Mvvm, HtmlRenderer, Velopack |
 | `Webignite.Tools` | The heavier tools: screen recording to MP4 (`Recording/`: `ScreenRecorder`, `VideoWriter`, `VideoFile`, through Windows' Media Foundation and WASAPI), PDF pages (`PdfPages`), PDF text and page counts (`PdfText`), putting files into one PDF (`PdfMaker`), building PDFs page by page with turns, words and a signature (`PdfEdit`, through PDFium), turning pictures and reading their size (`PictureTools`), picture shrinking (`ImageShrinker`), QR codes (`QrCodes`), and later PDF editing, the image viewer and recording. Only read from disk when a tool is first used. | Docnet.Core, QRCoder, Avalonia.Skia |
@@ -124,7 +124,7 @@ flowchart LR
         layout["Layout<br/>Sidebar, Panels, ListHints, ListUndo"]
         shared["Shared helpers<br/>Wording, Dates, MonthlySchedule"]
         files["Files<br/>FileEntry, FileLists, FileNames, FilePaths,<br/>ClientFolders, FileTags, FileSearch, WordText,<br/>FileColumns, FileRecents, QuickActions,<br/>FileFilters, FolderSpace, BulkRename, CopyRules"]
-        other["Calendar, Renewals, Retainers,<br/>Search, Tools (Markup, ScreenGrab, Hotkey,<br/>Recordings, PdfPlan), Web (Domains), Backups, Xero"]
+        other["Calendar, Notes, Renewals, Retainers,<br/>Search, Tools (Markup, ScreenGrab, Hotkey,<br/>Recordings, PdfPlan), Web (Domains), Backups, Xero"]
     end
     overview --> documents
     overview --> finance
@@ -185,6 +185,7 @@ flowchart LR
 | Screenshots | A shortcut from any program (Settings, Screenshots; Ctrl+Alt+S to start) is a `GlobalHotkey` on the main window (`Files/ScreenCapture.cs`, Windows' RegisterHotKey). `MainWindow.Screenshots.cs` freezes the monitor under the mouse (`ScreenCapture.Grab`, GDI) and shows it in a `ScreenGrabWindow`: drag for an area, click for the window under the mouse, Enter for the whole screen, Esc to stop (`ScreenGrab` in Core). The part picked opens in Mark-up, which has text and blur besides notes, arrows, boxes, highlight and pen (`Markup` in Core: a blur is squares of averaged colour, so nothing under it can be read back). From there it is copied, saved in the client's folder (or Screenshots), added to the to-do list with where it is saved, or mailed. |
 | Screen recording | The recording shortcut (Ctrl+Alt+R) or Mark-up's Record the screen uses the same picker, then `MainWindow.Recording.cs` starts a `ScreenRecorder` (`Webignite.Tools/Recording`): screen frames grabbed with GDI about 20 a second with the pointer drawn in, the microphone through WASAPI, both written to an MP4 by Windows' Media Foundation (`VideoWriter`; H.264 and AAC). A `RecordingBar` shows the time and Stop, with a red line round the area. Stopping opens the recording in Mark-up (`RecordingViewModel`): two handles pick the start and end with a frame to see, and saving makes a trimmed copy (`VideoFile.Trim`) in the client's folder, elsewhere, or attached to a mail. The video work is behind `IVideoTools` (`Files/WindowsVideo.cs`), so the screenshot tool can stand in for it; `VideoTests` checks the real thing on the Windows build. |
 | PDF tools | `PdfViewModel` (page `PDF tools`, opened from Files' right-click, a mail attachment's preview, or by dropping files): pages from one or more PDFs and pictures as small pictures to drag into order, turn or take out (`PdfPlan` in Core), then saved (over the first file, the old one to the Recycle Bin) or saved elsewhere. Pages can go into a PDF of their own, be split, made into a smaller copy, or saved as pictures. Fill in and sign (`PdfFillViewModel`) shows one page large to put text, the date and a signature on; the signature is drawn once and kept (the `signature` setting). The work is `PdfEdit` in `Webignite.Tools`, calling PDFium (which Docnet brings) to build a new PDF each time; the files opened aren't changed until saved. |
+| Notes | `NotesViewModel` (page `Notes`): notebooks and their folders, the notes in the one picked or found by a search (`NoteRules.Search`, every word, accents and case aside), and the open note in a `RichTextEditor` with headings, lists, checklists (`ListKind.Check`; click the box to tick), links, pictures and tables. Typing is saved a moment after it stops, when another note opens, and in `PrepareToCloseAsync`. Every change goes through `services.Notes` (`NoteService`), which raises `Changed` so other open copies of the page (and the client page) catch up. A note can be about a client: it shows in the Notebook notes card on their page (`ClientDetailViewModel.Notes.cs`), and `services.Go.Note` opens it. Deleted notes wait 30 days in Deleted. The quick note (Ctrl+Alt+N from any program, Settings, Notes) is a `GlobalHotkey` that opens `QuickNoteWindow` (`MainWindow.QuickNote.cs`); whatever is typed is kept when it closes unless Discard is pressed. Shared notebooks come with sync. |
 | Mail page | `MailView` with the folder tree (`MailFolderNodes.cs`), the list (`MailRowViewModel`) and the reader; `MailRulesView` and `MailSetupView` are its two pages of their own. `MailViewModel` is split by job into partial files (Actions, Editors, Rules, Sending, Snooze). |
 
 ### Pages
@@ -194,7 +195,7 @@ flowchart LR
 | (top) | Overview, To approve, Mail |
 | Client work | Clients, Files, Retainers, Domains and hosting |
 | Billing | Quotes, Invoices, Money, Reports |
-| Planning | To-do, Calendar, Planner, Time |
+| Planning | To-do, Notes, Calendar, Planner, Time |
 | Web tools | Site check, Mark-up, PDF tools, Tools |
 | (bottom) | Settings |
 
@@ -205,6 +206,7 @@ flowchart LR
 | `documents` | Quotes and invoices (`StoredDocument`): the document, then its `Xero` link and what Xero last said, its `Delivery` (approved, emailed, chased) and `Settled` (when and how). |
 | `clients` | Clients with notes, files, their folder on the PC, projects, onboarding, hourly rates. |
 | `file_tags` | Files and folders with tags from Files: the path, the tag ids and the Windows file id, all encrypted. The tags themselves are the `file-tags` setting. |
+| `notebooks`, `notes`, `note_bodies` | Notebooks with their folders; each note's title, words (for search), client, pin and checklist count; and, apart, its writing as HTML with pictures inside, read only when the note is opened. |
 | `tasks`, `events` | To-dos and calendar events. |
 | `entries`, `recurring` | Money in and out, and monthly costs. |
 | `retainers`, `drafts_made` | Retainers and which monthly drafts were already made. |

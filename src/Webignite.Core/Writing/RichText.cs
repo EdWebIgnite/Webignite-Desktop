@@ -17,11 +17,27 @@ public static partial class RichText
         {
             var (kind, item) = MailFormat.ListItem(line);
             var block = new TextBlock { List = kind switch { "ul" => ListKind.Bullet, "ol" => ListKind.Number, _ => ListKind.None } };
+            if (CheckItem(kind is "ul" ? item : line) is { } check)
+            {
+                block.List = ListKind.Check;
+                block.Checked = check.Ticked;
+                item = check.Item;
+                kind = "check";
+            }
             block.Append(Inline(kind is null ? line : item));
             document.Blocks.Add(block);
         }
         document.EnsureNotEmpty();
         return document;
+    }
+
+    // "[ ] item" and "[x] item", with or without a "- " before them.
+    private static (bool Ticked, string Item)? CheckItem(string line)
+    {
+        var trimmed = line.TrimStart();
+        if (trimmed.Length < 3 || trimmed[0] != '[' || trimmed[2] != ']' || trimmed[1] is not (' ' or 'x' or 'X'))
+            return null;
+        return (trimmed[1] != ' ', trimmed[3..].TrimStart());
     }
 
     /// <summary>The marks in one line turned into formatted runs.</summary>
@@ -86,6 +102,7 @@ public static partial class RichText
                     {
                         ListKind.Bullet => "- ",
                         ListKind.Number => $"{number}. ",
+                        ListKind.Check => paragraph.Checked ? "[x] " : "[ ] ",
                         _ => paragraph.Style == BlockStyle.Quote ? "> " : "",
                     };
                     text.Append(pad).Append(mark).Append(Words(paragraph).Replace("\n", "\n" + pad + new string(' ', mark.Length)));

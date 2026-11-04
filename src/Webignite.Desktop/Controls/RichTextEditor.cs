@@ -46,6 +46,7 @@ public sealed partial class RichTextEditor : Control
     private const double ListGap = 22;
     private const double CellPadX = 8;
     private const double CellPadY = 4;
+    private const double CheckSize = 13;
 
     private static readonly FontFamily Body = new("Arial");
     private static readonly FontFamily FixedFont = new("Consolas, Courier New, monospace");
@@ -63,7 +64,7 @@ public sealed partial class RichTextEditor : Control
 
     /// <summary>Where a slot, or a list marker, a line or a table border, was drawn.</summary>
     private sealed record Placed(Slot? Slot, Rect Bounds, TextLayout? Layout = null, Point Origin = default, TextLayout? Marker = null,
-        Point MarkerAt = default, string Kind = "text");
+        Point MarkerAt = default, string Kind = "text", Rect? Box = null, bool Ticked = false);
 
     static RichTextEditor()
     {
@@ -193,9 +194,16 @@ public sealed partial class RichTextEditor : Control
                     var bounds = new Rect(left, y, content, layout.Height + 2 * codePad);
                     TextLayout? marker = null;
                     var markerAt = default(Point);
+                    Rect? box = null;
                     if (paragraph.List == ListKind.None)
                     {
                         numbers.Clear();
+                    }
+                    else if (paragraph.List == ListKind.Check)
+                    {
+                        numbers.Remove(paragraph.Indent);
+                        var lineHeight = layout.TextLines.Count > 0 ? layout.TextLines[0].Height : 16;
+                        box = new Rect(origin.X - ListGap + 2, origin.Y + Math.Max((lineHeight - CheckSize) / 2, 0), CheckSize, CheckSize);
                     }
                     else
                     {
@@ -210,7 +218,8 @@ public sealed partial class RichTextEditor : Control
                         marker = new TextLayout(label, new Typeface(Body), Pixels(first.Size), Brush("PaperText"));
                         markerAt = new Point(origin.X - ListGap + 4, origin.Y);
                     }
-                    placed.Add(new Placed(slot, bounds, layout, origin, marker, markerAt, paragraph.Style == BlockStyle.Quote ? "quote" : paragraph.Style == BlockStyle.Code ? "code" : "text"));
+                    placed.Add(new Placed(slot, bounds, layout, origin, marker, markerAt, paragraph.Style == BlockStyle.Quote ? "quote" : paragraph.Style == BlockStyle.Code ? "code" : "text",
+                        box, paragraph.Checked));
                     y = bounds.Bottom + after;
                     previous = paragraph;
                     break;
@@ -284,7 +293,7 @@ public sealed partial class RichTextEditor : Control
         };
         var overrides = new List<Avalonia.Utilities.ValueSpan<TextRunProperties>>();
         foreach (var (start, run) in block.Spans())
-            overrides.Add(new(start, run.Text.Length, Properties(run.Format, block.Style)));
+            overrides.Add(new(start, run.Text.Length, Properties(run.Format, block.Style, block.List == ListKind.Check && block.Checked)));
         // An empty paragraph still needs a line's height, in the size typing there would use.
         var shown = text.Length == 0 ? " " : text;
         var emptySize = text.Length == 0 && pending is { } p && IsCaretBlock(block) ? Pixels(p.Size) : size;
@@ -295,13 +304,14 @@ public sealed partial class RichTextEditor : Control
     private bool IsCaretBlock(TextBlock block) =>
         Document is { } d && caret.Slot < RichEditing.Slots(d).Count && ReferenceEquals(RichEditing.Slots(d)[caret.Slot].Block, block);
 
-    private GenericTextRunProperties Properties(RunFormat f, BlockStyle style)
+    // A ticked checklist item is greyed and struck through.
+    private GenericTextRunProperties Properties(RunFormat f, BlockStyle style, bool done = false)
     {
         var heading = style is BlockStyle.Heading1 or BlockStyle.Heading2 or BlockStyle.Heading3;
         var face = Typeface(f with { Bold = f.Bold || heading, Fixed = f.Fixed || style == BlockStyle.Code });
         var size = heading && f.Size == TextSize.Normal ? HeadingPixels(style)!.Value : Pixels(f.Size);
-        var decorations = f.Underline || f.Link is not null ? TextDecorations.Underline : null;
-        IBrush foreground = f.Colour is { } c && Color.TryParse(c, out var colour) ? new SolidColorBrush(colour)
+        var decorations = done ? TextDecorations.Strikethrough : f.Underline || f.Link is not null ? TextDecorations.Underline : null;
+        IBrush foreground = done ? Brush("PaperMuted") : f.Colour is { } c && Color.TryParse(c, out var colour) ? new SolidColorBrush(colour)
             : f.Link is not null ? Brush("PaperLink") : Brush("PaperText");
         IBrush? background = f.Highlight is { } h && Color.TryParse(h, out var shade) ? new SolidColorBrush(shade) : null;
         return new GenericTextRunProperties(face, size, decorations, foreground, background, BaselineAlignment.Baseline, CultureInfo.CurrentCulture, null);
@@ -425,6 +435,8 @@ public sealed partial class RichTextEditor : Control
                     }
                     p.Layout?.Draw(context, p.Origin);
                     p.Marker?.Draw(context, p.MarkerAt);
+                    if (p.Box is { } box)
+                        DrawBox(context, box, p.Ticked);
                     break;
             }
         }
@@ -438,6 +450,29 @@ public sealed partial class RichTextEditor : Control
         if (IsFocused && caretVisible && !hasSelection && CaretRect() is { } c)
             context.FillRectangle(Brush("PaperText"), new Rect(c.X, c.Y, 1.5, c.Height));
     }
+
+    private void DrawBox(DrawingContext context, Rect box, bool ticked)
+    {
+        if (!ticked)
+        {
+            context.DrawRectangle(Brush("Paper"), new Pen(Brush("PaperMuted"), 1.2), box.Deflate(0.6), 2.5, 2.5);
+            return;
+        }
+        context.DrawRectangle(Brush("PaperLink"), null, box, 2.5, 2.5);
+        var tick = new StreamGeometry();
+        using (var g = tick.Open())
+        {
+            g.BeginFigure(new Point(box.X + box.Width * 0.24, box.Y + box.Height * 0.52), false);
+            g.LineTo(new Point(box.X + box.Width * 0.43, box.Y + box.Height * 0.72));
+            g.LineTo(new Point(box.X + box.Width * 0.78, box.Y + box.Height * 0.3));
+            g.EndFigure(false);
+        }
+        context.DrawGeometry(null, new Pen(Brush("Paper"), 1.8, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), tick);
+    }
+
+    /// <summary>The checklist box at a point, if there is one there.</summary>
+    private TextBlock? BoxAt(Point point) =>
+        placed.FirstOrDefault(p => p.Box is { } b && b.Inflate(4).Contains(point))?.Slot?.Text;
 
     /// <summary>The caret's rectangle in the editor, for drawing and for scrolling it into view.</summary>
     private Rect? CaretRect()

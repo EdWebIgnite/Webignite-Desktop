@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:notes="using:Webignite.Core.Notes"
              xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.SettingsView"
@@ -426,6 +427,36 @@
           </DockPanel>
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="With a client picked in Mark-up, the screenshot is saved in their client folder instead." />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding ShowNotes}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Quick note" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Press the shortcut in any program and a small box opens. Type the thought down, press Ctrl+Enter or Esc, and it's in Notes." />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Shortcut" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox Width="220" Text="{Binding QuickNoteShortcut, Mode=OneWay}" IsReadOnly="True"
+                     PlaceholderText="Click, then press the keys" KeyDown="QuickNoteShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+N" />
+            <Button Classes="link" Content="Ctrl+Alt+N" Command="{Binding QuickNoteBackCommand}" ToolTip.Tip="Go back to the usual shortcut" />
+            <Button Classes="link" Content="Turn off" Command="{Binding QuickNoteOffCommand}" />
+            <Button Classes="link" Content="Try it" Command="{Binding OpenQuickNoteCommand}" />
+          </StackPanel>
+          <TextBlock FontSize="12" Classes="muted" Classes.problem="{Binding QuickNoteProblem}" Text="{Binding QuickNoteMessage}" TextWrapping="Wrap" Margin="0,6,0,0"
+                     IsVisible="{Binding QuickNoteMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Quick notes go into" />
+          <ComboBox Width="220" ItemsSource="{Binding Notebooks}" SelectedItem="{Binding QuickNotebook, Mode=OneWay}" SelectionChanged="QuickNotebookPicked">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="notes:Notebook">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
         </StackPanel>
       </StackPanel>
     </Border>

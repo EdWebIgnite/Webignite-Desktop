@@ -53,6 +53,7 @@ public partial class MainWindow : Window
             services.Settings.AppearanceChanged += ApplyAppearance;
             WireScreenshots(main, services);
             WireRecording(main, services);
+            WireQuickNote(services);
         }
     }
 

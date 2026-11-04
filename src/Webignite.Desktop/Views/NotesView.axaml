@@ -1,0 +1,258 @@
+<v:FullBleedView xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:vm="using:Webignite.Desktop.ViewModels"
+                 xmlns:v="using:Webignite.Desktop.Views"
+                 xmlns:c="using:Webignite.Desktop.Controls"
+                 xmlns:clients="using:Webignite.Core.Clients"
+                 x:Class="Webignite.Desktop.Views.NotesView"
+                 x:DataType="vm:NotesViewModel">
+  <v:FullBleedView.Styles>
+    <!-- The note's title: big, on the page itself rather than in a box. -->
+    <Style Selector="TextBox.notetitle">
+      <Setter Property="FontSize" Value="22" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="2,4" />
+    </Style>
+    <Style Selector="TextBox.notetitle:pointerover /template/ Border#PART_BorderElement, TextBox.notetitle:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </v:FullBleedView.Styles>
+  <Grid ColumnDefinitions="220,300,*">
+    <!-- Notebooks and their folders -->
+    <Border Grid.Column="0" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <DockPanel Margin="10,16,10,12">
+        <DockPanel DockPanel.Dock="Top" Margin="10,0,0,8">
+          <Button DockPanel.Dock="Right" Classes="quiet format icon" Command="{Binding AddNotebookCommand}" ToolTip.Tip="New notebook">
+            <c:Icon Data="{StaticResource Icon.Plus}" Size="14" />
+          </Button>
+          <TextBlock Text="NOTEBOOKS" Classes="label" FontSize="10.5" LetterSpacing="0.6" VerticalAlignment="Center" />
+        </DockPanel>
+
+        <!-- Asking for a name: a new folder, or a new name -->
+        <Border DockPanel.Dock="Bottom" Classes="card" Padding="10" Margin="0,8,0,0" IsVisible="{Binding AskingName}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding NameAsked}" FontWeight="SemiBold" />
+            <TextBox x:Name="NameBox" Text="{Binding NameTyped}" KeyDown="NameKeys" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="primary" Content="OK" Command="{Binding NameOkCommand}" />
+              <Button Classes="link" Content="Cancel" Command="{Binding NameCancelCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding Message}" Margin="10,8,0,0"
+                   IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <WrapPanel DockPanel.Dock="Bottom" ItemSpacing="12" Margin="10,6,0,0">
+          <Button Classes="link" Content="New folder" Command="{Binding AddFolderCommand}" IsVisible="{Binding CanAddFolder}" />
+          <Button Classes="link" Content="Rename" Command="{Binding RenamePlaceCommand}" IsVisible="{Binding CanAddFolder}" />
+          <Button Classes="link" Content="Remove folder" Command="{Binding RemovePlaceCommand}" IsVisible="{Binding InFolder}" />
+          <Button Classes="link" Content="Remove notebook" Command="{Binding RemovePlaceCommand}" IsVisible="{Binding CanRemoveNotebook}" />
+          <Button Classes="link" Content="Empty Deleted" Command="{Binding EmptyDeletedCommand}" IsVisible="{Binding InDeleted}" />
+        </WrapPanel>
+
+        <ListBox x:Name="PlaceList" Classes="sections" ItemsSource="{Binding Places}" SelectedItem="{Binding Place, Mode=OneWay}"
+                 SelectionChanged="PlacePicked">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:NotePlaceRow">
+              <DockPanel Margin="{Binding IsFolder, Converter={x:Static v:NotesView.FolderIndent}}">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding CountText}" FontSize="11.5" Opacity="0.7" VerticalAlignment="Center" Margin="6,0,0,0" />
+                <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="15" Margin="0,0,9,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                           FontWeight="{Binding IsNotebook, Converter={x:Static v:NotesView.NotebookWeight}}" />
+              </DockPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- The notes in the place picked, or found -->
+    <Border Grid.Column="1" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <DockPanel Margin="12,14,12,8">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+          <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewNoteCommand}" Margin="8,0,0,0" ToolTip.Tip="New note (Ctrl+N)">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <c:Icon Data="{StaticResource Icon.Plus}" Size="14" />
+              <TextBlock Text="New note" />
+            </StackPanel>
+          </Button>
+          <TextBox x:Name="SearchBox" Classes="search" Text="{Binding Query}" PlaceholderText="Search all notes (Ctrl+F)" KeyDown="SearchKeys" VerticalContentAlignment="Center">
+            <TextBox.InnerLeftContent>
+              <c:Icon Data="{StaticResource Icon.Search}" Size="14" Margin="8,0,0,0" Opacity="0.6" />
+            </TextBox.InnerLeftContent>
+          </TextBox>
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Top" Classes="h2" Text="{Binding ListTitle}" Margin="4,0,0,8" TextTrimming="CharacterEllipsis" />
+        <Panel>
+          <ListBox x:Name="NoteList" Classes="files" ItemsSource="{Binding Rows}" SelectedItem="{Binding Picked, Mode=OneWay}" SelectionChanged="NotePicked"
+                   Background="Transparent" IsVisible="{Binding HasRows}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:NoteRow">
+                <StackPanel Spacing="2" Margin="4,8">
+                  <DockPanel>
+                    <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Pin}" Size="12" Opacity="0.6" IsVisible="{Binding Pinned}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  </DockPanel>
+                  <TextBlock Text="{Binding Preview}" Classes="muted" FontSize="12" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasPreview}" />
+                  <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" Opacity="0.85" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <c:EmptyState IsVisible="{Binding NoRows}" Icon="{StaticResource Icon.Notes}" Title="No notes" Text="{Binding ListEmptyText}" />
+        </Panel>
+      </DockPanel>
+    </Border>
+
+    <!-- The open note -->
+    <Panel Grid.Column="2">
+      <c:EmptyState IsVisible="{Binding NoOpen}" Icon="{StaticResource Icon.Notes}" Title="No note open"
+                    Text="Pick a note on the left, or start a new one." ActionText="New note" Command="{Binding NewNoteCommand}" />
+      <DockPanel IsVisible="{Binding HasOpen}" Margin="24,14,24,10">
+        <!-- Where it is, who it's about, pin, delete -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <TextBlock Classes="muted" FontSize="12" Text="{Binding SavedText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox x:Name="ClientBox" Width="180" PlaceholderText="About a client" ItemsSource="{Binding Clients}" SelectedItem="{Binding OpenClient, Mode=OneWay}"
+                      SelectionChanged="ClientChosen" IsEnabled="{Binding CanEdit}" ToolTip.Tip="The note shows on this client's page">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="clients:Client">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Classes="quiet format icon" Command="{Binding ForgetClientCommand}" ToolTip.Tip="Not about a client" IsVisible="{Binding OpenClient, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <c:Icon Data="{StaticResource Icon.Close}" Size="14" />
+            </Button>
+            <Button Classes="quiet format icon" Command="{Binding TogglePinCommand}" ToolTip.Tip="{Binding PinText}" IsEnabled="{Binding CanEdit}">
+              <c:Icon Data="{StaticResource Icon.Pin}" Size="16" />
+            </Button>
+            <Button Classes="quiet format icon" ToolTip.Tip="Move to another notebook or folder" IsEnabled="{Binding CanEdit}">
+              <c:Icon Data="{StaticResource Icon.FolderMove}" Size="16" />
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="MoveMenuOpening" />
+              </Button.Flyout>
+            </Button>
+            <Button Classes="quiet format icon" Command="{Binding DeleteOpenCommand}" ToolTip.Tip="Delete (it waits in Deleted for 30 days)" IsVisible="{Binding CanEdit}">
+              <c:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+            </Button>
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding PlaceText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+
+        <!-- A deleted note can be read, put back or deleted for good -->
+        <Border DockPanel.Dock="Top" Classes="card" Padding="12,8" Margin="0,0,0,8" IsVisible="{Binding OpenIsDeleted}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="12">
+              <Button Classes="primary" Content="Put it back" Command="{Binding RestoreOpenCommand}" />
+              <Button Classes="link" Content="Delete for good" Command="{Binding PurgeOpenCommand}" />
+            </StackPanel>
+            <TextBlock Text="This note is in Deleted. Put it back to change it." VerticalAlignment="Center" TextWrapping="Wrap" />
+          </DockPanel>
+        </Border>
+
+        <TextBox x:Name="TitleBox" DockPanel.Dock="Top" Classes="notetitle" Text="{Binding Title}" PlaceholderText="Title" IsReadOnly="{Binding !CanEdit}" KeyDown="TitleKeys" />
+
+        <!-- The format bar -->
+        <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,8,0,8" IsVisible="{Binding CanEdit}">
+          <WrapPanel ItemSpacing="4" LineSpacing="4">
+            <ComboBox x:Name="StyleBox" Width="122" Focusable="False" ToolTip.Tip="Paragraph, heading, quote or code" SelectionChanged="StyleChosen">
+              <ComboBoxItem Content="Paragraph" Tag="Paragraph" />
+              <ComboBoxItem Content="Heading 1" Tag="Heading1" />
+              <ComboBoxItem Content="Heading 2" Tag="Heading2" />
+              <ComboBoxItem Content="Heading 3" Tag="Heading3" />
+              <ComboBoxItem Content="Quote" Tag="Quote" />
+              <ComboBoxItem Content="Code" Tag="Code" />
+            </ComboBox>
+            <Button x:Name="BoldButton" Classes="quiet format icon" Focusable="False" Tag="bold" Click="Format" ToolTip.Tip="Bold (Ctrl+B)">
+              <c:Icon Data="{StaticResource Icon.Bold}" Size="16" />
+            </Button>
+            <Button x:Name="ItalicButton" Classes="quiet format icon" Focusable="False" Tag="italic" Click="Format" ToolTip.Tip="Italic (Ctrl+I)">
+              <c:Icon Data="{StaticResource Icon.Italic}" Size="16" />
+            </Button>
+            <Button x:Name="UnderlineButton" Classes="quiet format icon" Focusable="False" Tag="underline" Click="Format" ToolTip.Tip="Underline (Ctrl+U)">
+              <c:Icon Data="{StaticResource Icon.Underline}" Size="16" />
+            </Button>
+            <Button Classes="quiet format icon" Focusable="False" ToolTip.Tip="Highlight">
+              <c:Icon Data="{StaticResource Icon.Highlight}" Size="16" />
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft">
+                  <StackPanel Spacing="6">
+                    <ItemsControl x:Name="HighlightList">
+                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel MaxWidth="200" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <Button Classes="link" Content="No highlight" Tag="highlight:" Click="Format" />
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+            <Button Classes="quiet format icon" Focusable="False" Tag="clear" Click="Format" ToolTip.Tip="Remove formatting (Ctrl+Space)">
+              <c:Icon Data="{StaticResource Icon.ClearFormat}" Size="16" />
+            </Button>
+            <Button x:Name="ChecklistButton" Classes="quiet format icon" Focusable="False" Tag="checklist" Click="Format" ToolTip.Tip="Checklist (Ctrl+Shift+C)">
+              <c:Icon Data="{StaticResource Icon.Checklist}" Size="16" />
+            </Button>
+            <Button x:Name="BulletsButton" Classes="quiet format icon" Focusable="False" Tag="bullets" Click="Format" ToolTip.Tip="Bulleted list">
+              <c:Icon Data="{StaticResource Icon.Bullets}" Size="16" />
+            </Button>
+            <Button x:Name="NumbersButton" Classes="quiet format icon" Focusable="False" Tag="numbers" Click="Format" ToolTip.Tip="Numbered list">
+              <c:Icon Data="{StaticResource Icon.Numbers}" Size="16" />
+            </Button>
+            <Button Classes="quiet format icon" Focusable="False" Tag="outdent" Click="Format" ToolTip.Tip="Indent less">
+              <c:Icon Data="{StaticResource Icon.IndentLess}" Size="16" />
+            </Button>
+            <Button Classes="quiet format icon" Focusable="False" Tag="indent" Click="Format" ToolTip.Tip="Indent more">
+              <c:Icon Data="{StaticResource Icon.IndentMore}" Size="16" />
+            </Button>
+            <Button Classes="quiet format icon" Focusable="False" Click="LinkClicked" ToolTip.Tip="Link the selected words to a web page or address (Ctrl+K)">
+              <c:Icon Data="{StaticResource Icon.Link}" Size="16" />
+            </Button>
+            <Button Classes="quiet format" Focusable="False" ToolTip.Tip="A picture, table or line">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="Insert" />
+                <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem Header="Picture…" Click="InsertPicture">
+                    <MenuItem.Icon><c:Icon Data="{StaticResource Icon.Picture}" Size="14" /></MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Header="Table">
+                    <MenuItem.Icon><c:Icon Data="{StaticResource Icon.Table}" Size="14" /></MenuItem.Icon>
+                    <MenuItem Header="2 columns, 2 rows" Tag="2x2" Click="InsertTable" />
+                    <MenuItem Header="3 columns, 3 rows" Tag="3x3" Click="InsertTable" />
+                    <MenuItem Header="4 columns, 3 rows" Tag="3x4" Click="InsertTable" />
+                    <Separator />
+                    <MenuItem Header="Add a row" Tag="row" Click="InsertTable" />
+                    <MenuItem Header="Add a column" Tag="column" Click="InsertTable" />
+                  </MenuItem>
+                  <MenuItem Header="Horizontal line" Click="InsertRule">
+                    <MenuItem.Icon><c:Icon Data="{StaticResource Icon.Rule}" Size="14" /></MenuItem.Icon>
+                  </MenuItem>
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+          </WrapPanel>
+          <!-- Asking for the link's address -->
+          <DockPanel x:Name="LinkBar" IsVisible="False">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10" Margin="8,0,0,0">
+              <Button Classes="primary" Content="Add link" Click="AddLinkClicked" />
+              <Button Classes="link" Content="Remove link" Click="RemoveLinkClicked" />
+              <Button Classes="link" Content="Cancel" Click="CancelLinkClicked" />
+            </StackPanel>
+            <TextBox x:Name="LinkBox" PlaceholderText="www.example.co.za or an email address" />
+          </DockPanel>
+        </StackPanel>
+
+        <Border Classes="paper" ClipToBounds="True">
+          <ScrollViewer x:Name="BodyScroll" HorizontalScrollBarVisibility="Disabled">
+            <c:RichTextEditor x:Name="Editor" Document="{Binding Document}" Revision="{Binding Revision}" Placeholder="Write here"
+                              IsHitTestVisible="{Binding CanEdit}" Focusable="{Binding CanEdit}" Padding="18,14" />
+          </ScrollViewer>
+        </Border>
+      </DockPanel>
+    </Panel>
+  </Grid>
+</v:FullBleedView>

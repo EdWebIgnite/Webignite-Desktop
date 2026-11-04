@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:notes="using:Webignite.Core.Notes"
+        x:Class="Webignite.Desktop.Views.QuickNoteWindow"
+        Title="Quick note" Width="440" SizeToContent="Height" CanResize="False" Topmost="True"
+        WindowStartupLocation="CenterScreen" Background="{DynamicResource Surface}">
+  <StackPanel Margin="18,16" Spacing="10">
+    <TextBlock Classes="h2" Text="Quick note" />
+    <TextBox x:Name="Words" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxHeight="320"
+             PlaceholderText="Type it down. With more than one line, the first is the title. Start a line with [ ] for a checklist." />
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="12">
+        <Button Classes="link" Content="Discard" Click="DiscardClicked" />
+        <Button Classes="primary" Content="Save" Click="SaveClicked" />
+      </StackPanel>
+      <ComboBox x:Name="NotebookBox" MinWidth="160" ToolTip.Tip="The notebook it goes into">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="notes:Notebook">
+            <TextBlock Text="{Binding Name}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </DockPanel>
+    <TextBlock Classes="muted" FontSize="12" Text="Ctrl+Enter or Esc saves it. Discard throws it away." />
+  </StackPanel>
+</Window>

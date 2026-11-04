@@ -19,6 +19,7 @@ Before writing a new helper, use the one that is there. Each of these is the onl
 | whose email address this is, a client's first address | `ClientMail.For`, `IsOwn` and `First` |
 | a website or address turned into its domain | `Web.Domains.Of` |
 | reading an amount someone typed ("1,250", "R 1 250.50") | `Money.Parse` |
+| formatted writing (a mail, a note): lists, checklists, tables, pictures | `RichDocument`, changed only through `RichEditing`, stored as HTML with `RichHtml` |
 | how a quote or invoice was settled, Xero's statuses | `Settlement`, `Settlements`, `XeroStatuses` |
 | which mailbox sends invoices or everyday mail | `MailAccounts.ForInvoices` and `ForEveryday` |
 
