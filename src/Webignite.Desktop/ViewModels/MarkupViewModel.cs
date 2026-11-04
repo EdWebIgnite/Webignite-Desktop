@@ -67,7 +67,7 @@ public sealed partial class MarkupViewModel : ViewModelBase
     {
         var chosen = Client?.Id;
         Clients.Clear();
-        foreach (var c in services.Store.ListClients().OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
+        foreach (var c in services.Clients.List().OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
             Clients.Add(c);
         Client = Clients.FirstOrDefault(c => c.Id == chosen);
     }

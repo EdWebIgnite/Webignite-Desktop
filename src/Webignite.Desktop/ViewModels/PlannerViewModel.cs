@@ -61,7 +61,7 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
     {
         var end = weekStart.AddDays(6);
         var tasks = services.Store.ListTasks();
-        var items = Agenda.Build(weekStart, end, services.Store.ListEvents(weekStart, end), tasks, services.Store.List()).ToLookup(i => i.Date);
+        var items = Agenda.Build(weekStart, end, services.Store.ListEvents(weekStart, end), tasks, services.Documents.List()).ToLookup(i => i.Date);
 
         WeekTitle = weekStart.Month == end.Month
             ? $"{weekStart.Day} to {end:d MMMM yyyy}"

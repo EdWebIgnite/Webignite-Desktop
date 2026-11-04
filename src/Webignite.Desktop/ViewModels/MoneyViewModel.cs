@@ -222,7 +222,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
             : $"{Money.Rand(monthly)} a month. Each one is added to your expenses on its day.";
 
         ClientNames.Clear();
-        foreach (var client in services.Store.ListClients())
+        foreach (var client in services.Clients.List())
             ClientNames.Add(client.Name);
 
         var defaultDate = (IsThisMonth ? Today : Month).ToDateTime(TimeOnly.MinValue);

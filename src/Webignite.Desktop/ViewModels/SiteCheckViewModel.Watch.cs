@@ -31,7 +31,7 @@ public sealed partial class SiteCheckViewModel
         var now = DateTimeOffset.Now;
         var today = DateOnly.FromDateTime(DateTime.Today);
         Watched.Clear();
-        foreach (var domain in Uptime.Domains(services.Store.ListClients(), settings))
+        foreach (var domain in Uptime.Domains(services.Clients.List(), settings))
             Watched.Add(new WatchedSiteViewModel(domain, settings.Sites.GetValueOrDefault(domain.Domain), now, today, this));
         var down = Watched.Count(w => w.Down);
         var certificates = Watched.Count(w => w.CertificateProblem);
@@ -51,7 +51,7 @@ public sealed partial class SiteCheckViewModel
     {
         if (Domains.Of(Address) is not { } domain)
             return;
-        services.Settings.Uptime = Uptime.Add(services.Settings.Uptime, domain, services.Store.ListClients());
+        services.Settings.Uptime = Uptime.Add(services.Settings.Uptime, domain, services.Clients.List());
         RefreshWatched();
         await CheckAll();
     }
@@ -70,7 +70,7 @@ public sealed partial class SiteCheckViewModel
 
     internal void StopWatching(string domain)
     {
-        services.Settings.Uptime = Uptime.Remove(services.Settings.Uptime, domain, services.Store.ListClients());
+        services.Settings.Uptime = Uptime.Remove(services.Settings.Uptime, domain, services.Clients.List());
         RefreshWatched();
     }
 

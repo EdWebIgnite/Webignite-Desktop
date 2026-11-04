@@ -44,7 +44,7 @@ public partial class TimeViewModel
                 : $"No time for {client.Name} in {InvoiceMonth.Label.ToLowerInvariant()}.", problem: true);
             return;
         }
-        var stored = services.Store.Save(new StoredDocument { Id = StoredDocument.NewId(), Document = draft });
+        var stored = services.Documents.Create(draft);
         Say(unpriced > 0
             ? $"Draft invoice made. {TimeRules.Format(unpriced)} with no rate was left out."
             : "Draft invoice made. It is waiting under Invoices for you to check.");

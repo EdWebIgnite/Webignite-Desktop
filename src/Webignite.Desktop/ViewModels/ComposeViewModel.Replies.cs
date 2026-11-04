@@ -22,7 +22,7 @@ public partial class ComposeViewModel
     public string Fill(SavedReply reply)
     {
         var to = Recipients.Parse(To).People.FirstOrDefault();
-        var client = SavedReplies.ClientFor(services.Store.ListClients(), to?.Address);
+        var client = SavedReplies.ClientFor(services.Clients.List(), to?.Address);
         return SavedReplies.Fill(reply.Text, SavedReplies.FirstName(to, client), client?.Name);
     }
 

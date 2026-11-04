@@ -27,8 +27,8 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
         var accounts = services.Store.ListMailAccounts().Select(a => a.Id).ToList();
         sources = new SearchSources
         {
-            Clients = services.Store.ListClients(),
-            Documents = services.Store.List(),
+            Clients = services.Clients.List(),
+            Documents = services.Documents.List(),
             Mail = [],
             Tasks = services.Store.ListTasks(),
             Renewals = services.Store.ListRenewals(),

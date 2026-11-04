@@ -33,8 +33,8 @@ public static class Chasing
                 Unfilled = filled.Unfilled,
                 AfterSent = _ =>
                 {
-                    sending.MarkChased(services.Store.Get(stored.Id) ?? ready.Stored);
-                    services.Store.TickOffChasing(stored.Id, DateTimeOffset.Now);
+                    sending.MarkChased(services.Documents.Get(stored.Id) ?? ready.Stored);
+                    services.Documents.TickOffChasing(stored.Id, DateTimeOffset.Now);
                     return Task.CompletedTask;
                 },
             });

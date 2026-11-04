@@ -87,7 +87,7 @@ public partial class ReportsViewModel : ViewModelBase, IRefreshable
         AverageReceived = Ledger.AverageReceived(months);
 
         ClientShares.Clear();
-        var known = services.Store.ListClients();
+        var known = services.Clients.List();
         foreach (var share in Ledger.ByClient(entries, ClientsTaxYear ? taxStart : from, Today))
             ClientShares.Add(new ClientShareRowViewModel(share, ClientDirectory.Find(known, share.Name), services));
         Categories.Clear();

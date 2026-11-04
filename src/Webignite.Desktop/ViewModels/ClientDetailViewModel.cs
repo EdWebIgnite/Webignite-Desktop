@@ -138,19 +138,21 @@ public partial class ClientDetailViewModel : ViewModelBase
     {
         var edited = Edited();
         Problems.Clear();
-        foreach (var problem in ClientDirectory.Check(edited, services.Store.ListClients()))
+        var rateOk = TimeRules.TryParseRate(HourlyRate, out _);
+        var (saved, problems) = rateOk ? services.Clients.SaveDetails(edited) : (null, []);
+        foreach (var problem in problems)
             Problems.Add(problem);
-        if (!TimeRules.TryParseRate(HourlyRate, out _))
+        if (!rateOk)
             Problems.Add("The hourly rate doesn't look right. Type it in Rand, e.g. 650, or leave it empty.");
         OnPropertyChanged(nameof(HasProblems));
-        if (Problems.Count > 0)
+        if (saved is null)
         {
             SaveState = "";
             return false;
         }
 
         var renamed = !isNew && ClientDirectory.Key(client.Name) != ClientDirectory.Key(edited.Name);
-        client = services.Store.SaveClient(edited);
+        client = saved;
         isNew = false;
         SaveState = renamed
             ? "Quotes and invoices are matched by name, so older ones under the old name no longer show here."
@@ -196,11 +198,11 @@ public partial class ClientDetailViewModel : ViewModelBase
         // Only the client page goes. Quotes, invoices and to-dos stay as they are. It asked first (AskDelete),
         // and Undo still brings it back.
         var gone = client;
-        services.Store.DeleteClient(gone.Id);
+        services.Clients.Delete(gone.Id);
         close();
         services.OfferUndo($"Deleted {gone.Name}", () =>
         {
-            services.Store.SaveClient(gone);
+            services.Clients.Restore(gone);
             services.Go.Client(gone);
         });
     }
@@ -285,7 +287,7 @@ public partial class ClientDetailViewModel : ViewModelBase
         if (!isNew)
         {
             LoadMail().Forget("Reading the client's mail");
-            var summary = ClientDirectory.Summarise(client, services.Store.List(), services.Store.ListTasks(),
+            var summary = ClientDirectory.Summarise(client, services.Documents.List(), services.Store.ListTasks(),
                 services.Store.ListEvents(Today, Today.AddDays(90)), Today);
             foreach (var doc in summary.Documents)
                 Documents.Add(new DocumentRow(doc, Today));

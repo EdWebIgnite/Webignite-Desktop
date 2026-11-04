@@ -100,7 +100,7 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
     [RelayCommand]
     private void AddSuggested(string name)
     {
-        var client = services.Store.SaveClient(new Client { Id = Client.NewId(), Name = name, Created = DateTimeOffset.UtcNow });
+        var client = services.Clients.Add(name);
         Refresh();
         Show(new ClientDetailViewModel(client, isNew: false, services, Close));
     }
@@ -114,8 +114,8 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable
     public void Refresh()
     {
         Detail?.Refresh();
-        var clients = services.Store.ListClients();
-        var documents = services.Store.List();
+        var clients = services.Clients.List();
+        var documents = services.Documents.List();
         var tasks = services.Store.ListTasks();
         var today = DateOnly.FromDateTime(DateTime.Today);
         all = clients
