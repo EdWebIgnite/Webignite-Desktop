@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Mail;
+using Webignite.Core.Writing;
 using Webignite.Mail;
 
 namespace Webignite.Desktop.ViewModels;
@@ -37,9 +39,10 @@ public partial class ComposeViewModel : ViewModelBase
         To = Recipients.Format(mail.To);
         Cc = Recipients.Format(mail.Cc);
         Bcc = Recipients.Format(mail.Bcc);
-        ShowCc = mail.Cc.Count + mail.Bcc.Count > 0;
+        ReplyTo = Recipients.Format(mail.ReplyTo);
+        ShowCc = mail.Cc.Count + mail.Bcc.Count + mail.ReplyTo.Count > 0;
         Subject = mail.Subject;
-        Body = mail.Body;
+        Document = Writing(mail, From);
         foreach (var attachment in mail.Attachments)
             Attachments.Add(new ComposeAttachmentViewModel(attachment, this));
         QuoteHtml = mail.Quote is { } quote
@@ -65,9 +68,17 @@ public partial class ComposeViewModel : ViewModelBase
     [ObservableProperty] public partial string To { get; set; } = "";
     [ObservableProperty] public partial string Cc { get; set; } = "";
     [ObservableProperty] public partial string Bcc { get; set; } = "";
+    [ObservableProperty] public partial string ReplyTo { get; set; } = "";
     [ObservableProperty] public partial bool ShowCc { get; set; }
     [ObservableProperty] public partial string Subject { get; set; } = "";
-    [ObservableProperty] public partial string Body { get; set; } = "";
+
+    /// <summary>What is being written, signature included. The editor changes it in place and bumps <see cref="BodyRevision"/>.</summary>
+    [ObservableProperty] public partial RichDocument Document { get; set; }
+
+    [ObservableProperty] public partial int BodyRevision { get; set; }
+
+    /// <summary>The writing as plain text, for checks such as a mentioned attachment.</summary>
+    public string Body => RichText.ToText(Document);
     [ObservableProperty] public partial bool ShowQuote { get; set; }
     [ObservableProperty] public partial string Message { get; set; } = "";
     [ObservableProperty] public partial bool MessageIsProblem { get; set; }
@@ -77,52 +88,55 @@ public partial class ComposeViewModel : ViewModelBase
 
     public bool HasMessage => Message.Length > 0;
 
-    private (string Id, Avalonia.Media.Imaging.Bitmap? Picture)? picture;
-
-    /// <summary>The From mailbox's signature picture, shown under the text while the signature is in it.</summary>
-    public Avalonia.Media.Imaging.Bitmap? SignaturePicture
-    {
-        get
-        {
-            if (From.SignatureImage is not { Length: > 0 } bytes)
-                return null;
-            if (picture is not { } cached || cached.Id != From.Id)
-            {
-                Avalonia.Media.Imaging.Bitmap? bitmap = null;
-                try
-                {
-                    using var stream = new MemoryStream(bytes);
-                    bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
-                }
-                catch (Exception e) when (e is ArgumentException or InvalidOperationException or IOException)
-                {
-                }
-                picture = cached = (From.Id, bitmap);
-            }
-            return cached.Picture;
-        }
-    }
-
-    public bool ShowSignaturePicture => SignatureImages.Belongs(From, Body) && SignaturePicture is not null;
-
-    partial void OnBodyChanged(string value) => OnPropertyChanged(nameof(ShowSignaturePicture));
     partial void OnMessageChanged(string value) => OnPropertyChanged(nameof(HasMessage));
 
-    /// <summary>Switching mailbox swaps the signature too, if it hasn't been edited away.</summary>
+    /// <summary>
+    /// The writing a mail opens with: a draft written here comes back exactly; anything else is its text with
+    /// the mailbox's signature under it (a draft from elsewhere already has its own).
+    /// </summary>
+    private static RichDocument Writing(OutgoingMail mail, MailAccount from)
+    {
+        if (mail.Html is { } html)
+        {
+            var images = mail.Images.ToDictionary(i => "cid:" + i.ContentId, i => (i.Data, i.ContentType));
+            return RichHtml.Read(html, src => images.TryGetValue(src, out var found) ? found : RichHtml.DataAddress(src));
+        }
+        if (mail.DraftUid is not null)
+            return RichText.FromText(mail.Body);
+        return RichText.Starting(mail.Body, Signature(from));
+    }
+
+    private static IReadOnlyList<Block> Signature(MailAccount account) =>
+        RichText.Signature(account.Signature, account.SignatureImage, account.SignatureImageType);
+
+    /// <summary>Switching mailbox swaps the signature too, wherever it sits; an untouched new mail just gets the new one.</summary>
     partial void OnFromChanged(MailAccount oldValue, MailAccount newValue)
     {
-        OnPropertyChanged(nameof(SignaturePicture));
-        OnPropertyChanged(nameof(ShowSignaturePicture));
-        if (oldValue?.Signature is { Length: > 0 } old && Body.TrimEnd().EndsWith(old.TrimEnd(), StringComparison.Ordinal))
-            Body = Body.TrimEnd()[..^old.TrimEnd().Length].TrimEnd() + Replies.StartBody(newValue.Signature);
-        else if (oldValue is not null && Body.Trim().Length == 0)
-            Body = Replies.StartBody(newValue.Signature);
+        if (oldValue is null || Document is null)
+            return;
+        var writing = Document.Clone();
+        if (!RichEditing.SwapSignature(writing, Signature(newValue)))
+        {
+            if (!writing.IsBlank)
+                return;
+            writing = RichText.Starting(null, Signature(newValue));
+        }
+        Document = writing;
     }
+
+    partial void OnBodyRevisionChanged(int value) => OnPropertyChanged(nameof(HasChanges));
 
     /// <summary>Whether anything has changed since it was opened or last saved.</summary>
     public bool HasChanges => State() != savedState;
 
-    private string State() => string.Join('\u0001', From.Id, To, Cc, Bcc, Subject, Body, string.Join('|', Attachments.Select(a => a.Name)));
+    private string State() => string.Join('\u0001', From.Id, To, Cc, Bcc, ReplyTo, Subject, RichHtml.Write(Document, PictureId),
+        string.Join('|', Attachments.Select(a => a.Name)));
+
+    // The same picture keeps the same id through undo and copies, which share its bytes.
+    private static readonly ConditionalWeakTable<byte[], string> PictureIds = new();
+
+    private static string PictureId(PictureBlock picture) =>
+        "cid:" + PictureIds.GetValue(picture.Data, _ => $"picture{Guid.NewGuid():N}@webignite");
 
     public void AddFiles(IEnumerable<string> paths)
     {
@@ -154,18 +168,23 @@ public partial class ComposeViewModel : ViewModelBase
         var to = Recipients.Parse(To);
         var cc = Recipients.Parse(Cc);
         var bcc = Recipients.Parse(Bcc);
+        var replyTo = Recipients.Parse(ReplyTo);
+        var pictures = Document.Blocks.OfType<PictureBlock>().GroupBy(p => PictureId(p)).Select(g => g.First());
         var mail = start with
         {
             AccountId = From.Id,
             To = to.People,
             Cc = cc.People,
             Bcc = bcc.People,
+            ReplyTo = replyTo.People,
             Subject = Subject,
             Body = Body,
+            Html = RichHtml.Write(Document, PictureId),
+            Images = pictures.Select(p => new InlineImage(PictureId(p)[4..], p.Data, p.ContentType)).ToList(),
             Attachments = Attachments.Select(a => a.Attachment).ToList(),
             DraftUid = draftUid,
         };
-        return (mail, [.. to.Bad, .. cc.Bad, .. bcc.Bad]);
+        return (mail, [.. to.Bad, .. cc.Bad, .. bcc.Bad, .. replyTo.Bad]);
     }
 
     [RelayCommand]
@@ -319,6 +338,9 @@ public partial class ComposeViewModel : ViewModelBase
         await SaveDraft();
         return !HasChanges;
     }
+
+    /// <summary>A problem to show in the bar, from the screen (a file that isn't a picture).</summary>
+    public void Tell(string problem) => Say(problem, true);
 
     private void Say(string message, bool problem)
     {

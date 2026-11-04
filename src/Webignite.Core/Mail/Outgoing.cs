@@ -17,10 +17,23 @@ public sealed record OutgoingMail
     public IReadOnlyList<MailPerson> To { get; init; } = [];
     public IReadOnlyList<MailPerson> Cc { get; init; } = [];
     public IReadOnlyList<MailPerson> Bcc { get; init; } = [];
+
+    /// <summary>Where replies should go, when not to the sender.</summary>
+    public IReadOnlyList<MailPerson> ReplyTo { get; init; } = [];
+
     public string Subject { get; init; } = "";
 
-    /// <summary>What was typed, signature included. Plain text; the HTML version is made from it.</summary>
+    /// <summary>
+    /// What was typed, signature included, as plain text. Without <see cref="Html"/> it may carry the light
+    /// marks (**bold**) and the HTML version is made from it.
+    /// </summary>
     public string Body { get; init; } = "";
+
+    /// <summary>The editor's HTML for what was typed, signature included, when written in the mail editor.</summary>
+    public string? Html { get; init; }
+
+    /// <summary>Pictures in <see cref="Html"/>, by the cid: they are referred to with.</summary>
+    public IReadOnlyList<InlineImage> Images { get; init; } = [];
 
     /// <summary>The message being replied to or forwarded, shown under the new text.</summary>
     public Quoted? Quote { get; init; }
@@ -32,6 +45,9 @@ public sealed record OutgoingMail
     /// <summary>The draft on the server this replaces, so saving or sending doesn't leave an old copy behind.</summary>
     public uint? DraftUid { get; init; }
 }
+
+/// <summary>A picture inside the mail's text, sent as part of the message.</summary>
+public sealed record InlineImage(string ContentId, byte[] Data, string ContentType);
 
 /// <summary>The earlier message shown under a reply or forward.</summary>
 public sealed record Quoted(string Header, string Text, string? Html, bool IsForward);
@@ -153,7 +169,7 @@ public static class Replies
     /// <summary>The plain-text version of a mail: the new text, then the earlier message quoted.</summary>
     public static string TextPart(OutgoingMail mail)
     {
-        var body = MailFormat.ToText(mail.Body.TrimEnd());
+        var body = mail.Html is null ? MailFormat.ToText(mail.Body.TrimEnd()) : mail.Body.TrimEnd();
         if (mail.Quote is not { } quote)
             return body;
         var earlier = quote.IsForward
@@ -162,11 +178,17 @@ public static class Replies
         return body + "\n\n" + quote.Header + "\n" + earlier + "\n";
     }
 
+    /// <summary>Marks the typed part of the HTML, so a reopened draft gets back exactly what was written.</summary>
+    public const string BodyClass = "webignite-body";
+
     /// <summary>The HTML version: the new text, then the earlier message in a quote block.</summary>
     public static string HtmlPart(OutgoingMail mail, string? signatureImageId = null)
     {
         var html = new StringBuilder("<div style=\"font-family: Arial, sans-serif; font-size: 10.5pt\">");
-        html.Append(MailFormat.ToHtml(mail.Body.TrimEnd()));
+        if (mail.Html is not null)
+            html.Append("<div class=\"").Append(BodyClass).Append("\">").Append(mail.Html).Append("</div>");
+        else
+            html.Append(MailFormat.ToHtml(mail.Body.TrimEnd()));
         if (signatureImageId is not null)
             html.Append("<p><img src=\"cid:").Append(signatureImageId).Append("\" alt=\"\" style=\"max-width:400px\"></p>");
         if (mail.Quote is { } quote)

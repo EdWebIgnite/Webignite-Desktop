@@ -1,38 +1,18 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Webignite.Core.Mail;
+using Webignite.Core.Writing;
 
 namespace Webignite.Desktop.ViewModels;
 
-/// <summary>Bold, italic, lists and links, and a look at how the mail will arrive.</summary>
+/// <summary>The bits of the format toolbar that need asking: a link's address. The rest acts on the editor directly.</summary>
 public partial class ComposeViewModel
 {
-    [ObservableProperty] public partial bool ShowPreview { get; set; }
     [ObservableProperty] public partial bool AskingForLink { get; set; }
     [ObservableProperty] public partial string LinkAddress { get; set; } = "";
 
-    /// <summary>The typed text as the other person will see it.</summary>
-    public string PreviewHtml => ShowPreview ? MailStyle.Wrap("<div style=\"font-family: Arial, sans-serif\">" + MailFormat.ToHtml(Body.TrimEnd()) + "</div>") : "";
+    /// <summary>The text colours offered, as in Thunderbird's small set. Sent in the mail as they are.</summary>
+    public static IReadOnlyList<string> TextColours => MailColours.Text;
 
-    partial void OnShowPreviewChanged(bool value) => OnPropertyChanged(nameof(PreviewHtml));
+    public static IReadOnlyList<string> HighlightColours => MailColours.Highlight;
 
-    [RelayCommand]
-    private void TogglePreview() => ShowPreview = !ShowPreview;
-
-    /// <summary>Applies a format button to the body, given what was selected. Returns the selection to put back.</summary>
-    public FormatEdit Format(string action, int start, int end)
-    {
-        var edit = action switch
-        {
-            "bold" => MailFormat.Wrap(Body, start, end, "**"),
-            "italic" => MailFormat.Wrap(Body, start, end, "*"),
-            "bullets" => MailFormat.List(Body, start, end, numbered: false),
-            "numbers" => MailFormat.List(Body, start, end, numbered: true),
-            _ => MailFormat.Link(Body, start, end, LinkAddress),
-        };
-        Body = edit.Text;
-        AskingForLink = false;
-        LinkAddress = "";
-        return edit;
-    }
+    public static IReadOnlyList<TextSize> Sizes => TextSizes.All;
 }

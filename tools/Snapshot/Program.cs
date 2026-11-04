@@ -518,7 +518,15 @@ services.Settings.SavedReplies =
     new Webignite.Core.Mail.SavedReply("sr1", "Looking into it", "Hi {name},\n\nThanks for letting me know. I'm looking at it now and will come back to you before lunch."),
     new Webignite.Core.Mail.SavedReply("sr2", "Payment received", "Hi {name},\n\nThank you, the payment from {client} came through."),
 ];
-vm.Mail.Composer!.Insert(services.Settings.SavedReplies[0], 0);
+{
+    Dispatcher.UIThread.RunJobs();
+    var editor = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Webignite.Desktop.Controls.RichTextEditor>().First();
+    editor.StartTyping();
+    editor.InsertDocument(vm.Mail.Composer!.Writing(services.Settings.SavedReplies[0]));
+    Dispatcher.UIThread.RunJobs();
+    Check("A saved reply goes in above the signature, with the name filled in",
+        vm.Mail.Composer.Body.StartsWith("Hi Lerato,", StringComparison.Ordinal) && vm.Mail.Composer.Document.HasSignature);
+}
 vm.Mail.Composer.ShowQuote = true;
 Save("mail-reply");
 vm.Mail.Composer.StartSaveReply("Thanks for letting me know.");
@@ -582,10 +590,13 @@ services.Go.ComposeMail(new Webignite.Core.Mail.OutgoingMail
     AccountId = invoiceBox.Id,
     To = [new("Thandi Mokoena", "accounts@karoocoffee.co.za")],
     Subject = filled.Subject,
-    Body = filled.Body + Webignite.Core.Mail.Replies.StartBody(invoiceBox.Signature),
+    Body = filled.Body,
     Attachments = [new Webignite.Core.Mail.OutgoingAttachment("Invoice INV-0111.pdf", 48_000, FilePath: pdfPath)],
 }, null, null);
 Save("invoice-email");
+Check("The signature is in the mail once, picture and all",
+    vm.Mail.Composer!.Document.Blocks.Count(b => b.IsSignature && b is Webignite.Core.Writing.PictureBlock) == 1
+    && vm.Mail.Composer.Body.Split("Webignite Accounts").Length == 2);
 // Address suggestions: type in To and check the list fills in.
 {
     var toBox = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Avalonia.Controls.TextBox>().First(b => b.Name == "ToBox");
@@ -602,12 +613,51 @@ Save("invoice-email");
     vm.Mail.Composer.AcceptSuggestion();
     Check("Picking a suggestion fills it in", vm.Mail.Composer.To.Contains("pieter", StringComparison.OrdinalIgnoreCase));
 }
-// Formatting: what's typed, then the preview.
-vm.Mail.Composer!.Body = "Hi Thandi,\n\nHere's what I still need **before Friday**:\n- your logo\n- three photos of the shop\n- the *new* opening hours\n\nThe draft site is up at [this link](https://karoo.webignite.co.za).\n" + Webignite.Core.Mail.Replies.StartBody(invoiceBox.Signature);
+// Formatting: a mail using the format bar's styles, typed straight onto the paper.
+{
+    var writing = Webignite.Core.Writing.RichText.Starting(
+        "Hi Thandi,\n\nHere's what I still need **before Friday**:\n- your logo\n- three photos of the shop\n- the *new* opening hours\n\nThe draft site is up at [this link](https://karoo.webignite.co.za).",
+        Webignite.Core.Writing.RichText.Signature(invoiceBox.Signature, invoiceBox.SignatureImage, invoiceBox.SignatureImageType));
+    var hi = (Webignite.Core.Writing.TextBlock)writing.Blocks[0];
+    hi.Style = Webignite.Core.Writing.BlockStyle.Heading2;
+    var friday = (Webignite.Core.Writing.TextBlock)writing.Blocks[2];
+    friday.Format(25, 38, f => f with { Colour = "#c0392b", Highlight = "#fff3a0" });
+    var table = Webignite.Core.Writing.TableBlock.Empty(2, 2);
+    table.Rows[0][0].Insert(0, "Hosting", default);
+    table.Rows[0][1].Insert(0, "R 450 a month", default);
+    table.Rows[1][0].Insert(0, "Domain", default);
+    table.Rows[1][1].Insert(0, "R 150 a year", new(Bold: true));
+    writing.Blocks.Insert(7, table);
+    writing.Blocks.Insert(8, new Webignite.Core.Writing.TextBlock("Pricing as agreed on the call.") { Style = Webignite.Core.Writing.BlockStyle.Quote });
+    vm.Mail.Composer!.Document = writing;
+}
 Save("mail-format");
-vm.Mail.Composer.ShowPreview = true;
-Save("mail-preview");
-vm.Mail.Composer.ShowPreview = false;
+// Typing goes into the editor, at the caret.
+{
+    Dispatcher.UIThread.RunJobs();
+    var editor = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Webignite.Desktop.Controls.RichTextEditor>().First();
+    editor.StartTyping();
+    Dispatcher.UIThread.RunJobs();
+    window.KeyTextInput("Morning! ");
+    Dispatcher.UIThread.RunJobs();
+    Check("Typing goes into the mail editor", vm.Mail.Composer!.Body.StartsWith("Morning! Hi Thandi", StringComparison.Ordinal) && vm.Mail.Composer.HasChanges);
+    window.KeyPress(Avalonia.Input.Key.Z, Avalonia.Input.RawInputModifiers.Control, Avalonia.Input.PhysicalKey.Z, null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Ctrl+Z takes the typing back", vm.Mail.Composer.Body.StartsWith("Hi Thandi", StringComparison.Ordinal));
+}
+// Another mailbox swaps the signature where it stands.
+{
+    var other = vm.Mail.Composer!.Accounts.FirstOrDefault(a => a.Id != invoiceBox.Id);
+    if (other is not null)
+    {
+        vm.Mail.Composer.From = other;
+        Dispatcher.UIThread.RunJobs();
+        Check("Changing From swaps the signature", !vm.Mail.Composer.Body.Contains("Webignite Accounts", StringComparison.Ordinal)
+            && !vm.Mail.Composer.Document.Blocks.Any(b => b is Webignite.Core.Writing.PictureBlock));
+        vm.Mail.Composer.From = vm.Mail.Composer.Accounts.First(a => a.Id == invoiceBox.Id);
+        Dispatcher.UIThread.RunJobs();
+    }
+}
 vm.Mail.Composer!.DiscardCommand.Execute(null);
 vm.Mail.ManageMailboxesCommand.Execute(null);
 vm.Mail.Setup.Edit(invoiceBox);

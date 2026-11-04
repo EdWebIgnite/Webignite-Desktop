@@ -26,13 +26,8 @@ public partial class ComposeViewModel
         return SavedReplies.Fill(reply.Text, SavedReplies.FirstName(to, client), client?.Name);
     }
 
-    /// <summary>Puts a reply in at the cursor. Returns where the cursor goes, after it.</summary>
-    public int Insert(SavedReply reply, int caret)
-    {
-        var (body, after) = SavedReplies.Insert(Body, caret, Fill(reply));
-        Body = body;
-        return after;
-    }
+    /// <summary>A reply as writing, ready to put in at the caret.</summary>
+    public Webignite.Core.Writing.RichDocument Writing(SavedReply reply) => Webignite.Core.Writing.RichText.FromText(Fill(reply));
 
     /// <summary>Asks for a name for the selected text, or the whole mail when nothing is selected.</summary>
     public void StartSaveReply(string text)

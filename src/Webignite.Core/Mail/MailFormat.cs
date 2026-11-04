@@ -4,13 +4,10 @@ using System.Text.RegularExpressions;
 
 namespace Webignite.Core.Mail;
 
-/// <summary>Text with the selection after an edit, for the mail editor's format buttons.</summary>
-public sealed record FormatEdit(string Text, int SelectionStart, int SelectionEnd);
-
 /// <summary>
-/// The light formatting the mail editor understands: **bold**, *italic*, [words](link), lines starting with
-/// "- " for a bulleted list and "1. " for a numbered one. Typed as plain text, sent as HTML, so it works in
-/// every mail program. Bare web addresses become links too.
+/// The light marks plain-text mail can carry: **bold**, *italic*, [words](link), lines starting with "- " for a
+/// bulleted list and "1. " for a numbered one. Templates, assistants' drafts and older drafts use them; mail
+/// written in the editor is formatted there instead (see Webignite.Core.Writing).
 /// </summary>
 public static partial class MailFormat
 {
@@ -92,79 +89,6 @@ public static partial class MailFormat
 
     private static string Anchor(string url, string words) =>
         $"<a href=\"{WebUtility.HtmlEncode(url)}\" style=\"{LinkStyle}\">{WebUtility.HtmlEncode(words)}</a>";
-
-    /// <summary>Puts markers round the selection, or takes them off if they're already there. With nothing selected the caret goes between them.</summary>
-    public static FormatEdit Wrap(string text, int start, int end, string marker)
-    {
-        (start, end) = Order(text, start, end);
-        // Leave spaces outside the markers: "**word **" isn't bold anywhere.
-        while (end > start && char.IsWhiteSpace(text[end - 1]))
-            end--;
-        while (start < end && char.IsWhiteSpace(text[start]))
-            start++;
-        var m = marker.Length;
-        if (start >= m && end + m <= text.Length && text.AsSpan(start - m, m).SequenceEqual(marker) && text.AsSpan(end, m).SequenceEqual(marker)
-            && !(marker == "*" && IsBold(text, start, end)))
-            return new(text.Remove(end, m).Remove(start - m, m), start - m, end - m);
-        var inner = text[start..end];
-        if (inner.Length >= 2 * m && inner.StartsWith(marker, StringComparison.Ordinal) && inner.EndsWith(marker, StringComparison.Ordinal))
-            return new(text[..start] + inner[m..^m] + text[end..], start, end - 2 * m);
-        return new(text[..start] + marker + inner + marker + text[end..], start + m, end + m);
-    }
-
-    // "**word**" with the caret inside the inner stars: italic shouldn't eat half the bold.
-    private static bool IsBold(string text, int start, int end) =>
-        start >= 2 && end + 2 <= text.Length && text[start - 2] == '*' && text[end + 1] == '*';
-
-    /// <summary>Turns the lines under the selection into a list, numbering them if asked, or back into plain lines.</summary>
-    public static FormatEdit List(string text, int start, int end, bool numbered)
-    {
-        (start, end) = Order(text, start, end);
-        var first = start == 0 ? 0 : text.LastIndexOf('\n', start - 1) + 1;
-        var stop = end > first && end > 0 && text[end - 1] == '\n' ? end - 1 : end;
-        var last = text.IndexOf('\n', stop);
-        if (last < 0)
-            last = text.Length;
-        var lines = text[first..last].Split('\n');
-        var kind = numbered ? "ol" : "ul";
-        var already = lines.Where(l => l.Trim().Length > 0).All(l => ListItem(l).Kind == kind) && lines.Any(l => l.Trim().Length > 0);
-        var number = 0;
-        var changed = lines.Select(line =>
-        {
-            var item = ListItem(line).Item;
-            if (already)
-                return item;
-            if (line.Trim().Length == 0 && lines.Length > 1)
-                return line;
-            return numbered ? $"{++number}. {item}" : $"- {item}";
-        });
-        var block = string.Join('\n', changed);
-        var result = text[..first] + block + text[last..];
-        return lines.Length == 1 && lines[0].Trim().Length == 0 && !already
-            ? new(result, first + block.Length, first + block.Length)
-            : new(result, first, first + block.Length);
-    }
-
-    /// <summary>Makes the selection a link. With nothing selected the address itself is the link text.</summary>
-    public static FormatEdit Link(string text, int start, int end, string url)
-    {
-        (start, end) = Order(text, start, end);
-        url = url.Trim();
-        if (!url.Contains("://", StringComparison.Ordinal) && !url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
-            url = url.Contains('@') && !url.Contains('/') ? "mailto:" + url : "https://" + url;
-        var words = text[start..end].Trim();
-        if (words.Length == 0)
-            words = url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ? url[7..] : url.Replace("https://", "", StringComparison.OrdinalIgnoreCase);
-        var link = $"[{words}]({url})";
-        return new(text[..start] + link + text[end..], start + link.Length, start + link.Length);
-    }
-
-    private static (int, int) Order(string text, int start, int end)
-    {
-        start = Math.Clamp(start, 0, text.Length);
-        end = Math.Clamp(end, 0, text.Length);
-        return start <= end ? (start, end) : (end, start);
-    }
 
     [GeneratedRegex(@"^\s*[-*•]\s+(.*)$")]
     private static partial Regex BulletLine();

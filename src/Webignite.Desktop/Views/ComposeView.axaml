@@ -28,7 +28,7 @@
       </DockPanel>
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="To" VerticalAlignment="Center" />
-        <Button DockPanel.Dock="Right" Classes="link" Content="Cc and Bcc" Command="{Binding ToggleCcCommand}" IsVisible="{Binding !ShowCc}" />
+        <Button DockPanel.Dock="Right" Classes="link" Content="Cc, Bcc, Reply-To" Command="{Binding ToggleCcCommand}" IsVisible="{Binding !ShowCc}" />
         <TextBox x:Name="ToBox" Text="{Binding To}" PlaceholderText="Type a name or address" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
@@ -38,6 +38,10 @@
       <DockPanel IsVisible="{Binding ShowCc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Bcc" VerticalAlignment="Center" />
         <TextBox x:Name="BccBox" Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
+      </DockPanel>
+      <DockPanel IsVisible="{Binding ShowCc}">
+        <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Reply-To" VerticalAlignment="Center" />
+        <TextBox x:Name="ReplyToBox" Text="{Binding ReplyTo}" PlaceholderText="Where replies go, when not to you" />
       </DockPanel>
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Subject" VerticalAlignment="Center" />
@@ -105,20 +109,23 @@
             <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Text="Keep this as a draft?" />
           </DockPanel>
         </Border>
+        <!-- Save draft on the left; Send far right with Send later beside it. -->
         <DockPanel>
           <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
-            <Button Classes="primary" Content="Send" Command="{Binding SendCommand}" IsEnabled="{Binding !IsWorking}" />
+            <Button Classes="quiet" Content="Save draft" Command="{Binding SaveDraftCommand}" IsEnabled="{Binding !IsWorking}" />
+            <c:Spinner IsVisible="{Binding IsWorking}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="4,0,0,0" />
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
             <Button Classes="quiet" IsEnabled="{Binding !IsWorking}" IsVisible="{Binding CanSendLater}" ToolTip.Tip="Send at a time you pick">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <TextBlock Text="Send later" />
                 <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
               </StackPanel>
               <Button.Flyout>
-                <MenuFlyout Placement="TopEdgeAlignedLeft" Opening="SendLaterOpening" />
+                <MenuFlyout Placement="TopEdgeAlignedRight" Opening="SendLaterOpening" />
               </Button.Flyout>
             </Button>
-            <Button Classes="quiet" Content="Save draft" Command="{Binding SaveDraftCommand}" IsEnabled="{Binding !IsWorking}" />
-            <c:Spinner IsVisible="{Binding IsWorking}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="4,0,0,0" />
+            <Button Classes="primary" Content="Send" Command="{Binding SendCommand}" IsEnabled="{Binding !IsWorking}" />
           </StackPanel>
           <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap"
                      Classes="muted" Classes.problem="{Binding MessageIsProblem}" Text="{Binding Message}" />
@@ -142,44 +149,132 @@
       </Border>
     </StackPanel>
 
-    <!-- The mailbox's signature picture, added under the text when it is sent -->
-    <StackPanel DockPanel.Dock="Bottom" Margin="24,0,24,8" Spacing="4" IsVisible="{Binding ShowSignaturePicture}">
-      <Image Source="{Binding SignaturePicture}" MaxHeight="70" MaxWidth="300" HorizontalAlignment="Left" Stretch="Uniform" />
-      <TextBlock Classes="muted" FontSize="11" Text="Your signature picture goes here when it is sent." />
-    </StackPanel>
-
-    <!-- What you type, with the format buttons above it -->
+    <!-- What you type, on paper, with the format bar above it -->
     <DockPanel Margin="24,4,24,8">
       <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,6">
-        <DockPanel>
-          <Button DockPanel.Dock="Right" Classes="quiet format" Focusable="False" Command="{Binding TogglePreviewCommand}" VerticalAlignment="Top" Margin="8,0,0,0"
-                        ToolTip.Tip="See the mail the way it will arrive">
-            <Panel>
-              <TextBlock Text="Preview" IsVisible="{Binding !ShowPreview}" />
-              <TextBlock Text="Back to writing" IsVisible="{Binding ShowPreview}" />
-            </Panel>
+        <WrapPanel x:Name="FormatBar" ItemSpacing="4" LineSpacing="4">
+          <ComboBox x:Name="StyleBox" Width="122" Focusable="False" ToolTip.Tip="Paragraph, heading, quote or code" SelectionChanged="StyleChosen">
+            <ComboBoxItem Content="Paragraph" Tag="Paragraph" />
+            <ComboBoxItem Content="Heading 1" Tag="Heading1" />
+            <ComboBoxItem Content="Heading 2" Tag="Heading2" />
+            <ComboBoxItem Content="Heading 3" Tag="Heading3" />
+            <ComboBoxItem Content="Quote" Tag="Quote" />
+            <ComboBoxItem Content="Code" Tag="Code" />
+          </ComboBox>
+          <ComboBox x:Name="FontBox" Width="128" Focusable="False" ToolTip.Tip="Font" SelectionChanged="FontChosen">
+            <ComboBoxItem Content="Normal font" />
+            <ComboBoxItem Content="Fixed width" />
+          </ComboBox>
+          <ComboBox x:Name="SizeBox" Width="104" Focusable="False" ToolTip.Tip="Text size" SelectionChanged="SizeChosen" />
+          <Button Classes="quiet format" Focusable="False" Tag="smaller" Click="Format" ToolTip.Tip="Smaller (Ctrl+[)" Content="A−" />
+          <Button Classes="quiet format" Focusable="False" Tag="larger" Click="Format" ToolTip.Tip="Larger (Ctrl+])" Content="A+" />
+          <Button Classes="quiet format icon" Focusable="False" ToolTip.Tip="Text colour">
+            <c:Icon Data="{StaticResource Icon.TextColour}" Size="16" />
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <StackPanel Spacing="6">
+                  <ItemsControl x:Name="TextColourList">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel MaxWidth="200" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                  <Button Classes="link" Content="Normal colour" Tag="colour:" Click="Format" />
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
           </Button>
-          <WrapPanel ItemSpacing="4" LineSpacing="4" IsEnabled="{Binding !ShowPreview}">
-            <Button Classes="quiet format" Focusable="False" Tag="bold" Click="FormatClicked" ToolTip.Tip="Bold (Ctrl+B)">
-              <TextBlock Text="B" FontWeight="Bold" />
-            </Button>
-            <Button Classes="quiet format" Focusable="False" Tag="italic" Click="FormatClicked" ToolTip.Tip="Italic (Ctrl+I)">
-              <TextBlock Text="I" FontStyle="Italic" />
-            </Button>
-            <Button Classes="quiet format" Focusable="False" Tag="bullets" Click="FormatClicked" Content="• List" ToolTip.Tip="Bulleted list" />
-            <Button Classes="quiet format" Focusable="False" Tag="numbers" Click="FormatClicked" Content="1. List" ToolTip.Tip="Numbered list" />
-            <Button Classes="quiet format" Focusable="False" Click="LinkClicked" Content="Link" ToolTip.Tip="Link the selected words to a web page" />
-            <Button Classes="quiet format" Focusable="False" ToolTip.Tip="Text you write often, with the client's name filled in">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <TextBlock Text="Saved replies" />
-                <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
-              </StackPanel>
-              <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="RepliesOpening" />
-              </Button.Flyout>
-            </Button>
-          </WrapPanel>
-        </DockPanel>
+          <Button Classes="quiet format icon" Focusable="False" ToolTip.Tip="Highlight">
+            <c:Icon Data="{StaticResource Icon.Highlight}" Size="16" />
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <StackPanel Spacing="6">
+                  <ItemsControl x:Name="HighlightList">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel MaxWidth="200" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                  <Button Classes="link" Content="No highlight" Tag="highlight:" Click="Format" />
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <Button x:Name="BoldButton" Classes="quiet format icon" Focusable="False" Tag="bold" Click="Format" ToolTip.Tip="Bold (Ctrl+B)">
+            <c:Icon Data="{StaticResource Icon.Bold}" Size="16" />
+          </Button>
+          <Button x:Name="ItalicButton" Classes="quiet format icon" Focusable="False" Tag="italic" Click="Format" ToolTip.Tip="Italic (Ctrl+I)">
+            <c:Icon Data="{StaticResource Icon.Italic}" Size="16" />
+          </Button>
+          <Button x:Name="UnderlineButton" Classes="quiet format icon" Focusable="False" Tag="underline" Click="Format" ToolTip.Tip="Underline (Ctrl+U)">
+            <c:Icon Data="{StaticResource Icon.Underline}" Size="16" />
+          </Button>
+          <Button Classes="quiet format icon" Focusable="False" Tag="clear" Click="Format" ToolTip.Tip="Remove formatting (Ctrl+Space)">
+            <c:Icon Data="{StaticResource Icon.ClearFormat}" Size="16" />
+          </Button>
+          <Button x:Name="BulletsButton" Classes="quiet format icon" Focusable="False" Tag="bullets" Click="Format" ToolTip.Tip="Bulleted list">
+            <c:Icon Data="{StaticResource Icon.Bullets}" Size="16" />
+          </Button>
+          <Button x:Name="NumbersButton" Classes="quiet format icon" Focusable="False" Tag="numbers" Click="Format" ToolTip.Tip="Numbered list">
+            <c:Icon Data="{StaticResource Icon.Numbers}" Size="16" />
+          </Button>
+          <Button Classes="quiet format icon" Focusable="False" Tag="outdent" Click="Format" ToolTip.Tip="Indent less">
+            <c:Icon Data="{StaticResource Icon.IndentLess}" Size="16" />
+          </Button>
+          <Button Classes="quiet format icon" Focusable="False" Tag="indent" Click="Format" ToolTip.Tip="Indent more">
+            <c:Icon Data="{StaticResource Icon.IndentMore}" Size="16" />
+          </Button>
+          <Button x:Name="LeftButton" Classes="quiet format icon" Focusable="False" Tag="left" Click="Format" ToolTip.Tip="Align left">
+            <c:Icon Data="{StaticResource Icon.AlignLeft}" Size="16" />
+          </Button>
+          <Button x:Name="CentreButton" Classes="quiet format icon" Focusable="False" Tag="centre" Click="Format" ToolTip.Tip="Centre">
+            <c:Icon Data="{StaticResource Icon.AlignCentre}" Size="16" />
+          </Button>
+          <Button x:Name="RightButton" Classes="quiet format icon" Focusable="False" Tag="right" Click="Format" ToolTip.Tip="Align right">
+            <c:Icon Data="{StaticResource Icon.AlignRight}" Size="16" />
+          </Button>
+          <Button Classes="quiet format icon" Focusable="False" Click="LinkClicked" ToolTip.Tip="Link the selected words to a web page or address">
+            <c:Icon Data="{StaticResource Icon.Link}" Size="16" />
+          </Button>
+          <Button Classes="quiet format" Focusable="False" ToolTip.Tip="A picture, table, line or emoji">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Text="Insert" />
+              <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                <MenuItem Header="Picture…" Click="InsertPicture">
+                  <MenuItem.Icon><c:Icon Data="{StaticResource Icon.Picture}" Size="14" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Table">
+                  <MenuItem.Icon><c:Icon Data="{StaticResource Icon.Table}" Size="14" /></MenuItem.Icon>
+                  <MenuItem Header="2 columns, 2 rows" Tag="2x2" Click="InsertTable" />
+                  <MenuItem Header="3 columns, 3 rows" Tag="3x3" Click="InsertTable" />
+                  <MenuItem Header="4 columns, 3 rows" Tag="3x4" Click="InsertTable" />
+                  <Separator />
+                  <MenuItem Header="Add a row" Tag="row" Click="InsertTable" />
+                  <MenuItem Header="Add a column" Tag="column" Click="InsertTable" />
+                </MenuItem>
+                <MenuItem Header="Horizontal line" Click="InsertRule">
+                  <MenuItem.Icon><c:Icon Data="{StaticResource Icon.Rule}" Size="14" /></MenuItem.Icon>
+                </MenuItem>
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <Button Classes="quiet format icon" Focusable="False" ToolTip.Tip="Emoji">
+            <c:Icon Data="{StaticResource Icon.Emoji}" Size="16" />
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <ItemsControl x:Name="EmojiList">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel MaxWidth="290" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                </ItemsControl>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <Button Classes="quiet format" Focusable="False" ToolTip.Tip="Text you write often, with the client's name filled in">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Text="Saved replies" />
+              <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="RepliesOpening" />
+            </Button.Flyout>
+          </Button>
+        </WrapPanel>
         <Border Classes="card" Padding="10,6" IsVisible="{Binding AskingReplyName}">
           <StackPanel Spacing="4">
             <DockPanel>
@@ -197,6 +292,7 @@
           <DockPanel>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
               <Button Classes="primary" Content="Add link" Click="AddLinkClicked" />
+              <Button Classes="link" Content="Remove link" Click="RemoveLinkClicked" />
               <Button Classes="link" Content="Cancel" Click="CancelLinkClicked" />
             </StackPanel>
             <TextBlock DockPanel.Dock="Left" Classes="muted" Text="Link to" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -204,16 +300,11 @@
           </DockPanel>
         </Border>
       </StackPanel>
-      <Panel>
-        <TextBox x:Name="BodyBox" Text="{Binding Body}" AcceptsReturn="True" AcceptsTab="False" TextWrapping="Wrap"
-                 VerticalAlignment="Stretch" VerticalContentAlignment="Top" PlaceholderText="Write your mail"
-                 IsVisible="{Binding !ShowPreview}" />
-        <Border Classes="card" Padding="12" Background="{DynamicResource Paper}" IsVisible="{Binding ShowPreview}">
-          <ScrollViewer>
-            <html:HtmlPanel Text="{Binding PreviewHtml}" Background="{DynamicResource Paper}" />
-          </ScrollViewer>
-        </Border>
-      </Panel>
+      <Border Classes="paper" ClipToBounds="True">
+        <ScrollViewer x:Name="BodyScroll" HorizontalScrollBarVisibility="Disabled">
+          <c:RichTextEditor x:Name="Editor" Document="{Binding Document}" Revision="{Binding BodyRevision}" Placeholder="Write your mail" />
+        </ScrollViewer>
+      </Border>
     </DockPanel>
   </DockPanel>
   <!-- Suggestions under whichever address box is being typed in -->

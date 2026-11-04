@@ -1,8 +1,14 @@
+using System.Globalization;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.Platform.Storage;
+using Webignite.Core.Writing;
 using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
@@ -15,7 +21,7 @@ public partial class ComposeView : UserControl
         Watch(ToBox, AddressField.To);
         Watch(CcBox, AddressField.Cc);
         Watch(BccBox, AddressField.Bcc);
-        BodyBox.AddHandler(KeyDownEvent, BodyKeys, RoutingStrategies.Tunnel);
+        Watch(ReplyToBox, AddressField.ReplyTo);
         LinkBox.AddHandler(KeyDownEvent, (_, e) =>
         {
             if (e.Key == Key.Enter) { AddLink(); e.Handled = true; }
@@ -27,40 +33,152 @@ public partial class ComposeView : UserControl
             if (Compose is { } compose && e.DataTransfer.TryGetFiles() is { } files)
                 compose.AddFiles(files.Select(f => f.TryGetLocalPath()).OfType<string>());
         });
+        Editor.SelectionChanged += (_, _) => ShowFormat();
+        Editor.AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (e.Key == Key.K && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            {
+                LinkClicked(null, new RoutedEventArgs());
+                e.Handled = true;
+            }
+        }, RoutingStrategies.Tunnel);
+        foreach (var size in ComposeViewModel.Sizes)
+            SizeBox.Items.Add(new ComboBoxItem { Content = TextSizes.Label(size), Tag = size });
+        Swatches(TextColourList, ComposeViewModel.TextColours, "colour:");
+        Swatches(HighlightList, ComposeViewModel.HighlightColours, "highlight:");
+        foreach (var emoji in Emoji.Common)
+        {
+            var button = new Button { Classes = { "quiet", "format" }, Content = emoji, Focusable = false, FontSize = 18, Padding = new Thickness(4, 0), Tag = "emoji:" + emoji };
+            button.Click += Format;
+            EmojiList.Items.Add(button);
+        }
+        ShowFormat();
     }
 
-    // The selection is kept here while the link box has the focus.
-    private (int Start, int End) linkSelection;
-
-    private void BodyKeys(object? sender, KeyEventArgs e)
+    // Each colour is its own button; the colours are what the mail will carry, not the app's own look.
+    private void Swatches(ItemsControl list, IReadOnlyList<string> colours, string action)
     {
-        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Alt))
-            return;
-        switch (e.Key)
+        foreach (var colour in colours)
         {
-            case Key.B: ApplyFormat("bold"); e.Handled = true; break;
-            case Key.I: ApplyFormat("italic"); e.Handled = true; break;
+            var swatch = new Button
+            {
+                Classes = { "shade" },
+                Width = 22,
+                Height = 22,
+                Margin = new Thickness(0, 0, 4, 4),
+                Padding = new Thickness(0),
+                Focusable = false,
+                Tag = action + colour,
+                Content = new Border { Background = Brush.Parse(colour), CornerRadius = new CornerRadius(4), BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray, Width = 20, Height = 20 },
+            };
+            ToolTip.SetTip(swatch, MailColours.Name(colour));
+            swatch.Click += Format;
+            list.Items.Add(swatch);
         }
     }
 
-    private void FormatClicked(object? sender, RoutedEventArgs e)
+    private bool showingFormat;
+
+    /// <summary>The bar shows what is on at the caret: bold, the list, the style, the size.</summary>
+    private void ShowFormat()
     {
-        if (sender is Button { Tag: string action })
-            ApplyFormat(action);
+        showingFormat = true;
+        var f = Editor.CurrentFormat;
+        var paragraph = Editor.CurrentParagraph;
+        BoldButton.Classes.Set("on", f.Bold);
+        ItalicButton.Classes.Set("on", f.Italic);
+        UnderlineButton.Classes.Set("on", f.Underline);
+        BulletsButton.Classes.Set("on", paragraph?.List == ListKind.Bullet);
+        NumbersButton.Classes.Set("on", paragraph?.List == ListKind.Number);
+        var align = paragraph?.Align ?? Alignment.Left;
+        LeftButton.Classes.Set("on", paragraph is not null && align == Alignment.Left);
+        CentreButton.Classes.Set("on", align == Alignment.Centre);
+        RightButton.Classes.Set("on", align == Alignment.Right);
+        StyleBox.SelectedIndex = (int)(paragraph?.Style ?? BlockStyle.Paragraph);
+        FontBox.SelectedIndex = f.Fixed ? 1 : 0;
+        SizeBox.SelectedIndex = TextSizes.All.ToList().IndexOf(f.Size);
+        showingFormat = false;
     }
 
-    private void ApplyFormat(string action) => ApplyFormat(action, BodyBox.SelectionStart, BodyBox.SelectionEnd);
-
-    private void ApplyFormat(string action, int start, int end)
+    private void Format(object? sender, RoutedEventArgs e)
     {
-        if (Compose is not { } compose)
+        if (sender is not Control { Tag: string action })
             return;
-        var edit = compose.Format(action, start, end);
-        BodyBox.Text = edit.Text;
-        BodyBox.Focus();
-        BodyBox.SelectionStart = edit.SelectionStart;
-        BodyBox.SelectionEnd = edit.SelectionEnd;
-        BodyBox.CaretIndex = edit.SelectionEnd;
+        switch (action)
+        {
+            case "bold": Editor.ToggleBold(); break;
+            case "italic": Editor.ToggleItalic(); break;
+            case "underline": Editor.ToggleUnderline(); break;
+            case "clear": Editor.ClearFormatting(); break;
+            case "smaller": Editor.StepSize(-1); break;
+            case "larger": Editor.StepSize(1); break;
+            case "bullets": Editor.ToggleList(ListKind.Bullet); break;
+            case "numbers": Editor.ToggleList(ListKind.Number); break;
+            case "indent": Editor.Indent(1); break;
+            case "outdent": Editor.Indent(-1); break;
+            case "left": Editor.Align(Alignment.Left); break;
+            case "centre": Editor.Align(Alignment.Centre); break;
+            case "right": Editor.Align(Alignment.Right); break;
+            case var c when c.StartsWith("colour:", StringComparison.Ordinal): Editor.SetColour(c.Length > 7 ? c[7..] : null); break;
+            case var h when h.StartsWith("highlight:", StringComparison.Ordinal): Editor.SetHighlight(h.Length > 10 ? h[10..] : null); break;
+            case var m when m.StartsWith("emoji:", StringComparison.Ordinal): Editor.InsertText(m[6..]); break;
+        }
+        (sender as Control)?.FindLogicalAncestorOfType<Popup>()?.Close();
+        ShowFormat();
+    }
+
+    private void StyleChosen(object? sender, SelectionChangedEventArgs e)
+    {
+        if (!showingFormat && StyleBox.SelectedItem is ComboBoxItem { Tag: string style } && Enum.TryParse<BlockStyle>(style, out var chosen))
+            Editor.SetStyle(chosen);
+    }
+
+    private void FontChosen(object? sender, SelectionChangedEventArgs e)
+    {
+        if (!showingFormat && FontBox.SelectedIndex >= 0)
+            Editor.SetFixed(FontBox.SelectedIndex == 1);
+    }
+
+    private void SizeChosen(object? sender, SelectionChangedEventArgs e)
+    {
+        if (!showingFormat && SizeBox.SelectedItem is ComboBoxItem { Tag: TextSize size })
+            Editor.SetSize(size);
+    }
+
+    private void InsertRule(object? sender, RoutedEventArgs e) => Editor.InsertRule();
+
+    private void InsertTable(object? sender, RoutedEventArgs e)
+    {
+        switch ((sender as MenuItem)?.Tag)
+        {
+            case "row": Editor.AddTableRow(); break;
+            case "column": Editor.AddTableColumn(); break;
+            case string size when size.Split('x') is [var rows, var columns]:
+                Editor.InsertTable(int.Parse(rows, CultureInfo.InvariantCulture), int.Parse(columns, CultureInfo.InvariantCulture));
+                break;
+        }
+    }
+
+    private void InsertPicture(object? sender, RoutedEventArgs e) => InsertPictureAsync().Forget("Putting a picture in the mail", tell: true);
+
+    private async Task InsertPictureAsync()
+    {
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Put a picture in the mail",
+            FileTypeFilter = [new FilePickerFileType("Pictures") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif"] }],
+        });
+        if (files.FirstOrDefault()?.TryGetLocalPath() is not { } path)
+            return;
+        var bytes = await File.ReadAllBytesAsync(path);
+        if (ImageSize.Of(bytes) is not { } size)
+        {
+            Compose?.Tell("That file isn't a PNG, JPG or GIF picture.");
+            return;
+        }
+        Editor.InsertPicture(bytes, size.ContentType, size.Width, size.Height);
     }
 
     /// <summary>Fills the Send later menu: the quick times, then pick a day and hour.</summary>
@@ -86,21 +204,13 @@ public partial class ComposeView : UserControl
     {
         if (Compose is not { } compose || sender is not MenuFlyout flyout)
             return;
-        var caret = BodyBox.CaretIndex;
-        var (start, end) = (Math.Min(BodyBox.SelectionStart, BodyBox.SelectionEnd), Math.Max(BodyBox.SelectionStart, BodyBox.SelectionEnd));
-        var selected = end > start ? compose.Body[start..Math.Min(end, compose.Body.Length)] : "";
+        var selected = Editor.SelectedText;
         flyout.Items.Clear();
         foreach (var reply in compose.SavedReplyList)
         {
             var item = new MenuItem { Header = reply.Name };
             ToolTip.SetTip(item, compose.Fill(reply));
-            item.Click += (_, _) =>
-            {
-                var after = compose.Insert(reply, caret);
-                BodyBox.Text = compose.Body;
-                BodyBox.Focus();
-                BodyBox.CaretIndex = after;
-            };
+            item.Click += (_, _) => Editor.InsertDocument(compose.Writing(reply));
             flyout.Items.Add(item);
         }
         if (compose.SavedReplyList.Count == 0)
@@ -130,7 +240,7 @@ public partial class ComposeView : UserControl
     {
         if (Compose is not { } compose)
             return;
-        linkSelection = (BodyBox.SelectionStart, BodyBox.SelectionEnd);
+        compose.LinkAddress = Editor.CurrentFormat.Link ?? "";
         compose.AskingForLink = true;
         Dispatcher.UIThread.Post(() => LinkBox.Focus());
     }
@@ -139,16 +249,20 @@ public partial class ComposeView : UserControl
 
     private void CancelLinkClicked(object? sender, RoutedEventArgs e) => CancelLink();
 
+    private void RemoveLinkClicked(object? sender, RoutedEventArgs e)
+    {
+        Editor.RemoveLink();
+        CancelLink();
+    }
+
+    // The editor keeps its selection while the link box has the focus, so the link goes on the words picked.
     private void AddLink()
     {
         if (Compose is not { } compose)
             return;
-        if (string.IsNullOrWhiteSpace(compose.LinkAddress))
-        {
-            CancelLink();
-            return;
-        }
-        ApplyFormat("link", linkSelection.Start, linkSelection.End);
+        if (!string.IsNullOrWhiteSpace(compose.LinkAddress))
+            Editor.SetLink(compose.LinkAddress);
+        CancelLink();
     }
 
     private void CancelLink()
@@ -157,7 +271,7 @@ public partial class ComposeView : UserControl
             return;
         compose.AskingForLink = false;
         compose.LinkAddress = "";
-        BodyBox.Focus();
+        Editor.Focus();
     }
 
     private ComposeViewModel? Compose => DataContext as ComposeViewModel;
