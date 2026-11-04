@@ -54,6 +54,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("files", value);
     }
 
+    /// <summary>Files opened lately from Files, newest first, for Recents in its side list.</summary>
+    public IReadOnlyList<string> FileRecents
+    {
+        get => store.GetSetting<List<string>>("file-recents") ?? [];
+        set => store.SetSetting("file-recents", value.ToList());
+    }
+
     /// <summary>The tags for files and folders in Files, with their colours. Which files carry them is in the file_tags table.</summary>
     public IReadOnlyList<Webignite.Core.Files.FileTag> FileTags
     {

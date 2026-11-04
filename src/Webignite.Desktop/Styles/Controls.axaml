@@ -740,4 +740,25 @@
   <Style Selector="Border.swatch.chosen">
     <Setter Property="BorderBrush" Value="{DynamicResource Ink}" />
   </Style>
+  <!-- Files' column view: the list of the folder you're in is a column like the others. -->
+  <Style Selector="ListBox.files.columns">
+    <Setter Property="Width" Value="300" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+  <Style Selector="Button.columnrow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Button.columnrow:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Button.columnrow.on /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+  <!-- Label and value pairs, e.g. Files' details pane. -->
+  <Style Selector="Grid.facts > TextBlock">
+    <Setter Property="Margin" Value="0,0,12,6" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
 </Styles>

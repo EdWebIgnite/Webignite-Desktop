@@ -304,17 +304,19 @@ public sealed partial class FilesViewModel
         Lay(SelectedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase));
     }
 
-    /// <summary>In a tag's view: opens the folder a file is in, with the file picked.</summary>
-    public void ShowInItsFolder(FileRowViewModel row)
+    /// <summary>From a tag, Recents or search results: opens the folder a file is in, with the file picked.</summary>
+    public void ShowInItsFolder(FileRowViewModel row) => ShowInItsFolder(row.Entry.Path);
+
+    public void ShowInItsFolder(string path)
     {
-        if (FilePaths.Parent(row.Entry.Path) is not { } parent)
+        if (FilePaths.Parent(path) is not { } parent)
             return;
         GoTo(parent);
-        if (Items.OfType<FileRowViewModel>().FirstOrDefault(r => string.Equals(r.Entry.Path, row.Entry.Path, StringComparison.OrdinalIgnoreCase)) is { } found)
+        if (Items.OfType<FileRowViewModel>().FirstOrDefault(r => string.Equals(r.Entry.Path, path, StringComparison.OrdinalIgnoreCase)) is { } found)
         {
             Selected = [found];
             Restored?.Invoke(Selected);
-            UpdateStatus();
+            PickChanged();
         }
     }
 
@@ -340,9 +342,9 @@ public sealed partial class FilesViewModel
 
     private bool NotInTagView()
     {
-        if (!IsTagView)
+        if (!IsGathered)
             return false;
-        Say("Open a folder first: a tag's files come from all over.", problem: false);
+        Say("Open a folder first: these files come from all over.", problem: false);
         return true;
     }
 }

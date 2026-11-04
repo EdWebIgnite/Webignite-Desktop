@@ -15,6 +15,9 @@ public enum FileView
     Thumbnails,
     List,
     Details,
+
+    /// <summary>Finder's column view: each folder on the way in a column of its own, for deep folders.</summary>
+    Columns,
 }
 
 public enum FileSort
@@ -370,4 +373,10 @@ public sealed record FileSettings
 
     /// <summary>The thumbnails' size, in pixels.</summary>
     public int ThumbnailSize { get; init; } = 120;
+
+    /// <summary>Folders pinned to the side list, in the order they were added.</summary>
+    public IReadOnlyList<string> Favourites { get; init; } = [];
+
+    /// <summary>Whether the details pane (preview, size, dates) shows beside the list.</summary>
+    public bool ShowDetails { get; init; }
 }

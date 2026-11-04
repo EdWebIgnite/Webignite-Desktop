@@ -59,7 +59,7 @@ public static class ImageShrinker
     }
 
     // Phones store photos sideways and say which way is up; this turns the pixels to match.
-    private static SKBitmap Upright(SKBitmap bitmap, SKEncodedOrigin origin)
+    internal static SKBitmap Upright(SKBitmap bitmap, SKEncodedOrigin origin)
     {
         if (origin == SKEncodedOrigin.TopLeft)
             return bitmap.Copy();
