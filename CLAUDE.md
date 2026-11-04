@@ -11,4 +11,5 @@ Native Windows app (C#, .NET 10, Avalonia 12, MVVM with CommunityToolkit.Mvvm). 
 - UI copy: plain South African English, Rand shown as `R 1 234.56`, no em dashes.
 - Colours come only from `Styles/Palette.axaml`. Red and green mean problem and done, nothing else.
 - Recipes for adding a page, setting, table, background check or assistant tool: `docs/adding-things.md`.
+- Map of the projects, pages, stores and main flows: `docs/architecture.md`. Update it in the same PR when one of those changes.
 - Dropped tasks go through `Background.Forget("What it was doing")`, never `_ =` and never `async void`; add `tell: true` when the person started it, so a failure shows a note. Problems go to `AppLog`. An error nobody caught on the screen's thread is logged and shown by `Background.CatchUnhandled`, and the app carries on.
