@@ -13,6 +13,7 @@
     <Project Path="tests/Webignite.Tests/Webignite.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Measure/Measure.csproj" />
     <Project Path="tools/Snapshot/Snapshot.csproj" />
   </Folder>
 </Solution>

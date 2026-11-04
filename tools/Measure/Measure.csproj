@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Measures start-up time and memory, and checks every page lets go of its memory when closed. CI fails past limits.json. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- The same memory settings as the app, so the numbers mean the same thing. -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+  </PropertyGroup>
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Webignite.Desktop\Webignite.Desktop.csproj" />
+    <ProjectReference Include="..\..\src\Webignite.Data\Webignite.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="limits.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

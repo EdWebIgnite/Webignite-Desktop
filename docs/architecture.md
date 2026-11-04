@@ -104,6 +104,7 @@ flowchart BT
 | `Webignite.Desktop` | The app: `AppServices`, `AppSettings`, `Navigator`, `MailDrafts`, `BackgroundJobs`, `MailCheck`, `TimerClock`, pages (view models and views), controls, styles. | Avalonia, CommunityToolkit.Mvvm, HtmlRenderer, Velopack |
 | `Webignite.Tools` | The heavier tools: PDF pages (`PdfPages`), picture shrinking (`ImageShrinker`), QR codes (`QrCodes`), and later PDF editing, the image viewer and recording. Only read from disk when a tool is first used. | Docnet.Core, QRCoder, Avalonia.Skia |
 | `tests/Webignite.Tests` | xUnit v3 tests, one file per area. | xunit.v3 |
+| `tools/Measure` | Opens the app on a year of made-up work and measures start-up time and memory, then opens and lets go of every page twice, checking each page and its screen are freed and nothing is left behind. Fails past `limits.json`; CI runs it and puts the numbers in the run's summary. | Avalonia.Headless |
 | `tools/Snapshot` | Builds sample data in a throwaway database, saves a screenshot of each screen and runs checks along the way (a failed check fails the run). CI runs it on every pull request and keeps the pictures. | Avalonia.Headless |
 
 ## 3. Inside the projects

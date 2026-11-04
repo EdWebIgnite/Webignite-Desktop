@@ -11,6 +11,9 @@ namespace Webignite.Desktop.Views;
 public partial class ToolsView : UserControl
 {
     private DispatcherTimer? picker;
+
+    // The window the Enter and Esc handler went on while picking, so it comes off the same one.
+    private TopLevel? keysOn;
     private string? colourBeforePicking;
     private DateTime pickingSince;
 
@@ -100,8 +103,8 @@ public partial class ToolsView : UserControl
         colourBeforePicking = tools.ColourInput;
         pickingSince = DateTime.UtcNow;
         tools.Picking = true;
-        if (TopLevel.GetTopLevel(this) is { } top)
-            top.AddHandler(KeyDownEvent, PickingKeys, RoutingStrategies.Tunnel);
+        keysOn = TopLevel.GetTopLevel(this);
+        keysOn?.AddHandler(KeyDownEvent, PickingKeys, RoutingStrategies.Tunnel);
         picker = new DispatcherTimer(TimeSpan.FromMilliseconds(60), DispatcherPriority.Input, (_, _) => Sample());
         picker.Start();
     }
@@ -143,7 +146,8 @@ public partial class ToolsView : UserControl
     {
         picker?.Stop();
         picker = null;
-        TopLevel.GetTopLevel(this)?.RemoveHandler(KeyDownEvent, PickingKeys);
+        keysOn?.RemoveHandler(KeyDownEvent, PickingKeys);
+        keysOn = null;
         if (Tools is { } tools)
         {
             tools.Picking = false;

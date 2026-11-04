@@ -43,6 +43,9 @@ jobs:
       - run: dotnet build Webignite.slnx -c Release
       - run: dotnet test --solution Webignite.slnx -c Release --no-build
       - run: dotnet run --project tools/Snapshot -c Release --no-build -- screenshots
+      # Light by design: start-up time and memory against tools/Measure/limits.json, and every page must give
+      # its memory back when let go. The numbers go in the run's summary.
+      - run: dotnet run --project tools/Measure -c Release --no-build
       - uses: actions/upload-artifact@v7
         if: always()
         with:
