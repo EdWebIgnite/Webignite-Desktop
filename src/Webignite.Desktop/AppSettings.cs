@@ -54,6 +54,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("files", value);
     }
 
+    /// <summary>The screenshot shortcut and where screenshots are saved.</summary>
+    public Webignite.Core.Tools.ScreenshotSettings Screenshots
+    {
+        get => store.GetSetting<Webignite.Core.Tools.ScreenshotSettings>("screenshots") ?? new Webignite.Core.Tools.ScreenshotSettings();
+        set => store.SetSetting("screenshots", value);
+    }
+
     /// <summary>Files opened lately from Files, newest first, for Recents in its side list.</summary>
     public IReadOnlyList<string> FileRecents
     {

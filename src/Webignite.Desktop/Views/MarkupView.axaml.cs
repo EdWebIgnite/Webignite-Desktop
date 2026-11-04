@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -12,18 +11,16 @@ namespace Webignite.Desktop.Views;
 
 public partial class MarkupView : UserControl
 {
-    private DispatcherTimer? waitingForSnip;
-
     // The window the Ctrl+V and Ctrl+Z handler went on. Asking for the window again when the page is taken
     // off screen finds nothing, which left the handler, and the whole page, held by the window for good.
     private TopLevel? keysOn;
-    private DateTime snipStarted;
 
     public MarkupView()
     {
         InitializeComponent();
         SnipButton.IsVisible = OperatingSystem.IsWindows();
         Canvas.MarkDrawn = mark => Markup?.Add(mark);
+        Canvas.TextAsked = AskForText;
         DragDrop.SetAllowDrop(Canvas, true);
         Canvas.AddHandler(DragDrop.DragOverEvent, (_, e) => e.DragEffects = e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None);
         Canvas.AddHandler(DragDrop.DropEvent, Dropped);
@@ -41,7 +38,6 @@ public partial class MarkupView : UserControl
 
     protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
     {
-        StopWaiting();
         keysOn?.RemoveHandler(KeyDownEvent, Keys);
         keysOn = null;
         base.OnDetachedFromVisualTree(e);
@@ -76,54 +72,8 @@ public partial class MarkupView : UserControl
             markup.Say("There's no picture to paste. Press Win+Shift+S, drag over the site, then Paste.", problem: true);
     }
 
-    // Windows: opens the snipping bar, then watches the clipboard for the new picture for a minute.
-    private void TakeScreenshot(object? sender, RoutedEventArgs e) => TakeScreenshotAsync(sender, e).Forget("Taking the screenshot", tell: true);
-
-    private async Task TakeScreenshotAsync(object? sender, RoutedEventArgs e)
-    {
-        if (!OperatingSystem.IsWindows() || Markup is not { } markup || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
-            return;
-        await clipboard.ClearAsync();
-        try
-        {
-            Process.Start(new ProcessStartInfo("ms-screenclip:") { UseShellExecute = true });
-        }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
-        {
-            markup.Say("Couldn't open the snipping bar. Press Win+Shift+S, then Paste here.", problem: true);
-            return;
-        }
-        markup.Say("Drag over the part of the screen you want. It appears here straight after.");
-        snipStarted = DateTime.UtcNow;
-        StopWaiting();
-        waitingForSnip = new DispatcherTimer(TimeSpan.FromMilliseconds(700), DispatcherPriority.Background, async (_, _) =>
-        {
-            if (DateTime.UtcNow - snipStarted > TimeSpan.FromMinutes(1))
-            {
-                StopWaiting();
-                markup.Say("No screenshot came through. Try again, or press Win+Shift+S and then Paste.");
-                return;
-            }
-            if (await clipboard.TryGetBitmapAsync() is { } bitmap)
-            {
-                StopWaiting();
-                markup.Show(bitmap);
-                if (TopLevel.GetTopLevel(this) is Window window)
-                {
-                    if (window.WindowState == WindowState.Minimized)
-                        window.WindowState = WindowState.Normal;
-                    window.Activate();
-                }
-            }
-        });
-        waitingForSnip.Start();
-    }
-
-    private void StopWaiting()
-    {
-        waitingForSnip?.Stop();
-        waitingForSnip = null;
-    }
+    // Windows: the screen freezes; drag over the part wanted, click a window, or press Enter for all of it.
+    private void TakeScreenshot(object? sender, RoutedEventArgs e) => App.Services?.Go.Screenshot(hideApp: true);
 
     private void OpenImage(object? sender, RoutedEventArgs e) => OpenImageAsync(sender, e).Forget("Opening the picture", tell: true);
 
@@ -175,5 +125,43 @@ public partial class MarkupView : UserControl
         await using (var stream = await file.OpenWriteAsync())
             await stream.WriteAsync(png);
         markup.Say($"Saved {file.Name}.");
+    }
+
+    // The Text tool: a box where the picture was clicked; the words go on the picture at that spot.
+    private Webignite.Core.Tools.MarkPoint textAt;
+
+    private void AskForText(Webignite.Core.Tools.MarkPoint at, Avalonia.Point onCanvas)
+    {
+        textAt = at;
+        TextEntry.Text = "";
+        Avalonia.Controls.Canvas.SetLeft(TextEntry, Math.Min(onCanvas.X, Math.Max(0, Canvas.Bounds.Width - 220)));
+        Avalonia.Controls.Canvas.SetTop(TextEntry, Math.Min(onCanvas.Y, Math.Max(0, Canvas.Bounds.Height - 40)));
+        TextEntry.IsVisible = true;
+        Dispatcher.UIThread.Post(() => TextEntry.Focus(), DispatcherPriority.Input);
+    }
+
+    private void TextEntryKeys(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            KeepText();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            TextEntry.IsVisible = false;
+            e.Handled = true;
+        }
+    }
+
+    private void TextEntryLost(object? sender, RoutedEventArgs e) => KeepText();
+
+    private void KeepText()
+    {
+        if (!TextEntry.IsVisible)
+            return;
+        TextEntry.IsVisible = false;
+        if (!string.IsNullOrWhiteSpace(TextEntry.Text))
+            Markup?.AddText(textAt, TextEntry.Text);
     }
 }

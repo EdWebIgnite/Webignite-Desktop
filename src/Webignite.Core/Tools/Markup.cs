@@ -3,14 +3,17 @@ using System.Text;
 
 namespace Webignite.Core.Tools;
 
-public enum MarkKind { Pin, Arrow, Box, Highlight, Pen }
+public enum MarkKind { Pin, Arrow, Box, Highlight, Pen, Text, Blur }
 
 public enum MarkColour { Red, Yellow, Blue }
 
 /// <summary>A point on the screenshot, in the image's own pixels so marks stay put at any zoom.</summary>
 public readonly record struct MarkPoint(double X, double Y);
 
-/// <summary>One mark drawn on a screenshot. Pins are numbered and carry the comment that goes in the mail.</summary>
+/// <summary>
+/// One mark drawn on a screenshot. Pins are numbered and carry the comment that goes in the mail; a text mark
+/// carries its words in <see cref="Comment"/>; a blur hides what is under it for good in the saved picture.
+/// </summary>
 public sealed record Mark(MarkKind Kind, MarkColour Colour, IReadOnlyList<MarkPoint> Points)
 {
     public int Number { get; init; }
@@ -30,6 +33,8 @@ public static class Markup
             return marks;
         if (mark.Kind == MarkKind.Pin)
             return [.. marks, mark with { Points = [mark.Points[0]], Number = NextNumber(marks) }];
+        if (mark.Kind == MarkKind.Text)
+            return string.IsNullOrWhiteSpace(mark.Comment) ? marks : [.. marks, mark with { Points = [mark.Points[0]], Comment = mark.Comment.Trim() }];
         if (Extent(mark.Points) < MinDrag)
             return marks;
         return [.. marks, mark];
@@ -67,6 +72,49 @@ public static class Markup
 
     /// <summary>Marks scale with the picture so they read the same on a phone screenshot or a 4K one.</summary>
     public static double StrokeFor(int imageWidth, int imageHeight) => Math.Clamp(Math.Max(imageWidth, imageHeight) / 400d, 2, 8);
+
+    /// <summary>Text size that reads well on the picture, like the strokes.</summary>
+    public static double TextSize(int imageWidth, int imageHeight) => StrokeFor(imageWidth, imageHeight) * 7;
+
+    /// <summary>How big the squares of a blur are: big enough that nothing under them can be read back.</summary>
+    public static int BlurBlock(int imageWidth, int imageHeight) => (int)Math.Clamp(Math.Max(imageWidth, imageHeight) / 90d, 8, 28);
+
+    /// <summary>
+    /// A blur as squares of one colour each, the average of the pixels under it, so passwords and client details
+    /// can't be read back from the saved picture. The picture is BGRA, four bytes a pixel.
+    /// </summary>
+    public static IReadOnlyList<(int X, int Y, int Width, int Height, byte B, byte G, byte R)> Pixelate(
+        ReadOnlySpan<byte> bgra, int stride, int width, int height, MarkPoint a, MarkPoint b, int block)
+    {
+        var (bx, by, bw, bh) = Box(a, b);
+        var left = (int)Math.Clamp(Math.Floor(bx), 0, width);
+        var top = (int)Math.Clamp(Math.Floor(by), 0, height);
+        var right = (int)Math.Clamp(Math.Ceiling(bx + bw), 0, width);
+        var bottom = (int)Math.Clamp(Math.Ceiling(by + bh), 0, height);
+        var squares = new List<(int, int, int, int, byte, byte, byte)>();
+        for (var y = top; y < bottom; y += block)
+        {
+            for (var x = left; x < right; x += block)
+            {
+                var w = Math.Min(block, right - x);
+                var h = Math.Min(block, bottom - y);
+                long sb = 0, sg = 0, sr = 0;
+                for (var row = y; row < y + h; row++)
+                {
+                    for (var column = x; column < x + w; column++)
+                    {
+                        var at = row * stride + column * 4;
+                        sb += bgra[at];
+                        sg += bgra[at + 1];
+                        sr += bgra[at + 2];
+                    }
+                }
+                var count = w * h;
+                squares.Add((x, y, w, h, (byte)(sb / count), (byte)(sg / count), (byte)(sr / count)));
+            }
+        }
+        return squares;
+    }
 
     private static double Extent(IReadOnlyList<MarkPoint> points)
     {

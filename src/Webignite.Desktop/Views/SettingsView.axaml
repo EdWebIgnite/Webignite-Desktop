@@ -394,6 +394,34 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="card" IsVisible="{Binding ShowScreenshots}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Screenshots" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Press the shortcut in any program: the screen freezes, you drag over a part, click a window, or press Enter for all of it, and it opens in Mark-up to add arrows, text or blur." />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Shortcut" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox x:Name="ShortcutBox" Width="220" Text="{Binding ScreenshotShortcut, Mode=OneWay}" IsReadOnly="True"
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+S" />
+            <Button Classes="link" Content="Ctrl+Alt+S" Command="{Binding ShortcutBackCommand}" ToolTip.Tip="Go back to the usual shortcut" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" />
+          </StackPanel>
+          <TextBlock FontSize="12" Classes="muted" Classes.problem="{Binding ShortcutProblem}" Text="{Binding ShortcutMessage}" TextWrapping="Wrap" Margin="0,6,0,0"
+                     IsVisible="{Binding ShortcutMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Screenshots without a client go to" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="quiet" Content="Choose folder" Click="ChooseScreenshotFolder" Margin="8,0,0,0" />
+            <TextBox Text="{Binding ScreenshotFolder, Mode=OneWay}" IsReadOnly="True" />
+          </DockPanel>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+                     Text="With a client picked in Mark-up, the screenshot is saved in their client folder instead." />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding ShowDocuments}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="New documents" />

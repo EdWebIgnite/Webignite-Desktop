@@ -1332,6 +1332,72 @@ Save("site-check");
     Save("markup");
     File.WriteAllBytes(Path.Combine(output, "markup-export.png"), vm.Markup.Png()!);
     Console.WriteLine(Webignite.Core.Tools.Markup.Mail("Karoo Coffee Roasters", "Thandi", "the home page", vm.Markup.Marks, "Webignite").Body);
+
+    // Screenshots: the screen frozen under a picker, an area dragged or a window clicked, then text and blur in Mark-up.
+    var frozen = window.CaptureRenderedFrame()!;
+    var screenArea = new PixelRect(0, 0, frozen.PixelSize.Width, frozen.PixelSize.Height);
+    Webignite.Core.Tools.ScreenGrab.Area[] openWindows = [new(232, 0, 600, 400)];
+    var picker = new ScreenGrabWindow(frozen, screenArea, 1, openWindows);
+    picker.Show();
+    picker.Canvas.Press(new Point(300, 150));
+    picker.Canvas.Hover(new Point(900, 600));
+    Dispatcher.UIThread.RunJobs();
+    using (var pickFrame = picker.CaptureRenderedFrame())
+    using (var pickFile = File.Create(Path.Combine(output, "screenshot-picking.png")))
+        pickFrame?.Save(pickFile, new PngBitmapEncoderOptions());
+    picker.Canvas.Release(new Point(900, 600));
+    Check("Dragging over the frozen screen picks that area", picker.Picked.IsCompletedSuccessfully && picker.Picked.Result == new Webignite.Core.Tools.ScreenGrab.Area(300, 150, 600, 450));
+    var clicker = new ScreenGrabWindow(frozen, screenArea, 1, openWindows);
+    clicker.Show();
+    clicker.Canvas.Press(new Point(400, 200));
+    clicker.Canvas.Release(new Point(401, 201));
+    Check("A click takes the whole window under it", clicker.Picked.IsCompletedSuccessfully && clicker.Picked.Result == openWindows[0]);
+    var stopper = new ScreenGrabWindow(frozen, screenArea, 1, openWindows);
+    stopper.Show();
+    stopper.Canvas.Stop();
+    Check("Esc stops without a screenshot", stopper.Picked.IsCompletedSuccessfully && stopper.Picked.Result is null);
+
+    var grabbed = ScreenGrabWindow.Crop(frozen, picker.Picked.Result!.Value);
+    frozen.Dispose();
+    vm.Markup.Show(grabbed);
+    Check("The picked area opens in Mark-up at its own size", vm.Markup.ImageSize == "600 × 450");
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Blur, R, [new(20, 20), new(200, 120)]));
+    vm.Markup.AddText(new Webignite.Core.Tools.MarkPoint(240, 40), "Password hidden");
+    vm.Markup.Add(new Webignite.Core.Tools.Mark(Webignite.Core.Tools.MarkKind.Arrow, R, [new(380, 80), new(210, 70)]));
+    Check("Text and blur are kept as marks", vm.Markup.Marks.Select(m => m.Kind).SequenceEqual([Webignite.Core.Tools.MarkKind.Blur, Webignite.Core.Tools.MarkKind.Text, Webignite.Core.Tools.MarkKind.Arrow]));
+    Save("markup-screenshot");
+    using (var saved = new Bitmap(new MemoryStream(vm.Markup.Png()!)))
+    {
+        var pixels = new byte[saved.PixelSize.Width * saved.PixelSize.Height * 4];
+        var pin = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            saved.CopyPixels(new PixelRect(saved.PixelSize), pin.AddrOfPinnedObject(), pixels.Length, saved.PixelSize.Width * 4);
+        }
+        finally
+        {
+            pin.Free();
+        }
+        int At(int x, int y) => BitConverter.ToInt32(pixels, (y * saved.PixelSize.Width + x) * 4);
+        Check("A blur turns what's under it into squares in the saved picture", At(21, 21) == At(27, 27) && At(21, 21) == At(21, 27));
+    }
+    vm.Markup.Client = vm.Markup.Clients.First(c => c.Name == "Bosveld Builders");
+    vm.Markup.SaveToFolderCommand.Execute(null);
+    Check("Save puts it in the client's folder", vm.Markup.SavedPath is { } shotPath && Path.GetDirectoryName(shotPath) == Path.Combine(projects, "Bosveld Builders") && File.Exists(shotPath));
+    vm.Markup.AddToTodoCommand.Execute(null);
+    Check("Add to my to-do list makes a to-do that says where it is",
+        store.ListTasks().Any(t => t.Customer == "Bosveld Builders" && t.Notes?.Contains(vm.Markup.SavedPath!, StringComparison.Ordinal) == true));
+
+    var shortcutSettings = (SettingsViewModel)vm[Page.Settings].Main.Page;
+    shortcutSettings.SetShortcut("Shift+S");
+    Check("A shortcut that would fire while typing is refused", shortcutSettings.ShortcutProblem && services.Settings.Screenshots.Shortcut == "Ctrl+Alt+S");
+    shortcutSettings.SetShortcut("Ctrl+Alt+P");
+    Check("Another shortcut is kept", services.Settings.Screenshots.Shortcut == "Ctrl+Alt+P" && !shortcutSettings.ShortcutProblem);
+    shortcutSettings.Open("screenshots");
+    Open(Page.Settings);
+    Save("settings-screenshots");
+    shortcutSettings.ShortcutBackCommand.Execute(null);
+    Open(Page.Markup);
 }
 
 // Ctrl+K search
