@@ -84,8 +84,7 @@ public sealed partial class LocalStore
 
     public void SaveMailSummaries(IEnumerable<MailSummary> summaries)
     {
-        Execute("BEGIN IMMEDIATE");
-        try
+        InOneGo(() =>
         {
             foreach (var summary in summaries)
             {
@@ -101,13 +100,8 @@ public sealed partial class LocalStore
                 command.Parameters.AddWithValue("$payload", Seal(MessageContext(summary.AccountId, summary.Folder, summary.Uid), summary));
                 command.ExecuteNonQuery();
             }
-            Execute("COMMIT");
-        }
-        catch
-        {
-            Execute("ROLLBACK");
-            throw;
-        }
+            return true;
+        });
     }
 
     /// <summary>Newest first.</summary>
@@ -154,8 +148,7 @@ public sealed partial class LocalStore
         var list = uids.ToList();
         if (list.Count == 0)
             return;
-        Execute("BEGIN IMMEDIATE");
-        try
+        InOneGo(() =>
         {
             using var command = connection.CreateCommand();
             command.CommandText = """
@@ -170,13 +163,8 @@ public sealed partial class LocalStore
                 uid.Value = (long)one;
                 command.ExecuteNonQuery();
             }
-            Execute("COMMIT");
-        }
-        catch
-        {
-            Execute("ROLLBACK");
-            throw;
-        }
+            return true;
+        });
     }
 
     /// <summary>Several cached messages of one folder in one read, e.g. to compare marks after a mail check.</summary>
