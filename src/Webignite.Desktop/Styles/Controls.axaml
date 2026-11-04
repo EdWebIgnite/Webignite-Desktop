@@ -543,6 +543,52 @@
     <Setter Property="Background" Value="{DynamicResource Surface}" />
   </Style>
 
+  <!-- Tabs across the top of the page area, once there are two. The tab on screen joins the page below it. -->
+  <Style Selector="Border.tabstrip">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+    <Setter Property="Padding" Value="8,6,8,0" />
+  </Style>
+  <Style Selector="ListBox.tabs">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem">
+    <Setter Property="Padding" Value="12,6,8,7" />
+    <Setter Property="Margin" Value="0,0,2,-1" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="CornerRadius" Value="8,8,0,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="BorderThickness" Value="1,1,1,0" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TableHead}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:selected /template/ ContentPresenter, ListBox.tabs ListBoxItem:selected:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Canvas}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Button.tabclose, Button.tabplus">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+  <Style Selector="Button.tabplus">
+    <Setter Property="Padding" Value="7" />
+    <Setter Property="Margin" Value="4,0,0,4" />
+  </Style>
+  <Style Selector="Button.tabclose:pointerover /template/ ContentPresenter, Button.tabplus:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+
   <!-- Sidebar -->
   <Style Selector="ListBox.nav">
     <Setter Property="Background" Value="Transparent" />

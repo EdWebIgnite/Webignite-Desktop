@@ -7,8 +7,10 @@ using Webignite.Core.Layout;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>The Quotes or Invoices module: a list, and the editor when one is open.</summary>
-public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWork
+public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWork, ITabTitle
 {
+    public string? TabTitle => Editor?.Title;
+
     public bool HoldsWork => Editor is not null;
 
     private readonly AppServices services;
@@ -128,7 +130,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
 
     /// <summary>The open document, or null while the list is showing.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsListing))]
+    [NotifyPropertyChangedFor(nameof(IsListing), nameof(TabTitle))]
     public partial DocumentEditorViewModel? Editor { get; set; }
 
     // Whatever replaces an open editor, what was typed in it is saved first.

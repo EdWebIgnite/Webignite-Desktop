@@ -47,6 +47,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("sidebar", value);
     }
 
+    /// <summary>The tabs that were open and which was showing.</summary>
+    public Webignite.Core.Layout.TabSettings Tabs
+    {
+        get => store.GetSetting<Webignite.Core.Layout.TabSettings>("tabs") ?? new Webignite.Core.Layout.TabSettings();
+        set => store.SetSetting("tabs", value);
+    }
+
     /// <summary>Window size, position and last page, saved when the app closes.</summary>
     public WindowPlacement? Window
     {

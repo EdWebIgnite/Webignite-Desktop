@@ -127,6 +127,14 @@ public partial class MailView : UserControl
     private void MessagePressed(object? sender, PointerPressedEventArgs e)
     {
         pressed = null;
+        // A middle click opens the mail in a Mail tab of its own (Ctrl+click picks more than one mail here).
+        if (e.GetCurrentPoint(MessageList).Properties.IsMiddleButtonPressed
+            && (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is MailRowViewModel middle && App.Services is { } services)
+        {
+            services.Go.MailInNewTab(middle.Summary);
+            e.Handled = true;
+            return;
+        }
         if (Mail is not { } mail || !e.GetCurrentPoint(MessageList).Properties.IsLeftButtonPressed
             || e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             return;

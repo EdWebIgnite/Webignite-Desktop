@@ -14,14 +14,33 @@ public sealed partial class PageHost(Module module, Func<ViewModelBase> build) :
 
     public Module Module { get; } = module;
     public Page Key => Module.Key;
-    public string Title => Module.Title;
+    /// <summary>What the tab says: what is open in the page (a client, an invoice), or the page's name.</summary>
+    public string Title => page is ITabTitle { TabTitle: { Length: > 0 } title } ? title : Module.Title;
     public bool FullBleed => Module.FullBleed;
 
     /// <summary>Whether this is the module's own copy, which is never closed, only let go.</summary>
     public bool IsMain => ReferenceEquals(Module.Main, this);
 
     /// <summary>The page, built now if it hasn't been yet.</summary>
-    public ViewModelBase Page => page ??= build();
+    public ViewModelBase Page
+    {
+        get
+        {
+            if (page is null)
+            {
+                page = build();
+                page.PropertyChanged += PageChanged;
+            }
+            return page;
+        }
+    }
+
+    // The page belongs to this copy alone, so listening to it holds nothing that would outlive both.
+    private void PageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ITabTitle.TabTitle))
+            OnPropertyChanged(nameof(Title));
+    }
 
     /// <summary>Whether the page has been built and not let go since.</summary>
     public bool IsBuilt => page is not null;
@@ -35,9 +54,11 @@ public sealed partial class PageHost(Module module, Func<ViewModelBase> build) :
         if (page is null || page is IHoldsWork { HoldsWork: true })
             return false;
         var old = page;
+        old.PropertyChanged -= PageChanged;
         page = null;
         (old as IDisposable)?.Dispose();
         OnPropertyChanged(nameof(IsBuilt));
+        OnPropertyChanged(nameof(Title));
         return true;
     }
 
