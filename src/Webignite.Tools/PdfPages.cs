@@ -4,7 +4,7 @@ using Avalonia.Platform;
 using Docnet.Core;
 using Docnet.Core.Models;
 
-namespace Webignite.Desktop;
+namespace Webignite.Tools;
 
 /// <summary>
 /// Draws the pages of a PDF as pictures for the attachment preview, with PDFium (a PDF library, not a browser).

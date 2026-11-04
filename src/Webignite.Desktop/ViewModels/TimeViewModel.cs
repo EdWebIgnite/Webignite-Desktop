@@ -20,19 +20,27 @@ public sealed record ProjectChoice(string Label, ClientProject? Project)
 /// The Time page: a start/stop timer, time typed in by hand, totals per client and project, and the entries.
 /// Time can be for a client, one of the client's projects, or nobody at all.
 /// </summary>
-public partial class TimeViewModel : ViewModelBase, IRefreshable
+public partial class TimeViewModel : ViewModelBase, IRefreshable, IDisposable
 {
     private readonly AppServices services;
-    private readonly DispatcherTimer tick = new() { Interval = TimeSpan.FromSeconds(1) };
     private IReadOnlyList<Client> clients = [];
 
     public TimeViewModel(AppServices services)
     {
         this.services = services;
-        tick.Tick += (_, _) => UpdateClock();
+        // The running timer and its clock belong to the app, so the sidebar shows them with this page closed.
+        services.Timer.PropertyChanged += TimerChanged;
         Period = PeriodChoices[0];
-        Running = services.Store.RunningTimer;
         Refresh();
+    }
+
+    private void TimerChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => OnPropertyChanged(e.PropertyName);
+
+    /// <summary>Let go when the page is: the app's timer outlives it.</summary>
+    public void Dispose()
+    {
+        services.Timer.PropertyChanged -= TimerChanged;
+        GC.SuppressFinalize(this);
     }
 
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
@@ -93,17 +101,15 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
 
     /// <summary>"R 8 125.00 at your hourly rates", or empty when no client has a rate.</summary>
     [ObservableProperty] public partial string PeriodValue { get; set; } = "";
-    [ObservableProperty] public partial string Clock { get; set; } = "";
+    public string Clock => services.Timer.Clock;
 
     /// <summary>The timer that's running, if any. It survives closing the app.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsRunning), nameof(RunningFor))]
-    public partial RunningTimer? Running { get; set; }
+    public RunningTimer? Running => services.Timer.Running;
 
-    public bool IsRunning => Running is not null;
+    public bool IsRunning => services.Timer.IsRunning;
 
     /// <summary>"Karoo Coffee Roasters: New website" for the running timer, shown in the sidebar too.</summary>
-    public string RunningFor => Running is null ? "" : Running.Note is { Length: > 0 } note ? note : Describe(Running.ClientId, Running.ProjectId);
+    public string RunningFor => services.Timer.RunningFor;
 
     public bool HasProjects => ProjectChoices.Count > 1;
     public bool IsEmpty => Days.Count == 0;
@@ -123,31 +129,18 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
 
     partial void OnPeriodChanged(Choice<TimeRules.Period> value) => Refresh();
 
-    partial void OnRunningChanged(RunningTimer? value)
-    {
-        if (value is null)
-            tick.Stop();
-        else
-            tick.Start();
-        UpdateClock();
-    }
-
-    private void UpdateClock() =>
-        Clock = Running is { } running ? TimeRules.Clock(DateTimeOffset.Now - running.Started) : "0:00:00";
-
     [RelayCommand]
     private void Start()
     {
         if (Running is not null)
             return;
-        Running = new RunningTimer
+        services.Timer.Start(new RunningTimer
         {
             Started = DateTimeOffset.Now,
             Note = Note.Trim(),
             ClientId = ClientChoice?.Value?.Id,
             ProjectId = ProjectChoice?.Project?.Id,
-        };
-        services.Store.SetRunningTimer(Running);
+        });
         Say("");
     }
 
@@ -157,8 +150,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         if (Running is not { } running)
             return;
         var entry = TimeRules.Stop(running with { Note = running.Note.Length > 0 ? running.Note : Note.Trim() }, DateTimeOffset.Now);
-        services.Store.SetRunningTimer(null);
-        Running = null;
+        services.Timer.Stop();
         if (entry is null)
         {
             Say("Stopped within half a minute, so nothing was kept.");
@@ -251,7 +243,6 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
                 day.Select(e => new TimeEntryRow(e, TimeRules.Describe(e, clients), this)).ToList()));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(RunningFor));
-        UpdateClock();
     }
 }
 

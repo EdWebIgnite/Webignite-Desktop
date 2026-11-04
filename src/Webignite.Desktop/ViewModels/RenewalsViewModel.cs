@@ -19,8 +19,10 @@ public sealed record PeriodChoice(string Label, int Months)
 }
 
 /// <summary>Domains and hosting: what renews when, with reminders and renewal invoices drafted in time.</summary>
-public partial class RenewalsViewModel : ViewModelBase, IRefreshable
+public partial class RenewalsViewModel : ViewModelBase, IRefreshable, IHoldsWork
 {
+    public bool HoldsWork => ShowForm;
+
     private readonly AppServices services;
     private Renewal? editing;
 

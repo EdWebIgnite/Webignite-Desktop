@@ -6,6 +6,7 @@
     <Project Path="src/Webignite.Desktop/Webignite.Desktop.csproj" />
     <Project Path="src/Webignite.Mail/Webignite.Mail.csproj" />
     <Project Path="src/Webignite.Services/Webignite.Services.csproj" />
+    <Project Path="src/Webignite.Tools/Webignite.Tools.csproj" />
     <Project Path="src/Webignite.Xero/Webignite.Xero.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -94,6 +94,33 @@ void Check(string what, bool ok)
         failures.Add(what);
 }
 
+// A method of its own, so the tools assembly is only read when this runs, as in the app.
+static void ShrinkPhotos(string photos, ToolsViewModel tools)
+{
+    long before = 0, after = 0;
+    foreach (var photo in Directory.GetFiles(photos).Order())
+    {
+        var shrunk = Webignite.Tools.ImageShrinker.Shrink(photo, new Webignite.Core.Tools.ImageJob());
+        if (shrunk.Problem is not null)
+            throw new InvalidOperationException(shrunk.Problem);
+        Console.WriteLine($"Shrunk {Path.GetFileName(photo)} to {shrunk.Output} {shrunk.Width}x{shrunk.Height}");
+        before += shrunk.Before;
+        after += shrunk.After;
+        tools.ImageResults.Add(new ImageResultRow(shrunk));
+        tools.ImageFolder = Path.GetDirectoryName(shrunk.Output);
+    }
+    tools.ImageMessage = $"2 images saved in the web folder: {Webignite.Core.Tools.ImageRules.Saving(before, after)}.";
+}
+
+// Light by design: opening the app builds Overview and nothing else, and reads no heavy tool from disk.
+Dispatcher.UIThread.RunJobs();
+Check("Opening the app builds Overview and no other page", vm.Modules.Where(m => m.IsBuilt).Select(m => m.Key).SequenceEqual([Page.Overview]));
+{
+    string[] heavy = ["Webignite.Tools", "Docnet.Core", "QRCoder", "HtmlRenderer", "Avalonia.HtmlRenderer"];
+    var loaded = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name ?? "").Where(heavy.Contains).ToList();
+    Check("Opening the app loads no heavy tool" + (loaded.Count > 0 ? " (loaded: " + string.Join(", ", loaded) + ")" : ""), loaded.Count == 0);
+}
+
 // Waits for work that finishes off the screen's thread, keeping the screen's own jobs running meanwhile.
 void Wait(Task task, string what)
 {
@@ -326,11 +353,12 @@ vm.Time.ClientChoice = vm.Time.ClientChoices.First(c => c.Label == "Bosveld Buil
 vm.Time.Note = "Contact form";
 vm.Time.StartCommand.Execute(null);
 var started = store.RunningTimer! with { Started = DateTimeOffset.Now.AddMinutes(-23).AddSeconds(-14) };
-store.SetRunningTimer(started);
-vm.Time.Running = started;
+services.Timer.Start(started);
 Save("time-running");
-store.SetRunningTimer(null);
-vm.Time.Running = null;
+Open(Page.Overview);
+Check("The running timer shows in the sidebar with Time let go", vm.ReleaseIdle(TimeSpan.Zero) > 0 && !vm[Page.Time].IsBuilt && vm.Timer.IsRunning);
+Open(Page.Time);
+services.Timer.Stop();
 vm.Time.Note = "";
 Open(Page.Clients);
 Save("clients");
@@ -707,19 +735,7 @@ foreach (var (name, w, h) in new[] { ("Shop Front (1).jpg", 4032, 3024), ("Team 
     using var encoded = img.Encode(name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? SkiaSharp.SKEncodedImageFormat.Png : SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
     File.WriteAllBytes(Path.Combine(photos, name), encoded.ToArray());
 }
-long shrunkBefore = 0, shrunkAfter = 0;
-foreach (var photo in Directory.GetFiles(photos).Order())
-{
-    var shrunk = ImageShrinker.Shrink(photo, new Webignite.Core.Tools.ImageJob());
-    if (shrunk.Problem is not null)
-        throw new InvalidOperationException(shrunk.Problem);
-    Console.WriteLine($"Shrunk {Path.GetFileName(photo)} to {shrunk.Output} {shrunk.Width}x{shrunk.Height}");
-    shrunkBefore += shrunk.Before;
-    shrunkAfter += shrunk.After;
-    vm.Tools.ImageResults.Add(new ImageResultRow(shrunk));
-    vm.Tools.ImageFolder = Path.GetDirectoryName(shrunk.Output);
-}
-vm.Tools.ImageMessage = $"2 images saved in the web folder: {Webignite.Core.Tools.ImageRules.Saving(shrunkBefore, shrunkAfter)}.";
+ShrinkPhotos(photos, vm.Tools);
 window.Height = 1700;
 Save("tools-all");
 window.Height = 860;

@@ -7,8 +7,10 @@ using Webignite.Core.Layout;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>The Quotes or Invoices module: a list, and the editor when one is open.</summary>
-public partial class DocumentsViewModel : ViewModelBase, IRefreshable
+public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWork
 {
+    public bool HoldsWork => Editor is not null;
+
     private readonly AppServices services;
 
     public DocumentsViewModel(DocumentKind kind, AppServices services)

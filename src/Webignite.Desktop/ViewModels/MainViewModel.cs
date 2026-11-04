@@ -6,10 +6,12 @@ namespace Webignite.Desktop.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     private readonly AppServices services;
-    private readonly Avalonia.Threading.DispatcherTimer backupTimer;
-    private readonly Avalonia.Threading.DispatcherTimer mailTimer;
-    private readonly Avalonia.Threading.DispatcherTimer uptimeTimer;
-    private readonly Avalonia.Threading.DispatcherTimer paymentTimer;
+
+    /// <summary>A page nobody has looked at for this long is let go, and built again when next opened.</summary>
+    public static readonly TimeSpan PageIdle = TimeSpan.FromMinutes(10);
+
+    /// <summary>Mail checks, payments, website checks and backups: they run whichever pages are built.</summary>
+    public BackgroundJobs Jobs { get; }
 
     /// <summary>Reads payments from Xero, refreshes the pages that show money owed and announces what came in.</summary>
     public async Task CheckPaymentsAsync(bool byHand = false)
@@ -23,16 +25,17 @@ public partial class MainViewModel : ViewModelBase
             services.ShowNote?.Invoke($"{news.Count - 3} more payments came in", "Open Invoices to see them.", () => Selected = this[Page.Invoices]);
         if (byHand && problem is null && news.Count == 0)
             services.ShowNote?.Invoke("Payments checked", "No new payments in Xero.", null);
-        Overview.Refresh();
-        Invoices.Refresh();
-        Quotes.Refresh();
+        // Only pages already built need telling; the rest read the latest when opened.
+        IfBuilt<OverviewViewModel>(Page.Overview)?.Refresh();
+        IfBuilt<DocumentsViewModel>(Page.Invoices)?.Refresh();
+        IfBuilt<DocumentsViewModel>(Page.Quotes)?.Refresh();
     }
 
     /// <summary>Shows a note for each site that went down, came back, or has a certificate about to run out.</summary>
     private async Task CheckSitesAsync()
     {
         AnnounceSites(await services.SiteWatch.RunAsync());
-        SiteCheck.RefreshWatched();
+        IfBuilt<SiteCheckViewModel>(Page.SiteCheck)?.RefreshWatched();
     }
 
     private void AnnounceSites(IReadOnlyList<Webignite.Core.Web.UptimeAlert> alerts)
@@ -44,7 +47,6 @@ public partial class MainViewModel : ViewModelBase
         if (alerts.Any(a => a.Problem) && WindowIsActive?.Invoke() != true)
             FlashTaskbar?.Invoke();
     }
-    private DateTimeOffset lastMailCheck = DateTimeOffset.MinValue;
     private bool checkingMail;
     private readonly Module mailModule;
 
@@ -65,11 +67,17 @@ public partial class MainViewModel : ViewModelBase
         if (checkingMail)
             return;
         checkingMail = true;
-        lastMailCheck = DateTimeOffset.Now;
+        Jobs.LastMailCheck = DateTimeOffset.Now;
         try
         {
+            // With Mail open its list and status update too; otherwise the check runs on its own.
             using (services.Work.Start("Checking mail"))
-                await Mail.SyncAll();
+            {
+                if (IfBuilt<MailViewModel>(Page.Mail) is { } mail)
+                    await mail.SyncAll();
+                else
+                    await services.MailCheck.RunAsync();
+            }
             var settings = services.Settings.MailCheck;
             var inboxes = new List<(string, IReadOnlyList<Webignite.Core.Mail.MailSummary>)>();
             foreach (var account in services.Store.ListMailAccounts())
@@ -108,76 +116,33 @@ public partial class MainViewModel : ViewModelBase
         this.services = services;
         services.CatchUp();
         Updates.CheckAsync().Forget("Checking for an update");
-        services.BackUpAsync().Forget("Backing up");
-        // Once an hour, check whether the daily backup is due, for when the app stays open for days.
-        backupTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(1) };
-        backupTimer.Tick += (_, _) => services.BackUpAsync().Forget("Backing up");
-        backupTimer.Start();
-        // Mail is checked in the background every few minutes (Settings), even when another page is open.
-        mailTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
-        mailTimer.Tick += (_, _) =>
-        {
-            services.CatchUp(); // a moment's work only after midnight; otherwise it returns at once
-            if (DateTimeOffset.Now - lastMailCheck >= Webignite.Core.Mail.NewMail.Interval(services.Settings.MailCheck))
-                CheckMailAsync().Forget("Checking mail");
-        };
-        mailTimer.Start();
-        Quotes = new DocumentsViewModel(DocumentKind.Quote, services);
-        Invoices = new DocumentsViewModel(DocumentKind.Invoice, services);
-        Todo = new TodoViewModel(services);
-        Overview = new OverviewViewModel(services);
-        Clients = new ClientsViewModel(services);
-        Mail = new MailViewModel(services);
-        Approvals = new ApprovalsViewModel(services);
-        Tools = new ToolsViewModel(services);
-        SiteCheck = new SiteCheckViewModel(services);
-        SiteCheck.Announce = AnnounceSites;
-        SiteCheck.RefreshWatched();
-        // Client websites are visited every 15 minutes while the app is open.
-        uptimeTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
-        uptimeTimer.Tick += (_, _) =>
-        {
-            if (services.SiteWatch.Due(DateTimeOffset.Now))
-                CheckSitesAsync().Forget("Checking client websites");
-        };
-        uptimeTimer.Start();
-        // Payments are read from Xero when the app opens and every half hour after that.
-        Overview.CheckPayments = () => CheckPaymentsAsync(byHand: true);
-        paymentTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
-        paymentTimer.Tick += (_, _) =>
-        {
-            if (services.XeroApi is not null && services.Payments.Due(DateTimeOffset.Now))
-                CheckPaymentsAsync().Forget("Checking payments in Xero");
-        };
-        paymentTimer.Start();
-        Markup = new MarkupViewModel(services);
-        Time = new TimeViewModel(services);
         // The sidebar, in groups. Headings sit between the groups; the pages keep the order shown here.
+        // Each page is built the first time it is opened, so starting the app builds Overview and nothing else.
         object[] nav =
         [
-            new Module(Page.Overview, "Overview", Overview, "Overview"),
-            new Module(Page.Approvals, "To approve", Approvals, "Approve"),
-            new Module(Page.Mail, "Mail", Mail, "Mail", fullBleed: true),
+            new Module(Page.Overview, "Overview", () => new OverviewViewModel(services) { CheckPayments = () => CheckPaymentsAsync(byHand: true) }, "Overview"),
+            new Module(Page.Approvals, "To approve", () => new ApprovalsViewModel(services), "Approve"),
+            new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
             new NavGroup("client-work", "CLIENT WORK"),
-            new Module(Page.Clients, "Clients", Clients, "Clients", fullBleed: true),
-            new Module(Page.Retainers, "Retainers", new RetainersViewModel(services), "Retainers"),
-            new Module(Page.Renewals, "Domains and hosting", new RenewalsViewModel(services), "Domains"),
+            new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
+            new Module(Page.Retainers, "Retainers", () => new RetainersViewModel(services), "Retainers"),
+            new Module(Page.Renewals, "Domains and hosting", () => new RenewalsViewModel(services), "Domains"),
             new NavGroup("billing", "BILLING"),
-            new Module(Page.Quotes, "Quotes", Quotes, "Quotes"),
-            new Module(Page.Invoices, "Invoices", Invoices, "Invoices"),
-            new Module(Page.Money, "Money", new MoneyViewModel(services), "Money"),
-            new Module(Page.Reports, "Reports", new ReportsViewModel(services), "Reports"),
+            new Module(Page.Quotes, "Quotes", () => new DocumentsViewModel(DocumentKind.Quote, services), "Quotes"),
+            new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
+            new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
+            new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
             new NavGroup("planning", "PLANNING"),
-            new Module(Page.Todo, "To-do", Todo, "Todo"),
-            new Module(Page.Calendar, "Calendar", new CalendarViewModel(services), "Calendar"),
-            new Module(Page.Planner, "Planner", new PlannerViewModel(services), "Planner"),
-            new Module(Page.Time, "Time", Time, "Time"),
+            new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo"),
+            new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar"),
+            new Module(Page.Planner, "Planner", () => new PlannerViewModel(services), "Planner"),
+            new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time"),
             new NavGroup("web-tools", "WEB TOOLS"),
-            new Module(Page.SiteCheck, "Site check", SiteCheck, "SiteCheck"),
-            new Module(Page.Markup, "Mark-up", Markup, "Markup"),
-            new Module(Page.Tools, "Tools", Tools, "Tools"),
+            new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
+            new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
+            new Module(Page.Tools, "Tools", () => new ToolsViewModel(services), "Tools"),
             new NavGroup("end", ""),
-            new Module(Page.Settings, "Settings", new SettingsViewModel(services), "Settings"),
+            new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings"),
         ];
         NavGroup? group = null;
         foreach (var item in nav)
@@ -191,7 +156,14 @@ public partial class MainViewModel : ViewModelBase
         Sidebar = new SidebarViewModel(services.Settings, nav);
         Selected = Modules[0];
         mailModule = this[Page.Mail];
-        CheckMailAsync().Forget("Checking mail");
+        Jobs = new BackgroundJobs(services)
+        {
+            CheckMail = CheckMailAsync,
+            CheckPayments = () => CheckPaymentsAsync(),
+            CheckSites = CheckSitesAsync,
+            EveryMinute = () => ReleaseIdle(PageIdle),
+        };
+        Jobs.Start();
 
         // How other pages get here. Each one lands on the right page first, then opens the thing.
         var go = services.Go;
@@ -247,7 +219,30 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>The sidebar entry for a page.</summary>
     public Module this[Page page] => Modules.Single(m => m.Key == page);
 
+    private SiteCheckViewModel BuildSiteCheck(AppServices services)
+    {
+        var page = new SiteCheckViewModel(services) { Announce = AnnounceSites };
+        page.RefreshWatched();
+        return page;
+    }
+
+    /// <summary>A page, built now if it hasn't been.</summary>
+    private T PageOf<T>(Page key) where T : ViewModelBase => (T)this[key].Page;
+
+    /// <summary>A page only if it is already built, for telling open pages something changed.</summary>
+    private T? IfBuilt<T>(Page key) where T : ViewModelBase => this[key].IsBuilt ? (T)this[key].Page : null;
+
+    /// <summary>Lets go of pages nobody has looked at for a while, unless they hold open work.</summary>
+    public int ReleaseIdle(TimeSpan idle)
+    {
+        var now = DateTimeOffset.Now;
+        return Modules.Count(m => m != Selected && m.IsBuilt && now - m.LastSeen >= idle && m.Release());
+    }
+
     public QuickSearchViewModel Search { get; }
+
+    /// <summary>The running time-tracking timer, for the sidebar.</summary>
+    public TimerClock Timer => services.Timer;
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void OpenTime() => Selected = this[Page.Time];
@@ -275,17 +270,18 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    public DocumentsViewModel Quotes { get; }
-    public DocumentsViewModel Invoices { get; }
-    public TodoViewModel Todo { get; }
-    public OverviewViewModel Overview { get; }
-    public ClientsViewModel Clients { get; }
-    public MailViewModel Mail { get; }
-    public ApprovalsViewModel Approvals { get; }
-    public ToolsViewModel Tools { get; }
-    public SiteCheckViewModel SiteCheck { get; }
-    public MarkupViewModel Markup { get; }
-    public TimeViewModel Time { get; }
+    // Each of these builds its page if it isn't built yet, so a jump from elsewhere always lands on it.
+    public DocumentsViewModel Quotes => PageOf<DocumentsViewModel>(Page.Quotes);
+    public DocumentsViewModel Invoices => PageOf<DocumentsViewModel>(Page.Invoices);
+    public TodoViewModel Todo => PageOf<TodoViewModel>(Page.Todo);
+    public OverviewViewModel Overview => PageOf<OverviewViewModel>(Page.Overview);
+    public ClientsViewModel Clients => PageOf<ClientsViewModel>(Page.Clients);
+    public MailViewModel Mail => PageOf<MailViewModel>(Page.Mail);
+    public ApprovalsViewModel Approvals => PageOf<ApprovalsViewModel>(Page.Approvals);
+    public ToolsViewModel Tools => PageOf<ToolsViewModel>(Page.Tools);
+    public SiteCheckViewModel SiteCheck => PageOf<SiteCheckViewModel>(Page.SiteCheck);
+    public MarkupViewModel Markup => PageOf<MarkupViewModel>(Page.Markup);
+    public TimeViewModel Time => PageOf<TimeViewModel>(Page.Time);
     public IReadOnlyList<Module> Modules { get; }
 
     /// <summary>The sidebar itself: hidden or showing, and which groups are folded.</summary>
@@ -314,20 +310,27 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     public async Task<string?> PrepareToCloseAsync()
     {
-        foreach (var money in Modules.Select(m => m.Page).OfType<MoneyViewModel>())
-            money.SaveTyped();
-        Invoices.Editor?.Keep();
-        Quotes.Editor?.Keep();
-        Approvals.Editor?.Keep();
-        var problem = Clients.Detail is { } client && !client.Leave()
+        // Only built pages can hold anything unsaved.
+        IfBuilt<MoneyViewModel>(Page.Money)?.SaveTyped();
+        IfBuilt<DocumentsViewModel>(Page.Invoices)?.Editor?.Keep();
+        IfBuilt<DocumentsViewModel>(Page.Quotes)?.Editor?.Keep();
+        IfBuilt<ApprovalsViewModel>(Page.Approvals)?.Editor?.Keep();
+        var problem = IfBuilt<ClientsViewModel>(Page.Clients)?.Detail is { } client && !client.Leave()
             ? $"{client.Title} has something to fix before it can be saved."
             : null;
-        return await Mail.PrepareToCloseAsync() ?? problem;
+        return (IfBuilt<MailViewModel>(Page.Mail) is { } mail ? await mail.PrepareToCloseAsync() : null) ?? problem;
+    }
+
+    partial void OnSelectedChanging(Module value)
+    {
+        if (Selected is { } leaving)
+            leaving.LastSeen = DateTimeOffset.Now;
     }
 
     // These pages show things other pages change, so they look again whenever they're opened.
     partial void OnSelectedChanged(Module value)
     {
+        value.LastSeen = DateTimeOffset.Now;
         services.CatchUp();
         if (mailModule is not null)
             UpdateMailBadge();

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The heavier tools (PDF pages, picture shrinking, QR codes, and later PDF editing, the image viewer and
+    screen recording), kept apart from the app so their libraries are only read from disk the first time a
+    tool is used. Nothing at start-up may touch a type in here.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Webignite.Tools</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="Docnet.Core" />
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Webignite.Core\Webignite.Core.csproj" />
+  </ItemGroup>
+</Project>

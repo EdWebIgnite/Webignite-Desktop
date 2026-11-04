@@ -1,6 +1,6 @@
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
-using QRCoder;
+using Webignite.Tools;
 using Webignite.Core.Tools;
 
 namespace Webignite.Desktop.ViewModels;
@@ -69,8 +69,7 @@ public sealed partial class ToolsViewModel
         else
         {
             QrContent = QrText.Build(kind, QrInput, WifiPassword, security);
-            using var data = QRCodeGenerator.GenerateQrCode(QrContent, QRCodeGenerator.ECCLevel.M);
-            using var stream = new MemoryStream(new PngByteQRCode(data).GetGraphic(8));
+            using var stream = new MemoryStream(QrCodes.Png(QrContent, 8));
             QrImage = new Bitmap(stream);
             QrMessage = kind == QrKind.Wifi ? "Scanning it joins the network. Test it with your phone before printing." : "Test it with your phone before printing.";
         }
@@ -82,8 +81,7 @@ public sealed partial class ToolsViewModel
     {
         if (QrContent is null)
             return null;
-        using var data = QRCodeGenerator.GenerateQrCode(QrContent, QRCodeGenerator.ECCLevel.M);
-        return new PngByteQRCode(data).GetGraphic(24);
+        return QrCodes.Png(QrContent, 24);
     }
 
     /// <summary>An SVG, for websites and for printers that want artwork that scales.</summary>
@@ -91,8 +89,7 @@ public sealed partial class ToolsViewModel
     {
         if (QrContent is null)
             return null;
-        using var data = QRCodeGenerator.GenerateQrCode(QrContent, QRCodeGenerator.ECCLevel.M);
-        return new SvgQRCode(data).GetGraphic(10);
+        return QrCodes.Svg(QrContent, 10);
     }
 
     public void QrSaved(string name) => QrMessage = $"Saved {name}.";

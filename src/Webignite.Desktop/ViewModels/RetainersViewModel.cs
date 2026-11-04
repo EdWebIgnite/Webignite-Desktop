@@ -9,8 +9,10 @@ using Webignite.Core;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>The Retainers module: clients billed the same every month, with the invoice drafted for you.</summary>
-public partial class RetainersViewModel : ViewModelBase, IRefreshable
+public partial class RetainersViewModel : ViewModelBase, IRefreshable, IHoldsWork
 {
+    public bool HoldsWork => Editor is not null;
+
     private readonly AppServices services;
 
     public RetainersViewModel(AppServices services)

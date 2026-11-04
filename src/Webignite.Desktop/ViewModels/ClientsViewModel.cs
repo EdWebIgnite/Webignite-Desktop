@@ -8,8 +8,10 @@ using Webignite.Core.Layout;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>The Clients module: a searchable list, and one client's page when one is open.</summary>
-public partial class ClientsViewModel : ViewModelBase, IRefreshable
+public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork
 {
+    public bool HoldsWork => Detail is not null;
+
     private readonly AppServices services;
     private List<ClientRow> all = [];
 

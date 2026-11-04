@@ -5,10 +5,12 @@ namespace Webignite.Desktop.ViewModels;
 
 /// <summary>
 /// One entry in the sidebar. The app is a shell of modules, so Mail and later tools slot in as
-/// another entry without touching the rest.
+/// another entry without touching the rest. A page is built the first time it is opened, and an
+/// unused one can be let go to free its memory (<see cref="Release"/>); it is built again when next opened.
 /// </summary>
-public sealed partial class Module(Page key, string title, ViewModelBase page, string icon, bool fullBleed = false) : ObservableObject
+public sealed partial class Module(Page key, string title, Func<ViewModelBase> build, string icon, bool fullBleed = false) : ObservableObject
 {
+    private ViewModelBase? page;
     /// <summary>Which page this is. Jumps from other pages use this, so a title can change freely.</summary>
     public Page Key { get; } = key;
 
@@ -16,7 +18,28 @@ public sealed partial class Module(Page key, string title, ViewModelBase page, s
 
     /// <summary>The key of its line icon in Styles/Icons.axaml, without the "Icon." in front.</summary>
     public string Icon { get; } = icon;
-    public ViewModelBase Page { get; } = page;
+    /// <summary>The page, built now if it hasn't been yet.</summary>
+    public ViewModelBase Page => page ??= build();
+
+    /// <summary>Whether the page has been built and not let go since.</summary>
+    public bool IsBuilt => page is not null;
+
+    /// <summary>When the page was last on screen, for letting go of pages nobody is looking at.</summary>
+    public DateTimeOffset LastSeen { get; internal set; } = DateTimeOffset.Now;
+
+    /// <summary>
+    /// Lets the page go so its memory can be freed, unless it holds open work. Returns true when it went.
+    /// </summary>
+    public bool Release()
+    {
+        if (page is null || page is IHoldsWork { HoldsWork: true })
+            return false;
+        var old = page;
+        page = null;
+        (old as IDisposable)?.Dispose();
+        OnPropertyChanged(nameof(IsBuilt));
+        return true;
+    }
     public bool FullBleed { get; } = fullBleed;
 
     /// <summary>The heading this page sits under, if any. Folding the group takes the page off the list.</summary>

@@ -1,7 +1,7 @@
 using SkiaSharp;
 using Webignite.Core.Tools;
 
-namespace Webignite.Desktop;
+namespace Webignite.Tools;
 
 /// <summary>
 /// Makes a website-sized copy of an image with Skia, which the app already uses to draw. The original is
