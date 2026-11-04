@@ -1,6 +1,6 @@
 # Adding things to Webignite
 
-The recipes for the changes that come up most. Each one names the files to touch and the one that must not be skipped.
+The recipes for the changes that come up most. Each one names the files to touch and the one that must not be skipped. For how the pieces fit together, see [architecture.md](architecture.md).
 
 ## A rule or a calculation
 
