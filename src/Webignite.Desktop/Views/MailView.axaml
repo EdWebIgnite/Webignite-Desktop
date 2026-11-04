@@ -180,184 +180,13 @@
   </UserControl.Styles>
 
   <Grid>
-    <!-- Mail rules: sort new mail as it arrives -->
-    <ScrollViewer IsVisible="{Binding ShowRules}">
-      <Border Classes="card" Margin="36,30" MaxWidth="760" HorizontalAlignment="Left" VerticalAlignment="Top"
-              DataContext="{Binding RulesPage}" x:DataType="vm:MailRulesViewModel">
-        <StackPanel Spacing="16">
-          <DockPanel>
-            <Button DockPanel.Dock="Right" Classes="quiet" Content="Done" Command="{Binding CloseCommand}" VerticalAlignment="Top" />
-            <StackPanel Spacing="4">
-              <TextBlock Classes="h1" Text="Mail rules" />
-              <TextBlock Classes="muted" TextWrapping="Wrap"
-                         Text="Rules sort new inbox mail as it arrives: move it, give it a category, mark it Important or mark it read. They are kept on this PC, so they work while Webignite is open." />
-            </StackPanel>
-          </DockPanel>
-
-          <StackPanel Spacing="6" IsVisible="{Binding HasRules}">
-            <ItemsControl ItemsSource="{Binding Rules}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:MailRuleRowViewModel">
-                  <Border Classes="taskrow">
-                    <DockPanel>
-                      <Button DockPanel.Dock="Right" Classes="link" Content="Remove" Command="{Binding RemoveCommand}" />
-                      <CheckBox IsChecked="{Binding On}" ToolTip.Tip="On or off">
-                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
-                      </CheckBox>
-                    </DockPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <Button Classes="quiet" Content="{Binding RunLabel}" Command="{Binding RunNowCommand}" IsVisible="{Binding CanRun}" HorizontalAlignment="Left"
-                    ToolTip.Tip="Runs every rule once on the mail already in the folder you had open." />
-          </StackPanel>
-          <TextBlock Classes="muted" Text="No rules yet. Add the first one below." IsVisible="{Binding !HasRules}" />
-
-          <Border Classes="pending">
-            <StackPanel Spacing="10">
-              <TextBlock Classes="h2" Text="Add a rule" />
-              <Grid ColumnDefinitions="220,12,*">
-                <ComboBox ItemsSource="{x:Static vm:MailRulesViewModel.MatchChoices}" SelectedItem="{Binding Match}" HorizontalAlignment="Stretch" />
-                <TextBox Grid.Column="2" Text="{Binding Text}" PlaceholderText="{Binding Placeholder}" />
-              </Grid>
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Classes="label" Text="In" VerticalAlignment="Center" Width="60" />
-                <ComboBox ItemsSource="{Binding MailboxChoices}" SelectedItem="{Binding Mailbox}" MinWidth="260" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Classes="label" Text="Move to" VerticalAlignment="Center" Width="60" />
-                <ComboBox ItemsSource="{Binding FolderChoices}" SelectedItem="{Binding Folder}" MinWidth="260" IsEnabled="{Binding CanMove}"
-                          ToolTip.Tip="Pick one mailbox above to move mail into one of its folders." />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Classes="label" Text="Category" VerticalAlignment="Center" Width="60" />
-                <ComboBox ItemsSource="{Binding CategoryChoices}" SelectedItem="{Binding Category}" MinWidth="260" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="18" Margin="68,0,0,0">
-                <CheckBox Content="Mark Important" IsChecked="{Binding MarkImportant}" />
-                <CheckBox Content="Mark read" IsChecked="{Binding MarkRead}" />
-              </StackPanel>
-              <ItemsControl ItemsSource="{Binding Problems}" IsVisible="{Binding HasProblems}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="x:String">
-                    <TextBlock Classes="problem" Text="{Binding}" TextWrapping="Wrap" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <StackPanel Orientation="Horizontal" Spacing="12">
-                <Button Classes="primary" Content="Add rule" Command="{Binding AddCommand}" />
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" VerticalAlignment="Center" TextWrapping="Wrap" />
-              </StackPanel>
-            </StackPanel>
-          </Border>
-        </StackPanel>
-      </Border>
-    </ScrollViewer>
-
-    <!-- Adding or changing a mailbox -->
-    <ScrollViewer IsVisible="{Binding ShowSetup}">
-      <Border Classes="card" Margin="36,30" MaxWidth="720" HorizontalAlignment="Left" VerticalAlignment="Top" DataContext="{Binding Setup}" x:DataType="vm:MailSetupViewModel">
-        <StackPanel Spacing="14">
-          <StackPanel Spacing="4">
-            <TextBlock Classes="h1" Text="{Binding Heading}" />
-            <TextBlock Classes="muted" TextWrapping="Wrap"
-                       Text="The password is checked with the mail server and kept in Windows Credential Manager on this PC. It is never shown again and never leaves this PC." />
-          </StackPanel>
-
-          <ItemsControl ItemsSource="{Binding Existing}" IsVisible="{Binding HasExisting}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="core:MailAccount">
-                <Button Classes="quiet" Margin="0,0,8,8" Content="{Binding Address}"
-                        Command="{Binding $parent[ItemsControl].((vm:MailSetupViewModel)DataContext).PickCommand}" CommandParameter="{Binding}" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <Grid ColumnDefinitions="*,12,*">
-            <StackPanel Grid.Column="0">
-              <TextBlock Classes="label" Text="Email address" />
-              <TextBox Text="{Binding Address}" PlaceholderText="e.g. eddie@webignite.co.za" />
-            </StackPanel>
-            <StackPanel Grid.Column="2">
-              <TextBlock Classes="label" Text="Your name as people see it" />
-              <TextBox Text="{Binding DisplayName}" PlaceholderText="e.g. Eddie, Webignite" />
-            </StackPanel>
-          </Grid>
-          <StackPanel>
-            <TextBlock Classes="label" Text="Password" />
-            <TextBox Text="{Binding Password}" PasswordChar="•" RevealPassword="False" PlaceholderText="{Binding PasswordHint}" />
-          </StackPanel>
-
-          <CheckBox Content="Show server settings" IsChecked="{Binding ShowServers}" />
-          <StackPanel Spacing="10" IsVisible="{Binding ShowServers}">
-            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                       Text="Filled in from the address. For xneelo these are mail.yourdomain and smtp.yourdomain, with SSL on ports 993 and 465." />
-            <Grid ColumnDefinitions="3*,12,*">
-              <StackPanel Grid.Column="0">
-                <TextBlock Classes="label" Text="Incoming mail server (IMAP)" />
-                <TextBox Text="{Binding ImapHost}" />
-              </StackPanel>
-              <StackPanel Grid.Column="2">
-                <TextBlock Classes="label" Text="Port" />
-                <TextBox Text="{Binding ImapPort}" />
-              </StackPanel>
-            </Grid>
-            <Grid ColumnDefinitions="3*,12,*">
-              <StackPanel Grid.Column="0">
-                <TextBlock Classes="label" Text="Outgoing mail server (SMTP)" />
-                <TextBox Text="{Binding SmtpHost}" />
-              </StackPanel>
-              <StackPanel Grid.Column="2">
-                <TextBlock Classes="label" Text="Port" />
-                <TextBox Text="{Binding SmtpPort}" />
-              </StackPanel>
-            </Grid>
-          </StackPanel>
-
-          <StackPanel>
-            <TextBlock Classes="label" Text="Signature" />
-            <TextBox Text="{Binding Signature}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" PlaceholderText="Added under mail you write from this mailbox" />
-          </StackPanel>
-          <StackPanel Spacing="6">
-            <TextBlock Classes="label" Text="Signature picture (optional)" />
-            <Image Source="{Binding SignaturePreview}" MaxHeight="90" MaxWidth="400" HorizontalAlignment="Left" Stretch="Uniform"
-                   IsVisible="{Binding HasSignatureImage}" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Classes="quiet" Content="Choose a picture…" Click="ChooseSignatureImage" />
-              <Button Classes="link" Content="Remove picture" Command="{Binding RemoveSignatureImageCommand}" IsVisible="{Binding HasSignatureImage}" />
-            </StackPanel>
-            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                       Text="A logo or banner, PNG or JPG, under 300 KB. It goes under your signature on mail sent from this mailbox." />
-          </StackPanel>
-          <CheckBox Content="Invoices are sent from this mailbox" IsChecked="{Binding SendsInvoices}" />
-          <CheckBox Content="Claude and ChatGPT may read this mailbox and draft replies (they can never send)" IsChecked="{Binding AssistantsMayRead}" />
-
-          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes.short="{Binding MessageIsProblem}" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-
-          <DockPanel>
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsEditing}">
-              <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !ConfirmingRemove}">
-                <Button Classes="link" Content="Remove this mailbox" Command="{Binding AskRemoveCommand}" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ConfirmingRemove}">
-                <TextBlock Classes="muted" VerticalAlignment="Center" Text="Removes it from this PC only. Mail on the server stays." />
-                <Button Classes="quiet" Content="Remove it" Command="{Binding RemoveCommand}" />
-                <Button Classes="link" Content="Keep" Command="{Binding KeepItCommand}" />
-              </StackPanel>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsChecking}" />
-              <Button Classes="quiet" Content="Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}" />
-              <Button Classes="link" Content="Add another mailbox" Command="{Binding AddAnotherCommand}" IsVisible="{Binding IsEditing}" />
-            </StackPanel>
-          </DockPanel>
-        </StackPanel>
-      </Border>
-    </ScrollViewer>
+    <!-- Mail rules, and adding or changing a mailbox, each on a page of its own -->
+    <Panel IsVisible="{Binding ShowRules}">
+      <v:MailRulesView DataContext="{Binding RulesPage}" />
+    </Panel>
+    <Panel IsVisible="{Binding ShowSetup}">
+      <v:MailSetupView DataContext="{Binding Setup}" />
+    </Panel>
 
     <!-- The mail itself: folders, messages, the open message -->
     <c:PanelGrid Layout="{Binding Panels.Layout}" Resized="PaneResized" IsVisible="{Binding ShowMail}">
@@ -534,8 +363,8 @@
                 <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:FilterChipViewModel">
-                  <Button Classes="filterchip" Classes.chosen="{Binding IsChosen}" Content="{Binding Label}" Command="{Binding PickCommand}" />
+                <DataTemplate x:DataType="vm:FilterChip">
+                  <Button Classes="filterchip" Classes.chosen="{Binding IsOn}" Content="{Binding Label}" Command="{Binding PickCommand}" />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -801,34 +630,36 @@
                   <html:HtmlPanel x:Name="Body" Text="{Binding Html}" Background="{DynamicResource Paper}" />
                 </Border>
                 <!-- A PDF or picture shown here in place of the mail, page by page. -->
-                <DockPanel DataContext="{Binding Preview}" x:DataType="vm:AttachmentPreviewViewModel" IsVisible="{Binding $parent[Grid].((vm:MailReaderViewModel)DataContext).IsPreviewing}">
-                  <Border DockPanel.Dock="Top" Padding="24,8" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
-                    <DockPanel>
-                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
-                        <Button Classes="link" Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open it in another program" />
-                        <Button Classes="link" Content="Save" Command="{Binding SaveCommand}" />
-                        <Button Classes="quiet" Content="Back to the mail" Command="{Binding CloseCommand}" />
-                      </StackPanel>
-                      <TextBlock FontWeight="SemiBold" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    </DockPanel>
-                  </Border>
-                  <TextBlock DockPanel.Dock="Top" Classes="muted" FontSize="12" Margin="24,8,24,0" Text="{Binding Note}" TextWrapping="Wrap" IsVisible="{Binding HasNote}" />
-                  <Panel>
-                    <TextBlock Classes="muted" Margin="24" Text="Opening…" IsVisible="{Binding IsLoading}" />
-                    <ScrollViewer Background="{DynamicResource Canvas}">
-                      <ItemsControl ItemsSource="{Binding Pages}" Margin="24,16">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="Bitmap">
-                            <!-- White behind each page, as on paper, in light and dark alike. -->
-                            <Border Background="{DynamicResource Paper}" BoxShadow="{DynamicResource CardShadow}" Margin="0,0,0,16" HorizontalAlignment="Center">
-                              <Image Source="{Binding}" Stretch="Uniform" StretchDirection="DownOnly" />
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </ScrollViewer>
-                  </Panel>
-                </DockPanel>
+                <Panel IsVisible="{Binding IsPreviewing}">
+                  <DockPanel DataContext="{Binding Preview}" x:DataType="vm:AttachmentPreviewViewModel">
+                    <Border DockPanel.Dock="Top" Padding="24,8" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+                      <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                          <Button Classes="link" Content="Open" Command="{Binding OpenCommand}" ToolTip.Tip="Open it in another program" />
+                          <Button Classes="link" Content="Save" Command="{Binding SaveCommand}" />
+                          <Button Classes="quiet" Content="Back to the mail" Command="{Binding CloseCommand}" />
+                        </StackPanel>
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                      </DockPanel>
+                    </Border>
+                    <TextBlock DockPanel.Dock="Top" Classes="muted" FontSize="12" Margin="24,8,24,0" Text="{Binding Note}" TextWrapping="Wrap" IsVisible="{Binding HasNote}" />
+                    <Panel>
+                      <TextBlock Classes="muted" Margin="24" Text="Opening…" IsVisible="{Binding IsLoading}" />
+                      <ScrollViewer Background="{DynamicResource Canvas}">
+                        <ItemsControl ItemsSource="{Binding Pages}" Margin="24,16">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="Bitmap">
+                              <!-- White behind each page, as on paper, in light and dark alike. -->
+                              <Border Background="{DynamicResource Paper}" BoxShadow="{DynamicResource CardShadow}" Margin="0,0,0,16" HorizontalAlignment="Center">
+                                <Image Source="{Binding}" Stretch="Uniform" StretchDirection="DownOnly" />
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </ScrollViewer>
+                    </Panel>
+                  </DockPanel>
+                </Panel>
               </Grid>
             </Border>
           </DockPanel>

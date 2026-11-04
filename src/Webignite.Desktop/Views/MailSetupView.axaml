@@ -1,0 +1,110 @@
+<!-- Adding or changing a mailbox. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:core="using:Webignite.Core.Mail"
+             x:Class="Webignite.Desktop.Views.MailSetupView"
+             x:DataType="vm:MailSetupViewModel">
+  <ScrollViewer>
+    <Border Classes="card" Margin="36,30" MaxWidth="720" HorizontalAlignment="Left" VerticalAlignment="Top">
+      <StackPanel Spacing="14">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="h1" Text="{Binding Heading}" />
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="The password is checked with the mail server and kept in Windows Credential Manager on this PC. It is never shown again and never leaves this PC." />
+        </StackPanel>
+
+        <ItemsControl ItemsSource="{Binding Existing}" IsVisible="{Binding HasExisting}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="core:MailAccount">
+              <Button Classes="quiet" Margin="0,0,8,8" Content="{Binding Address}"
+                      Command="{Binding $parent[ItemsControl].((vm:MailSetupViewModel)DataContext).PickCommand}" CommandParameter="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel Grid.Column="0">
+            <TextBlock Classes="label" Text="Email address" />
+            <TextBox Text="{Binding Address}" PlaceholderText="e.g. eddie@webignite.co.za" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Your name as people see it" />
+            <TextBox Text="{Binding DisplayName}" PlaceholderText="e.g. Eddie, Webignite" />
+          </StackPanel>
+        </Grid>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Password" />
+          <TextBox Text="{Binding Password}" PasswordChar="•" RevealPassword="False" PlaceholderText="{Binding PasswordHint}" />
+        </StackPanel>
+
+        <CheckBox Content="Show server settings" IsChecked="{Binding ShowServers}" />
+        <StackPanel Spacing="10" IsVisible="{Binding ShowServers}">
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Filled in from the address. For xneelo these are mail.yourdomain and smtp.yourdomain, with SSL on ports 993 and 465." />
+          <Grid ColumnDefinitions="3*,12,*">
+            <StackPanel Grid.Column="0">
+              <TextBlock Classes="label" Text="Incoming mail server (IMAP)" />
+              <TextBox Text="{Binding ImapHost}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="Port" />
+              <TextBox Text="{Binding ImapPort}" />
+            </StackPanel>
+          </Grid>
+          <Grid ColumnDefinitions="3*,12,*">
+            <StackPanel Grid.Column="0">
+              <TextBlock Classes="label" Text="Outgoing mail server (SMTP)" />
+              <TextBox Text="{Binding SmtpHost}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="Port" />
+              <TextBox Text="{Binding SmtpPort}" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="Signature" />
+          <TextBox Text="{Binding Signature}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" PlaceholderText="Added under mail you write from this mailbox" />
+        </StackPanel>
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="Signature picture (optional)" />
+          <Image Source="{Binding SignaturePreview}" MaxHeight="90" MaxWidth="400" HorizontalAlignment="Left" Stretch="Uniform"
+                 IsVisible="{Binding HasSignatureImage}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="quiet" Content="Choose a picture…" Click="ChooseSignatureImage" />
+            <Button Classes="link" Content="Remove picture" Command="{Binding RemoveSignatureImageCommand}" IsVisible="{Binding HasSignatureImage}" />
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="A logo or banner, PNG or JPG, under 300 KB. It goes under your signature on mail sent from this mailbox." />
+        </StackPanel>
+        <CheckBox Content="Invoices are sent from this mailbox" IsChecked="{Binding SendsInvoices}" />
+        <CheckBox Content="Claude and ChatGPT may read this mailbox and draft replies (they can never send)" IsChecked="{Binding AssistantsMayRead}" />
+
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes.short="{Binding MessageIsProblem}" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsEditing}">
+            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !ConfirmingRemove}">
+              <Button Classes="link" Content="Remove this mailbox" Command="{Binding AskRemoveCommand}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ConfirmingRemove}">
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="Removes it from this PC only. Mail on the server stays." />
+              <Button Classes="quiet" Content="Remove it" Command="{Binding RemoveCommand}" />
+              <Button Classes="link" Content="Keep" Command="{Binding KeepItCommand}" />
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding !IsChecking}" />
+            <Button Classes="quiet" Content="Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}" />
+            <Button Classes="link" Content="Add another mailbox" Command="{Binding AddAnotherCommand}" IsVisible="{Binding IsEditing}" />
+          </StackPanel>
+        </DockPanel>
+      </StackPanel>
+    </Border>
+  </ScrollViewer>
+</UserControl>

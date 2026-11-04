@@ -219,21 +219,6 @@ public partial class MailView : UserControl
         e.Handled = true;
         mail.SetCategory(category.Keyword, true, drag.Mail).Forget("Adding mail to a category");
     }
-
-    private void ChooseSignatureImage(object? sender, RoutedEventArgs e) => ChooseSignatureImageAsync(sender, e).Forget("Choosing the signature picture", tell: true);
-
-    private async Task ChooseSignatureImageAsync(object? sender, RoutedEventArgs e)
-    {
-        if ((sender as Control)?.DataContext is not MailSetupViewModel setup || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
-            return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Choose a signature picture",
-            FileTypeFilter = [new FilePickerFileType("Pictures") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif"] }],
-        });
-        if (files.FirstOrDefault()?.TryGetLocalPath() is { } path)
-            setup.SetSignatureImage(path);
-    }
 }
 
 /// <summary>What travels with a drag out of the message list.</summary>
