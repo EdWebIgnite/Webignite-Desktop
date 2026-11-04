@@ -8,7 +8,7 @@ public sealed class HeadlineTests
     private static readonly DateOnly Today = Samples.Today;
 
     private static StoredDocument Invoice(decimal amount, DateOnly due, DocumentStatus status = DocumentStatus.InXero,
-        string? settledAs = null, string? reference = null, string customer = "Karoo Coffee Roasters") => new()
+        Settlement? settledAs = null, string? reference = null, string customer = "Karoo Coffee Roasters") => new()
     {
         Id = StoredDocument.NewId(),
         Status = status,
@@ -22,7 +22,7 @@ public sealed class HeadlineTests
         },
     };
 
-    private static StoredDocument Quote(decimal amount, DateOnly expires, string? settledAs = null) =>
+    private static StoredDocument Quote(decimal amount, DateOnly expires, Settlement? settledAs = null) =>
         Invoice(amount, expires, settledAs: settledAs) with
         {
             Document = Invoice(amount, expires).Document with { Kind = DocumentKind.Quote },
@@ -74,7 +74,7 @@ public sealed class HeadlineTests
         {
             Invoice(2800m, Today.AddDays(-5)),
             Invoice(2800m, Today.AddDays(10)),
-            Invoice(7250m, Today.AddDays(-20), settledAs: "paid"),
+            Invoice(7250m, Today.AddDays(-20), settledAs: Settlement.Paid),
             Invoice(2725m, Today.AddDays(30), DocumentStatus.Draft),
         };
 
@@ -84,14 +84,14 @@ public sealed class HeadlineTests
     [Fact]
     public void The_headline_leaves_out_parts_with_nothing_to_say()
     {
-        Assert.Equal("1 invoice", DocumentHeadline.For(DocumentKind.Invoice, [Invoice(450m, Today, settledAs: "paid")], Today));
+        Assert.Equal("1 invoice", DocumentHeadline.For(DocumentKind.Invoice, [Invoice(450m, Today, settledAs: Settlement.Paid)], Today));
         Assert.Equal("0 quotes", DocumentHeadline.For(DocumentKind.Quote, [Invoice(450m, Today)], Today));
     }
 
     [Fact]
     public void The_quotes_headline_says_what_is_waiting_and_what_was_accepted()
     {
-        var documents = new[] { Quote(14500m, Today.AddDays(20)), Quote(3000m, Today.AddDays(5), settledAs: "accepted") };
+        var documents = new[] { Quote(14500m, Today.AddDays(20)), Quote(3000m, Today.AddDays(5), settledAs: Settlement.Accepted) };
 
         Assert.Equal($"2 quotes, {Money.Rand(14500m)} waiting on clients, 1 accepted", DocumentHeadline.For(DocumentKind.Quote, documents, Today));
     }
@@ -122,7 +122,7 @@ public sealed class HeadlineTests
     [Fact]
     public void The_row_detail_says_when_it_was_paid_or_that_a_quote_expired()
     {
-        var paid = Invoice(100m, Today, settledAs: "paid") with { PaidOn = new DateOnly(2026, 10, 28) };
+        var paid = Invoice(100m, Today, settledAs: Settlement.Paid) with { PaidOn = new DateOnly(2026, 10, 28) };
         Assert.Equal("Paid 28 Oct 2026", DocumentHeadline.Detail(paid, Today));
         Assert.Equal("Expired 1 Oct 2026", DocumentHeadline.Detail(Quote(100m, new DateOnly(2026, 10, 1)), Today));
         Assert.Equal("Expires 30 Nov 2026", DocumentHeadline.Detail(Quote(100m, new DateOnly(2026, 11, 30)), Today));
@@ -132,7 +132,7 @@ public sealed class HeadlineTests
     public void Quick_filters_find_overdue_and_paid_invoices()
     {
         var overdue = Invoice(2800m, Today.AddDays(-5));
-        var paid = Invoice(7250m, Today.AddDays(-20), settledAs: "paid");
+        var paid = Invoice(7250m, Today.AddDays(-20), settledAs: Settlement.Paid);
         var open = Invoice(2800m, Today.AddDays(10));
         StoredDocument[] all = [overdue, paid, open];
 

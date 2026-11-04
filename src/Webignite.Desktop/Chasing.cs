@@ -22,7 +22,7 @@ public static class Chasing
         {
             var (ready, settled) = await sending.PrepareChaserAsync(stored, services.Settings.Xero.TenantName ?? "Webignite");
             if (ready is null)
-                return ($"Xero says {stored.XeroNumber ?? "it"} is {settled}, so there's nothing to chase.", false);
+                return ($"Xero says {stored.XeroNumber ?? "it"} is {(settled is { } how ? Settlements.Word(how) : "settled")}, so there's nothing to chase.", false);
 
             var folder = Path.Combine(DataPaths.Root(), "outgoing");
             Directory.CreateDirectory(folder);

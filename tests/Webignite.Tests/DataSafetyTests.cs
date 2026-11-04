@@ -154,3 +154,23 @@ public sealed class NoLostWorkTests : IDisposable
         Assert.Equal(["z"], Webignite.Core.Layout.ListUndo.PutBack([], "z", 5, x => x));
     }
 }
+
+/// <summary>Documents saved before the settled state was typed still read the same.</summary>
+public sealed class StoredStatusTests
+{
+    [Fact]
+    public void A_settled_state_saved_as_text_still_reads()
+    {
+        var saved = System.Text.Json.JsonSerializer.Serialize(new StoredDocument
+        {
+            Id = "d1", Document = Samples.Completed(Samples.NewInvoice()), SettledAs = Settlement.Paid,
+        }, StoredJson.Options);
+        Assert.Contains("\"settled_as\":\"paid\"", saved);
+
+        foreach (var (text, expected) in new[] { ("paid", Settlement.Paid), ("accepted", Settlement.Accepted), ("invoiced", Settlement.Invoiced), ("voided", Settlement.Voided), ("deleted", Settlement.Deleted), ("declined", Settlement.Declined) })
+        {
+            var old = saved.Replace("\"settled_as\":\"paid\"", $"\"settled_as\":\"{text}\"");
+            Assert.Equal(expected, System.Text.Json.JsonSerializer.Deserialize<StoredDocument>(old, StoredJson.Options)!.SettledAs);
+        }
+    }
+}

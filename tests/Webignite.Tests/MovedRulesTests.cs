@@ -13,7 +13,7 @@ public sealed class MovedRulesTests
 {
     private static readonly DateOnly Today = new(2026, 11, 4);
 
-    private static StoredDocument Invoice(DocumentStatus status, string? settledAs = null, int dueInDays = 10, DateTimeOffset? checkedAt = null) => new()
+    private static StoredDocument Invoice(DocumentStatus status, Settlement? settledAs = null, int dueInDays = 10, DateTimeOffset? checkedAt = null) => new()
     {
         Id = StoredDocument.NewId(), Status = status, SettledAs = settledAs, Settled = settledAs is null ? null : DateTimeOffset.UnixEpoch,
         XeroId = status == DocumentStatus.InXero ? "x1" : null, XeroChecked = checkedAt, XeroStatus = status == DocumentStatus.InXero ? "AUTHORISED" : null,
@@ -26,10 +26,10 @@ public sealed class MovedRulesTests
         Assert.Equal("Draft", Receivables.StatusText(Invoice(DocumentStatus.Draft), Today));
         Assert.Equal("To approve", Receivables.StatusText(Invoice(DocumentStatus.AwaitingApproval), Today));
         Assert.Equal("Overdue", Receivables.StatusText(Invoice(DocumentStatus.InXero, dueInDays: -3, checkedAt: DateTimeOffset.UnixEpoch), Today));
-        Assert.True(Receivables.IsDone(Invoice(DocumentStatus.InXero, "paid", checkedAt: DateTimeOffset.UnixEpoch), Today));
+        Assert.True(Receivables.IsDone(Invoice(DocumentStatus.InXero, Settlement.Paid, checkedAt: DateTimeOffset.UnixEpoch), Today));
         Assert.True(Receivables.IsDone(Invoice(DocumentStatus.InXero), Today)); // in Xero, not read for payments yet
         Assert.False(Receivables.IsDone(Invoice(DocumentStatus.InXero, checkedAt: DateTimeOffset.UnixEpoch), Today));
-        Assert.False(Receivables.IsDone(Invoice(DocumentStatus.InXero, "voided", checkedAt: DateTimeOffset.UnixEpoch), Today));
+        Assert.False(Receivables.IsDone(Invoice(DocumentStatus.InXero, Settlement.Voided, checkedAt: DateTimeOffset.UnixEpoch), Today));
     }
 
     [Fact]

@@ -54,7 +54,7 @@ public sealed class ChaserTests
     [Fact]
     public void Settled_and_unsent_documents_are_left_alone()
     {
-        Assert.Empty(Chasers.Find([Invoice(5) with { Settled = DaysAgo(1), SettledAs = "paid" }], Today));
+        Assert.Empty(Chasers.Find([Invoice(5) with { Settled = DaysAgo(1), SettledAs = Settlement.Paid }], Today));
         Assert.Empty(Chasers.Find([Invoice(5) with { XeroId = null }], Today));
         Assert.Empty(Chasers.Find([Quote(9) with { Emailed = null }], Today));
     }
@@ -66,7 +66,7 @@ public sealed class ChaserTests
     [InlineData(DocumentKind.Quote, "ACCEPTED", null, "accepted")]
     [InlineData(DocumentKind.Quote, "SENT", null, null)]
     public void What_Xero_says_settles_it(DocumentKind kind, string status, int? due, string? settled) =>
-        Assert.Equal(settled, Chasers.SettledBy(kind, status, due));
+        Assert.Equal(settled, Chasers.SettledBy(kind, status, due) is { } how ? Settlements.Word(how) : null);
 
     [Fact]
     public void Reminder_wording_fills_days_overdue()

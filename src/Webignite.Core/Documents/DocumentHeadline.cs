@@ -32,7 +32,7 @@ public static class DocumentHeadline
             var waiting = Receivables.QuotesOut(mine, today);
             if (waiting > 0)
                 parts.Add(Money.Rand(waiting) + " waiting on clients");
-            var accepted = mine.Count(d => d.SettledAs is "accepted" or "invoiced");
+            var accepted = mine.Count(d => d.SettledAs is Settlement.Accepted or Settlement.Invoiced);
             if (accepted > 0)
                 parts.Add($"{accepted} accepted");
         }
@@ -54,7 +54,7 @@ public static class DocumentHeadline
         if (!string.IsNullOrWhiteSpace(doc.Reference))
             parts.Add(doc.Reference.Trim());
 
-        if (stored.SettledAs == "paid")
+        if (stored.SettledAs == Settlement.Paid)
             parts.Add(stored.PaidOn is { } paid ? "Paid " + Day(paid) : "Paid");
         else if (stored.SettledAs is null && doc.DueOrExpiryDate is { } due)
         {
@@ -116,13 +116,13 @@ public static class DocumentHeadline
                 : $"{onThisPc} {noun}s are still on this PC. Open one and send it to Xero as a draft when it's ready.",
                 onThisPc == 1 ? "Show it" : "Show them", DocumentShow.NotInXero);
 
-        var drafts = mine.Count(d => d.Settled is null && d.XeroStatus is "DRAFT" or "SUBMITTED");
+        var drafts = mine.Count(d => d.Settled is null && XeroStatuses.IsDraft(d.XeroStatus));
         if (drafts > 0)
             return new(drafts == 1
                 ? $"1 {noun} is a draft in Xero. Approve it in Xero when it can go to the client."
                 : $"{drafts} {noun}s are drafts in Xero. Approve them in Xero when they can go to the client.", null, null);
 
-        var accepted = mine.Count(d => d.SettledAs == "accepted");
+        var accepted = mine.Count(d => d.SettledAs == Settlement.Accepted);
         if (kind == DocumentKind.Quote && accepted > 0)
             return new(accepted == 1
                 ? "1 accepted quote has no invoice yet. Open it and pick Make invoice."

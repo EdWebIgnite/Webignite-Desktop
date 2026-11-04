@@ -38,11 +38,11 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
         if (status is "DELETED" or "VOIDED" or "DECLINED")
             throw new XeroException($"It is {status.ToLowerInvariant()} in Xero, so it can't be sent.");
 
-        if (!IsQuote(stored) && status is "DRAFT" or "SUBMITTED")
+        if (!IsQuote(stored) && XeroStatuses.IsDraft(status))
         {
             try
             {
-                await api.PostAsync($"Invoices/{stored.XeroId}", new JsonObject { ["InvoiceID"] = stored.XeroId, ["Status"] = "AUTHORISED" },
+                await api.PostAsync($"Invoices/{stored.XeroId}", new JsonObject { ["InvoiceID"] = stored.XeroId, ["Status"] = XeroStatuses.Authorised },
                     stored.Id + "-approve", cancel);
             }
             catch (XeroUncertainException)
@@ -50,7 +50,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
                 // Fall through: reading it back says whether the approval landed.
             }
             record = await ReadAsync(stored, cancel);
-            if (XeroApi.Str(record["Status"]) is not "AUTHORISED")
+            if (XeroApi.Str(record["Status"]) is not XeroStatuses.Authorised)
                 throw new XeroException("Couldn't tell whether Xero approved it. Look at it in Xero, then try again.");
             stored = update(stored, s => s with { Approved = DateTimeOffset.UtcNow });
         }
@@ -62,7 +62,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
     /// For a reminder or follow-up: reads the document from Xero first. When Xero says it's paid, accepted or
     /// declined, nothing is fetched; the document is marked settled and the reason returned instead.
     /// </summary>
-    public async Task<(Ready? Ready, string? Settled)> PrepareChaserAsync(StoredDocument stored, string tradingName, CancellationToken cancel = default)
+    public async Task<(Ready? Ready, Settlement? Settled)> PrepareChaserAsync(StoredDocument stored, string tradingName, CancellationToken cancel = default)
     {
         if (CannotSend(stored) is { } reason)
             throw new XeroException(reason);
@@ -72,7 +72,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
             update(stored, s => s with { Settled = DateTimeOffset.UtcNow, SettledAs = settled });
             return (null, settled);
         }
-        if (!IsQuote(stored) && XeroApi.Str(record["Status"]) is not "AUTHORISED")
+        if (!IsQuote(stored) && XeroApi.Str(record["Status"]) is not XeroStatuses.Authorised)
             throw new XeroException("It isn't approved in Xero yet, so there's nothing to remind about.");
         var ready = await GatherAsync(stored, record, tradingName, cancel);
         if (ready.Values.DueOrExpiryDate is { } due && !IsQuote(stored))
@@ -171,11 +171,11 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
         if (IsQuote(stored))
         {
             var record = await ReadAsync(stored, cancel);
-            if (XeroApi.Str(record["Status"]) == "DRAFT")
+            if (XeroApi.Str(record["Status"]) == XeroStatuses.Draft)
                 await api.PostAsync($"Quotes/{stored.XeroId}", new JsonObject
                 {
                     ["QuoteID"] = stored.XeroId,
-                    ["Status"] = "SENT",
+                    ["Status"] = XeroStatuses.Sent,
                     ["Contact"] = new JsonObject { ["ContactID"] = XeroApi.Str(record["Contact"]?["ContactID"]) },
                     ["Date"] = XeroPayload.NormalizeDate(XeroApi.Str(record["DateString"])),
                 }, stored.Id + "-sent", cancel);

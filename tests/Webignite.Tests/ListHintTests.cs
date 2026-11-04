@@ -10,7 +10,7 @@ public sealed class ListHintTests
     private static readonly DateOnly Today = Samples.Today;
 
     private static StoredDocument Doc(DocumentKind kind, decimal amount, DateOnly due, DocumentStatus status = DocumentStatus.InXero,
-        string? settledAs = null, string? xeroStatus = "AUTHORISED") => new()
+        Settlement? settledAs = null, string? xeroStatus = "AUTHORISED") => new()
     {
         Id = StoredDocument.NewId(),
         Status = status,
@@ -26,10 +26,10 @@ public sealed class ListHintTests
     };
 
     private static StoredDocument Invoice(decimal amount, DateOnly due, DocumentStatus status = DocumentStatus.InXero,
-        string? settledAs = null, string? xeroStatus = "AUTHORISED") => Doc(DocumentKind.Invoice, amount, due, status, settledAs, xeroStatus);
+        Settlement? settledAs = null, string? xeroStatus = "AUTHORISED") => Doc(DocumentKind.Invoice, amount, due, status, settledAs, xeroStatus);
 
     private static StoredDocument Quote(DateOnly expires, DocumentStatus status = DocumentStatus.InXero,
-        string? settledAs = null, string? xeroStatus = "SENT") => Doc(DocumentKind.Quote, 1000, expires, status, settledAs, xeroStatus);
+        Settlement? settledAs = null, string? xeroStatus = "SENT") => Doc(DocumentKind.Quote, 1000, expires, status, settledAs, xeroStatus);
 
     [Theory]
     [InlineData(0, false, false)]
@@ -87,7 +87,7 @@ public sealed class ListHintTests
     public void Accepted_quotes_with_no_invoice_point_to_make_invoice()
     {
         var hint = DocumentHeadline.Hint(DocumentKind.Quote,
-            [Quote(Today.AddDays(10), settledAs: "accepted"), Quote(Today.AddDays(10), settledAs: "invoiced")], Today);
+            [Quote(Today.AddDays(10), settledAs: Settlement.Accepted), Quote(Today.AddDays(10), settledAs: Settlement.Invoiced)], Today);
         Assert.NotNull(hint);
         Assert.Equal("1 accepted quote has no invoice yet. Open it and pick Make invoice.", hint.Text);
         Assert.Equal(DocumentShow.Settled, hint.Show);
@@ -96,7 +96,7 @@ public sealed class ListHintTests
     [Fact]
     public void With_nothing_to_sort_out_it_offers_a_new_one()
     {
-        var invoices = DocumentHeadline.Hint(DocumentKind.Invoice, [Invoice(1500, Today.AddDays(10), settledAs: "paid")], Today);
+        var invoices = DocumentHeadline.Hint(DocumentKind.Invoice, [Invoice(1500, Today.AddDays(10), settledAs: Settlement.Paid)], Today);
         Assert.Equal("New invoice", invoices?.ActionText);
         Assert.Null(invoices?.Show);
 

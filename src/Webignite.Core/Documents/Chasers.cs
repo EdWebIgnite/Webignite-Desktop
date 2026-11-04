@@ -43,22 +43,22 @@ public static class Chasers
         return items.OrderByDescending(i => i.Due).ThenByDescending(i => i.Days).ToList();
     }
 
-    /// <summary>What Xero's status means for chasing: null to go ahead, or why there's nothing to chase.</summary>
-    public static string? SettledBy(DocumentKind kind, string xeroStatus, decimal? amountDue) => kind == DocumentKind.Quote
+    /// <summary>What Xero's status means for chasing: null to go ahead, or how it was settled.</summary>
+    public static Settlement? SettledBy(DocumentKind kind, string xeroStatus, decimal? amountDue) => kind == DocumentKind.Quote
         ? xeroStatus switch
         {
-            "ACCEPTED" => "accepted",
-            "DECLINED" => "declined",
-            "INVOICED" => "invoiced",
-            "DELETED" => "deleted",
+            XeroStatuses.Accepted => Settlement.Accepted,
+            XeroStatuses.Declined => Settlement.Declined,
+            XeroStatuses.Invoiced => Settlement.Invoiced,
+            XeroStatuses.Deleted => Settlement.Deleted,
             _ => null,
         }
         : xeroStatus switch
         {
-            "PAID" => "paid",
-            "VOIDED" => "voided",
-            "DELETED" => "deleted",
-            _ when amountDue is 0 => "paid",
+            XeroStatuses.Paid => Settlement.Paid,
+            XeroStatuses.Voided => Settlement.Voided,
+            XeroStatuses.Deleted => Settlement.Deleted,
+            _ when amountDue is 0 => Settlement.Paid,
             _ => null,
         };
 
