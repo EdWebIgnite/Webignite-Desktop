@@ -701,6 +701,13 @@
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="CornerRadius" Value="6" />
   </Style>
+  <Style Selector="ListBox.files ListBoxItem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="ListBox.files ListBoxItem:selected /template/ ContentPresenter, ListBox.files ListBoxItem:selected:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
   <Style Selector="ListBox.files.thumbs">
     <Setter Property="ItemsPanel">
       <ItemsPanelTemplate>
@@ -722,5 +729,15 @@
   </Style>
   <Style Selector="c|Icon.folder">
     <Setter Property="Foreground" Value="{DynamicResource CategoryYellow}" />
+  </Style>
+  <!-- A colour to pick, e.g. a tag's in Settings: ringed when it is the one in use. -->
+  <Style Selector="Border.swatch">
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Padding" Value="2" />
+    <Setter Property="BorderThickness" Value="1.5" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.swatch.chosen">
+    <Setter Property="BorderBrush" Value="{DynamicResource Ink}" />
   </Style>
 </Styles>

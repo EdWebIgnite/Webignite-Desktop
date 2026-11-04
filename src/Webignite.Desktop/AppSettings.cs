@@ -54,6 +54,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("files", value);
     }
 
+    /// <summary>The tags for files and folders in Files, with their colours. Which files carry them is in the file_tags table.</summary>
+    public IReadOnlyList<Webignite.Core.Files.FileTag> FileTags
+    {
+        get => store.GetSetting<List<Webignite.Core.Files.FileTag>>("file-tags") ?? [.. Webignite.Core.Files.FileTags.Defaults];
+        set => store.SetSetting("file-tags", value.ToList());
+    }
+
     /// <summary>The tabs that were open and which was showing.</summary>
     public Webignite.Core.Layout.TabSettings Tabs
     {

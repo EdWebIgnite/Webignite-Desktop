@@ -27,6 +27,8 @@ public sealed partial class FilesViewModel
     [RelayCommand]
     private void NewFolder()
     {
+        if (NotInTagView())
+            return;
         string? made = null;
         Try(() => made = FileOps.NewFolder(Folder), "Couldn't make the folder");
         if (made is null)
@@ -79,6 +81,7 @@ public sealed partial class FilesViewModel
         try
         {
             var to = FileOps.Rename(row.Entry.Path, row.RenameText);
+            services.FileTags.Moved(row.Entry.Path, to);
             Record(new FileChange.Renamed(row.Entry.Path, to));
             row.IsRenaming = false;
             Load(keepSelection: false);
@@ -144,6 +147,8 @@ public sealed partial class FilesViewModel
     /// <summary>Ctrl+V: what was copied or cut in Files goes here; failing that, files the view found on Windows' clipboard.</summary>
     public void Paste(IReadOnlyList<string>? fromWindows = null)
     {
+        if (NotInTagView())
+            return;
         var clipboard = services.FileClipboard;
         var paths = clipboard.Paths.Count > 0 ? clipboard.Paths : fromWindows ?? [];
         paths = [.. paths.Where(p => File.Exists(p) || Directory.Exists(p))];
@@ -163,12 +168,16 @@ public sealed partial class FilesViewModel
     /// <summary>Files dropped here or pasted: copied, or moved when cut (or dragged with Shift held).</summary>
     public void Bring(IReadOnlyList<string> paths, bool move, string? into = null)
     {
+        if (into is null && NotInTagView())
+            return;
         into ??= Folder;
         Try(() =>
         {
             if (move)
             {
                 var moved = FileOps.Move(paths, into);
+                foreach (var (from, to) in moved)
+                    services.FileTags.Moved(from, to);
                 if (moved.Count > 0)
                     Record(new FileChange.Moved(moved));
                 var where = into == Folder ? "here" : "to " + Path.GetFileName(into.TrimEnd('\\', '/'));
@@ -177,6 +186,8 @@ public sealed partial class FilesViewModel
             else
             {
                 var made = FileOps.Copy(paths, into);
+                for (var i = 0; i < made.Count; i++)
+                    services.FileTags.Copied(paths[i], made[i]);
                 Record(new FileChange.Made(made));
                 var where = into == Folder ? "here" : "to " + Path.GetFileName(into.TrimEnd('\\', '/'));
                 Say(made.Count == 1 ? $"Copied {Path.GetFileName(made[0])} {where}." : $"Copied {made.Count} items {where}.", problem: false);
@@ -194,6 +205,12 @@ public sealed partial class FilesViewModel
         Try(() =>
         {
             last.Undo();
+            // Tags go back with the file.
+            if (last is FileChange.Renamed renamed)
+                services.FileTags.Moved(renamed.To, renamed.From);
+            else if (last is FileChange.Moved moved)
+                foreach (var (from, to) in moved.Items)
+                    services.FileTags.Moved(to, from);
             Say("Put back: " + last.What.ToLowerInvariant() + ".", problem: false);
         }, "Couldn't put it back");
         OnPropertyChanged(nameof(CanUndo));
@@ -262,5 +279,70 @@ public sealed partial class FilesViewModel
     {
         foreach (var row in Selected.Where(r => r.IsFolder))
             OpenInNewTab(row);
+    }
+
+    // Tags
+
+    /// <summary>Right-click, Tags: puts the tag on everything picked, or takes it off when they all have it.</summary>
+    [RelayCommand]
+    private void ToggleTag(FileTag tag)
+    {
+        if (Selected.Count == 0)
+            return;
+        var on = !Selected.All(r => r.Tags.Any(t => t.Id == tag.Id));
+        services.FileTags.Set(SelectedPaths, tag.Id, on);
+        Say(on ? $"Tagged {Picked()} {tag.Name}." : $"Took {tag.Name} off {Picked()}.", problem: false);
+    }
+
+    private string Picked() => Selected.Count == 1 ? Selected[0].Name : $"{Selected.Count} items";
+
+    /// <summary>The Tags button: only files with this tag in the folder, or all again (null).</summary>
+    [RelayCommand]
+    private void FilterBy(FileTag? tag)
+    {
+        FilterTag = tag;
+        Lay(SelectedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase));
+    }
+
+    /// <summary>In a tag's view: opens the folder a file is in, with the file picked.</summary>
+    public void ShowInItsFolder(FileRowViewModel row)
+    {
+        if (FilePaths.Parent(row.Entry.Path) is not { } parent)
+            return;
+        GoTo(parent);
+        if (Items.OfType<FileRowViewModel>().FirstOrDefault(r => string.Equals(r.Entry.Path, row.Entry.Path, StringComparison.OrdinalIgnoreCase)) is { } found)
+        {
+            Selected = [found];
+            Restored?.Invoke(Selected);
+            UpdateStatus();
+        }
+    }
+
+    // Tags changed here, in another Files tab or in Settings: the side list and the rows show it.
+    private void TagsChanged(object? sender, EventArgs e)
+    {
+        Places = BuildPlaces();
+        OnPropertyChanged(nameof(Places));
+        OnPropertyChanged(nameof(AllTags));
+        if (ShowingTag is { } shown)
+        {
+            if (TagCalled(TagPrefix + shown.Id) is not { } now)
+            {
+                GoTo(Folder);
+                return;
+            }
+            ShowingTag = now;
+        }
+        if (FilterTag is { } filter)
+            FilterTag = services.FileTags.Tags.FirstOrDefault(t => t.Id == filter.Id);
+        Load(keepSelection: true);
+    }
+
+    private bool NotInTagView()
+    {
+        if (!IsTagView)
+            return false;
+        Say("Open a folder first: a tag's files come from all over.", problem: false);
+        return true;
     }
 }

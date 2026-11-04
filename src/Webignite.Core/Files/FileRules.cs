@@ -30,6 +30,7 @@ public enum FileGrouping
     None,
     Kind,
     Date,
+    Tag,
 }
 
 /// <summary>What a file is, from its name, in words a person uses.</summary>
@@ -95,22 +96,39 @@ public static class FileLists
     }
 
     /// <summary>The group a file falls in, as its heading reads.</summary>
-    public static string GroupOf(FileEntry entry, FileGrouping by, DateOnly today) => by switch
+    public const string NoTag = "No tag";
+
+    /// <summary>The group a file falls in, as its heading reads. By tag, a file with several tags goes under the first in the tag list.</summary>
+    public static string GroupOf(FileEntry entry, FileGrouping by, DateOnly today, Func<FileEntry, string?>? firstTag = null) => by switch
     {
         FileGrouping.Kind => entry.IsFolder ? "Folders" : entry.Kind,
         FileGrouping.Date => DateGroup(DateOnly.FromDateTime(entry.Modified), today),
+        FileGrouping.Tag => firstTag?.Invoke(entry) ?? NoTag,
         _ => "",
     };
 
-    /// <summary>The groups in the order they show: newest dates first, kinds A to Z with folders on top.</summary>
-    public static IReadOnlyList<(string Heading, IReadOnlyList<FileEntry> Entries)> Group(IReadOnlyList<FileEntry> sorted, FileGrouping by, DateOnly today)
+    /// <summary>
+    /// The groups in the order they show: newest dates first, kinds A to Z with folders on top, tags in the order
+    /// of the tag list with untagged files last.
+    /// </summary>
+    public static IReadOnlyList<(string Heading, IReadOnlyList<FileEntry> Entries)> Group(IReadOnlyList<FileEntry> sorted, FileGrouping by, DateOnly today,
+        Func<FileEntry, string?>? firstTag = null, IReadOnlyList<string>? tagOrder = null)
     {
         if (by == FileGrouping.None)
             return [("", sorted)];
-        var groups = sorted.GroupBy(e => GroupOf(e, by, today)).Select(g => (g.Key, (IReadOnlyList<FileEntry>)[.. g]));
-        return by == FileGrouping.Date
-            ? [.. groups.OrderBy(g => Array.IndexOf(DateGroups, g.Key))]
-            : [.. groups.OrderBy(g => g.Key == "Folders" ? 0 : 1).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)];
+        var groups = sorted.GroupBy(e => GroupOf(e, by, today, firstTag)).Select(g => (g.Key, (IReadOnlyList<FileEntry>)[.. g]));
+        return by switch
+        {
+            FileGrouping.Date => [.. groups.OrderBy(g => Array.IndexOf(DateGroups, g.Key))],
+            FileGrouping.Tag => [.. groups.OrderBy(g => g.Key == NoTag ? int.MaxValue : TagPlace(tagOrder, g.Key))],
+            _ => [.. groups.OrderBy(g => g.Key == "Folders" ? 0 : 1).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)],
+        };
+    }
+
+    private static int TagPlace(IReadOnlyList<string>? order, string tag)
+    {
+        var place = order is null ? -1 : order.ToList().IndexOf(tag);
+        return place < 0 ? int.MaxValue - 1 : place;
     }
 
     private static readonly string[] DateGroups = ["Today", "Yesterday", "Earlier this week", "Earlier this month", "Earlier this year", "Older"];

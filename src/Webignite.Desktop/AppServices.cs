@@ -143,6 +143,11 @@ public sealed class AppServices : IDisposable
     /// <summary>Files copied or cut in Files, waiting to be pasted, in any Files tab or window.</summary>
     public Files.FileClipboard FileClipboard { get; } = new();
 
+    private Files.FileTagBook? fileTags;
+
+    /// <summary>Tags on files and folders, read from the database the first time Files needs them.</summary>
+    public Files.FileTagBook FileTags => fileTags ??= new Files.FileTagBook(Store, Settings);
+
     private TimerClock? timer;
 
     /// <summary>The time-tracking timer, shown in the sidebar and on Time.</summary>

@@ -31,6 +31,28 @@ public static class FileOps
         return entries;
     }
 
+    /// <summary>One file or folder as the list shows it, or null when it isn't there.</summary>
+    public static FileEntry? Entry(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                var file = new FileInfo(path);
+                return new FileEntry(file.FullName, file.Name, false, file.Length, file.LastWriteTime);
+            }
+            if (Directory.Exists(path))
+            {
+                var folder = new DirectoryInfo(path);
+                return new FileEntry(folder.FullName, folder.Name, true, null, folder.LastWriteTime);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+        return null;
+    }
+
     /// <summary>Where client folders live: the one set in Settings, else C:\Projects when it exists.</summary>
     public static string? ClientRoot(FileSettings settings)
     {

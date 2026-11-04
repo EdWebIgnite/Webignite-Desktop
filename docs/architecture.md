@@ -123,7 +123,7 @@ flowchart LR
         overview["Overview<br/>MorningSummary, OverviewCards"]
         layout["Layout<br/>Sidebar, Panels, ListHints, ListUndo"]
         shared["Shared helpers<br/>Wording, Dates, MonthlySchedule"]
-        files["Files<br/>FileEntry, FileLists, FileNames,<br/>FilePaths, ClientFolders"]
+        files["Files<br/>FileEntry, FileLists, FileNames,<br/>FilePaths, ClientFolders, FileTags"]
         other["Calendar, Renewals, Retainers,<br/>Search, Tools, Web (Domains), Backups, Xero"]
     end
     overview --> documents
@@ -181,7 +181,7 @@ flowchart LR
 | Styles | `Palette.axaml` and three dark palettes (the only place colours live, shadows and mark-up pens included), `Controls.axaml`, `Icons.axaml` (Lucide), `Motion.axaml`, and `Views/AgendaChips.axaml` for calendar chips. |
 | Shared screen pieces | `Views/LinesEditor` is the lines table on quotes, invoices and retainers. `ClientPicker` builds the client lists pages offer (names to type from, or a drop-down with a first choice like "All clients"). |
 | Writing a mail | `ComposeView` holds the format bar and a `RichTextEditor`, which edits a `RichDocument` (`Core/Writing`). Every edit goes through `RichEditing`, which has the tests. `RichHtml` writes the mail's HTML and reads drafts back. `RichText` turns plain text in (templates, saved replies) and out (the text part). The signature is ordinary writing, marked `IsSignature`, so it can be edited, swapped when From changes, and is never added a second time. A draft written here keeps its HTML in a `webignite-body` div, so it reopens exactly. |
-| Files page | An explorer for the whole PC, with the client folders (Settings, Files; `C:\Projects` when it is there) first in its side list. `FilesViewModel` shows one folder, watched while on screen; its changes (new folder, rename, copy, cut and paste, Recycle Bin) are in `FilesViewModel.Actions.cs` and each is recorded as a `FileChange` so Ctrl+Z puts it back. Disk work is in `Files/FileOps.cs`; Open with, Properties, Show in Explorer and Windows' own right-click menu (More options) are in `Files/WindowsShell.cs`. `FilesView` drags files in and out (to Explorer or Outlook), puts copied files on Windows' clipboard, and draws thumbnails only for pictures in sight; closing the page stops the watcher and lets every thumbnail go. A folder opens from elsewhere with `services.Go.Folder`. A client's page finds their folder by name (`ClientFolders`), asks about a near match, and keeps the answer in `Client.Folder`. |
+| Files page | An explorer for the whole PC, with the client folders (Settings, Files; `C:\Projects` when it is there) first in its side list. `FilesViewModel` shows one folder, watched while on screen; its changes (new folder, rename, copy, cut and paste, Recycle Bin) are in `FilesViewModel.Actions.cs` and each is recorded as a `FileChange` so Ctrl+Z puts it back. Disk work is in `Files/FileOps.cs`; Open with, Properties, Show in Explorer and Windows' own right-click menu (More options) are in `Files/WindowsShell.cs`. `FilesView` drags files in and out (to Explorer or Outlook), puts copied files on Windows' clipboard, and draws thumbnails only for pictures in sight; closing the page stops the watcher and lets every thumbnail go. A folder opens from elsewhere with `services.Go.Folder`. A client's page finds their folder by name (`ClientFolders`), asks about a near match, and keeps the answer in `Client.Folder`. Tags (`FileTags` in Core) are named and coloured in Settings, Files, and kept per file in the `file_tags` table through `services.FileTags` (`Files/FileTagBook.cs`, read on first use and held in memory). Each tagged file keeps its Windows file id (`Files/FileIdentity.cs`), so a file renamed or moved in Explorer on the same drive is found again; one moved, renamed or copied in Files takes its tags with it straight away. A tag's spot in the side list shows its files from every folder (`FilesViewModel.ShowingTag`); the Tags button filters a folder, and Group has By tag. |
 | Mail page | `MailView` with the folder tree (`MailFolderNodes.cs`), the list (`MailRowViewModel`) and the reader; `MailRulesView` and `MailSetupView` are its two pages of their own. `MailViewModel` is split by job into partial files (Actions, Editors, Rules, Sending, Snooze). |
 
 ### Pages
@@ -201,6 +201,7 @@ flowchart LR
 | --- | --- |
 | `documents` | Quotes and invoices (`StoredDocument`): the document, then its `Xero` link and what Xero last said, its `Delivery` (approved, emailed, chased) and `Settled` (when and how). |
 | `clients` | Clients with notes, files, their folder on the PC, projects, onboarding, hourly rates. |
+| `file_tags` | Files and folders with tags from Files: the path, the tag ids and the Windows file id, all encrypted. The tags themselves are the `file-tags` setting. |
 | `tasks`, `events` | To-dos and calendar events. |
 | `entries`, `recurring` | Money in and out, and monthly costs. |
 | `retainers`, `drafts_made` | Retainers and which monthly drafts were already made. |

@@ -28,6 +28,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         LoadTemplates(services.Settings.EmailTemplates);
         UpdateBackupStatus();
         LoadPrices();
+        LoadFileTags();
         MotionChoice = MotionChoices.First(c => c.Value == services.Settings.Appearance.Motion);
         services.Settings.AppearanceChanged += LookChanged;
         var mailCheck = services.Settings.MailCheck;

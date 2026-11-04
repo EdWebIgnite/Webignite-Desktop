@@ -215,6 +215,11 @@ public partial class MainViewModel : ViewModelBase
         go.OpenClientInNewTabAction = client =>
             ((ClientsViewModel)OpenInNewTab(this[Page.Clients]).Page).OpenClient(services.Clients.Get(client.Id) ?? client);
         go.OpenMailInNewTabAction = summary => ((MailViewModel)OpenInNewTab(mailModule).Page).OpenMessage(summary);
+        go.OpenSettingsAction = section =>
+        {
+            Selected = this[Page.Settings];
+            PageOf<SettingsViewModel>(Page.Settings).Open(section);
+        };
         go.OpenFolderAction = (path, newTab) =>
         {
             if (newTab)
