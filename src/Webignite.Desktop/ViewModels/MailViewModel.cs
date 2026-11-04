@@ -85,14 +85,10 @@ public partial class MailViewModel : ViewModelBase
 
     private void LoadClientChoices()
     {
-        var keep = ClientFilter?.Value?.Id;
-        ClientChoices = [new("All clients", null), .. services.Clients.List()
-            .Where(c => !new ClientMail(c).IsEmpty)
-            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(c => new Choice<Webignite.Core.Clients.Client?>(c.Name, c))];
+        ClientChoices = ClientPicker.Choices("All clients", services.Clients.List().Where(c => !new ClientMail(c).IsEmpty));
         OnPropertyChanged(nameof(ClientChoices));
         OnPropertyChanged(nameof(HasClientChoices));
-        ClientFilter = ClientChoices.FirstOrDefault(c => c.Value?.Id == keep) ?? ClientChoices[0];
+        ClientFilter = ClientPicker.Keep(ClientChoices, ClientFilter);
     }
 
     public bool HasComposer => Composer is not null;

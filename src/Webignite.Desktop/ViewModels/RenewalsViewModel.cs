@@ -37,7 +37,7 @@ public partial class RenewalsViewModel : ViewModelBase, IRefreshable
 
     public IReadOnlyList<KindChoice> Kinds { get; }
     public IReadOnlyList<PeriodChoice> Periods { get; }
-    public ObservableCollection<string> ClientNames { get; } = [];
+    public IReadOnlyList<string> ClientNames { get; private set; } = [];
     public ObservableCollection<RenewalRowViewModel> Soon { get; } = [];
     public ObservableCollection<RenewalRowViewModel> Later { get; } = [];
 
@@ -187,9 +187,8 @@ public partial class RenewalsViewModel : ViewModelBase, IRefreshable
             var row = new RenewalRowViewModel(renewal, RenewalRules.State(renewal, Today), this);
             (row.IsFine ? Later : Soon).Add(row);
         }
-        ClientNames.Clear();
-        foreach (var client in services.Clients.List())
-            ClientNames.Add(client.Name);
+        ClientNames = ClientPicker.Names(services.Clients.List());
+        OnPropertyChanged(nameof(ClientNames));
         OnPropertyChanged(nameof(HasSoon));
         OnPropertyChanged(nameof(HasLater));
         OnPropertyChanged(nameof(IsEmpty));

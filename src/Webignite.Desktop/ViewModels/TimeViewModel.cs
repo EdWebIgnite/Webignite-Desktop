@@ -9,11 +9,6 @@ using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
-/// <summary>Who time is for: a client, or nobody (admin, learning, quoting).</summary>
-public sealed record ClientChoice(string Label, Client? Client)
-{
-    public override string ToString() => Label;
-}
 
 /// <summary>Which project of the client, or none.</summary>
 public sealed record ProjectChoice(string Label, ClientProject? Project)
@@ -70,7 +65,8 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         InvoiceMonth = InvoiceMonths.FirstOrDefault(c => c.Label == invoiceLabel) ?? InvoiceMonths[0];
     }
 
-    public ObservableCollection<ClientChoice> ClientChoices { get; } = [];
+    /// <summary>Who time is for: a client, or nobody (admin, learning, quoting).</summary>
+    public IReadOnlyList<Choice<Client?>> ClientChoices { get; private set; } = [];
     public ObservableCollection<ProjectChoice> ProjectChoices { get; } = [];
     public IReadOnlyList<Choice<DateOnly>> DayChoices { get; private set; } = [];
 
@@ -86,7 +82,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     public ObservableCollection<TimeDayGroup> Days { get; } = [];
 
     [ObservableProperty] public partial string Note { get; set; } = "";
-    [ObservableProperty] public partial ClientChoice? ClientChoice { get; set; }
+    [ObservableProperty] public partial Choice<Client?>? ClientChoice { get; set; }
     [ObservableProperty] public partial ProjectChoice? ProjectChoice { get; set; }
     [ObservableProperty] public partial string Hours { get; set; } = "";
     [ObservableProperty] public partial Choice<DateOnly> Day { get; set; }
@@ -115,11 +111,11 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
 
     partial void OnMessageChanged(string value) => OnPropertyChanged(nameof(HasMessage));
 
-    partial void OnClientChoiceChanged(ClientChoice? value)
+    partial void OnClientChoiceChanged(Choice<Client?>? value)
     {
         ProjectChoices.Clear();
         ProjectChoices.Add(new ProjectChoice("No project", null));
-        foreach (var project in value?.Client?.Projects.Where(p => !p.Finished) ?? [])
+        foreach (var project in value?.Value?.Projects.Where(p => !p.Finished) ?? [])
             ProjectChoices.Add(new ProjectChoice(project.Name, project));
         ProjectChoice = ProjectChoices[0];
         OnPropertyChanged(nameof(HasProjects));
@@ -148,7 +144,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
         {
             Started = DateTimeOffset.Now,
             Note = Note.Trim(),
-            ClientId = ClientChoice?.Client?.Id,
+            ClientId = ClientChoice?.Value?.Id,
             ProjectId = ProjectChoice?.Project?.Id,
         };
         services.Store.SetRunningTimer(Running);
@@ -190,8 +186,8 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
             Date = Day.Value,
             Minutes = minutes,
             Note = Note.Trim(),
-            ClientId = ClientChoice?.Client?.Id,
-            ProjectId = ClientChoice?.Client is null ? null : ProjectChoice?.Project?.Id,
+            ClientId = ClientChoice?.Value?.Id,
+            ProjectId = ClientChoice?.Value is null ? null : ProjectChoice?.Project?.Id,
             Created = DateTimeOffset.Now,
         });
         Hours = "";
@@ -231,12 +227,9 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     {
         CatchUpDays();
         clients = services.Clients.List();
-        var keepClient = ClientChoice?.Client?.Id;
-        ClientChoices.Clear();
-        ClientChoices.Add(new ClientChoice(TimeRules.NoClient, null));
-        foreach (var client in clients)
-            ClientChoices.Add(new ClientChoice(client.Name, client));
-        ClientChoice = ClientChoices.FirstOrDefault(c => c.Client?.Id == keepClient) ?? ClientChoices[0];
+        ClientChoices = ClientPicker.Choices(TimeRules.NoClient, clients);
+        OnPropertyChanged(nameof(ClientChoices));
+        ClientChoice = ClientPicker.Keep(ClientChoices, ClientChoice);
         LoadInvoiceChoices(clients);
 
         var (from, to) = Range();

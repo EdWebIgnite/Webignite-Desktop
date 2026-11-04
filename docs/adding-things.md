@@ -81,7 +81,7 @@ Tool parameters are typed and named in snake_case, as the assistant sees them. W
 
 ## A colour, a style, an animation
 
-Colours: `Styles/Palette.axaml` for light, the three `Palette.Dark.*.axaml` files for dark, the same keys in all four (shadows and the mark-up pens included). Styles: `Styles/Controls.axaml` for anything used on more than one page; styles only one page uses can stay in that view. Avalonia gives a later style the say over an earlier one, so a style that must win (a heading that never lights up) goes after the general one. Motion: `Styles/Motion.axaml`, switched by the `motion-full` and `motion-reduced` classes on the window, and `FadeRise` in `Motion.cs` for page transitions. Red means a problem, green means done, nothing else uses them.
+Colours: `Styles/Palette.axaml` for light, the three `Palette.Dark.*.axaml` files for dark, the same keys in all four (shadows and the mark-up pens included). Styles: `Styles/Controls.axaml` for anything used on more than one page; a table heading is a `Border Classes="stickyhead"` with only its own Padding, as the class pins it and gives it the heading colour and height; styles only one page uses can stay in that view. Avalonia gives a later style the say over an earlier one, so a style that must win (a heading that never lights up) goes after the general one. Motion: `Styles/Motion.axaml`, switched by the `motion-full` and `motion-reduced` classes on the window, and `FadeRise` in `Motion.cs` for page transitions. Red means a problem, green means done, nothing else uses them.
 
 ## A mail the person sends
 

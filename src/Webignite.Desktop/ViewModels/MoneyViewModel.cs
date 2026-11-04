@@ -27,7 +27,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
     public IReadOnlyList<string> Categories => ExpenseCategories.All;
-    public ObservableCollection<string> ClientNames { get; } = [];
+    public IReadOnlyList<string> ClientNames { get; private set; } = [];
     public ObservableCollection<EntryRowViewModel> ReceivedRows { get; } = [];
     public ObservableCollection<EntryRowViewModel> ExpenseRows { get; } = [];
     public ObservableCollection<RecurringRowViewModel> RecurringRows { get; } = [];
@@ -221,9 +221,8 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable
             ? "Set up anything you pay every month once, and it is added to your expenses on its day."
             : $"{Money.Rand(monthly)} a month. Each one is added to your expenses on its day.";
 
-        ClientNames.Clear();
-        foreach (var client in services.Clients.List())
-            ClientNames.Add(client.Name);
+        ClientNames = ClientPicker.Names(services.Clients.List());
+        OnPropertyChanged(nameof(ClientNames));
 
         var defaultDate = (IsThisMonth ? Today : Month).ToDateTime(TimeOnly.MinValue);
         InDate = defaultDate;
