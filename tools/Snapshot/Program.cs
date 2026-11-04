@@ -198,7 +198,7 @@ store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t4", Title = "Back up c
 var overdue = store.List(DocumentKind.Invoice).First(d => d.XeroNumber is not null);
 store.Save(overdue with { Document = overdue.Document with { Date = today.AddDays(-21), DueOrExpiryDate = today.AddDays(-14) } });
 var quote = store.List(DocumentKind.Quote)[0];
-store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031" });
+store.Save(quote with { Status = DocumentStatus.InXero, XeroNumber = "QU-0031", XeroStatus = "SENT" });
 Open(Page.Overview); // away and back, so To-do reads the sample to-dos above
 Open(Page.Todo);
 Save("todo");
@@ -406,6 +406,10 @@ vm.Mail.StatusIsProblem = false;
 var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 _ = vm.Mail.Select(opened);
 Save("mail");
+// The same mail in a dark look: it stays on white paper so it can be read.
+services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Dark, DarkPalette = DarkPalette.Graphite };
+Save("dark-mail");
+services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Light };
 
 // The PDF attachment shown in the reading pane. The drawing runs off the screen's thread, so wait for it here.
 {

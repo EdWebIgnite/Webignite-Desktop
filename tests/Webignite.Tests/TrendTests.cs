@@ -72,6 +72,7 @@ public sealed class TrendTests
     private static StoredDocument Quote(DateOnly expires) => Invoice(1000m, Today.AddDays(-5), expires) with
     {
         Document = Invoice(1000m, Today.AddDays(-5), expires).Document with { Kind = DocumentKind.Quote },
+        XeroStatus = "SENT",
     };
 
     [Fact]

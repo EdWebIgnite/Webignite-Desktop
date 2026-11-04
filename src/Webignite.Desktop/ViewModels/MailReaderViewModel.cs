@@ -270,7 +270,10 @@ public partial class AttachmentViewModel(MailAttachment attachment, MailReaderVi
     }
 }
 
-/// <summary>The base look for mail bodies, so plain mail reads in the app's own font and size.</summary>
+/// <summary>
+/// The base look for mail bodies, so plain mail reads in the app's own font and size. Mail always sits on the
+/// Paper colour (white in every look), so the dark text here is the light palette's Text on purpose.
+/// </summary>
 public static class MailStyle
 {
     public static string Wrap(string html) =>

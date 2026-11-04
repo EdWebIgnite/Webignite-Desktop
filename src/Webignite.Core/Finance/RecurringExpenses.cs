@@ -1,8 +1,9 @@
+using System.Globalization;
 namespace Webignite.Core.Finance;
 
 public static class RecurringExpenses
 {
-    public static string Key(RecurringExpense recurring, DateOnly month) => $"recurring:{recurring.Id}:{month:yyyy-MM}";
+    public static string Key(RecurringExpense recurring, DateOnly month) => string.Create(CultureInfo.InvariantCulture, $"recurring:{recurring.Id}:{month:yyyy-MM}");
 
     /// <summary>The day it goes off in a given month. Day 31 lands on the 30th in November, the 28th or 29th in February.</summary>
     public static DateOnly DateIn(RecurringExpense recurring, DateOnly month) =>

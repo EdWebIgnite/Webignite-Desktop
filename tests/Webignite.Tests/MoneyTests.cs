@@ -8,7 +8,8 @@ public class MoneyTests
     [InlineData("-0.005", "-0.01")]
     [InlineData("12.344", "12.34")]
     public void Cents_rounds_half_away_from_zero(string input, string expected) =>
-        Assert.Equal(decimal.Parse(expected), Money.Cents(decimal.Parse(input)));
+        Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture),
+            Money.Cents(decimal.Parse(input, System.Globalization.CultureInfo.InvariantCulture)));
 
     [Fact]
     public void Rand_uses_spaces_for_thousands() =>
@@ -23,6 +24,13 @@ public class MoneyTests
     [InlineData("1250,50", "1250.50")]
     [InlineData("1,250.50", "1250.50")]
     [InlineData(" r 99 ", "99")]
+    [InlineData("1,250", "1250")]
+    [InlineData("R 12,500", "12500")]
+    [InlineData("1,250,000", "1250000")]
+    [InlineData("12,5", "12.5")]
+    [InlineData("349,99", "349.99")]
+    [InlineData("0,125", "0.125")]
+    [InlineData("1250,500", "1250.500")]
     public void Parse_reads_amounts_as_people_type_them(string text, string expected) =>
         Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), Money.Parse(text));
 

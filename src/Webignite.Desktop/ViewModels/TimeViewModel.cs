@@ -34,10 +34,6 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     {
         this.services = services;
         tick.Tick += (_, _) => UpdateClock();
-        DayChoices = Enumerable.Range(0, 14).Select(back => Today.AddDays(-back))
-            .Select(day => new Choice<DateOnly>(day == Today ? "Today" : day == Today.AddDays(-1) ? "Yesterday" : day.ToString("ddd d MMM"), day))
-            .ToList();
-        Day = DayChoices[0];
         Period = PeriodChoices[0];
         Running = services.Store.RunningTimer;
         Refresh();
@@ -45,9 +41,37 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
 
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
+    private DateOnly choicesMadeFor;
+
+    /// <summary>
+    /// Builds Today, Yesterday and the months again once the date has moved on, as it does when Webignite stays
+    /// open past midnight. "Today" stays today; a day picked by date stays that date.
+    /// </summary>
+    private void CatchUpDays()
+    {
+        var today = Today;
+        if (today == choicesMadeFor)
+            return;
+        var wasToday = Day is null || Day.Value == choicesMadeFor;
+        var keep = Day?.Value;
+        var invoiceLabel = InvoiceMonth?.Label;
+        choicesMadeFor = today;
+
+        DayChoices = Enumerable.Range(0, 14).Select(back => today.AddDays(-back))
+            .Select(day => new Choice<DateOnly>(day == today ? "Today" : day == today.AddDays(-1) ? "Yesterday" : day.ToString("ddd d MMM"), day))
+            .ToList();
+        OnPropertyChanged(nameof(DayChoices));
+        Day = wasToday ? DayChoices[0] : DayChoices.FirstOrDefault(c => c.Value == keep) ?? DayChoices[0];
+
+        var month = new DateOnly(today.Year, today.Month, 1);
+        InvoiceMonths = [new("This month", month), new("Last month", month.AddMonths(-1))];
+        OnPropertyChanged(nameof(InvoiceMonths));
+        InvoiceMonth = InvoiceMonths.FirstOrDefault(c => c.Label == invoiceLabel) ?? InvoiceMonths[0];
+    }
+
     public ObservableCollection<ClientChoice> ClientChoices { get; } = [];
     public ObservableCollection<ProjectChoice> ProjectChoices { get; } = [];
-    public IReadOnlyList<Choice<DateOnly>> DayChoices { get; }
+    public IReadOnlyList<Choice<DateOnly>> DayChoices { get; private set; } = [];
 
     public static IReadOnlyList<Choice<int>> PeriodChoices { get; } =
     [
@@ -153,6 +177,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
     [RelayCommand]
     private void Add()
     {
+        CatchUpDays();
         if (TimeRules.ParseMinutes(Hours) is not { } minutes)
         {
             Say("Type how long, like 1.5, 1:30 or 45m. Up to 16 hours at a time.", problem: true);
@@ -214,6 +239,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable
 
     public void Refresh()
     {
+        CatchUpDays();
         clients = services.Store.ListClients();
         var keepClient = ClientChoice?.Client?.Id;
         ClientChoices.Clear();

@@ -34,7 +34,7 @@ public static class RetainerSchedule
 {
     public const string MonthPlaceholder = "[Month]";
 
-    public static string Key(Retainer retainer, DateOnly month) => $"retainer:{retainer.Id}:{month:yyyy-MM}";
+    public static string Key(Retainer retainer, DateOnly month) => string.Create(CultureInfo.InvariantCulture, $"retainer:{retainer.Id}:{month:yyyy-MM}");
 
     public static DateOnly DateIn(Retainer retainer, DateOnly month) =>
         new(month.Year, month.Month, Math.Min(Math.Clamp(retainer.DayOfMonth, 1, 31), DateTime.DaysInMonth(month.Year, month.Month)));

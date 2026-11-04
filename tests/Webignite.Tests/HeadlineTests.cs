@@ -26,6 +26,7 @@ public sealed class HeadlineTests
         Invoice(amount, expires, settledAs: settledAs) with
         {
             Document = Invoice(amount, expires).Document with { Kind = DocumentKind.Quote },
+            XeroStatus = "SENT",
         };
 
     [Theory]
@@ -93,6 +94,15 @@ public sealed class HeadlineTests
         var documents = new[] { Quote(14500m, Today.AddDays(20)), Quote(3000m, Today.AddDays(5), settledAs: "accepted") };
 
         Assert.Equal($"2 quotes, {Money.Rand(14500m)} waiting on clients, 1 accepted", DocumentHeadline.For(DocumentKind.Quote, documents, Today));
+    }
+
+    [Fact]
+    public void A_draft_quote_the_client_never_saw_isnt_waiting_on_them()
+    {
+        var draft = Quote(14500m, Today.AddDays(20)) with { XeroStatus = "DRAFT" };
+        Assert.Equal("1 quote", DocumentHeadline.For(DocumentKind.Quote, [draft], Today));
+        Assert.Equal(0m, Receivables.QuotesOut([draft], Today));
+        Assert.Equal(14500m, Receivables.QuotesOut([draft with { Emailed = DateTimeOffset.UnixEpoch }], Today));
     }
 
     [Fact]

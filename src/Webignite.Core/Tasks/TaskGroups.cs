@@ -13,6 +13,13 @@ public enum TaskGroup
 
 public static class TaskGroups
 {
+    /// <summary>"Next week" as a due date: the coming Monday. On a Sunday that is tomorrow; on a Monday, a week on.</summary>
+    public static DateOnly NextMonday(DateOnly today)
+    {
+        var days = ((int)DayOfWeek.Monday - (int)today.DayOfWeek + 7) % 7;
+        return today.AddDays(days == 0 ? 7 : days);
+    }
+
     public static TaskGroup Of(TaskItem task, DateOnly today) => task switch
     {
         { Done: true } => TaskGroup.Done,

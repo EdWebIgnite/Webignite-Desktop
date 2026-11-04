@@ -13,11 +13,8 @@ public partial class TimeViewModel
     public IReadOnlyList<Choice<Client>> InvoiceClients { get; private set; } = [];
     public bool CanInvoice => InvoiceClients.Count > 0;
 
-    public IReadOnlyList<Choice<DateOnly>> InvoiceMonths { get; } =
-    [
-        new("This month", new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1)),
-        new("Last month", new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1)),
-    ];
+    /// <summary>This month and last month, built again after midnight by <see cref="CatchUpDays"/>.</summary>
+    public IReadOnlyList<Choice<DateOnly>> InvoiceMonths { get; private set; } = [];
 
     [ObservableProperty] public partial Choice<Client>? InvoiceClient { get; set; }
     [ObservableProperty] public partial Choice<DateOnly>? InvoiceMonth { get; set; }
@@ -37,6 +34,7 @@ public partial class TimeViewModel
     [RelayCommand]
     private void DraftInvoice()
     {
+        CatchUpDays();
         if (InvoiceClient?.Value is not { } client || InvoiceMonth?.Value is not { } month)
             return;
         var entries = services.Store.ListTime(month, month.AddMonths(1).AddDays(-1));

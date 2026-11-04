@@ -44,9 +44,9 @@ public static class SendLater
 
     /// <summary>"today at 15:00", "tomorrow at 08:00" or "Mon 9 Nov at 08:00".</summary>
     public static string When(DateTimeOffset when, DateTimeOffset now) =>
-        when.Date == now.Date ? $"today at {when:HH:mm}"
-        : when.Date == now.Date.AddDays(1) ? $"tomorrow at {when:HH:mm}"
-        : $"{when.ToString("ddd d MMM", CultureInfo.InvariantCulture)} at {when:HH:mm}";
+        when.Date == now.Date ? $"today at {when.ToString("HH:mm", CultureInfo.InvariantCulture)}"
+        : when.Date == now.Date.AddDays(1) ? $"tomorrow at {when.ToString("HH:mm", CultureInfo.InvariantCulture)}"
+        : $"{when.ToString("ddd d MMM", CultureInfo.InvariantCulture)} at {when.ToString("HH:mm", CultureInfo.InvariantCulture)}";
 
     /// <summary>"Sending to Thandi in 7 seconds." while Undo is still possible.</summary>
     public static string Countdown(string to, int seconds) =>

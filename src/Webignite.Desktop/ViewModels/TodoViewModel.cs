@@ -23,7 +23,7 @@ public partial class TodoViewModel : ViewModelBase, IRefreshable
             new("No date", _ => null),
             new("Today", today => today),
             new("Tomorrow", today => today.AddDays(1)),
-            new("Next week", today => today.AddDays(7 - (int)today.DayOfWeek + 1)),
+            new("Next week", today => TaskGroups.NextMonday(today)),
         ];
         NewDue = DueChoices[1];
         Refresh();

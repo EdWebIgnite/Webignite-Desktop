@@ -9,6 +9,7 @@ Native Windows app (C#, .NET 10, Avalonia 12, MVVM with CommunityToolkit.Mvvm). 
 - Documents use snake_case JSON (see `DocumentJson`), the same shape assistants send.
 - Webignite is not VAT registered. Xero writes are DRAFT only. Assistants never approve or send.
 - UI copy: plain South African English, Rand shown as `R 1 234.56`, no em dashes.
+- Don't pin a country or culture: dates on screen follow the PC's Windows region, as users may be outside South Africa later. Keys that are stored, and text sent to clients or Xero, use `CultureInfo.InvariantCulture`.
 - Colours come only from `Styles/Palette.axaml`. Red and green mean problem and done, nothing else.
 - Recipes for adding a page, setting, table, background check or assistant tool: `docs/adding-things.md`.
 - Map of the projects, pages, stores and main flows: `docs/architecture.md`. Update it in the same PR when one of those changes.

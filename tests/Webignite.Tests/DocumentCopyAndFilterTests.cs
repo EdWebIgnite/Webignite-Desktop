@@ -89,6 +89,7 @@ public sealed class DocumentCopyAndFilterTests
     {
         Assert.Equal(["Fynbos Physio"], Names(new("2800")));
         Assert.Equal(["Fynbos Physio"], Names(new("R2 800,00")));
+        Assert.Equal(["Fynbos Physio"], Names(new("2,800")));
         Assert.Equal(["Bosveld Builders"], Names(new("14 500")));
     }
 

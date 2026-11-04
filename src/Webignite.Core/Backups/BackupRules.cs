@@ -67,7 +67,7 @@ public static class BackupRules
             return "No backup yet. The first one runs in a moment.";
         var local = last.ToLocalTime();
         var when = local.Date == now.ToLocalTime().Date ? "today" : local.ToString("d MMMM yyyy", CultureInfo.InvariantCulture);
-        return $"Last backup {when} at {local:HH:mm}.";
+        return $"Last backup {when} at {local.ToString("HH:mm", CultureInfo.InvariantCulture)}.";
     }
 
     /// <summary>True when backups have been failing or missing for more than two days, worth a red note.</summary>

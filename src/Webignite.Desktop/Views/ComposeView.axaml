@@ -134,9 +134,10 @@
           <TextBlock Text="Hide the earlier message" IsVisible="{Binding ShowQuote}" />
         </Panel>
       </Button>
-      <Border Classes="card" Padding="12" MaxHeight="260" IsVisible="{Binding ShowQuote}">
+      <!-- Mail is shown on paper white in every look, as it was written to be read. -->
+      <Border Classes="card" Padding="12" MaxHeight="260" Background="{DynamicResource Paper}" IsVisible="{Binding ShowQuote}">
         <ScrollViewer>
-          <html:HtmlPanel Text="{Binding QuoteHtml}" Background="{DynamicResource Surface}" />
+          <html:HtmlPanel Text="{Binding QuoteHtml}" Background="{DynamicResource Paper}" />
         </ScrollViewer>
       </Border>
     </StackPanel>
@@ -207,9 +208,9 @@
         <TextBox x:Name="BodyBox" Text="{Binding Body}" AcceptsReturn="True" AcceptsTab="False" TextWrapping="Wrap"
                  VerticalAlignment="Stretch" VerticalContentAlignment="Top" PlaceholderText="Write your mail"
                  IsVisible="{Binding !ShowPreview}" />
-        <Border Classes="card" Padding="12" IsVisible="{Binding ShowPreview}">
+        <Border Classes="card" Padding="12" Background="{DynamicResource Paper}" IsVisible="{Binding ShowPreview}">
           <ScrollViewer>
-            <html:HtmlPanel Text="{Binding PreviewHtml}" Background="{DynamicResource Surface}" />
+            <html:HtmlPanel Text="{Binding PreviewHtml}" Background="{DynamicResource Paper}" />
           </ScrollViewer>
         </Border>
       </Panel>
