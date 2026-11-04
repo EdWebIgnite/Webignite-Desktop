@@ -61,7 +61,7 @@ public sealed partial class FilesViewModel
     public Action<FileRowViewModel>? RenameStarted { get; set; }
 
     [RelayCommand]
-    private void Rename() => StartRename();
+    private void Rename() => StartBulkRename();
 
     /// <summary>Keeps the typed name. Returns false while the name can't be used, with why under the box.</summary>
     public bool FinishRename(FileRowViewModel row)
@@ -171,6 +171,11 @@ public sealed partial class FilesViewModel
         if (into is null && NotInTagView())
             return;
         into ??= Folder;
+        if (ToQueue(paths, move, into))
+        {
+            Queue(paths, move, into);
+            return;
+        }
         Try(() =>
         {
             if (move)
@@ -208,6 +213,9 @@ public sealed partial class FilesViewModel
             // Tags go back with the file.
             if (last is FileChange.Renamed renamed)
                 services.FileTags.Moved(renamed.To, renamed.From);
+            else if (last is FileChange.RenamedMany many)
+                foreach (var (from, to) in many.Items)
+                    services.FileTags.Moved(to, from);
             else if (last is FileChange.Moved moved)
                 foreach (var (from, to) in moved.Items)
                     services.FileTags.Moved(to, from);

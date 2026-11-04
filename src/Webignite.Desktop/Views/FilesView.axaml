@@ -3,6 +3,7 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:files="using:Webignite.Core.Files"
+             xmlns:filesops="using:Webignite.Desktop.Files"
              x:Class="Webignite.Desktop.Views.FilesView"
              x:DataType="vm:FilesViewModel">
   <UserControl.Resources>
@@ -113,6 +114,21 @@
                 <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="TagFilterOpening" />
               </Button.Flyout>
             </Button>
+            <Button Classes="quiet format" Classes.on="{Binding IsShowFiltered}" ToolTip.Tip="Show only one kind of file, or files from a time">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="{Binding FilterLabel}" MaxWidth="170" TextTrimming="CharacterEllipsis" />
+                <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="ShowFilterOpening" />
+              </Button.Flyout>
+            </Button>
+            <Button Classes="quiet format" Classes.on="{Binding ShowingSpace}" Command="{Binding ToggleSpaceCommand}" ToolTip.Tip="What's taking space: folder sizes, biggest first">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:Icon Data="{StaticResource Icon.Reports}" Size="14" VerticalAlignment="Center" />
+                <TextBlock Text="Space" />
+              </StackPanel>
+            </Button>
             <Button Classes="quiet format" ToolTip.Tip="Group by">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <TextBlock Text="Group" />
@@ -132,6 +148,31 @@
           </StackPanel>
         </DockPanel>
       </Border>
+
+      <!-- Big copies and moves under way, from any Files tab: how far, and Pause or Stop. -->
+      <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding CopyJobs}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="filesops:CopyJob">
+            <Border Padding="16,8" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Background="{DynamicResource Surface}">
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="12,0,0,0">
+                  <Button Classes="quiet" Content="Pause" Command="{Binding PauseCommand}" IsVisible="{Binding !IsPaused}" />
+                  <Button Classes="quiet" Content="Carry on" Command="{Binding ResumeCommand}" IsVisible="{Binding IsPaused}" />
+                  <Button Classes="quiet" Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding IsActive}" />
+                  <Button Classes="quiet format icon" Command="{Binding DismissCommand}" IsVisible="{Binding IsOver}" ToolTip.Tip="Put this away">
+                    <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                  </Button>
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" />
+                  <ProgressBar Value="{Binding Fraction}" Minimum="0" Maximum="1" Height="4" MinHeight="4" IsVisible="{Binding IsActive}" />
+                  <TextBlock Classes="muted" FontSize="11" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
 
       <!-- What's here, and anything to say about the last thing done -->
       <Border DockPanel.Dock="Bottom" Padding="16,6" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
@@ -257,8 +298,13 @@
                         </ItemsControl>
                         <TextBlock Classes="muted" Text="{Binding TagText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                       </DockPanel>
-                      <TextBlock DockPanel.Dock="Right" Width="134" Classes="muted" Text="{Binding KindText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0,0,0"
-                                 ToolTip.Tip="{Binding Entry.Path}" IsVisible="{Binding !Owner.IsNarrow}" />
+                      <Panel DockPanel.Dock="Right" Width="134" Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding !Owner.IsNarrow}">
+                        <TextBlock Classes="muted" Text="{Binding KindText}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Entry.Path}" IsVisible="{Binding !HasSpace}" />
+                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasSpace}">
+                          <Border Classes="spacebar" Width="{Binding SpaceBar}" Height="8" VerticalAlignment="Center" />
+                          <TextBlock Classes="muted" FontSize="11" Text="{Binding SpaceText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Panel>
                       <TextBlock DockPanel.Dock="Right" Width="154" Classes="muted" Text="{Binding ModifiedText}" VerticalAlignment="Center" Margin="6,0,0,0" />
                       <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="16" Classes.folder="{Binding IsFolder}" Margin="0,0,10,0" VerticalAlignment="Center" />
                       <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" IsVisible="{Binding !IsRenaming}" VerticalAlignment="Center" />
@@ -348,6 +394,54 @@
                                  Text="There's no preview for this kind of file. Press Enter to open it in its usual program." />
                     </StackPanel>
                   </Panel>
+                </DockPanel>
+              </Border>
+            </Border>
+
+            <!-- Renaming several at once: find and replace, or one name with numbers, checked before anything changes. -->
+            <Border IsVisible="{Binding IsBulkRenaming}" Background="{DynamicResource Scrim}">
+              <Border DataContext="{Binding BulkRename}" x:DataType="vm:BulkRenameViewModel" Background="{DynamicResource Surface}" CornerRadius="10"
+                      BoxShadow="{DynamicResource OverlayShadow}" Margin="36,20" MaxWidth="760" Padding="22,18">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Top" Classes="h2" Text="{Binding Title, FallbackValue=''}" Margin="0,0,0,12" />
+                  <StackPanel DockPanel.Dock="Top" Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <TextBox Text="{Binding Find}" Width="220" PlaceholderText="Find, e.g. IMG_" />
+                      <TextBox Text="{Binding Replace}" Width="220" PlaceholderText="Replace with" />
+                      <CheckBox Content="Match case" IsChecked="{Binding MatchCase}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <WrapPanel ItemSpacing="10" LineSpacing="8">
+                      <CheckBox Content="Name and number them" IsChecked="{Binding Numbered}" VerticalAlignment="Center" />
+                      <TextBox Text="{Binding NumberedName}" Width="200" PlaceholderText="e.g. Site visit" IsEnabled="{Binding Numbered}" />
+                      <TextBlock Classes="muted" Text="from" VerticalAlignment="Center" />
+                      <NumericUpDown Value="{Binding StartAt}" Minimum="0" Maximum="100000" Increment="1" FormatString="0" Width="110" IsEnabled="{Binding Numbered}" />
+                      <TextBlock Classes="muted" Text="digits" VerticalAlignment="Center" />
+                      <NumericUpDown Value="{Binding Digits}" Minimum="1" Maximum="6" Increment="1" FormatString="0" Width="110" IsEnabled="{Binding Numbered}" />
+                    </WrapPanel>
+                  </StackPanel>
+                  <DockPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                      <Button Classes="quiet" Content="Cancel" Command="{Binding CancelCommand}" />
+                      <Button Classes="primary" Content="Rename them" Command="{Binding ApplyCommand}" />
+                    </StackPanel>
+                    <TextBlock Classes="problem" FontSize="12" Text="{Binding Problem}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  </DockPanel>
+                  <Border Margin="0,14,0,0" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
+                    <ScrollViewer>
+                      <ItemsControl ItemsSource="{Binding Changes}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="files:BulkRename+Change">
+                            <Grid ColumnDefinitions="*,24,*" Margin="0,3">
+                              <TextBlock Classes="muted" Text="{Binding From}" TextTrimming="CharacterEllipsis" />
+                              <c:Icon Grid.Column="1" Data="{StaticResource Icon.ChevronRight}" Size="12" Opacity="0.5" HorizontalAlignment="Center" />
+                              <TextBlock Grid.Column="2" Text="{Binding To}" Classes.problem="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                         TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Problem}" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </Border>
                 </DockPanel>
               </Border>
             </Border>

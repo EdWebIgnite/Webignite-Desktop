@@ -761,4 +761,10 @@
     <Setter Property="Margin" Value="0,0,12,6" />
     <Setter Property="FontSize" Value="12" />
   </Style>
+  <!-- A folder's share of the space in Files' Space view. -->
+  <Style Selector="Border.spacebar">
+    <Setter Property="Background" Value="{DynamicResource Muted}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
 </Styles>
