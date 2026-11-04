@@ -12,6 +12,14 @@ public sealed record ScreenshotSettings
 
     /// <summary>Where screenshots without a client go. Empty means Pictures\Screenshots.</summary>
     public string? Folder { get; init; }
+
+    public const string DefaultRecordShortcut = "Ctrl+Alt+R";
+
+    /// <summary>The keys that start a screen recording from any program, and stop it again. Empty turns it off.</summary>
+    public string RecordShortcut { get; init; } = DefaultRecordShortcut;
+
+    /// <summary>Record the microphone with the screen.</summary>
+    public bool Microphone { get; init; } = true;
 }
 
 /// <summary>A key with Ctrl, Alt, Shift or the Windows key, for a shortcut that works from any program.</summary>
