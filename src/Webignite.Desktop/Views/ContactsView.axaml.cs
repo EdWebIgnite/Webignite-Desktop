@@ -31,5 +31,32 @@ public partial class ContactsView : FullBleedView
             contacts.PickClient(choice);
     }
 
+    private void ImportClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => ImportAsync().Forget("Importing contacts", tell: true);
+
+    private async Task ImportAsync()
+    {
+        if (DataContext is not ContactsViewModel contacts)
+            return;
+        if ((await Files.Picker.Files(this, "Import people", ["*.vcf", "*.csv"], kindName: "vCard or CSV files")).FirstOrDefault() is { } path)
+            await contacts.ImportAsync(path);
+    }
+
+    private void ExportVCardClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Export(ContactFileKind.VCard, false);
+    private void ExportCsvClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Export(ContactFileKind.Csv, false);
+    private void ExportGroupVCardClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Export(ContactFileKind.VCard, true);
+    private void ExportGroupCsvClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Export(ContactFileKind.Csv, true);
+
+    private void Export(ContactFileKind kind, bool groupOnly) => ExportAsync(kind, groupOnly).Forget("Exporting contacts", tell: true);
+
+    private async Task ExportAsync(ContactFileKind kind, bool groupOnly)
+    {
+        if (DataContext is not ContactsViewModel contacts)
+            return;
+        var patterns = kind == ContactFileKind.Csv ? new[] { "*.csv" } : ["*.vcf"];
+        if (await Files.Picker.Save(this, "Export people", contacts.ExportName(kind, groupOnly), patterns,
+                kind == ContactFileKind.Csv ? "CSV file" : "vCard file") is { } path)
+            await contacts.ExportAsync(path, kind, groupOnly);
+    }
+
     private void PaneResized(string pane, double width) => (DataContext as ContactsViewModel)?.Panels.Resized(pane, width);
 }

@@ -1920,6 +1920,19 @@ Save("site-check");
     people.OpenPerson(services.Contacts.Get(pieter.Id)!.Id);
     Wait(people.TheirMailLoaded, "Their mail was read");
     Check("A person shows their client's quotes and invoices", people.HasTheirDocuments);
+    // Import and export: a phone's vCard brings in who isn't here yet; everyone goes out as CSV.
+    var cardFile = Path.Combine(data, "phone-contacts.vcf");
+    File.WriteAllText(cardFile, "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Sipho Ndlovu\r\nORG:Fynbos Physio\r\nEMAIL:sipho@fynbosphysio.co.za\r\nTEL;TYPE=CELL:072 555 0123\r\nEND:VCARD\r\n"
+        + "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Marlene B\r\nEMAIL:accounts@bosveldbuilders.co.za\r\nEND:VCARD\r\n");
+    Wait(people.ImportAsync(cardFile), "The vCard was imported");
+    Check("Importing a vCard adds who isn't here yet, with their client", people.FileMessage == "Added 1 person. 1 was in Contacts already."
+        && services.Contacts.List().Any(p => p.Name == "Sipho Ndlovu" && p.ClientId == services.Clients.Find("Fynbos Physio")?.Id));
+    var csvFile = Path.Combine(data, "contacts.csv");
+    Wait(people.ExportAsync(csvFile, ContactFileKind.Csv, groupOnly: false), "Contacts were exported");
+    Check("Exporting writes everyone to a CSV with their client", File.ReadAllLines(csvFile).Length == services.Contacts.List().Count + 1
+        && File.ReadAllText(csvFile).Contains("Sipho Ndlovu,,Fynbos Physio", StringComparison.Ordinal));
+    people.OpenPerson(services.Contacts.Get(pieter.Id)!.Id);
+    Wait(people.TheirMailLoaded, "Their mail was read again");
     Wait(people.MailedOftenLoaded, "People mailed often were worked out");
     Dispatcher.UIThread.RunJobs();
     Check("The group filter still shows Everyone after the list is read again",
