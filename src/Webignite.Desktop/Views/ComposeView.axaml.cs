@@ -231,6 +231,53 @@ public partial class ComposeView : UserControl
         }
     }
 
+    /// <summary>Fills the Templates menu: each template, then keep this mail as one, then remove one.</summary>
+    private void TemplatesOpening(object? sender, EventArgs e)
+    {
+        if (Compose is not { } compose || sender is not MenuFlyout flyout)
+            return;
+        flyout.Items.Clear();
+        foreach (var template in compose.TemplateList)
+        {
+            var item = new MenuItem { Header = template.Name };
+            if (template.Subject.Length > 0)
+                ToolTip.SetTip(item, template.Subject);
+            item.Click += (_, _) =>
+            {
+                if (compose.UseTemplate(template) is { } writing)
+                    Editor.InsertDocument(writing);
+            };
+            flyout.Items.Add(item);
+        }
+        if (compose.TemplateList.Count == 0)
+            flyout.Items.Add(new MenuItem { Header = "No templates yet", IsEnabled = false });
+        flyout.Items.Add(new Separator());
+        var save = new MenuItem { Header = "Save this mail as a template…" };
+        save.Click += (_, _) =>
+        {
+            compose.StartSaveTemplateCommand.Execute(null);
+            Dispatcher.UIThread.Post(() => TemplateNameBox.Focus());
+        };
+        flyout.Items.Add(save);
+        if (compose.TemplateList.Count > 0)
+        {
+            var remove = new MenuItem { Header = "Remove a template" };
+            foreach (var template in compose.TemplateList)
+            {
+                var item = new MenuItem { Header = template.Name };
+                item.Click += (_, _) => compose.RemoveTemplate(template);
+                remove.Items.Add(item);
+            }
+            flyout.Items.Add(remove);
+        }
+    }
+
+    private void PeopleOpening(object? sender, EventArgs e)
+    {
+        Compose?.OpenPeople();
+        Dispatcher.UIThread.Post(() => PeopleSearchBox.Focus());
+    }
+
     private void LinkClicked(object? sender, RoutedEventArgs e)
     {
         if (Compose is not { } compose)
