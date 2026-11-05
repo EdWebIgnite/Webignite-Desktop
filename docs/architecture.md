@@ -193,11 +193,14 @@ flowchart LR
 | Group | Pages |
 | --- | --- |
 | (top) | Overview, To approve, Mail |
-| Client work | Clients, Files, Retainers, Domains and hosting |
+| Client work | Clients, Retainers, Domains and hosting |
 | Billing | Quotes, Invoices, Money, Reports |
-| Planning | To-do, Notes, Calendar, Planner, Time |
-| Web tools | Site check, Mark-up, PDF tools, Tools |
+| Planning | To-do, Calendar, Planner, Time |
+| Computer | Files, PDF tools, Notes; the tools Calculator, Password generator, Colours |
+| Web tools | Site check, Mark-up; the tools Website images, QR code |
 | (bottom) | Settings |
+
+A tool in the sidebar is a `ToolLink`, not a page: clicking it opens the tool in a small `ToolWindow` of its own (`MainWindow.Tools.cs`, one window per tool, above the app, closed with it), with a fresh `ToolsViewModel` that goes when the window closes. Each tool's screen is its own view (`CalculatorView`, `PasswordView`, `ColourView`, `QrView`, `ImagesView`). The calculator takes clicks on its pad, typing and the number pad; Enter works it out and carries on from the answer. When the app adds a sidebar group, a saved order of the person's starts afresh (`Sidebar.Reconcile`), so the new group gets its pages.
 
 ### What is stored where
 

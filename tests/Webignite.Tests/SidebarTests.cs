@@ -52,6 +52,18 @@ public sealed class SidebarTests
     }
 
     [Fact]
+    public void A_new_group_starts_a_moved_order_afresh_but_keeps_the_rest()
+    {
+        var saved = new SidebarLayout { Icons = true, Folded = ["billing"], Order = ["Overview", "#billing", "Quotes", "#end", "Settings"] };
+        var known = Sidebar.Reconcile(saved, "billing");
+        Assert.Equal(saved.Order, known.Order);
+        var added = Sidebar.Reconcile(saved, "billing", "computer");
+        Assert.Empty(added.Order);
+        Assert.True(added.Icons);
+        Assert.Equal(["billing"], added.Folded);
+    }
+
+    [Fact]
     public void Layouts_round_trip_through_json()
     {
         var layout = Sidebar.Fold(Sidebar.Show(new SidebarLayout(), SidebarMode.Hidden), "planning", open: false);

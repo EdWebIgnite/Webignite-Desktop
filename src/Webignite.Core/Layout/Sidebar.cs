@@ -161,11 +161,20 @@ public static class Sidebar
         return blocks;
     }
 
-    /// <summary>A saved layout against the sidebar as it is now: a group that no longer exists is forgotten.</summary>
+    /// <summary>
+    /// A saved layout against the sidebar as it is now: a group that no longer exists is forgotten. When the app
+    /// has a group the saved order doesn't know, the order starts afresh, as the new group takes pages from the
+    /// others and would otherwise stand empty with its pages left where they were.
+    /// </summary>
     public static SidebarLayout Reconcile(SidebarLayout? saved, params string[] groups)
     {
         if (saved is null)
             return new SidebarLayout();
-        return saved with { Folded = saved.Folded.Where(g => groups.Contains(g, StringComparer.Ordinal)).Distinct().ToList() };
+        var newGroup = saved.Order.Count > 0 && groups.Any(g => !saved.Order.Contains(Heading(g), StringComparer.Ordinal));
+        return saved with
+        {
+            Folded = saved.Folded.Where(g => groups.Contains(g, StringComparer.Ordinal)).Distinct().ToList(),
+            Order = newGroup ? [] : saved.Order,
+        };
     }
 }

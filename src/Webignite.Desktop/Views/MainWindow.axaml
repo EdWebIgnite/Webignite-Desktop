@@ -62,8 +62,13 @@
         </StackPanel>
         <ListBox Classes="nav icons" ItemsSource="{Binding Sidebar.IconPages}" SelectedItem="{Binding SelectedNav}"
                  ScrollViewer.VerticalScrollBarVisibility="Hidden">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:Module">
+          <ListBox.DataTemplates>
+            <DataTemplate DataType="vm:ToolLink">
+              <Panel Background="Transparent" ToolTip.Tip="{Binding Title}" ToolTip.Placement="Right">
+                <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="20" HorizontalAlignment="Center" />
+              </Panel>
+            </DataTemplate>
+            <DataTemplate DataType="vm:Module">
               <Panel Background="Transparent" ToolTip.Tip="{Binding Title}" ToolTip.Placement="Right">
                 <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="20" HorizontalAlignment="Center" />
                 <Border Classes="badge" IsVisible="{Binding HasBadge}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0">
@@ -71,7 +76,7 @@
                 </Border>
               </Panel>
             </DataTemplate>
-          </ListBox.ItemTemplate>
+          </ListBox.DataTemplates>
         </ListBox>
       </DockPanel>
     </Border>
@@ -139,6 +144,21 @@
                   <c:Icon Classes="fold" Size="14" Foreground="{DynamicResource NavMuted}" IsVisible="{Binding IsFolded}" Data="{StaticResource Icon.ChevronRight}" />
                 </Panel>
                 <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+              </DockPanel>
+            </DataTemplate>
+            <DataTemplate DataType="vm:ToolLink">
+              <DockPanel Background="Transparent" ToolTip.Tip="Opens in a small window">
+                <DockPanel.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" />
+                    <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" />
+                    <Separator />
+                    <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
+                  </ContextMenu>
+                </DockPanel.ContextMenu>
+                <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
+                        Margin="0,0,12,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>
             <DataTemplate DataType="vm:Module">

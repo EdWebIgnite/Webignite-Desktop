@@ -87,8 +87,8 @@ public sealed class TaskTests : IDisposable
     {
         using var store = new LocalStore(Path.Combine(folder, "t.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
         store.Save(Stored(Samples.NewInvoice(), DocumentStatus.Draft, Now.AddDays(-5)) with { });
-        // Save resets Created to now, so look a week ahead for the draft to count as old.
-        var later = Today.AddDays(7);
+        // Save resets Created to the real now, so look a week past the real today for the draft to count as old.
+        var later = DateOnly.FromDateTime(DateTime.Today).AddDays(7);
 
         Assert.Equal(1, store.RaiseAutomaticTasks(new TaskSettings(), later));
         Assert.Equal(0, store.RaiseAutomaticTasks(new TaskSettings(), later));

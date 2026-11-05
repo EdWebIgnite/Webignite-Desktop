@@ -12,7 +12,7 @@ public enum Page
     Clients, Files, Retainers, Renewals,
     Quotes, Invoices, Money, Reports,
     Todo, Notes, Calendar, Planner, Time,
-    SiteCheck, Markup, Pdf, Tools,
+    SiteCheck, Markup, Pdf,
     Settings,
 }
 
@@ -39,6 +39,7 @@ public sealed class Navigator
     internal Action<string>? OpenNoteAction { get; set; }
     internal Action<string, string>? ClientNotesAction { get; set; }
     internal Action? QuickNoteAction { get; set; }
+    internal Action<ViewModels.ToolKind>? OpenToolAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -97,6 +98,9 @@ public sealed class Navigator
 
     /// <summary>Shows the notes about a client on the Notes page.</summary>
     public void ClientNotes(string clientId, string clientName) => ClientNotesAction?.Invoke(clientId, clientName);
+
+    /// <summary>Opens a small tool (the calculator, the QR codes) in a window of its own.</summary>
+    public void Tool(ViewModels.ToolKind kind) => OpenToolAction?.Invoke(kind);
 
     /// <summary>The small quick-note box, as from the shortcut.</summary>
     public void QuickNote() => QuickNoteAction?.Invoke();

@@ -20,6 +20,9 @@
   <SolidColorBrush x:Key="Line" Color="#26344A" />
   <SolidColorBrush x:Key="Line2" Color="#36475F" />
   <SolidColorBrush x:Key="Text" Color="#DCE4F0" />
+  <!-- Selected text in boxes: a soft highlight the text stays readable on. -->
+  <SolidColorBrush x:Key="Selection" Color="#2F4A7A" />
+  <SolidColorBrush x:Key="OnSelection" Color="#DCE4F0" />
   <SolidColorBrush x:Key="Ink" Color="#FFFFFF" />
   <SolidColorBrush x:Key="Muted" Color="#8E9BB0" />
 

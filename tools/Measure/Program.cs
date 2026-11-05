@@ -110,6 +110,14 @@ foreach (var twice in new[] { Page.Mail, Page.Clients, Page.Files })
     Check("A page side by side gives its memory back when closed", !page.IsAlive);
 }
 
+// Each small tool opens in a window of its own; closing it must let go of the tool and its window.
+foreach (var kind in Enum.GetValues<ToolKind>())
+{
+    var (tools, toolWindow) = OpenToolAndClose(window, services, kind);
+    Settle();
+    Check($"The {ToolWindow.TitleOf(kind)} window gives its memory back when closed", !tools.IsAlive && !toolWindow.IsAlive);
+}
+
 Line("Process working set (for reference)", Mb(Process.GetCurrentProcess().WorkingSet64));
 
 Console.WriteLine();
@@ -124,6 +132,18 @@ if (failures.Count > 0)
     return 1;
 }
 return 0;
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+static (WeakReference Tools, WeakReference Window) OpenToolAndClose(MainWindow window, AppServices services, ToolKind kind)
+{
+    var shown = window.ShowTool(kind, services);
+    Dispatcher.UIThread.RunJobs();
+    shown.CaptureRenderedFrame()?.Dispose();
+    var refs = (new WeakReference(shown.Tools), new WeakReference(shown));
+    shown.Close();
+    Draw(window);
+    return refs;
+}
 
 // Not inlined, so nothing in the caller keeps the page alive by accident. Both the page and its screen must go:
 // a screen held by the window (a handler left on it, say) keeps everything it shows.
