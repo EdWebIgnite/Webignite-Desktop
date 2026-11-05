@@ -22,6 +22,15 @@ public sealed record TabSettings
 public sealed record PopOutPlacement(string Page, int X, int Y, double Width, double Height, bool Maximized = false);
 
 /// <summary>How the tab strip behaves: bringing tabs back, moving between them, and which shows after a close.</summary>
+/// <summary>What a dragged side of a split does when let go.</summary>
+public enum SideDrop
+{
+    Nothing,
+    Swap,
+    PopOut,
+    BackToTab,
+}
+
 public static class TabRules
 {
     /// <summary>
@@ -62,6 +71,23 @@ public static class TabRules
     /// </summary>
     public static bool? SideAt(double x, double width) =>
         width <= 0 ? null : x < width * 0.2 ? true : x > width * 0.8 ? false : null;
+
+    /// <summary>
+    /// Where a side of a split goes when its header is dragged and let go, measured in the page area: back to a
+    /// tab over the tabs (only the page beside can), into a window of its own when let go outside the window or
+    /// well down into the page, or to the other side when let go over it. A little wobble does nothing.
+    /// </summary>
+    public static SideDrop DropSide(double x, double y, double width, double height, double fromX, double fromY,
+        bool onLeft, bool overTabs, bool canBeTab)
+    {
+        if (Math.Abs(x - fromX) + Math.Abs(y - fromY) < 12)
+            return SideDrop.Nothing;
+        if (overTabs && canBeTab)
+            return SideDrop.BackToTab;
+        if (x < 0 || y < -40 || x > width || y > height || y - fromY > 120)
+            return SideDrop.PopOut;
+        return (onLeft ? x > width / 2 : x < width / 2) ? SideDrop.Swap : SideDrop.Nothing;
+    }
 
     /// <summary>The tab one step on (Ctrl+Tab) or back (Ctrl+Shift+Tab), going round at the ends.</summary>
     public static int Step(int index, int count, int by) => count <= 0 ? 0 : ((index + by) % count + count) % count;

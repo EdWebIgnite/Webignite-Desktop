@@ -522,6 +522,36 @@ vm.Clients.Detail!.BackCommand.Execute(null);
     vm.PutBesideBackCommand.Execute(null);
     Check("Back to a tab: the window is whole again", !vm.IsSplit && vm.Tabs.Any(t => t.Key == Page.Clients && t != vm.Current));
     vm.CloseOtherTabsCommand.Execute(vm.Tabs[0]);
+
+    // Each side has its own header: close either side, or send either into a window of its own.
+    Open(Page.Invoices);
+    vm.OpenInNewTab(vm[Page.Renewals]);
+    var renewals = vm.Current;
+    vm.ShowOnRightCommand.Execute(renewals);
+    Dispatcher.UIThread.RunJobs();
+    window.Width = 1900;
+    Save("side-by-side-headers");
+    window.Width = 1280;
+    vm.CloseMainSideCommand.Execute(null);
+    Check("Closing the main side leaves the page beside in the whole window", !vm.IsSplit && vm.Current == renewals && vm.Tabs.All(t => t.Key != Page.Invoices));
+    vm.OpenInNewTab(vm[Page.Quotes]);
+    vm.ShowOnRightCommand.Execute(vm.Current);
+    var quotes = vm.Beside!;
+    vm.PopOutBesideCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The page beside goes into a window of its own", !vm.IsSplit && vm.PoppedOut.Contains(quotes) && window.PopOutWindows.Count == 1);
+    window.PopOutWindows.Single().Close();
+    Dispatcher.UIThread.RunJobs();
+    vm.OpenInNewTab(vm[Page.Money]);
+    vm.ShowOnLeftCommand.Execute(vm.Current);
+    var main = vm.Current;
+    vm.PopOutMainSideCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The main side goes into a window of its own and the page beside takes the window",
+        !vm.IsSplit && vm.PoppedOut.Contains(main) && vm.Current.Key == Page.Money);
+    window.PopOutWindows.Single().Close();
+    Dispatcher.UIThread.RunJobs();
+    vm.CloseOtherTabsCommand.Execute(vm.Tabs[0]);
 }
 var month = Dates.MonthStart(today);
 void Entry(Webignite.Core.Finance.EntryKind kind, DateOnly date, decimal amount, string party, string? category = null, string? note = null) =>

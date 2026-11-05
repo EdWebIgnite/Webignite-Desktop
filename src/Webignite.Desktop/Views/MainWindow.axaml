@@ -232,35 +232,60 @@
       <!-- The page on screen, and when the window is split, a second page beside it (arranged in MainWindow.Split.cs). -->
       <Grid x:Name="PageArea" ColumnDefinitions="*,0,0">
         <!-- A page narrower than it can be laid out in (one side of a split) scrolls sideways rather than squash. -->
-        <Panel x:Name="MainPane" Grid.Column="0">
-          <ScrollViewer IsVisible="{Binding Current.Scrolls}" HorizontalScrollBarVisibility="Auto">
-            <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="1040" MinWidth="600" HorizontalAlignment="Stretch" />
-          </ScrollViewer>
-          <ScrollViewer IsVisible="{Binding Current.FullBleed}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-            <TransitioningContentControl x:Name="FullHost" Content="{Binding Current.FullPage}" MinWidth="760" />
-          </ScrollViewer>
-        </Panel>
-        <GridSplitter x:Name="Divider" Grid.Column="1" Classes="divider" IsVisible="{Binding IsSplit}" ResizeDirection="Columns" />
-        <DockPanel x:Name="BesidePane" Grid.Column="2" IsVisible="{Binding IsSplit}">
-          <Border DockPanel.Dock="Top" Classes="tabstrip">
+        <DockPanel x:Name="MainPane" Grid.Column="0">
+          <!-- When split, each side has a header: drag it to the other side to swap, or out of the window to pop it out. -->
+          <Border x:Name="MainHeader" DockPanel.Dock="Top" Classes="sidehead" IsVisible="{Binding IsSplit}"
+                  ToolTip.Tip="Drag to the other side to swap, or out of the window to open it in a window of its own">
             <DockPanel>
-              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,0,0,4">
-                <Button Classes="tabplus" Command="{Binding SwapSidesCommand}" ToolTip.Tip="Swap sides">
-                  <TextBlock Text="Swap sides" FontSize="12" />
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <Button Classes="sidebutton" Command="{Binding SwapSidesCommand}" ToolTip.Tip="Swap sides">
+                  <c:Icon Data="{StaticResource Icon.Swap}" Size="14" />
                 </Button>
-                <Button Classes="tabplus" Command="{Binding PutBesideBackCommand}" ToolTip.Tip="Put it back as a tab">
-                  <TextBlock Text="Back to a tab" FontSize="12" />
+                <Button Classes="sidebutton" Command="{Binding PopOutMainSideCommand}" ToolTip.Tip="Open in a window of its own">
+                  <c:Icon Data="{StaticResource Icon.NewWindow}" Size="14" />
                 </Button>
-                <Button Classes="tabclose" Command="{Binding CloseBesideCommand}" ToolTip.Tip="Close it" Margin="4,0,0,0">
-                  <c:Icon Data="{StaticResource Icon.Close}" Size="10" />
+                <Button Classes="sidebutton" Command="{Binding CloseMainSideCommand}" ToolTip.Tip="Close this side">
+                  <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
                 </Button>
               </StackPanel>
-              <Border Classes="poptab" HorizontalAlignment="Left">
-                <StackPanel Orientation="Horizontal">
-                  <c:Icon Data="{Binding Beside.Module.Icon, Converter={x:Static c:IconConverter.Instance}, FallbackValue={x:Null}}" Size="14" Margin="0,0,8,0" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding Beside.Title, FallbackValue=''}" MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                </StackPanel>
-              </Border>
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <c:Icon Data="{Binding Current.Module.Icon, Converter={x:Static c:IconConverter.Instance}, FallbackValue={x:Null}}" Size="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Current.Title, FallbackValue=''}" MaxWidth="260" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontWeight="SemiBold" />
+              </StackPanel>
+            </DockPanel>
+          </Border>
+          <Panel>
+            <ScrollViewer IsVisible="{Binding Current.Scrolls}" HorizontalScrollBarVisibility="Auto">
+              <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="1040" MinWidth="600" HorizontalAlignment="Stretch" />
+            </ScrollViewer>
+            <ScrollViewer IsVisible="{Binding Current.FullBleed}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+              <TransitioningContentControl x:Name="FullHost" Content="{Binding Current.FullPage}" MinWidth="760" />
+            </ScrollViewer>
+          </Panel>
+        </DockPanel>
+        <GridSplitter x:Name="Divider" Grid.Column="1" Classes="divider" IsVisible="{Binding IsSplit}" ResizeDirection="Columns" />
+        <DockPanel x:Name="BesidePane" Grid.Column="2" IsVisible="{Binding IsSplit}">
+          <Border x:Name="BesideHeader" DockPanel.Dock="Top" Classes="sidehead"
+                  ToolTip.Tip="Drag to the other side to swap, onto the tabs to make it a tab again, or out of the window to open it in a window of its own">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <Button Classes="sidebutton" Command="{Binding SwapSidesCommand}" ToolTip.Tip="Swap sides">
+                  <c:Icon Data="{StaticResource Icon.Swap}" Size="14" />
+                </Button>
+                <Button Classes="sidebutton" Command="{Binding PutBesideBackCommand}" ToolTip.Tip="Back to a tab">
+                  <c:Icon Data="{StaticResource Icon.Tiles}" Size="14" />
+                </Button>
+                <Button Classes="sidebutton" Command="{Binding PopOutBesideCommand}" ToolTip.Tip="Open in a window of its own">
+                  <c:Icon Data="{StaticResource Icon.NewWindow}" Size="14" />
+                </Button>
+                <Button Classes="sidebutton" Command="{Binding CloseBesideCommand}" ToolTip.Tip="Close this side">
+                  <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                </Button>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <c:Icon Data="{Binding Beside.Module.Icon, Converter={x:Static c:IconConverter.Instance}, FallbackValue={x:Null}}" Size="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Beside.Title, FallbackValue=''}" MaxWidth="260" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontWeight="SemiBold" />
+              </StackPanel>
             </DockPanel>
           </Border>
           <Panel>
