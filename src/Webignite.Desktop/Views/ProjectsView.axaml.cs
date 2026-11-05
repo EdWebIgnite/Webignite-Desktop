@@ -16,6 +16,7 @@ namespace Webignite.Desktop.Views;
 public partial class ProjectsView : FullBleedView
 {
     private TaskRow? dragging;
+    private Control dragHost = null!;
     private object? dropOn;
     private bool dropBelow;
 
@@ -25,6 +26,9 @@ public partial class ProjectsView : FullBleedView
         TaskList.AddHandler(PointerMovedEvent, Dragged, RoutingStrategies.Tunnel, handledEventsToo: true);
         TaskList.AddHandler(PointerReleasedEvent, Dropped, RoutingStrategies.Tunnel, handledEventsToo: true);
         TaskList.AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Bubble);
+        Board.AddHandler(PointerMovedEvent, Dragged, RoutingStrategies.Tunnel, handledEventsToo: true);
+        Board.AddHandler(PointerReleasedEvent, Dropped, RoutingStrategies.Tunnel, handledEventsToo: true);
+        Board.AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Bubble);
         NewProjectBox.KeyDown += (_, e) =>
         {
             if (e.Key == Key.Enter && Projects is { } projects)
@@ -92,6 +96,15 @@ public partial class ProjectsView : FullBleedView
         }
     }
 
+    private void AddCardKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && (sender as Control)?.DataContext is BoardColumn column)
+        {
+            column.Add.AddCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
     private void AddHeadingKey(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && Projects is { } projects)
@@ -155,7 +168,8 @@ public partial class ProjectsView : FullBleedView
         if ((sender as Control)?.DataContext is not TaskRow row || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
         dragging = row;
-        e.Pointer.Capture(TaskList);
+        dragHost = Projects?.IsBoard == true ? Board : TaskList;
+        e.Pointer.Capture(dragHost);
         e.Handled = true;
     }
 
@@ -164,16 +178,17 @@ public partial class ProjectsView : FullBleedView
         if (dragging is null)
             return;
         Mark(null, false);
-        var point = e.GetPosition(TaskList);
-        if (TaskList.InputHitTest(point) is not Visual hit)
+        var point = e.GetPosition(dragHost);
+        if (dragHost.InputHitTest(point) is not Visual hit)
             return;
+        // The nearest row or card under the pointer; on the board, a column's empty space means its end.
         foreach (var visual in hit.GetSelfAndVisualAncestors())
         {
-            if (visual == TaskList)
+            if (visual == dragHost)
                 break;
-            if (visual is ContentPresenter { DataContext: TaskRow or SectionRow or AddTaskRow } container && container.GetVisualParent() is Panel)
+            if (visual is ContentPresenter { DataContext: TaskRow or SectionRow or AddTaskRow or BoardColumn } container && container.GetVisualParent() is Panel)
             {
-                var top = container.TranslatePoint(default, TaskList)?.Y ?? 0;
+                var top = container.TranslatePoint(default, dragHost)?.Y ?? 0;
                 Mark(container.DataContext, point.Y > top + container.Bounds.Height / 2);
                 return;
             }
@@ -207,6 +222,9 @@ public partial class ProjectsView : FullBleedView
             case SectionRow s:
                 s.DropHere = false;
                 break;
+            case BoardColumn c:
+                c.DropHere = false;
+                break;
         }
         dropOn = target;
         dropBelow = below;
@@ -218,6 +236,9 @@ public partial class ProjectsView : FullBleedView
                 break;
             case SectionRow s:
                 s.DropHere = true;
+                break;
+            case BoardColumn c:
+                c.DropHere = true;
                 break;
         }
     }

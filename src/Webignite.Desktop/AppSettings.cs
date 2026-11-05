@@ -228,6 +228,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("team", value);
     }
 
+    /// <summary>List or board on the Projects page.</summary>
+    public ProjectViewSettings ProjectView
+    {
+        get => store.GetSetting<ProjectViewSettings>("project-view") ?? new ProjectViewSettings();
+        set => store.SetSetting("project-view", value);
+    }
+
     /// <summary>Spell check while writing a mail.</summary>
     public SpellCheckSettings SpellCheck
     {
