@@ -252,6 +252,21 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="card" IsVisible="{Binding ShowMail}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Spelling" />
+        <CheckBox IsChecked="{Binding SpellCheckOn}" Content="Check spelling as I write mail and notes" />
+        <StackPanel Orientation="Horizontal" Spacing="10" IsEnabled="{Binding SpellCheckOn}">
+          <TextBlock Text="Language" VerticalAlignment="Center" />
+          <ComboBox x:Name="SpellLanguageBox" ItemsSource="{Binding SpellLanguages}" SelectedItem="{Binding SpellLanguage, Mode=OneWay}"
+                    SelectionChanged="SpellLanguagePicked" MinWidth="280" />
+        </StackPanel>
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding SpellNote}" />
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="A wavy line marks a word Windows doesn't know. Right-click it for suggestions, to add it to the dictionary, or to ignore it." />
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding ShowAssistants}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Claude and ChatGPT" />

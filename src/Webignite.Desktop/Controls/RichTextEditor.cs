@@ -434,6 +434,7 @@ public sealed partial class RichTextEditor : Control
                         }
                     }
                     p.Layout?.Draw(context, p.Origin);
+                    DrawMistakes(context, p, index);
                     p.Marker?.Draw(context, p.MarkerAt);
                     if (p.Box is { } box)
                         DrawBox(context, box, p.Ticked);
