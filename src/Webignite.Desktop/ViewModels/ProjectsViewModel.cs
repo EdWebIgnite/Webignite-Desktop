@@ -115,6 +115,48 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         Show(saved);
     }
 
+    // Templates: a project kept to start others from.
+
+    public IReadOnlyList<ProjectTemplate> Templates => services.Settings.ProjectTemplates;
+
+    /// <summary>Keeps the open project as a template, under its name; one of the same name is replaced.</summary>
+    [RelayCommand]
+    private void SaveAsTemplate()
+    {
+        if (open is null)
+            return;
+        SaveTyped();
+        var template = services.Projects.TemplateOf(open.Id, open.Name);
+        var replacing = Templates.Any(t => string.Equals(t.Name, template.Name, StringComparison.OrdinalIgnoreCase));
+        services.Settings.ProjectTemplates = [.. Templates.Where(t => !string.Equals(t.Name, template.Name, StringComparison.OrdinalIgnoreCase)), template];
+        OnPropertyChanged(nameof(Templates));
+        services.ShowNote?.Invoke(replacing ? "Template updated" : "Saved as a template",
+            $"{template.Name}: {template.Headings.Count} headings, {template.Tasks.Count} tasks. Start a project from it with the arrow next to +.", null);
+    }
+
+    /// <summary>A new project from a template, named as typed (or after the template), starting today.</summary>
+    public void NewFromTemplate(ProjectTemplate template)
+    {
+        SaveTyped();
+        var saved = Ours(() => services.Projects.AddFromTemplate(template, NewProjectName, DateOnly.FromDateTime(DateTime.Today)));
+        NewProjectName = "";
+        ListMessage = "";
+        ShowList();
+        Show(saved);
+    }
+
+    public void RemoveTemplate(ProjectTemplate template)
+    {
+        var before = Templates;
+        services.Settings.ProjectTemplates = [.. before.Where(t => t.Id != template.Id)];
+        OnPropertyChanged(nameof(Templates));
+        services.OfferUndo($"Removed the template {template.Name}", () =>
+        {
+            services.Settings.ProjectTemplates = before;
+            OnPropertyChanged(nameof(Templates));
+        });
+    }
+
     [RelayCommand]
     private void Open(ProjectRow row)
     {
@@ -223,6 +265,9 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     [
         new("Any priority", null), new("High", TaskPriority.High), new("Normal", TaskPriority.Normal), new("Low", TaskPriority.Low),
     ];
+
+    public static IReadOnlyList<Choice<TaskRepeat>> Repeats { get; } =
+        [.. Enum.GetValues<TaskRepeat>().Select(r => new Choice<TaskRepeat>(ProjectRules.Label(r), r))];
 
     public static IReadOnlyList<Choice<TaskPriority>> Priorities { get; } =
         [new("High", TaskPriority.High), new("Normal", TaskPriority.Normal), new("Low", TaskPriority.Low)];
@@ -486,9 +531,18 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             return;
         }
         Message = "";
+        var wasDone = row.Task.Done;
         row.Task = saved;
         if (open is { } project)
             Summary = SummaryOf(services.Projects.AllTasks(project.Id));
+        // A repeating task ticked off has made its next one.
+        if (!wasDone && saved.Done && saved.Repeat != TaskRepeat.None)
+        {
+            ShowTasks();
+            if (Detail is { } shown && shown.Task.Id == saved.Id)
+                shown.Reload();
+            return;
+        }
         // A subtask ticked in the task pane changes its task's count in the list; a task changed in the list
         // shows in the task pane if it's open there.
         if (saved.ParentId is not null)
@@ -711,7 +765,9 @@ public sealed partial class TaskRow : ObservableObject
     public bool IsHigh => Task.Priority == TaskPriority.High;
     public bool IsLow => Task.Priority == TaskPriority.Low;
     public IReadOnlyList<string> Tags => Task.Tags;
-    public bool HasMarks => Task.Priority != TaskPriority.Normal || Task.Tags.Count > 0;
+    public bool HasMarks => Task.Priority != TaskPriority.Normal || Task.Tags.Count > 0 || Task.Repeat != TaskRepeat.None;
+    public bool Repeats => Task.Repeat != TaskRepeat.None;
+    public string RepeatLabel => ProjectRules.Label(Task.Repeat);
 
     /// <summary>The line under a card's title on the board: who it's for, when it's due, its subtasks.</summary>
     public string CardLine => string.Join(" · ", new[]
@@ -737,6 +793,8 @@ public sealed partial class TaskRow : ObservableObject
         OnPropertyChanged(nameof(IsLow));
         OnPropertyChanged(nameof(Tags));
         OnPropertyChanged(nameof(HasMarks));
+        OnPropertyChanged(nameof(Repeats));
+        OnPropertyChanged(nameof(RepeatLabel));
         loading = true;
         Title = Task.Title;
         Done = Task.Done;

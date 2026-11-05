@@ -183,6 +183,9 @@ public sealed partial class TaskDetail : ObservableObject
     [ObservableProperty] public partial string NewSubtask { get; set; } = "";
     [ObservableProperty] public partial string MailSearch { get; set; } = "";
     [ObservableProperty] public partial Choice<TaskPriority>? Priority { get; set; }
+    [ObservableProperty] public partial Choice<TaskRepeat>? Repeat { get; set; }
+
+    public IReadOnlyList<Choice<TaskRepeat>> Repeats => ProjectsViewModel.Repeats;
     [ObservableProperty] public partial string TagsText { get; set; } = "";
 
     public IReadOnlyList<Choice<TaskPriority>> Priorities => ProjectsViewModel.Priorities;
@@ -218,6 +221,7 @@ public sealed partial class TaskDetail : ObservableObject
         Start = Task.Start?.ToDateTime(TimeOnly.MinValue);
         Due = Task.Due?.ToDateTime(TimeOnly.MinValue);
         Priority = ProjectsViewModel.Priorities.First(p => p.Value == Task.Priority);
+        Repeat = ProjectsViewModel.Repeats.First(r => r.Value == Task.Repeat);
         TagsText = string.Join(", ", Task.Tags);
         ShowOtherTags();
         Headings = page.HeadingChoices(Task.ProjectId);
@@ -293,6 +297,12 @@ public sealed partial class TaskDetail : ObservableObject
     {
         if (!loading)
             page.Typed(this);
+    }
+
+    partial void OnRepeatChanged(Choice<TaskRepeat>? value)
+    {
+        if (value is { } picked)
+            Change(t => t with { Repeat = picked.Value });
     }
 
     partial void OnPriorityChanged(Choice<TaskPriority>? value)

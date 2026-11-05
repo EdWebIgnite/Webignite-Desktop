@@ -2194,6 +2194,29 @@ Save("site-check");
             Check("A mail is added to a project as a task, with the mail linked", into is not null
                 && services.Projects.AllTasks(site.Id).Any(t => t.Mail?.Uid == projectMail.Summary.Uid && t.AssignedTo == team.Me.Id));
         }
+
+        // A repeating task ticked off comes back; a project kept as a template starts another.
+        Open(Page.Projects);
+        projectsPage.OpenProject(site.Id);
+        var repeating = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Get the logo and photos from Pieter");
+        projectsPage.OpenTaskById(repeating.Task.Id);
+        projectsPage.Detail!.Repeat = ProjectsViewModel.Repeats.First(r => r.Value == Webignite.Core.Projects.TaskRepeat.Weekly);
+        projectsPage.CloseTaskCommand.Execute(null);
+        projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == repeating.Task.Id).Done = true;
+        Check("Ticking off a weekly task makes the next one, a week later", projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == repeating.Title && !r.Done
+            && r.Task.Due == repeating.Task.Due!.Value.AddDays(7) && r.Repeats));
+        projectsPage.SaveAsTemplateCommand.Execute(null);
+        Check("A project is kept as a template", projectsPage.Templates.Any(t => t.Name == "Bosveld Builders new website" && t.Headings.Count == 3));
+        projectsPage.NewProjectName = "Karoo Coffee website";
+        projectsPage.NewFromTemplate(projectsPage.Templates.First());
+        Dispatcher.UIThread.RunJobs();
+        Check("A new project from a template has its headings and tasks, none done or given to anyone", projectsPage.EditName == "Karoo Coffee website"
+            && projectsPage.Sections.Select(x => x.Name).Skip(1).SequenceEqual(["Design", "Build", "Launch"])
+            && projectsPage.Rows.OfType<TaskRow>().Any() && projectsPage.Rows.OfType<TaskRow>().All(r => !r.Done && r.Task.AssignedTo is null));
+        Check("A new project from a template has no due date of its own", projectsPage.EditDue is null);
+        Check("A ticked repeating task isn't copied into a template, only its next one",
+            projectsPage.Rows.OfType<TaskRow>().Count(r => r.Title == repeating.Title) == 1);
+        Save("projects-template");
     }
 
     // The quick note from any program: what is typed is kept however the box closes.

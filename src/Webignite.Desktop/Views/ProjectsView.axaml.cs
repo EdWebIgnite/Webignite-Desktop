@@ -154,6 +154,35 @@ public partial class ProjectsView : FullBleedView
         }
     }
 
+    /// <summary>The templates to start a project from, then removing one.</summary>
+    private void TemplatesOpening(object? sender, EventArgs e)
+    {
+        if (Projects is not { } projects || sender is not MenuFlyout flyout)
+            return;
+        flyout.Items.Clear();
+        foreach (var template in projects.Templates)
+        {
+            var item = new MenuItem { Header = $"New from {template.Name}" };
+            ToolTip.SetTip(item, $"{template.Headings.Count} headings, {template.Tasks.Count} tasks. Uses the name typed, if any; dates count from today.");
+            item.Click += (_, _) => projects.NewFromTemplate(template);
+            flyout.Items.Add(item);
+        }
+        if (projects.Templates.Count == 0)
+        {
+            flyout.Items.Add(new MenuItem { Header = "No templates yet. Open a project and click Save as template.", IsEnabled = false });
+            return;
+        }
+        flyout.Items.Add(new Separator());
+        var remove = new MenuItem { Header = "Remove a template" };
+        foreach (var template in projects.Templates)
+        {
+            var item = new MenuItem { Header = template.Name };
+            item.Click += (_, _) => projects.RemoveTemplate(template);
+            remove.Items.Add(item);
+        }
+        flyout.Items.Add(remove);
+    }
+
     // Right-click on a task: move it to another heading, or delete it.
     private void TaskMenu(object? sender, ContextRequestedEventArgs e)
     {

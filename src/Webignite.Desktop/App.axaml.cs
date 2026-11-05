@@ -12,7 +12,21 @@ public partial class App : Application
     /// <summary>Set before start-up to use another database, e.g. by the screenshot tool.</summary>
     public static AppServices? Services { get; set; }
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        // A date box whose date is taken away (another project or task opened, a field cleared) keeps showing the
+        // old date's text; clear it once the change has landed.
+        Avalonia.Controls.CalendarDatePicker.SelectedDateProperty.Changed.AddClassHandler<Avalonia.Controls.CalendarDatePicker>((picker, e) =>
+        {
+            if (e.NewValue is null)
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (picker.SelectedDate is null)
+                        picker.Text = string.Empty;
+                });
+        });
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

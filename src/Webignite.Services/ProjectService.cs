@@ -162,10 +162,40 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             ? AllTasks(current.ProjectId).Where(t => t.ParentId == id).Select(t => ProjectRules.Stamped(t, t with { HeadingId = changed.HeadingId }, now)).ToList()
             : [];
         var saved = ProjectRules.Stamped(current, changed, now);
-        store.SaveProjectWork([], [], [saved, .. subtasks]);
+        store.SaveProjectWork([], [], [saved, .. subtasks, .. NextOf(current, saved, now)]);
         Changed?.Invoke(current.ProjectId);
         return (saved, []);
     }
+
+    // A repeating task just ticked off: the next one, straight after it, with its subtasks fresh.
+    private List<ProjectTask> NextOf(ProjectTask before, ProjectTask after, Stamp now)
+    {
+        if (before.Done || !after.Done || after.ParentId is not null)
+            return [];
+        var siblings = AllTasks(after.ProjectId).Where(t => t.ParentId is null && t.HeadingId == after.HeadingId && t.Order > after.Order);
+        var nextOrder = siblings.Select(t => (double?)t.Order).Min();
+        if (ProjectRules.Next(after, DateOnly.FromDateTime(clock.GetLocalNow().DateTime), ProjectRules.Between(after.Order, nextOrder)) is not { } next)
+            return [];
+        var made = new List<ProjectTask> { ProjectRules.Stamped(null, next, now) };
+        made.AddRange(AllTasks(after.ProjectId).Where(t => t.ParentId == after.Id)
+            .Select(t => ProjectRules.Stamped(null, t with { Id = ProjectRules.NewId(), ParentId = next.Id, Done = false, Created = default, Changed = default,
+                Fields = new Dictionary<string, Stamp>() }, now)));
+        return made;
+    }
+
+    /// <summary>A new project from a template, starting on a day, with everything in it, at the end of the list.</summary>
+    public Project AddFromTemplate(ProjectTemplate template, string name, DateOnly start)
+    {
+        var now = Now();
+        var (project, headings, tasks) = ProjectRules.FromTemplate(template, name, start, ProjectRules.NextOrder(store.ListProjects().Select(p => p.Order)));
+        var saved = ProjectRules.Stamped(null, project, now);
+        store.SaveProjectWork([saved], headings.Select(h => ProjectRules.Stamped(null, h, now)), tasks.Select(t => ProjectRules.Stamped(null, t, now)));
+        Changed?.Invoke(null);
+        return saved;
+    }
+
+    /// <summary>A project as a template, to start others from.</summary>
+    public ProjectTemplate TemplateOf(string projectId, string name) => ProjectRules.TemplateOf(name, Headings(projectId), AllTasks(projectId));
 
     /// <summary>Deletes a task with its subtasks. Returns what went, for Undo.</summary>
     public ProjectWork? DeleteTask(string id)

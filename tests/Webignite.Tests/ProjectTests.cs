@@ -410,3 +410,124 @@ public sealed class MyTaskTests
         Assert.Equal("Wireframes, Bosveld Builders website", ProjectRules.TimerNote(Task("Wireframes"), "Bosveld Builders website"));
     }
 }
+
+/// <summary>Repeating tasks and project templates.</summary>
+public sealed class ProjectRepeatTemplateTests
+{
+    private static readonly DateOnly Today = new(2026, 11, 5);
+
+    private static ProjectTask Task(string id, TaskRepeat repeat = TaskRepeat.None, DateOnly? due = null, DateOnly? start = null) =>
+        new() { Id = id, ProjectId = "p", Title = id, Repeat = repeat, Due = due, Start = start, Done = true, HeadingId = "h" };
+
+    [Fact]
+    public void A_repeating_task_ticked_off_comes_back_a_step_later()
+    {
+        var weekly = ProjectRules.Next(Task("Backups", TaskRepeat.Weekly, Today, Today.AddDays(-1)), Today, 2.5)!;
+        Assert.False(weekly.Done);
+        Assert.NotEqual("Backups", weekly.Id);
+        Assert.Equal((Today.AddDays(7), Today.AddDays(6), "h", 2.5), (weekly.Due!.Value, weekly.Start!.Value, weekly.HeadingId!, weekly.Order));
+
+        Assert.Equal(new DateOnly(2026, 12, 5), ProjectRules.Next(Task("Report", TaskRepeat.Monthly, Today), Today, 1)!.Due);
+        Assert.Equal(Today.AddDays(1), ProjectRules.Next(Task("Check", TaskRepeat.Daily), Today, 1)!.Due);
+        Assert.Null(ProjectRules.Next(Task("Once"), Today, 1));
+    }
+
+    [Fact]
+    public void A_repeating_task_ticked_off_late_comes_back_in_the_future()
+    {
+        var late = ProjectRules.Next(Task("Backups", TaskRepeat.Weekly, Today.AddDays(-20)), Today, 1)!;
+        Assert.Equal(Today.AddDays(1), late.Due); // -20, -13, -6, +1
+    }
+
+    [Fact]
+    public void A_template_keeps_headings_tasks_subtasks_and_dates_as_days_from_the_start()
+    {
+        var design = new Heading { Id = "h1", ProjectId = "p", Name = "Design", Order = 1 };
+        var build = new Heading { Id = "h2", ProjectId = "p", Name = "Build", Order = 2 };
+        var tasks = new[]
+        {
+            new ProjectTask { Id = "a", ProjectId = "p", HeadingId = "h1", Title = "Wireframes", Due = new DateOnly(2026, 11, 10), Start = new DateOnly(2026, 11, 3),
+                AssignedTo = "me", Done = true, Priority = TaskPriority.High, Tags = ["Design"], Order = 1 },
+            new ProjectTask { Id = "a1", ProjectId = "p", HeadingId = "h1", ParentId = "a", Title = "Mobile", Order = 1 },
+            new ProjectTask { Id = "b", ProjectId = "p", HeadingId = "h2", Title = "Build pages", Due = new DateOnly(2026, 11, 24), Order = 1 },
+            new ProjectTask { Id = "r", ProjectId = "p", Title = "Weekly check (ticked)", Repeat = TaskRepeat.Weekly, Done = true, Due = new DateOnly(2026, 11, 3), Order = 1 },
+        };
+
+        var template = ProjectRules.TemplateOf(" Website build ", [build, design], tasks);
+
+        Assert.Equal("Website build", template.Name);
+        Assert.Equal(["Design", "Build"], template.Headings);
+        Assert.Equal(["Wireframes", "Build pages"], template.Tasks.Select(t => t.Title));
+        Assert.Equal((0, 7), (template.Tasks[0].StartDay!.Value, template.Tasks[0].DueDay!.Value));
+        Assert.Equal(21, template.Tasks[1].DueDay);
+        Assert.Equal(["Mobile"], template.Tasks[0].Subtasks);
+
+        var (project, headings, made) = ProjectRules.FromTemplate(template, "", new DateOnly(2027, 1, 4), 3);
+        Assert.Equal(("Website build", 3.0), (project.Name, project.Order));
+        Assert.Equal(["Design", "Build"], headings.Select(h => h.Name));
+        var wire = made.First(t => t.Title == "Wireframes");
+        Assert.Equal((new DateOnly(2027, 1, 4), new DateOnly(2027, 1, 11)), (wire.Start!.Value, wire.Due!.Value));
+        Assert.False(wire.Done);
+        Assert.Null(wire.AssignedTo);
+        Assert.Equal((TaskPriority.High, "Design"), (wire.Priority, Assert.Single(wire.Tags)));
+        Assert.Equal(headings[0].Id, wire.HeadingId);
+        Assert.Equal(wire.Id, made.Single(t => t.Title == "Mobile").ParentId);
+        Assert.All(made, t => Assert.Equal(project.Id, t.ProjectId));
+    }
+}
+
+/// <summary>The service side of repeats and templates.</summary>
+public sealed class ProjectRepeatServiceTests : IDisposable
+{
+    private readonly string folder = Directory.CreateTempSubdirectory("webignite-repeat-").FullName;
+    private readonly LocalStore store;
+    private readonly ProjectService projects;
+
+    public ProjectRepeatServiceTests()
+    {
+        store = new LocalStore(Path.Combine(folder, "webignite.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
+        projects = new ProjectService(store, () => "me");
+    }
+
+    public void Dispose()
+    {
+        store.Dispose();
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        Directory.Delete(folder, recursive: true);
+    }
+
+    [Fact]
+    public void Ticking_off_a_repeating_task_adds_the_next_with_fresh_subtasks_once()
+    {
+        var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Hosting" }).Saved!;
+        var due = DateOnly.FromDateTime(DateTime.Today);
+        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Check backups", Repeat = TaskRepeat.Weekly, Due = due }).Saved!;
+        var after = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Something after" }).Saved!;
+        projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, ParentId = task.Id, Title = "Restore one file" });
+
+        projects.ChangeTask(task.Id, t => t with { Done = true });
+        projects.ChangeTask(task.Id, t => t with { Notes = "done" }); // a later change doesn't make another
+
+        var open = projects.AllTasks(project.Id).Where(t => t.Title == "Check backups" && !t.Done).ToList();
+        var next = Assert.Single(open);
+        Assert.Equal(due.AddDays(7), next.Due);
+        Assert.True(next.Order > task.Order && next.Order < after.Order);
+        Assert.Equal("Restore one file", Assert.Single(projects.AllTasks(project.Id), t => t.ParentId == next.Id).Title);
+    }
+
+    [Fact]
+    public void A_project_started_from_a_template_has_everything_in_it_stamped()
+    {
+        var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Website" }).Saved!;
+        var heading = projects.AddHeading(project.Id, "Design").Saved!;
+        projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, HeadingId = heading.Id, Title = "Wireframes", Due = new DateOnly(2026, 11, 10) });
+
+        var made = projects.AddFromTemplate(projects.TemplateOf(project.Id, "Website build"), "Karoo website", new DateOnly(2027, 1, 4));
+
+        Assert.Equal("Karoo website", made.Name);
+        Assert.Equal(["Design"], projects.Headings(made.Id).Select(h => h.Name));
+        var task = Assert.Single(projects.AllTasks(made.Id));
+        Assert.Equal(new DateOnly(2027, 1, 4), task.Due);
+        Assert.Equal("me", task.Created.By);
+    }
+}
