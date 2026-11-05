@@ -379,4 +379,7 @@ public sealed record FileSettings
 
     /// <summary>Whether the details pane (preview, size, dates) shows beside the list.</summary>
     public bool ShowDetails { get; init; }
+
+    /// <summary>The folder files were last picked from or saved in, where the next pick starts.</summary>
+    public string? LastPicked { get; init; }
 }

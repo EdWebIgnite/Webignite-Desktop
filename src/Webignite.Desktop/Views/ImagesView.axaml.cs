@@ -6,6 +6,8 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Webignite.Desktop.ViewModels;
 
+using Webignite.Desktop.Files;
+
 namespace Webignite.Desktop.Views;
 
 /// <summary>Website images: choose or drop photos, and smaller copies go in a web folder beside them.</summary>
@@ -24,15 +26,11 @@ public partial class ImagesView : UserControl
 
     private async Task ChooseImagesAsync(object? sender, RoutedEventArgs e)
     {
-        if (Tools is not { } tools || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (Tools is not { } tools)
             return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Choose images to make smaller",
-            AllowMultiple = true,
-            FileTypeFilter = [new FilePickerFileType("Images") { Patterns = ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.gif", "*.bmp"] }],
-        });
-        await tools.ShrinkImagesAsync(files.Select(f => f.TryGetLocalPath()).OfType<string>());
+        var files = await Picker.Files(this, "Choose images to make smaller", ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.gif", "*.bmp"], many: true, kindName: "Images");
+        if (files.Count > 0)
+            await tools.ShrinkImagesAsync(files);
     }
 
     private void ImagesOver(object? sender, DragEventArgs e) =>

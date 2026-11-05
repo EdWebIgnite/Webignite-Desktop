@@ -4,6 +4,8 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Webignite.Desktop.ViewModels;
 
+using Webignite.Desktop.Files;
+
 namespace Webignite.Desktop.Views;
 
 public partial class SettingsView : UserControl
@@ -21,10 +23,9 @@ public partial class SettingsView : UserControl
 
     private async Task ChooseBackupFolderAsync(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not SettingsViewModel settings || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (DataContext is not SettingsViewModel settings)
             return;
-        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Where should backups go?" });
-        if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
+        if (await Picker.Folder(this, "Where should backups go?", settings.BackupFolder) is { } path)
             settings.SetBackupFolder(path);
     }
 
@@ -107,10 +108,9 @@ public partial class SettingsView : UserControl
 
     private async Task ChooseScreenshotFolderAsync()
     {
-        if (DataContext is not SettingsViewModel settings || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (DataContext is not SettingsViewModel settings)
             return;
-        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Where should screenshots go?" });
-        if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
+        if (await Picker.Folder(this, "Where should screenshots go?", settings.ScreenshotFolder) is { } path)
             settings.SetScreenshotFolder(path);
     }
 
@@ -118,10 +118,9 @@ public partial class SettingsView : UserControl
 
     private async Task ChooseClientRootAsync()
     {
-        if (DataContext is not SettingsViewModel settings || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (DataContext is not SettingsViewModel settings)
             return;
-        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Where are your client folders?" });
-        if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
+        if (await Picker.Folder(this, "Where are your client folders?") is { } path)
             settings.SetClientRoot(path);
     }
 
@@ -129,16 +128,9 @@ public partial class SettingsView : UserControl
 
     private async Task ChooseRestoreFileAsync(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not SettingsViewModel settings || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (DataContext is not SettingsViewModel settings)
             return;
-        var start = await storage.TryGetFolderFromPathAsync(settings.BackupFolder);
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Choose a Webignite backup",
-            SuggestedStartLocation = start,
-            FileTypeFilter = [new FilePickerFileType("Webignite backups") { Patterns = ["*.wbak"] }],
-        });
-        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+        if ((await Picker.Files(this, "Choose a Webignite backup", ["*.wbak"], kindName: "Webignite backups", start: settings.BackupFolder)).FirstOrDefault() is { } path)
             settings.ChooseRestoreFile(path);
     }
 }

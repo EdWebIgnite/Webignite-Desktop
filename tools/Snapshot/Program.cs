@@ -1138,6 +1138,30 @@ Save("client-mail");
     vm.Clients.Detail!.ConfirmFolderCommand.Execute(null);
     Check("Saying yes keeps it on the client", store.ListClients().First(c => c.Name == "Fynbos Physio").Folder?.EndsWith("Fynbos", StringComparison.Ordinal) == true
         && !vm.Clients.Detail.FolderIsGuess);
+
+    // The app's own Open and Save box, in place of Windows' boxes: the explorer, showing only what fits.
+    var openPick = new FilePickerViewModel(services, PickKind.Files, "Open PDFs or pictures", ["*.pdf"], many: true, kindName: "PDFs", start: site);
+    var pickWindow = new FilePickerWindow { DataContext = openPick };
+    pickWindow.Show();
+    Dispatcher.UIThread.RunJobs();
+    var pickRows = openPick.Files.Items.OfType<FileRowViewModel>().ToList();
+    Check("The Open box shows folders and only the files that fit", pickRows.Count > 0 && pickRows.All(r => r.IsFolder || r.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)));
+    using (var pickFrame = pickWindow.CaptureRenderedFrame())
+    using (var pickFile = File.Create(Path.Combine(output, "picker-open.png")))
+        pickFrame?.Save(pickFile, new PngBitmapEncoderOptions());
+    openPick.Files.Open(pickRows.First(r => !r.IsFolder));
+    Check("Double-clicking a file picks it", openPick.Done.Task.IsCompletedSuccessfully && openPick.Done.Task.Result is [var picked] && picked.EndsWith(".pdf", StringComparison.Ordinal));
+    var savePick = new FilePickerViewModel(services, PickKind.Save, "Save the PDF", ["*.pdf"], kindName: "PDF", suggestedName: "Quote QU-0042", start: site);
+    savePick.ChooseCommand.Execute(null);
+    Check("Saving over a file asks first", !savePick.Done.Task.IsCompleted && savePick.Message.Contains("already", StringComparison.Ordinal));
+    savePick.ChooseCommand.Execute(null);
+    Check("Saving again replaces it, with the ending added", savePick.Done.Task.Result is [var savedTo] && savedTo == Path.Combine(site, "Quote QU-0042.pdf"));
+    savePick.Dispose();
+    Check("The next pick starts where the last one was", services.Settings.Files.LastPicked == site);
+
+    // "Show in folder" opens the app's Files, with the file picked.
+    services.Go.ShowFile(Path.Combine(site, "Quote QU-0042.pdf"));
+    Check("Show in folder opens Files with the file picked", vm.Current.Key == Page.Files && vm.Files.Selected is [{ Name: "Quote QU-0042.pdf" }]);
 }
 
 // An invoice email as Approve and email prepares it, from accounts@ with the signature picture.

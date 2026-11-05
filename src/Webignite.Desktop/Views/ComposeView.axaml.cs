@@ -11,6 +11,8 @@ using Avalonia.Platform.Storage;
 using Webignite.Core.Writing;
 using Webignite.Desktop.ViewModels;
 
+using Webignite.Desktop.Files;
+
 namespace Webignite.Desktop.Views;
 
 public partial class ComposeView : UserControl
@@ -163,14 +165,7 @@ public partial class ComposeView : UserControl
 
     private async Task InsertPictureAsync()
     {
-        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
-            return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Put a picture in the mail",
-            FileTypeFilter = [new FilePickerFileType("Pictures") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif"] }],
-        });
-        if (files.FirstOrDefault()?.TryGetLocalPath() is not { } path)
+        if ((await Picker.Files(this, "Put a picture in the mail", ["*.png", "*.jpg", "*.jpeg", "*.gif"], kindName: "Pictures")).FirstOrDefault() is not { } path)
             return;
         var bytes = await File.ReadAllBytesAsync(path);
         if (ImageSize.Of(bytes) is not { } size)
@@ -327,9 +322,8 @@ public partial class ComposeView : UserControl
 
     private async Task OnAttachAsync(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not ComposeViewModel compose || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (DataContext is not ComposeViewModel compose)
             return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Attach files", AllowMultiple = true });
-        compose.AddFiles(files.Select(f => f.TryGetLocalPath()).OfType<string>());
+        compose.AddFiles(await Picker.Files(this, "Attach files", many: true));
     }
 }

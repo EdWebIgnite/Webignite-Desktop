@@ -18,6 +18,7 @@ Before writing a new helper, use the one that is there. Each of these is the onl
 | comparing or finding a client by name | `ClientDirectory.Key` and `Find` |
 | whose email address this is, a client's first address | `ClientMail.For`, `IsOwn` and `First` |
 | a website or address turned into its domain | `Web.Domains.Of` |
+| picking files, a folder or where to save | `Picker.Files`, `Picker.Folder`, `Picker.Save` (the app's own explorer, never Windows' boxes); a folder to show is `services.Go.Folder` or `Go.ShowFile`, never Explorer |
 | reading an amount someone typed ("1,250", "R 1 250.50") | `Money.Parse` |
 | formatted writing (a mail, a note): lists, checklists, tables, pictures | `RichDocument`, changed only through `RichEditing`, stored as HTML with `RichHtml` |
 | how a quote or invoice was settled, Xero's statuses | `Settlement`, `Settlements`, `XeroStatuses` |
