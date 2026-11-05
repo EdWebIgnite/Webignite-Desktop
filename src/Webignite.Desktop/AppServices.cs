@@ -59,6 +59,27 @@ public sealed class AppServices : IDisposable
     /// <summary>People in Contacts, linked to clients; what pages read and change them through.</summary>
     public ContactService Contacts { get; }
 
+    /// <summary>Projects, headings and tasks, stamped with who changed them (<see cref="Me"/>) and when.</summary>
+    public ProjectService Projects => projects ??= new ProjectService(Store, () => Me().Id);
+    private ProjectService? projects;
+
+    /// <summary>
+    /// You and your partner, made the first time they're needed: "Me" and "Partner" until named in Settings.
+    /// Ids never change, so names can.
+    /// </summary>
+    public Webignite.Core.Projects.TeamSettings Team()
+    {
+        var team = Settings.Team;
+        if (team.Me is not null && team.Partner is not null)
+            return team;
+        var made = Webignite.Core.Projects.ProjectRules.Ensure(team, null);
+        Settings.Team = made;
+        return made;
+    }
+
+    /// <summary>The person using this PC, for "who changed it".</summary>
+    public Webignite.Core.Projects.Teammate Me() => Team().Me!;
+
     /// <summary>Notebooks and notes: the Notes page, the client page and the quick note change them here.</summary>
     public NoteService Notes => notes ??= new NoteService(Store);
     private NoteService? notes;

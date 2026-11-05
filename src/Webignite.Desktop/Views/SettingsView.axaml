@@ -483,6 +483,26 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="card" IsVisible="{Binding ShowProjects}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="You and your partner" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Projects and tasks can be given to either of you, and every change records who made it and when. Projects stay on this PC for now; sharing them with your partner comes later." />
+        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" Width="520" HorizontalAlignment="Left">
+          <TextBlock Text="Your name" VerticalAlignment="Center" />
+          <TextBox Grid.Column="1" Text="{Binding MyName}" />
+          <TextBlock Grid.Row="1" Text="Partner's name" VerticalAlignment="Center" />
+          <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PartnerName}" />
+          <TextBlock Grid.Row="2" Text="Partner's email" VerticalAlignment="Center" />
+          <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding PartnerEmail}" PlaceholderText="Optional, for later" />
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Classes="primary" Content="Save" Command="{Binding SaveTeamCommand}" />
+          <TextBlock Text="{Binding TeamMessage}" VerticalAlignment="Center" Classes.problem="{Binding TeamProblem}" TextWrapping="Wrap" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding ShowNotes}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Quick note" />
