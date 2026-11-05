@@ -101,6 +101,29 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork,
         Show(new ClientDetailViewModel(client, isNew: false, services, Close));
     }
 
+    /// <summary>What bringing clients in from Xero by hand did.</summary>
+    [ObservableProperty] public partial string XeroMessage { get; set; } = "";
+
+    [ObservableProperty] public partial bool BringingIn { get; set; }
+
+    /// <summary>Xero's customers as clients now, rather than waiting for the next look.</summary>
+    [RelayCommand]
+    private async Task BringInFromXero()
+    {
+        BringingIn = true;
+        XeroMessage = "Reading Xero's contacts…";
+        try
+        {
+            var news = await services.Work.Run("Bringing clients in from Xero", () => services.XeroClients.RunAsync());
+            XeroMessage = news.Problem ?? (news.Summary.Length > 0 ? news.Summary + "." : "Every customer in Xero is here already.");
+            Refresh();
+        }
+        finally
+        {
+            BringingIn = false;
+        }
+    }
+
     [RelayCommand]
     private void AddSuggested(string name)
     {

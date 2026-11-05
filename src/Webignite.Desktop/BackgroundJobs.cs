@@ -15,6 +15,7 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
     public Func<Task>? CheckMail { get; init; }
     public Func<Task>? CheckPayments { get; init; }
     public Func<Task>? CheckSites { get; init; }
+    public Func<Task>? CheckXeroClients { get; init; }
 
     /// <summary>Runs once a minute after the jobs, for small housekeeping such as letting unused pages go.</summary>
     public Action? EveryMinute { get; init; }
@@ -42,6 +43,9 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
         // Payments are read from Xero every half hour.
         if (CheckPayments is not null && services.XeroApi is not null && services.Payments.Due(now))
             CheckPayments().Forget("Checking Xero for payments");
+        // Xero's customers come in as clients every few hours, and on the first minute after start.
+        if (CheckXeroClients is not null && services.XeroApi is not null && services.XeroClients.Due(now))
+            CheckXeroClients().Forget("Bringing clients in from Xero");
         // Client websites are visited every 15 minutes.
         if (CheckSites is not null && services.SiteWatch.Due(now))
             CheckSites().Forget("Checking client websites");
