@@ -228,3 +228,67 @@ public sealed class ProjectListTests
         Assert.Equal(["Live"], ProjectRules.Listed(listed, showDone: false).Select(p => p.Name));
     }
 }
+
+/// <summary>The task page: links, and who made and changed a task.</summary>
+public sealed class ProjectTaskPageTests
+{
+    [Fact]
+    public void A_task_says_who_made_it_and_who_changed_it_last()
+    {
+        var made = new Stamp("me", new DateTimeOffset(2026, 11, 5, 7, 0, 0, TimeSpan.Zero));
+        var task = new ProjectTask { Id = "t", ProjectId = "p", Title = "Home page", Created = made, Changed = made };
+        var names = new Dictionary<string, string> { ["me"] = "Eddie", ["partner"] = "Jaco" };
+        var zone = TimeZoneInfo.CreateCustomTimeZone("SAST", TimeSpan.FromHours(2), "SAST", "SAST");
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+
+        Assert.Equal("Made by Eddie on 5 Nov.", ProjectRules.History(task, names, zone, culture));
+        var changed = task with { Changed = new Stamp("partner", new DateTimeOffset(2026, 11, 6, 12, 20, 0, TimeSpan.Zero)) };
+        Assert.Equal("Made by Eddie on 5 Nov. Changed by Jaco on 6 Nov at 14:20.", ProjectRules.History(changed, names, zone, culture));
+        Assert.Contains("someone else", ProjectRules.History(task with { Created = made with { By = "x" } }, names, zone, culture));
+    }
+
+    [Fact]
+    public void Linking_a_mail_keeps_where_it_is_and_what_it_says()
+    {
+        var mail = new Webignite.Core.Mail.MailSummary
+        {
+            AccountId = "a", Folder = "INBOX", Uid = 41, MessageId = "<x@y>", Subject = "New product photos",
+            From = new Webignite.Core.Mail.MailPerson("Thandi Mokoena", "thandi@karoocoffee.co.za"), Date = DateTimeOffset.UnixEpoch,
+        };
+        var link = TaskMail.Of(mail);
+        Assert.Equal(new TaskMail("a", "INBOX", 41, "<x@y>", "New product photos", "Thandi Mokoena", DateTimeOffset.UnixEpoch), link);
+        var before = new ProjectTask { Id = "t", ProjectId = "p", Title = "Photos" };
+        var stamped = ProjectRules.Stamped(ProjectRules.Stamped(null, before, new Stamp("me", DateTimeOffset.UnixEpoch)), before with { Mail = link },
+            new Stamp("me", DateTimeOffset.UnixEpoch.AddHours(1)));
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddHours(1), stamped.Fields["mail"].At);
+        Assert.Equal(DateTimeOffset.UnixEpoch, stamped.Fields["title"].At);
+    }
+
+    private static Webignite.Core.Documents.StoredDocument Doc(string id, string customer, Webignite.Core.Documents.DocumentKind kind, string? number, decimal? total, int day) => new()
+    {
+        Id = id,
+        Updated = new DateTimeOffset(2026, 11, day, 9, 0, 0, TimeSpan.Zero),
+        Document = new Webignite.Core.Documents.Document
+        {
+            Kind = kind, Origin = Webignite.Core.Documents.DocumentOrigin.New, Number = number, Total = total,
+            Customer = new Webignite.Core.Documents.Customer { Name = customer }, Lines = [],
+        },
+    };
+
+    [Fact]
+    public void A_task_offers_its_clients_quotes_and_invoices_newest_first()
+    {
+        var karoo = new Webignite.Core.Clients.Client { Id = "c1", Name = "Karoo Coffee Roasters" };
+        var docs = new[]
+        {
+            Doc("q", "Karoo Coffee Roasters", Webignite.Core.Documents.DocumentKind.Quote, "QU-0012", 4500m, 1),
+            Doc("i", "karoo  coffee roasters", Webignite.Core.Documents.DocumentKind.Invoice, "INV-0107", 2725m, 3),
+            Doc("x", "Fynbos Physio", Webignite.Core.Documents.DocumentKind.Invoice, null, null, 4),
+        };
+
+        Assert.Equal(["i", "q"], ProjectRules.DocumentsFor(karoo, docs).Select(d => d.Id));
+        Assert.Equal(["x", "i", "q"], ProjectRules.DocumentsFor(null, docs).Select(d => d.Id));
+        Assert.Equal("Invoice INV-0107, karoo  coffee roasters, " + Webignite.Core.Documents.Money.Rand(2725m), ProjectRules.DocumentLabel(docs[1]));
+        Assert.Equal("Draft invoice, Fynbos Physio", ProjectRules.DocumentLabel(docs[2]));
+    }
+}

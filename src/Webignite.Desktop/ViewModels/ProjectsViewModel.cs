@@ -25,9 +25,12 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     public ProjectsViewModel(AppServices services)
     {
         this.services = services;
-        Panels = new PanelsViewModel(services.Settings, "projects", [("list", "Projects"), ("project", "Open project")]);
+        Panels = new PanelsViewModel(services.Settings, "projects", [("list", "Projects"), ("project", "Open project"), ("task", "Open task")]);
         typing.Tick += (_, _) => SaveTyped();
         services.Projects.Changed += ElsewhereChanged;
+        // The task pane shows when a task is opened.
+        if (Panels.CanHide("task"))
+            Panels["task"].IsShown = false;
         Refresh();
     }
 
@@ -35,7 +38,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     public string? TabTitle => open is null ? null : EditName.Trim().Length > 0 ? EditName.Trim() : "Project";
 
-    public bool HoldsWork => open is not null || typed.Count > 0;
+    public bool HoldsWork => open is not null || Detail is not null || typed.Count > 0;
 
     // The list on the left
 
@@ -62,6 +65,13 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 Show(fresh);
             else
                 CloseProject();
+        }
+        if (Detail is { } detail)
+        {
+            if (services.Projects.GetTask(detail.Task.Id) is null)
+                CloseTask();
+            else
+                detail.Reload();
         }
     }
 
@@ -160,6 +170,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     private void Show(Project project)
     {
+        if (Detail is { } shown && shown.Task.ProjectId != project.Id)
+            CloseTask();
         open = project;
         loading = true;
         EditName = project.Name;
@@ -189,7 +201,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             var section = new SectionRow(heading, list, this);
             Rows.Add(section);
             foreach (var task in list)
-                Rows.Add(new TaskRow(task, section, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this));
+                Rows.Add(new TaskRow(task, section, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this) { IsOpen = task.Id == Detail?.Task.Id });
             Rows.Add(new AddTaskRow(section, this));
         }
         Summary = SummaryOf(tasks);
@@ -204,6 +216,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     private void CloseProject()
     {
+        if (Detail is not null)
+            CloseTask();
         open = null;
         IsOpen = false;
         Rows.Clear();
@@ -319,6 +333,12 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         row.Task = saved;
         if (open is { } project)
             Summary = SummaryOf(services.Projects.AllTasks(project.Id));
+        // A subtask ticked in the task pane changes its task's count in the list; a task changed in the list
+        // shows in the task pane if it's open there.
+        if (saved.ParentId is not null)
+            ShowTasks();
+        else if (Detail is { } detail && detail.Task.Id == saved.Id)
+            detail.Reload();
     }
 
     private static string SummaryOf(IReadOnlyList<ProjectTask> tasks)
@@ -331,6 +351,13 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     {
         SaveTyped();
         var gone = Ours(() => services.Projects.DeleteTask(row.Task.Id));
+        if (Detail is { } detail)
+        {
+            if (detail.Task.Id == row.Task.Id)
+                CloseTask();
+            else
+                detail.LoadSubtasks();
+        }
         ShowTasks();
         if (gone is not null)
             services.OfferUndo($"Deleted {row.Task.Title}", () =>
@@ -352,7 +379,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         SaveTyped();
         var (section, index) = target switch
         {
-            TaskRow task => (task.Section, task.Section.Tasks.ToList().FindIndex(t => t.Id == task.Task.Id) + (below ? 1 : 0)),
+            TaskRow { Section: { } under } task => (under, under.Tasks.ToList().FindIndex(t => t.Id == task.Task.Id) + (below ? 1 : 0)),
             SectionRow heading => (heading, 0),
             AddTaskRow add => (add.Section, add.Section.Tasks.Count),
             _ => (null, 0),
@@ -409,6 +436,9 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 case TaskRow row when row.Title.Trim().Length > 0:
                     ChangeTask(row, t => t with { Title = row.Title });
                     break;
+                case TaskDetail detail when detail == Detail:
+                    detail.SaveTyped();
+                    break;
                 case SectionRow { Heading: { } heading } section when section.Name.Trim().Length > 0:
                     Ours(() => services.Projects.ChangeHeading(heading.Id, h => h with { Name = section.Name }));
                     break;
@@ -418,7 +448,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     }
 
     // Our own changes are shown as they're made; a change from elsewhere (another copy of the page) reloads.
-    private T Ours<T>(Func<T> work)
+    internal T Ours<T>(Func<T> work)
     {
         ours = true;
         try
@@ -490,7 +520,7 @@ public sealed partial class TaskRow : ObservableObject
     private readonly ProjectsViewModel page;
     private bool loading;
 
-    public TaskRow(ProjectTask task, SectionRow section, string subtasks, IReadOnlyList<Choice<string?>> people, ProjectsViewModel page)
+    public TaskRow(ProjectTask task, SectionRow? section, string subtasks, IReadOnlyList<Choice<string?>> people, ProjectsViewModel page)
     {
         this.page = page;
         Section = section;
@@ -500,7 +530,8 @@ public sealed partial class TaskRow : ObservableObject
         Reset();
     }
 
-    public SectionRow Section { get; }
+    /// <summary>The heading it's under in the list; null for a subtask in the task pane.</summary>
+    public SectionRow? Section { get; }
     public string Subtasks { get; }
     public bool HasSubtasks => Subtasks.Length > 0;
     public IReadOnlyList<Choice<string?>> People { get; }
@@ -517,6 +548,7 @@ public sealed partial class TaskRow : ObservableObject
 
     [ObservableProperty] public partial Choice<string?>? AssignedTo { get; set; }
     [ObservableProperty] public partial DateTime? Due { get; set; }
+    [ObservableProperty] public partial bool IsOpen { get; set; }
     [ObservableProperty] public partial bool DropAbove { get; set; }
     [ObservableProperty] public partial bool DropBelow { get; set; }
 

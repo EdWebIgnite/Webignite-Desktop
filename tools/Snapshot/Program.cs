@@ -2049,12 +2049,47 @@ Save("site-check");
         var adding = projectsPage.Rows.OfType<AddTaskRow>().First(r => r.Section.Name == "Launch");
         adding.Title = "Point the domain at the new site";
         adding.AddCommand.Execute(null);
-        Check("A task typed under a heading is added there", projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == "Point the domain at the new site" && r.Section.Name == "Launch"));
+        Check("A task typed under a heading is added there", projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == "Point the domain at the new site" && r.Section?.Name == "Launch"));
         Dispatcher.UIThread.RunJobs();
         Save("projects");
         projectsPage.EditName = "Bosveld Builders new website";
         projectsPage.Keep();
         Check("Renaming a project is saved once typing stops", services.Projects.Get(site.Id)!.Name == "Bosveld Builders new website" && projectsPage.TabTitle == "Bosveld Builders new website");
+
+        // The task page: notes, subtasks, links, and who made and changed it.
+        projectsPage.OpenTaskById(wire.Id);
+        Dispatcher.UIThread.RunJobs();
+        var taskPage = projectsPage.Detail!;
+        Check("Opening a task shows its subtasks and who made it", taskPage.Subtasks.Count == 2 && taskPage.History.StartsWith("Made by Me on", StringComparison.Ordinal)
+            && projectsPage.Panels["task"].IsShown);
+        taskPage.NewSubtask = "Desktop layout";
+        taskPage.AddSubtaskCommand.Execute(null);
+        Check("A subtask added on the task page counts in the list", taskPage.Subtasks.Count == 3
+            && projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == wire.Id).Subtasks == "1 of 3");
+        taskPage.Subtasks.First(r => r.Title == "Tablet layout").Done = true;
+        Check("Ticking a subtask off updates its task's count", projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == wire.Id).Subtasks == "2 of 3");
+        taskPage.Notes = "Use the photos Pieter sent. Keep the home page short.";
+        projectsPage.Keep();
+        Check("A task's notes are saved once typing stops", services.Projects.GetTask(wire.Id)!.Notes.StartsWith("Use the photos", StringComparison.Ordinal));
+        taskPage.PickClient(taskPage.Clients.First(c => c.Value?.Id == bosveldId));
+        Check("A task can be about a client", services.Projects.GetTask(wire.Id)!.ClientId == bosveldId);
+        if (taskPage.Documents.Skip(1).FirstOrDefault() is { } linkedDocument)
+        {
+            taskPage.PickDocument(linkedDocument);
+            Check("A task can be about a quote or invoice", services.Projects.GetTask(wire.Id)!.DocumentId == linkedDocument.Value!.Id);
+        }
+        taskPage.MailSearch = "photos";
+        Wait(taskPage.Searched, "Mail to link was found");
+        Dispatcher.UIThread.RunJobs();
+        if (taskPage.MailFound.FirstOrDefault() is { } hit)
+        {
+            hit.LinkCommand.Execute(null);
+            Check("A mail found by searching can be linked to the task", services.Projects.GetTask(wire.Id)!.Mail?.Subject == hit.Mail.Subject && taskPage.HasMail);
+        }
+        Dispatcher.UIThread.RunJobs();
+        Save("projects-task");
+        projectsPage.CloseTaskCommand.Execute(null);
+        Check("Closing the task hides its pane", !projectsPage.HasTask && !projectsPage.Panels["task"].IsShown);
     }
 
     // The quick note from any program: what is typed is kept however the box closes.

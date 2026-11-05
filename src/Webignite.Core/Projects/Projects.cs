@@ -39,6 +39,16 @@ public interface ITracked
 
 public enum ProjectStatus { Active, OnHold, Done }
 
+/// <summary>
+/// A mail a task is about: where it was, and enough to show it without opening it. The message id finds it
+/// again after it's moved to another folder.
+/// </summary>
+public sealed record TaskMail(string AccountId, string Folder, uint Uid, string? MessageId, string Subject, string? From, DateTimeOffset Date)
+{
+    public static TaskMail Of(Webignite.Core.Mail.MailSummary mail) =>
+        new(mail.AccountId, mail.Folder, mail.Uid, mail.MessageId, mail.Subject, mail.From?.Display, mail.Date);
+}
+
 /// <summary>A project: shared with your partner or just yours, optionally for a client.</summary>
 public sealed record Project : ITracked
 {
@@ -93,6 +103,15 @@ public sealed record ProjectTask : ITracked
     public DateOnly? Due { get; init; }
     public bool Done { get; init; }
     public double Order { get; init; }
+
+    /// <summary>The client it's about, when not just the project's.</summary>
+    public string? ClientId { get; init; }
+
+    /// <summary>The quote or invoice it's about.</summary>
+    public string? DocumentId { get; init; }
+
+    /// <summary>The mail it's about.</summary>
+    public TaskMail? Mail { get; init; }
 
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
@@ -213,6 +232,43 @@ public static class ProjectRules
         [.. projects.Where(p => p.Deleted is null && (showDone || p.Status != ProjectStatus.Done))
             .OrderBy(p => p.Status == ProjectStatus.Done).ThenBy(p => p.Order)];
 
+    /// <summary>
+    /// Who made something and who changed it last, by name, for the foot of a task: "Made by Eddie on 5 Nov.
+    /// Changed by Jaco on 6 Nov at 14:20." Someone not in the team shows as "someone else".
+    /// </summary>
+    public static string History(ITracked item, IReadOnlyDictionary<string, string> names, TimeZoneInfo zone, IFormatProvider culture)
+    {
+        string Who(string id) => names.TryGetValue(id, out var name) ? name : "someone else";
+        string When(DateTimeOffset at, bool time)
+        {
+            var local = TimeZoneInfo.ConvertTime(at, zone);
+            return string.Format(culture, time ? "{0:d MMM} at {0:HH:mm}" : "{0:d MMM}", local);
+        }
+        var made = $"Made by {Who(item.Created.By)} on {When(item.Created.At, false)}.";
+        return item.Changed == item.Created ? made : $"{made} Changed by {Who(item.Changed.By)} on {When(item.Changed.At, true)}.";
+    }
+
+    /// <summary>
+    /// The quotes and invoices a task can be about: the client's, newest first, or the newest 100 when no client
+    /// is picked.
+    /// </summary>
+    public static IReadOnlyList<Webignite.Core.Documents.StoredDocument> DocumentsFor(Webignite.Core.Clients.Client? client,
+        IEnumerable<Webignite.Core.Documents.StoredDocument> documents)
+    {
+        var list = documents.OrderByDescending(d => d.Updated);
+        return client is null ? [.. list.Take(100)] : [.. list.Where(d => Webignite.Core.Clients.ClientDirectory.Matches(client, d.Document.Customer.Name))];
+    }
+
+    /// <summary>"Invoice INV-0107, Karoo Coffee Roasters, R 2 725.00"; a draft without a number says so.</summary>
+    public static string DocumentLabel(Webignite.Core.Documents.StoredDocument stored)
+    {
+        var document = stored.Document;
+        var kind = document.Kind == Webignite.Core.Documents.DocumentKind.Quote ? "Quote" : "Invoice";
+        var name = document.Number is { Length: > 0 } number ? $"{kind} {number}" : $"Draft {kind.ToLowerInvariant()}";
+        var total = document.Total is { } amount ? ", " + Webignite.Core.Documents.Money.Rand(amount) : "";
+        return $"{name}, {document.Customer.Name}{total}";
+    }
+
     public static string Label(ProjectStatus status) => status switch
     {
         ProjectStatus.OnHold => "On hold",
@@ -237,6 +293,7 @@ public static class ProjectRules
     [
         ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
+        ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail),
     ];
 
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>
