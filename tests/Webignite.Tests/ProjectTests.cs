@@ -174,3 +174,57 @@ public sealed class ProjectTests : IDisposable
         Assert.Equal([null, project.Id], seen);
     }
 }
+
+/// <summary>The list view's rules: sections by heading, and where a dragged task lands.</summary>
+public sealed class ProjectListTests
+{
+    private static Stamp When => new("eddie", DateTimeOffset.UnixEpoch);
+
+    private static ProjectTask Task(string id, double order, string? heading = null, string? parent = null, bool done = false) =>
+        new() { Id = id, ProjectId = "p", Title = id, Order = order, HeadingId = heading, ParentId = parent, Done = done };
+
+    [Fact]
+    public void Tasks_are_shown_by_heading_with_loose_ones_first_and_subtasks_left_out()
+    {
+        var design = new Heading { Id = "h1", ProjectId = "p", Name = "Design", Order = 1 };
+        var build = new Heading { Id = "h2", ProjectId = "p", Name = "Build", Order = 2 };
+        var gone = new Heading { Id = "h3", ProjectId = "p", Name = "Gone", Order = 3, Deleted = When };
+        var tasks = new[] { Task("b", 2, "h1"), Task("a", 1, "h1"), Task("loose", 1), Task("sub", 1, "h1", "a"), Task("orphan", 5, "h3") };
+
+        var sections = ProjectRules.Sections([build, design, gone], tasks);
+
+        Assert.Equal([null, "Design", "Build"], sections.Select(s => s.Heading?.Name));
+        Assert.Equal(["loose", "orphan"], sections[0].Tasks.Select(t => t.Id));
+        Assert.Equal(["a", "b"], sections[1].Tasks.Select(t => t.Id));
+        Assert.Empty(sections[2].Tasks);
+        Assert.Single(ProjectRules.Sections([], []));                  // nothing yet: one place to add tasks
+        Assert.Equal(["Design"], ProjectRules.Sections([design], []).Select(s => s.Heading?.Name)); // headings only
+    }
+
+    [Fact]
+    public void A_dragged_task_lands_between_its_new_neighbours()
+    {
+        var section = new[] { Task("a", 1), Task("b", 2), Task("c", 3) };
+
+        Assert.Equal(0, ProjectRules.PlaceAt(section, 0, "c"));     // to the top
+        Assert.Equal(1.5, ProjectRules.PlaceAt(section, 1, "c"));   // between a and b
+        Assert.Equal(2.5, ProjectRules.PlaceAt(section, 2, "a"));   // a to between b and c: counts the gap a leaves
+        Assert.Equal(4, ProjectRules.PlaceAt(section, 3, "a"));     // a to below c
+        Assert.Equal(4, ProjectRules.PlaceAt(section, 3, "new"));   // from another heading, to the end
+        Assert.Equal(1, ProjectRules.PlaceAt([], 0, "new"));
+    }
+
+    [Fact]
+    public void Subtasks_are_counted_and_done_projects_go_last_or_away()
+    {
+        Assert.Equal("1 of 2", ProjectRules.SubtaskCount([Task("x", 1, done: true), Task("y", 2)]));
+        Assert.Equal("", ProjectRules.SubtaskCount([]));
+        var listed = ProjectRules.Listed([
+            new Project { Id = "1", Name = "Done", Status = ProjectStatus.Done, Order = 1 },
+            new Project { Id = "2", Name = "Live", Order = 2 },
+            new Project { Id = "3", Name = "Gone", Order = 0, Deleted = When },
+        ], showDone: true);
+        Assert.Equal(["Live", "Done"], listed.Select(p => p.Name));
+        Assert.Equal(["Live"], ProjectRules.Listed(listed, showDone: false).Select(p => p.Name));
+    }
+}

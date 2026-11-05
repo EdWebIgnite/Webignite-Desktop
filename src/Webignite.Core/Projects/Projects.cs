@@ -168,6 +168,58 @@ public static class ProjectRules
         ({ } b, { } a) => (b + a) / 2,
     };
 
+    /// <summary>
+    /// A project's tasks by heading, for the list: tasks under no heading first (only when there are some, or no
+    /// headings at all), then each heading in its order. Subtasks aren't listed; they're counted on their task.
+    /// </summary>
+    public static IReadOnlyList<(Heading? Heading, IReadOnlyList<ProjectTask> Tasks)> Sections(IEnumerable<Heading> headings, IEnumerable<ProjectTask> tasks)
+    {
+        var list = headings.Where(h => h.Deleted is null).OrderBy(h => h.Order).ToList();
+        var known = list.Select(h => h.Id).ToHashSet();
+        var top = tasks.Where(t => t.Deleted is null && t.ParentId is null).OrderBy(t => t.Order).ToList();
+        var sections = new List<(Heading?, IReadOnlyList<ProjectTask>)>();
+        var loose = top.Where(t => t.HeadingId is null || !known.Contains(t.HeadingId)).ToList();
+        if (loose.Count > 0 || list.Count == 0)
+            sections.Add((null, loose));
+        foreach (var heading in list)
+            sections.Add((heading, top.Where(t => t.HeadingId == heading.Id).ToList()));
+        return sections;
+    }
+
+    /// <summary>
+    /// Where a task dropped into a section lands: <paramref name="index"/> is its place among the section's tasks
+    /// as shown, counting the task itself if it was already there. Returns the order that puts it there.
+    /// </summary>
+    public static double PlaceAt(IReadOnlyList<ProjectTask> section, int index, string movingId)
+    {
+        var others = section.Where(t => t.Id != movingId).ToList();
+        var from = section.ToList().FindIndex(t => t.Id == movingId);
+        // Dropping below itself counts the gap it leaves.
+        if (from >= 0 && index > from)
+            index--;
+        index = Math.Clamp(index, 0, others.Count);
+        return Between(index > 0 ? others[index - 1].Order : null, index < others.Count ? others[index].Order : null);
+    }
+
+    /// <summary>"2 of 3" for a task's subtasks; empty when it has none.</summary>
+    public static string SubtaskCount(IEnumerable<ProjectTask> subtasks)
+    {
+        var list = subtasks.Where(t => t.Deleted is null).ToList();
+        return list.Count == 0 ? "" : $"{list.Count(t => t.Done)} of {list.Count}";
+    }
+
+    /// <summary>The projects for the side list: active and on hold first in their order, done ones last.</summary>
+    public static IReadOnlyList<Project> Listed(IEnumerable<Project> projects, bool showDone) =>
+        [.. projects.Where(p => p.Deleted is null && (showDone || p.Status != ProjectStatus.Done))
+            .OrderBy(p => p.Status == ProjectStatus.Done).ThenBy(p => p.Order)];
+
+    public static string Label(ProjectStatus status) => status switch
+    {
+        ProjectStatus.OnHold => "On hold",
+        ProjectStatus.Done => "Done",
+        _ => "Active",
+    };
+
     // Recording changes. Each kind lists its fields once; a field whose value changed gets the new stamp.
 
     private static readonly (string Name, Func<Project, object?> Value)[] ProjectFields =

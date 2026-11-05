@@ -469,6 +469,35 @@
   <Style Selector="TextBox.search:focus /template/ Border#PART_BorderElement">
     <Setter Property="BorderThickness" Value="0" />
   </Style>
+  <!-- Typed straight into a list row, as in Projects: no edge until pointed at or typed in. -->
+  <Style Selector="TextBox.inline">
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="Padding" Value="6,4" />
+  </Style>
+  <Style Selector="TextBox.inline /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="TextBox.inline:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="TextBox.inline:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="TextBox.inline.heading">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="15" />
+  </Style>
+  <Style Selector="Border.droptop">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="BorderThickness" Value="0,2,0,0" />
+  </Style>
+  <Style Selector="Border.dropbottom">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+  </Style>
   <Style Selector="ComboBox:pointerover /template/ Border#Background">
     <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
     <Setter Property="Background" Value="{DynamicResource Surface}" />

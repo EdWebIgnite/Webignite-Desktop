@@ -11,7 +11,7 @@ public enum Page
     Overview, Approvals, Mail,
     Clients, Contacts, Files, Retainers, Renewals,
     Quotes, Invoices, Money, Reports,
-    Todo, Notes, Calendar, Planner, Time,
+    Todo, Projects, Notes, Calendar, Planner, Time,
     SiteCheck, Markup, Pdf,
     Settings,
 }

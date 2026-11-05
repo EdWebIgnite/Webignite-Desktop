@@ -2011,6 +2011,52 @@ Save("site-check");
     services.Spelling = null;
     speller.DiscardCommand.Execute(null);
 
+    // Projects: a shared website build with headings and tasks, and a personal one.
+    {
+        var team = services.Team();
+        var site = services.Projects.Add(new Webignite.Core.Projects.Project { Id = "snap-site", Name = "Bosveld Builders website", Shared = true, ClientId = bosveldId,
+            Due = new DateOnly(2026, 12, 4) }).Saved!;
+        services.Projects.Add(new Webignite.Core.Projects.Project { Id = "snap-seo", Name = "Webignite SEO month" });
+        var design = services.Projects.AddHeading(site.Id, "Design").Saved!;
+        var build = services.Projects.AddHeading(site.Id, "Build").Saved!;
+        services.Projects.AddHeading(site.Id, "Launch");
+        Webignite.Core.Projects.ProjectTask Add(string title, string? heading, string? who = null, DateOnly? due = null, bool done = false, string? parent = null) =>
+            services.Projects.AddTask(new Webignite.Core.Projects.ProjectTask { Id = Webignite.Core.Projects.ProjectRules.NewId(), ProjectId = site.Id, HeadingId = heading,
+                Title = title, AssignedTo = who, Due = due, Done = done, ParentId = parent }).Saved!;
+        Add("Get the logo and photos from Pieter", null, team.Me!.Id, new DateOnly(2026, 11, 10));
+        var wire = Add("Wireframes for the home page", design.Id, team.Me.Id, new DateOnly(2026, 11, 12), done: true);
+        Add("Mobile layout", design.Id, team.Me.Id, done: true, parent: wire.Id);
+        Add("Tablet layout", design.Id, parent: wire.Id);
+        Add("Colours and fonts", design.Id, team.Partner!.Id, new DateOnly(2026, 11, 14));
+        var pages = Add("Build the five pages", build.Id, team.Partner.Id, new DateOnly(2026, 11, 26));
+        Add("Contact form to info@", build.Id);
+        Open(Page.Projects);
+        var projectsPage = (ProjectsViewModel)vm[Page.Projects].Main.Page;
+        projectsPage.OpenProject(site.Id);
+        Dispatcher.UIThread.RunJobs();
+        Check("Projects lists shared and personal projects", projectsPage.SharedProjects.Count == 1 && projectsPage.PersonalProjects.Count == 1);
+        Check("An open project shows its headings with their tasks", projectsPage.Rows.OfType<SectionRow>().Select(r => r.Name).SequenceEqual(["No heading", "Design", "Build", "Launch"])
+            && projectsPage.Rows.OfType<TaskRow>().Count() == 5 && projectsPage.Rows.OfType<TaskRow>().First(r => r.Title.StartsWith("Wireframes", StringComparison.Ordinal)).Subtasks == "1 of 2");
+        var contactForm = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title.StartsWith("Contact form", StringComparison.Ordinal));
+        contactForm.AssignedTo = contactForm.People[1];
+        contactForm.Due = new DateTime(2026, 11, 27);
+        Check("Giving a task to someone and dating it in the list saves it, stamped with who did it",
+            services.Projects.GetTask(contactForm.Task.Id) is { AssignedTo: { } by, Due: { Day: 27 } } saved && by == team.Me.Id && saved.Fields["assigned"].By == team.Me.Id);
+        projectsPage.Drop(projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == contactForm.Task.Id), projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == pages.Id), below: false);
+        Check("Dragging a task above another puts it there", services.Projects.AllTasks(site.Id).Where(t => t.HeadingId == build.Id).Select(t => t.Title).First().StartsWith("Contact form", StringComparison.Ordinal));
+        projectsPage.MoveTo(projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == contactForm.Task.Id), projectsPage.Sections.First(r => r.Name == "Launch"));
+        Check("Moving a task to another heading from its menu", services.Projects.GetTask(contactForm.Task.Id)!.HeadingId == projectsPage.Sections.First(r => r.Name == "Launch").Heading!.Id);
+        var adding = projectsPage.Rows.OfType<AddTaskRow>().First(r => r.Section.Name == "Launch");
+        adding.Title = "Point the domain at the new site";
+        adding.AddCommand.Execute(null);
+        Check("A task typed under a heading is added there", projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == "Point the domain at the new site" && r.Section.Name == "Launch"));
+        Dispatcher.UIThread.RunJobs();
+        Save("projects");
+        projectsPage.EditName = "Bosveld Builders new website";
+        projectsPage.Keep();
+        Check("Renaming a project is saved once typing stops", services.Projects.Get(site.Id)!.Name == "Bosveld Builders new website" && projectsPage.TabTitle == "Bosveld Builders new website");
+    }
+
     // The quick note from any program: what is typed is kept however the box closes.
     var quick = new QuickNoteWindow(services) { Typed = "Call the bank about the card\nThey said to phone after 9\n[ ] Card number ready" };
     quick.Show();

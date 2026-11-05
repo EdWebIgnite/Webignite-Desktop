@@ -1,0 +1,143 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.ProjectsView"
+             x:DataType="vm:ProjectsViewModel"
+             x:Name="Root">
+  <!-- Projects on the left, the open one on the right. The panes move, resize and hide as on Mail. -->
+  <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">
+    <Border c:PanelGrid.Pane="list" c:PanelGrid.DefaultWidth="340" Background="{DynamicResource Canvas}"
+            BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <ScrollViewer>
+        <StackPanel Spacing="16" Margin="24,30,24,30">
+          <TextBlock Classes="h1" Text="Projects" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Margin="8,0,0,0" Command="{Binding NewProjectCommand}" ToolTip.Tip="Start a project">
+              <c:Icon Data="{StaticResource Icon.Plus}" Size="16" />
+            </Button>
+            <TextBox x:Name="NewProjectBox" Text="{Binding NewProjectName}" PlaceholderText="New project name" />
+          </DockPanel>
+          <TextBlock Classes="problem" FontSize="12" Text="{Binding ListMessage}" TextWrapping="Wrap"
+                     IsVisible="{Binding ListMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+          <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Projects}" Title="No projects yet"
+                        Text="Type a name above to start one: a website build, an SEO month, anything with steps." />
+
+          <StackPanel Spacing="6" IsVisible="{Binding HasShared}">
+            <TextBlock Classes="section" Text="{Binding SharedHeading}" />
+            <Border Classes="card" Padding="0">
+              <ItemsControl ItemsSource="{Binding SharedProjects}" ItemTemplate="{StaticResource ProjectRowTemplate}" />
+            </Border>
+          </StackPanel>
+          <StackPanel Spacing="6" IsVisible="{Binding HasPersonal}">
+            <TextBlock Classes="section" Text="Just mine" />
+            <Border Classes="card" Padding="0">
+              <ItemsControl ItemsSource="{Binding PersonalProjects}" ItemTemplate="{StaticResource ProjectRowTemplate}" />
+            </Border>
+          </StackPanel>
+          <CheckBox IsChecked="{Binding ShowDone}" Content="Show done projects" IsVisible="{Binding !IsEmpty}" />
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <!-- The open project -->
+    <ScrollViewer c:PanelGrid.Pane="project" c:PanelGrid.DefaultWidth="760" x:Name="ProjectScroll">
+      <Panel Margin="32,30" MaxWidth="1000" HorizontalAlignment="Stretch">
+        <c:EmptyState IsVisible="{Binding IsClosed}" Icon="{StaticResource Icon.Projects}" Title="Pick a project"
+                      Text="Its headings and tasks show here. Give tasks to yourself or your partner and set when they're due." VerticalAlignment="Top" />
+        <StackPanel Spacing="16" IsVisible="{Binding IsOpen}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+              <Button Classes="quiet" ToolTip.Tip="Delete the project and its tasks" Command="{Binding DeleteProjectCommand}">
+                <c:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+              </Button>
+              <Button Classes="link" Content="Close" Command="{Binding CloseCommand}" />
+            </StackPanel>
+            <StackPanel Spacing="2">
+              <TextBox Classes="inline heading" FontSize="22" Text="{Binding EditName}" PlaceholderText="Project name" />
+              <TextBlock Classes="muted" Margin="7,0,0,0" Text="{Binding Summary}" />
+            </StackPanel>
+          </DockPanel>
+
+          <WrapPanel ItemSpacing="10" LineSpacing="8">
+            <CheckBox IsChecked="{Binding EditShared}" Content="{Binding SharedLabel}" VerticalAlignment="Center"
+                      ToolTip.Tip="Shared projects reach your partner once sync is set up. Until then they stay on this PC." />
+            <ComboBox x:Name="ClientBox" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding EditClient, Mode=OneWay}"
+                      SelectionChanged="ClientPicked" MinWidth="200" ToolTip.Tip="The client it's for" />
+            <ComboBox x:Name="StatusBox" ItemsSource="{x:Static vm:ProjectsViewModel.Statuses}" SelectedItem="{Binding EditStatus, Mode=OneWay}"
+                      SelectionChanged="StatusPicked" MinWidth="120" />
+            <CalendarDatePicker SelectedDate="{Binding EditDue}" Watermark="Due date" Width="150" ToolTip.Tip="When the whole project is due" />
+          </WrapPanel>
+          <TextBlock Classes="problem" Text="{Binding Message}" TextWrapping="Wrap"
+                     IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+          <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}">
+            <ItemsControl.DataTemplates>
+              <DataTemplate DataType="vm:SectionRow">
+                <Border Classes.droptop="{Binding DropHere}" Margin="0,14,0,2" Padding="0,0,0,4" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Right" Classes="quiet" Padding="6" IsVisible="{Binding IsHeading}" Command="{Binding DeleteCommand}"
+                            ToolTip.Tip="Delete the heading; its tasks stay, under no heading">
+                      <c:Icon Data="{StaticResource Icon.Trash}" Size="14" />
+                    </Button>
+                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Count}" VerticalAlignment="Center" Margin="8,0" />
+                    <TextBox Classes="inline heading" Text="{Binding Name}" IsVisible="{Binding IsHeading}" />
+                    <TextBlock Classes="section" Text="Not under a heading" IsVisible="{Binding IsLoose}" Margin="7,6" />
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+              <DataTemplate DataType="vm:TaskRow">
+                <Border Classes.droptop="{Binding DropAbove}" Classes.dropbottom="{Binding DropBelow}" Background="Transparent" Padding="0,1"
+                        Opacity="{Binding Fade}" ContextRequested="TaskMenu">
+                  <Grid ColumnDefinitions="22,30,*,Auto,150,140,32">
+                    <Border Classes="grip" Background="Transparent" Cursor="SizeAll" PointerPressed="GripPressed" ToolTip.Tip="Drag to move">
+                      <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    </Border>
+                    <CheckBox Grid.Column="1" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Done" />
+                    <TextBox Grid.Column="2" Classes="inline" Text="{Binding Title}" />
+                    <TextBlock Grid.Column="3" Classes="muted" FontSize="12" Text="{Binding Subtasks}" IsVisible="{Binding HasSubtasks}"
+                               VerticalAlignment="Center" Margin="8,0" ToolTip.Tip="Subtasks done" />
+                    <ComboBox Grid.Column="4" ItemsSource="{Binding People}" SelectedItem="{Binding AssignedTo}" Margin="4,0" MinHeight="30"
+                              HorizontalAlignment="Stretch" ToolTip.Tip="Who it's for" />
+                    <CalendarDatePicker Grid.Column="5" SelectedDate="{Binding Due}" Watermark="Due" MinHeight="30" HorizontalAlignment="Stretch"
+                                        ToolTip.Tip="When it's due" />
+                    <Button Grid.Column="6" Classes="quiet" Padding="6" Margin="4,0,0,0" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete the task">
+                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                    </Button>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+              <DataTemplate DataType="vm:AddTaskRow">
+                <DockPanel Margin="52,2,0,0">
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Add" Command="{Binding AddCommand}" Margin="8,0,0,0" />
+                  <TextBox Classes="inline" Text="{Binding Title}" PlaceholderText="Add a task, then Enter" KeyDown="AddTaskKey" />
+                </DockPanel>
+              </DataTemplate>
+            </ItemsControl.DataTemplates>
+          </ItemsControl>
+
+          <DockPanel Margin="0,8,0,0">
+            <Button DockPanel.Dock="Right" Classes="quiet" Content="Add heading" Command="{Binding AddHeadingCommand}" Margin="8,0,0,0" />
+            <TextBox Text="{Binding NewHeadingName}" PlaceholderText="New heading, e.g. Design, Build, Launch" KeyDown="AddHeadingKey" />
+          </DockPanel>
+        </StackPanel>
+      </Panel>
+    </ScrollViewer>
+  </c:PanelGrid>
+
+  <UserControl.Resources>
+    <DataTemplate x:Key="ProjectRowTemplate" x:DataType="vm:ProjectRow">
+      <Button Classes="row" Classes.open="{Binding IsOpen}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+              Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
+        <Grid ColumnDefinitions="*,28" Margin="8,0">
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" IsVisible="{Binding HasAbout}" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <c:Icon Grid.Column="1" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
+        </Grid>
+      </Button>
+    </DataTemplate>
+  </UserControl.Resources>
+</UserControl>
