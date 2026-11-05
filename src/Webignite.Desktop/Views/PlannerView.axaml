@@ -3,7 +3,8 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.PlannerView"
-             x:DataType="vm:PlannerViewModel">
+             x:DataType="vm:PlannerViewModel"
+             x:Name="Root">
   <StackPanel Spacing="18">
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
@@ -17,13 +18,16 @@
       </StackPanel>
     </DockPanel>
 
-    <ItemsControl ItemsSource="{Binding Days}">
+    <ItemsControl x:Name="DayRow" ItemsSource="{Binding Days}">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
       </ItemsControl.ItemsPanel>
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:PlannerDayViewModel">
-          <Border Classes="card" Classes.today="{Binding IsToday}" Padding="10" Margin="0,0,8,0" MinHeight="260" VerticalAlignment="Stretch">
+          <Border Classes="card" Classes.today="{Binding IsToday}" Padding="10" Margin="0,0,8,0" VerticalAlignment="Stretch" ClipToBounds="True"
+                  Height="{Binding #Root.((vm:PlannerViewModel)DataContext).DayHeight}"
+                  MinHeight="{Binding #Root.((vm:PlannerViewModel)DataContext).DayMinHeight}">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="8">
               <TextBlock Classes="h2" FontSize="14" Text="{Binding Name}" />
               <TextBlock Classes="muted" FontSize="12" Text="Free" IsVisible="{Binding IsFree}" />
@@ -40,10 +44,16 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
             </StackPanel>
+            </ScrollViewer>
           </Border>
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
+    <!-- Drag to make the days taller or shorter; double-click to fit what's on them again. -->
+    <Border Classes="sizegrip" Margin="0,-12,8,0" PointerPressed="GripPressed" PointerMoved="GripMoved" PointerReleased="GripReleased"
+            DoubleTapped="GripReset" ToolTip.Tip="Drag to make the days taller or shorter. Double-click to fit what's on them.">
+      <Border Classes="sizegripline" />
+    </Border>
 
     <Border Classes="card" IsVisible="{Binding HasUnplanned}">
       <StackPanel Spacing="10">

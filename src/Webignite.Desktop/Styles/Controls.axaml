@@ -135,6 +135,23 @@
   <Style Selector="TextBlock.problem">
     <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
+  <!-- A handle to drag something taller or shorter (Calendar's month, Planner's days): a short bar, darker on hover. -->
+  <Style Selector="Border.sizegrip">
+    <Setter Property="Height" Value="14" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="SizeNorthSouth" />
+  </Style>
+  <Style Selector="Border.sizegripline">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="4" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Border.sizegrip:pointerover > Border.sizegripline">
+    <Setter Property="Background" Value="{DynamicResource Muted}" />
+  </Style>
   <!-- A value in a list row that reads as words and changes with a click: who a task is for, when it's due. -->
   <Style Selector="Button.cell">
     <Setter Property="Background" Value="Transparent" />
@@ -777,6 +794,14 @@
     <Setter Property="Foreground" Value="{DynamicResource Ink}" />
   </Style>
   <!-- The bar between two pages side by side: drag it to share the width differently. -->
+  <!-- A gap between two parts of a page that can be dragged: invisible until the pointer is on it. -->
+  <Style Selector="GridSplitter.gap">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="SizeWestEast" />
+  </Style>
+  <Style Selector="GridSplitter.gap:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
   <Style Selector="GridSplitter.divider">
     <Setter Property="Background" Value="{DynamicResource Line}" />
     <Setter Property="MinWidth" Value="5" />

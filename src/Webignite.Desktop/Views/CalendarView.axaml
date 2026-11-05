@@ -17,8 +17,9 @@
       <TextBlock Classes="h1" Text="{Binding MonthTitle}" />
     </DockPanel>
 
-    <!-- Month grid -->
-    <Border Grid.Row="1" Grid.Column="0" Classes="card" Padding="0" ClipToBounds="True">
+    <!-- Month grid, with a handle under it to make it shorter or taller -->
+    <Grid x:Name="MonthArea" Grid.Row="1" Grid.Column="0" RowDefinitions="*,14">
+    <Border Classes="card" Padding="0" ClipToBounds="True">
       <DockPanel>
         <ItemsControl DockPanel.Dock="Top" ItemsSource="{x:Static vm:CalendarViewModel.WeekdayNames}" Background="{DynamicResource TableHead}">
           <ItemsControl.ItemsPanel>
@@ -64,6 +65,15 @@
         </ScrollViewer>
       </DockPanel>
     </Border>
+    <Border Grid.Row="1" Classes="sizegrip" PointerPressed="GripPressed" PointerMoved="GripMoved" PointerReleased="GripReleased" DoubleTapped="GripReset"
+            ToolTip.Tip="Drag to make the month shorter or taller. Double-click to fill the window again.">
+      <Border Classes="sizegripline" />
+    </Border>
+    </Grid>
+
+    <!-- Drag to make the day panel wider or narrower -->
+    <GridSplitter x:Name="SideSplitter" Grid.Row="1" Grid.Column="1" Classes="gap" ResizeDirection="Columns"
+                  DragCompleted="SideDragged" ToolTip.Tip="Drag to make the day panel wider or narrower" />
 
     <!-- Selected day -->
     <ScrollViewer x:Name="DaySide" Grid.Row="1" Grid.Column="2" HorizontalScrollBarVisibility="Disabled">
