@@ -382,7 +382,11 @@ public partial class AttachmentViewModel(MailAttachment attachment, MailReaderVi
         try
         {
             var folder = Directory.CreateTempSubdirectory("webignite-attachment-").FullName;
-            if (reader.Save(attachment, folder) is { } path)
+            if (reader.Save(attachment, folder) is not { } path)
+                return;
+            if (Webignite.Core.Files.FileKinds.IsPicture(path))
+                reader.Services.Go.Picture(path); // Webignite's own viewer
+            else
                 AppServices.OpenFile(path);
         }
         catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception)

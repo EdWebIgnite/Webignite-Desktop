@@ -39,6 +39,9 @@ public partial class ClientDetailViewModel
 
     // Notes and files are changed on the client as stored now, so unsaved typing in the details stays typed
     // and nothing saved meanwhile is lost.
+    /// <summary>A picture linked to the client, in Webignite's picture viewer.</summary>
+    public void ViewPicture(string path) => services.Go.Picture(path);
+
     /// <summary>A file's folder in the app's Files, with the file picked; or a folder itself.</summary>
     public void ShowInFiles(string path, bool isFolder = false)
     {
@@ -129,6 +132,11 @@ public sealed partial class ClientFileRow(ClientFile file, ClientDetailViewModel
     {
         if (Missing)
             return;
+        if (Webignite.Core.Files.FileKinds.IsPicture(file.Path))
+        {
+            owner.ViewPicture(file.Path);
+            return;
+        }
         try
         {
             AppServices.OpenFile(file.Path);

@@ -1430,6 +1430,27 @@ var imagesWindow = window.ShowTool(ToolKind.Images, services);
 ShrinkPhotos(photos, imagesWindow.Tools);
 SaveWindow(imagesWindow, "tools-images");
 imagesWindow.Close();
+// The picture viewer: fitted to the window, the next picture in the folder a key away, turned in the file.
+{
+    var viewer = window.ShowPicture(Path.Combine(photos, "Team photo.png"), services);
+    Check("A picture opens in the viewer, fitted to the window", Until(() => viewer.Picture.Picture is not null)
+        && viewer.Picture.Fitting && viewer.Picture.Zoom < 1 && viewer.Picture.Info.Contains("2400 × 1600", StringComparison.Ordinal));
+    SaveWindow(viewer, "picture-viewer");
+    viewer.Picture.NextCommand.Execute(null);
+    Check("The arrow key goes on to the next picture in the folder, and round", Until(() => viewer.Picture.Name == "Shop Front (1).jpg" && viewer.Picture.FullWidth == 4032));
+    viewer.Picture.ZoomInCommand.Execute(null);
+    Check("Zooming by hand stops it following the window", !viewer.Picture.Fitting);
+    viewer.Picture.TurnRightCommand.Execute(null);
+    Check("Turn saves the picture turned", Until(() => Webignite.Tools.PictureTools.Size(Path.Combine(photos, "Shop Front (1).jpg")) == (3024, 4032)
+        && viewer.Picture.FullWidth == 3024));
+    viewer.Picture.AskDeleteCommand.Execute(null);
+    Check("Delete asks first", viewer.Picture.ConfirmingDelete);
+    viewer.Picture.KeepItCommand.Execute(null);
+    var again = window.ShowPicture(Path.Combine(photos, "Team photo.png"), services);
+    Check("Opening another picture uses the same viewer", ReferenceEquals(again, viewer) && Until(() => viewer.Picture.Name == "Team photo.png"));
+    viewer.Close();
+    Check("Closing the viewer lets the picture go", viewer.Picture.Picture is null);
+}
 calc.AddToInvoiceCommand.Execute(null);
 calculatorWindow.Close();
 Save("tools-calculator-invoice");

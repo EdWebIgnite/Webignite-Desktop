@@ -46,6 +46,7 @@ public sealed class Navigator
     internal Action? QuickNoteAction { get; set; }
     internal Action<ViewModels.ToolKind>? OpenToolAction { get; set; }
     internal Action<Action<string>?>? PickColourAction { get; set; }
+    internal Action<string>? OpenPictureAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -94,6 +95,9 @@ public sealed class Navigator
     /// to <paramref name="picked"/> (the Colours tool), or offered in a note to open in Colours.
     /// </summary>
     public void PickColour(Action<string>? picked = null) => PickColourAction?.Invoke(picked);
+
+    /// <summary>Shows a picture in Webignite's own viewer, with the others in its folder a key away.</summary>
+    public void Picture(string path) => OpenPictureAction?.Invoke(path);
 
     /// <summary>Starts recording part of the screen, or stops the recording under way and opens it in Mark-up.</summary>
     public void Record(bool hideApp = true) => RecordAction?.Invoke(hideApp);
