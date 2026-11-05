@@ -162,6 +162,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
             new NavGroup("planning", "PLANNING"),
             new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo"),
+            new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true),
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar"),
             new Module(Page.Planner, "Planner", () => new PlannerViewModel(services), "Planner"),
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time"),
@@ -508,6 +509,8 @@ public partial class MainViewModel : ViewModelBase
             approvals.Editor?.Keep();
         foreach (var notes in Built<NotesViewModel>(Page.Notes))
             notes.Keep();
+        foreach (var projects in Built<ProjectsViewModel>(Page.Projects))
+            projects.Keep();
         string? problem = null;
         foreach (var contacts in Built<ContactsViewModel>(Page.Contacts))
         {
