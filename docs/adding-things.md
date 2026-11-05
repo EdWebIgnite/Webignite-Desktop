@@ -53,6 +53,10 @@ Mail is the example. The rules (show, hide but never the last one, move, resize,
 2. In the view: a `<c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">` with each pane as a child carrying `c:PanelGrid.Pane="list"` and `c:PanelGrid.DefaultWidth="380"`. The last visible pane takes what is left. The code-behind passes the drag on: `void PaneResized(string pane, double width) => (DataContext as ThingViewModel)?.Panels.Resized(pane, width);`.
 3. A panes button with a `MenuFlyout`: one `MenuItem` per pane (`DataContext="{Binding Panels[list]}"`) holding a "Show" item with `ToggleType="CheckBox"` bound to `IsShown`, and "Move left" and "Move right" bound to `MoveLeftCommand` and `MoveRightCommand`; then "Put the panes back" bound to `Panels.ResetCommand`. Copy the one in `ClientsView.axaml`.
 
+## Folding rows on a page
+
+To keep a page calm, put its extra blocks in one card as folding rows rather than a stack of cards (the client page is the example). In the view: `<c:FoldList Sections="{Binding Sections}">` with a `<c:FoldSection Key="mail" Title="Mail" Icon="{StaticResource Icon.Mail}" Summary="{Binding MailSummary}">` per block. In the view model: `Sections = new SectionsViewModel(services.Settings, "page-name", keys, openAtFirst)` and a short summary string for each row, raised when what it sums up changes. Order and what's open are saved per page.
+
 ## A setting
 
 Settings are records saved as JSON under a name. Add a property to an existing settings record (`DocumentSettings`, `TaskSettings` and `BackupSettings` are in Core; `AppearanceSettings`, which is only about the app, is in `Desktop/Motion.cs`) or make a new record, then expose it on `AppSettings` (reached as `services.Settings`):

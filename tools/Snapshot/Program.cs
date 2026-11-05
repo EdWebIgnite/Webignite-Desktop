@@ -394,6 +394,12 @@ Check("The running timer shows in the sidebar with Time let go", vm.ReleaseIdle(
 Open(Page.Time);
 services.Timer.Stop();
 vm.Time.Note = "";
+// Opens a folding row on the client page on screen, for a screenshot of what's in it.
+void OpenSection(string key)
+{
+    if (vm.Clients.Detail is { } shown && !shown.Sections.IsOpen(key))
+        shown.Sections.Toggle(key);
+}
 Open(Page.Clients);
 Save("clients");
 {
@@ -432,6 +438,31 @@ Check("Bringing clients in without Xero says to connect it", vm.Clients.XeroMess
 vm.Clients.XeroMessage = "";
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Save("client");
+{
+    // The client page: Details, and everything else as rows that fold open, in an order that's remembered.
+    var detail = vm.Clients.Detail!;
+    Dispatcher.UIThread.RunJobs();
+    var rows = window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.FoldSection>().ToList();
+    Check("A client's page has its details and eight rows that fold, with To-do and Quotes open at first",
+        rows.Count == 8 && rows.Where(r => r.IsOpen).Select(r => r.Key).SequenceEqual(["todo", "documents"]) && rows.All(r => !string.IsNullOrEmpty(r.Summary)));
+    var mailRow = rows.First(r => r.Key == "mail");
+    var header = mailRow.GetVisualDescendants().OfType<Avalonia.Controls.Button>().First(b => b.Name == "PART_Header");
+    header.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+    Dispatcher.UIThread.RunJobs();
+    Check("Clicking a row's header opens it", mailRow.IsOpen && detail.Sections.IsOpen("mail"));
+    header.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+    detail.Sections.MoveTo("logins", 0);
+    Dispatcher.UIThread.RunJobs();
+    var list = window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.FoldList>().First();
+    Check("A row moved to the top shows there", list.Children.OfType<Webignite.Desktop.Controls.FoldSection>().First().Key == "logins");
+    vm.Clients.OpenCommand.Execute(vm.Clients.Rows[1]);
+    Dispatcher.UIThread.RunJobs();
+    Check("The order and what's open are the same for the next client", vm.Clients.Detail!.Sections.Layout.Order[0] == "logins"
+        && !vm.Clients.Detail.Sections.IsOpen("mail"));
+    vm.Clients.Detail.Sections.MoveTo("logins", 7);
+    vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
+    Dispatcher.UIThread.RunJobs();
+}
 window.Height = 1250;
 Save("client-tall");
 window.Height = 860;
@@ -866,6 +897,8 @@ vm.Mail.Panels.ResetCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 Open(Page.Clients);
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
+OpenSection("mail");
+Dispatcher.UIThread.RunJobs();
 Save("client-mail");
 
 // Files: the client folders first, the three views, and each change it makes put back with Undo.
@@ -1276,6 +1309,8 @@ Save("client-mail");
     Check("A client's folder is found by name", vm.Clients.Detail is { FolderPath: var bosveldFolder, FolderIsGuess: false } && bosveldFolder == site);
     vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
     Check("A folder that only looks like the client's is asked about", vm.Clients.Detail is { FolderIsGuess: true } fynbos && fynbos.FolderPath.EndsWith("Fynbos", StringComparison.Ordinal));
+    OpenSection("files");
+    Dispatcher.UIThread.RunJobs();
     Save("client-folder");
     vm.Clients.Detail!.ConfirmFolderCommand.Execute(null);
     Check("Saying yes keeps it on the client", store.ListClients().First(c => c.Name == "Fynbos Physio").Folder?.EndsWith("Fynbos", StringComparison.Ordinal) == true
@@ -1881,8 +1916,10 @@ Save("site-check");
     vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Bosveld Builders"));
     Check("Notes about a client show on their page", vm.Clients.Detail!.NoteLinks.Any(l => l.Name == "Bosveld Builders website kick-off"));
     Dispatcher.UIThread.RunJobs();
-    if (window.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().FirstOrDefault(t => t.Text == "Notebook notes") is { } notesCard)
-        Avalonia.Controls.ControlExtensions.BringIntoView(notesCard.GetVisualAncestors().OfType<Avalonia.Controls.Border>().First(b => b.Classes.Contains("card")));
+    OpenSection("files");
+    if (window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.FoldSection>().FirstOrDefault(f => f.Key == "files") is { } filesRow)
+        Avalonia.Controls.ControlExtensions.BringIntoView(filesRow);
+    Dispatcher.UIThread.RunJobs();
     Save("client-notes");
     vm.Clients.Detail.NoteLinks.First().OpenCommand.Execute(null);
     Check("Clicking one opens it in Notes", vm.Current.Key == Page.Notes && vm.Notes.Open?.Id == kickoff.Id);
@@ -1911,8 +1948,10 @@ Save("site-check");
     withLogins.MakeLoginPasswordCommand.Execute(null);
     Check("Make one fills in a strong password", withLogins.LoginPassword.Length == 20);
     Dispatcher.UIThread.RunJobs();
-    if (window.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().FirstOrDefault(t => t.Text == "Site logins") is { } loginsCard)
-        Avalonia.Controls.ControlExtensions.BringIntoView(loginsCard.GetVisualAncestors().OfType<Avalonia.Controls.Border>().First(b => b.Classes.Contains("card")));
+    OpenSection("logins");
+    if (window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.FoldSection>().FirstOrDefault(f => f.Key == "logins") is { } loginsRow)
+        Avalonia.Controls.ControlExtensions.BringIntoView(loginsRow);
+    Dispatcher.UIThread.RunJobs();
     Save("client-logins");
     withLogins.CancelLoginCommand.Execute(null);
     Check("Cancel leaves the saved logins as they were and forgets the typed password", withLogins.Logins.Count == 2 && withLogins.LoginPassword.Length == 0);
@@ -1952,8 +1991,10 @@ Save("site-check");
     Check("Sending invoices to someone puts their address first on the client", services.Clients.Get(bosveldId)!.Email!.StartsWith("accounts@bosveldbuilders.co.za", StringComparison.Ordinal)
         && withPeople.Email.StartsWith("accounts@bosveldbuilders.co.za", StringComparison.Ordinal));
     Dispatcher.UIThread.RunJobs();
-    if (window.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().FirstOrDefault(t => t.Text == "People") is { } peopleCard)
-        Avalonia.Controls.ControlExtensions.BringIntoView(peopleCard.GetVisualAncestors().OfType<Avalonia.Controls.Border>().First(b => b.Classes.Contains("card")));
+    OpenSection("people");
+    if (window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.FoldSection>().FirstOrDefault(f => f.Key == "people") is { } peopleRow)
+        Avalonia.Controls.ControlExtensions.BringIntoView(peopleRow);
+    Dispatcher.UIThread.RunJobs();
     Save("client-people");
     withPeople.ContactPerson = "Pieter J van Wyk";
     withPeople.SaveCommand.Execute(null);

@@ -21,6 +21,21 @@ public partial class ClientDetailView : UserControl
         });
     }
 
+    // Side by side when there's room; in a narrow pane the rows go under the details, full width.
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        var narrow = e.NewSize.Width < 860;
+        if (Grid.GetRow(SectionsCard) == (narrow ? 1 : 0))
+            return;
+        Grid.SetRow(SectionsCard, narrow ? 1 : 0);
+        Grid.SetColumn(SectionsCard, narrow ? 0 : 2);
+        Grid.SetColumnSpan(SectionsCard, narrow ? 3 : 1);
+        SectionsCard.Margin = narrow ? new Avalonia.Thickness(0, 18, 0, 0) : default;
+        Columns.ColumnDefinitions[2].Width = narrow ? new GridLength(0) : new GridLength(1.25, GridUnitType.Star);
+        Columns.ColumnDefinitions[1].Width = narrow ? new GridLength(0) : new GridLength(24);
+    }
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
