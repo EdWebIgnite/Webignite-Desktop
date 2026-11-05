@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:cc="using:Webignite.Core.Clients"
              x:Class="Webignite.Desktop.Views.ClientDetailView"
              x:DataType="vm:ClientDetailViewModel"
              x:Name="Root">
@@ -111,6 +112,72 @@
                 <TextBlock Classes="muted" FontSize="12" Text="{Binding SaveState}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
               </StackPanel>
             </DockPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- People: who's with this client in Contacts, the contact person, and who gets quotes and invoices -->
+        <Border Classes="card" IsVisible="{Binding IsSaved}">
+          <StackPanel Spacing="10">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                <Button Classes="link" Content="Add someone from Contacts" IsVisible="{Binding HasUnlinked}" Padding="4,2">
+                  <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight" ItemsSource="{Binding Unlinked}">
+                      <MenuFlyout.ItemContainerTheme>
+                        <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="cc:Person">
+                          <Setter Property="Header" Value="{Binding Name}" />
+                          <Setter Property="Command" Value="{Binding #Root.((vm:ClientDetailViewModel)DataContext).LinkPersonCommand}" />
+                          <Setter Property="CommandParameter" Value="{Binding}" />
+                        </ControlTheme>
+                      </MenuFlyout.ItemContainerTheme>
+                    </MenuFlyout>
+                  </Button.Flyout>
+                </Button>
+                <Button Classes="quiet" Content="New person" Command="{Binding AddPersonCommand}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Contacts}" />
+                <TextBlock Classes="h2" Text="People" VerticalAlignment="Center" />
+              </StackPanel>
+            </DockPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoPeople}"
+                       Text="The owner, the accounts person and anyone else here. One is the contact person, and one gets quotes and invoices." />
+            <ItemsControl ItemsSource="{Binding People}" IsVisible="{Binding HasPeople}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ClientPersonRow">
+                  <Border Classes="taskrow" Padding="0,6">
+                    <Border.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Open in Contacts" Command="{Binding OpenCommand}" />
+                        <MenuItem Header="Write a mail" Command="{Binding WriteCommand}" IsEnabled="{Binding HasEmail}" />
+                        <Separator />
+                        <MenuItem Header="Make the contact person" Command="{Binding MakeMainCommand}" IsEnabled="{Binding NotMain}" />
+                        <MenuItem Header="Send quotes and invoices to them" Command="{Binding MakeBillingCommand}" IsEnabled="{Binding CanGetInvoices}" />
+                        <Separator />
+                        <MenuItem Header="Not with this client any more" Command="{Binding UnlinkCommand}" />
+                      </ContextMenu>
+                    </Border.ContextMenu>
+                    <StackPanel Spacing="2">
+                      <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,1" FontWeight="SemiBold"
+                              HorizontalAlignment="Left" ToolTip.Tip="Open in Contacts" />
+                      <WrapPanel ItemSpacing="6" LineSpacing="4">
+                        <Border Classes="pill" IsVisible="{Binding IsMain}">
+                          <TextBlock FontSize="11" Text="Contact person" />
+                        </Border>
+                        <Border Classes="pill" IsVisible="{Binding GetsInvoices}">
+                          <TextBlock FontSize="11" Text="Gets quotes and invoices" />
+                        </Border>
+                      </WrapPanel>
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextWrapping="Wrap" />
+                      <WrapPanel ItemSpacing="12">
+                        <Button Classes="link" Content="Make contact person" Padding="0,2" Command="{Binding MakeMainCommand}" IsVisible="{Binding NotMain}" />
+                        <Button Classes="link" Content="Send invoices here" Padding="0,2" Command="{Binding MakeBillingCommand}" IsVisible="{Binding CanGetInvoices}" />
+                      </WrapPanel>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </StackPanel>
         </Border>
 

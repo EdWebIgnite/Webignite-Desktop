@@ -21,6 +21,7 @@ public sealed class AppServices : IDisposable
         Store = store;
         Documents = new DocumentService(store);
         Clients = new ClientService(store);
+        Contacts = new ContactService(store);
         Settings = new AppSettings(store);
         Settings.XeroClientChanged += () => xero = null;
         Payments = new PaymentWatch(store, () => XeroApi);
@@ -51,6 +52,9 @@ public sealed class AppServices : IDisposable
 
     /// <summary>Clients: pages read and change them here, never on the store directly.</summary>
     public ClientService Clients { get; }
+
+    /// <summary>People in Contacts, linked to clients; what pages read and change them through.</summary>
+    public ContactService Contacts { get; }
 
     /// <summary>Notebooks and notes: the Notes page, the client page and the quick note change them here.</summary>
     public NoteService Notes => notes ??= new NoteService(Store);

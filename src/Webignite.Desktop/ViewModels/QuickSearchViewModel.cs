@@ -45,6 +45,7 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
             Renewals = services.Store.ListRenewals(),
             Notes = services.Notes.List(),
             Logins = services.Clients.AllLogins(),
+            People = services.Contacts.List(),
         };
         mail = [];
         files = [];

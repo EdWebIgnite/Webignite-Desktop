@@ -1,0 +1,181 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.ContactsView"
+             x:DataType="vm:ContactsViewModel"
+             x:Name="Root">
+  <!-- Everyone on the left, the open person on the right. The panes move, resize and hide as on Mail. -->
+  <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">
+    <Border c:PanelGrid.Pane="list" c:PanelGrid.DefaultWidth="400" Background="{DynamicResource Canvas}"
+            BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <ScrollViewer>
+        <StackPanel Spacing="16" Margin="24,30,24,30" c:ListKeys.IsEnabled="True">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="h1" Text="Contacts" />
+            <TextBlock Classes="headline" Text="{Binding Headline}" TextWrapping="Wrap" IsVisible="{Binding !IsEmpty}" />
+            <WrapPanel ItemSpacing="6" LineSpacing="6">
+              <Button Classes="primary" Command="{Binding NewCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
+                  <TextBlock Text="New person" />
+                </StackPanel>
+              </Button>
+            </WrapPanel>
+          </StackPanel>
+
+          <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Contacts}" Title="No one here yet"
+                        Text="Add the people you work with: owners, accounts people, suppliers. Each can be with a client."
+                        ActionText="New person" Command="{Binding NewCommand}" />
+
+          <StackPanel Spacing="12" IsVisible="{Binding !IsEmpty}">
+            <TextBox Text="{Binding Search}" PlaceholderText="Search by name, client, email, phone or group" />
+            <ComboBox x:Name="GroupBox" ItemsSource="{Binding Groups}" SelectedItem="{Binding Group, Mode=OneWay}"
+                      SelectionChanged="GroupPicked" HorizontalAlignment="Stretch" ToolTip.Tip="Show one group only" />
+
+            <c:EmptyState IsVisible="{Binding NoMatches}" Icon="{StaticResource Icon.Search}" Title="No one matches that"
+                          Text="Try part of a name, a client, an email address or a phone number." />
+
+            <Border Classes="card" Padding="0" IsVisible="{Binding !NoMatches}">
+              <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ContactRow">
+                    <Button Classes="row" Classes.open="{Binding IsOpen}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                            Command="{Binding #Root.((vm:ContactsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
+                      <Grid ColumnDefinitions="Auto,12,*,28" Margin="8,0">
+                        <c:Monogram Text="{Binding Name}" Size="34" />
+                        <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" IsVisible="{Binding HasAbout}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Reach}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <c:Icon Grid.Column="3" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
+                      </Grid>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Border>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <!-- The open person -->
+    <ScrollViewer c:PanelGrid.Pane="person" c:PanelGrid.DefaultWidth="640">
+      <Panel Margin="36,30" MaxWidth="820" HorizontalAlignment="Stretch">
+        <c:EmptyState IsVisible="{Binding IsClosed}" Icon="{StaticResource Icon.Contacts}" Title="Pick someone"
+                      Text="Their details show here, with their client and a way to write to them." VerticalAlignment="Top" />
+        <StackPanel Spacing="18" IsVisible="{Binding IsOpen}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+              <Button Classes="quiet" Content="Write a mail" Command="{Binding WriteMailCommand}" IsVisible="{Binding HasEmail}" />
+              <Button Classes="quiet" Content="Open their client" Command="{Binding OpenClientCommand}" IsVisible="{Binding HasClient}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <Button Classes="link" Content="Close" Command="{Binding CloseCommand}" Padding="0,2" Margin="0,0,0,6" ToolTip.Tip="Saves what you typed and closes" />
+              <StackPanel Orientation="Horizontal" Spacing="14">
+                <c:Monogram Text="{Binding EditName}" Size="48" />
+                <TextBlock Classes="h1" Text="{Binding TabTitle}" VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+          </DockPanel>
+
+          <Border Classes="card">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,12,*">
+                <StackPanel Grid.Column="0">
+                  <TextBlock Classes="label" Text="Name" />
+                  <TextBox Text="{Binding EditName}" PlaceholderText="e.g. Thandi Mokoena" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Classes="label" Text="Role" />
+                  <TextBox Text="{Binding EditRole}" PlaceholderText="e.g. Owner, Accounts" />
+                </StackPanel>
+              </Grid>
+              <Grid ColumnDefinitions="*,12,*">
+                <StackPanel Grid.Column="0">
+                  <TextBlock Classes="label" Text="Client" />
+                  <ComboBox x:Name="ClientBox" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding EditClient, Mode=OneWay}"
+                            SelectionChanged="ClientPicked" HorizontalAlignment="Stretch" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Classes="label" Text="Company" />
+                  <TextBox Text="{Binding EditCompany}" PlaceholderText="When it isn't a client, e.g. a supplier" />
+                </StackPanel>
+              </Grid>
+
+              <StackPanel Spacing="6">
+                <TextBlock Classes="label" Text="Email" />
+                <ItemsControl ItemsSource="{Binding Emails}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WayRow">
+                      <Grid ColumnDefinitions="130,8,*,Auto" Margin="0,0,0,6">
+                        <ComboBox ItemsSource="{Binding Labels}" SelectedItem="{Binding Label}" HorizontalAlignment="Stretch" />
+                        <TextBox Grid.Column="2" Text="{Binding Value}" PlaceholderText="{Binding Placeholder}" />
+                        <Button Grid.Column="3" Classes="link" Padding="8,2" Command="{Binding RemoveCommand}" ToolTip.Tip="Take this one off">
+                          <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                        </Button>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Classes="link" Content="+ Another email" Command="{Binding AddEmailCommand}" Padding="0,2" HorizontalAlignment="Left" />
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Classes="label" Text="Phone" />
+                <ItemsControl ItemsSource="{Binding Phones}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WayRow">
+                      <Grid ColumnDefinitions="130,8,*,Auto" Margin="0,0,0,6">
+                        <ComboBox ItemsSource="{Binding Labels}" SelectedItem="{Binding Label}" HorizontalAlignment="Stretch" />
+                        <TextBox Grid.Column="2" Text="{Binding Value}" PlaceholderText="{Binding Placeholder}" />
+                        <Button Grid.Column="3" Classes="link" Padding="8,2" Command="{Binding RemoveCommand}" ToolTip.Tip="Take this one off">
+                          <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                        </Button>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Classes="link" Content="+ Another number" Command="{Binding AddPhoneCommand}" Padding="0,2" HorizontalAlignment="Left" />
+              </StackPanel>
+
+              <StackPanel>
+                <TextBlock Classes="label" Text="Groups" />
+                <TextBox Text="{Binding EditGroups}" PlaceholderText="e.g. Hosting clients, Newsletter (commas between)" />
+              </StackPanel>
+              <StackPanel>
+                <TextBlock Classes="label" Text="Notes" />
+                <TextBox Text="{Binding EditNotes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
+                         PlaceholderText="How they like to be contacted, birthdays, anything to remember" />
+              </StackPanel>
+
+              <Border Classes="pending" IsVisible="{Binding HasProblems}">
+                <ItemsControl ItemsSource="{Binding Problems}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <TextBlock Classes="muted" Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                  <Button Classes="link" Content="Copy email" Command="{Binding CopyEmailCommand}" IsVisible="{Binding HasEmail}" />
+                  <Button Classes="link" Content="Copy number" Command="{Binding CopyPhoneCommand}" IsVisible="{Binding HasPhone}" />
+                  <Button Classes="link" Content="Delete" Command="{Binding DeleteCommand}" IsVisible="{Binding IsSaved}" ToolTip.Tip="Undo brings them back" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" />
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" VerticalAlignment="Center" />
+                </StackPanel>
+              </DockPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Panel>
+    </ScrollViewer>
+  </c:PanelGrid>
+</UserControl>
