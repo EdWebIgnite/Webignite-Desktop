@@ -47,6 +47,28 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         GoTo(start ?? DefaultStart());
     }
 
+    /// <summary>
+    /// When the explorer is picking files for something else (Open, Save): which files to show, folders always
+    /// showing, and what opening a file does instead of opening it.
+    /// </summary>
+    public Func<string, bool>? PickFilter { get; set; }
+
+    public Action<FileRowViewModel>? PickFile { get; set; }
+
+    /// <summary>Shows the folder a file is in, with the file picked, e.g. "Show in folder" from a client's page.</summary>
+    public void Reveal(string path)
+    {
+        if (Path.GetDirectoryName(path.TrimEnd('\\', '/')) is not { Length: > 0 } folder)
+            return;
+        GoTo(folder);
+        if (Items.OfType<FileRowViewModel>().FirstOrDefault(r => FileTags.Same(r.Entry.Path, path)) is { } row)
+        {
+            Selected = [row];
+            Restored?.Invoke(Selected);
+            PickChanged();
+        }
+    }
+
     /// <summary>The rows and, when grouped, their headings, in order.</summary>
     public ObservableCollection<object> Items { get; } = [];
 
@@ -318,6 +340,11 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
             GoTo(row.Entry.Path);
             return;
         }
+        if (PickFile is { } pick)
+        {
+            pick(row);
+            return;
+        }
         Remember(row.Entry.Path);
         if (FileKinds.CanPreview(row.Name))
         {
@@ -385,6 +412,8 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         Items.Clear();
         var tags = services.FileTags;
         var shown = FilterTag is { } filter ? entries.Where(e => tags.TagsOf(e.Path).Any(t => t.Id == filter.Id)) : entries;
+        if (PickFilter is { } keep)
+            shown = shown.Where(e => e.IsFolder || keep(e.Name));
         if (ShowKind != KindFilter.All || ShowDate != DateFilter.Any)
         {
             var day = DateOnly.FromDateTime(DateTime.Today);

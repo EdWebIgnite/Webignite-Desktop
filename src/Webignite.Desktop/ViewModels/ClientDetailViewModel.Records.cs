@@ -38,6 +38,15 @@ public partial class ClientDetailViewModel
 
     // Notes and files are changed on the client as stored now, so unsaved typing in the details stays typed
     // and nothing saved meanwhile is lost.
+    /// <summary>A file's folder in the app's Files, with the file picked; or a folder itself.</summary>
+    public void ShowInFiles(string path, bool isFolder = false)
+    {
+        if (isFolder)
+            services.Go.Folder(path);
+        else
+            services.Go.ShowFile(path);
+    }
+
     private void SaveRecords(Func<Client, Client> change)
     {
         client = services.Clients.Change(client.Id, change) ?? client;
@@ -132,10 +141,10 @@ public sealed partial class ClientFileRow(ClientFile file, ClientDetailViewModel
     [RelayCommand]
     private void ShowInFolder()
     {
-        if (OperatingSystem.IsWindows() && !Missing)
-            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{file.Path}\"") { UseShellExecute = false });
+        if (!Missing)
+            owner.ShowInFiles(file.Path);
         else if (Path.GetDirectoryName(file.Path) is { } folder && Directory.Exists(folder))
-            AppServices.OpenFile(folder);
+            owner.ShowInFiles(folder, isFolder: true);
     }
 
     [RelayCommand]

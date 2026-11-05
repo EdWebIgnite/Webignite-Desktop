@@ -3,6 +3,8 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Webignite.Desktop.ViewModels;
 
+using Webignite.Desktop.Files;
+
 namespace Webignite.Desktop.Views;
 
 public partial class MailSetupView : UserControl
@@ -13,14 +15,9 @@ public partial class MailSetupView : UserControl
 
     private async Task ChooseSignatureImageAsync()
     {
-        if (DataContext is not MailSetupViewModel setup || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (DataContext is not MailSetupViewModel setup)
             return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Choose a signature picture",
-            FileTypeFilter = [new FilePickerFileType("Pictures") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif"] }],
-        });
-        if (files.FirstOrDefault()?.TryGetLocalPath() is { } path)
+        if ((await Picker.Files(this, "Choose a signature picture", ["*.png", "*.jpg", "*.jpeg", "*.gif"], kindName: "Pictures")).FirstOrDefault() is { } path)
             setup.SetSignatureImage(path);
     }
 }

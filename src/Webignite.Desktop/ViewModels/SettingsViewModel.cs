@@ -258,14 +258,14 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     private void OpenBackupFolder()
     {
         Directory.CreateDirectory(BackupFolder);
-        AppServices.OpenFile(BackupFolder);
+        services.Go.Folder(BackupFolder);
     }
 
     [RelayCommand]
     private void OpenLogFolder()
     {
         Directory.CreateDirectory(Webignite.Data.AppLog.Folder);
-        AppServices.OpenFile(Webignite.Data.AppLog.Folder);
+        services.Go.Folder(Webignite.Data.AppLog.Folder);
     }
 
     public void ChooseRestoreFile(string path)

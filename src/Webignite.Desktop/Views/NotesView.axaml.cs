@@ -13,6 +13,8 @@ using Avalonia.VisualTree;
 using Webignite.Core.Writing;
 using Webignite.Desktop.ViewModels;
 
+using Webignite.Desktop.Files;
+
 namespace Webignite.Desktop.Views;
 
 public partial class NotesView : FullBleedView
@@ -249,14 +251,7 @@ public partial class NotesView : FullBleedView
 
     private async Task InsertPictureAsync()
     {
-        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
-            return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Put a picture in the note",
-            FileTypeFilter = [new FilePickerFileType("Pictures") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif"] }],
-        });
-        if (files.FirstOrDefault()?.TryGetLocalPath() is not { } path)
+        if ((await Picker.Files(this, "Put a picture in the note", ["*.png", "*.jpg", "*.jpeg", "*.gif"], kindName: "Pictures")).FirstOrDefault() is not { } path)
             return;
         var bytes = await File.ReadAllBytesAsync(path);
         if (ImageSize.Of(bytes) is not { } size)

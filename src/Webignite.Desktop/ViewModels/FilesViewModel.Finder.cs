@@ -184,8 +184,12 @@ public sealed partial class FilesViewModel
     private bool detailsPending;
 
     /// <summary>Called by the view when the pick changes.</summary>
+    /// <summary>The files picked changed, for a Save box that fills its name from the pick.</summary>
+    public event Action? PickedChanged;
+
     public void PickChanged()
     {
+        PickedChanged?.Invoke();
         UpdateStatus();
         // After the keys waiting now, so holding an arrow key doesn't draw every file on the way.
         if (ShowDetails && !detailsPending)

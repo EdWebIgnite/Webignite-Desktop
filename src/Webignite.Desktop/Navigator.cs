@@ -32,6 +32,7 @@ public sealed class Navigator
     internal Action<Client>? OpenClientInNewTabAction { get; set; }
     internal Action<MailSummary>? OpenMailInNewTabAction { get; set; }
     internal Action<string, bool>? OpenFolderAction { get; set; }
+    internal Action<string>? ShowFileAction { get; set; }
     internal Action<string>? OpenSettingsAction { get; set; }
     internal Action<bool>? ScreenshotAction { get; set; }
     internal Action<bool>? RecordAction { get; set; }
@@ -64,6 +65,9 @@ public sealed class Navigator
 
     /// <summary>Opens a client's page.</summary>
     public void Client(Client client) => OpenClientAction?.Invoke(client);
+
+    /// <summary>Shows the folder a file is in, in Files, with the file picked: the app's own "Show in folder".</summary>
+    public void ShowFile(string path) => ShowFileAction?.Invoke(path);
 
     /// <summary>Opens a folder in Files, or in a Files tab of its own (Ctrl+click or a middle click on a folder).</summary>
     public void Folder(string path, bool newTab = false) => OpenFolderAction?.Invoke(path, newTab);

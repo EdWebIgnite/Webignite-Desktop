@@ -10,6 +10,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Webignite.Desktop.ViewModels;
 
+using Webignite.Desktop.Files;
+
 namespace Webignite.Desktop.Views;
 
 /// <summary>
@@ -56,31 +58,21 @@ public partial class PdfView : FullBleedView
 
     private async Task OpenFilesAsync()
     {
-        if (Pdf is not { } pdf || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (Pdf is not { } pdf)
             return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Open PDFs or pictures",
-            AllowMultiple = true,
-            FileTypeFilter = [new FilePickerFileType("PDFs and pictures") { Patterns = ["*.pdf", "*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp"] }],
-        });
-        await pdf.Open([.. files.Select(f => f.TryGetLocalPath()).OfType<string>()]);
+        var files = await Picker.Files(this, "Open PDFs or pictures", ["*.pdf", "*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp"], many: true, kindName: "PDFs and pictures");
+        if (files.Count > 0)
+            await pdf.Open(files);
     }
 
     private void SaveAs(object? sender, RoutedEventArgs e) => SaveAsAsync().Forget("Saving the PDF", tell: true);
 
     private async Task SaveAsAsync()
     {
-        if (Pdf is not { Main: { } main } pdf || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (Pdf is not { Main: { } main } pdf)
             return;
-        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save the PDF",
-            SuggestedFileName = System.IO.Path.GetFileNameWithoutExtension(main.Name) + ".pdf",
-            DefaultExtension = "pdf",
-            FileTypeChoices = [new FilePickerFileType("PDF") { Patterns = ["*.pdf"] }],
-        });
-        if (file?.TryGetLocalPath() is { } path)
+        var start = main.IsTemporary ? null : System.IO.Path.GetDirectoryName(main.Path);
+        if (await Picker.Save(this, "Save the PDF", System.IO.Path.GetFileNameWithoutExtension(main.Name) + ".pdf", ["*.pdf"], "PDF", start) is { } path)
             await pdf.SaveAs(path);
     }
 
