@@ -106,6 +106,71 @@ public partial class NotesView : FullBleedView
             Notes?.ClientPicked(client);
     }
 
+    // A note's right-click: it opens first, then pin, move, a quick note to its client, delete.
+    private void NoteMenuOpening(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (Notes is not { } notes || sender is not ContextMenu menu || menu.DataContext is not NoteRow row)
+            return;
+        menu.Items.Clear();
+        void Add(ItemsControl into, string header, Action run)
+        {
+            var item = new MenuItem { Header = header };
+            item.Click += (_, _) =>
+            {
+                notes.OpenNote(row.Note.Id);
+                run();
+            };
+            into.Items.Add(item);
+        }
+        Add(menu, "Open", () => { });
+        if (row.Note.Deleted is null)
+        {
+            Add(menu, row.Pinned ? "Unpin" : "Pin to the top", () => notes.TogglePinCommand.Execute(null));
+            var move = new MenuItem { Header = "Move to" };
+            foreach (var target in notes.MoveTargets)
+                Add(move, target.Label, () => notes.MoveTo(target));
+            menu.Items.Add(move);
+            menu.Items.Add(new Separator());
+            Add(menu, "Delete", () => notes.DeleteOpenCommand.Execute(null));
+        }
+        else
+        {
+            Add(menu, "Put it back", () => notes.RestoreOpenCommand.Execute(null));
+            Add(menu, "Delete for good", () => notes.PurgeOpenCommand.Execute(null));
+        }
+    }
+
+    // A notebook's or folder's right-click: it is picked first, then a new folder, rename, remove.
+    private void PlaceMenuOpening(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (Notes is not { } notes || sender is not ContextMenu menu || menu.DataContext is not NotePlaceRow place)
+            return;
+        menu.Items.Clear();
+        void Add(string header, Action run)
+        {
+            var item = new MenuItem { Header = header };
+            item.Click += (_, _) =>
+            {
+                notes.PickPlace(place);
+                run();
+            };
+            menu.Items.Add(item);
+        }
+        Add("New note here", () => notes.NewNoteCommand.Execute(null));
+        if (place.Kind is Webignite.Core.Notes.NotePlace.Notebook or Webignite.Core.Notes.NotePlace.Folder)
+        {
+            Add("New folder", () => notes.AddFolderCommand.Execute(null));
+            Add("Rename", () => notes.RenamePlaceCommand.Execute(null));
+            Add(place.IsFolder ? "Remove folder" : "Remove notebook", () => notes.RemovePlaceCommand.Execute(null));
+        }
+        if (place.Kind == Webignite.Core.Notes.NotePlace.Deleted)
+            Add("Empty Deleted", () => notes.EmptyDeletedCommand.Execute(null));
+        menu.Items.Add(new Separator());
+        var newBook = new MenuItem { Header = "New notebook" };
+        newBook.Click += (_, _) => notes.AddNotebookCommand.Execute(null);
+        menu.Items.Add(newBook);
+    }
+
     private void MoveMenuOpening(object? sender, EventArgs e)
     {
         if (Notes is not { } notes || sender is not MenuFlyout flyout)

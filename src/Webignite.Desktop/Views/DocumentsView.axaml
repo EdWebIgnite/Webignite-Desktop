@@ -69,6 +69,18 @@
               <DataTemplate x:DataType="vm:DocumentRow">
                 <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
+                  <Button.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="Open" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Make a copy" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).MakeCopyOfCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Make an invoice from it" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).MakeInvoiceFromCommand}" CommandParameter="{Binding}" IsVisible="{Binding IsQuote}" />
+                      <MenuItem Header="Email it" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).EmailFromCommand}" CommandParameter="{Binding}" IsVisible="{Binding InXero}" />
+                      <MenuItem Header="Open in Xero" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenInXeroForCommand}" CommandParameter="{Binding}" IsVisible="{Binding InXero}" />
+                      <Separator />
+                      <MenuItem Header="Open the client" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenClientOfCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Copy the number" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).CopyNumberCommand}" CommandParameter="{Binding}" IsVisible="{Binding HasNumber}" />
+                    </ContextMenu>
+                  </Button.ContextMenu>
                   <Grid ColumnDefinitions="150,*,130,130,140,28">
                     <Border Grid.ColumnSpan="6" Classes="edge" IsVisible="{Binding IsOverdue}" Margin="-12,-11,0,-11" />
                     <TextBlock Grid.Column="0" Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" Margin="8,0" VerticalAlignment="Center" />

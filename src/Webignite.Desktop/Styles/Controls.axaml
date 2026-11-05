@@ -413,6 +413,8 @@
     <Setter Property="Background" Value="{DynamicResource Attention}" />
   </Style>
   <Style Selector="Border.taskrow">
+    <!-- See-through, so a right-click anywhere on the row opens its menu. -->
+    <Setter Property="Background" Value="Transparent" />
     <Setter Property="Padding" Value="16,8,8,8" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />

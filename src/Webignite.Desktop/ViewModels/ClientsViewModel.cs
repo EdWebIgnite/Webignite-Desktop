@@ -171,6 +171,9 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork,
 /// <summary>One line in the clients list.</summary>
 public sealed partial class ClientRow(ClientSummary summary) : ViewModelBase
 {
+    public bool HasEmail => !string.IsNullOrWhiteSpace(Summary.Client.Email);
+    public bool HasPhone => !string.IsNullOrWhiteSpace(Summary.Client.Phone);
+
     public ClientSummary Summary { get; } = summary;
 
     /// <summary>This client is the one open in the right-hand pane.</summary>

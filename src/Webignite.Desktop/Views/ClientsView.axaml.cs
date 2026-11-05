@@ -24,5 +24,16 @@ public partial class ClientsView : FullBleedView
         }
     }
 
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (DataContext is ClientsViewModel clients)
+            clients.CopyText = async text =>
+            {
+                if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+                    await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, text);
+            };
+    }
+
     private void PaneResized(string pane, double width) => (DataContext as ClientsViewModel)?.Panels.Resized(pane, width);
 }

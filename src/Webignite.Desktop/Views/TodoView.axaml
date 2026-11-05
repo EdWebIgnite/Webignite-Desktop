@@ -36,6 +36,20 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:TaskRowViewModel">
                     <Border Classes="taskrow" Classes.done="{Binding IsDone}" Classes.justdone="{Binding JustDone}" Classes.leaving="{Binding IsLeaving}">
+                      <Border.ContextMenu>
+                        <ContextMenu>
+                          <MenuItem Header="{Binding DoneText}" Command="{Binding ToggleDoneCommand}" />
+                          <MenuItem Header="Due">
+                            <MenuItem Header="Today" Command="{Binding DueTodayCommand}" />
+                            <MenuItem Header="Tomorrow" Command="{Binding DueTomorrowCommand}" />
+                            <MenuItem Header="Next week" Command="{Binding DueNextWeekCommand}" />
+                            <MenuItem Header="No day" Command="{Binding NoDueCommand}" />
+                          </MenuItem>
+                          <MenuItem Header="Open what it's about" Command="{Binding OpenWhatItsAboutCommand}" IsVisible="{Binding CanOpenWhatItsAbout}" />
+                          <Separator />
+                          <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                        </ContextMenu>
+                      </Border.ContextMenu>
                       <Panel>
                         <Border Classes="edge" IsVisible="{Binding IsOverdue}" Margin="-16,-8,0,-8" />
                         <DockPanel>

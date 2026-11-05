@@ -30,6 +30,7 @@ public sealed class Navigator
     internal Action<StoredDocument>? OpenDocumentAction { get; set; }
     internal Action<Client>? OpenClientAction { get; set; }
     internal Action<Client>? OpenClientInNewTabAction { get; set; }
+    internal Action<Client>? OpenClientInNewWindowAction { get; set; }
     internal Action<MailSummary>? OpenMailInNewTabAction { get; set; }
     internal Action<MailSummary>? OpenMailInNewWindowAction { get; set; }
     internal Action<string, bool>? OpenFolderAction { get; set; }
@@ -120,6 +121,9 @@ public sealed class Navigator
 
     /// <summary>Opens Settings at a section, by its key (e.g. "files").</summary>
     public void Settings(string section) => OpenSettingsAction?.Invoke(section);
+
+    /// <summary>Opens a client in a window of its own.</summary>
+    public void ClientInNewWindow(Client client) => OpenClientInNewWindowAction?.Invoke(client);
 
     /// <summary>Opens a client in a tab of its own (Ctrl+click or a middle click on the client).</summary>
     public void ClientInNewTab(Client client) => OpenClientInNewTabAction?.Invoke(client);

@@ -89,6 +89,22 @@
                     <DataTemplate x:DataType="vm:ClientRow">
                       <Button Classes="row" Classes.open="{Binding IsOpen}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                               Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
+                        <Button.ContextMenu>
+                          <ContextMenu>
+                            <MenuItem Header="Open" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}" />
+                            <MenuItem Header="Open in a new tab" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenInNewTabCommand}" CommandParameter="{Binding}" />
+                            <MenuItem Header="Open in a new window" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenInNewWindowCommand}" CommandParameter="{Binding}" />
+                            <Separator />
+                            <MenuItem Header="Write a mail" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).WriteToCommand}" CommandParameter="{Binding}" IsVisible="{Binding HasEmail}" />
+                            <MenuItem Header="New quote for them" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).NewQuoteForCommand}" CommandParameter="{Binding}" />
+                            <MenuItem Header="New invoice for them" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).NewInvoiceForCommand}" CommandParameter="{Binding}" />
+                            <MenuItem Header="Notes about them" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).NotesForCommand}" CommandParameter="{Binding}" />
+                            <MenuItem Header="Their folder" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).FolderForCommand}" CommandParameter="{Binding}" />
+                            <Separator />
+                            <MenuItem Header="Copy email address" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).CopyEmailCommand}" CommandParameter="{Binding}" IsVisible="{Binding HasEmail}" />
+                            <MenuItem Header="Copy phone number" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).CopyPhoneCommand}" CommandParameter="{Binding}" IsVisible="{Binding HasPhone}" />
+                          </ContextMenu>
+                        </Button.ContextMenu>
                         <Grid ColumnDefinitions="*,Auto,28">
                           <Border Grid.ColumnSpan="3" Classes="edge" IsVisible="{Binding HasOverdue}" Margin="-12,-11,0,-11" />
                           <Grid Grid.Column="0" ColumnDefinitions="Auto,12,*" Margin="8,0">

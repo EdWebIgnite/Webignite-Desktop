@@ -234,6 +234,12 @@ public partial class MainViewModel : ViewModelBase
         };
         go.OpenClientInNewTabAction = client =>
             ((ClientsViewModel)OpenInNewTab(this[Page.Clients]).Page).OpenClient(services.Clients.Get(client.Id) ?? client);
+        go.OpenClientInNewWindowAction = client =>
+        {
+            var host = OpenInNewTab(this[Page.Clients]);
+            ((ClientsViewModel)host.Page).OpenClient(services.Clients.Get(client.Id) ?? client);
+            PopOut(host);
+        };
         go.OpenMailInNewTabAction = summary => ((MailViewModel)OpenInNewTab(mailModule).Page).OpenMessage(summary);
         go.OpenMailInNewWindowAction = summary =>
         {

@@ -34,6 +34,14 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:RetainerRowViewModel">
               <Border Classes="taskrow" Padding="20,12,12,12">
+                <Border.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Change" Command="{Binding EditCommand}" />
+                    <MenuItem Header="{Binding PauseLabel}" Command="{Binding TogglePauseCommand}" />
+                    <Separator />
+                    <MenuItem Header="Stop" Command="{Binding StopCommand}" />
+                  </ContextMenu>
+                </Border.ContextMenu>
                 <Grid ColumnDefinitions="*,Auto,Auto">
                   <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
                     <c:Monogram Text="{Binding Client}" Size="34" VerticalAlignment="Top" Margin="0,2,0,0" Classes.dim="{Binding IsPaused}" />

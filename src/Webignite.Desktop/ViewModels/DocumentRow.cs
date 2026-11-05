@@ -8,6 +8,9 @@ public sealed record DocumentRow(StoredDocument Stored, DateOnly Today)
     public string Number => Stored.Xero.Number ?? "Not in Xero yet";
     public string Customer => string.IsNullOrWhiteSpace(Stored.Document.Customer.Name) ? "No customer yet" : Stored.Document.Customer.Name;
     public string CustomerName => Stored.Document.Customer.Name ?? "";
+    public bool IsQuote => Stored.Document.Kind == DocumentKind.Quote;
+    public bool InXero => Stored.Xero.Id is { Length: > 0 };
+    public bool HasNumber => Stored.Xero.Number is { Length: > 0 };
     public string Date => Stored.Document.Date?.ToString("d MMM yyyy") ?? "";
     public string Total => Money.Rand(Stored.Document.Total ?? 0);
 
