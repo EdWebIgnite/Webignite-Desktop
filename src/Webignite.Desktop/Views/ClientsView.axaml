@@ -6,7 +6,7 @@
              x:DataType="vm:ClientsViewModel"
              x:Name="Root">
   <!-- The client list and the open client side by side. The panes move, resize and hide as on Mail. -->
-  <c:PanelGrid Layout="{Binding Panels.Layout}" Resized="PaneResized">
+  <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">
     <Border c:PanelGrid.Pane="list" c:PanelGrid.DefaultWidth="400" Background="{DynamicResource Canvas}"
             BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
       <ScrollViewer>

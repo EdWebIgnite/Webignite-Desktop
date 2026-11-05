@@ -45,10 +45,12 @@ Small tools (the calculator, QR codes) aren't pages. Add a value to `ToolKind` (
 
 ## Panes the person can drag, move and hide
 
+With `Panels` bound, a hidden pane leaves a slim strip with its name where it was, which brings it back with a click, and the divider between two panes has a right-click menu to hide either or put them back. Make the page's view model `IHasPanes` so Ctrl+Shift+1 to 4 show and hide its panes. Mail, Clients, Notes and Files are built this way.
+
 Mail is the example. The rules (show, hide but never the last one, move, resize, match a saved layout to the panes the page has now) are in `Core.Layout.Panels`, with tests in `PanelsTests.cs`.
 
 1. In the view model: `Panels = new PanelsViewModel(services.Settings, "thing", [("list", "List"), ("detail", "Detail")], spine: "list")`. The first string is the name the layout is saved under; `spine` is a pane that can never be hidden.
-2. In the view: a `<c:PanelGrid Layout="{Binding Panels.Layout}" Resized="PaneResized">` with each pane as a child carrying `c:PanelGrid.Pane="list"` and `c:PanelGrid.DefaultWidth="380"`. The last visible pane takes what is left. The code-behind passes the drag on: `void PaneResized(string pane, double width) => (DataContext as ThingViewModel)?.Panels.Resized(pane, width);`.
+2. In the view: a `<c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">` with each pane as a child carrying `c:PanelGrid.Pane="list"` and `c:PanelGrid.DefaultWidth="380"`. The last visible pane takes what is left. The code-behind passes the drag on: `void PaneResized(string pane, double width) => (DataContext as ThingViewModel)?.Panels.Resized(pane, width);`.
 3. A panes button with a `MenuFlyout`: one `MenuItem` per pane (`DataContext="{Binding Panels[list]}"`) holding a "Show" item with `ToggleType="CheckBox"` bound to `IsShown`, and "Move left" and "Move right" bound to `MoveLeftCommand` and `MoveRightCommand`; then "Put the panes back" bound to `Panels.ResetCommand`. The spine pane has no "Show", as it can't be hidden. Copy the one in `ClientsView.axaml`.
 
 ## A setting

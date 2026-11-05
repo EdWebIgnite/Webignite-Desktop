@@ -12,9 +12,9 @@
       <c:CategoryDot Colour="{Binding Colour}" Size="9" />
     </DataTemplate>
   </UserControl.Resources>
-  <Grid ColumnDefinitions="220,*">
+  <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">
     <!-- Side list: client folders, the usual folders, every drive -->
-    <Border Grid.Column="0" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+    <Border c:PanelGrid.Pane="places" c:PanelGrid.DefaultWidth="220" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
       <ScrollViewer>
         <ItemsControl ItemsSource="{Binding Places}" Margin="10,16">
           <ItemsControl.ItemTemplate>
@@ -44,7 +44,7 @@
       </ScrollViewer>
     </Border>
 
-    <DockPanel Grid.Column="1">
+    <DockPanel c:PanelGrid.Pane="files" c:PanelGrid.DefaultWidth="640">
       <!-- Back, forward, up, the address bar, and how the folder is shown -->
       <Border DockPanel.Dock="Top" Padding="14,12" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
         <DockPanel>
@@ -479,5 +479,5 @@
         </DockPanel>
       </Panel>
     </DockPanel>
-  </Grid>
+  </c:PanelGrid>
 </UserControl>

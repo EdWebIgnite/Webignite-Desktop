@@ -20,6 +20,10 @@
     <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseThisTabCommand}" />
     <KeyBinding Gesture="Ctrl+Tab" Command="{Binding NextTabCommand}" CommandParameter="1" />
     <KeyBinding Gesture="Ctrl+Shift+Tab" Command="{Binding NextTabCommand}" CommandParameter="-1" />
+    <KeyBinding Gesture="Ctrl+Shift+D1" Command="{Binding TogglePaneCommand}" CommandParameter="1" />
+    <KeyBinding Gesture="Ctrl+Shift+D2" Command="{Binding TogglePaneCommand}" CommandParameter="2" />
+    <KeyBinding Gesture="Ctrl+Shift+D3" Command="{Binding TogglePaneCommand}" CommandParameter="3" />
+    <KeyBinding Gesture="Ctrl+Shift+D4" Command="{Binding TogglePaneCommand}" CommandParameter="4" />
     <KeyBinding Gesture="Ctrl+D1" Command="{Binding GoToCommand}" CommandParameter="1" />
     <KeyBinding Gesture="Ctrl+D2" Command="{Binding GoToCommand}" CommandParameter="2" />
     <KeyBinding Gesture="Ctrl+D3" Command="{Binding GoToCommand}" CommandParameter="3" />
