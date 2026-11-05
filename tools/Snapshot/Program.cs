@@ -1380,6 +1380,22 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 
 Open(Page.Overview);
 Save("overview");
+// Not every mail needs a reply: the × waves one off, and Undo brings it back.
+{
+    var overview = (OverviewViewModel)vm[Page.Overview].Main.Page;
+    var waiting = overview.Summary.Where(l => l.CanWaveOff).ToList();
+    if (waiting.Count > 0)
+    {
+        var first = waiting[0];
+        first.NoReplyNeededCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Check("A mail waved off as needing no reply leaves Needs you", overview.Summary.Count(l => l.CanWaveOff) == waiting.Count - 1
+            && overview.Summary.All(l => l.Text != first.Text));
+        services.Settings.NoReplyNeeded = new Dictionary<string, DateTimeOffset>();
+        overview.Refresh();
+        Check("Undoing it brings it back", overview.Summary.Count(l => l.CanWaveOff) == waiting.Count);
+    }
+}
 
 // Tools: each opens in a small window of its own from the sidebar. The calculator, then its answer on an invoice.
 void SaveWindow(Avalonia.Controls.Window shown, string name)

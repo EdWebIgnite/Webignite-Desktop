@@ -66,6 +66,12 @@ public partial class MailViewModel
                 }) { Icon = "Contacts" };
         }
         yield return MailMenuItem.Separator;
+        if (!mail.Answered && mail.From is not null)
+            yield return new("No reply needed", () =>
+            {
+                services.NoReplyNeeded(mail);
+                return Task.CompletedTask;
+            }) { Icon = "Check" };
         yield return new("Make a to-do of it", () =>
         {
             MakeTodo(mail);

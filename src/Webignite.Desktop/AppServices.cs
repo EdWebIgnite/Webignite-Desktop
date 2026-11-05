@@ -98,6 +98,24 @@ public sealed class AppServices : IDisposable
     public Action<string, string, Action?>? ShowNote { get; set; }
 
     /// <summary>After something is removed: a note that puts it back when clicked.</summary>
+    /// <summary>
+    /// Waves a mail off as needing no reply, from Needs you or the mail's right-click: it and older mail from that
+    /// person stop waiting until they write again. Offers Undo. <see cref="RepliesChanged"/> tells Overview.
+    /// </summary>
+    public void NoReplyNeeded(Webignite.Core.Mail.MailSummary mail)
+    {
+        var before = Settings.NoReplyNeeded;
+        Settings.NoReplyNeeded = Webignite.Core.Overview.MorningSummary.NoReply(before, mail, DateOnly.FromDateTime(DateTime.Today));
+        RepliesChanged?.Invoke();
+        OfferUndo($"No reply needed for {mail.From?.Display ?? "that mail"}", () =>
+        {
+            Settings.NoReplyNeeded = Webignite.Core.Overview.MorningSummary.ReplyNeeded(Settings.NoReplyNeeded, mail);
+            RepliesChanged?.Invoke();
+        });
+    }
+
+    public event Action? RepliesChanged;
+
     public void OfferUndo(string what, Action putBack) => ShowNote?.Invoke(what, "Click here to undo.", putBack);
 
     // Backups
