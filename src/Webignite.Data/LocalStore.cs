@@ -142,6 +142,10 @@ public sealed partial class LocalStore : IDisposable
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS site_logins (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
             """);
         try
         {
@@ -244,6 +248,7 @@ public sealed partial class LocalStore : IDisposable
             ("SELECT id, payload FROM retainers LIMIT 1", "retainer:"),
             ("SELECT id, payload FROM renewals LIMIT 1", "renewal:"),
             ("SELECT id, payload FROM mail_accounts LIMIT 1", "mail-account:"),
+            ("SELECT id, payload FROM site_logins LIMIT 1", "sitelogin:"),
         };
         foreach (var (sql, prefix) in samples)
         {

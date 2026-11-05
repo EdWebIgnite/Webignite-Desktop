@@ -12,26 +12,35 @@
       <ScrollViewer>
         <!-- Down and Up move between clients, Enter opens one. Esc closing it is in MainViewModel.GoBack. -->
         <StackPanel Spacing="16" Margin="24,30,24,30" c:ListKeys.IsEnabled="True">
-          <DockPanel>
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
-              <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panes: show, hide and move them">
-                <c:Icon Data="{StaticResource Icon.Panels}" Size="16" />
-                <Button.Flyout>
-                  <MenuFlyout Placement="BottomEdgeAlignedRight">
-                    <MenuItem Header="Client list" DataContext="{Binding Panels[list]}" x:DataType="vm:PaneViewModel">
-                      <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
-                      <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
-                    </MenuItem>
-                    <MenuItem Header="Open client" DataContext="{Binding Panels[detail]}" x:DataType="vm:PaneViewModel">
-                      <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
-                      <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
-                      <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
-                    </MenuItem>
-                    <Separator />
-                    <MenuItem Header="Put the panes back" Command="{Binding Panels.ResetCommand}" />
-                  </MenuFlyout>
-                </Button.Flyout>
-              </Button>
+          <!-- The buttons sit under the title so a narrow list pane never squeezes the title into a column. -->
+          <StackPanel Spacing="8">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panes: show, hide and move them">
+                  <c:Icon Data="{StaticResource Icon.Panels}" Size="16" />
+                  <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                      <MenuItem Header="Client list" DataContext="{Binding Panels[list]}" x:DataType="vm:PaneViewModel">
+                        <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
+                        <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
+                      </MenuItem>
+                      <MenuItem Header="Open client" DataContext="{Binding Panels[detail]}" x:DataType="vm:PaneViewModel">
+                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
+                        <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
+                        <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
+                      </MenuItem>
+                      <Separator />
+                      <MenuItem Header="Put the panes back" Command="{Binding Panels.ResetCommand}" />
+                    </MenuFlyout>
+                  </Button.Flyout>
+                </Button>
+              </StackPanel>
+              <TextBlock Classes="h1" Text="Clients" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Classes="headline" Text="{Binding Headline}" TextWrapping="Wrap" IsVisible="{Binding !IsEmpty}" />
+            <TextBlock Classes="muted" FontSize="12" Text="{Binding XeroMessage}" TextWrapping="Wrap"
+                       IsVisible="{Binding XeroMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <WrapPanel ItemSpacing="6" LineSpacing="6">
               <Button Classes="quiet" Content="Bring in from Xero" Command="{Binding BringInFromXeroCommand}" IsEnabled="{Binding !BringingIn}"
                       ToolTip.Tip="Xero's customers become clients here, and blank details are filled in. Xero isn't changed. This also happens every few hours." />
               <Button Classes="primary" Command="{Binding NewCommand}">
@@ -40,14 +49,8 @@
                   <TextBlock Text="New client" />
                 </StackPanel>
               </Button>
-            </StackPanel>
-            <StackPanel Spacing="4">
-              <TextBlock Classes="h1" Text="Clients" />
-              <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding !IsEmpty}" />
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding XeroMessage}" TextWrapping="Wrap"
-                         IsVisible="{Binding XeroMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            </StackPanel>
-          </DockPanel>
+            </WrapPanel>
+          </StackPanel>
 
           <Border Classes="pending" IsVisible="{Binding HasSuggestions}">
             <StackPanel Spacing="8">

@@ -34,6 +34,7 @@ public partial class ClientDetailViewModel
         OnPropertyChanged(nameof(HasFiles));
         LoadFolder();
         LoadNoteLinks();
+        LoadLogins();
     }
 
     // Notes and files are changed on the client as stored now, so unsaved typing in the details stays typed

@@ -21,6 +21,21 @@ public partial class ClientDetailView : UserControl
         });
     }
 
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (DataContext is ClientDetailViewModel client)
+            client.Copy = async (text, secret) =>
+            {
+                if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+                    return;
+                if (secret)
+                    await SecretClipboard.CopyAsync(clipboard, text);
+                else
+                    await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, text);
+            };
+    }
+
     private void LinkFiles(object? sender, RoutedEventArgs e) => LinkFilesAsync(sender, e).Forget("Linking files", tell: true);
 
     private async Task LinkFilesAsync(object? sender, RoutedEventArgs e)

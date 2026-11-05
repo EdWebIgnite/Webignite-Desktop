@@ -114,6 +114,113 @@
           </StackPanel>
         </Border>
 
+        <!-- Site logins: where to sign in for the sites looked after for them. Encrypted, never shown to assistants. -->
+        <Border Classes="card" IsVisible="{Binding IsSaved}">
+          <StackPanel Spacing="10">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="quiet" Content="Add a login" Command="{Binding AddLoginCommand}" IsVisible="{Binding !EditingLogin}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Key}" />
+                <TextBlock Classes="h2" Text="Site logins" VerticalAlignment="Center" />
+              </StackPanel>
+            </DockPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoLogins}"
+                       Text="WordPress, hosting, domain and any other logins for their sites. Kept encrypted on this PC and never shown to Claude or ChatGPT." />
+
+            <ItemsControl ItemsSource="{Binding Logins}" IsVisible="{Binding HasLogins}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SiteLoginRow">
+                  <Border Classes="taskrow" Padding="0,6">
+                    <Border.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Open the site" Command="{Binding OpenSiteCommand}" IsEnabled="{Binding HasAddress}" />
+                        <Separator />
+                        <MenuItem Header="Copy username" Command="{Binding CopyUserNameCommand}" IsEnabled="{Binding HasUserName}" />
+                        <MenuItem Header="Copy password" Command="{Binding CopyPasswordCommand}" IsEnabled="{Binding HasPassword}" />
+                        <MenuItem Header="Copy login address" Command="{Binding CopyAddressCommand}" IsEnabled="{Binding HasAddress}" />
+                        <MenuItem Header="{Binding ShowText, StringFormat='{}{0} password'}" Command="{Binding RevealCommand}" IsEnabled="{Binding HasPassword}" />
+                        <Separator />
+                        <MenuItem Header="Change" Command="{Binding EditCommand}" />
+                        <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                      </ContextMenu>
+                    </Border.ContextMenu>
+                    <StackPanel Spacing="2">
+                      <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+                          <Button Classes="link" Content="Change" Padding="6,2" Command="{Binding EditCommand}" />
+                          <Button Classes="link" Padding="6,2" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this login. Undo brings it back.">
+                            <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                          </Button>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Site}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
+                      </DockPanel>
+                      <Button Classes="link" Content="{Binding AddressText}" Command="{Binding OpenSiteCommand}" IsVisible="{Binding HasAddress}"
+                              Padding="0,1" HorizontalAlignment="Left" ToolTip.Tip="Open it in your browser" />
+                      <DockPanel IsVisible="{Binding HasUserName}">
+                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="Username" Width="64" VerticalAlignment="Center" />
+                        <Button DockPanel.Dock="Right" Classes="link" Content="Copy" Padding="6,1" Command="{Binding CopyUserNameCommand}" />
+                        <SelectableTextBlock Text="{Binding UserName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                      </DockPanel>
+                      <DockPanel IsVisible="{Binding HasPassword}">
+                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="Password" Width="64" VerticalAlignment="Center" />
+                        <Button DockPanel.Dock="Right" Classes="link" Content="Copy" Padding="6,1" Command="{Binding CopyPasswordCommand}"
+                                ToolTip.Tip="Cleared from the clipboard after 30 seconds, and kept out of Windows clipboard history" />
+                        <Button DockPanel.Dock="Right" Classes="link" Content="{Binding ShowText}" Padding="6,1" Command="{Binding RevealCommand}" />
+                        <SelectableTextBlock Text="{Binding PasswordText}" FontFamily="Consolas, Menlo, monospace" VerticalAlignment="Center" TextWrapping="Wrap" />
+                      </DockPanel>
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Notes}" TextWrapping="Wrap" IsVisible="{Binding HasNotes}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Classes="pending" IsVisible="{Binding EditingLogin}">
+              <StackPanel Spacing="10">
+                <TextBlock FontWeight="SemiBold" Text="{Binding LoginFormTitle}" />
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Site name" />
+                  <TextBox Text="{Binding LoginSite}" PlaceholderText="e.g. WordPress admin" />
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Login address" />
+                  <TextBox Text="{Binding LoginAddress}" PlaceholderText="e.g. karoocoffee.co.za/wp-admin" />
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Username or email" />
+                  <TextBox Text="{Binding LoginUser}" PlaceholderText="Optional" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="label" Text="Password" />
+                  <TextBox Text="{Binding LoginPassword}" PasswordChar="•" RevealPassword="{Binding ShowLoginPassword}" PlaceholderText="Optional" />
+                  <StackPanel Orientation="Horizontal" Spacing="12">
+                    <CheckBox Content="Show it" IsChecked="{Binding ShowLoginPassword}" />
+                    <Button Classes="link" Content="Make a strong one" Command="{Binding MakeLoginPasswordCommand}" Padding="0,2" />
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Notes" />
+                  <TextBox Text="{Binding LoginNotes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48"
+                           PlaceholderText="e.g. 2FA code goes to Pieter's phone" />
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding LoginProblems}" IsVisible="{Binding HasLoginProblems}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <TextBlock Classes="muted problem" Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="primary" Content="Save login" Command="{Binding SaveLoginCommand}" />
+                  <Button Classes="link" Content="Cancel" Command="{Binding CancelLoginCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <TextBlock Classes="muted" FontSize="12" Text="{Binding LoginsMessage}" TextWrapping="Wrap"
+                       IsVisible="{Binding LoginsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+        </Border>
+
         <!-- Their folder on the PC, opened in Files -->
         <Border Classes="card" IsVisible="{Binding IsSaved}">
           <StackPanel Spacing="10">

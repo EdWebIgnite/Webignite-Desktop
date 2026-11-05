@@ -50,9 +50,47 @@ public sealed class ClientService(LocalStore store, TimeProvider? clock = null)
     /// <summary>Changes a client as stored now (notes, files, projects, onboarding). Null when it was deleted.</summary>
     public Client? Change(string id, Func<Client, Client> change) => store.UpdateClient(id, change);
 
-    /// <summary>Removes the client page. Its quotes, invoices and to-dos stay as they are.</summary>
-    public void Delete(string id) => store.DeleteClient(id);
+    /// <summary>
+    /// Removes the client page and its site logins. Its quotes, invoices and to-dos stay as they are. Returns the
+    /// logins that went, so Undo can put them back with the client.
+    /// </summary>
+    public IReadOnlyList<SiteLogin> Delete(string id) => store.DeleteClientWithLogins(id);
 
-    /// <summary>Puts a deleted client back, for Undo.</summary>
-    public Client Restore(Client client) => store.SaveClient(client);
+    /// <summary>Puts a deleted client back with its site logins, for Undo.</summary>
+    public Client Restore(Client client, IEnumerable<SiteLogin>? logins = null)
+    {
+        foreach (var login in logins ?? [])
+            store.SaveSiteLogin(login with { ClientId = client.Id });
+        return store.SaveClient(client);
+    }
+
+    /// <summary>A client's site logins, A to Z.</summary>
+    public IReadOnlyList<SiteLogin> Logins(string clientId) => SiteLogins.Ordered(store.ListSiteLogins(clientId));
+
+    /// <summary>
+    /// Saves a login as typed, new or changed. Returns the problems instead when it can't be saved, and nothing
+    /// is changed. A login whose client has gone meanwhile isn't saved.
+    /// </summary>
+    public (SiteLogin? Saved, IReadOnlyList<string> Problems) SaveLogin(SiteLogin typed)
+    {
+        var login = SiteLogins.Tidy(typed);
+        var problems = SiteLogins.Check(login);
+        if (problems.Count > 0)
+            return (null, problems);
+        if (store.GetClient(login.ClientId) is null)
+            return (null, ["This client was deleted, so the login can't be kept."]);
+        return (store.SaveSiteLogin(login with { Changed = clock.GetUtcNow() }), []);
+    }
+
+    /// <summary>Removes a login. Returns it, for Undo, or null when it was already gone.</summary>
+    public SiteLogin? DeleteLogin(string id)
+    {
+        var gone = store.GetSiteLogin(id);
+        if (gone is not null)
+            store.DeleteSiteLogin(id);
+        return gone;
+    }
+
+    /// <summary>Puts a deleted login back, for Undo, unless its client has gone too.</summary>
+    public SiteLogin? RestoreLogin(SiteLogin login) => store.GetClient(login.ClientId) is null ? null : store.SaveSiteLogin(login);
 }
