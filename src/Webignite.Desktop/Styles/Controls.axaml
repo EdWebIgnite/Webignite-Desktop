@@ -834,6 +834,13 @@
   <Style Selector="ListBox.nav ListBoxItem:selected c|Icon.navicon">
     <Setter Property="Opacity" Value="1" />
   </Style>
+  <!-- A project in the sidebar's Projects group: a small dot where a page has its icon. -->
+  <Style Selector="Ellipse.projectdot">
+    <Setter Property="Fill" Value="{DynamicResource NavMuted}" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem:selected Ellipse.projectdot">
+    <Setter Property="Fill" Value="{DynamicResource NavText}" />
+  </Style>
   <Style Selector="ListBox.nav ListBoxItem:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NavHover}" />
     <Setter Property="Foreground" Value="{DynamicResource NavText}" />

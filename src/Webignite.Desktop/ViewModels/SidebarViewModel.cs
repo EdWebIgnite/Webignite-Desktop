@@ -16,6 +16,8 @@ public sealed partial class SidebarViewModel : ObservableObject
     private readonly Dictionary<string, object> byKey;
     private readonly string[] defaults;
     private SidebarLayout layout;
+    private IReadOnlyList<ProjectLink> aboveProjects = [];
+    private IReadOnlyList<ProjectLink> belowProjects = [];
 
     /// <param name="all">Every entry in the app's own order: pages and the group headings between them.</param>
     public SidebarViewModel(AppSettings settings, IReadOnlyList<object> all)
@@ -77,6 +79,17 @@ public sealed partial class SidebarViewModel : ObservableObject
     /// <summary>Every page in the order the sidebar has them, folded or not. Ctrl+1 to Ctrl+9 count down this.</summary>
     public List<Module> Pages { get; }
 
+    /// <summary>
+    /// The entries that go with the Projects page: My tasks above it, then each running project and the
+    /// templates below it. They move with the page and fold with its group.
+    /// </summary>
+    public void ShowProjectLinks(IReadOnlyList<ProjectLink> above, IReadOnlyList<ProjectLink> below)
+    {
+        aboveProjects = above;
+        belowProjects = below;
+        Apply();
+    }
+
     [RelayCommand]
     public void Toggle() => Change(Sidebar.Toggle(layout));
 
@@ -122,7 +135,13 @@ public sealed partial class SidebarViewModel : ObservableObject
                 Pages.Add(module);
                 icons.Add(module);
                 if (group is null || !group.CanFold || group.IsOpen)
+                {
+                    if (module.Key == Page.Projects)
+                        wanted.AddRange(aboveProjects);
                     wanted.Add(module);
+                    if (module.Key == Page.Projects)
+                        wanted.AddRange(belowProjects);
+                }
             }
             else if (item is ToolLink tool)
             {

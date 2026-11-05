@@ -64,7 +64,7 @@
           <c:Spinner Size="12" Foreground="{DynamicResource NavText}" HorizontalAlignment="Center" IsVisible="{Binding Work.IsWorking}"
                      ToolTip.Tip="{Binding Work.Text}" />
         </StackPanel>
-        <ListBox Classes="nav icons" ItemsSource="{Binding Sidebar.IconPages}" SelectedItem="{Binding SelectedNav}"
+        <ListBox Classes="nav icons" ItemsSource="{Binding Sidebar.IconPages}" SelectedItem="{Binding SelectedIcon}"
                  ScrollViewer.VerticalScrollBarVisibility="Hidden">
           <ListBox.DataTemplates>
             <DataTemplate DataType="vm:ToolLink">
@@ -163,6 +163,29 @@
                 <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
                         Margin="0,0,12,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+              </DockPanel>
+            </DataTemplate>
+            <DataTemplate DataType="vm:ProjectLink">
+              <DockPanel Background="Transparent">
+                <!-- The Projects page's minimised panes, under the entry on screen: click one to bring it back. -->
+                <ItemsControl DockPanel.Dock="Bottom" Margin="30,4,0,0" ItemsSource="{Binding $parent[Window].((vm:MainViewModel)DataContext).HiddenPanes}"
+                              IsVisible="{Binding $parent[ListBoxItem].IsSelected}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PaneViewModel">
+                      <Button Classes="panechip" Command="{Binding RestoreCommand}" ToolTip.Tip="{Binding Title, StringFormat='Show {0} again'}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <c:Icon Data="{StaticResource Icon.SidebarShow}" Size="12" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
+                        Margin="0,0,12,0" VerticalAlignment="Center" IsVisible="{Binding HasIcon}" />
+                <!-- A project is a small dot, set in a little under the pages, as in Asana's list of projects. -->
+                <Ellipse Classes="projectdot" Width="7" Height="7" Margin="16,0,13,0" VerticalAlignment="Center" IsVisible="{Binding IsProject}" />
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
               </DockPanel>
             </DataTemplate>
             <DataTemplate DataType="vm:Module">
