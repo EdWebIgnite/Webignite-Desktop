@@ -319,6 +319,9 @@ public sealed partial class ContactRow(Person person, Client? client) : Observab
     public string About => string.Join(" · ", new[] { Person.Role, Client?.Name ?? Person.Company }.Where(t => !string.IsNullOrWhiteSpace(t)));
     public string Reach => string.Join(" · ", new[] { Person.Email, Person.Phone }.Where(t => !string.IsNullOrWhiteSpace(t)));
     public bool HasAbout => About.Length > 0;
+
+    /// <summary>The one line under the name in the list: who they are, or else how to reach them.</summary>
+    public string Line => HasAbout ? About : Reach;
     public bool HasEmail => Person.Email is not null;
 
     [ObservableProperty] public partial bool IsOpen { get; set; }
