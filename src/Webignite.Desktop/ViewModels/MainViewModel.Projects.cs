@@ -26,7 +26,7 @@ public partial class MainViewModel
         }
         foreach (var gone in projectLinks.Keys.Except(running.Select(p => p.Id)).ToList())
             projectLinks.Remove(gone);
-        Sidebar.ShowProjectLinks([myTasksLink], [.. links, templatesLink]);
+        Sidebar.ShowLinks(Page.Projects, [myTasksLink], [.. links, templatesLink]);
         OnPropertyChanged(nameof(SelectedNav));
     }
 

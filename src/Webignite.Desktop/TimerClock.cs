@@ -47,6 +47,21 @@ public sealed partial class TimerClock : ObservableObject
         Running = null;
     }
 
+    /// <summary>
+    /// Stops the timer and keeps the time as an entry, with the note given when it started or, failing that, this
+    /// one. Null when nothing ran or it ran under half a minute, so nothing was kept.
+    /// </summary>
+    public TimeEntry? StopAndKeep(string note)
+    {
+        if (Running is not { } running)
+            return null;
+        var entry = TimeRules.Stop(running with { Note = running.Note.Length > 0 ? running.Note : note }, DateTimeOffset.Now);
+        Stop();
+        if (entry is not null)
+            services.Store.SaveTime(entry);
+        return entry;
+    }
+
     partial void OnRunningChanged(RunningTimer? value)
     {
         if (value is null)

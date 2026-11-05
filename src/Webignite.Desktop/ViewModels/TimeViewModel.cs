@@ -147,16 +147,14 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable, IDisposable
     [RelayCommand]
     private void Stop()
     {
-        if (Running is not { } running)
+        if (Running is null)
             return;
-        var entry = TimeRules.Stop(running with { Note = running.Note.Length > 0 ? running.Note : Note.Trim() }, DateTimeOffset.Now);
-        services.Timer.Stop();
+        var entry = services.Timer.StopAndKeep(Note.Trim());
         if (entry is null)
         {
             Say("Stopped within half a minute, so nothing was kept.");
             return;
         }
-        services.Store.SaveTime(entry);
         Note = "";
         Say($"Kept {TimeRules.Format(entry.Minutes)} for {Describe(entry.ClientId, entry.ProjectId)}.");
         Refresh();

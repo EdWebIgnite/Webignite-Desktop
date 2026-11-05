@@ -165,7 +165,7 @@
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>
-            <DataTemplate DataType="vm:ProjectLink">
+            <DataTemplate DataType="vm:SubLink">
               <DockPanel Background="Transparent">
                 <!-- The Projects page's minimised panes, under the entry on screen: click one to bring it back. -->
                 <ItemsControl DockPanel.Dock="Bottom" Margin="30,4,0,0" ItemsSource="{Binding $parent[Window].((vm:MainViewModel)DataContext).HiddenPanes}"
@@ -184,7 +184,7 @@
                 <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
                         Margin="0,0,12,0" VerticalAlignment="Center" IsVisible="{Binding HasIcon}" />
                 <!-- A project is a small dot, set in a little under the pages, as in Asana's list of projects. -->
-                <Ellipse Classes="projectdot" Width="7" Height="7" Margin="16,0,13,0" VerticalAlignment="Center" IsVisible="{Binding IsProject}" />
+                <Ellipse Classes="projectdot" Width="7" Height="7" Margin="16,0,13,0" VerticalAlignment="Center" IsVisible="{Binding IsDot}" />
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
               </DockPanel>
             </DataTemplate>

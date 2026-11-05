@@ -57,6 +57,13 @@ Mail is the example. The rules (show, hide but never the last one, move, resize,
 
 To keep a page calm, put its extra blocks in one card as folding rows rather than a stack of cards (the client page is the example). In the view: `<c:FoldList Sections="{Binding Sections}">` with a `<c:FoldSection Key="mail" Title="Mail" Icon="{StaticResource Icon.Mail}" Summary="{Binding MailSummary}">` per block. In the view model: `Sections = new SectionsViewModel(services.Settings, "page-name", keys, openAtFirst)` and a short summary string for each row, raised when what it sums up changes. Order and what's open are saved per page.
 
+## A widget for My pages
+
+1. Add the kind to `WidgetKind` in `Core/Layout/MyPages.cs`, with its `Label`, `StartSize` and, if it needs more room to be useful, `LeastSize`. If it shows one project or client, add it to `NeedsTarget`; the Add widget menu then asks which. Test the sizes in `MyPagesTests`.
+2. Write its body in `ViewModels/Widgets.cs`: a `WidgetBody` that reads what it needs when built and in `Refresh`, keeps anything typed in `Keep`, and lets go of what it follows in `Dispose`. Map the kind to it in `WidgetBody.For`.
+3. Give the body a `DataTemplate` in `MyPagesView.axaml`. Keep it to what fits a small card; the full page stays a click away.
+4. Add it to the My pages part of the screenshot tool.
+
 ## A setting
 
 Settings are records saved as JSON under a name. Add a property to an existing settings record (`DocumentSettings`, `TaskSettings` and `BackupSettings` are in Core; `AppearanceSettings`, which is only about the app, is in `Desktop/Motion.cs`) or make a new record, then expose it on `AppSettings` (reached as `services.Settings`):
