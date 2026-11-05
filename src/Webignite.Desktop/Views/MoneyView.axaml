@@ -47,6 +47,26 @@
     <Border Classes="card">
       <StackPanel Spacing="14">
         <DockPanel>
+          <!-- Where the figures come from: set once, so out of the way -->
+          <Button DockPanel.Dock="Right" Classes="quiet" Margin="8,0,0,0" VerticalAlignment="Top" ToolTip.Tip="Where expected and came-in figures come from">
+            <TextBlock Text="···" />
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="Expected amounts">
+                  <MenuItem Header="Work them out" ToggleType="Radio" IsChecked="{Binding IsAuto, Mode=OneWay}" Command="{Binding UseAutoCommand}"
+                            ToolTip.Tip="Invoices due each month, plus retainers and charged renewals still to be invoiced." />
+                  <MenuItem Header="Type them in" ToggleType="Radio" IsChecked="{Binding IsManual, Mode=OneWay}" Command="{Binding UseManualCommand}"
+                            ToolTip.Tip="Type what you expect each month in the table below." />
+                </MenuItem>
+                <MenuItem Header="Came in from">
+                  <MenuItem Header="Money received" ToggleType="Radio" IsChecked="{Binding FromMoney, Mode=OneWay}" Command="{Binding CameInFromMoneyCommand}"
+                            ToolTip.Tip="What you add under Money received on this page." />
+                  <MenuItem Header="Xero payments" ToggleType="Radio" IsChecked="{Binding FromXero, Mode=OneWay}" Command="{Binding CameInFromXeroCommand}"
+                            ToolTip.Tip="Invoices Xero says were paid, on the day they were paid." />
+                </MenuItem>
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
           <Border DockPanel.Dock="Right" Classes="segments" VerticalAlignment="Top">
             <StackPanel Orientation="Horizontal">
               <Button Classes="segment" Classes.on="{Binding ChartBars}" Content="Bars"
@@ -72,30 +92,6 @@
             <Border Width="12" Height="12" CornerRadius="3" Background="{DynamicResource Primary}" Margin="10,0,0,0" />
             <TextBlock Classes="muted" FontSize="12" Text="Came in" />
           </StackPanel>
-          <WrapPanel HorizontalAlignment="Right">
-          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,20,8">
-            <TextBlock Classes="muted" FontSize="12" Text="Expected amounts" VerticalAlignment="Center" />
-            <Border Classes="segments">
-              <StackPanel Orientation="Horizontal">
-                <Button Classes="segment" Classes.on="{Binding IsAuto}" Content="Work it out" Command="{Binding UseAutoCommand}"
-                        ToolTip.Tip="Invoices due each month, plus retainers and charged renewals still to be invoiced." />
-                <Button Classes="segment" Classes.on="{Binding IsManual}" Content="Type it in" Command="{Binding UseManualCommand}"
-                        ToolTip.Tip="Type what you expect each month in the table below." />
-              </StackPanel>
-            </Border>
-          </StackPanel>
-          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-            <TextBlock Classes="muted" FontSize="12" Text="Came in from" VerticalAlignment="Center" />
-            <Border Classes="segments">
-              <StackPanel Orientation="Horizontal">
-                <Button Classes="segment" Classes.on="{Binding FromMoney}" Content="Money received" Command="{Binding CameInFromMoneyCommand}"
-                        ToolTip.Tip="What you add under Money received on this page." />
-                <Button Classes="segment" Classes.on="{Binding FromXero}" Content="Xero payments" Command="{Binding CameInFromXeroCommand}"
-                        ToolTip.Tip="Invoices Xero says were paid, on the day they were paid." />
-              </StackPanel>
-            </Border>
-          </StackPanel>
-          </WrapPanel>
         </DockPanel>
       </StackPanel>
     </Border>
