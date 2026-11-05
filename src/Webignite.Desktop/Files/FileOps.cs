@@ -160,19 +160,34 @@ public static class FileOps
         return moved;
     }
 
+    // EXDEV: what Linux and macOS say when a folder can't simply be renamed onto another disk.
+    private const int CrossDevice = 18;
+
+    private static void CopyAcross(string from, string to)
+    {
+        CopyFolder(from, to);
+        Directory.Delete(from, recursive: true);
+    }
+
     /// <summary>Moves one file or folder to exactly this path, across drives too.</summary>
     public static void MoveOne(string from, string to)
     {
         if (Directory.Exists(from))
         {
-            if (string.Equals(Path.GetPathRoot(from), Path.GetPathRoot(to), StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(Path.GetPathRoot(from), Path.GetPathRoot(to), StringComparison.OrdinalIgnoreCase))
+            {
+                CopyAcross(from, to);
+                return;
+            }
+            try
             {
                 Directory.Move(from, to);
             }
-            else
+            catch (IOException e) when (e.HResult == CrossDevice && !OperatingSystem.IsWindows())
             {
-                CopyFolder(from, to);
-                Directory.Delete(from, recursive: true);
+                // Outside Windows every path starts at /, so another disk only shows here, e.g. /tmp on its own
+                // disk and the Trash in the home folder.
+                CopyAcross(from, to);
             }
         }
         else
