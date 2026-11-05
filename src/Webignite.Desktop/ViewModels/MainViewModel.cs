@@ -31,6 +31,13 @@ public partial class MainViewModel : ViewModelBase
             page.Refresh();
     }
 
+    /// <summary>Tells the open to-do, calendar, planner and overview pages that something was added from elsewhere.</summary>
+    public void RefreshPlanning()
+    {
+        foreach (var page in Built<IRefreshable>(Page.Todo, Page.Calendar, Page.Planner, Page.Overview))
+            page.Refresh();
+    }
+
     /// <summary>Brings Xero's customers in as clients and tells the Clients pages that are open.</summary>
     private async Task CheckXeroClientsAsync()
     {
@@ -164,6 +171,7 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Calculator, "Calculator", "Calculator"),
             new ToolLink(ToolKind.Passwords, "Password generator", "Key"),
             new ToolLink(ToolKind.Colours, "Colours", "Palette"),
+            new ToolLink(ToolKind.Clipboard, "Clipboard history", "Clipboard"),
             new NavGroup("web-tools", "WEB TOOLS"),
             new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
@@ -412,6 +420,18 @@ public partial class MainViewModel : ViewModelBase
                 break;
             case Webignite.Core.Search.HitKind.Todo:
                 services.Go.To(Page.Todo);
+                break;
+            case Webignite.Core.Search.HitKind.Note:
+                services.Go.Note(hit.Note!.Id);
+                break;
+            case Webignite.Core.Search.HitKind.Login:
+                services.Go.Client(hit.LoginClient!); // the login is on their page, with its copy buttons
+                break;
+            case Webignite.Core.Search.HitKind.File when Directory.Exists(hit.FilePath):
+                services.Go.Folder(hit.FilePath!);
+                break;
+            case Webignite.Core.Search.HitKind.File:
+                services.Go.ShowFile(hit.FilePath!);
                 break;
             default:
                 services.Go.To(Page.Renewals);

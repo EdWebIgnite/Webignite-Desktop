@@ -3,12 +3,13 @@ using System.Text;
 using Webignite.Core.Clients;
 using Webignite.Core.Documents;
 using Webignite.Core.Mail;
+using Webignite.Core.Notes;
 using Webignite.Core.Renewals;
 using Webignite.Core.Tasks;
 
 namespace Webignite.Core.Search;
 
-public enum HitKind { Client, Quote, Invoice, Mail, Todo, Renewal }
+public enum HitKind { Client, Quote, Invoice, Mail, Todo, Note, Login, File, Renewal }
 
 /// <summary>One search result. Exactly one of the references is set, matching the kind.</summary>
 public sealed record SearchHit(HitKind Kind, string Title, string Detail, int Score)
@@ -18,6 +19,15 @@ public sealed record SearchHit(HitKind Kind, string Title, string Detail, int Sc
     public MailSummary? Mail { get; init; }
     public TaskItem? Task { get; init; }
     public Renewal? Renewal { get; init; }
+    public Note? Note { get; init; }
+
+    /// <summary>A site login, found by its site name, address, username or notes. Never by its password.</summary>
+    public SiteLogin? Login { get; init; }
+
+    /// <summary>The client a site login belongs to.</summary>
+    public Client? LoginClient { get; init; }
+
+    public string? FilePath { get; init; }
 
     public string KindLabel => Kind switch
     {
@@ -26,6 +36,9 @@ public sealed record SearchHit(HitKind Kind, string Title, string Detail, int Sc
         HitKind.Invoice => "Invoice",
         HitKind.Mail => "Mail",
         HitKind.Todo => "To-do",
+        HitKind.Note => "Note",
+        HitKind.Login => "Site login",
+        HitKind.File => "File",
         _ => "Renewal",
     };
 }
@@ -38,10 +51,18 @@ public sealed record SearchSources
     public IReadOnlyList<MailSummary> Mail { get; init; } = [];
     public IReadOnlyList<TaskItem> Tasks { get; init; } = [];
     public IReadOnlyList<Renewal> Renewals { get; init; } = [];
+
+    /// <summary>Notes, Deleted ones left out by the search.</summary>
+    public IReadOnlyList<Note> Notes { get; init; } = [];
+
+    public IReadOnlyList<SiteLogin> Logins { get; init; } = [];
+
+    /// <summary>Paths of files and folders to match by name: recent files and what's in the client folders.</summary>
+    public IReadOnlyList<string> Files { get; init; } = [];
 }
 
 /// <summary>
-/// Search across clients, quotes, invoices, mail, to-dos and renewals. Every word typed must appear somewhere;
+/// Search across clients, quotes, invoices, mail, to-dos, notes, site logins, files and renewals. Every word typed must appear somewhere;
 /// a match at the start of the title ranks highest. Accents and case don't matter.
 /// </summary>
 public static class QuickSearch
@@ -79,6 +100,20 @@ public static class QuickSearch
             Join(t.Customer, t.Due?.ToString("d MMM yyyy", CultureInfo.InvariantCulture)), 0) { Task = t }),
             h => h.Task!.Notes ?? "");
 
+        Add(hits, words, sources.Notes.Where(n => n.Deleted is null).OrderByDescending(n => n.Changed).Select(n => new SearchHit(HitKind.Note,
+            NoteRules.Name(n), Join(ClientName(sources.Clients, n.ClientId), n.Folder), 0) { Note = n }),
+            h => h.Note!.Text);
+
+        // The password is never looked at or shown: only what the login is for and who signs in.
+        Add(hits, words, sources.Logins.Select(l => (Login: l, Client: sources.Clients.FirstOrDefault(c => c.Id == l.ClientId)))
+            .Where(x => x.Client is not null)
+            .Select(x => new SearchHit(HitKind.Login, x.Login.Site, Join(x.Client!.Name, SiteLogins.Shown(x.Login.Address), x.Login.UserName), 0)
+            { Login = x.Login, LoginClient = x.Client }),
+            h => h.Login!.Notes ?? "");
+
+        Add(hits, words, sources.Files.Distinct(StringComparer.OrdinalIgnoreCase).Select(p => new SearchHit(HitKind.File, FileName(p), Folder(p), 0) { FilePath = p }),
+            _ => "");
+
         Add(hits, words, sources.Renewals.Select(r => new SearchHit(HitKind.Renewal, r.Name,
             Join(RenewalRules.KindLabel(r.Kind), r.ClientName, "renews " + r.RenewsOn.ToString("d MMM yyyy", CultureInfo.InvariantCulture)), 0) { Renewal = r }),
             h => h.Renewal!.Provider ?? "");
@@ -115,6 +150,19 @@ public static class QuickSearch
                 found.Add(hit with { Score = score });
         }
         hits.AddRange(found.OrderByDescending(h => h.Score).Take(PerKind));
+    }
+
+    private static string? ClientName(IReadOnlyList<Client> clients, string? id) =>
+        id is null ? null : clients.FirstOrDefault(c => c.Id == id)?.Name;
+
+    // Split on both slashes so a Windows path reads right wherever it's shown.
+    private static string FileName(string path) => path.TrimEnd('\\', '/')[(path.TrimEnd('\\', '/').LastIndexOfAny(['\\', '/']) + 1)..];
+
+    private static string Folder(string path)
+    {
+        var trimmed = path.TrimEnd('\\', '/');
+        var cut = trimmed.LastIndexOfAny(['\\', '/']);
+        return cut > 0 ? trimmed[..cut] : "";
     }
 
     private static string[] Words(string query) =>

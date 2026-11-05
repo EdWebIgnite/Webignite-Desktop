@@ -420,6 +420,16 @@
           </StackPanel>
         </StackPanel>
         <StackPanel>
+          <TextBlock Classes="label" Text="Colour picker shortcut" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox Width="220" Text="{Binding ColourShortcut, Mode=OneWay}" IsReadOnly="True"
+                     PlaceholderText="Click, then press the keys" KeyDown="ColourShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+C" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ColourShortcutOffCommand}" />
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+                     Text="Freezes the screen; click any colour and its code is copied, e.g. #E8590C. Esc stops." />
+        </StackPanel>
+        <StackPanel>
           <TextBlock Classes="label" Text="Screenshots without a client go to" />
           <DockPanel>
             <Button DockPanel.Dock="Right" Classes="quiet" Content="Choose folder" Click="ChooseScreenshotFolder" Margin="8,0,0,0" />

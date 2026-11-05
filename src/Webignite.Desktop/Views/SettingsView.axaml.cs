@@ -66,6 +66,12 @@ public partial class SettingsView : UserControl
             settings.SetRecordShortcut(keys);
     }
 
+    private void ColourShortcutKeys(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
+            settings.SetColourShortcut(keys);
+    }
+
     private void QuickNoteShortcutKeys(object? sender, KeyEventArgs e)
     {
         if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)

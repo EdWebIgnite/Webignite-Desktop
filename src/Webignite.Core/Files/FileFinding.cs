@@ -25,6 +25,21 @@ public static partial class FileSearch
         ".txt", ".md", ".csv", ".log", ".html", ".htm", ".css", ".js", ".json", ".xml", ".php", ".ini", ".eml", ".svg", ".rtf",
     };
 
+    /// <summary>At most this many names are read for Ctrl+K, so a huge folder can't hold the search up.</summary>
+    public const int MostIndexed = 20000;
+
+    /// <summary>How deep below the client folder Ctrl+K looks for file names.</summary>
+    public const int IndexDepth = 6;
+
+    // Folders full of code or caches that nobody looks for a file in by hand, and that hold tens of thousands.
+    private static readonly HashSet<string> NotIndexed = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "node_modules", "vendor", "bower_components", "bin", "obj", "dist", "build", "__pycache__", "cache", "wp-includes", "wp-admin",
+    };
+
+    /// <summary>Whether Ctrl+K skips a folder: hidden ones (a leading dot) and code and cache folders.</summary>
+    public static bool SkipWhenIndexing(string folderName) => folderName.StartsWith('.') || NotIndexed.Contains(folderName);
+
     public static IReadOnlyList<string> Words(string? query) =>
         (query ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 

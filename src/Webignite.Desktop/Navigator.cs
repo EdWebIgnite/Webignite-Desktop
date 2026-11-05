@@ -45,6 +45,7 @@ public sealed class Navigator
     internal Action<string, string>? ClientNotesAction { get; set; }
     internal Action? QuickNoteAction { get; set; }
     internal Action<ViewModels.ToolKind>? OpenToolAction { get; set; }
+    internal Action<Action<string>?>? PickColourAction { get; set; }
     internal Func<decimal, string, string?>? AddToInvoiceAction { get; set; }
 
     /// <summary>Shows a page.</summary>
@@ -87,6 +88,12 @@ public sealed class Navigator
     /// window steps aside first (<paramref name="hideApp"/>); from the shortcut it is left as it is.
     /// </summary>
     public void Screenshot(bool hideApp = true) => ScreenshotAction?.Invoke(hideApp);
+
+    /// <summary>
+    /// Freezes the screen for the eyedropper; the colour clicked is copied as its code, e.g. #E8590C, and handed
+    /// to <paramref name="picked"/> (the Colours tool), or offered in a note to open in Colours.
+    /// </summary>
+    public void PickColour(Action<string>? picked = null) => PickColourAction?.Invoke(picked);
 
     /// <summary>Starts recording part of the screen, or stops the recording under way and opens it in Mark-up.</summary>
     public void Record(bool hideApp = true) => RecordAction?.Invoke(hideApp);

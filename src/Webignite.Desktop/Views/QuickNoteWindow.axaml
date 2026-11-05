@@ -2,12 +2,35 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:notes="using:Webignite.Core.Notes"
         x:Class="Webignite.Desktop.Views.QuickNoteWindow"
-        Title="Quick note" Width="440" SizeToContent="Height" CanResize="False" Topmost="True"
+        Title="Quick note" Width="460" SizeToContent="Height" CanResize="False" Topmost="True"
         WindowStartupLocation="CenterScreen" Background="{DynamicResource Surface}">
   <StackPanel Margin="18,16" Spacing="10">
-    <TextBlock Classes="h2" Text="Quick note" />
-    <TextBox x:Name="Words" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxHeight="320"
-             PlaceholderText="Type it down. With more than one line, the first is the title. Start a line with [ ] for a checklist." />
+    <DockPanel>
+      <Border DockPanel.Dock="Right" Classes="segments" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal">
+          <Button x:Name="AsNote" Classes="segment on" Content="Note" Click="NoteClicked" ToolTip.Tip="Ctrl+1" />
+          <Button x:Name="AsTodo" Classes="segment" Content="To-do" Click="TodoClicked" ToolTip.Tip="Ctrl+2" />
+          <Button x:Name="AsEvent" Classes="segment" Content="Event" Click="EventClicked" ToolTip.Tip="Ctrl+3" />
+        </StackPanel>
+      </Border>
+      <TextBlock x:Name="Heading" Classes="h2" Text="Quick note" VerticalAlignment="Center" />
+    </DockPanel>
+    <TextBox x:Name="Words" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxHeight="320" />
+
+    <!-- A to-do: when it's due -->
+    <StackPanel x:Name="TodoPart" Orientation="Horizontal" Spacing="8" IsVisible="False">
+      <TextBlock Classes="muted" Text="Due" VerticalAlignment="Center" />
+      <ComboBox x:Name="DueBox" MinWidth="140" SelectionChanged="DuePicked" />
+    </StackPanel>
+
+    <!-- An event: the day and the time -->
+    <Grid x:Name="EventPart" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" IsVisible="False">
+      <CalendarDatePicker x:Name="DayBox" Grid.Column="0" Width="170" Margin="0,0,8,0" />
+      <TextBox x:Name="TimeBox" Grid.Column="1" PlaceholderText="Time, e.g. 9:30 or 14:00-15:00" ToolTip.Tip="Leave it empty for all day" />
+    </Grid>
+
+    <TextBlock x:Name="Problem" Classes="problem" FontSize="12" TextWrapping="Wrap" IsVisible="False" />
+
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="12">
         <Button Classes="link" Content="Discard" Click="DiscardClicked" />
@@ -21,6 +44,6 @@
         </ComboBox.ItemTemplate>
       </ComboBox>
     </DockPanel>
-    <TextBlock Classes="muted" FontSize="12" Text="Ctrl+Enter or Esc saves it. Discard throws it away." />
+    <TextBlock Classes="muted" FontSize="12" Text="Ctrl+Enter or Esc saves it. Ctrl+1, 2 and 3 switch between note, to-do and event." TextWrapping="Wrap" />
   </StackPanel>
 </Window>

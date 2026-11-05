@@ -20,6 +20,56 @@ public sealed record ScreenshotSettings
 
     /// <summary>Record the microphone with the screen.</summary>
     public bool Microphone { get; init; } = true;
+
+    public const string DefaultColourShortcut = "Ctrl+Alt+C";
+
+    /// <summary>The keys that pick a colour from anywhere on the screen. Empty turns it off.</summary>
+    public string ColourShortcut { get; init; } = DefaultColourShortcut;
+}
+
+/// <summary>The shortcuts that work from any program, so one can't be given keys another already has.</summary>
+public enum GlobalShortcut { Screenshot, Recording, QuickNote, ColourPicker }
+
+public static class GlobalShortcuts
+{
+    public static string Name(GlobalShortcut shortcut) => shortcut switch
+    {
+        GlobalShortcut.Screenshot => "screenshot",
+        GlobalShortcut.Recording => "recording",
+        GlobalShortcut.QuickNote => "quick-note",
+        _ => "colour picker",
+    };
+
+    /// <summary>The other shortcut that has these keys already, or null when they're free.</summary>
+    public static GlobalShortcut? TakenBy(Hotkey keys, ScreenshotSettings shots, string quickNote, GlobalShortcut self)
+    {
+        var wanted = keys.ToString();
+        var all = new (GlobalShortcut Shortcut, string Keys)[]
+        {
+            (GlobalShortcut.Screenshot, shots.Shortcut),
+            (GlobalShortcut.Recording, shots.RecordShortcut),
+            (GlobalShortcut.QuickNote, quickNote),
+            (GlobalShortcut.ColourPicker, shots.ColourShortcut),
+        };
+        foreach (var (shortcut, taken) in all)
+        {
+            if (shortcut != self && string.Equals(taken, wanted, StringComparison.OrdinalIgnoreCase))
+                return shortcut;
+        }
+        return null;
+    }
+
+    /// <summary>"That's the screenshot shortcut already. Pick other keys for recording."</summary>
+    public static string Clash(GlobalShortcut taken, GlobalShortcut wanted) =>
+        $"That's the {Name(taken)} shortcut already. Pick other keys for {For(wanted)}.";
+
+    private static string For(GlobalShortcut shortcut) => shortcut switch
+    {
+        GlobalShortcut.Screenshot => "screenshots",
+        GlobalShortcut.Recording => "recording",
+        GlobalShortcut.QuickNote => "the quick note",
+        _ => "the colour picker",
+    };
 }
 
 /// <summary>A key with Ctrl, Alt, Shift or the Windows key, for a shortcut that works from any program.</summary>

@@ -310,10 +310,10 @@
               BoxShadow="{DynamicResource OverlayShadow}">
         <DockPanel>
           <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Classes="search" Text="{Binding Search.Query}" KeyDown="SearchKeys"
-                   PlaceholderText="Find a client, quote, invoice, mail, to-do or domain" BorderThickness="0" Padding="18,14" FontSize="16" />
+                   PlaceholderText="Find a client, quote, invoice, mail, to-do, note, login, file or domain" BorderThickness="0" Padding="18,14" FontSize="16" />
           <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource Line}" />
           <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="18,12" IsVisible="{Binding Search.ShowHint}"
-                     Text="Type a name, an invoice number, a subject or a domain. Enter opens, Esc closes." TextWrapping="Wrap" />
+                     Text="Type a name, an invoice number, a subject, a file name or a site. Enter opens, Esc closes." TextWrapping="Wrap" />
           <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="18,12" IsVisible="{Binding Search.NothingFound}" Text="Nothing found." />
           <ListBox ItemsSource="{Binding Search.Results}" SelectedItem="{Binding Search.Chosen}" MaxHeight="440"
                    Background="Transparent" Margin="6" DoubleTapped="OpenSearchHit" Tapped="OpenSearchHit">

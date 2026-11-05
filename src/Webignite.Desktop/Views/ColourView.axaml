@@ -6,11 +6,9 @@
   <StackPanel Spacing="12">
           <DockPanel>
             <Button DockPanel.Dock="Right" Classes="quiet" Content="Pick from screen" Margin="8,0,0,0" Click="PickFromScreen"
-                    IsVisible="{Binding CanPickFromScreen}" ToolTip.Tip="Point at any colour on the screen, then press Enter" />
+                    IsVisible="{Binding CanPickFromScreen}" ToolTip.Tip="The screen freezes; click any colour to bring it here. Ctrl+Alt+C does the same from any program." />
             <TextBox Text="{Binding ColourInput}" PlaceholderText="#E8590C or rgb(232, 89, 12)" />
           </DockPanel>
-          <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding Picking}" TextWrapping="Wrap"
-                     Text="Point at a colour anywhere on the screen. Enter keeps it, Esc stops." />
           <Grid ColumnDefinitions="96,16,*" IsVisible="{Binding HasColour}">
             <Border Grid.Column="0" Height="96" CornerRadius="8" Background="{Binding ColourBrush}" />
             <StackPanel Grid.Column="2" Spacing="2">
