@@ -1692,6 +1692,29 @@ Save("site-check");
     Open(Page.Notes);
 }
 
+// Right-click on rows all round the app: clients, invoices, to-dos.
+{
+    int MenuSize<T>(Page page) where T : Avalonia.Controls.Control
+    {
+        Open(page);
+        Dispatcher.UIThread.RunJobs();
+        return window.GetVisualDescendants().OfType<T>().Where(c => c.Classes.Contains("row") || c.Classes.Contains("taskrow"))
+            .Select(c => c.ContextMenu?.Items.Count ?? 0).DefaultIfEmpty(0).Max();
+    }
+    Check("Clients have a right-click menu", MenuSize<Avalonia.Controls.Button>(Page.Clients) >= 8);
+    vm.Invoices.Editor = null;
+    Check("Invoices have a right-click menu", MenuSize<Avalonia.Controls.Button>(Page.Invoices) >= 4);
+    Check("To-dos have a right-click menu", MenuSize<Avalonia.Controls.Border>(Page.Todo) >= 4);
+    var firstTask = vm.Todo.Groups.SelectMany(g => g.Items).First(t => !t.IsDone);
+    firstTask.DueTomorrowCommand.Execute(null);
+    Check("A to-do's right-click moves its due day", store.ListTasks().First(t => t.Id == firstTask.Task.Id).Due == DateOnly.FromDateTime(DateTime.Today).AddDays(1));
+    Open(Page.Clients);
+    vm.Clients.NewQuoteForCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
+    Check("New quote for them opens a quote for that client", vm.Clients.Detail?.Editor is { CustomerName: "Fynbos Physio" });
+    vm.Clients.Detail!.Editor!.BackCommand.Execute(null);
+    vm.Clients.Detail.BackCommand.Execute(null);
+}
+
 // Ctrl+K search
 vm.Search.Show();
 Wait(vm.Search.MailLoaded, "Search read the mail");

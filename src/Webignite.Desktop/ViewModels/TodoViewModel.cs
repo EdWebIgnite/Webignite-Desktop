@@ -81,6 +81,25 @@ public partial class TodoViewModel : ViewModelBase, IRefreshable
     }
 
     /// <summary>The row fades out, then the to-do is removed, with a note to undo it.</summary>
+    /// <summary>A new due day from the right-click menu, or none.</summary>
+    public void SetDue(TaskItem task, DateOnly? due)
+    {
+        services.Store.SaveTask(task with { Due = due });
+        Refresh();
+    }
+
+    /// <summary>The client or the quote or invoice a to-do is about, from its right-click menu.</summary>
+    public void OpenWhatItsAbout(TaskItem task)
+    {
+        if (task.DocumentId is { } id && services.Documents.Get(id) is { } stored)
+            services.Go.Document(stored);
+        else if (services.Clients.Find(task.Customer) is { } client)
+            services.Go.Client(client);
+    }
+
+    public bool HasSomethingToOpen(TaskItem task) =>
+        task.DocumentId is not null || services.Clients.Find(task.Customer) is not null;
+
     public void Delete(TaskRowViewModel row) => Feedback.Leave(Motion, () => row.IsLeaving = true, () =>
     {
         var task = row.Task;
@@ -174,6 +193,7 @@ public partial class TaskRowViewModel : ViewModelBase
             if (!SetProperty(ref isDone, value))
                 return;
             JustDone = value;
+            OnPropertyChanged(nameof(DoneText));
             owner.Toggle(Task, value);
         }
     }
@@ -188,4 +208,26 @@ public partial class TaskRowViewModel : ViewModelBase
 
     [RelayCommand]
     private void Delete() => owner.Delete(this);
+
+    [RelayCommand]
+    private void ToggleDone() => IsDone = !IsDone;
+
+    public string DoneText => IsDone ? "Not done after all" : "Done";
+
+    [RelayCommand]
+    private void DueToday() => owner.SetDue(Task, DateOnly.FromDateTime(DateTime.Today));
+
+    [RelayCommand]
+    private void DueTomorrow() => owner.SetDue(Task, DateOnly.FromDateTime(DateTime.Today).AddDays(1));
+
+    [RelayCommand]
+    private void DueNextWeek() => owner.SetDue(Task, Webignite.Core.Dates.WeekStart(DateOnly.FromDateTime(DateTime.Today)).AddDays(7));
+
+    [RelayCommand]
+    private void NoDue() => owner.SetDue(Task, null);
+
+    public bool CanOpenWhatItsAbout => owner.HasSomethingToOpen(Task);
+
+    [RelayCommand]
+    private void OpenWhatItsAbout() => owner.OpenWhatItsAbout(Task);
 }

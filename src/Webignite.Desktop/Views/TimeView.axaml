@@ -132,6 +132,11 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:TimeEntryRow">
                     <Border Classes="taskrow" Classes.leaving="{Binding IsLeaving}">
+                      <Border.ContextMenu>
+                        <ContextMenu>
+                          <MenuItem Header="Remove" Command="{Binding DeleteCommand}" />
+                        </ContextMenu>
+                      </Border.ContextMenu>
                       <DockPanel>
                         <Button DockPanel.Dock="Right" Classes="link" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}">
                           <c:Icon Data="{StaticResource Icon.Close}" Size="12" />

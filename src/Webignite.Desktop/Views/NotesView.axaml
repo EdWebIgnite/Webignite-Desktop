@@ -56,7 +56,10 @@
                  SelectionChanged="PlacePicked">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:NotePlaceRow">
-              <DockPanel Margin="{Binding IsFolder, Converter={x:Static v:NotesView.FolderIndent}}">
+              <DockPanel Margin="{Binding IsFolder, Converter={x:Static v:NotesView.FolderIndent}}" Background="Transparent">
+                <DockPanel.ContextMenu>
+                  <ContextMenu Opening="PlaceMenuOpening" />
+                </DockPanel.ContextMenu>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding CountText}" FontSize="11.5" Opacity="0.7" VerticalAlignment="Center" Margin="6,0,0,0" />
                 <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="15" Margin="0,0,9,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
@@ -90,7 +93,10 @@
                    Background="Transparent" IsVisible="{Binding HasRows}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:NoteRow">
-                <StackPanel Spacing="2" Margin="4,8">
+                <StackPanel Spacing="2" Margin="4,8" Background="Transparent">
+                  <StackPanel.ContextMenu>
+                    <ContextMenu Opening="NoteMenuOpening" />
+                  </StackPanel.ContextMenu>
                   <DockPanel>
                     <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Pin}" Size="12" Opacity="0.6" IsVisible="{Binding Pinned}" Margin="6,0,0,0" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

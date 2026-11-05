@@ -7,6 +7,14 @@
   <UserControl.Resources>
     <DataTemplate x:Key="RenewalRow" x:DataType="vm:RenewalRowViewModel">
       <Border Classes="taskrow" Padding="20,12,12,12">
+        <Border.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Renewed" Command="{Binding RenewedCommand}" IsVisible="{Binding !IsFine}" />
+            <MenuItem Header="Change" Command="{Binding ChangeCommand}" />
+            <Separator />
+            <MenuItem Header="Remove" Command="{Binding AskRemoveCommand}" />
+          </ContextMenu>
+        </Border.ContextMenu>
         <Grid ColumnDefinitions="*,210,230">
           <StackPanel Grid.Column="0" Spacing="2">
             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
