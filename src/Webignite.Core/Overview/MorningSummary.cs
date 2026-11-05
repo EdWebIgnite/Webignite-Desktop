@@ -29,6 +29,12 @@ public sealed record SummaryInput
     public IReadOnlyList<WatchedSite> Sites { get; init; } = [];
     public bool BackupsOn { get; init; } = true;
     public bool BackupOverdue { get; init; }
+
+    /// <summary>
+    /// People whose mail needs no reply, by address, with the date of the newest mail of theirs that was waved off.
+    /// A newer mail from them shows again.
+    /// </summary>
+    public IReadOnlyDictionary<string, DateTimeOffset> NoReplyNeeded { get; init; } = new Dictionary<string, DateTimeOffset>();
 }
 
 /// <summary>
@@ -137,12 +143,38 @@ public static class MorningSummary
             var from = mail.From!;
             if (own.Contains(from.Address) || !seen.Add(from.Address) || ClientFor(from.Address, input.Clients) is not { } client)
                 continue;
+            if (NeedsNoReply(input.NoReplyNeeded, mail))
+                continue;
             var who = string.Equals(from.Display, client.Name, StringComparison.OrdinalIgnoreCase) ? client.Name : $"{from.Display} ({client.Name})";
             lines.Add(new($"{who} is waiting on a reply since {Day(DateOnly.FromDateTime(mail.Date.LocalDateTime), input.Today)}: {mail.Subject}",
                 SummaryTarget.Mail, Mail: mail));
         }
         return lines;
     }
+
+    /// <summary>Whether a mail was waved off as needing no reply, it or a newer one from the same person.</summary>
+    public static bool NeedsNoReply(IReadOnlyDictionary<string, DateTimeOffset> waved, MailSummary mail) =>
+        mail.From is { } from && waved.TryGetValue(from.Address.ToLowerInvariant(), out var upTo) && mail.Date <= upTo;
+
+    /// <summary>
+    /// The list after waving off a mail as needing no reply: up to its date for that person. People waved off long
+    /// enough ago that their mail wouldn't show anyway are forgotten, so the list stays short.
+    /// </summary>
+    public static IReadOnlyDictionary<string, DateTimeOffset> NoReply(IReadOnlyDictionary<string, DateTimeOffset> waved, MailSummary mail, DateOnly today)
+    {
+        var keep = today.AddDays(-ReplyDays - 1).ToDateTime(TimeOnly.MinValue);
+        var list = waved.Where(w => w.Value.Date >= keep).ToDictionary(w => w.Key, w => w.Value);
+        if (mail.From is { } from)
+        {
+            var key = from.Address.ToLowerInvariant();
+            list[key] = list.TryGetValue(key, out var before) && before > mail.Date ? before : mail.Date;
+        }
+        return list;
+    }
+
+    /// <summary>Undo: the person's mail shows again as waiting.</summary>
+    public static IReadOnlyDictionary<string, DateTimeOffset> ReplyNeeded(IReadOnlyDictionary<string, DateTimeOffset> waved, MailSummary mail) =>
+        mail.From is { } from ? waved.Where(w => !string.Equals(w.Key, from.Address, StringComparison.OrdinalIgnoreCase)).ToDictionary(w => w.Key, w => w.Value) : waved;
 
     public static Client? ClientFor(string address, IEnumerable<Client> clients) => ClientMail.For(clients, address);
 

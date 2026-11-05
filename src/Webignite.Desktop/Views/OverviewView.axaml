@@ -73,6 +73,9 @@
               <DockPanel Margin="0,0,0,6">
                 <Button DockPanel.Dock="Right" Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" VerticalAlignment="Center"
                         IsEnabled="{Binding !Busy}" />
+                <Button DockPanel.Dock="Right" Classes="link" Content="No reply needed" Margin="0,0,14,0" IsVisible="{Binding CanWaveOff}"
+                        Command="{Binding NoReplyNeededCommand}" VerticalAlignment="Center"
+                        ToolTip.Tip="Takes it off this list. It comes back if they write again." />
                 <c:Spinner DockPanel.Dock="Right" IsVisible="{Binding Busy}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="8,0" />
                 <Ellipse DockPanel.Dock="Left" Classes="dot" Classes.problem="{Binding Problem}" Margin="2,0,12,0" />
                 <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" Classes.problem="{Binding Problem}" />

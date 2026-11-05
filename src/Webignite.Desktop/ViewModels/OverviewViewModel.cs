@@ -11,15 +11,18 @@ using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
-public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
+public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDisposable
 {
     private readonly AppServices services;
 
     public OverviewViewModel(AppServices services)
     {
         this.services = services;
+        services.RepliesChanged += Refresh;
         Refresh();
     }
+
+    public void Dispose() => services.RepliesChanged -= Refresh;
 
     public string Greeting
     {
@@ -141,6 +144,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable
                 .Select(d => services.Settings.Uptime.Sites.GetValueOrDefault(d.Domain)).OfType<Webignite.Core.Web.WatchedSite>().ToList(),
             BackupsOn = hasPassword,
             BackupOverdue = BackupRules.Overdue(services.Settings.Backups, hasPassword, DateTimeOffset.Now),
+            NoReplyNeeded = services.Settings.NoReplyNeeded,
         };
     }
 }
@@ -150,6 +154,16 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
 {
     public string Text => line.Text;
     public bool Problem => line.Problem;
+
+    /// <summary>A mail waiting on a reply can be waved off: not everything needs one.</summary>
+    public bool CanWaveOff => line.Target == SummaryTarget.Mail && line.Mail is not null;
+
+    [RelayCommand]
+    private void NoReplyNeeded()
+    {
+        if (line.Mail is { } mail)
+            services.NoReplyNeeded(mail);
+    }
 
     [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]
     public partial bool Busy { get; set; }

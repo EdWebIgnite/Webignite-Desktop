@@ -134,4 +134,28 @@ public sealed class MorningSummaryTests
     [InlineData(10, "on 22 October")]
     public void Days_read_naturally(int daysAgo, string expected) =>
         Assert.Equal(expected, MorningSummary.On(Today.AddDays(-daysAgo), Today));
+
+    [Fact]
+    public void A_mail_waved_off_as_needing_no_reply_goes_until_that_person_writes_again()
+    {
+        var info = Mail("lerato@fynbosphysio.co.za", "Lerato Dlamini", 3, subject: "Just so you know");
+        var waved = MorningSummary.NoReply(new Dictionary<string, DateTimeOffset>(), info, Today);
+
+        Assert.Empty(MorningSummary.WaitingOnReply(Input(info) with { NoReplyNeeded = waved }));
+        // An older mail of theirs waits no more either; a newer one does.
+        Assert.Empty(MorningSummary.WaitingOnReply(Input(Mail("LERATO@fynbosphysio.co.za", "Lerato Dlamini", 5)) with { NoReplyNeeded = waved }));
+        var newer = Mail("lerato@fynbosphysio.co.za", "Lerato Dlamini", 1, subject: "Can you help?");
+        Assert.Equal("Can you help?", Assert.Single(MorningSummary.WaitingOnReply(Input(info, newer) with { NoReplyNeeded = waved })).Mail!.Subject);
+
+        // Undo puts it back.
+        Assert.Single(MorningSummary.WaitingOnReply(Input(info) with { NoReplyNeeded = MorningSummary.ReplyNeeded(waved, info) }));
+    }
+
+    [Fact]
+    public void People_waved_off_long_ago_are_forgotten()
+    {
+        var old = new Dictionary<string, DateTimeOffset> { ["old@karoo.co.za"] = new DateTimeOffset(Today.AddDays(-40).ToDateTime(TimeOnly.MinValue)) };
+        var waved = MorningSummary.NoReply(old, Mail("lerato@fynbosphysio.co.za", "Lerato Dlamini", 2), Today);
+        Assert.Equal(["lerato@fynbosphysio.co.za"], waved.Keys);
+    }
 }

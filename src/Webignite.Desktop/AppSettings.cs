@@ -126,6 +126,13 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>When each customer last had a statement, so it's offered once a month.</summary>
+    /// <summary>People whose mail needs no reply, up to the mail waved off (see <c>MorningSummary.NoReply</c>).</summary>
+    public IReadOnlyDictionary<string, DateTimeOffset> NoReplyNeeded
+    {
+        get => store.GetSetting<Dictionary<string, DateTimeOffset>>("no-reply-needed") ?? [];
+        set => store.SetSetting("no-reply-needed", new Dictionary<string, DateTimeOffset>(value));
+    }
+
     public IReadOnlyDictionary<string, DateOnly> StatementsSent
     {
         get => store.GetSetting<Dictionary<string, DateOnly>>("statements-sent") ?? [];
