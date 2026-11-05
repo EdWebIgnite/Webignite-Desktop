@@ -133,7 +133,6 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
             new NavGroup("client-work", "CLIENT WORK"),
             new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
-            new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
             new Module(Page.Retainers, "Retainers", () => new RetainersViewModel(services), "Retainers"),
             new Module(Page.Renewals, "Domains and hosting", () => new RenewalsViewModel(services), "Domains"),
             new NavGroup("billing", "BILLING"),
@@ -143,15 +142,21 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
             new NavGroup("planning", "PLANNING"),
             new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo"),
-            new Module(Page.Notes, "Notes", () => new NotesViewModel(services), "Notes", fullBleed: true),
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar"),
             new Module(Page.Planner, "Planner", () => new PlannerViewModel(services), "Planner"),
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time"),
+            new NavGroup("computer", "COMPUTER"),
+            new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
+            new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
+            new Module(Page.Notes, "Notes", () => new NotesViewModel(services), "Notes", fullBleed: true),
+            new ToolLink(ToolKind.Calculator, "Calculator", "Calculator"),
+            new ToolLink(ToolKind.Passwords, "Password generator", "Key"),
+            new ToolLink(ToolKind.Colours, "Colours", "Palette"),
             new NavGroup("web-tools", "WEB TOOLS"),
             new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
-            new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
-            new Module(Page.Tools, "Tools", () => new ToolsViewModel(services), "Tools"),
+            new ToolLink(ToolKind.Images, "Website images", "Picture"),
+            new ToolLink(ToolKind.Qr, "QR code", "Qr"),
             new NavGroup("end", ""),
             new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings"),
         ];
@@ -384,7 +389,6 @@ public partial class MainViewModel : ViewModelBase
     public NotesViewModel Notes => PageOf<NotesViewModel>(Page.Notes);
     public MailViewModel Mail => PageOf<MailViewModel>(Page.Mail);
     public ApprovalsViewModel Approvals => PageOf<ApprovalsViewModel>(Page.Approvals);
-    public ToolsViewModel Tools => PageOf<ToolsViewModel>(Page.Tools);
     public SiteCheckViewModel SiteCheck => PageOf<SiteCheckViewModel>(Page.SiteCheck);
     public MarkupViewModel Markup => PageOf<MarkupViewModel>(Page.Markup);
     public TimeViewModel Time => PageOf<TimeViewModel>(Page.Time);
@@ -404,9 +408,14 @@ public partial class MainViewModel : ViewModelBase
         set
         {
             if (value is Module module)
+            {
                 Selected = module;
-            else
-                OnPropertyChanged();
+                return;
+            }
+            // A tool opens in a window of its own; the page on screen stays picked.
+            if (value is ToolLink tool)
+                services.Go.Tool(tool.Kind);
+            OnPropertyChanged();
         }
     }
 

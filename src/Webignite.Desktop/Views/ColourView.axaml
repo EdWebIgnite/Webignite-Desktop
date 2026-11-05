@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.ColourView"
+             x:DataType="vm:ToolsViewModel">
+  <StackPanel Spacing="12">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="quiet" Content="Pick from screen" Margin="8,0,0,0" Click="PickFromScreen"
+                    IsVisible="{Binding CanPickFromScreen}" ToolTip.Tip="Point at any colour on the screen, then press Enter" />
+            <TextBox Text="{Binding ColourInput}" PlaceholderText="#E8590C or rgb(232, 89, 12)" />
+          </DockPanel>
+          <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding Picking}" TextWrapping="Wrap"
+                     Text="Point at a colour anywhere on the screen. Enter keeps it, Esc stops." />
+          <Grid ColumnDefinitions="96,16,*" IsVisible="{Binding HasColour}">
+            <Border Grid.Column="0" Height="96" CornerRadius="8" Background="{Binding ColourBrush}" />
+            <StackPanel Grid.Column="2" Spacing="2">
+              <Button Classes="link" Padding="0,1" Content="{Binding ColourHex}" Command="{Binding CopyHexCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
+              <Button Classes="link" Padding="0,1" Content="{Binding ColourRgb}" Command="{Binding CopyRgbCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
+              <Button Classes="link" Padding="0,1" Content="{Binding ColourHsl}" Command="{Binding CopyHslCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
+              <TextBlock Classes="muted" FontSize="12" Text="{Binding OnWhite}" TextWrapping="Wrap" Margin="0,4,0,0" />
+              <TextBlock Classes="muted" FontSize="12" Text="{Binding OnBlack}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Shades}" IsVisible="{Binding HasColour}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ShadeRow">
+                <Button Classes="shade" Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Hex}"
+                        Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
+                  <Border Height="28" CornerRadius="4" Background="{Binding Brush}" />
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding ColourMessage}" TextWrapping="Wrap"
+                     IsVisible="{Binding ColourMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+</UserControl>

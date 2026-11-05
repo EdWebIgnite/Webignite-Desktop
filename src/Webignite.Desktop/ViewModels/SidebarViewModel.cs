@@ -32,6 +32,7 @@ public sealed partial class SidebarViewModel : ObservableObject
             {
                 case NavGroup group: group.Owner = this; break;
                 case Module module: module.Sidebar = this; break;
+                case ToolLink tool: tool.Sidebar = this; break;
             }
         }
         Items = [];
@@ -43,6 +44,7 @@ public sealed partial class SidebarViewModel : ObservableObject
     {
         NavGroup group => Sidebar.Heading(group.Key),
         Module module => module.Key.ToString(),
+        ToolLink tool => "tool-" + tool.Kind,
         _ => throw new ArgumentException("Not a sidebar entry", nameof(item)),
     };
 
@@ -58,8 +60,8 @@ public sealed partial class SidebarViewModel : ObservableObject
     /// <summary>What the button at the top does next, for its tip.</summary>
     public string ToggleTip => IsFull ? "Fold the sidebar to icons (Ctrl+B)" : IsIcons ? "Tuck the sidebar away (Ctrl+B)" : "Show the sidebar (Ctrl+B)";
 
-    /// <summary>Every page for the icon strip, folded groups or not.</summary>
-    public ObservableCollection<Module> IconPages { get; } = [];
+    /// <summary>Every page and tool for the icon strip, folded groups or not.</summary>
+    public ObservableCollection<object> IconPages { get; } = [];
 
     private void ShowMode(SidebarMode mode)
     {
@@ -102,6 +104,7 @@ public sealed partial class SidebarViewModel : ObservableObject
     {
         var order = Sidebar.Resolve(layout, defaults);
         var wanted = new List<object>();
+        var icons = new List<object>();
         Pages.Clear();
         NavGroup? group = null;
         foreach (var key in order)
@@ -117,21 +120,31 @@ public sealed partial class SidebarViewModel : ObservableObject
             {
                 module.Group = group;
                 Pages.Add(module);
+                icons.Add(module);
                 if (group is null || !group.CanFold || group.IsOpen)
                     wanted.Add(module);
             }
+            else if (item is ToolLink tool)
+            {
+                tool.Group = group;
+                icons.Add(tool);
+                if (group is null || !group.CanFold || group.IsOpen)
+                    wanted.Add(tool);
+            }
         }
         Rebuild(wanted);
-        if (!IconPages.SequenceEqual(Pages))
+        if (!IconPages.SequenceEqual(icons))
         {
             IconPages.Clear();
-            foreach (var page in Pages)
-                IconPages.Add(page);
+            foreach (var entry in icons)
+                IconPages.Add(entry);
         }
         foreach (var item in byKey.Values)
         {
             if (item is Module module)
                 module.Changed();
+            else if (item is ToolLink tool)
+                tool.Changed();
             else if (item is NavGroup heading)
                 heading.Changed();
         }

@@ -8,6 +8,15 @@
     <Setter Property="FontSize" Value="14" />
   </Style>
 
+  <!-- Selected text everywhere: the accent is near-black in the light look, which hid the text. -->
+  <Style Selector="TextBox">
+    <Setter Property="SelectionBrush" Value="{DynamicResource Selection}" />
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource OnSelection}" />
+  </Style>
+  <Style Selector="SelectableTextBlock">
+    <Setter Property="SelectionBrush" Value="{DynamicResource Selection}" />
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource OnSelection}" />
+  </Style>
   <Style Selector="TextBlock.h1">
     <Setter Property="FontSize" Value="24" />
     <Setter Property="FontWeight" Value="SemiBold" />

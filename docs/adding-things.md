@@ -38,6 +38,10 @@ Text that is stored, or sent to a client or Xero, is formatted with `CultureInfo
 
 Pages that fill the window with their own panes (Mail) pass `fullBleed: true`. Such a page sits in a sideways scroller that offers it endless width, so star columns, trimmed text and wrapping lists won't fit the window by themselves; so derive the view from `FullBleedView` (as `FilesView` and `PdfView` do) to keep to the width on screen. The sidebar's order, folded groups and hidden state are the person's (`Core.Layout.Sidebar`, saved under "sidebar"); a new page slots in after the one it follows in the `nav` array, whatever order the person has.
 
+## A small tool in its own window
+
+Small tools (the calculator, QR codes) aren't pages. Add a value to `ToolKind` (`ViewModels/ToolLink.cs`), its state and commands to a `ToolsViewModel` partial, a view of its own (`ThingView.axaml`, `x:DataType="vm:ToolsViewModel"`), a case in `ToolWindow` for its view, width and title, and a `new ToolLink(ToolKind.Thing, "Thing", "Icon")` in the `nav` array under Computer or Web tools. The window is built when clicked and let go when closed; Measure checks that it is.
+
 ## Panes the person can drag, move and hide
 
 Mail is the example. The rules (show, hide but never the last one, move, resize, match a saved layout to the panes the page has now) are in `Core.Layout.Panels`, with tests in `PanelsTests.cs`.

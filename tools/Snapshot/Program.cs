@@ -1243,16 +1243,40 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 Open(Page.Overview);
 Save("overview");
 
-// Tools: the calculator, then its answer on an invoice
-Open(Page.Tools);
-vm.Tools.Sum = "3.5 x 650";
-vm.Tools.WorkOutCommand.Execute(null);
-vm.Tools.Sum = "14 500 + 3 200";
-vm.Tools.WorkOutCommand.Execute(null);
-vm.Tools.Sum = "2400 - 10%";
-vm.Tools.LineDescription = "Hosting, 12 months, returning client";
-Save("tools-calculator");
-vm.Tools.QrInput = "karoocoffee.co.za/menu";
+// Tools: each opens in a small window of its own from the sidebar. The calculator, then its answer on an invoice.
+void SaveWindow(Avalonia.Controls.Window shown, string name)
+{
+    for (var i = 0; i < 5; i++)
+        Dispatcher.UIThread.RunJobs();
+    using var frame = shown.CaptureRenderedFrame();
+    using var file = File.Create(Path.Combine(output, name + ".png"));
+    frame?.Save(file, new PngBitmapEncoderOptions());
+    Console.WriteLine("Saved " + name);
+}
+Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "web-tools", "web-tools"])
+    && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
+vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
+var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
+Check("Clicking a tool opens its window and leaves the page as it was", vm.Selected.Key == Page.Overview && calculatorWindow.IsVisible);
+var calc = calculatorWindow.Tools;
+calc.Sum = "3.5 x 650";
+calc.WorkOutCommand.Execute(null);
+calc.Sum = "14 500 + 3 200";
+calc.WorkOutCommand.Execute(null);
+calc.Sum = "2400 - 10%";
+calc.LineDescription = "Hosting, 12 months, returning client";
+SaveWindow(calculatorWindow, "tools-calculator");
+var qrWindow = window.ShowTool(ToolKind.Qr, services);
+qrWindow.Tools.QrInput = "karoocoffee.co.za/menu";
+SaveWindow(qrWindow, "tools-qr");
+qrWindow.Close();
+var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
+SaveWindow(passwordWindow, "tools-passwords");
+passwordWindow.Close();
+var colourWindow = window.ShowTool(ToolKind.Colours, services);
+SaveWindow(colourWindow, "tools-colours");
+colourWindow.Close();
 // Website images: two made-up photos, shrunk for real so the sizes are true.
 var photos = Path.Combine(data, "photos");
 Directory.CreateDirectory(photos);
@@ -1272,11 +1296,12 @@ foreach (var (name, w, h) in new[] { ("Shop Front (1).jpg", 4032, 3024), ("Team 
     using var encoded = img.Encode(name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? SkiaSharp.SKEncodedImageFormat.Png : SkiaSharp.SKEncodedImageFormat.Jpeg, 95);
     File.WriteAllBytes(Path.Combine(photos, name), encoded.ToArray());
 }
-ShrinkPhotos(photos, vm.Tools);
-window.Height = 1700;
-Save("tools-all");
-window.Height = 860;
-vm.Tools.AddToInvoiceCommand.Execute(null);
+var imagesWindow = window.ShowTool(ToolKind.Images, services);
+ShrinkPhotos(photos, imagesWindow.Tools);
+SaveWindow(imagesWindow, "tools-images");
+imagesWindow.Close();
+calc.AddToInvoiceCommand.Execute(null);
+calculatorWindow.Close();
 Save("tools-calculator-invoice");
 vm.Invoices.Editor!.Lines[0].Price = "3 x 650";
 Save("invoice-sum");
