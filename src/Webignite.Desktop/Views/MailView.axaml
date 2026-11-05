@@ -10,10 +10,10 @@
              x:DataType="vm:MailViewModel">
   <UserControl.Styles>
     <!-- A mailbox's Edit and New folder show while the pointer is on that mailbox. -->
-    <Style Selector="StackPanel.mailbox Button.onhover">
+    <Style Selector="StackPanel.mailbox > Button.onhover, StackPanel.mailbox > DockPanel > Button.onhover">
       <Setter Property="Opacity" Value="0" />
     </Style>
-    <Style Selector="StackPanel.mailbox:pointerover Button.onhover">
+    <Style Selector="StackPanel.mailbox:pointerover > Button.onhover, StackPanel.mailbox:pointerover > DockPanel > Button.onhover">
       <Setter Property="Opacity" Value="1" />
     </Style>
     <Style Selector="Button.folder">
