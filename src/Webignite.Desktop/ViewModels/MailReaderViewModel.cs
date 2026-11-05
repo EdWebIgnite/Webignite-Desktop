@@ -37,6 +37,19 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     public bool HasThread => Thread.Count > 1;
     public string ThreadTitle => $"{Thread.Count} mails in this conversation";
 
+    /// <summary>The conversation's lines show; folded, only its heading does. Kept for the next mail too.</summary>
+    public bool ThreadOpen => !services.Settings.MailView.ThreadFolded;
+
+    public string ThreadToggleTip => ThreadOpen ? "Fold the conversation up" : "Show the whole conversation";
+
+    [RelayCommand]
+    private void ToggleThread()
+    {
+        services.Settings.MailView = services.Settings.MailView with { ThreadFolded = ThreadOpen };
+        OnPropertyChanged(nameof(ThreadOpen));
+        OnPropertyChanged(nameof(ThreadToggleTip));
+    }
+
     public ObservableCollection<AttachmentViewModel> Attachments { get; } = [];
     public bool HasAttachments => Attachments.Count > 0;
 

@@ -11,7 +11,7 @@ using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
 
-public partial class MailView : UserControl
+public partial class MailView : FullBleedView
 {
     /// <summary>Mail being dragged out of the list, onto a folder or a category.</summary>
     private static readonly DataFormat<MailDrag> DragFormat = DataFormat.CreateInProcessFormat<MailDrag>("webignite-mail");

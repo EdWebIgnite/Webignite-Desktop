@@ -18,6 +18,9 @@ public sealed record MailViewSettings
 
     public bool ConversationsIn(string list) => !ConversationsOff.Contains(list);
 
+    /// <summary>The conversation above the open mail shows only its heading, for every mail until opened again.</summary>
+    public bool ThreadFolded { get; init; }
+
     public MailViewSettings WithConversations(string list, bool on) => this with
     {
         ConversationsOff = on ? ConversationsOff.Where(k => k != list).ToList() : ConversationsOff.Append(list).Distinct().ToList(),

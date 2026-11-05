@@ -3,7 +3,7 @@ using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
 
-public partial class ClientsView : UserControl
+public partial class ClientsView : FullBleedView
 {
     public ClientsView()
     {
