@@ -21,6 +21,12 @@ public sealed record MailViewSettings
     /// <summary>The conversation above the open mail shows only its heading, for every mail until opened again.</summary>
     public bool ThreadFolded { get; init; }
 
+    /// <summary>The attachments under the mail show only their heading.</summary>
+    public bool AttachmentsFolded { get; init; }
+
+    /// <summary>Who else the mail went to (To and Cc) shows under the sender.</summary>
+    public bool ShowRecipients { get; init; }
+
     public MailViewSettings WithConversations(string list, bool on) => this with
     {
         ConversationsOff = on ? ConversationsOff.Where(k => k != list).ToList() : ConversationsOff.Append(list).Distinct().ToList(),

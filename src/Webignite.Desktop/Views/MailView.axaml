@@ -83,6 +83,19 @@
       <Setter Property="CornerRadius" Value="8" />
       <Setter Property="Padding" Value="0,0,0,6" />
     </Style>
+    <Style Selector="Border.underbar">
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+      <Setter Property="Padding" Value="20,8" />
+    </Style>
+    <Style Selector="Button.attachchip">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,4,4,4" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
     <Style Selector="Button.threadhead">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Padding" Value="12,8,12,4" />
@@ -279,6 +292,8 @@
                                     DragDrop.AllowDrop="True" DragDrop.DragOver="FolderDragOver" DragDrop.DragLeave="FolderDragLeave" DragDrop.Drop="FolderDrop">
                               <Button.ContextMenu>
                                 <ContextMenu IsVisible="{Binding IsRealFolder}">
+                                  <MenuItem Header="Mark all as read" Command="{Binding MarkAllReadCommand}" IsEnabled="{Binding IsRealFolder}" />
+                                  <Separator />
                                   <MenuItem Header="New folder inside" Command="{Binding NewFolderCommand}" IsEnabled="{Binding IsRealFolder}" />
                                   <MenuItem Header="Rename" Command="{Binding RenameCommand}" IsEnabled="{Binding CanChange}" />
                                   <MenuItem Header="Remove" Command="{Binding RemoveCommand}" IsEnabled="{Binding CanChange}" />
@@ -525,13 +540,129 @@
           </Panel>
           <Panel IsVisible="{Binding ShowReader}">
           <DockPanel DataContext="{Binding Reader}" x:DataType="vm:MailReaderViewModel">
-            <StackPanel DockPanel.Dock="Top" Margin="24,18,24,10" Spacing="10">
+            <!-- At the top, kept short so the mail itself has the room: subject, sender, date, what to do. -->
+            <StackPanel DockPanel.Dock="Top" Margin="24,14,24,8" Spacing="8" Background="Transparent">
+              <StackPanel.ContextMenu>
+                <ContextMenu Opening="MessageMenuOpening" />
+              </StackPanel.ContextMenu>
               <DockPanel>
                 <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Flag}" Size="18" Margin="10,4,0,0" VerticalAlignment="Top"
                         Foreground="{DynamicResource Important}" IsVisible="{Binding IsImportant}" ToolTip.Tip="Important" />
-                <TextBlock Classes="h2" Text="{Binding Subject}" TextWrapping="Wrap" />
+                <TextBlock Classes="h2" Text="{Binding Subject}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
               </DockPanel>
-              <!-- The rest of the conversation, stacked: click a line to open that mail. -->
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="12,0,0,0" Text="{Binding Date}" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Padding="8,0" Content="{Binding RecipientsToggleText}" Command="{Binding ToggleRecipientsCommand}"
+                        ToolTip.Tip="Who else it went to" VerticalAlignment="Center" />
+                <TextBlock TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding From}">
+                  <Run Text="{Binding FromName}" FontWeight="SemiBold" /><Run Text="  " /><Run Text="{Binding FromAddress}" Foreground="{DynamicResource Muted}" FontSize="12" />
+                </TextBlock>
+              </DockPanel>
+              <StackPanel Spacing="2" IsVisible="{Binding ShowRecipients}">
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap">
+                  <Run Text="To " /><Run Text="{Binding To}" />
+                </TextBlock>
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding HasCc}">
+                  <Run Text="Cc " /><Run Text="{Binding Cc}" />
+                </TextBlock>
+              </StackPanel>
+              <DockPanel>
+                <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding Categories}" IsVisible="{Binding HasCategories}" VerticalAlignment="Center" Margin="8,0,0,0">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="core:MailCategory">
+                      <Border Classes="categorytag">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <c:CategoryDot Colour="{Binding Colour}" Size="8" />
+                          <TextBlock FontSize="12" Text="{Binding Name}" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <WrapPanel ItemSpacing="6" LineSpacing="6">
+                  <Button Classes="primary" Content="Reply" Command="{Binding ReplyCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                  <Button Classes="quiet" Content="Reply all" Command="{Binding ReplyAllCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                  <Button Classes="quiet" Content="Forward" Command="{Binding ForwardCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                  <Button Classes="primary" Content="Edit draft" Command="{Binding EditDraftCommand}" IsVisible="{Binding IsDraft}" IsEnabled="{Binding CanWrite}" />
+                </WrapPanel>
+              </DockPanel>
+              <Border Classes="card" Padding="12,8" IsVisible="{Binding IsScheduled}" Background="{DynamicResource InvoiceSoft}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Don't send it" Command="{Binding DontSendCommand}" Margin="8,0,0,0" />
+                  <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding ScheduledText}" VerticalAlignment="Center" />
+                </DockPanel>
+              </Border>
+              <Border Classes="card" Padding="12,8" IsVisible="{Binding HasDraftedBy}" Background="{DynamicResource InvoiceSoft}">
+                <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
+              </Border>
+
+              <Border Classes="card" Padding="12,8" IsVisible="{Binding CanShowImages}">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Show pictures" Command="{Binding ShowImagesCommand}" />
+                  <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
+                             Text="Pictures from the internet are hidden so the sender can't tell you opened this." />
+                </DockPanel>
+              </Border>
+
+            </StackPanel>
+
+            <!-- Under the mail: its attachments, then the rest of the conversation. Each folds up to a line. -->
+            <StackPanel DockPanel.Dock="Bottom">
+              <Border Classes="underbar" IsVisible="{Binding HasAttachments}">
+                <StackPanel Spacing="6">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Content="Save all to Downloads" Command="{Binding SaveAllCommand}" />
+                    <Button Classes="threadhead" Command="{Binding ToggleAttachmentsCommand}" HorizontalAlignment="Left" Padding="0,2"
+                            ToolTip.Tip="Fold the attachments up or open them out">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" IsVisible="{Binding AttachmentsOpen}" VerticalAlignment="Center" />
+                        <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="12" IsVisible="{Binding !AttachmentsOpen}" VerticalAlignment="Center" />
+                        <c:Icon Data="{StaticResource Icon.Paperclip}" Size="13" VerticalAlignment="Center" />
+                        <TextBlock Classes="label" Text="{Binding AttachmentsTitle}" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </DockPanel>
+                  <ScrollViewer MaxHeight="120" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding AttachmentsOpen}">
+                    <ItemsControl ItemsSource="{Binding Attachments}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AttachmentViewModel">
+                          <Button Classes="attachchip" Command="{Binding ActivateCommand}" ToolTip.Tip="Click to show it. Right-click for more">
+                            <Button.ContextMenu>
+                              <ContextMenu>
+                                <MenuItem Header="Show it here" Command="{Binding PreviewCommand}" IsVisible="{Binding CanPreview}" />
+                                <MenuItem Header="Open in its program" Command="{Binding OpenCommand}" />
+                                <MenuItem Header="Open in the PDF tools" Command="{Binding OpenInPdfToolsCommand}" IsVisible="{Binding IsPdf}" />
+                                <Separator />
+                                <MenuItem Header="Save to Downloads" Command="{Binding SaveCommand}" />
+                                <MenuItem Header="Save as…" Command="{Binding SaveAsCommand}" />
+                                <MenuItem Header="Save in the client's folder" Command="{Binding SaveToClientCommand}" IsVisible="{Binding CanSaveToClient}" />
+                              </ContextMenu>
+                            </Button.ContextMenu>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <c:Icon Data="{StaticResource Icon.Paperclip}" Size="13" VerticalAlignment="Center" Opacity="0.7" />
+                              <TextBlock Text="{Binding Name}" MaxWidth="200" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                              <TextBlock Classes="muted" FontSize="11" Text="{Binding Size}" VerticalAlignment="Center" />
+                              <Button Classes="sidebutton" Command="{Binding SaveCommand}" ToolTip.Tip="Save to Downloads" Padding="3">
+                                <c:Icon Data="{StaticResource Icon.Download}" Size="13" />
+                              </Button>
+                            </StackPanel>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding AttachmentMessage}" TextWrapping="Wrap" IsVisible="{Binding HasAttachmentMessage}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="underbar" IsVisible="{Binding HasThread}">
+                <ScrollViewer MaxHeight="220" HorizontalScrollBarVisibility="Disabled">
+                  <!-- The rest of the conversation, stacked: click a line to open that mail. -->
               <Border Classes="threadstack" IsVisible="{Binding HasThread}">
                 <StackPanel>
                   <Button Classes="threadhead" Command="{Binding ToggleThreadCommand}" ToolTip.Tip="{Binding ThreadToggleTip}"
@@ -559,86 +690,8 @@
                   </ItemsControl>
                 </StackPanel>
               </Border>
-              <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Spacing="2">
-                  <TextBlock FontWeight="SemiBold" Text="{Binding From}" TextWrapping="Wrap" />
-                  <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap">
-                    <Run Text="To " /><Run Text="{Binding To}" />
-                  </TextBlock>
-                  <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding HasCc}">
-                    <Run Text="Cc " /><Run Text="{Binding Cc}" />
-                  </TextBlock>
-                </StackPanel>
-                <TextBlock Grid.Column="1" Classes="muted" FontSize="12" Margin="12,0,0,0" Text="{Binding Date}" />
-              </Grid>
-              <ItemsControl ItemsSource="{Binding Categories}" IsVisible="{Binding HasCategories}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="core:MailCategory">
-                    <Border Classes="categorytag">
-                      <StackPanel Orientation="Horizontal" Spacing="6">
-                        <c:CategoryDot Colour="{Binding Colour}" Size="8" />
-                        <TextBlock FontSize="12" Text="{Binding Name}" />
-                      </StackPanel>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <WrapPanel ItemSpacing="6" LineSpacing="6">
-                <Button Classes="primary" Content="Reply" Command="{Binding ReplyCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
-                <Button Classes="quiet" Content="Reply all" Command="{Binding ReplyAllCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
-                <Button Classes="quiet" Content="Forward" Command="{Binding ForwardCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
-                <Button Classes="primary" Content="Edit draft" Command="{Binding EditDraftCommand}" IsVisible="{Binding IsDraft}" IsEnabled="{Binding CanWrite}" />
-              </WrapPanel>
-
-              <Border Classes="card" Padding="12,8" IsVisible="{Binding IsScheduled}" Background="{DynamicResource InvoiceSoft}">
-                <DockPanel>
-                  <Button DockPanel.Dock="Right" Classes="link" Content="Don't send it" Command="{Binding DontSendCommand}" Margin="8,0,0,0" />
-                  <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding ScheduledText}" VerticalAlignment="Center" />
-                </DockPanel>
+                </ScrollViewer>
               </Border>
-              <Border Classes="card" Padding="12,8" IsVisible="{Binding HasDraftedBy}" Background="{DynamicResource InvoiceSoft}">
-                <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
-              </Border>
-
-              <Border Classes="card" Padding="12,8" IsVisible="{Binding CanShowImages}">
-                <DockPanel>
-                  <Button DockPanel.Dock="Right" Classes="link" Content="Show pictures" Command="{Binding ShowImagesCommand}" />
-                  <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
-                             Text="Pictures from the internet are hidden so the sender can't tell you opened this." />
-                </DockPanel>
-              </Border>
-
-              <StackPanel Spacing="6" IsVisible="{Binding HasAttachments}">
-                <DockPanel>
-                  <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Content="Save all to Downloads" Command="{Binding SaveAllCommand}" />
-                  <TextBlock Classes="label" Text="Attachments" VerticalAlignment="Center" />
-                </DockPanel>
-                <ItemsControl ItemsSource="{Binding Attachments}">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:AttachmentViewModel">
-                      <Border Classes="card" Padding="10,6" Margin="0,0,8,8">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                          <StackPanel>
-                            <TextBlock Text="{Binding Name}" MaxWidth="220" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Classes="muted" FontSize="11" Text="{Binding Size}" />
-                          </StackPanel>
-                          <Button Classes="link" Content="Preview" Command="{Binding PreviewCommand}" VerticalAlignment="Center" IsVisible="{Binding CanPreview}"
-                                  ToolTip.Tip="Show it here, in place of the mail" />
-                          <Button Classes="link" Content="Open" Command="{Binding OpenCommand}" VerticalAlignment="Center" ToolTip.Tip="Open it in another program" />
-                          <Button Classes="link" Content="Save" Command="{Binding SaveCommand}" VerticalAlignment="Center" />
-                        </StackPanel>
-                      </Border>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding AttachmentMessage}" TextWrapping="Wrap" IsVisible="{Binding HasAttachmentMessage}" />
-              </StackPanel>
             </StackPanel>
 
             <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
