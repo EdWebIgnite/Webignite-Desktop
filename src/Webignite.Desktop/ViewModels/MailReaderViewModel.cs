@@ -53,6 +53,49 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     public ObservableCollection<AttachmentViewModel> Attachments { get; } = [];
     public bool HasAttachments => Attachments.Count > 0;
 
+    /// <summary>"3 attachments".</summary>
+    public string AttachmentsTitle => Attachments.Count == 1 ? "1 attachment" : $"{Attachments.Count} attachments";
+
+    /// <summary>The attachments' chips show; folded, only their heading does. Kept for the next mail too.</summary>
+    public bool AttachmentsOpen => !services.Settings.MailView.AttachmentsFolded;
+
+    [RelayCommand]
+    private void ToggleAttachments()
+    {
+        services.Settings.MailView = services.Settings.MailView with { AttachmentsFolded = AttachmentsOpen };
+        OnPropertyChanged(nameof(AttachmentsOpen));
+    }
+
+    /// <summary>To and Cc under the sender; hidden, the sender's line stays short.</summary>
+    public bool ShowRecipients => services.Settings.MailView.ShowRecipients;
+
+    public string RecipientsToggleText => ShowRecipients ? "Hide details" : "Details";
+
+    [RelayCommand]
+    private void ToggleRecipients()
+    {
+        services.Settings.MailView = services.Settings.MailView with { ShowRecipients = !ShowRecipients };
+        OnPropertyChanged(nameof(ShowRecipients));
+        OnPropertyChanged(nameof(RecipientsToggleText));
+    }
+
+    /// <summary>The sender's name, then their address apart, so a long address trims instead of wrapping.</summary>
+    public string FromName => Summary.From is { } f && !string.IsNullOrWhiteSpace(f.Name) ? f.Name! : Summary.From?.Address ?? "";
+    public string FromAddress => Summary.From is { Name.Length: > 0, Address: var a } ? a : "";
+
+    /// <summary>The client the sender belongs to, whose folder an attachment can be saved in.</summary>
+    internal string? ClientFolder()
+    {
+        if (Webignite.Core.Mail.ClientMail.For(services.Clients.List(), Summary.From?.Address) is not { } client)
+            return null;
+        var root = Files.FileOps.ClientRoot(services.Settings.Files);
+        var match = Webignite.Core.Files.ClientFolders.For(client, root is null ? [] : Files.FileOps.Folders(root));
+        return match.Fit == Webignite.Core.Files.ClientFolders.Fit.Sure && match.Folder is { } folder && Directory.Exists(folder) ? folder : null;
+    }
+
+    internal AppServices Services => services;
+    internal MailViewModel Owner => owner;
+
     [ObservableProperty] public partial string Html { get; set; } = "";
     [ObservableProperty] public partial bool IsLoading { get; set; } = true;
     [ObservableProperty] public partial string Problem { get; set; } = "";
@@ -100,6 +143,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
         foreach (var attachment in body.Attachments)
             Attachments.Add(new AttachmentViewModel(attachment, this));
         OnPropertyChanged(nameof(HasAttachments));
+        OnPropertyChanged(nameof(AttachmentsTitle));
     }
 
     /// <summary>Pictures from the internet stay off until asked for, so senders can't tell when you read their mail.</summary>
@@ -173,11 +217,19 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
         AttachmentMessage = saved.Count == 0 ? "" : $"Saved {saved.Count} file{(saved.Count == 1 ? "" : "s")} to Downloads.";
     }
 
-    internal string? Save(MailAttachment attachment, string folder)
+    internal bool Copy(MailAttachment attachment, Stream into)
+    {
+        if (mime is null)
+            return false;
+        MailReader.SaveAttachment(mime, attachment.Index, into);
+        return true;
+    }
+
+    internal string? Save(MailAttachment attachment, string folder, string? name = null)
     {
         if (mime is null)
             return null;
-        var path = UniquePath(folder, attachment.FileName);
+        var path = name is null ? UniquePath(folder, attachment.FileName) : Path.Combine(folder, name);
         using (var file = File.Create(path))
             MailReader.SaveAttachment(mime, attachment.Index, file);
         return path;
@@ -224,6 +276,65 @@ public partial class AttachmentViewModel(MailAttachment attachment, MailReaderVi
 {
     public string Name => attachment.FileName;
     public string Size => FormatSize(attachment.Size);
+    public bool IsPdf => Webignite.Core.Files.FileKinds.IsPdf(Name);
+
+    /// <summary>A click on the attachment: shown here when it can be, otherwise opened in its program.</summary>
+    [RelayCommand]
+    private Task Activate()
+    {
+        if (CanPreview)
+            return reader.ShowPreview(this, attachment);
+        Open();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Saved where you choose, in the app's own Save box.</summary>
+    [RelayCommand]
+    private async Task SaveAs()
+    {
+        if (reader.Owner.AskSavePath is not { } ask || await ask(Name) is not { } path)
+            return;
+        try
+        {
+            if (reader.Save(attachment, Path.GetDirectoryName(path)!, Path.GetFileName(path)) is { } saved)
+                reader.Said($"Saved {Path.GetFileName(saved)}.");
+        }
+        catch (IOException e)
+        {
+            reader.Said($"Couldn't save {Name}: {e.Message}");
+        }
+    }
+
+    /// <summary>Saved straight into the sender's client folder, when the sender is a client with one.</summary>
+    public bool CanSaveToClient => reader.ClientFolder() is not null;
+
+    [RelayCommand]
+    private void SaveToClient()
+    {
+        if (reader.ClientFolder() is not { } folder)
+            return;
+        try
+        {
+            if (reader.Save(attachment, folder) is { } path)
+            {
+                reader.Said($"Saved in the client's folder as {Path.GetFileName(path)}.");
+                reader.Services.Go.ShowFile(path);
+            }
+        }
+        catch (IOException e)
+        {
+            reader.Said($"Couldn't save {Name}: {e.Message}");
+        }
+    }
+
+    /// <summary>A PDF straight into the PDF tools, to sign it, fill it in or take pages out.</summary>
+    [RelayCommand]
+    private void OpenInPdfTools()
+    {
+        using var buffer = new MemoryStream();
+        if (reader.Copy(attachment, buffer))
+            reader.Services.Go.Pdf(Name, buffer.ToArray());
+    }
 
     /// <summary>PDFs and pictures open inside the app; everything else in another program.</summary>
     public PreviewKind PreviewKind => AttachmentPreview.Kind(attachment.FileName, attachment.ContentType, attachment.Size);

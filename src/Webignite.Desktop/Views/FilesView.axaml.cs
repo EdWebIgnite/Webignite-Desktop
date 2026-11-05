@@ -166,6 +166,9 @@ public partial class FilesView : FullBleedView
             case Key.Left when files.IsColumns && !alt && files.CanGoUp:
                 files.UpAndPick();
                 break;
+            case Key.Enter when alt && OperatingSystem.IsWindows():
+                files.PropertiesCommand.Execute(null);
+                break;
             case Key.Enter when !ctrl && !alt:
                 files.OpenPickedCommand.Execute(null);
                 break;
@@ -326,7 +329,8 @@ public partial class FilesView : FullBleedView
         menu.Open(FileList);
     }
 
-    private List<Control> MenuItems(FilesViewModel files)
+    /// <summary>The right-click menu for what is picked, or for the folder when nothing is. Public for the screenshot checks.</summary>
+    public List<Control> MenuItems(FilesViewModel files)
     {
         var picked = files.Selected;
         var windows = OperatingSystem.IsWindows();
@@ -335,15 +339,22 @@ public partial class FilesView : FullBleedView
         {
             items.Add(Item("Open", "Enter", () => files.OpenPickedCommand.Execute(null)));
             if (picked.Any(r => r.IsFolder))
-                items.Add(Item("Open in a new tab", null, () => files.OpenPickedInNewTabCommand.Execute(null)));
+                items.Add(Item("Open in a new tab (Ctrl+double-click)", null, () => files.OpenPickedInNewTabCommand.Execute(null)));
+            if (picked is [{ IsFolder: true } newWindow])
+                items.Add(Item("Open in a new window", null, () => files.OpenInNewWindow(newWindow)));
             if (windows && picked.Count == 1 && !picked[0].IsFolder)
                 items.Add(Item("Open with…", null, () => files.OpenWithCommand.Execute(null)));
             items.Add(Item("Quick Look", "Space", files.ToggleQuickLook));
+            if (files.CanMarkup)
+                items.Add(Item("Draw on it in Mark-up", null, files.MarkupPicked));
             if (picked.All(r => !r.IsFolder && (Webignite.Core.Files.FileKinds.IsPdf(r.Name) || Webignite.Core.Files.QuickActions.CanRotate(r.Name))) && picked.Any(r => Webignite.Core.Files.FileKinds.IsPdf(r.Name)))
                 items.Add(Item("PDF tools", null, () => App.Services?.Go.Pdf([.. picked.Select(r => r.Entry.Path)])));
             if (files.IsGathered && picked.Count == 1)
                 items.Add(Item("Show in its folder", null, () => files.ShowInItsFolder(picked[0])));
             items.Add(TagsMenu(files));
+            if (picked.Any(r => !r.IsFolder))
+                items.Add(Item(picked.Count(r => !r.IsFolder) == 1 ? "Mail it" : "Mail them", null, () => files.MailPicked().Forget("Putting the files in a mail", tell: true)));
+            items.Add(LinkToClientMenu(files));
             if (QuickActionsMenu(files) is { } quick)
                 items.Add(quick);
             if (picked is [{ IsFolder: true } pin])
@@ -363,7 +374,7 @@ public partial class FilesView : FullBleedView
             }));
         }
         items.Add(Item("Paste", "Ctrl+V", () => PasteAsync().Forget("Pasting the files", tell: true)));
-        items.Add(Item("Copy path", "Ctrl+Shift+C", CopyPath));
+        items.Add(Item("Copy as path", "Ctrl+Shift+C", CopyPath));
         items.Add(new Separator());
         if (picked.Count > 0)
         {
@@ -374,14 +385,71 @@ public partial class FilesView : FullBleedView
         items.Add(Item("New folder", "Ctrl+Shift+N", () => files.NewFolderCommand.Execute(null)));
         if (files.CanUndo)
             items.Add(Item(files.UndoText, "Ctrl+Z", () => files.UndoCommand.Execute(null)));
+        // On empty space: how the folder is shown, and the folder itself.
+        if (picked.Count == 0)
+        {
+            items.Add(new Separator());
+            items.Add(ViewMenu(files));
+            items.Add(Item("Refresh", "F5", files.Refresh));
+            if (System.IO.Directory.Exists(files.Folder))
+                items.Add(files.FolderIsFavourite
+                    ? Item("Remove this folder from Favourites", null, () => files.RemoveFavourite(files.Folder))
+                    : Item("Add this folder to Favourites", null, () => files.AddFavourite(files.Folder)));
+            if (windows)
+                items.Add(Item("Open in Terminal", null, files.OpenTerminal));
+        }
         if (windows)
         {
             items.Add(new Separator());
             items.Add(Item("Show in Explorer", null, () => files.ShowInExplorerCommand.Execute(null)));
-            items.Add(Item("Properties", null, () => files.PropertiesCommand.Execute(null)));
+            items.Add(Item("Properties", "Alt+Enter", () => files.PropertiesCommand.Execute(null)));
             items.Add(Item("More options", null, () => WindowsMenu(files)));
         }
         return items;
+    }
+
+    // View, sort and group, as on the toolbar, for right-clicking empty space.
+    private static MenuItem ViewMenu(FilesViewModel files)
+    {
+        var menu = new MenuItem { Header = "View", Icon = new Controls.Icon { Data = Icon("Tiles"), Size = 15 } };
+        foreach (var (view, name) in new[] { (Webignite.Core.Files.FileView.Details, "Details"), (Webignite.Core.Files.FileView.List, "List"),
+                     (Webignite.Core.Files.FileView.Thumbnails, "Thumbnails"), (Webignite.Core.Files.FileView.Columns, "Columns") })
+        {
+            var item = new MenuItem { Header = name, ToggleType = MenuItemToggleType.Radio, IsChecked = files.View == view, GroupName = "view" };
+            item.Click += (_, _) => files.ShowAsCommand.Execute(view);
+            menu.Items.Add(item);
+        }
+        menu.Items.Add(new Separator());
+        var sort = new MenuItem { Header = "Sort by" };
+        foreach (var (by, name) in new[] { (Webignite.Core.Files.FileSort.Name, "Name"), (Webignite.Core.Files.FileSort.Modified, "Date changed"),
+                     (Webignite.Core.Files.FileSort.Size, "Size"), (Webignite.Core.Files.FileSort.Kind, "Kind") })
+        {
+            var item = new MenuItem { Header = name, ToggleType = MenuItemToggleType.Radio, IsChecked = files.Sort == by, GroupName = "sort" };
+            item.Click += (_, _) => files.SortByCommand.Execute(by);
+            sort.Items.Add(item);
+        }
+        menu.Items.Add(sort);
+        var group = new MenuItem { Header = "Group by" };
+        foreach (var (by, name) in new[] { (Webignite.Core.Files.FileGrouping.None, "Nothing"), (Webignite.Core.Files.FileGrouping.Kind, "Kind"),
+                     (Webignite.Core.Files.FileGrouping.Date, "Date"), (Webignite.Core.Files.FileGrouping.Tag, "Tag") })
+        {
+            var item = new MenuItem { Header = name, ToggleType = MenuItemToggleType.Radio, IsChecked = files.Grouping == by, GroupName = "group" };
+            item.Click += (_, _) => files.GroupByCommand.Execute(by);
+            group.Items.Add(item);
+        }
+        menu.Items.Add(group);
+        return menu;
+    }
+
+    // Link the picked files to a client's page; the files stay where they are.
+    private static MenuItem LinkToClientMenu(FilesViewModel files)
+    {
+        var menu = new MenuItem { Header = "Link to a client", Icon = new Controls.Icon { Data = Icon("Clients"), Size = 15 } };
+        foreach (var client in files.ClientsToLink())
+            menu.Items.Add(Item(client.Name, null, () => files.LinkPickedTo(client)));
+        if (menu.Items.Count == 0)
+            menu.Items.Add(new MenuItem { Header = "No clients yet", IsEnabled = false });
+        return menu;
     }
 
     // Quick actions: only those that fit what is picked.

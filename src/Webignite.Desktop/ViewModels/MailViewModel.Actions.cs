@@ -197,7 +197,19 @@ public partial class MailViewModel
         items.Add(new("Move to") { Icon = "FolderMove", Items = MoveMenu() });
         items.Add(new("Snooze") { Icon = "Snooze", Items = SnoozeMenu() });
         items.Add(new("Archive", () => Do(ArchiveCommand)) { Icon = "Archive", Gesture = "E" });
+        // One row picked (a conversation counts as one): these act on the mail open from it.
+        var one = Selection.SelectedItems.Count <= 1 && Reader is { } open ? open.Summary : mail.Count == 1 ? mail[0] : null;
+        if (one is not null)
+        {
+            items.Add(MailMenuItem.Separator);
+            items.AddRange(MoreForOne(one));
+        }
         items.Add(MailMenuItem.Separator);
+        items.Add(new("Select all", () =>
+        {
+            SelectAll?.Invoke();
+            return Task.CompletedTask;
+        }) { Gesture = "Ctrl+A" });
         items.Add(new("Delete", () => Do(DeleteCommand)) { Icon = "Trash", Gesture = "Delete" });
         return items;
     }

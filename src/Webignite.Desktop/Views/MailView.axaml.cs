@@ -38,6 +38,21 @@ public partial class MailView : FullBleedView
 
     private MailViewModel? Mail => DataContext as MailViewModel;
 
+    // The menu's clipboard, Save box and Select all belong to the window and the list, so they're handed in here.
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (Mail is not { } mail)
+            return;
+        mail.CopyText = async text =>
+        {
+            if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+                await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, text);
+        };
+        mail.AskSavePath = name => Webignite.Desktop.Files.Picker.Save(this, "Save the mail", name, ["*.eml"], "Mail");
+        mail.SelectAll = () => MessageList.SelectAll();
+    }
+
     private void PaneResized(string pane, double width) => Mail?.Panels.Resized(pane, width);
 
     private void MessageKeyDown(object? sender, KeyEventArgs e)

@@ -31,8 +31,11 @@ public sealed class Navigator
     internal Action<Client>? OpenClientAction { get; set; }
     internal Action<Client>? OpenClientInNewTabAction { get; set; }
     internal Action<MailSummary>? OpenMailInNewTabAction { get; set; }
+    internal Action<MailSummary>? OpenMailInNewWindowAction { get; set; }
     internal Action<string, bool>? OpenFolderAction { get; set; }
     internal Action<string>? ShowFileAction { get; set; }
+    internal Action<string>? OpenFolderInNewWindowAction { get; set; }
+    internal Action<string>? MarkupPictureAction { get; set; }
     internal Action<string>? OpenSettingsAction { get; set; }
     internal Action<bool>? ScreenshotAction { get; set; }
     internal Action<bool>? RecordAction { get; set; }
@@ -65,6 +68,12 @@ public sealed class Navigator
 
     /// <summary>Opens a client's page.</summary>
     public void Client(Client client) => OpenClientAction?.Invoke(client);
+
+    /// <summary>Opens a folder in a Files window of its own.</summary>
+    public void FolderInNewWindow(string path) => OpenFolderInNewWindowAction?.Invoke(path);
+
+    /// <summary>Opens a picture in Mark-up, to draw on it.</summary>
+    public void Markup(string path) => MarkupPictureAction?.Invoke(path);
 
     /// <summary>Shows the folder a file is in, in Files, with the file picked: the app's own "Show in folder".</summary>
     public void ShowFile(string path) => ShowFileAction?.Invoke(path);
@@ -114,6 +123,9 @@ public sealed class Navigator
 
     /// <summary>Opens a client in a tab of its own (Ctrl+click or a middle click on the client).</summary>
     public void ClientInNewTab(Client client) => OpenClientInNewTabAction?.Invoke(client);
+
+    /// <summary>Opens a mail in a Mail window of its own, e.g. to read it on the other screen.</summary>
+    public void MailInNewWindow(MailSummary mail) => OpenMailInNewWindowAction?.Invoke(mail);
 
     /// <summary>Opens a mail in a Mail tab of its own (a middle click on the mail).</summary>
     public void MailInNewTab(MailSummary mail) => OpenMailInNewTabAction?.Invoke(mail);
