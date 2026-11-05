@@ -12,6 +12,10 @@ internal sealed class Program
     {
         // Lets the installer and updater do their part (shortcuts, clean upgrades) before the window opens.
         VelopackApp.Build().Run();
+        // A second start hands over to the copy already running (and what it was asked to open) and stops here.
+        if (OperatingSystem.IsWindows() && !SingleCopy.Claim(args))
+            return;
+        App.StartPicture = Webignite.Core.Files.PictureAssociation.PictureFrom(args, File.Exists);
         WatchForCrashes();
         try
         {

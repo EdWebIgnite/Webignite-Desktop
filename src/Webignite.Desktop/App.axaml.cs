@@ -23,9 +23,19 @@ public partial class App : Application
                 ApplyRestoredBackup();
                 Services = new AppServices(LocalStore.OpenDefault());
             }
-            desktop.MainWindow = new MainWindow { DataContext = new MainViewModel(Services) };
+            var window = new MainWindow { DataContext = new MainViewModel(Services) };
+            desktop.MainWindow = window;
+            var services = Services;
+            window.Opened += (_, _) =>
+            {
+                // Started from a picture in Explorer: show it. Later starts hand theirs over here.
+                if (StartPicture is { } picture)
+                    services.Go.Picture(picture);
+                SingleCopy.Listen(opening => OpenedAgain(window, services, opening));
+            };
             desktop.Exit += (_, _) =>
             {
+                SingleCopy.Release();
                 Services.Dispose();
                 // The database is closed now, so the new copy of the app can swap in a restored backup.
                 if (RestartAfterExit && Environment.ProcessPath is { } exe)
@@ -33,6 +43,19 @@ public partial class App : Application
             };
         }
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>A picture the app was started with, e.g. double-clicked in Explorer, shown once the window is up.</summary>
+    public static string? StartPicture { get; set; }
+
+    // Webignite started again while running: come to the front, and show the picture it was opened with.
+    private static void OpenedAgain(MainWindow window, AppServices services, string opening)
+    {
+        if (window.WindowState == Avalonia.Controls.WindowState.Minimized)
+            window.WindowState = Avalonia.Controls.WindowState.Normal;
+        window.Activate();
+        if (Webignite.Core.Files.PictureAssociation.PictureFrom([opening], File.Exists) is { } picture)
+            services.Go.Picture(picture);
     }
 
     /// <summary>Starts the app again once this copy has closed its database.</summary>

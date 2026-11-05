@@ -31,6 +31,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         LoadFileTags();
         LoadScreenshots();
         LoadNotes();
+        LoadPictures();
         MotionChoice = MotionChoices.First(c => c.Value == services.Settings.Appearance.Motion);
         services.Settings.AppearanceChanged += LookChanged;
         var mailCheck = services.Settings.MailCheck;

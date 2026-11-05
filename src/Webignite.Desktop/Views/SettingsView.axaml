@@ -360,6 +360,23 @@
 
     <Border Classes="card" IsVisible="{Binding ShowFiles}">
       <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Pictures" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Open pictures from Windows Explorer in Webignite's picture viewer. Windows lets only you choose the default, so this puts Webignite on the list and opens Default apps, where you pick it for JPG, PNG, WebP and the rest." />
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !CanOfferForPictures}"
+                   Text="This needs Windows." />
+        <WrapPanel IsVisible="{Binding CanOfferForPictures}" ItemSpacing="8" LineSpacing="8">
+          <Button Classes="quiet" Content="Offer Webignite for pictures" Command="{Binding OfferForPicturesCommand}" IsVisible="{Binding NotOfferedForPictures}" />
+          <Button Classes="quiet" Content="Choose it in Default apps" Command="{Binding OpenDefaultAppsCommand}" IsVisible="{Binding OfferedForPictures}" />
+          <Button Classes="link" Content="Stop offering it" Command="{Binding StopOfferingForPicturesCommand}" IsVisible="{Binding OfferedForPictures}" />
+        </WrapPanel>
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding PicturesMessage}" TextWrapping="Wrap"
+                   IsVisible="{Binding PicturesMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding ShowFiles}">
+      <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Tags" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
                    Text="Tag files and folders in Files by right-clicking them. Each tag has a spot in Files' side list showing everything with it, from every client. Tags stay in Webignite, so Windows Explorer doesn't show them, and they follow a file renamed or moved on the same drive." />

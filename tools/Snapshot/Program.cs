@@ -1505,6 +1505,16 @@ imagesWindow.Close();
     services.ShowNote = showNote;
     tools.Close();
 }
+// Webignite opened again, e.g. from a picture in Explorer, hands over to the copy running and stops.
+{
+    Check("The first copy of the app keeps it", Webignite.Desktop.SingleCopy.Claim([]));
+    string? handed = null;
+    Webignite.Desktop.SingleCopy.Listen(opening => handed = opening);
+    var given = Path.Combine(photos, "Team photo.png");
+    var carriedOn = Task.Run(() => Webignite.Desktop.SingleCopy.Claim([given])).GetAwaiter().GetResult();
+    Check("A second start hands its picture to the running copy and stops", !carriedOn && Until(() => handed == given));
+    Webignite.Desktop.SingleCopy.Release();
+}
 calc.AddToInvoiceCommand.Execute(null);
 calculatorWindow.Close();
 Save("tools-calculator-invoice");
