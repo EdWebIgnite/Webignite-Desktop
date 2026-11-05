@@ -336,7 +336,7 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
         EditingAddress = false;
     }
 
-    /// <summary>Double-click or Enter: a folder opens here, a PDF or picture in the preview, anything else in its program.</summary>
+    /// <summary>Double-click or Enter: a folder opens here, a picture in the picture viewer, a PDF in the preview, anything else in its program.</summary>
     public void Open(FileRowViewModel row)
     {
         if (row.Entry.IsFolder)
@@ -350,6 +350,11 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
             return;
         }
         Remember(row.Entry.Path);
+        if (FileKinds.IsPicture(row.Name))
+        {
+            services.Go.Picture(row.Entry.Path);
+            return;
+        }
         if (FileKinds.CanPreview(row.Name))
         {
             ShowPreview(row.Entry.Path);

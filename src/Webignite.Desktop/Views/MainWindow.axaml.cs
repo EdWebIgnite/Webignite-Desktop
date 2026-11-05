@@ -56,6 +56,7 @@ public partial class MainWindow : Window
             WireQuickNote(services);
             WireTools(services);
             WireColourPicker(services);
+            WirePictures(services);
         }
     }
 

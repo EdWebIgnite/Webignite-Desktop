@@ -53,6 +53,23 @@ public static class PictureTools
         }
     }
 
+    /// <summary>
+    /// A picture to look at: turned the way the camera meant it and shrunk so its longest side is at most
+    /// <paramref name="largest"/>, as BGRA pixels. Also its full size, to show.
+    /// </summary>
+    public static (byte[] Pixels, int Width, int Height, int FullWidth, int FullHeight) ForViewing(string path, int largest)
+    {
+        using var upright = Upright(path);
+        var (fullWidth, fullHeight) = (upright.Width, upright.Height);
+        var scale = Math.Min(1.0, (double)largest / Math.Max(fullWidth, fullHeight));
+        var info = new SKImageInfo(Math.Max(1, (int)(fullWidth * scale)), Math.Max(1, (int)(fullHeight * scale)), SKColorType.Bgra8888, SKAlphaType.Premul);
+        // Resized even at full size, so the pixels always come out as premultiplied BGRA, as the screen wants them.
+        using var shown = upright.Resize(info, new SKSamplingOptions(SKCubicResampler.Mitchell));
+        if (shown is null)
+            throw new IOException($"Couldn't show the picture in {Path.GetFileName(path)}.");
+        return (shown.Bytes, shown.Width, shown.Height, fullWidth, fullHeight);
+    }
+
     /// <summary>The picture decoded and turned the way the camera meant it.</summary>
     internal static SKBitmap Upright(string path)
     {

@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Webignite.Desktop.ViewModels"
+        xmlns:c="using:Webignite.Desktop.Controls"
+        x:Class="Webignite.Desktop.Views.PictureWindow"
+        x:DataType="vm:PictureViewModel"
+        Title="{Binding Name}" Width="1100" Height="760" MinWidth="480" MinHeight="360"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource Nav}">
+  <DockPanel>
+    <!-- The bar along the top: where you are, and what can be done with the picture -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="10,6">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+          <Button Classes="quiet" Content="−" Padding="10,4" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (-)" />
+          <Button Classes="quiet" Content="{Binding ZoomText}" MinWidth="64" Command="{Binding ActualSizeCommand}" ToolTip.Tip="Actual size (1)" />
+          <Button Classes="quiet" Content="+" Padding="10,4" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (+)" />
+          <Button Classes="quiet" Content="Fit" Command="{Binding FitCommand}" Classes.on="{Binding Fitting}" ToolTip.Tip="Fit to the window (0)" />
+          <Border Width="1" Background="{DynamicResource Line}" Margin="4,4" />
+          <Button Classes="quiet" Content="Turn" Command="{Binding TurnRightCommand}" ToolTip.Tip="Turn right (R). Shift+R turns left. Saved in the file; Undo turns it back." />
+          <Button Classes="quiet" Content="Copy" Command="{Binding CopyCommand}" ToolTip.Tip="Copy the picture (Ctrl+C)" />
+          <Button Classes="quiet" Content="Mark-up" Command="{Binding MarkupCommand}" ToolTip.Tip="Draw on it: arrows, notes, text and blur (E)" />
+          <Button Classes="quiet" Padding="8,6" ToolTip.Tip="More">
+            <c:Icon Data="{StaticResource Icon.Tiles}" Size="16" />
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="Show in Files" Command="{Binding ShowInFilesCommand}" />
+                <MenuItem Header="Open in another program" Command="{Binding OpenWithCommand}" />
+                <MenuItem Header="Turn left" Command="{Binding TurnLeftCommand}" InputGesture="Shift+R" />
+                <Separator />
+                <MenuItem Header="Delete" Command="{Binding AskDeleteCommand}" InputGesture="Delete" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <Button Classes="quiet" Padding="8,6" Command="{Binding PreviousCommand}" IsEnabled="{Binding HasMore}" ToolTip.Tip="Previous picture in the folder (←)">
+            <c:Icon Data="{StaticResource Icon.Back}" Size="16" />
+          </Button>
+          <Button Classes="quiet" Padding="8,6" Command="{Binding NextCommand}" IsEnabled="{Binding HasMore}" ToolTip.Tip="Next picture in the folder (→)">
+            <c:Icon Data="{StaticResource Icon.Forward}" Size="16" />
+          </Button>
+          <StackPanel VerticalAlignment="Center" Margin="8,0,0,0">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="420" />
+            <TextBlock Classes="muted" FontSize="12" Text="{Binding Info}" />
+          </StackPanel>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Asked before deleting -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" Padding="14,8" IsVisible="{Binding ConfirmingDelete}">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <TextBlock VerticalAlignment="Center" Text="{Binding Name, StringFormat='Delete {0}? It goes to the Recycle Bin.'}" />
+        <Button Classes="quiet" Content="Delete" Command="{Binding DeleteCommand}" />
+        <Button Classes="link" Content="Keep it" Command="{Binding KeepItCommand}" />
+      </StackPanel>
+    </Border>
+
+    <Panel>
+      <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="Transparent">
+        <ScrollViewer.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Copy the picture" Command="{Binding CopyCommand}" InputGesture="Ctrl+C" />
+            <MenuItem Header="Mark it up" Command="{Binding MarkupCommand}" InputGesture="E" />
+            <MenuItem Header="Turn right" Command="{Binding TurnRightCommand}" InputGesture="R" />
+            <MenuItem Header="Turn left" Command="{Binding TurnLeftCommand}" InputGesture="Shift+R" />
+            <Separator />
+            <MenuItem Header="Fit to the window" Command="{Binding FitCommand}" InputGesture="D0" />
+            <MenuItem Header="Actual size" Command="{Binding ActualSizeCommand}" InputGesture="D1" />
+            <Separator />
+            <MenuItem Header="Show in Files" Command="{Binding ShowInFilesCommand}" />
+            <MenuItem Header="Open in another program" Command="{Binding OpenWithCommand}" />
+            <MenuItem Header="Delete" Command="{Binding AskDeleteCommand}" InputGesture="Delete" />
+          </ContextMenu>
+        </ScrollViewer.ContextMenu>
+        <Image x:Name="Shown" Source="{Binding Picture}" Width="{Binding ShownWidth}" Height="{Binding ShownHeight}" Stretch="Fill"
+               HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapInterpolationMode="HighQuality" />
+      </ScrollViewer>
+      <TextBlock Foreground="{DynamicResource NavMuted}" Text="Opening…" IsVisible="{Binding Loading}"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <TextBlock Foreground="{DynamicResource NavText}" Text="{Binding Problem}" IsVisible="{Binding HasProblem}" TextWrapping="Wrap" MaxWidth="520"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+    </Panel>
+  </DockPanel>
+</Window>
