@@ -10,7 +10,16 @@ public sealed record XeroCustomer(
     string? Address = null,
     string? Website = null,
     bool Active = true,
-    bool IsCustomer = true);
+    bool IsCustomer = true,
+    bool IsSupplier = false)
+{
+    /// <summary>
+    /// Someone Webignite only pays, such as a hosting company: Xero marks them a supplier and never a customer.
+    /// Xero only marks a customer once they've had an invoice in Xero, so a contact with neither mark is a client
+    /// who simply hasn't been invoiced there yet, and comes in.
+    /// </summary>
+    public bool OnlySupplier => IsSupplier && !IsCustomer;
+}
 
 /// <summary>What bringing Xero's customers in would do: clients to add, and clients to fill in from a contact.</summary>
 public sealed record XeroClientPlan(IReadOnlyList<XeroCustomer> ToAdd, IReadOnlyList<(string ClientId, XeroCustomer Contact)> ToFill)
@@ -22,7 +31,7 @@ public sealed record XeroClientPlan(IReadOnlyList<XeroCustomer> ToAdd, IReadOnly
 /// Xero's customers as clients. Xero is read, never written. A client already here is matched by its Xero
 /// contact, else by name, and only its blank details are filled: what was typed here always stays. A customer
 /// nobody here matches becomes a new client. Archived contacts and contacts that are only suppliers are not
-/// brought in.
+/// brought in; every other contact is, invoiced in Xero yet or not.
 /// </summary>
 public static class XeroClients
 {
@@ -44,7 +53,7 @@ public static class XeroClients
                 byName.Remove(key);
                 continue;
             }
-            if (contact.Active && contact.IsCustomer && adding.Add(key))
+            if (contact.Active && !contact.OnlySupplier && adding.Add(key))
                 toAdd.Add(contact);
         }
         return new XeroClientPlan(toAdd, toFill);
