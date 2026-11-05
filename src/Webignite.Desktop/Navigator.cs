@@ -43,6 +43,7 @@ public sealed class Navigator
     internal Action<IReadOnlyList<string>>? OpenPdfAction { get; set; }
     internal Action<string>? OpenNoteAction { get; set; }
     internal Action<string?, string?>? OpenPersonAction { get; set; }
+    internal Action<string>? OpenProjectTaskAction { get; set; }
     internal Action<string, string>? ClientNotesAction { get; set; }
     internal Action? QuickNoteAction { get; set; }
     internal Action<ViewModels.ToolKind>? OpenToolAction { get; set; }
@@ -124,6 +125,9 @@ public sealed class Navigator
 
     /// <summary>Opens a person in Contacts.</summary>
     public void Person(string id) => OpenPersonAction?.Invoke(id, null);
+
+    /// <summary>Opens a task on the Projects page, beside its project.</summary>
+    public void ProjectTask(string id) => OpenProjectTaskAction?.Invoke(id);
 
     /// <summary>A new person in Contacts, already with this client.</summary>
     public void NewPerson(string clientId) => OpenPersonAction?.Invoke(null, clientId);

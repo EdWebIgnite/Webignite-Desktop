@@ -281,6 +281,11 @@ public partial class MainViewModel : ViewModelBase
             else
                 contacts.New(clientId);
         };
+        go.OpenProjectTaskAction = id =>
+        {
+            Selected = this[Page.Projects];
+            PageOf<ProjectsViewModel>(Page.Projects).OpenTaskById(id);
+        };
         go.ClientNotesAction = (id, name) =>
         {
             Selected = this[Page.Notes];

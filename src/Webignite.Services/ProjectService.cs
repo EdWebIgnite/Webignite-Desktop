@@ -65,6 +65,13 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return new ProjectWork([project], headings, tasks);
     }
 
+    /// <summary>Open tasks and subtasks given to this person, in projects that aren't done (see <see cref="ProjectRules.Mine"/>).</summary>
+    public IReadOnlyList<ProjectTask> Mine(string meId) => ProjectRules.Mine(store.ListProjectTasks(), store.ListProjects(), meId);
+
+    /// <summary>This person's tasks due in a range, for Calendar, Planner and Today.</summary>
+    public IReadOnlyList<Webignite.Core.Calendar.AgendaItem> Agenda(DateOnly from, DateOnly to, string meId) =>
+        ProjectRules.Agenda(from, to, Mine(meId), store.ListProjects().ToDictionary(p => p.Id, p => p.Name));
+
     // Headings
 
     /// <summary>A project's headings, in their order.</summary>

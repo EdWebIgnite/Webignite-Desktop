@@ -283,6 +283,56 @@ public static class ProjectRules
         return $"{name}, {document.Customer.Name}{total}";
     }
 
+    /// <summary>
+    /// My tasks: open tasks and subtasks given to me, in projects that aren't deleted or done.
+    /// </summary>
+    public static IReadOnlyList<ProjectTask> Mine(IEnumerable<ProjectTask> tasks, IEnumerable<Project> projects, string meId)
+    {
+        var live = projects.Where(p => p.Deleted is null && p.Status != ProjectStatus.Done).Select(p => p.Id).ToHashSet();
+        return [.. tasks.Where(t => t.Deleted is null && !t.Done && t.AssignedTo == meId && live.Contains(t.ProjectId))];
+    }
+
+    /// <summary>
+    /// My tasks by when they're due: overdue, today, the rest of this week, later, and no date. Within a group,
+    /// by date, then High before Normal before Low.
+    /// </summary>
+    public static IReadOnlyList<(string Title, IReadOnlyList<ProjectTask> Tasks)> ByWhen(IEnumerable<ProjectTask> tasks, DateOnly today)
+    {
+        var weekEnd = Dates.WeekStart(today).AddDays(6);
+        static int Rank(TaskPriority p) => p switch { TaskPriority.High => 0, TaskPriority.Normal => 1, _ => 2 };
+        var sorted = tasks.OrderBy(t => t.Due ?? DateOnly.MaxValue).ThenBy(t => Rank(t.Priority)).ThenBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase).ToList();
+        (string, IReadOnlyList<ProjectTask>)[] groups =
+        [
+            ("Overdue", sorted.Where(t => t.Due < today).ToList()),
+            ("Today", sorted.Where(t => t.Due == today).ToList()),
+            ("This week", sorted.Where(t => t.Due > today && t.Due <= weekEnd).ToList()),
+            ("Later", sorted.Where(t => t.Due > weekEnd).ToList()),
+            ("No due date", sorted.Where(t => t.Due is null).ToList()),
+        ];
+        return [.. groups.Where(g => g.Item2.Count > 0)];
+    }
+
+    /// <summary>My tasks due in a range, for Calendar, Planner and Today: "Wireframes (Bosveld Builders website)".</summary>
+    public static IReadOnlyList<Webignite.Core.Calendar.AgendaItem> Agenda(DateOnly from, DateOnly to, IEnumerable<ProjectTask> mine, IReadOnlyDictionary<string, string> projectNames) =>
+        [.. mine.Where(t => t.Due is { } due && due >= from && due <= to)
+            .Select(t => new Webignite.Core.Calendar.AgendaItem(t.Due!.Value, Webignite.Core.Calendar.AgendaKind.ProjectTask,
+                projectNames.TryGetValue(t.ProjectId, out var name) ? $"{t.Title} ({name})" : t.Title, null, t.Id, t.Done))];
+
+    /// <summary>A task made from a mail: its subject as the title, the mail linked, given to me.</summary>
+    public static ProjectTask FromMail(Webignite.Core.Mail.MailSummary mail, string projectId, string meId, string? clientId) => new()
+    {
+        Id = NewId(),
+        ProjectId = projectId,
+        Title = string.IsNullOrWhiteSpace(mail.Subject) ? $"Mail from {mail.From?.Display ?? "someone"}" : mail.Subject.Trim(),
+        AssignedTo = meId,
+        ClientId = clientId,
+        Mail = TaskMail.Of(mail),
+    };
+
+    /// <summary>The note on a timer started from a task: "Wireframes, Bosveld Builders website".</summary>
+    public static string TimerNote(ProjectTask task, string? projectName) =>
+        string.IsNullOrWhiteSpace(projectName) ? task.Title : $"{task.Title}, {projectName}";
+
     public static string Label(TaskPriority priority) => priority switch
     {
         TaskPriority.High => "High",

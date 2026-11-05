@@ -25,12 +25,20 @@ public sealed partial class ProjectsViewModel
     public void OpenTaskById(string id)
     {
         SaveTyped();
-        if (services.Projects.GetTask(id) is not { } task || task.ParentId is not null)
+        if (services.Projects.GetTask(id) is not { } task)
             return;
-        if (open?.Id != task.ProjectId && services.Projects.Get(task.ProjectId) is { } project)
+        // A subtask opens its task, where it's listed.
+        if (task.ParentId is { } parentId)
+        {
+            if (services.Projects.GetTask(parentId) is not { } parent)
+                return;
+            (task, id) = (parent, parentId);
+        }
+        // In My tasks the task opens beside the list; otherwise beside its project.
+        if (!IsMyTasks && open?.Id != task.ProjectId && services.Projects.Get(task.ProjectId) is { } project)
             Show(project);
         Detail = new TaskDetail(task, this, services);
-        foreach (var row in Rows.OfType<TaskRow>())
+        foreach (var row in Rows.OfType<TaskRow>().Concat(MyRows.OfType<TaskRow>()))
             row.IsOpen = row.Task.Id == id;
         if (!Panels["task"].IsShown)
             Panels["task"].IsShown = true;
@@ -42,7 +50,7 @@ public sealed partial class ProjectsViewModel
     {
         SaveTyped();
         Detail = null;
-        foreach (var row in Rows.OfType<TaskRow>())
+        foreach (var row in Rows.OfType<TaskRow>().Concat(MyRows.OfType<TaskRow>()))
             row.IsOpen = false;
         if (Panels.CanHide("task"))
             Panels["task"].IsShown = false;
@@ -64,7 +72,7 @@ public sealed partial class ProjectsViewModel
         detail.Problem = "";
         detail.Saved(saved, typed);
         // Typing in the title only renames the row; new tags change the filter's list, so everything is shown again.
-        if (typed && saved.Tags.SequenceEqual(tagsBefore) && Rows.OfType<TaskRow>().FirstOrDefault(r => r.Task.Id == saved.Id) is { } row)
+        if (typed && saved.Tags.SequenceEqual(tagsBefore) && Rows.OfType<TaskRow>().Concat(MyRows.OfType<TaskRow>()).FirstOrDefault(r => r.Task.Id == saved.Id) is { } row)
         {
             row.Task = saved;
             row.Reset();
@@ -112,9 +120,28 @@ public sealed partial class ProjectsViewModel
 
     internal void OpenDocument(StoredDocument stored) => services.Go.Document(stored);
 
-    /// <summary>The headings a task can go under, for the task pane.</summary>
-    internal IReadOnlyList<Choice<string?>> HeadingChoices() =>
-        [.. Sections.Select(s => new Choice<string?>(s.IsHeading ? s.Name : "Not under a heading", s.Heading?.Id))];
+    /// <summary>The headings a task can go under in its project, for the task pane.</summary>
+    internal IReadOnlyList<Choice<string?>> HeadingChoices(string projectId) =>
+        [new Choice<string?>("Not under a heading", null), .. services.Projects.Headings(projectId).Select(h => new Choice<string?>(h.Name, h.Id))];
+
+    /// <summary>Starts the Time page's timer on a task, with its client; one timer runs at a time.</summary>
+    internal void StartTimer(ProjectTask task)
+    {
+        SaveTyped();
+        if (services.Timer.Running is { } running)
+        {
+            services.ShowNote?.Invoke("A timer is running already", $"Stop \"{running.Note}\" on the Time page first.", () => services.Go.To(Page.Time));
+            return;
+        }
+        var project = services.Projects.Get(task.ProjectId);
+        services.Timer.Start(new Webignite.Core.Time.RunningTimer
+        {
+            Started = DateTimeOffset.Now,
+            Note = ProjectRules.TimerNote(task, project?.Name),
+            ClientId = task.ClientId ?? project?.ClientId,
+        });
+        services.ShowNote?.Invoke("Timer started", ProjectRules.TimerNote(task, project?.Name), () => services.Go.To(Page.Time));
+    }
 }
 
 /// <summary>The task open in the third pane. Changes go through the page, which keeps the list in step.</summary>
@@ -193,7 +220,7 @@ public sealed partial class TaskDetail : ObservableObject
         Priority = ProjectsViewModel.Priorities.First(p => p.Value == Task.Priority);
         TagsText = string.Join(", ", Task.Tags);
         ShowOtherTags();
-        Headings = page.HeadingChoices();
+        Headings = page.HeadingChoices(Task.ProjectId);
         OnPropertyChanged(nameof(Headings));
         Heading = Headings.FirstOrDefault(h => h.Value == Task.HeadingId) ?? Headings.FirstOrDefault();
         OnPropertyChanged(nameof(Heading));
@@ -345,9 +372,12 @@ public sealed partial class TaskDetail : ObservableObject
     private void Close() => page.CloseTaskCommand.Execute(null);
 
     [RelayCommand]
+    private void StartTimer() => page.StartTimer(Task);
+
+    [RelayCommand]
     private void Delete()
     {
-        if (page.Rows.OfType<TaskRow>().FirstOrDefault(r => r.Task.Id == Task.Id) is { } row)
+        if (page.Rows.OfType<TaskRow>().Concat(page.MyRows.OfType<TaskRow>()).FirstOrDefault(r => r.Task.Id == Task.Id) is { } row)
             page.DeleteTask(row);
     }
 

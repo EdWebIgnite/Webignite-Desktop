@@ -10,7 +10,7 @@ public sealed class AgendaItemViewModel(AgendaItem item, Action<AgendaItemViewMo
     public string Time => Item.Time?.ToString("HH:mm") ?? "";
     public bool HasTime => Item.Time is not null;
     public bool IsEvent => Item.Kind == AgendaKind.Event;
-    public bool IsTask => Item.Kind == AgendaKind.Task;
+    public bool IsTask => Item.Kind is AgendaKind.Task or AgendaKind.ProjectTask;
     public bool IsQuote => Item.Kind == AgendaKind.QuoteExpires;
     public bool IsInvoice => Item.Kind == AgendaKind.InvoiceDue;
     public bool IsDone => Item.Done;
@@ -20,6 +20,7 @@ public sealed class AgendaItemViewModel(AgendaItem item, Action<AgendaItemViewMo
     {
         AgendaKind.Event => "Event",
         AgendaKind.Task => "To-do",
+        AgendaKind.ProjectTask => "Project task",
         AgendaKind.QuoteExpires => "Quote",
         _ => "Invoice",
     };
