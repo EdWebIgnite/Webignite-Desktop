@@ -44,11 +44,13 @@ public abstract partial class WidgetBody : ObservableObject, IDisposable
         WidgetKind.Colours => new ColoursBody(page.Tools),
         WidgetKind.Timer => new TimerBody(services),
         WidgetKind.Client => new ClientBody(services, widget.Target),
+        WidgetKind.NeedsYou => new NeedsYouBody(services),
+        WidgetKind.Mail => new MailBody(services),
         _ => new SoonBody(),
     };
 }
 
-/// <summary>A kind not built yet; kept on the page so nothing is lost.</summary>
+/// <summary>A kind this version doesn't know (from a newer one); kept on the page so nothing is lost.</summary>
 public sealed class SoonBody : WidgetBody;
 
 /// <summary>A line in a list of tasks: tick it off, or click it to open it in Projects.</summary>
@@ -380,4 +382,86 @@ public sealed partial class ClientBody : WidgetBody
         if (Client is { Email: { Length: > 0 } email } client)
             services.Go.WriteMail([new Webignite.Core.Mail.MailPerson(client.ContactPerson ?? client.Name, email)]);
     }
+}
+
+/// <summary>Overview's Needs you: what wants doing, each with a way to it.</summary>
+public sealed partial class NeedsYouBody : WidgetBody
+{
+    private readonly AppServices services;
+
+    public NeedsYouBody(AppServices services)
+    {
+        this.services = services;
+        services.RepliesChanged += Refresh;
+        Refresh();
+    }
+
+    public ObservableCollection<SummaryLineViewModel> Lines { get; } = [];
+
+    [ObservableProperty] public partial bool IsEmpty { get; private set; }
+
+    public override void Refresh()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        Lines.Clear();
+        foreach (var line in Webignite.Core.Overview.MorningSummary.Build(Summaries.Input(services, today, services.Documents.List())))
+            Lines.Add(new SummaryLineViewModel(line, services));
+        IsEmpty = Lines.Count == 0;
+    }
+
+    public override void Dispose()
+    {
+        services.RepliesChanged -= Refresh;
+        base.Dispose();
+    }
+}
+
+/// <summary>A mail in the inbox widget: who from, what about, when; a click opens it in Mail.</summary>
+public sealed partial class MailLine(Webignite.Core.Mail.MailSummary mail, AppServices services)
+{
+    public string From => mail.From is { } from ? string.IsNullOrWhiteSpace(from.Name) ? from.Address : from.Name! : "";
+    public string Subject => mail.Subject.Length > 0 ? mail.Subject : "(no subject)";
+    public bool Unread => !mail.Seen;
+
+    public string When => mail.Date.LocalDateTime.Date == DateTime.Today
+        ? mail.Date.LocalDateTime.ToString("HH:mm", CultureInfo.CurrentCulture)
+        : mail.Date.LocalDateTime.ToString("d MMM", CultureInfo.CurrentCulture);
+
+    [RelayCommand]
+    private void Open() => services.Go.Mail(mail);
+}
+
+/// <summary>The newest mail across every inbox, unread in bold.</summary>
+public sealed partial class MailBody : WidgetBody
+{
+    private const int Shown = 30;
+    private readonly AppServices services;
+
+    public MailBody(AppServices services)
+    {
+        this.services = services;
+        Refresh();
+    }
+
+    public ObservableCollection<MailLine> Lines { get; } = [];
+
+    [ObservableProperty] public partial string Heading { get; private set; } = "Mail inbox";
+    [ObservableProperty] public partial bool IsEmpty { get; private set; }
+
+    public override string? Title => Heading;
+
+    public override void Refresh()
+    {
+        var inbox = Summaries.Inbox(services, Shown);
+        Lines.Clear();
+        foreach (var mail in inbox.OrderByDescending(m => m.Date).Take(Shown))
+            Lines.Add(new MailLine(mail, services));
+        var unread = inbox.Count(m => !m.Seen);
+        Heading = unread == 0 ? "Mail inbox" : $"Mail inbox, {unread} unread";
+        IsEmpty = Lines.Count == 0;
+        OnPropertyChanged(nameof(Title));
+    }
+
+    [RelayCommand]
+    private void OpenMail() => services.Go.To(Page.Mail);
 }

@@ -2336,6 +2336,11 @@ Save("site-check");
         Check("A page keeps its name, its widgets and a note's words", savedPage.Name == "Monday" && savedPage.Widgets.Count == 8
             && savedPage.Widgets.Single(w => w.Kind == WidgetKind.Note).Text == "Call Pieter after 10 about the photos"
             && vm.Sidebar.Items.OfType<MyPageLink>().Any(l => l.Title == "Monday"));
+        myPages.AddWidget(WidgetKind.NeedsYou);
+        myPages.AddWidget(WidgetKind.Mail);
+        Check("Needs you and the mail widget show what Overview and Mail have", myPages.Widgets.Single(w => w.Kind == WidgetKind.NeedsYou).Body is NeedsYouBody { Lines.Count: > 0 }
+            && myPages.Widgets.Single(w => w.Kind == WidgetKind.Mail).Body is MailBody { Lines.Count: > 0 } mailBody && mailBody.Title!.StartsWith("Mail inbox", StringComparison.Ordinal));
+        savedPage = services.Settings.MyPages.Single();
         Check("Widgets go on the grid without overlapping", savedPage.Widgets.All(x => savedPage.Widgets.All(y => x.Id == y.Id || !MyPages.Overlap(x, y))));
         Check("The project widget shows the project's open tasks", myPages.Widgets.Single(w => w.Kind == WidgetKind.Project).Body is TasksBody { Lines.Count: > 0 } projectBody
             && projectBody.Title == "Bosveld Builders new website");
@@ -2362,6 +2367,18 @@ Save("site-check");
         myPages.ShowList();
         Check("All my pages lists the pages made", myPages.Cards.Count == 1 && myPages.Cards[0].Name == "Monday");
         Save("my-pages-list");
+        myPages.NewPage();
+        myPages.EditName = "Morning";
+        foreach (var kind in new[] { WidgetKind.NeedsYou, WidgetKind.Mail, WidgetKind.MyTasks })
+            myPages.AddWidget(kind);
+        myPages.ToggleEditingCommand.Execute(null);
+        window.Width = 1920;
+        window.Height = 1080;
+        Dispatcher.UIThread.RunJobs();
+        Check("A second page shows in the sidebar under its name", vm.Sidebar.Items.OfType<MyPageLink>().Select(l => l.Title).Take(2).SequenceEqual(["Monday", "Morning"]));
+        Save("my-pages-morning");
+        window.Width = 1280;
+        window.Height = 860;
         Open(Page.Overview);
     }
 
