@@ -37,9 +37,36 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
 
     public ObservableCollection<AgendaItemViewModel> Today { get; } = [];
 
-    /// <summary>The morning summary: what needs doing, then what's good to know.</summary>
+    /// <summary>How many Needs you lines show before "Show more": the most pressing come first.</summary>
+    private const int FirstShown = 6;
+
+    private List<SummaryLineViewModel> allSummary = [];
+    private bool showAllSummary;
+
+    /// <summary>The morning summary as shown: what needs doing, then what's good to know, the first few until asked for all.</summary>
     public ObservableCollection<SummaryLineViewModel> Summary { get; } = [];
     public bool HasSummary => Summary.Count > 0;
+
+    /// <summary>"Show 7 more" under Needs you, or "Show fewer"; empty when everything fits.</summary>
+    public string MoreSummaryText => allSummary.Count <= FirstShown ? "" : showAllSummary ? "Show fewer" : $"Show {allSummary.Count - FirstShown} more";
+    public bool HasMoreSummary => MoreSummaryText.Length > 0;
+
+    [RelayCommand]
+    private void ToggleSummary()
+    {
+        showAllSummary = !showAllSummary;
+        ShowSummary();
+    }
+
+    private void ShowSummary()
+    {
+        Summary.Clear();
+        foreach (var line in showAllSummary ? allSummary : allSummary.Take(FirstShown))
+            Summary.Add(line);
+        OnPropertyChanged(nameof(HasSummary));
+        OnPropertyChanged(nameof(MoreSummaryText));
+        OnPropertyChanged(nameof(HasMoreSummary));
+    }
     public bool TodayIsEmpty => Today.Count == 0;
     public string OverdueText { get; private set; } = "";
     public bool HasOverdue => OverdueText.Length > 0;
@@ -113,9 +140,8 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
             ? $"Payments from Xero, checked at {checkedAt.ToLocalTime():HH:mm}."
             : services.XeroApi is null ? "Connect Xero to see payments." : "Checking Xero for payments.";
 
-        Summary.Clear();
-        foreach (var line in MorningSummary.Build(Summaries.Input(services, today, documents)))
-            Summary.Add(new SummaryLineViewModel(line, services));
+        allSummary = [.. MorningSummary.Build(Summaries.Input(services, today, documents)).Select(line => new SummaryLineViewModel(line, services))];
+        ShowSummary();
 
         OnPropertyChanged(string.Empty);
     }

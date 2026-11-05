@@ -4,6 +4,22 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.OverviewView"
              x:DataType="vm:OverviewViewModel">
+  <UserControl.Styles>
+    <!-- Needs you stays calm: a line's action and its extra links show only while the pointer is on the line. -->
+    <Style Selector="DockPanel.needsrow > Button.needsextra">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="DockPanel.needsrow:pointerover > Button.needsextra">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.needsline">
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="Margin" Value="-10,0,0,0" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </UserControl.Styles>
+
   <StackPanel Spacing="22">
     <StackPanel Spacing="4">
       <TextBlock Classes="h1" Text="{Binding Greeting}" />
@@ -72,19 +88,27 @@
         <ItemsControl ItemsSource="{Binding Summary}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:SummaryLineViewModel">
-              <DockPanel Margin="0,0,0,6">
-                <Button DockPanel.Dock="Right" Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" VerticalAlignment="Center"
-                        IsEnabled="{Binding !Busy}" />
-                <Button DockPanel.Dock="Right" Classes="link" Content="No reply needed" Margin="0,0,14,0" IsVisible="{Binding CanWaveOff}"
+              <!-- The whole line opens what it's about; its action and No reply needed show while the pointer is on it. -->
+              <DockPanel Classes="needsrow">
+                <Button DockPanel.Dock="Right" Classes="link needsextra" Content="No reply needed" Margin="10,0,0,0" IsVisible="{Binding CanWaveOff}"
                         Command="{Binding NoReplyNeededCommand}" VerticalAlignment="Center"
                         ToolTip.Tip="Takes it off this list. It comes back if they write again." />
-                <c:Spinner DockPanel.Dock="Right" IsVisible="{Binding Busy}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="8,0" />
-                <Ellipse DockPanel.Dock="Left" Classes="dot" Classes.problem="{Binding Problem}" Margin="2,0,12,0" />
-                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" Classes.problem="{Binding Problem}" />
+                <Button DockPanel.Dock="Right" Classes="link needsextra" Content="{Binding Action}" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}"
+                        FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" />
+                <Button Classes="row needsline" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        ToolTip.Tip="{Binding Action}">
+                  <DockPanel>
+                    <c:Spinner DockPanel.Dock="Right" IsVisible="{Binding Busy}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="8,0" />
+                    <Ellipse DockPanel.Dock="Left" Classes="dot" Classes.problem="{Binding Problem}" Margin="2,0,12,0" />
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" Classes.problem="{Binding Problem}" />
+                  </DockPanel>
+                </Button>
               </DockPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+        <Button Classes="link" Content="{Binding MoreSummaryText}" Command="{Binding ToggleSummaryCommand}" IsVisible="{Binding HasMoreSummary}"
+                HorizontalAlignment="Left" Margin="10,2,0,0" />
       </StackPanel>
     </Border>
 
