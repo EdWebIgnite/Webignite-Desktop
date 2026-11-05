@@ -1,0 +1,218 @@
+using Webignite.Core.Projects;
+using Webignite.Data;
+
+namespace Webignite.Services;
+
+/// <summary>
+/// Projects, headings, tasks and subtasks, for the Projects page and later My tasks, Planner and Calendar. Every
+/// change is made to the record as stored now and stamped with who made it and when, field by field, so sync
+/// can be added later without redoing anything. Deleting leaves a marker; Undo takes it away again.
+/// <see cref="Changed"/> tells every open page, with the project's id, or null when it's about projects as a whole.
+/// </summary>
+public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvider? clock = null)
+{
+    private readonly TimeProvider clock = clock ?? TimeProvider.System;
+
+    public event Action<string?>? Changed;
+
+    private Stamp Now() => new(me(), clock.GetUtcNow());
+
+    // Projects
+
+    /// <summary>The projects not deleted, in their order.</summary>
+    public IReadOnlyList<Project> Projects() =>
+        [.. store.ListProjects().Where(p => p.Deleted is null).OrderBy(p => p.Order).ThenBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase)];
+
+    public Project? Get(string id) => store.GetProject(id) is { Deleted: null } project ? project : null;
+
+    /// <summary>A new project at the end of the list. Returns the problems instead, saving nothing.</summary>
+    public (Project? Saved, IReadOnlyList<string> Problems) Add(Project typed)
+    {
+        var project = typed with { Name = typed.Name.Trim(), Order = ProjectRules.NextOrder(store.ListProjects().Select(p => p.Order)) };
+        var problems = ProjectRules.Check(project);
+        if (problems.Count > 0)
+            return (null, problems);
+        var saved = store.SaveProject(ProjectRules.Stamped(null, project, Now()));
+        Changed?.Invoke(null);
+        return (saved, []);
+    }
+
+    /// <summary>Changes a project as it's stored now. Null when it's gone; the problems when the change isn't allowed.</summary>
+    public (Project? Saved, IReadOnlyList<string> Problems) Change(string id, Func<Project, Project> change)
+    {
+        if (Get(id) is not { } current)
+            return (null, ["The project is gone."]);
+        var changed = change(current);
+        changed = changed with { Id = current.Id, Name = changed.Name.Trim() };
+        var problems = ProjectRules.Check(changed);
+        if (problems.Count > 0)
+            return (null, problems);
+        var saved = store.SaveProject(ProjectRules.Stamped(current, changed, Now()));
+        Changed?.Invoke(id);
+        return (saved, []);
+    }
+
+    /// <summary>Deletes a project with its headings and tasks. Returns what went, for Undo.</summary>
+    public ProjectWork? Delete(string id)
+    {
+        if (Get(id) is not { } project)
+            return null;
+        var now = Now();
+        var headings = Headings(id);
+        var tasks = AllTasks(id);
+        store.SaveProjectWork([Remove(project, now)], headings.Select(h => Remove(h, now)), tasks.Select(t => Remove(t, now)));
+        Changed?.Invoke(null);
+        return new ProjectWork([project], headings, tasks);
+    }
+
+    // Headings
+
+    /// <summary>A project's headings, in their order.</summary>
+    public IReadOnlyList<Heading> Headings(string projectId) =>
+        [.. store.ListHeadings().Where(h => h.ProjectId == projectId && h.Deleted is null).OrderBy(h => h.Order)];
+
+    /// <summary>A new heading at the end of a project.</summary>
+    public (Heading? Saved, IReadOnlyList<string> Problems) AddHeading(string projectId, string name)
+    {
+        if (Get(projectId) is null)
+            return (null, ["The project is gone."]);
+        var heading = new Heading
+        {
+            Id = ProjectRules.NewId(), ProjectId = projectId, Name = name.Trim(),
+            Order = ProjectRules.NextOrder(Headings(projectId).Select(h => h.Order)),
+        };
+        var problems = ProjectRules.Check(heading);
+        if (problems.Count > 0)
+            return (null, problems);
+        var saved = store.SaveHeading(ProjectRules.Stamped(null, heading, Now()));
+        Changed?.Invoke(projectId);
+        return (saved, []);
+    }
+
+    public (Heading? Saved, IReadOnlyList<string> Problems) ChangeHeading(string id, Func<Heading, Heading> change)
+    {
+        if (store.GetHeading(id) is not { Deleted: null } current)
+            return (null, ["The heading is gone."]);
+        var changed = change(current);
+        changed = changed with { Id = current.Id, ProjectId = current.ProjectId, Name = changed.Name.Trim() };
+        var problems = ProjectRules.Check(changed);
+        if (problems.Count > 0)
+            return (null, problems);
+        var saved = store.SaveHeading(ProjectRules.Stamped(current, changed, Now()));
+        Changed?.Invoke(current.ProjectId);
+        return (saved, []);
+    }
+
+    /// <summary>Deletes a heading; its tasks stay in the project, under no heading. Returns what changed, for Undo.</summary>
+    public ProjectWork? DeleteHeading(string id)
+    {
+        if (store.GetHeading(id) is not { Deleted: null } heading)
+            return null;
+        var now = Now();
+        var moved = AllTasks(heading.ProjectId).Where(t => t.HeadingId == id).ToList();
+        store.SaveProjectWork([], [Remove(heading, now)], moved.Select(t => ProjectRules.Stamped(t, t with { HeadingId = null }, now)));
+        Changed?.Invoke(heading.ProjectId);
+        return new ProjectWork([], [heading], moved);
+    }
+
+    // Tasks
+
+    /// <summary>A project's tasks and subtasks, not deleted, in their order.</summary>
+    public IReadOnlyList<ProjectTask> AllTasks(string projectId) =>
+        [.. store.ListProjectTasks().Where(t => t.ProjectId == projectId && t.Deleted is null).OrderBy(t => t.Order)];
+
+    public ProjectTask? GetTask(string id) => store.GetProjectTask(id) is { Deleted: null } task ? task : null;
+
+    /// <summary>A new task (or subtask) at the end of its heading, or its task's subtasks.</summary>
+    public (ProjectTask? Saved, IReadOnlyList<string> Problems) AddTask(ProjectTask typed)
+    {
+        if (Get(typed.ProjectId) is null)
+            return (null, ["The project is gone."]);
+        var siblings = AllTasks(typed.ProjectId).Where(t => t.ParentId == typed.ParentId && (typed.ParentId is not null || t.HeadingId == typed.HeadingId));
+        var task = typed with { Title = typed.Title.Trim(), Order = ProjectRules.NextOrder(siblings.Select(t => t.Order)) };
+        var problems = ProjectRules.Check(task, task.ParentId is { } parent ? GetTask(parent) : null);
+        if (problems.Count > 0)
+            return (null, problems);
+        var saved = store.SaveProjectTask(ProjectRules.Stamped(null, task, Now()));
+        Changed?.Invoke(task.ProjectId);
+        return (saved, []);
+    }
+
+    /// <summary>Changes a task as it's stored now. A task moved to another heading takes its subtasks along.</summary>
+    public (ProjectTask? Saved, IReadOnlyList<string> Problems) ChangeTask(string id, Func<ProjectTask, ProjectTask> change)
+    {
+        if (GetTask(id) is not { } current)
+            return (null, ["The task is gone."]);
+        var changed = change(current);
+        changed = changed with { Id = current.Id, ProjectId = current.ProjectId, Title = changed.Title.Trim() };
+        var problems = ProjectRules.Check(changed, changed.ParentId is { } parent ? GetTask(parent) : null);
+        if (changed.ParentId is not null && AllTasks(current.ProjectId).Any(t => t.ParentId == id))
+            problems = [.. problems, "A task with subtasks can't become a subtask."];
+        if (problems.Count > 0)
+            return (null, problems);
+        var now = Now();
+        var subtasks = changed.HeadingId != current.HeadingId
+            ? AllTasks(current.ProjectId).Where(t => t.ParentId == id).Select(t => ProjectRules.Stamped(t, t with { HeadingId = changed.HeadingId }, now)).ToList()
+            : [];
+        var saved = ProjectRules.Stamped(current, changed, now);
+        store.SaveProjectWork([], [], [saved, .. subtasks]);
+        Changed?.Invoke(current.ProjectId);
+        return (saved, []);
+    }
+
+    /// <summary>Deletes a task with its subtasks. Returns what went, for Undo.</summary>
+    public ProjectWork? DeleteTask(string id)
+    {
+        if (GetTask(id) is not { } task)
+            return null;
+        var now = Now();
+        var gone = new List<ProjectTask> { task };
+        gone.AddRange(AllTasks(task.ProjectId).Where(t => t.ParentId == id));
+        store.SaveProjectWork([], [], gone.Select(t => Remove(t, now)));
+        Changed?.Invoke(task.ProjectId);
+        return new ProjectWork([], [], gone);
+    }
+
+    /// <summary>
+    /// Undo: puts back what a delete took away, as it was before, with the restore recorded as a change. What was
+    /// changed in the meantime by the delete (tasks moved off a deleted heading) goes back too.
+    /// </summary>
+    public void Restore(ProjectWork work)
+    {
+        var now = Now();
+        store.SaveProjectWork(
+            work.Projects.Select(p => Back(store.GetProject(p.Id), p, now)),
+            work.Headings.Select(h => Back(store.GetHeading(h.Id), h, now)),
+            work.Tasks.Select(t => Back(store.GetProjectTask(t.Id), t, now)));
+        Changed?.Invoke(work.Projects.Count > 0 ? null : work.Headings.FirstOrDefault()?.ProjectId ?? work.Tasks.FirstOrDefault()?.ProjectId);
+    }
+
+    // A deleted marker: who deleted it and when, kept so the deletion can sync.
+    private static Project Remove(Project p, Stamp now) => p with { Deleted = now, Changed = now, Fields = With(p.Fields, now) };
+    private static Heading Remove(Heading h, Stamp now) => h with { Deleted = now, Changed = now, Fields = With(h.Fields, now) };
+    private static ProjectTask Remove(ProjectTask t, Stamp now) => t with { Deleted = now, Changed = now, Fields = With(t.Fields, now) };
+
+    private static Project Back(Project? stored, Project was, Stamp now)
+    {
+        var back = ProjectRules.Stamped(stored, was, now);
+        return back with { Deleted = null, Changed = now, Fields = With(back.Fields, now) };
+    }
+
+    private static Heading Back(Heading? stored, Heading was, Stamp now)
+    {
+        var back = ProjectRules.Stamped(stored, was, now);
+        return back with { Deleted = null, Changed = now, Fields = With(back.Fields, now) };
+    }
+
+    private static ProjectTask Back(ProjectTask? stored, ProjectTask was, Stamp now)
+    {
+        var back = ProjectRules.Stamped(stored, was, now);
+        return back with { Deleted = null, Changed = now, Fields = With(back.Fields, now) };
+    }
+
+    private static Dictionary<string, Stamp> With(IReadOnlyDictionary<string, Stamp> fields, Stamp now) =>
+        new(fields) { ["deleted"] = now };
+}
+
+/// <summary>What a delete took away, or moved, so Undo can put it back.</summary>
+public sealed record ProjectWork(IReadOnlyList<Project> Projects, IReadOnlyList<Heading> Headings, IReadOnlyList<ProjectTask> Tasks);

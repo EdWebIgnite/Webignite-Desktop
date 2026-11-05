@@ -298,6 +298,16 @@ Save("settings-emails");
 settingsPage.Open("mail");
 Check("Settings, Mail shows the spelling choices", settingsPage.SpellCheckOn && settingsPage.SpellLanguages.Count > 0 && settingsPage.SpellNote.Length > 0);
 Save("settings-mail");
+settingsPage.Open("projects");
+settingsPage.PartnerName = "Jaco";
+settingsPage.SaveTeamCommand.Execute(null);
+Check("Settings, Projects names you and your partner", services.Team().Partner!.Name == "Jaco" && services.Team().Me!.Name == "Me" && !settingsPage.TeamProblem);
+settingsPage.PartnerName = "me";
+settingsPage.SaveTeamCommand.Execute(null);
+Check("Your partner can't have your name", settingsPage.TeamProblem && services.Team().Partner!.Name == "Jaco");
+settingsPage.PartnerName = "Jaco";
+settingsPage.SaveTeamCommand.Execute(null);
+Save("settings-projects");
 settingsPage.Open("xero");
 
 // A short to-do list, before the sample to-dos below, so the hint under it shows.

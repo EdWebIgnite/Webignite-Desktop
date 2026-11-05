@@ -3,6 +3,7 @@ using Webignite.Core.Documents;
 using Webignite.Core.Finance;
 using Webignite.Core.Layout;
 using Webignite.Core.Mail;
+using Webignite.Core.Projects;
 using Webignite.Core.Tasks;
 using Webignite.Core.Web;
 using Webignite.Core.Writing;
@@ -218,6 +219,13 @@ public sealed class AppSettings(LocalStore store)
     {
         get => store.GetSetting<List<SavedReply>>("mail-saved-replies") ?? [];
         set => store.SetSetting("mail-saved-replies", value.ToList());
+    }
+
+    /// <summary>You and your partner, for projects: who made and changed what.</summary>
+    public TeamSettings Team
+    {
+        get => store.GetSetting<TeamSettings>("team") ?? new TeamSettings();
+        set => store.SetSetting("team", value);
     }
 
     /// <summary>Spell check while writing a mail.</summary>

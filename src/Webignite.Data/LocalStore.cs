@@ -150,6 +150,18 @@ public sealed partial class LocalStore : IDisposable
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS project_headings (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS project_tasks (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
             """);
         try
         {
@@ -254,6 +266,7 @@ public sealed partial class LocalStore : IDisposable
             ("SELECT id, payload FROM mail_accounts LIMIT 1", "mail-account:"),
             ("SELECT id, payload FROM site_logins LIMIT 1", "sitelogin:"),
             ("SELECT id, payload FROM contacts LIMIT 1", "contact:"),
+            ("SELECT id, payload FROM projects LIMIT 1", "project:"),
         };
         foreach (var (sql, prefix) in samples)
         {
