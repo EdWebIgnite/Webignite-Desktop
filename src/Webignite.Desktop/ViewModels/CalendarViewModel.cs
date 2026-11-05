@@ -11,6 +11,9 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
 {
     private readonly AppServices services;
     private DateOnly month;
+    private ILookup<DateOnly, AgendaItem> byDay = Array.Empty<AgendaItem>().ToLookup(i => i.Date);
+    private (DateOnly First, DateOnly Last) shown;
+    private int perDay = 3;
 
     public CalendarViewModel(AppServices services)
     {
@@ -127,12 +130,11 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
         var (first, last) = Agenda.MonthGrid(month.Year, month.Month);
         var items = Agenda.Build(first, last, services.Store.ListEvents(first, last), services.Store.ListTasks(), services.Documents.List(),
             services.Projects.Agenda(first, last, services.Me().Id));
-        var byDay = items.ToLookup(i => i.Date);
+        byDay = items.ToLookup(i => i.Date);
+        shown = (first, last);
 
         MonthTitle = month.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
-        Days.Clear();
-        for (var day = first; day <= last; day = day.AddDays(1))
-            Days.Add(new DayCellViewModel(day, month.Month, Today, SelectedDate, byDay[day].Select(i => new AgendaItemViewModel(i)).ToList()));
+        FillDays();
 
         SelectedTitle = SelectedDate == Today ? $"Today, {SelectedDate:d MMMM}" : SelectedDate.ToString("dddd, d MMMM");
         SelectedItems.Clear();
@@ -144,18 +146,41 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
             SelectedItems.Add(new AgendaItemViewModel(item, DeleteEvent));
         OnPropertyChanged(nameof(SelectedIsEmpty));
     }
+
+    /// <summary>
+    /// How many items each day can show, from the room the screen gives a day. A big screen shows a busy day
+    /// whole; a small one shows a few and "+2 more".
+    /// </summary>
+    /// <summary>How many weeks the month grid shows: five or six.</summary>
+    public int Weeks => (shown.Last.DayNumber - shown.First.DayNumber + 1) / 7;
+
+    public void FitPerDay(int count)
+    {
+        count = Math.Clamp(count, 1, 12);
+        if (count == perDay)
+            return;
+        perDay = count;
+        FillDays();
+    }
+
+    private void FillDays()
+    {
+        Days.Clear();
+        for (var day = shown.First; day <= shown.Last; day = day.AddDays(1))
+            Days.Add(new DayCellViewModel(day, month.Month, Today, SelectedDate, byDay[day].Select(i => new AgendaItemViewModel(i)).ToList(), perDay));
+    }
 }
 
-public sealed class DayCellViewModel(DateOnly date, int month, DateOnly today, DateOnly selected, IReadOnlyList<AgendaItemViewModel> items)
+public sealed class DayCellViewModel(DateOnly date, int month, DateOnly today, DateOnly selected, IReadOnlyList<AgendaItemViewModel> items, int shown = 3)
 {
-    private const int Shown = 3;
 
     public DateOnly Date { get; } = date;
     public string DayNumber => Date.Day.ToString();
     public bool IsToday => Date == today;
     public bool IsSelected => Date == selected;
     public bool IsOtherMonth => Date.Month != month;
-    public IReadOnlyList<AgendaItemViewModel> Items { get; } = items.Take(Shown).ToList();
-    public string More => items.Count > Shown ? $"+{items.Count - Shown} more" : "";
-    public bool HasMore => items.Count > Shown;
+    // When not everything fits, the last line says how many more there are.
+    public IReadOnlyList<AgendaItemViewModel> Items { get; } = items.Take(items.Count > shown ? Math.Max(shown - 1, 1) : shown).ToList();
+    public string More => HasMore ? $"+{items.Count - Items.Count} more" : "";
+    public bool HasMore => items.Count > Items.Count;
 }

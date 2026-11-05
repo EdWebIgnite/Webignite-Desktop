@@ -274,7 +274,9 @@
           </Border>
           <Panel>
             <ScrollViewer IsVisible="{Binding Current.Scrolls}" HorizontalScrollBarVisibility="Auto">
-              <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="1040" MinWidth="600" HorizontalAlignment="Stretch" />
+              <c:FitWidth MinWidth="672">
+                <TransitioningContentControl x:Name="ScrollingHost" Content="{Binding Current.ScrollingPage}" Margin="36,30" MaxWidth="{Binding Current.MaxContentWidth}" MinWidth="600" HorizontalAlignment="Stretch" />
+              </c:FitWidth>
             </ScrollViewer>
             <ScrollViewer IsVisible="{Binding Current.FullBleed}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
               <TransitioningContentControl x:Name="FullHost" Content="{Binding Current.FullPage}" MinWidth="760" />
@@ -308,7 +310,9 @@
           </Border>
           <Panel>
             <ScrollViewer IsVisible="{Binding Beside.Scrolls, FallbackValue=False}" HorizontalScrollBarVisibility="Auto">
-              <ContentControl Content="{Binding Beside.ScrollingPage, FallbackValue={x:Null}}" Margin="28,24" MaxWidth="1040" MinWidth="600" HorizontalAlignment="Stretch" />
+              <c:FitWidth MinWidth="656">
+                <ContentControl Content="{Binding Beside.ScrollingPage, FallbackValue={x:Null}}" Margin="28,24" MaxWidth="{Binding Beside.MaxContentWidth, FallbackValue=1040}" MinWidth="600" HorizontalAlignment="Stretch" />
+              </c:FitWidth>
             </ScrollViewer>
             <ScrollViewer IsVisible="{Binding Beside.FullBleed, FallbackValue=False}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
               <ContentControl Content="{Binding Beside.FullPage, FallbackValue={x:Null}}" MinWidth="760" />

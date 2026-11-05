@@ -163,7 +163,7 @@ public partial class MainViewModel : ViewModelBase
             new NavGroup("planning", "PLANNING"),
             new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo"),
             new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true),
-            new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar"),
+            new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true),
             new Module(Page.Planner, "Planner", () => new PlannerViewModel(services), "Planner"),
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time"),
             new NavGroup("computer", "COMPUTER"),
@@ -180,7 +180,7 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Images, "Website images", "Picture"),
             new ToolLink(ToolKind.Qr, "QR code", "Qr"),
             new NavGroup("end", ""),
-            new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings"),
+            new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings", readingWidth: true),
         ];
         NavGroup? group = null;
         foreach (var item in nav)

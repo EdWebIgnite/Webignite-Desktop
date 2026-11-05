@@ -2517,6 +2517,41 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
 }
 
 // Last, as its note stays on screen while the snapshot clock stands still.
+// Every page on a big screen and in a small window: pages use the room they are given, Settings keeps a
+// reading width, and the month fills the window both ways.
+{
+    foreach (var (size, width, height) in new[] { ("big", 1920.0, 1080.0), ("small", 1280.0, 800.0) })
+    {
+        window.Width = width;
+        window.Height = height;
+        foreach (var page in Enum.GetValues<Page>())
+        {
+            Open(page);
+            Save($"size-{size}-{page.ToString().ToLowerInvariant()}");
+        }
+    }
+    window.Width = 1920;
+    window.Height = 1080;
+    Open(Page.Calendar);
+    Dispatcher.UIThread.RunJobs();
+    var calendarView = window.GetVisualDescendants().OfType<CalendarView>().First();
+    var days = calendarView.GetVisualDescendants().OfType<Avalonia.Controls.Button>().Where(b => b.Classes.Contains("day")).ToList();
+    Check("On a big screen the calendar's days grow to fill the height", days.Count >= 28 && days[0].Bounds.Height > 120);
+    var monthScroller = calendarView.GetVisualDescendants().OfType<Avalonia.Controls.ScrollViewer>().First(s => s.Name == "MonthScroller");
+    Check("On a big screen the month fits without scrolling", monthScroller.Extent.Height <= monthScroller.Viewport.Height + 1);
+    Open(Page.Todo);
+    Dispatcher.UIThread.RunJobs();
+    var todo = window.GetVisualDescendants().OfType<TodoView>().FirstOrDefault();
+    Check("On a big screen a list page is wider than the old reading width", todo is { Bounds.Width: > 1200 });
+    Open(Page.Settings);
+    Dispatcher.UIThread.RunJobs();
+    var settings = window.GetVisualDescendants().OfType<SettingsView>().FirstOrDefault();
+    Check("Settings keeps a reading width on a big screen", settings is { Bounds.Width: <= 1040 });
+    window.Width = 1280;
+    window.Height = 860;
+    Open(Page.Overview);
+}
+
 // An error on the screen's thread is logged and shown as a note; the app keeps going. Exits with an error if not.
 {
     Webignite.Data.AppLog.UseRoot(data);

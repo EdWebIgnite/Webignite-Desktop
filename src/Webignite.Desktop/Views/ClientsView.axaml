@@ -124,7 +124,7 @@
 
     <!-- The open client, or a word on what goes here -->
     <ScrollViewer c:PanelGrid.Pane="detail" c:PanelGrid.DefaultWidth="640">
-      <Panel Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch">
+      <Panel Margin="36,30" HorizontalAlignment="Stretch">
         <ContentControl Content="{Binding Detail}" IsVisible="{Binding HasDetail}" />
         <c:EmptyState IsVisible="{Binding !HasDetail}" Icon="{StaticResource Icon.Clients}" Title="Pick a client"
                       Text="Their quotes, invoices, to-dos, mail and notes show here." VerticalAlignment="Top" />
