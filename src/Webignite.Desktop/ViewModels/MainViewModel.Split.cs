@@ -101,6 +101,46 @@ public partial class MainViewModel
             Close(host, quietly: true);
     }
 
+    /// <summary>The page beside goes into a window of its own, and the window is whole again.</summary>
+    [RelayCommand]
+    public void PopOutBeside()
+    {
+        if (Beside is { } host)
+            PopOut(host);
+    }
+
+    /// <summary>
+    /// Closes the main side of a split: its page closes as its tab would, and the page beside takes the whole
+    /// window. A page with work open stays, with a note saying why.
+    /// </summary>
+    [RelayCommand]
+    public void CloseMainSide()
+    {
+        if (Beside is not { } beside)
+            return;
+        var main = Current;
+        if (main.IsBuilt && main.Page is IHoldsWork { HoldsWork: true })
+        {
+            services.ShowNote?.Invoke($"{main.Title} has work open", "Save it or put it away first, then close this side.", null);
+            return;
+        }
+        PutBesideBack();
+        Current = beside;
+        CloseTab(main);
+    }
+
+    /// <summary>The main side goes into a window of its own, and the page beside takes the whole window.</summary>
+    [RelayCommand]
+    public void PopOutMainSide()
+    {
+        if (Beside is not { } beside)
+            return;
+        var main = Current;
+        PutBesideBack();
+        Current = beside;
+        PopOut(main);
+    }
+
     // Saved with the tabs; put back after them.
     private void RestoreBeside(TabSettings back)
     {

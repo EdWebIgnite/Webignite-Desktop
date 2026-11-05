@@ -70,4 +70,25 @@ public sealed class TabTests
     [InlineData(990, 1000, false)]
     [InlineData(500, 1000, null)]
     public void A_tab_let_go_near_an_edge_goes_to_that_side(double x, double width, bool? left) => Assert.Equal(left, TabRules.SideAt(x, width));
+
+    [Theory]
+    // A wobble on the header does nothing.
+    [InlineData(105, 10, false, false, true, SideDrop.Nothing)]
+    // The main side on the left, let go over the right half: swap.
+    [InlineData(700, 20, false, false, true, SideDrop.Swap)]
+    // Let go in its own half: nothing.
+    [InlineData(300, 20, false, false, true, SideDrop.Nothing)]
+    // Dragged out of the window, or well down into the page: a window of its own.
+    [InlineData(-30, 20, false, false, true, SideDrop.PopOut)]
+    [InlineData(1100, 20, false, false, true, SideDrop.PopOut)]
+    [InlineData(300, 400, false, false, true, SideDrop.PopOut)]
+    // Over the tabs: back to a tab, but only for the page beside.
+    [InlineData(300, -20, false, true, true, SideDrop.BackToTab)]
+    [InlineData(300, -20, false, true, false, SideDrop.Nothing)]
+    public void A_dragged_side_goes_where_it_is_let_go(double x, double y, bool besideOnRight, bool overTabs, bool canBeTab, SideDrop expected) =>
+        Assert.Equal(expected, TabRules.DropSide(x, y, 1000, 800, 100, 10, onLeft: !besideOnRight, overTabs, canBeTab));
+
+    [Fact]
+    public void A_side_on_the_right_swaps_when_let_go_on_the_left() =>
+        Assert.Equal(SideDrop.Swap, TabRules.DropSide(200, 20, 1000, 800, 800, 10, onLeft: false, overTabs: false, canBeTab: true));
 }

@@ -552,6 +552,29 @@
     <Setter Property="Background" Value="{DynamicResource Surface}" />
   </Style>
 
+  <!-- When the window is split, the header over each side: its page, and buttons to swap, pop out or close.
+       Dragged, it moves the side; the hand says so. -->
+  <Style Selector="Border.sidehead">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="12,4,6,4" />
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="Cursor" Value="SizeAll" />
+  </Style>
+  <Style Selector="Border.sidehead.dragging">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Button.sidebutton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.sidebutton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+
   <!-- Tabs across the top of the page area, once there are two. The tab on screen joins the page below it. -->
   <Style Selector="Border.tabstrip">
     <Setter Property="Background" Value="{DynamicResource Line}" />
