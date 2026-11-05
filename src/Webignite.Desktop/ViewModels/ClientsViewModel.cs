@@ -115,7 +115,7 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork,
         try
         {
             var news = await services.Work.Run("Bringing clients in from Xero", () => services.XeroClients.RunAsync());
-            XeroMessage = news.Problem ?? (news.Summary.Length > 0 ? news.Summary + "." : "Every customer in Xero is here already.");
+            XeroMessage = news.Problem ?? (news.Summary.Length > 0 ? news.Summary + "." : "Everyone in Xero is here already. Suppliers and archived contacts aren't brought in.");
             Refresh();
         }
         finally

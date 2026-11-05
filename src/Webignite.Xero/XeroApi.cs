@@ -153,8 +153,11 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
             Address(c["Addresses"] as JsonArray),
             Str(c["Website"]) is { Length: > 0 } site ? site : null,
             Str(c["ContactStatus"]) == "ACTIVE",
-            c["IsCustomer"] is JsonValue customer && customer.TryGetValue<bool>(out var isCustomer) && isCustomer);
+            Flag(c["IsCustomer"]),
+            Flag(c["IsSupplier"]));
     }
+
+    private static bool Flag(JsonNode? node) => node is JsonValue value && value.TryGetValue<bool>(out var flag) && flag;
 
     private static readonly string[] PhoneTypes = ["MOBILE", "DEFAULT", "DDI"];
     private static readonly string[] AddressTypes = ["STREET", "POBOX"];

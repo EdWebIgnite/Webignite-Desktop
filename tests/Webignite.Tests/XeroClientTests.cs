@@ -28,15 +28,17 @@ public sealed class XeroClientTests : IDisposable
         new() { Id = id, Name = name, Email = email, XeroContactId = xero };
 
     [Fact]
-    public void A_new_customer_becomes_a_client_but_suppliers_and_archived_ones_do_not()
+    public void A_new_contact_becomes_a_client_but_suppliers_and_archived_ones_do_not()
     {
         var plan = XeroClients.Plan([], [
             new XeroCustomer("x1", "Karoo Coffee Roasters", "thandi@karoocoffee.co.za"),
-            new XeroCustomer("x2", "Afrihost", IsCustomer: false),
+            new XeroCustomer("x2", "Afrihost", IsCustomer: false, IsSupplier: true),
             new XeroCustomer("x3", "Old Shop", Active: false),
             new XeroCustomer("x4", "  "),
+            new XeroCustomer("x5", "Fynbos Physio", IsCustomer: false), // never invoiced in Xero yet
+            new XeroCustomer("x6", "Bosveld Builders", IsCustomer: true, IsSupplier: true), // both
         ]);
-        Assert.Equal(["x1"], plan.ToAdd.Select(c => c.Id));
+        Assert.Equal(["x1", "x5", "x6"], plan.ToAdd.Select(c => c.Id));
         Assert.Empty(plan.ToFill);
     }
 
@@ -145,6 +147,8 @@ public sealed class XeroClientTests : IDisposable
         Assert.Equal("+44 7700 900123", abroad.Phone);
         Assert.False(abroad.Active);
         Assert.False(abroad.IsCustomer);
+        Assert.False(abroad.IsSupplier);
+        Assert.True(XeroApi.ToCustomer(JsonNode.Parse("""{ "ContactID": "x3", "Name": "Afrihost", "IsSupplier": true }""")!.AsObject()).OnlySupplier);
     }
 
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider
