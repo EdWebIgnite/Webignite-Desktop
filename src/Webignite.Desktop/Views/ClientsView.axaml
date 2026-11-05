@@ -16,24 +16,9 @@
           <StackPanel Spacing="8">
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
-                <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panes: show, hide and move them">
-                  <c:Icon Data="{StaticResource Icon.Panels}" Size="16" />
-                  <Button.Flyout>
-                    <MenuFlyout Placement="BottomEdgeAlignedRight">
-                      <MenuItem Header="Client list" DataContext="{Binding Panels[list]}" x:DataType="vm:PaneViewModel">
-                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
-                        <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
-                        <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
-                      </MenuItem>
-                      <MenuItem Header="Open client" DataContext="{Binding Panels[detail]}" x:DataType="vm:PaneViewModel">
-                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
-                        <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
-                        <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
-                      </MenuItem>
-                      <Separator />
-                      <MenuItem Header="Put the panes back" Command="{Binding Panels.ResetCommand}" />
-                    </MenuFlyout>
-                  </Button.Flyout>
+                <Button Classes="quiet" Padding="8,6" Command="{Binding Panels[list].MinimiseCommand}"
+                        ToolTip.Tip="Minimise the client list. Bring it back from the strip at the edge or the sidebar.">
+                  <c:Icon Data="{StaticResource Icon.SidebarHide}" Size="16" />
                 </Button>
               </StackPanel>
               <TextBlock Classes="h1" Text="Clients" VerticalAlignment="Center" />

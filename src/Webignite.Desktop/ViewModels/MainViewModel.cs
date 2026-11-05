@@ -550,6 +550,7 @@ public partial class MainViewModel : ViewModelBase
     partial void OnCurrentChanged(PageHost value)
     {
         KeepInTabs(value);
+        WatchPanes(value);
         leaving = null;
         value.LastSeen = DateTimeOffset.Now;
         if (Selected != value.Module)

@@ -178,6 +178,20 @@
                     <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
                   </ContextMenu>
                 </DockPanel.ContextMenu>
+                <!-- The page's minimised panes, under its name while it's on screen: click one to bring it back. -->
+                <ItemsControl DockPanel.Dock="Bottom" Margin="30,4,0,0" ItemsSource="{Binding $parent[Window].((vm:MainViewModel)DataContext).HiddenPanes}"
+                              IsVisible="{Binding $parent[ListBoxItem].IsSelected}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PaneViewModel">
+                      <Button Classes="panechip" Command="{Binding RestoreCommand}" ToolTip.Tip="{Binding Title, StringFormat='Show {0} again'}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <c:Icon Data="{StaticResource Icon.SidebarShow}" Size="12" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
                 <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasBadge}">
                   <TextBlock Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold" />
                 </Border>

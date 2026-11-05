@@ -47,6 +47,9 @@ public sealed partial class PanelsViewModel : ObservableObject
     [RelayCommand]
     public void Reset() => Change(Panels.Default(keys));
 
+    /// <summary>The panes minimised now, left to right, for the strips and the sidebar's chips.</summary>
+    public IReadOnlyList<PaneViewModel> Hidden => [.. Layout.Order.Where(k => !Layout.IsShown(k)).Select(k => this[k])];
+
     /// <summary>The pane's name, for the strip a hidden pane leaves and the divider's menu.</summary>
     public string TitleOf(string key) => Panes.FirstOrDefault(p => p.Key == key)?.Title ?? key;
 
@@ -67,6 +70,7 @@ public sealed partial class PanelsViewModel : ObservableObject
         if (layout == Layout)
             return;
         Layout = layout;
+        OnPropertyChanged(nameof(Hidden));
         settings.SetPanelLayout(page, layout);
         foreach (var pane in Panes)
             pane.Changed();
@@ -90,6 +94,17 @@ public sealed partial class PaneViewModel(PanelsViewModel owner, string key, str
     public bool CanMoveLeft => Panels.CanMove(owner.Layout, Key, -1);
     public bool CanMoveRight => Panels.CanMove(owner.Layout, Key, +1);
 
+    /// <summary>Hidden panes can always come back; shown ones can go while another stays.</summary>
+    public bool CanToggle => !IsShown || CanHide;
+
+    /// <summary>Minimises the pane to a strip at its edge (and a chip in the sidebar).</summary>
+    [RelayCommand]
+    private void Minimise() => owner.Show(Key, false);
+
+    /// <summary>Brings a minimised pane back.</summary>
+    [RelayCommand]
+    private void Restore() => owner.Show(Key, true);
+
     [RelayCommand(CanExecute = nameof(CanMoveLeft))]
     private void MoveLeft() => owner.Move(Key, -1);
 
@@ -100,6 +115,7 @@ public sealed partial class PaneViewModel(PanelsViewModel owner, string key, str
     {
         OnPropertyChanged(nameof(IsShown));
         OnPropertyChanged(nameof(CanHide));
+        OnPropertyChanged(nameof(CanToggle));
         OnPropertyChanged(nameof(CanMoveLeft));
         OnPropertyChanged(nameof(CanMoveRight));
         MoveLeftCommand.NotifyCanExecuteChanged();
