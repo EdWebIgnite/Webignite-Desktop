@@ -486,7 +486,10 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
             if (CurrentFolder is { Kind: FolderKind.Folder } folder && folder.Role is not (FolderRole.Inbox or FolderRole.Sent or FolderRole.Drafts))
                 await Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path), quiet: true, onError: e => failed.Add(e));
             Reload();
-            SetStatus(failed.Count == 0 ? $"Up to date at {DateTime.Now:HH:mm}" : string.Join("  ·  ", failed), failed.Count > 0);
+            if (failed.Count == 0)
+                UpToDate();
+            else
+                SetStatus(string.Join("  ·  ", failed), true);
         }
         finally
         {
@@ -595,6 +598,16 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
             all.Unread = folders.Where(f => f.Role == FolderRole.Inbox).Sum(f => f.Unread);
     }
 
+    /// <summary>When mail was last checked, for Check for mail's tooltip; it no longer takes a line above the list.</summary>
+    [ObservableProperty] public partial string CheckedTip { get; private set; } = "Check every mailbox for new mail";
+
+    private void UpToDate()
+    {
+        CheckedTip = $"Up to date at {DateTime.Now:HH:mm}. Click to check again.";
+        if (!StatusIsProblem)
+            Status = "";
+    }
+
     internal void SetStatus(string text, bool problem)
     {
         Status = text;
@@ -611,7 +624,7 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
             if (!quiet)
             {
                 Reload();
-                SetStatus($"Up to date at {DateTime.Now:HH:mm}", false);
+                UpToDate();
             }
             return true;
         }

@@ -9,6 +9,13 @@
              x:Class="Webignite.Desktop.Views.MailView"
              x:DataType="vm:MailViewModel">
   <UserControl.Styles>
+    <!-- A mailbox's Edit and New folder show while the pointer is on that mailbox. -->
+    <Style Selector="StackPanel.mailbox Button.onhover">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="StackPanel.mailbox:pointerover Button.onhover">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
     <Style Selector="Button.folder">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -276,9 +283,9 @@
               <ItemsControl ItemsSource="{Binding Mailboxes}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MailboxNodeViewModel">
-                    <StackPanel Margin="0,0,0,14">
+                    <StackPanel Classes="mailbox" Margin="0,0,0,14" Background="Transparent">
                       <DockPanel Margin="10,0,4,4" IsVisible="{Binding HasTitle}">
-                        <Button DockPanel.Dock="Right" Classes="link" FontSize="12" Content="Edit" Command="{Binding EditCommand}" />
+                        <Button DockPanel.Dock="Right" Classes="link onhover" FontSize="12" Content="Edit" Command="{Binding EditCommand}" />
                         <StackPanel>
                           <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
                           <TextBlock Classes="muted" FontSize="12" Text="{Binding Address}" TextTrimming="CharacterEllipsis" />
@@ -308,7 +315,7 @@
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
-                      <Button Classes="folder newfolder" Padding="10,5" Command="{Binding NewFolderCommand}" IsVisible="{Binding HasTitle}">
+                      <Button Classes="folder newfolder onhover" Padding="10,5" Command="{Binding NewFolderCommand}" IsVisible="{Binding HasTitle}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                           <c:Icon Data="{StaticResource Icon.FolderPlus}" Size="15" />
                           <TextBlock Text="New folder" />
@@ -357,11 +364,15 @@
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
                 <c:Spinner IsVisible="{Binding IsBusy}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,4,0"
                            ToolTip.Tip="Talking to the mail server" />
-                <Button Classes="quiet" Content="Check for mail" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" />
-                <Button Classes="quiet" Padding="8,6" ToolTip.Tip="Panes: show, hide and move them">
+                <Button Classes="quiet" Content="Check for mail" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{Binding CheckedTip}" />
+                <Button Classes="quiet" Padding="8,6" ToolTip.Tip="View: conversations and panes">
                   <c:Icon Data="{StaticResource Icon.Panels}" Size="16" />
                   <Button.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
+                      <MenuItem Header="Group into conversations" ToggleType="CheckBox" IsChecked="{Binding Conversations, Mode=OneWay}"
+                                Command="{Binding ToggleConversationsCommand}" IsEnabled="{Binding CanGroup}"
+                                ToolTip.Tip="Replies sit under the first mail. Switched on or off for this list only." />
+                      <Separator />
                       <MenuItem Header="Folders" DataContext="{Binding Panels[folders]}" x:DataType="vm:PaneViewModel">
                         <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown, Mode=TwoWay}" IsEnabled="{Binding CanToggle}" />
                         <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
@@ -386,7 +397,11 @@
               </StackPanel>
               <TextBlock Classes="h2" Text="{Binding ListTitle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
-            <TextBox Text="{Binding Search}" PlaceholderText="Search all mail by sender, subject or words" />
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBox Text="{Binding Search}" PlaceholderText="Search all mail" ToolTip.Tip="By sender, subject or words" />
+              <ComboBox Grid.Column="1" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding ClientFilter}" IsVisible="{Binding HasClientChoices}"
+                        Width="130" Margin="8,0,0,0" ToolTip.Tip="Show only one client's mail in this list" />
+            </Grid>
             <ItemsControl ItemsSource="{Binding Filters}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
@@ -425,10 +440,6 @@
                 </StackPanel>
               </StackPanel>
             </Border>
-            <ComboBox ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding ClientFilter}" IsVisible="{Binding HasClientChoices}"
-                      HorizontalAlignment="Stretch" ToolTip.Tip="Show only one client's mail in this list" />
-            <CheckBox Content="Group into conversations" IsChecked="{Binding Conversations, Mode=OneWay}" Command="{Binding ToggleConversationsCommand}"
-                      IsVisible="{Binding CanGroup}" FontSize="12" ToolTip.Tip="Replies sit under the first mail. Switched on or off for this list only." />
             <TextBlock FontSize="12" Classes="muted" Classes.problem="{Binding StatusIsProblem}" Text="{Binding Status}" TextWrapping="Wrap"
                        IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
