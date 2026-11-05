@@ -64,6 +64,21 @@ public static class ImageRules
         return path;
     }
 
+    /// <summary>
+    /// Where a converted copy goes: beside the original, same name, new kind ("logo.png" to "logo.webp"), with
+    /// " (2)" when that name is taken. Never the original file.
+    /// </summary>
+    public static string ConvertedPath(string sourcePath, ImageFormat format, Func<string, bool> exists)
+    {
+        var folder = Path.GetDirectoryName(sourcePath) ?? "";
+        var name = Path.GetFileNameWithoutExtension(sourcePath);
+        var extension = Extension(format);
+        var path = Path.Combine(folder, name + extension);
+        for (var n = 2; exists(path) || string.Equals(path, sourcePath, StringComparison.OrdinalIgnoreCase); n++)
+            path = Path.Combine(folder, $"{name} ({n}){extension}");
+        return path;
+    }
+
     /// <summary>Lower case, letters and digits joined by dashes, which is what website file names want.</summary>
     public static string Slug(string name)
     {

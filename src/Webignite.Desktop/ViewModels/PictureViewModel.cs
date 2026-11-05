@@ -76,6 +76,9 @@ public sealed partial class PictureViewModel(AppServices services, Action close)
         Problem = "";
         OnPropertyChanged(nameof(HasProblem));
         ConfirmingDelete = false;
+        KeepResult();
+        Tool = PictureTool.None;
+        CropArea = null;
         Loading = true;
         LoadAsync(path, load).Forget("Showing a picture");
     }
@@ -116,7 +119,7 @@ public sealed partial class PictureViewModel(AppServices services, Action close)
         }
     }
 
-    private static WriteableBitmap ToBitmap(byte[] pixels, int width, int height)
+    internal static WriteableBitmap ToBitmap(byte[] pixels, int width, int height)
     {
         var bitmap = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
         using var buffer = bitmap.Lock();
@@ -178,31 +181,8 @@ public sealed partial class PictureViewModel(AppServices services, Action close)
     [RelayCommand]
     private Task TurnLeft() => Turn(-90);
 
-    // Saved in the file, like Files' Turn; Undo turns it back.
-    private async Task Turn(int degrees)
-    {
-        var path = Path;
-        if (path.Length == 0 || Picture is null)
-            return;
-        try
-        {
-            await Task.Run(() => Webignite.Tools.PictureTools.Rotate(path, degrees));
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            Problem = "Couldn't turn it. " + e.Message;
-            OnPropertyChanged(nameof(HasProblem));
-            return;
-        }
-        if (Path == path)
-            Load(path);
-        services.OfferUndo($"Turned {System.IO.Path.GetFileName(path)}", () =>
-            Task.Run(() => Webignite.Tools.PictureTools.Rotate(path, -degrees)).ContinueWith(_ => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                if (Path == path)
-                    Load(path);
-            }), TaskScheduler.Default).Forget("Turning a picture back"));
-    }
+    // Saved in the file, like Files' Turn; Undo puts the file back as it was.
+    private Task Turn(int degrees) => EditInPlace("Turned", path => Webignite.Tools.PictureTools.Rotate(path, degrees));
 
     [RelayCommand]
     private async Task Copy()
@@ -281,6 +261,9 @@ public sealed partial class PictureViewModel(AppServices services, Action close)
         loads++;
         Picture?.Dispose();
         Picture = null;
+        AfterPicture?.Dispose();
+        AfterPicture = null;
         CopyPicture = null;
+        CopyText = null;
     }
 }

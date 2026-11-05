@@ -75,6 +75,13 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>Files opened lately from Files, newest first, for Recents in its side list.</summary>
+    /// <summary>Colours picked lately, newest first, as codes like #E8590C.</summary>
+    public IReadOnlyList<string> RecentColours
+    {
+        get => store.GetSetting<List<string>>("recent-colours") ?? [];
+        set => store.SetSetting("recent-colours", value.ToList());
+    }
+
     public IReadOnlyList<string> FileRecents
     {
         get => store.GetSetting<List<string>>("file-recents") ?? [];

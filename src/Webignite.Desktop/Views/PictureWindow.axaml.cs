@@ -33,6 +33,11 @@ public partial class PictureWindow : Window
             data.Add(item);
             await clipboard.SetDataAsync(data);
         };
+        picture.CopyText = async text =>
+        {
+            if (Clipboard is { } clipboard)
+                await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, text);
+        };
         AddHandler(KeyDownEvent, Keys, RoutingStrategies.Tunnel);
         Scroller.AddHandler(PointerWheelChangedEvent, Wheel, RoutingStrategies.Tunnel);
         Scroller.AddHandler(PointerPressedEvent, Pressed, RoutingStrategies.Tunnel);
@@ -46,6 +51,15 @@ public partial class PictureWindow : Window
 
     private void Keys(object? sender, KeyEventArgs e)
     {
+        if (e.Source is TextBox && e.Key != Key.Escape)
+        {
+            if (e.Key == Key.Enter && Picture.Resizing)
+            {
+                Picture.ApplyResizeCommand.Execute(null);
+                e.Handled = true;
+            }
+            return; // typing a size in the resize boxes
+        }
         var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         var ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
         System.Windows.Input.ICommand? command = e.Key switch
@@ -58,6 +72,12 @@ public partial class PictureWindow : Window
             Key.D1 or Key.NumPad1 => Picture.ActualSizeCommand,
             Key.R when shift => Picture.TurnLeftCommand,
             Key.R => Picture.TurnRightCommand,
+            Key.F when shift => Picture.FlipUpDownCommand,
+            Key.F => Picture.FlipAcrossCommand,
+            Key.C when !ctrl => Picture.StartCropCommand,
+            Key.S when !ctrl => Picture.StartResizeCommand,
+            Key.I => Picture.StartPickingCommand,
+            Key.Enter when Picture.Cropping => Picture.ApplyCropCommand,
             Key.E => Picture.MarkupCommand,
             Key.C when ctrl => Picture.CopyCommand,
             Key.Delete => Picture.AskDeleteCommand,
@@ -79,6 +99,8 @@ public partial class PictureWindow : Window
         {
             if (Picture.ConfirmingDelete)
                 Picture.ConfirmingDelete = false;
+            else if (Picture.UsingTool)
+                Picture.StopToolCommand.Execute(null);
             else if (WindowState == WindowState.FullScreen)
                 WindowState = WindowState.Normal;
             else
@@ -102,10 +124,25 @@ public partial class PictureWindow : Window
         e.Handled = true;
     }
 
+    private Point? cropFrom;
+
     private void Pressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(Scroller).Properties.IsLeftButtonPressed)
             return;
+        if (Picture.Picking)
+        {
+            Picture.PickAt(e.GetPosition(Stage)).Forget("Picking a colour from the picture");
+            e.Handled = true;
+            return;
+        }
+        if (Picture.Cropping)
+        {
+            cropFrom = e.GetPosition(Stage);
+            e.Pointer.Capture(Scroller);
+            e.Handled = true;
+            return;
+        }
         if (e.ClickCount == 2)
         {
             // A double-click goes between fit and actual size.
@@ -122,6 +159,11 @@ public partial class PictureWindow : Window
 
     private void Moved(object? sender, PointerEventArgs e)
     {
+        if (cropFrom is { } start)
+        {
+            Picture.DragCrop(start, e.GetPosition(Stage));
+            return;
+        }
         if (draggedFrom is not { } from)
             return;
         var now = e.GetPosition(this);
@@ -131,6 +173,9 @@ public partial class PictureWindow : Window
 
     private void Released(object? sender, PointerReleasedEventArgs e)
     {
+        if (cropFrom is { } start)
+            Picture.DragCrop(start, e.GetPosition(Stage));
+        cropFrom = null;
         draggedFrom = null;
         e.Pointer.Capture(null);
         Cursor = Cursor.Default;

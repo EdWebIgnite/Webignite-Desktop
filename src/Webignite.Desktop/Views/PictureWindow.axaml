@@ -16,7 +16,26 @@
           <Button Classes="quiet" Content="+" Padding="10,4" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (+)" />
           <Button Classes="quiet" Content="Fit" Command="{Binding FitCommand}" Classes.on="{Binding Fitting}" ToolTip.Tip="Fit to the window (0)" />
           <Border Width="1" Background="{DynamicResource Line}" Margin="4,4" />
-          <Button Classes="quiet" Content="Turn" Command="{Binding TurnRightCommand}" ToolTip.Tip="Turn right (R). Shift+R turns left. Saved in the file; Undo turns it back." />
+          <Button Classes="quiet" Content="Edit" ToolTip.Tip="Crop, resize, turn, flip, convert, shrink, pick a colour">
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="Crop" Command="{Binding StartCropCommand}" InputGesture="C" />
+                <MenuItem Header="Resize…" Command="{Binding StartResizeCommand}" InputGesture="S" />
+                <Separator />
+                <MenuItem Header="Turn right" Command="{Binding TurnRightCommand}" InputGesture="R" />
+                <MenuItem Header="Turn left" Command="{Binding TurnLeftCommand}" InputGesture="Shift+R" />
+                <MenuItem Header="Flip left to right" Command="{Binding FlipAcrossCommand}" InputGesture="F" />
+                <MenuItem Header="Flip top to bottom" Command="{Binding FlipUpDownCommand}" InputGesture="Shift+F" />
+                <Separator />
+                <MenuItem Header="Shrink for a website" Command="{Binding ShrinkForWebCommand}" />
+                <MenuItem Header="Make a WebP copy" Command="{Binding ConvertToCommand}" CommandParameter="WebP" />
+                <MenuItem Header="Make a PNG copy" Command="{Binding ConvertToCommand}" CommandParameter="Png" />
+                <MenuItem Header="Make a JPG copy" Command="{Binding ConvertToCommand}" CommandParameter="Jpeg" />
+                <Separator />
+                <MenuItem Header="Pick a colour" Command="{Binding StartPickingCommand}" InputGesture="I" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
           <Button Classes="quiet" Content="Copy" Command="{Binding CopyCommand}" ToolTip.Tip="Copy the picture (Ctrl+C)" />
           <Button Classes="quiet" Content="Mark-up" Command="{Binding MarkupCommand}" ToolTip.Tip="Draw on it: arrows, notes, text and blur (E)" />
           <Button Classes="quiet" Padding="8,6" ToolTip.Tip="More">
@@ -47,6 +66,71 @@
       </DockPanel>
     </Border>
 
+    <!-- Crop: drag over the part to keep -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" Padding="14,8" IsVisible="{Binding Cropping}">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <TextBlock VerticalAlignment="Center" Text="{Binding CropText}" />
+        <Button Classes="primary" Content="Crop" Command="{Binding ApplyCropCommand}" ToolTip.Tip="Enter. Undo puts the picture back." />
+        <Button Classes="link" Content="Cancel" Command="{Binding StopToolCommand}" />
+        <TextBlock Classes="problem" FontSize="12" VerticalAlignment="Center" Text="{Binding ToolProblem}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Resize: width and height in pixels -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" Padding="14,8" IsVisible="{Binding Resizing}">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Classes="muted" Text="Width" VerticalAlignment="Center" />
+        <TextBox Width="90" Text="{Binding ResizeWidth}" />
+        <TextBlock Classes="muted" Text="Height" VerticalAlignment="Center" />
+        <TextBox Width="90" Text="{Binding ResizeHeight}" />
+        <CheckBox Content="Keep its shape" IsChecked="{Binding KeepShape}" VerticalAlignment="Center" />
+        <Button Classes="link" Content="50%" Command="{Binding ResizeToCommand}" CommandParameter="50" />
+        <Button Classes="link" Content="25%" Command="{Binding ResizeToCommand}" CommandParameter="25" />
+        <Button Classes="primary" Content="Resize" Command="{Binding ApplyResizeCommand}" ToolTip.Tip="Undo puts the picture back" />
+        <Button Classes="link" Content="Cancel" Command="{Binding StopToolCommand}" />
+        <TextBlock Classes="problem" FontSize="12" VerticalAlignment="Center" Text="{Binding ToolProblem}" TextWrapping="Wrap" MaxWidth="260" />
+      </StackPanel>
+    </Border>
+
+    <!-- Pick a colour: a click copies its code -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" Padding="14,8" IsVisible="{Binding Picking}">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <TextBlock VerticalAlignment="Center" Text="Click a colour on the picture to copy its code." />
+        <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding PickedHex, StringFormat='{}{0} copied'}"
+                   IsVisible="{Binding PickedHex, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <Button Classes="link" Content="Done" Command="{Binding StopToolCommand}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Convert or shrink: before and after, side by side -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" Padding="14,10" IsVisible="{Binding ShowingResult}">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,16,*" Height="220">
+          <DockPanel Grid.Column="0">
+            <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="12" Text="{Binding BeforeText}" Margin="0,4,0,0" />
+            <Border Background="{DynamicResource Nav}" CornerRadius="6">
+              <Image Source="{Binding Picture}" Stretch="Uniform" Margin="6" />
+            </Border>
+          </DockPanel>
+          <DockPanel Grid.Column="2">
+            <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="12" Text="{Binding AfterText}" Margin="0,4,0,0" />
+            <Border Background="{DynamicResource Nav}" CornerRadius="6">
+              <Image Source="{Binding AfterPicture}" Stretch="Uniform" Margin="6" />
+            </Border>
+          </DockPanel>
+        </Grid>
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
+            <Button Classes="link" Content="Open it" Command="{Binding OpenResultCommand}" />
+            <Button Classes="link" Content="Show in Files" Command="{Binding ShowResultInFilesCommand}" />
+            <Button Classes="quiet" Content="Throw it away" Command="{Binding ThrowResultAwayCommand}" />
+            <Button Classes="primary" Content="Keep it" Command="{Binding KeepResultCommand}" />
+          </StackPanel>
+          <TextBlock VerticalAlignment="Center" Text="{Binding ResultText}" TextWrapping="Wrap" />
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
     <!-- Asked before deleting -->
     <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" Padding="14,8" IsVisible="{Binding ConfirmingDelete}">
       <StackPanel Orientation="Horizontal" Spacing="12">
@@ -64,6 +148,9 @@
             <MenuItem Header="Mark it up" Command="{Binding MarkupCommand}" InputGesture="E" />
             <MenuItem Header="Turn right" Command="{Binding TurnRightCommand}" InputGesture="R" />
             <MenuItem Header="Turn left" Command="{Binding TurnLeftCommand}" InputGesture="Shift+R" />
+            <MenuItem Header="Crop" Command="{Binding StartCropCommand}" InputGesture="C" />
+            <MenuItem Header="Resize…" Command="{Binding StartResizeCommand}" InputGesture="S" />
+            <MenuItem Header="Pick a colour" Command="{Binding StartPickingCommand}" InputGesture="I" />
             <Separator />
             <MenuItem Header="Fit to the window" Command="{Binding FitCommand}" InputGesture="D0" />
             <MenuItem Header="Actual size" Command="{Binding ActualSizeCommand}" InputGesture="D1" />
@@ -73,9 +160,13 @@
             <MenuItem Header="Delete" Command="{Binding AskDeleteCommand}" InputGesture="Delete" />
           </ContextMenu>
         </ScrollViewer.ContextMenu>
-        <Image x:Name="Shown" Source="{Binding Picture}" Width="{Binding ShownWidth}" Height="{Binding ShownHeight}" Stretch="Fill"
-               HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapInterpolationMode="HighQuality" />
+        <Panel x:Name="Stage" Width="{Binding ShownWidth}" Height="{Binding ShownHeight}" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Image x:Name="Shown" Source="{Binding Picture}" Stretch="Fill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+          <c:CropFrame x:Name="Frame" Area="{Binding CropShown}" IsVisible="{Binding Cropping}" />
+        </Panel>
       </ScrollViewer>
+      <TextBlock Foreground="{DynamicResource NavMuted}" Text="Working…" IsVisible="{Binding Busy}"
+                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0" />
       <TextBlock Foreground="{DynamicResource NavMuted}" Text="Opening…" IsVisible="{Binding Loading}"
                  HorizontalAlignment="Center" VerticalAlignment="Center" />
       <TextBlock Foreground="{DynamicResource NavText}" Text="{Binding Problem}" IsVisible="{Binding HasProblem}" TextWrapping="Wrap" MaxWidth="520"

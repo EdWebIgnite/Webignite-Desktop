@@ -64,6 +64,7 @@ public partial class MainWindow
                 return;
             if (Clipboard is { } clipboard)
                 await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, colour.Hex);
+            services.RememberColour(colour.Hex);
             if (picked is not null)
             {
                 picked(colour.Hex);
