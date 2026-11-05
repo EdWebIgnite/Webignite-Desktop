@@ -4,6 +4,8 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Webignite.Desktop.ViewModels;
 
+using Webignite.Desktop.Files;
+
 namespace Webignite.Desktop.Views;
 
 public partial class ClientDetailView : UserControl
@@ -23,20 +25,18 @@ public partial class ClientDetailView : UserControl
 
     private async Task LinkFilesAsync(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not ClientDetailViewModel client || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (DataContext is not ClientDetailViewModel client)
             return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Link files to " + client.Title, AllowMultiple = true });
-        client.AddFiles(files.Select(f => f.TryGetLocalPath()).OfType<string>());
+        client.AddFiles(await Picker.Files(this, "Link files to " + client.Title, many: true, start: client.HasFolder ? client.FolderPath : null));
     }
 
     private void PickFolder(object? sender, RoutedEventArgs e) => PickFolderAsync().Forget("Picking the client's folder", tell: true);
 
     private async Task PickFolderAsync()
     {
-        if (DataContext is not ClientDetailViewModel client || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (DataContext is not ClientDetailViewModel client)
             return;
-        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = client.Title + "'s folder" });
-        if (folders.FirstOrDefault()?.TryGetLocalPath() is { } path)
+        if (await Picker.Folder(this, client.Title + "'s folder", client.HasFolder ? client.FolderPath : null) is { } path)
             client.UseFolder(path);
     }
 }

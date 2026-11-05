@@ -118,6 +118,13 @@ foreach (var kind in Enum.GetValues<ToolKind>())
     Check($"The {ToolWindow.TitleOf(kind)} window gives its memory back when closed", !tools.IsAlive && !toolWindow.IsAlive);
 }
 
+// The app's own Open and Save box holds an explorer; closing it must let go of it.
+{
+    var (picker, pickerWindow) = OpenPickerAndClose(window, services);
+    Settle();
+    Check("The Open and Save box gives its memory back when closed", !picker.IsAlive && !pickerWindow.IsAlive);
+}
+
 Line("Process working set (for reference)", Mb(Process.GetCurrentProcess().WorkingSet64));
 
 Console.WriteLine();
@@ -141,6 +148,20 @@ static (WeakReference Tools, WeakReference Window) OpenToolAndClose(MainWindow w
     shown.CaptureRenderedFrame()?.Dispose();
     var refs = (new WeakReference(shown.Tools), new WeakReference(shown));
     shown.Close();
+    Draw(window);
+    return refs;
+}
+
+[MethodImpl(MethodImplOptions.NoInlining)]
+static (WeakReference Picker, WeakReference Window) OpenPickerAndClose(MainWindow window, AppServices services)
+{
+    var picker = new FilePickerViewModel(services, PickKind.Files, "Open", ["*.pdf"]);
+    var shown = new FilePickerWindow { DataContext = picker };
+    shown.Show(window);
+    Dispatcher.UIThread.RunJobs();
+    shown.CaptureRenderedFrame()?.Dispose();
+    var refs = (new WeakReference(picker), new WeakReference(shown));
+    picker.CancelCommand.Execute(null);
     Draw(window);
     return refs;
 }

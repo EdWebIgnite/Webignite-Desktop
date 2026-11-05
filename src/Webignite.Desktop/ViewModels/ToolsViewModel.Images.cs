@@ -85,7 +85,7 @@ public sealed partial class ToolsViewModel
     private void OpenImageFolder()
     {
         if (ImageFolder is { } folder && Directory.Exists(folder))
-            AppServices.OpenFile(folder);
+            services.Go.Folder(folder);
     }
 
     private bool HasImageFolder() => ImageFolder is not null;

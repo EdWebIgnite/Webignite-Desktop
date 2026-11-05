@@ -7,6 +7,8 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Webignite.Desktop.ViewModels;
 
+using Webignite.Desktop.Files;
+
 namespace Webignite.Desktop.Views;
 
 public partial class MarkupView : UserControl
@@ -90,16 +92,9 @@ public partial class MarkupView : UserControl
 
     private async Task SaveRecordingAsAsync()
     {
-        if (Markup?.Recording is not { } recording || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (Markup?.Recording is not { } recording)
             return;
-        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save the recording",
-            SuggestedFileName = Webignite.Core.Tools.Recordings.FileName(Markup.Client?.Name, DateTime.Now),
-            DefaultExtension = "mp4",
-            FileTypeChoices = [new FilePickerFileType("MP4 video") { Patterns = ["*.mp4"] }],
-        });
-        if (file?.TryGetLocalPath() is { } path)
+        if (await Picker.Save(this, "Save the recording", Webignite.Core.Tools.Recordings.FileName(Markup.Client?.Name, DateTime.Now), ["*.mp4"], "MP4 video", Markup.SaveFolder()) is { } path)
             await recording.SaveTo(path);
     }
 
@@ -107,14 +102,9 @@ public partial class MarkupView : UserControl
 
     private async Task OpenImageAsync(object? sender, RoutedEventArgs e)
     {
-        if (Markup is not { } markup || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (Markup is null)
             return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Open a screenshot",
-            FileTypeFilter = [new FilePickerFileType("Images") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp", "*.gif"] }],
-        });
-        if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+        if ((await Picker.Files(this, "Open a screenshot", ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp", "*.gif"], kindName: "Images")).FirstOrDefault() is { } path)
             Load(path);
     }
 
@@ -140,19 +130,12 @@ public partial class MarkupView : UserControl
 
     private async Task SavePngAsync(object? sender, RoutedEventArgs e)
     {
-        if (Markup is not { } markup || markup.Png() is not { } png || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+        if (Markup is not { } markup || markup.Png() is not { } png)
             return;
-        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save the marked-up picture",
-            SuggestedFileName = markup.FileName,
-            FileTypeChoices = [new FilePickerFileType("PNG image") { Patterns = ["*.png"] }],
-        });
-        if (file is null)
+        if (await Picker.Save(this, "Save the marked-up picture", markup.FileName, ["*.png"], "PNG image", markup.SaveFolder()) is not { } path)
             return;
-        await using (var stream = await file.OpenWriteAsync())
-            await stream.WriteAsync(png);
-        markup.Say($"Saved {file.Name}.");
+        await File.WriteAllBytesAsync(path, png);
+        markup.Say($"Saved {System.IO.Path.GetFileName(path)}.");
     }
 
     // The Text tool: a box where the picture was clicked; the words go on the picture at that spot.

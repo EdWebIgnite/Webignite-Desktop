@@ -257,6 +257,11 @@ public partial class MainViewModel : ViewModelBase
             Selected = this[Page.Files];
             PageOf<FilesViewModel>(Page.Files).GoTo(path);
         };
+        go.ShowFileAction = path =>
+        {
+            Selected = this[Page.Files];
+            PageOf<FilesViewModel>(Page.Files).Reveal(path);
+        };
         go.AddToInvoiceAction = (amount, description) =>
         {
             if (Invoices.Editor is { } open && !open.AddAmount(amount, description))
