@@ -159,9 +159,6 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
         Save(MyPages.Rename(page, EditName));
     }
 
-    /// <summary>The kinds offered under Add widget; Needs you and Mail inbox come in a later update.</summary>
-    public static bool CanAdd(WidgetKind kind) => kind is not (WidgetKind.NeedsYou or WidgetKind.Mail);
-
     /// <summary>The running projects, to pick one for a project widget.</summary>
     public IReadOnlyList<(string Id, string Name)> ProjectChoices() =>
         [.. Webignite.Core.Projects.ProjectRules.Listed(services.Projects.Projects(), showDone: false).Select(p => (p.Id, p.Name))];

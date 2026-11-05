@@ -114,38 +114,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
             : services.XeroApi is null ? "Connect Xero to see payments." : "Checking Xero for payments.";
 
         Summary.Clear();
-        foreach (var line in MorningSummary.Build(SummaryInput(today, documents)))
+        foreach (var line in MorningSummary.Build(Summaries.Input(services, today, documents)))
             Summary.Add(new SummaryLineViewModel(line, services));
 
         OnPropertyChanged(string.Empty);
-    }
-
-    private SummaryInput SummaryInput(DateOnly today, IReadOnlyList<StoredDocument> documents)
-    {
-        var accounts = services.Store.ListMailAccounts();
-        var inbox = new List<MailSummary>();
-        foreach (var account in accounts)
-        {
-            if (services.Store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == FolderRole.Inbox) is { } folder)
-                inbox.AddRange(services.Store.ListMailSummaries(account.Id, folder.Path, 300));
-        }
-        var hasPassword = services.HasBackupPassword;
-        return new SummaryInput
-        {
-            Today = today,
-            Documents = documents,
-            Renewals = services.Store.ListRenewals(),
-            Entries = services.Store.ListEntries(Dates.MonthStart(today), today),
-            Inbox = inbox,
-            Clients = services.Clients.List(),
-            OwnAddresses = accounts.Select(a => a.Address).ToList(),
-            StatementsSent = services.Settings.StatementsSent,
-            Sites = Webignite.Core.Web.Uptime.Domains(services.Clients.List(), services.Settings.Uptime)
-                .Select(d => services.Settings.Uptime.Sites.GetValueOrDefault(d.Domain)).OfType<Webignite.Core.Web.WatchedSite>().ToList(),
-            BackupsOn = hasPassword,
-            BackupOverdue = BackupRules.Overdue(services.Settings.Backups, hasPassword, DateTimeOffset.Now),
-            NoReplyNeeded = services.Settings.NoReplyNeeded,
-        };
     }
 }
 

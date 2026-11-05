@@ -179,8 +179,62 @@
       </Panel>
     </DataTemplate>
 
+    <!-- Needs you, as on Overview -->
+    <DataTemplate DataType="vm:NeedsYouBody">
+      <Panel>
+        <TextBlock Classes="muted" FontSize="12" Text="Nothing needs you right now." IsVisible="{Binding IsEmpty}" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding Lines}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:SummaryLineViewModel">
+                <DockPanel Margin="0,0,0,8">
+                  <Ellipse DockPanel.Dock="Left" Classes="dot" Classes.problem="{Binding Problem}" Margin="0,6,10,0" VerticalAlignment="Top" />
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12.5" Classes.problem="{Binding Problem}" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                      <Button Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}" Padding="0" FontSize="12" />
+                      <Button Classes="link" Content="No reply needed" Command="{Binding NoReplyNeededCommand}" IsVisible="{Binding CanWaveOff}" Padding="0" FontSize="12"
+                              ToolTip.Tip="Takes it off this list. It comes back if they write again." />
+                    </StackPanel>
+                  </StackPanel>
+                </DockPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Panel>
+    </DataTemplate>
+
+    <!-- The newest mail across the inboxes -->
+    <DataTemplate DataType="vm:MailBody">
+      <DockPanel>
+        <Button DockPanel.Dock="Bottom" Classes="link" Content="Open Mail" Command="{Binding OpenMailCommand}" HorizontalAlignment="Left" Padding="0" Margin="0,8,0,0" />
+        <Panel>
+          <TextBlock Classes="muted" FontSize="12" Text="No mail here yet. Add a mailbox under Mail." IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Lines}" Margin="0,0,12,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MailLine">
+                  <Button Classes="minday" Command="{Binding OpenCommand}" HorizontalContentAlignment="Stretch" Padding="6,5" Margin="-6,0">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="11" Text="{Binding When}" VerticalAlignment="Top" Margin="8,1,0,0" />
+                      <StackPanel>
+                        <TextBlock Text="{Binding From}" FontSize="12.5" TextTrimming="CharacterEllipsis"
+                                   FontWeight="{Binding Unread, Converter={x:Static v:MyPagesView.Bold}}" />
+                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                    </DockPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Panel>
+      </DockPanel>
+    </DataTemplate>
+
     <DataTemplate DataType="vm:SoonBody">
-      <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="This widget comes in the next update." />
+      <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="This widget can't be shown in this version of the app." />
     </DataTemplate>
   </UserControl.DataTemplates>
 
