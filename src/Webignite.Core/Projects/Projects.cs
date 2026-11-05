@@ -45,6 +45,35 @@ public interface ITracked
 
 public enum ProjectStatus { Active, OnHold, Done }
 
+/// <summary>How often a task comes back once it's done.</summary>
+public enum TaskRepeat { None, Daily, Weekly, Monthly, Yearly }
+
+/// <summary>
+/// A project kept to start others from: its headings and tasks, with subtasks, and each task's dates as days
+/// after the project starts. Nobody is given anything in a template; that's decided per project.
+/// </summary>
+public sealed record ProjectTemplate
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public IReadOnlyList<string> Headings { get; init; } = [];
+    public IReadOnlyList<TemplateTask> Tasks { get; init; } = [];
+}
+
+/// <summary>A task in a template; <see cref="Heading"/> is a heading's name, or null for none.</summary>
+public sealed record TemplateTask
+{
+    public required string Title { get; init; }
+    public string? Heading { get; init; }
+    public string Notes { get; init; } = "";
+    public TaskPriority Priority { get; init; }
+    public IReadOnlyList<string> Tags { get; init; } = [];
+    public TaskRepeat Repeat { get; init; }
+    public int? StartDay { get; init; }
+    public int? DueDay { get; init; }
+    public IReadOnlyList<string> Subtasks { get; init; } = [];
+}
+
 /// <summary>How much a task matters: most are Normal.</summary>
 public enum TaskPriority { Normal, High, Low }
 
@@ -126,6 +155,9 @@ public sealed record ProjectTask : ITracked
 
     /// <summary>Words to group and find tasks by, such as Hosting or SEO.</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
+
+    /// <summary>Ticking it off makes the next one, due a day, week, month or year later.</summary>
+    public TaskRepeat Repeat { get; init; }
 
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
@@ -333,6 +365,119 @@ public static class ProjectRules
     public static string TimerNote(ProjectTask task, string? projectName) =>
         string.IsNullOrWhiteSpace(projectName) ? task.Title : $"{task.Title}, {projectName}";
 
+    public static string Label(TaskRepeat repeat) => repeat switch
+    {
+        TaskRepeat.Daily => "Every day",
+        TaskRepeat.Weekly => "Every week",
+        TaskRepeat.Monthly => "Every month",
+        TaskRepeat.Yearly => "Every year",
+        _ => "Doesn't repeat",
+    };
+
+    /// <summary>
+    /// The next one of a repeating task just ticked off: a fresh copy, due a step after it was due (or after today
+    /// when it had no date), its start moved by as much, under the same heading, straight after it.
+    /// Null when it doesn't repeat.
+    /// </summary>
+    public static ProjectTask? Next(ProjectTask done, DateOnly today, double order)
+    {
+        if (done.Repeat == TaskRepeat.None)
+            return null;
+        var from = done.Due ?? today;
+        var due = Step(from, done.Repeat);
+        // Ticked off late: skip ahead so the next one isn't already overdue.
+        while (due < today)
+            due = Step(due, done.Repeat);
+        var shift = due.DayNumber - from.DayNumber;
+        return done with
+        {
+            Id = NewId(),
+            Done = false,
+            Due = due,
+            Start = done.Start?.AddDays(shift),
+            Order = order,
+            Created = default,
+            Changed = default,
+            Deleted = null,
+            Fields = new Dictionary<string, Stamp>(),
+        };
+    }
+
+    private static DateOnly Step(DateOnly day, TaskRepeat repeat) => repeat switch
+    {
+        TaskRepeat.Daily => day.AddDays(1),
+        TaskRepeat.Weekly => day.AddDays(7),
+        TaskRepeat.Monthly => day.AddMonths(1),
+        _ => day.AddYears(1),
+    };
+
+    /// <summary>
+    /// A project as a template: its headings in order, its tasks with their subtasks' titles, and dates as days
+    /// after the earliest date in it. Who tasks were given to, what's done and links to mail or invoices stay behind,
+    /// and so do repeating tasks already ticked off (the next one is there).
+    /// </summary>
+    public static ProjectTemplate TemplateOf(string name, IEnumerable<Heading> headings, IEnumerable<ProjectTask> tasks)
+    {
+        var live = headings.Where(h => h.Deleted is null).OrderBy(h => h.Order).ToList();
+        // A repeating task already ticked off has a next one carrying on, so only that one goes in.
+        var all = tasks.Where(t => t.Deleted is null && !(t.Done && t.Repeat != TaskRepeat.None)).ToList();
+        var top = Sections(live, all).SelectMany(s => s.Tasks).ToList();
+        var dates = top.SelectMany(t => new[] { t.Start, t.Due }).OfType<DateOnly>().ToList();
+        var first = dates.Count == 0 ? (DateOnly?)null : dates.Min();
+        int? Day(DateOnly? date) => date is { } d && first is { } f ? d.DayNumber - f.DayNumber : null;
+        return new ProjectTemplate
+        {
+            Id = NewId(),
+            Name = name.Trim(),
+            Headings = [.. live.Select(h => h.Name)],
+            Tasks = [.. top.Select(t => new TemplateTask
+            {
+                Title = t.Title,
+                Heading = live.FirstOrDefault(h => h.Id == t.HeadingId)?.Name,
+                Notes = t.Notes,
+                Priority = t.Priority,
+                Tags = t.Tags,
+                Repeat = t.Repeat,
+                StartDay = Day(t.Start),
+                DueDay = Day(t.Due),
+                Subtasks = [.. all.Where(s => s.ParentId == t.Id).OrderBy(s => s.Order).Select(s => s.Title)],
+            })],
+        };
+    }
+
+    /// <summary>A new project from a template, starting on a day: its headings, tasks and subtasks, all new.</summary>
+    public static (Project Project, IReadOnlyList<Heading> Headings, IReadOnlyList<ProjectTask> Tasks) FromTemplate(
+        ProjectTemplate template, string name, DateOnly start, double order)
+    {
+        var project = new Project { Id = NewId(), Name = string.IsNullOrWhiteSpace(name) ? template.Name : name.Trim(), Order = order };
+        var headings = template.Headings.Select((h, i) => new Heading { Id = NewId(), ProjectId = project.Id, Name = h, Order = i + 1 }).ToList();
+        var tasks = new List<ProjectTask>();
+        var place = 0;
+        foreach (var t in template.Tasks)
+        {
+            var task = new ProjectTask
+            {
+                Id = NewId(),
+                ProjectId = project.Id,
+                HeadingId = headings.FirstOrDefault(h => h.Name == t.Heading)?.Id,
+                Title = t.Title,
+                Notes = t.Notes,
+                Priority = t.Priority,
+                Tags = t.Tags,
+                Repeat = t.Repeat,
+                Start = t.StartDay is { } s ? start.AddDays(s) : null,
+                Due = t.DueDay is { } d ? start.AddDays(d) : null,
+                Order = ++place,
+            };
+            tasks.Add(task);
+            tasks.AddRange(t.Subtasks.Select((title, i) => new ProjectTask
+            {
+                Id = NewId(), ProjectId = project.Id, HeadingId = task.HeadingId, ParentId = task.Id, Title = title, Order = i + 1,
+            }));
+        }
+        return (project, headings, tasks);
+    }
+
     public static string Label(TaskPriority priority) => priority switch
     {
         TaskPriority.High => "High",
@@ -397,7 +542,7 @@ public static class ProjectRules
     [
         ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
-        ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags),
+        ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
     ];
 
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>

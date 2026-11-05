@@ -13,6 +13,12 @@
         <StackPanel Spacing="16" Margin="24,30,24,30">
           <TextBlock Classes="h1" Text="Projects" />
           <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="quiet" Margin="6,0,0,0" ToolTip.Tip="Start a project from a template">
+              <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="14" />
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="TemplatesOpening" />
+              </Button.Flyout>
+            </Button>
             <Button DockPanel.Dock="Right" Classes="primary" Margin="8,0,0,0" Command="{Binding NewProjectCommand}" ToolTip.Tip="Start a project">
               <c:Icon Data="{StaticResource Icon.Plus}" Size="16" />
             </Button>
@@ -107,6 +113,8 @@
                           ToolTip.Tip="Headings as columns; drag cards across and up and down" />
                 </StackPanel>
               </Border>
+              <Button Classes="quiet" Content="Save as template" Command="{Binding SaveAsTemplateCommand}"
+                      ToolTip.Tip="Keep its headings, tasks and subtasks to start other projects from" />
               <Button Classes="quiet" ToolTip.Tip="Delete the project and its tasks" Command="{Binding DeleteProjectCommand}">
                 <c:Icon Data="{StaticResource Icon.Trash}" Size="16" />
               </Button>
@@ -271,7 +279,7 @@
             </DockPanel>
             <TextBlock Classes="problem" Text="{Binding Problem}" IsVisible="{Binding HasProblem}" TextWrapping="Wrap" />
 
-            <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+            <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
               <TextBlock Classes="muted" Text="For" VerticalAlignment="Center" />
               <ComboBox Grid.Column="1" ItemsSource="{Binding People}" SelectedItem="{Binding AssignedTo}" HorizontalAlignment="Stretch" />
               <TextBlock Grid.Row="1" Classes="muted" Text="Start" VerticalAlignment="Center" />
@@ -283,6 +291,9 @@
                         SelectionChanged="HeadingPicked" HorizontalAlignment="Stretch" />
               <TextBlock Grid.Row="4" Classes="muted" Text="Priority" VerticalAlignment="Center" />
               <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Priorities}" SelectedItem="{Binding Priority}" HorizontalAlignment="Stretch" />
+              <TextBlock Grid.Row="6" Classes="muted" Text="Repeats" VerticalAlignment="Center" />
+              <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Repeats}" SelectedItem="{Binding Repeat}" HorizontalAlignment="Stretch"
+                        ToolTip.Tip="Ticking it off makes the next one" />
               <TextBlock Grid.Row="5" Classes="muted" Text="Tags" VerticalAlignment="Top" Margin="0,8,0,0" />
               <StackPanel Grid.Row="5" Grid.Column="1" Spacing="6">
                 <TextBox Text="{Binding TagsText}" PlaceholderText="e.g. Hosting, SEO" />
@@ -385,6 +396,9 @@
         </Border>
         <Border Classes="pill" IsVisible="{Binding IsLow}" ToolTip.Tip="Low priority">
           <TextBlock Text="Low" FontSize="11" Foreground="{DynamicResource Muted}" />
+        </Border>
+        <Border Classes="pill" IsVisible="{Binding Repeats}" ToolTip.Tip="Comes back once it's ticked off">
+          <TextBlock Text="{Binding RepeatLabel}" FontSize="11" Foreground="{DynamicResource Muted}" />
         </Border>
         <ItemsControl ItemsSource="{Binding Tags}">
           <ItemsControl.ItemsPanel>

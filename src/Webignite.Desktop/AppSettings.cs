@@ -235,6 +235,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("team", value);
     }
 
+    /// <summary>Projects kept to start others from.</summary>
+    public IReadOnlyList<ProjectTemplate> ProjectTemplates
+    {
+        get => store.GetSetting<List<ProjectTemplate>>("project-templates") ?? [];
+        set => store.SetSetting("project-templates", value.ToList());
+    }
+
     /// <summary>List or board on the Projects page.</summary>
     public ProjectViewSettings ProjectView
     {
