@@ -15,6 +15,12 @@ public sealed record Teammate
     public static string NewId() => Guid.CreateVersion7().ToString("N");
 }
 
+/// <summary>How the Projects page shows a project's tasks: as a list, or as a board with a column per heading.</summary>
+public sealed record ProjectViewSettings
+{
+    public bool Board { get; init; }
+}
+
 /// <summary>You and your partner, set up in Settings. The partner can be renamed any time.</summary>
 public sealed record TeamSettings
 {

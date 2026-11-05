@@ -28,6 +28,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         Panels = new PanelsViewModel(services.Settings, "projects", [("list", "Projects"), ("project", "Open project"), ("task", "Open task")]);
         typing.Tick += (_, _) => SaveTyped();
         services.Projects.Changed += ElsewhereChanged;
+        IsBoard = services.Settings.ProjectView.Board;
         // The task pane shows when a task is opened.
         if (Panels.CanHide("task"))
             Panels["task"].IsShown = false;
@@ -156,6 +157,24 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     /// <summary>The headings and tasks as shown: a heading row, then its tasks, then a box to add one.</summary>
     public ObservableCollection<object> Rows { get; } = [];
 
+    /// <summary>The same headings and tasks as a board: a column per heading, its tasks as cards.</summary>
+    public ObservableCollection<BoardColumn> Columns { get; } = [];
+
+    /// <summary>Board or list; remembered for next time.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsList))]
+    public partial bool IsBoard { get; set; }
+
+    public bool IsList => !IsBoard;
+
+    partial void OnIsBoardChanged(bool value) => services.Settings.ProjectView = services.Settings.ProjectView with { Board = value };
+
+    [RelayCommand]
+    private void ListView() => IsBoard = false;
+
+    [RelayCommand]
+    private void BoardView() => IsBoard = true;
+
     public string SharedLabel => $"Shared with {services.Team().Partner!.Name}";
 
     private void LoadChoices()
@@ -192,6 +211,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     private void ShowTasks()
     {
         Rows.Clear();
+        Columns.Clear();
         if (open is null)
             return;
         var tasks = services.Projects.AllTasks(open.Id);
@@ -200,9 +220,17 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         {
             var section = new SectionRow(heading, list, this);
             Rows.Add(section);
+            var cards = new List<TaskRow>();
             foreach (var task in list)
-                Rows.Add(new TaskRow(task, section, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this) { IsOpen = task.Id == Detail?.Task.Id });
-            Rows.Add(new AddTaskRow(section, this));
+            {
+                var row = new TaskRow(task, section, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this) { IsOpen = task.Id == Detail?.Task.Id };
+                Rows.Add(row);
+                cards.Add(row);
+            }
+            var add = new AddTaskRow(section, this);
+            Rows.Add(add);
+            // The same rows make the board: a column per heading.
+            Columns.Add(new BoardColumn(section, cards, add));
         }
         Summary = SummaryOf(tasks);
     }
@@ -382,6 +410,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             TaskRow { Section: { } under } task => (under, under.Tasks.ToList().FindIndex(t => t.Id == task.Task.Id) + (below ? 1 : 0)),
             SectionRow heading => (heading, 0),
             AddTaskRow add => (add.Section, add.Section.Tasks.Count),
+            BoardColumn column => (column.Section, column.Section.Tasks.Count),
             _ => (null, 0),
         };
         if (section is not null)
@@ -546,6 +575,16 @@ public sealed partial class TaskRow : ObservableObject
     /// <summary>A done task is greyed in the list.</summary>
     public double Fade => Done ? 0.55 : 1;
 
+    /// <summary>The line under a card's title on the board: who it's for, when it's due, its subtasks.</summary>
+    public string CardLine => string.Join(" · ", new[]
+    {
+        AssignedTo?.Value is null ? null : AssignedTo.Label,
+        Due is { } due ? "Due " + due.ToString("d MMM", System.Globalization.CultureInfo.CurrentCulture) : null,
+        Subtasks.Length > 0 ? Subtasks + " subtasks" : null,
+    }.Where(t => t is not null));
+
+    public bool HasCardLine => CardLine.Length > 0;
+
     [ObservableProperty] public partial Choice<string?>? AssignedTo { get; set; }
     [ObservableProperty] public partial DateTime? Due { get; set; }
     [ObservableProperty] public partial bool IsOpen { get; set; }
@@ -577,18 +616,35 @@ public sealed partial class TaskRow : ObservableObject
 
     partial void OnAssignedToChanged(Choice<string?>? value)
     {
+        OnPropertyChanged(nameof(CardLine));
+        OnPropertyChanged(nameof(HasCardLine));
         if (!loading)
             page.ChangeTask(this, t => t with { AssignedTo = value?.Value });
     }
 
     partial void OnDueChanged(DateTime? value)
     {
+        OnPropertyChanged(nameof(CardLine));
+        OnPropertyChanged(nameof(HasCardLine));
         if (!loading)
             page.ChangeTask(this, t => t with { Due = value is { } d ? DateOnly.FromDateTime(d) : null });
     }
 
     [RelayCommand]
     private void Delete() => page.DeleteTask(this);
+}
+
+/// <summary>A column on the board: a heading, its cards, and a box to add one.</summary>
+public sealed partial class BoardColumn(SectionRow section, IReadOnlyList<TaskRow> cards, AddTaskRow add) : ObservableObject
+{
+    public SectionRow Section { get; } = section;
+    public IReadOnlyList<TaskRow> Cards { get; } = cards;
+    public AddTaskRow Add { get; } = add;
+
+    [ObservableProperty] public partial bool DropHere { get; set; }
+
+    /// <summary>The column's edge while a card is held over it.</summary>
+    public static readonly Avalonia.Data.Converters.FuncValueConverter<bool, Avalonia.Thickness> DropEdge = new(on => on ? new Avalonia.Thickness(2) : default);
 }
 
 /// <summary>The box under a heading's tasks for adding one.</summary>

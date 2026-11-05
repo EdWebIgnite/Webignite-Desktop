@@ -2090,6 +2090,25 @@ Save("site-check");
         Save("projects-task");
         projectsPage.CloseTaskCommand.Execute(null);
         Check("Closing the task hides its pane", !projectsPage.HasTask && !projectsPage.Panels["task"].IsShown);
+
+        // The board: headings as columns, cards dragged across.
+        projectsPage.BoardViewCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Check("The board has a column per heading with its tasks as cards", projectsPage.IsBoard
+            && projectsPage.Columns.Select(c => c.Section.Name).SequenceEqual(["No heading", "Design", "Build", "Launch"])
+            && projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards.Count == 2);
+        var colours = projectsPage.Columns.SelectMany(c => c.Cards).First(r => r.Title == "Colours and fonts");
+        projectsPage.Drop(colours, projectsPage.Columns.First(c => c.Section.Name == "Build"), below: false);
+        Check("Dropping a card on a column moves it to the end of that heading",
+            projectsPage.Columns.First(c => c.Section.Name == "Build").Cards.Last().Title == "Colours and fonts");
+        var buildCard = projectsPage.Columns.First(c => c.Section.Name == "Build").Cards.Last();
+        projectsPage.Drop(buildCard, projectsPage.Columns.First(c => c.Section.Name == "Build").Cards.First(), below: false);
+        Check("Dropping a card above another moves it up the column",
+            projectsPage.Columns.First(c => c.Section.Name == "Build").Cards.First().Title == "Colours and fonts");
+        Check("The board is remembered for next time", services.Settings.ProjectView.Board);
+        Dispatcher.UIThread.RunJobs();
+        Save("projects-board");
+        projectsPage.ListViewCommand.Execute(null);
     }
 
     // The quick note from any program: what is typed is kept however the box closes.

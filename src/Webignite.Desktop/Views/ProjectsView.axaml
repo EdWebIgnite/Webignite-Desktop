@@ -49,6 +49,13 @@
         <StackPanel Spacing="16" IsVisible="{Binding IsOpen}">
           <DockPanel>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+              <Border Classes="segments" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                  <Button Classes="segment" Classes.on="{Binding IsList}" Content="List" Command="{Binding ListViewCommand}" />
+                  <Button Classes="segment" Classes.on="{Binding IsBoard}" Content="Board" Command="{Binding BoardViewCommand}"
+                          ToolTip.Tip="Headings as columns; drag cards across and up and down" />
+                </StackPanel>
+              </Border>
               <Button Classes="quiet" ToolTip.Tip="Delete the project and its tasks" Command="{Binding DeleteProjectCommand}">
                 <c:Icon Data="{StaticResource Icon.Trash}" Size="16" />
               </Button>
@@ -72,7 +79,7 @@
           <TextBlock Classes="problem" Text="{Binding Message}" TextWrapping="Wrap"
                      IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
-          <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}">
+          <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}" IsVisible="{Binding IsList}">
             <ItemsControl.DataTemplates>
               <DataTemplate DataType="vm:SectionRow">
                 <Border Classes.droptop="{Binding DropHere}" Margin="0,14,0,2" Padding="0,0,0,4" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
@@ -121,6 +128,54 @@
               </DataTemplate>
             </ItemsControl.DataTemplates>
           </ItemsControl>
+
+          <!-- The board: a column per heading, its tasks as cards. -->
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding IsBoard}">
+            <ItemsControl x:Name="Board" ItemsSource="{Binding Columns}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="12" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:BoardColumn">
+                  <Border Width="270" Background="{DynamicResource TableHead}" CornerRadius="10" Padding="10" VerticalAlignment="Top"
+                          BorderBrush="{DynamicResource Primary}" BorderThickness="{Binding DropHere, Converter={x:Static vm:BoardColumn.DropEdge}}">
+                    <StackPanel Spacing="8">
+                      <DockPanel Margin="4,0">
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Section.Count}" VerticalAlignment="Center" />
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Section.Name}" TextTrimming="CharacterEllipsis" />
+                      </DockPanel>
+                      <ItemsControl ItemsSource="{Binding Cards}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:TaskRow">
+                            <Border Classes.droptop="{Binding DropAbove}" Classes.dropbottom="{Binding DropBelow}" Padding="0,3" Background="Transparent"
+                                    ContextRequested="TaskMenu">
+                              <Border Classes="card" Classes.open="{Binding IsOpen}" Padding="8" Opacity="{Binding Fade}">
+                                <Grid ColumnDefinitions="18,26,*">
+                                  <Border Background="Transparent" Cursor="SizeAll" PointerPressed="GripPressed" ToolTip.Tip="Drag to move" VerticalAlignment="Top" Margin="0,3,0,0">
+                                    <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" />
+                                  </Border>
+                                  <CheckBox Grid.Column="1" IsChecked="{Binding Done}" VerticalAlignment="Top" ToolTip.Tip="Done" />
+                                  <Button Grid.Column="2" Classes="link" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                          Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}"
+                                          ToolTip.Tip="Open the task">
+                                    <StackPanel Spacing="3">
+                                      <TextBlock Text="{Binding Title}" TextWrapping="Wrap" Foreground="{DynamicResource Text}" />
+                                      <TextBlock Classes="muted" FontSize="12" Text="{Binding CardLine}" IsVisible="{Binding HasCardLine}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                  </Button>
+                                </Grid>
+                              </Border>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <TextBox Classes="inline" Text="{Binding Add.Title}" PlaceholderText="Add a card, then Enter" KeyDown="AddCardKey" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
 
           <DockPanel Margin="0,8,0,0">
             <Button DockPanel.Dock="Right" Classes="quiet" Content="Add heading" Command="{Binding AddHeadingCommand}" Margin="8,0,0,0" />
