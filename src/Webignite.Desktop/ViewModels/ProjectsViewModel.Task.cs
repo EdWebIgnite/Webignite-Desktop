@@ -60,10 +60,11 @@ public sealed partial class ProjectsViewModel
             detail.Reload();
             return;
         }
+        var tagsBefore = detail.Task.Tags;
         detail.Problem = "";
         detail.Saved(saved, typed);
-        // Typing in the title only renames the row, so nothing being typed loses its place.
-        if (typed && Rows.OfType<TaskRow>().FirstOrDefault(r => r.Task.Id == saved.Id) is { } row)
+        // Typing in the title only renames the row; new tags change the filter's list, so everything is shown again.
+        if (typed && saved.Tags.SequenceEqual(tagsBefore) && Rows.OfType<TaskRow>().FirstOrDefault(r => r.Task.Id == saved.Id) is { } row)
         {
             row.Task = saved;
             row.Reset();
@@ -154,6 +155,14 @@ public sealed partial class TaskDetail : ObservableObject
     [ObservableProperty] public partial string Problem { get; set; } = "";
     [ObservableProperty] public partial string NewSubtask { get; set; } = "";
     [ObservableProperty] public partial string MailSearch { get; set; } = "";
+    [ObservableProperty] public partial Choice<TaskPriority>? Priority { get; set; }
+    [ObservableProperty] public partial string TagsText { get; set; } = "";
+
+    public IReadOnlyList<Choice<TaskPriority>> Priorities => ProjectsViewModel.Priorities;
+
+    /// <summary>Tags used elsewhere in the project and not on this task yet, to add with a click.</summary>
+    public IReadOnlyList<string> OtherTags { get; private set; } = [];
+    public bool HasOtherTags => OtherTags.Count > 0;
 
     public ObservableCollection<TaskRow> Subtasks { get; } = [];
     public ObservableCollection<MailHit> MailFound { get; } = [];
@@ -181,6 +190,9 @@ public sealed partial class TaskDetail : ObservableObject
         AssignedTo = People.FirstOrDefault(p => p.Value == Task.AssignedTo) ?? People.FirstOrDefault();
         Start = Task.Start?.ToDateTime(TimeOnly.MinValue);
         Due = Task.Due?.ToDateTime(TimeOnly.MinValue);
+        Priority = ProjectsViewModel.Priorities.First(p => p.Value == Task.Priority);
+        TagsText = string.Join(", ", Task.Tags);
+        ShowOtherTags();
         Headings = page.HeadingChoices();
         OnPropertyChanged(nameof(Headings));
         Heading = Headings.FirstOrDefault(h => h.Value == Task.HeadingId) ?? Headings.FirstOrDefault();
@@ -202,6 +214,7 @@ public sealed partial class TaskDetail : ObservableObject
             return;
         }
         ShowLinksAndHistory();
+        ShowOtherTags();
     }
 
     private void ShowLinksAndHistory()
@@ -249,6 +262,33 @@ public sealed partial class TaskDetail : ObservableObject
             page.Typed(this);
     }
 
+    partial void OnTagsTextChanged(string value)
+    {
+        if (!loading)
+            page.Typed(this);
+    }
+
+    partial void OnPriorityChanged(Choice<TaskPriority>? value)
+    {
+        if (value is { } picked)
+            Change(t => t with { Priority = picked.Value });
+    }
+
+    private void ShowOtherTags()
+    {
+        var mine = ProjectRules.Tags(TagsText, page.ProjectTags);
+        OtherTags = [.. page.ProjectTags.Where(t => !mine.Contains(t, StringComparer.OrdinalIgnoreCase))];
+        OnPropertyChanged(nameof(OtherTags));
+        OnPropertyChanged(nameof(HasOtherTags));
+    }
+
+    [RelayCommand]
+    private void AddTag(string tag)
+    {
+        TagsText = string.Join(", ", ProjectRules.Tags(TagsText + "," + tag, page.ProjectTags));
+        page.Keep();
+    }
+
     /// <summary>Saves the title and notes typed, a moment after typing stops.</summary>
     internal void SaveTyped()
     {
@@ -258,7 +298,8 @@ public sealed partial class TaskDetail : ObservableObject
             return;
         }
         var (title, notes) = (Title, Notes);
-        page.ChangeOpenTask(t => t with { Title = title, Notes = notes.TrimEnd() }, typed: true);
+        var tags = ProjectRules.Tags(TagsText, page.ProjectTags);
+        page.ChangeOpenTask(t => t with { Title = title, Notes = notes.TrimEnd(), Tags = tags }, typed: true);
     }
 
     partial void OnDoneChanged(bool value) => Change(t => t with { Done = value });

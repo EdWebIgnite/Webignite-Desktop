@@ -160,6 +160,52 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     /// <summary>The same headings and tasks as a board: a column per heading, its tasks as cards.</summary>
     public ObservableCollection<BoardColumn> Columns { get; } = [];
 
+    // Filtering the list and board by priority and tag.
+
+    public static IReadOnlyList<Choice<TaskPriority?>> PriorityFilters { get; } =
+    [
+        new("Any priority", null), new("High", TaskPriority.High), new("Normal", TaskPriority.Normal), new("Low", TaskPriority.Low),
+    ];
+
+    public static IReadOnlyList<Choice<TaskPriority>> Priorities { get; } =
+        [new("High", TaskPriority.High), new("Normal", TaskPriority.Normal), new("Low", TaskPriority.Low)];
+
+    public IReadOnlyList<Choice<string?>> TagFilters { get; private set; } = [new("Any tag", null)];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFilter))]
+    public partial Choice<TaskPriority?>? FilterPriority { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFilter))]
+    public partial Choice<string?>? FilterTag { get; private set; }
+
+    public bool HasFilter => FilterPriority?.Value is not null || FilterTag?.Value is not null;
+
+    /// <summary>The priority picked in the filter; the list is one-way, so only a real pick counts.</summary>
+    public void PickPriorityFilter(Choice<TaskPriority?> choice)
+    {
+        FilterPriority = choice;
+        ShowTasks();
+    }
+
+    public void PickTagFilter(Choice<string?> choice)
+    {
+        FilterTag = choice;
+        ShowTasks();
+    }
+
+    [RelayCommand]
+    private void ClearFilter()
+    {
+        FilterPriority = PriorityFilters[0];
+        FilterTag = TagFilters[0];
+        ShowTasks();
+    }
+
+    /// <summary>Tags used in the open project, for the task pane to offer.</summary>
+    public IReadOnlyList<string> ProjectTags { get; private set; } = [];
+
     /// <summary>Board or list; remembered for next time.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsList))]
@@ -191,6 +237,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     {
         if (Detail is { } shown && shown.Task.ProjectId != project.Id)
             CloseTask();
+        if (open?.Id != project.Id)
+        {
+            FilterPriority = PriorityFilters[0];
+            FilterTag = null;
+        }
         open = project;
         loading = true;
         EditName = project.Name;
@@ -215,7 +266,18 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         if (open is null)
             return;
         var tasks = services.Projects.AllTasks(open.Id);
-        var sections = ProjectRules.Sections(services.Projects.Headings(open.Id), tasks);
+        ProjectTags = ProjectRules.AllTags(tasks);
+        TagFilters = [new Choice<string?>("Any tag", null), .. ProjectTags.Select(t => new Choice<string?>(t, t))];
+        OnPropertyChanged(nameof(TagFilters));
+        FilterPriority ??= PriorityFilters[0];
+        FilterTag = TagFilters.FirstOrDefault(t => string.Equals(t.Value, FilterTag?.Value, StringComparison.OrdinalIgnoreCase)) ?? TagFilters[0];
+        // The lists were rebuilt, so the drop-downs need their picks again.
+        OnPropertyChanged(nameof(FilterTag));
+        OnPropertyChanged(nameof(FilterPriority));
+        var priority = FilterPriority?.Value;
+        var tag = FilterTag?.Value;
+        var shown = tasks.Where(t => t.ParentId is not null || ProjectRules.Shows(t, priority, tag));
+        var sections = ProjectRules.Sections(services.Projects.Headings(open.Id), shown);
         foreach (var (heading, list) in sections)
         {
             var section = new SectionRow(heading, list, this);
@@ -233,6 +295,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             Columns.Add(new BoardColumn(section, cards, add));
         }
         Summary = SummaryOf(tasks);
+        if (HasFilter)
+            Summary += $". Showing {sections.Sum(x => x.Tasks.Count)} that match.";
     }
 
     [RelayCommand]
@@ -339,10 +403,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     {
         if (open is null || title.Trim().Length == 0)
             return;
-        var (saved, problems) = Ours(() => services.Projects.AddTask(new ProjectTask
+        var (saved, problems) = Ours(() => services.Projects.AddTask(ProjectRules.Filtered(new ProjectTask
         {
             Id = ProjectRules.NewId(), ProjectId = open.Id, HeadingId = section.Heading?.Id, Title = title,
-        }));
+        }, FilterPriority?.Value, FilterTag?.Value)));
         Message = saved is null ? string.Join(" ", problems) : "";
         if (saved is not null)
             ShowTasks();
@@ -575,6 +639,12 @@ public sealed partial class TaskRow : ObservableObject
     /// <summary>A done task is greyed in the list.</summary>
     public double Fade => Done ? 0.55 : 1;
 
+    public string PriorityLabel => Task.Priority == TaskPriority.Normal ? "" : ProjectRules.Label(Task.Priority);
+    public bool IsHigh => Task.Priority == TaskPriority.High;
+    public bool IsLow => Task.Priority == TaskPriority.Low;
+    public IReadOnlyList<string> Tags => Task.Tags;
+    public bool HasMarks => Task.Priority != TaskPriority.Normal || Task.Tags.Count > 0;
+
     /// <summary>The line under a card's title on the board: who it's for, when it's due, its subtasks.</summary>
     public string CardLine => string.Join(" · ", new[]
     {
@@ -594,6 +664,11 @@ public sealed partial class TaskRow : ObservableObject
     /// <summary>Shows the task as stored, e.g. after a change that wasn't allowed.</summary>
     public void Reset()
     {
+        OnPropertyChanged(nameof(PriorityLabel));
+        OnPropertyChanged(nameof(IsHigh));
+        OnPropertyChanged(nameof(IsLow));
+        OnPropertyChanged(nameof(Tags));
+        OnPropertyChanged(nameof(HasMarks));
         loading = true;
         Title = Task.Title;
         Done = Task.Done;

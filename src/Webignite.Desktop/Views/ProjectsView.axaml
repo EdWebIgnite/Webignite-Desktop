@@ -79,6 +79,14 @@
           <TextBlock Classes="problem" Text="{Binding Message}" TextWrapping="Wrap"
                      IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
+          <WrapPanel ItemSpacing="8" LineSpacing="6">
+            <ComboBox x:Name="PriorityFilterBox" ItemsSource="{x:Static vm:ProjectsViewModel.PriorityFilters}" SelectedItem="{Binding FilterPriority, Mode=OneWay}"
+                      SelectionChanged="PriorityFilterPicked" MinWidth="140" ToolTip.Tip="Show tasks of one priority" />
+            <ComboBox x:Name="TagFilterBox" ItemsSource="{Binding TagFilters}" SelectedItem="{Binding FilterTag, Mode=OneWay}"
+                      SelectionChanged="TagFilterPicked" MinWidth="140" ToolTip.Tip="Show tasks with one tag" />
+            <Button Classes="link" Content="Show all" Command="{Binding ClearFilterCommand}" IsVisible="{Binding HasFilter}" VerticalAlignment="Center" />
+          </WrapPanel>
+
           <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}" IsVisible="{Binding IsList}">
             <ItemsControl.DataTemplates>
               <DataTemplate DataType="vm:SectionRow">
@@ -102,7 +110,10 @@
                       <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
                     <CheckBox Grid.Column="1" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Done" />
-                    <TextBox Grid.Column="2" Classes="inline" Text="{Binding Title}" />
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                      <TextBox Classes="inline" Text="{Binding Title}" />
+                      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" Margin="6,0,0,4" />
+                    </StackPanel>
                     <TextBlock Grid.Column="3" Classes="muted" FontSize="12" Text="{Binding Subtasks}" IsVisible="{Binding HasSubtasks}"
                                VerticalAlignment="Center" Margin="8,0" ToolTip.Tip="Subtasks done" />
                     <ComboBox Grid.Column="4" ItemsSource="{Binding People}" SelectedItem="{Binding AssignedTo}" Margin="4,0" MinHeight="30"
@@ -161,6 +172,7 @@
                                     <StackPanel Spacing="3">
                                       <TextBlock Text="{Binding Title}" TextWrapping="Wrap" Foreground="{DynamicResource Text}" />
                                       <TextBlock Classes="muted" FontSize="12" Text="{Binding CardLine}" IsVisible="{Binding HasCardLine}" TextWrapping="Wrap" />
+                                      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" Margin="0,2,0,0" />
                                     </StackPanel>
                                   </Button>
                                 </Grid>
@@ -205,7 +217,7 @@
             </DockPanel>
             <TextBlock Classes="problem" Text="{Binding Problem}" IsVisible="{Binding HasProblem}" TextWrapping="Wrap" />
 
-            <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+            <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
               <TextBlock Classes="muted" Text="For" VerticalAlignment="Center" />
               <ComboBox Grid.Column="1" ItemsSource="{Binding People}" SelectedItem="{Binding AssignedTo}" HorizontalAlignment="Stretch" />
               <TextBlock Grid.Row="1" Classes="muted" Text="Start" VerticalAlignment="Center" />
@@ -215,6 +227,23 @@
               <TextBlock Grid.Row="3" Classes="muted" Text="Heading" VerticalAlignment="Center" />
               <ComboBox Grid.Row="3" Grid.Column="1" x:Name="HeadingBox" ItemsSource="{Binding Headings}" SelectedItem="{Binding Heading, Mode=OneWay}"
                         SelectionChanged="HeadingPicked" HorizontalAlignment="Stretch" />
+              <TextBlock Grid.Row="4" Classes="muted" Text="Priority" VerticalAlignment="Center" />
+              <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Priorities}" SelectedItem="{Binding Priority}" HorizontalAlignment="Stretch" />
+              <TextBlock Grid.Row="5" Classes="muted" Text="Tags" VerticalAlignment="Top" Margin="0,8,0,0" />
+              <StackPanel Grid.Row="5" Grid.Column="1" Spacing="6">
+                <TextBox Text="{Binding TagsText}" PlaceholderText="e.g. Hosting, SEO" />
+                <ItemsControl ItemsSource="{Binding OtherTags}" IsVisible="{Binding HasOtherTags}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Button Classes="quiet" Padding="8,2" FontSize="12" Content="{Binding StringFormat='+ {0}'}"
+                              Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).Detail.AddTagCommand}" CommandParameter="{Binding}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
             </Grid>
 
             <StackPanel Spacing="6">
@@ -294,6 +323,27 @@
   </c:PanelGrid>
 
   <UserControl.Resources>
+    <!-- Priority (when not Normal) and tags, on a list row or a card. -->
+    <DataTemplate x:Key="TaskMarks" x:DataType="vm:TaskRow">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Border Classes="pill strong" IsVisible="{Binding IsHigh}" ToolTip.Tip="High priority">
+          <TextBlock Text="High" FontSize="11" />
+        </Border>
+        <Border Classes="pill" IsVisible="{Binding IsLow}" ToolTip.Tip="Low priority">
+          <TextBlock Text="Low" FontSize="11" Foreground="{DynamicResource Muted}" />
+        </Border>
+        <ItemsControl ItemsSource="{Binding Tags}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="4" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <Border Classes="pill"><TextBlock Text="{Binding}" FontSize="11" /></Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </DataTemplate>
     <DataTemplate x:Key="ProjectRowTemplate" x:DataType="vm:ProjectRow">
       <Button Classes="row" Classes.open="{Binding IsOpen}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
               Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
