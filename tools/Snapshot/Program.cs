@@ -754,7 +754,7 @@ Save("mail-setup");
 SeedMail();
 vm.Mail.Setup.CancelCommand.Execute(null);
 vm.Mail.Reload();
-vm.Mail.Status = "Up to date at 09:12";
+vm.Mail.Status = "";
 vm.Mail.StatusIsProblem = false;
 var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 Wait(vm.Mail.Select(opened), "The mail opened");
@@ -867,7 +867,7 @@ Save("mail-undo-send");
 vm.Mail.UndoSendCommand.Execute(null);
 vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
-vm.Mail.Status = "Up to date at 09:12";
+vm.Mail.Status = "";
 Save("mail-all-inboxes");
 // Organising: a category across both mailboxes, several messages picked, a quick filter, the editors.
 vm.Mail.Open(vm.Mail.Categories.First(c => c.Keyword == "clients"));
