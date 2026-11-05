@@ -1899,6 +1899,34 @@ Save("site-check");
     withPeople.SaveCommand.Execute(null);
     Check("Changing the contact person on the client changes them in Contacts", services.Contacts.Get(pieter.Id)!.Name == "Pieter J van Wyk");
 
+    // Contacts in Mail: groups in To, a sender added with a right-click, and a person's mail and documents.
+    var bookWithGroups = Task.Run(() => services.AddressBookAsync()).GetAwaiter().GetResult();
+    var hosting = Webignite.Core.Mail.AddressBook.Match(bookWithGroups, "hosting").FirstOrDefault();
+    Check("Typing a group in To offers the whole group", hosting is { IsGroup: true } && hosting.Members!.Any(m => m.Address == "accounts@bosveldbuilders.co.za"));
+    Open(Page.Mail);
+    var menuMail = vm.Mail.Messages.FirstOrDefault(m => m.Summary.From?.Address is { } a && Webignite.Core.Clients.ContactRules.WithEmail(services.Contacts.List(), a) is null);
+    if (menuMail is not null)
+    {
+        Wait(vm.Mail.Select(menuMail), "The mail opened");
+        var add = vm.Mail.MessageMenu().FirstOrDefault(i => i.Header.EndsWith("to Contacts", StringComparison.Ordinal));
+        Check("A mail's right-click offers to add the sender to Contacts", add is not null);
+        add?.Run?.Invoke().GetAwaiter().GetResult();
+        Dispatcher.UIThread.RunJobs();
+        Check("Adding the sender opens them in Contacts", vm.Current.Key == Page.Contacts && people.IsOpen
+            && Webignite.Core.Clients.ContactRules.WithEmail(services.Contacts.List(), menuMail.Summary.From!.Address) is not null);
+        Check("Once they're in Contacts, the right-click opens them there", vm.Mail.MessageMenu().Any(i => i.Header.EndsWith("in Contacts", StringComparison.Ordinal)));
+    }
+    Open(Page.Contacts);
+    people.OpenPerson(services.Contacts.Get(pieter.Id)!.Id);
+    Wait(people.TheirMailLoaded, "Their mail was read");
+    Check("A person shows their client's quotes and invoices", people.HasTheirDocuments);
+    Wait(people.MailedOftenLoaded, "People mailed often were worked out");
+    Dispatcher.UIThread.RunJobs();
+    Check("The group filter still shows Everyone after the list is read again",
+        window.GetVisualDescendants().OfType<Avalonia.Controls.ComboBox>().Any(c => c.Name == "GroupBox" && Equals(c.SelectedItem, ContactsViewModel.AllGroups)));
+    Save("contacts-person");
+    people.CloseCommand.Execute(null);
+
     // The quick note from any program: what is typed is kept however the box closes.
     var quick = new QuickNoteWindow(services) { Typed = "Call the bank about the card\nThey said to phone after 9\n[ ] Card number ready" };
     quick.Show();

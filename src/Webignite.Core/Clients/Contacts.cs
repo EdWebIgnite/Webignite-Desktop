@@ -1,4 +1,5 @@
 using Webignite.Core.Mail;
+using Contact = Webignite.Core.Mail.Contact;
 
 namespace Webignite.Core.Clients;
 
@@ -146,6 +147,48 @@ public static class ContactRules
             Created = now,
             Changed = now,
         };
+    }
+
+    /// <summary>Whether a mail is from or to one of this person's addresses.</summary>
+    public static bool InvolvedIn(Person person, MailSummary mail)
+    {
+        var addresses = person.Emails.Select(e => e.Value);
+        return addresses.Any(a => string.Equals(mail.From?.Address, a, StringComparison.OrdinalIgnoreCase)
+            || mail.To.Concat(mail.Cc).Any(p => string.Equals(p.Address, a, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    /// <summary>The person with this email address, if anyone in Contacts has it.</summary>
+    public static Person? WithEmail(IEnumerable<Person> people, string? address) =>
+        string.IsNullOrWhiteSpace(address) ? null
+            : people.FirstOrDefault(p => p.Emails.Any(e => string.Equals(e.Value, address.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+    /// <summary>
+    /// A new person from a mail's sender: their name as the mail gives it (or the start of the address), the
+    /// address, and the client whose address or website it is.
+    /// </summary>
+    public static Person FromSender(string? name, string address, Client? client, string id, DateTimeOffset now)
+    {
+        var shown = string.IsNullOrWhiteSpace(name) || name.Contains('@') ? address[..Math.Max(1, address.IndexOf('@'))] : name.Trim().Trim('"', '\'');
+        return new Person
+        {
+            Id = id,
+            Name = shown,
+            ClientId = client?.Id,
+            Company = client?.Name,
+            Emails = [new ContactWay("Work", address.Trim())],
+            Created = now,
+            Changed = now,
+        };
+    }
+
+    /// <summary>
+    /// People Eddie writes to often who aren't in Contacts yet, best first: from the address book, those he has
+    /// sent mail to (not only received from), with a name.
+    /// </summary>
+    public static IReadOnlyList<Contact> MailedOften(IEnumerable<Contact> book, IEnumerable<Person> people, int most = 6)
+    {
+        var known = new HashSet<string>(people.SelectMany(p => p.Emails.Select(e => e.Value)), StringComparer.OrdinalIgnoreCase);
+        return [.. book.Where(c => !c.IsGroup && c.Score >= 20 && c.Score < 200 && c.Name is not null && !known.Contains(c.Address)).Take(most)];
     }
 
     private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

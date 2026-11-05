@@ -22,6 +22,7 @@ public sealed class AppServices : IDisposable
         Documents = new DocumentService(store);
         Clients = new ClientService(store);
         Contacts = new ContactService(store);
+        Contacts.Changed += () => addressBook = null;
         Settings = new AppSettings(store);
         Settings.XeroClientChanged += () => xero = null;
         Payments = new PaymentWatch(store, () => XeroApi);
@@ -208,7 +209,10 @@ public sealed class AppServices : IDisposable
     private IReadOnlyList<Webignite.Core.Mail.Contact>? addressBook;
     private DateTime addressBookMade;
 
-    /// <summary>Suggestions for To, Cc and Bcc. Built from clients and cached mail, and refreshed every ten minutes.</summary>
+    /// <summary>
+    /// Suggestions for To, Cc and Bcc. Built from Contacts, clients and cached mail, refreshed every ten minutes
+    /// and as soon as Contacts change.
+    /// </summary>
     public async Task<IReadOnlyList<Webignite.Core.Mail.Contact>> AddressBookAsync()
     {
         if (addressBook is { } book && DateTime.UtcNow - addressBookMade < TimeSpan.FromMinutes(10))
@@ -216,7 +220,7 @@ public sealed class AppServices : IDisposable
         var accounts = Store.ListMailAccounts();
         var clients = Store.ListClients();
         var mail = await Task.Run(() => Store.FindMail(accounts.Select(a => a.Id), _ => true, 3000));
-        addressBook = Webignite.Core.Mail.AddressBook.Build(clients, mail, accounts.Select(a => a.Address), DateTimeOffset.Now);
+        addressBook = Webignite.Core.Mail.AddressBook.Build(clients, mail, accounts.Select(a => a.Address), DateTimeOffset.Now, Contacts.List());
         addressBookMade = DateTime.UtcNow;
         return addressBook;
     }

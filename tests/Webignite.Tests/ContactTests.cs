@@ -147,4 +147,68 @@ public sealed class ContactTests : IDisposable
         Assert.Equal(("083 444 5555", "Prefers WhatsApp"), (saved!.Phone, saved.Notes));
         Assert.Equal("083 444 5555", contacts.Get(pieter.Id)!.Phone);
     }
+
+    private static Webignite.Core.Mail.MailSummary Sent(string to, string? name = null) => new()
+    {
+        AccountId = "a", Folder = "Sent", Uid = 1, Subject = "Hi", Date = DateTimeOffset.UnixEpoch.AddYears(56),
+        From = new Webignite.Core.Mail.MailPerson("Eddie", "eddie@webignite.co.za"), To = [new Webignite.Core.Mail.MailPerson(name, to)],
+    };
+
+    [Fact]
+    public void People_in_Contacts_come_first_in_To_with_the_name_typed_there()
+    {
+        var thandi = Someone("Thandi Mokoena", "thandi@karoocoffee.co.za");
+        var book = Webignite.Core.Mail.AddressBook.Build([], [Sent("thandi@karoocoffee.co.za", "T Mokoena"), Sent("someone@else.co.za", "Someone")],
+            ["eddie@webignite.co.za"], DateTimeOffset.UnixEpoch.AddYears(56), [thandi]);
+        var first = book.First(c => !c.IsGroup);
+        Assert.Equal(("Thandi Mokoena", "thandi@karoocoffee.co.za"), (first.Name, first.Address));
+    }
+
+    [Fact]
+    public void A_group_puts_everyone_in_it_into_the_box_once()
+    {
+        var people = new[]
+        {
+            Someone("Thandi Mokoena", "thandi@karoocoffee.co.za") with { Groups = ["Hosting clients"] },
+            Someone("Pieter van Wyk", "pieter@bosveldbuilders.co.za") with { Groups = ["Hosting clients"] },
+            Someone("No address") with { Groups = ["Hosting clients"] },
+        };
+        var book = Webignite.Core.Mail.AddressBook.Build([], [], [], DateTimeOffset.UnixEpoch, people);
+        var group = Assert.Single(Webignite.Core.Mail.AddressBook.Match(book, "host"));
+        Assert.Equal("Hosting clients (group of 2)", group.Display);
+        var text = Webignite.Core.Mail.AddressBook.Insert("Pieter van Wyk <pieter@bosveldbuilders.co.za>, host", group);
+        Assert.Equal(2, Webignite.Core.Mail.Recipients.Parse(text).People.Count);
+        Assert.Contains("thandi@karoocoffee.co.za", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_sender_becomes_a_person_with_their_client()
+    {
+        var client = new Client { Id = "c1", Name = "Karoo Coffee Roasters" };
+        var named = ContactRules.FromSender("\"Thandi Mokoena\"", "thandi@karoocoffee.co.za", client, "p1", DateTimeOffset.UnixEpoch);
+        Assert.Equal(("Thandi Mokoena", "c1", "thandi@karoocoffee.co.za"), (named.Name, named.ClientId, named.Email));
+        Assert.Equal("accounts", ContactRules.FromSender(null, "accounts@karoo.co.za", null, "p2", DateTimeOffset.UnixEpoch).Name);
+    }
+
+    [Fact]
+    public void People_mailed_often_but_not_in_Contacts_are_suggested()
+    {
+        var book = new Webignite.Core.Mail.Contact[]
+        {
+            new("Lerato Dlamini", "lerato@fynbosphysio.co.za", 40),
+            new("Thandi Mokoena", "thandi@karoocoffee.co.za", 240),
+            new(null, "noname@x.co.za", 40),
+            new("Wrote in once", "once@x.co.za", 2),
+        };
+        var suggested = ContactRules.MailedOften(book, [Someone("Thandi", "thandi@karoocoffee.co.za")]);
+        Assert.Equal(["lerato@fynbosphysio.co.za"], suggested.Select(c => c.Address));
+    }
+
+    [Fact]
+    public void A_mail_involves_a_person_by_any_of_their_addresses()
+    {
+        var thandi = Someone("Thandi", "thandi@karoocoffee.co.za") with { Emails = [new ContactWay("Work", "thandi@karoocoffee.co.za"), new ContactWay("Personal", "thandi@gmail.com")] };
+        Assert.True(ContactRules.InvolvedIn(thandi, Sent("THANDI@gmail.com")));
+        Assert.False(ContactRules.InvolvedIn(thandi, Sent("pieter@bosveld.co.za")));
+    }
 }
