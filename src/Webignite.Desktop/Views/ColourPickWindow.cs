@@ -12,13 +12,13 @@ namespace Webignite.Desktop.Views;
 /// <summary>
 /// The eyedropper: the frozen screen shown over the real one, with a magnified square round the pointer and the
 /// colour's code. A click keeps the colour under the pointer, Enter keeps it too, Esc or a right-click stops.
-/// Covers one monitor, like the screenshot picker.
+/// One covers each monitor; the help shows on the one the mouse started on.
 /// </summary>
 public sealed class ColourPickWindow : Window
 {
     private readonly TaskCompletionSource<Rgb?> chosen = new();
 
-    public ColourPickWindow(Bitmap frozen, PixelRect bounds, double scaling)
+    public ColourPickWindow(Bitmap frozen, PixelRect bounds, double scaling, bool showHelp = true)
     {
         WindowDecorations = WindowDecorations.None;
         Topmost = true;
@@ -29,9 +29,22 @@ public sealed class ColourPickWindow : Window
         Width = bounds.Width / scaling;
         Height = bounds.Height / scaling;
         Cursor = new Cursor(StandardCursorType.Cross);
-        Canvas = new ColourPickCanvas(frozen, scaling) { Done = Finish };
+        Canvas = new ColourPickCanvas(frozen, scaling) { Done = Finish, ShowHelp = showHelp };
         Content = Canvas;
-        Closed += (_, _) => chosen.TrySetResult(null);
+        Closed += (_, _) =>
+        {
+            closed = true;
+            chosen.TrySetResult(null);
+        };
+    }
+
+    private bool closed;
+
+    /// <summary>Closes it, if it isn't closed already, e.g. when a colour was picked on another monitor.</summary>
+    public void Dismiss()
+    {
+        if (!closed)
+            Close();
     }
 
     /// <summary>The colour picked, or null when stopped.</summary>
@@ -49,7 +62,7 @@ public sealed class ColourPickWindow : Window
     private void Finish(Rgb? colour)
     {
         chosen.TrySetResult(colour);
-        Close();
+        Dismiss();
     }
 }
 
@@ -73,6 +86,8 @@ public sealed class ColourPickCanvas : Control
     }
 
     internal Action<Rgb?>? Done { get; init; }
+
+    internal bool ShowHelp { get; init; } = true;
 
     /// <summary>The colour under the pointer now.</summary>
     public Rgb? Under { get; private set; }
@@ -145,13 +160,23 @@ public sealed class ColourPickCanvas : Control
     {
         var all = new Rect(Bounds.Size);
         context.DrawImage(frozen, all);
+        if (ShowHelp)
+            DrawHelp(context, all);
+        if (pixels.Length == 0 || Under is not { } under)
+            return;
+        DrawLoupe(context, all, under);
+    }
+
+    private static void DrawHelp(DrawingContext context, Rect all)
+    {
         var help = Text("Click a colour to copy its code. Esc to stop.", 14, "NavText");
         var helpAt = new Point((all.Width - help.Width) / 2, 24);
         context.FillRectangle(Brush("Nav", Colors.Black), new Rect(helpAt.X - 14, helpAt.Y - 8, help.Width + 28, help.Height + 16), 8);
         context.DrawText(help, helpAt);
-        if (pixels.Length == 0 || Under is not { } under)
-            return;
+    }
 
+    private void DrawLoupe(DrawingContext context, Rect all, Rgb under)
+    {
         // The loupe sits below and right of the pointer, and flips when that would run off the screen.
         var cell = ColourLoupe.Zoom;
         var loupe = new Size(square.Width * cell, square.Height * cell + 30);

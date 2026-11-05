@@ -8,7 +8,7 @@ namespace Webignite.Desktop.Views;
 
 /// <summary>
 /// The colour picker: a shortcut from any program (Ctrl+Alt+C) or Pick from screen in the Colours tool freezes
-/// the screen under the mouse, and the colour clicked is copied as its code. Windows only.
+/// every monitor (the app steps aside first when it started the pick), and the colour clicked is copied as its code. Windows only.
 /// </summary>
 public partial class MainWindow
 {
@@ -51,17 +51,48 @@ public partial class MainWindow
         if (!OperatingSystem.IsWindows() || pickingColour)
             return;
         pickingColour = true;
+        var steppedAside = new List<(Window Window, WindowState Before)>();
+        var pickers = new List<ColourPickWindow>();
+        var frozen = new List<Avalonia.Media.Imaging.Bitmap>();
         try
         {
+            // Started from inside the app, the app steps aside first, so the frozen screen shows what's behind it,
+            // such as a website, and not Webignite itself.
+            if (picked is not null || AppWindows().Any(w => w.IsActive))
+            {
+                foreach (var window in AppWindows().Where(w => w.IsVisible && w.WindowState != WindowState.Minimized && w.Owner is null))
+                {
+                    steppedAside.Add((window, window.WindowState));
+                    window.WindowState = WindowState.Minimized;
+                }
+                if (steppedAside.Count > 0)
+                    await Task.Delay(350);
+            }
+
+            // Every monitor is frozen, each under its own picker, so a colour can come from any of them.
             var (x, y) = ScreenCapture.Cursor();
-            if ((Screens.ScreenFromPoint(new PixelPoint(x, y)) ?? Screens.Primary) is not { } screen)
+            var under = Screens.ScreenFromPoint(new PixelPoint(x, y)) ?? Screens.Primary;
+            foreach (var screen in Screens.All)
+            {
+                var bounds = screen.Bounds;
+                var picture = ScreenCapture.Grab(new ScreenGrab.Area(bounds.X, bounds.Y, bounds.Width, bounds.Height));
+                frozen.Add(picture);
+                pickers.Add(new ColourPickWindow(picture, bounds, screen.Scaling, showHelp: under is null ? pickers.Count == 0 : bounds == under.Bounds));
+            }
+            if (pickers.Count == 0)
                 return;
-            var bounds = screen.Bounds;
-            using var frozen = ScreenCapture.Grab(new ScreenGrab.Area(bounds.X, bounds.Y, bounds.Width, bounds.Height));
-            var window = new ColourPickWindow(frozen, bounds, screen.Scaling);
-            window.Show();
-            if (await window.Picked is not { } colour)
+            // The one under the mouse opens last, so it has the keyboard for Enter and Esc.
+            foreach (var window in pickers.OrderBy(p => p.Position == under?.Bounds.Position))
+                window.Show();
+            var first = await Task.WhenAny(pickers.Select(p => p.Picked));
+            var result = await first;
+            foreach (var window in pickers)
+                window.Dismiss();
+            pickers.Clear();
+            if (result is not { } colour)
                 return;
+
+
             if (Clipboard is { } clipboard)
                 await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, colour.Hex);
             services.RememberColour(colour.Hex);
@@ -77,7 +108,23 @@ public partial class MainWindow
         }
         finally
         {
+            foreach (var window in pickers)
+                window.Dismiss();
+            foreach (var picture in frozen)
+                picture.Dispose();
+            foreach (var (window, before) in steppedAside)
+                window.WindowState = before;
+            // Back where the pick started, e.g. the Colours tool, with the colour in it.
+            if (steppedAside.Count > 0 && picked is not null && toolWindows.TryGetValue(ToolKind.Colours, out var tool))
+                tool.Activate();
+            else if (steppedAside.Count > 0)
+                Activate();
             pickingColour = false;
         }
     }
+
+    private static IEnumerable<Window> AppWindows() =>
+        Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.Windows.Where(w => w is not ColourPickWindow)
+            : [];
 }
