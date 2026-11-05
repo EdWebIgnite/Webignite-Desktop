@@ -17,6 +17,7 @@ public partial class MainViewModel
         new("Ctrl+N", "New on this page: quote, invoice, client, retainer, domain, mail or note"),
         new("Ctrl+1 to Ctrl+9", "Jump to a page, in sidebar order"),
         new("Ctrl+B", "Fold the sidebar to icons, tuck it away, or bring it back"),
+        new("Ctrl+Shift+1 to 4", "Show or hide the first, second, third or fourth pane (Mail, Clients, Notes, Files)"),
         new("F5", "Read this page again, or check for mail on Mail"),
         new("F1", "Show or hide this list"),
         new("Esc", "Close this list or the search box, or go back from what's open"),
@@ -97,6 +98,14 @@ public partial class MainViewModel
     {
         if (int.TryParse(number, out var n) && n >= 1 && n <= Sidebar.Pages.Count)
             Selected = Sidebar.Pages[n - 1];
+    }
+
+    /// <summary>Ctrl+Shift+1 to 4: shows or hides that pane on a page with panes (Mail, Clients, Notes, Files).</summary>
+    [RelayCommand]
+    private void TogglePane(string number)
+    {
+        if (int.TryParse(number, out var n) && Current.Page is IHasPanes page)
+            page.Panels.Toggle(n - 1);
     }
 
     /// <summary>Ctrl+N: starts something new on pages that make things.</summary>

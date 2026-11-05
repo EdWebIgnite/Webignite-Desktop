@@ -215,7 +215,7 @@
     </Panel>
 
     <!-- The mail itself: folders, messages, the open message -->
-    <c:PanelGrid Layout="{Binding Panels.Layout}" Resized="PaneResized" IsVisible="{Binding ShowMail}">
+    <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized" IsVisible="{Binding ShowMail}">
       <!-- Folders and categories -->
       <Border c:PanelGrid.Pane="folders" c:PanelGrid.DefaultWidth="240" Background="{DynamicResource Canvas}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>

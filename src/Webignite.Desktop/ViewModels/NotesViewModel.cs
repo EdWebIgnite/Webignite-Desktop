@@ -13,7 +13,7 @@ namespace Webignite.Desktop.ViewModels;
 /// middle, and the open note on the right, saved as it is typed. A note can be about a client, and then it
 /// shows on their page too.
 /// </summary>
-public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposable, IRefreshable, ITabTitle
+public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposable, IRefreshable, ITabTitle, IHasPanes
 {
     private readonly AppServices services;
     private IReadOnlyList<Note> all = [];
@@ -23,11 +23,15 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
     public NotesViewModel(AppServices services)
     {
         this.services = services;
+        Panels = new PanelsViewModel(services.Settings, "notes", [("notebooks", "Notebooks"), ("notes", "Notes list"), ("note", "Open note")], spine: "note");
         services.Notes.Changed += NotesChanged;
         LoadClients();
         Reload();
         PickPlace(Places.FirstOrDefault(p => p.Kind == NotePlace.Notebook) ?? Places[0]);
     }
+
+    /// <summary>Notebooks, the list and the open note: shown, hidden, moved and sized like Mail's panes.</summary>
+    public PanelsViewModel Panels { get; }
 
     public ObservableCollection<NotePlaceRow> Places { get; } = [];
     public ObservableCollection<NoteRow> Rows { get; } = [];

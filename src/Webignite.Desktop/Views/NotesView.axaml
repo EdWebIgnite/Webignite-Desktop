@@ -20,9 +20,9 @@
       <Setter Property="BorderThickness" Value="0" />
     </Style>
   </v:FullBleedView.Styles>
-  <Grid ColumnDefinitions="220,300,*">
+  <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">
     <!-- Notebooks and their folders -->
-    <Border Grid.Column="0" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+    <Border c:PanelGrid.Pane="notebooks" c:PanelGrid.DefaultWidth="220" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
       <DockPanel Margin="10,16,10,12">
         <DockPanel DockPanel.Dock="Top" Margin="10,0,0,8">
           <Button DockPanel.Dock="Right" Classes="quiet format icon" Command="{Binding AddNotebookCommand}" ToolTip.Tip="New notebook">
@@ -72,7 +72,7 @@
     </Border>
 
     <!-- The notes in the place picked, or found -->
-    <Border Grid.Column="1" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+    <Border c:PanelGrid.Pane="notes" c:PanelGrid.DefaultWidth="300" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
       <DockPanel Margin="12,14,12,8">
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
           <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewNoteCommand}" Margin="8,0,0,0" ToolTip.Tip="New note (Ctrl+N)">
@@ -113,7 +113,7 @@
     </Border>
 
     <!-- The open note -->
-    <Panel Grid.Column="2">
+    <Panel c:PanelGrid.Pane="note" c:PanelGrid.DefaultWidth="560">
       <c:EmptyState IsVisible="{Binding NoOpen}" Icon="{StaticResource Icon.Notes}" Title="No note open"
                     Text="Pick a note on the left, or start a new one." ActionText="New note" Command="{Binding NewNoteCommand}" />
       <DockPanel IsVisible="{Binding HasOpen}" Margin="24,14,24,10">
@@ -260,5 +260,5 @@
         </Border>
       </DockPanel>
     </Panel>
-  </Grid>
+  </c:PanelGrid>
 </v:FullBleedView>

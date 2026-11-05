@@ -13,7 +13,7 @@ namespace Webignite.Desktop.ViewModels;
 /// What you can do to the selected mail (mark, move, archive, categories) is in MailViewModel.Actions.cs, and
 /// making folders and categories in MailViewModel.Editors.cs.
 /// </summary>
-public partial class MailViewModel : ViewModelBase, IHoldsWork
+public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
 {
     public bool HoldsWork => Composer is not null || HasPendingSend;
 

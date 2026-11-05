@@ -684,6 +684,20 @@ var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 Wait(vm.Mail.Select(opened), "The mail opened");
 Save("mail");
 {
+    // A hidden pane leaves a strip with its name; a click on it, or Ctrl+Shift+1, brings it back.
+    vm.TogglePaneCommand.Execute("1");
+    Dispatcher.UIThread.RunJobs();
+    var rail = window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().FirstOrDefault(b => b.Classes.Contains("panerail"));
+    Check("Ctrl+Shift+1 hides Mail's folders and leaves a strip to bring them back", !vm.Mail.Panels["folders"].IsShown && rail is not null);
+    Save("mail-folders-hidden");
+    rail?.Command?.Execute(null);
+    rail?.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+    Dispatcher.UIThread.RunJobs();
+    Check("Clicking the strip brings the folders back", vm.Mail.Panels["folders"].IsShown);
+    vm.TogglePaneCommand.Execute("2");
+    Check("The pane the page can't do without stays", vm.Mail.Panels["messages"].IsShown);
+}
+{
     // A long line in the conversation must not widen the page past the window and push the list off screen.
     var mailView = window.GetVisualDescendants().OfType<MailView>().First();
     Check("A conversation's long lines keep the mail page inside the window", vm.Mail.Reader?.HasThread == true && mailView.Bounds.Width <= window.Bounds.Width);

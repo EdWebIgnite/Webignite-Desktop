@@ -47,7 +47,22 @@ public sealed partial class PanelsViewModel : ObservableObject
     public void Resized(string key, double width) => Change(Panels.Resize(Layout, key, width));
 
     [RelayCommand]
-    private void Reset() => Change(Panels.Default(keys));
+    public void Reset() => Change(Panels.Default(keys));
+
+    /// <summary>The pane's name, for the strip a hidden pane leaves and the divider's menu.</summary>
+    public string TitleOf(string key) => Panes.FirstOrDefault(p => p.Key == key)?.Title ?? key;
+
+    /// <summary>
+    /// Ctrl+Shift+1, 2, 3: shows or hides the first, second or third pane, counted in the order they are in.
+    /// The last pane showing, and the one the page can't be without, stay.
+    /// </summary>
+    public void Toggle(int index)
+    {
+        if (index < 0 || index >= Layout.Order.Count)
+            return;
+        var key = Layout.Order[index];
+        Show(key, !Layout.IsShown(key));
+    }
 
     private void Change(PanelLayout layout)
     {

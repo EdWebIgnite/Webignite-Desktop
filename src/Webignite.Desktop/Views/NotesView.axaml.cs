@@ -60,6 +60,8 @@ public partial class NotesView : FullBleedView
 
     private NotesViewModel? Notes => DataContext as NotesViewModel;
 
+    private void PaneResized(string pane, double width) => Notes?.Panels.Resized(pane, width);
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
