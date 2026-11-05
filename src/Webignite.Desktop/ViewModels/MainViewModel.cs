@@ -150,6 +150,8 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Overview, "Overview", () => new OverviewViewModel(services) { CheckPayments = () => CheckPaymentsAsync(byHand: true) }, "Overview"),
             new Module(Page.Approvals, "To approve", () => new ApprovalsViewModel(services), "Approve"),
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
+            new NavGroup("my-pages", "MY PAGES"),
+            new Module(Page.MyPages, "All my pages", () => new MyPagesViewModel(services), "Tiles"),
             new NavGroup("client-work", "CLIENT WORK"),
             new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
             new Module(Page.Contacts, "Contacts", () => new ContactsViewModel(services), "Contacts", fullBleed: true),
@@ -199,6 +201,8 @@ public partial class MainViewModel : ViewModelBase
         mailModule = this[Page.Mail];
         ListProjects();
         services.Projects.Changed += _ => ListProjects();
+        ListMyPages();
+        services.MyPagesChanged += _ => ListMyPages();
         Jobs = new BackgroundJobs(services)
         {
             CheckMail = CheckMailAsync,
@@ -498,7 +502,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>The sidebar's selection. Headings can't be picked, so anything that isn't a page is ignored.</summary>
     public object? SelectedNav
     {
-        get => (object?)ShownProjectLink() ?? Selected;
+        get => (object?)ShownProjectLink() ?? (object?)ShownMyPageLink() ?? Selected;
         set
         {
             if (value is Module module)
@@ -508,6 +512,8 @@ public partial class MainViewModel : ViewModelBase
             }
             if (value is ProjectLink link)
                 OpenProjectLink(link);
+            if (value is MyPageLink pageLink)
+                OpenMyPageLink(pageLink);
             // A tool opens in a window of its own; the page on screen stays picked.
             if (value is ToolLink tool)
                 services.Go.Tool(tool.Kind);
@@ -532,6 +538,8 @@ public partial class MainViewModel : ViewModelBase
             notes.Keep();
         foreach (var projects in Built<ProjectsViewModel>(Page.Projects))
             projects.Keep();
+        foreach (var pages in Built<MyPagesViewModel>(Page.MyPages))
+            pages.Keep();
         string? problem = null;
         foreach (var contacts in Built<ContactsViewModel>(Page.Contacts))
         {
@@ -568,6 +576,7 @@ public partial class MainViewModel : ViewModelBase
         KeepInTabs(value);
         WatchPanes(value);
         WatchProjects(value);
+        WatchMyPages(value);
         leaving = null;
         value.LastSeen = DateTimeOffset.Now;
         if (Selected != value.Module)

@@ -219,6 +219,14 @@ public sealed class AppServices : IDisposable
     /// <summary>Raised when the recent colours change, for the Colours tool if it's open.</summary>
     public event Action? ColoursChanged;
 
+    /// <summary>
+    /// Raised when the person's own pages change (added, renamed, removed, widgets moved), with the page that
+    /// changed them, so the sidebar and any other open copy catch up and the one that did it doesn't reload.
+    /// </summary>
+    public event Action<object?>? MyPagesChanged;
+
+    public void ChangedMyPages(object? by) => MyPagesChanged?.Invoke(by);
+
     /// <summary>The last things copied while the app is open, in memory only.</summary>
     public Files.ClipboardKeeper Clipboard { get; } = new();
 

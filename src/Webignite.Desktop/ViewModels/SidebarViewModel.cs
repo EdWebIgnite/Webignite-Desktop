@@ -16,8 +16,7 @@ public sealed partial class SidebarViewModel : ObservableObject
     private readonly Dictionary<string, object> byKey;
     private readonly string[] defaults;
     private SidebarLayout layout;
-    private IReadOnlyList<ProjectLink> aboveProjects = [];
-    private IReadOnlyList<ProjectLink> belowProjects = [];
+    private readonly Dictionary<Page, (IReadOnlyList<SubLink> Above, IReadOnlyList<SubLink> Below)> links = [];
 
     /// <param name="all">Every entry in the app's own order: pages and the group headings between them.</param>
     public SidebarViewModel(AppSettings settings, IReadOnlyList<object> all)
@@ -80,13 +79,12 @@ public sealed partial class SidebarViewModel : ObservableObject
     public List<Module> Pages { get; }
 
     /// <summary>
-    /// The entries that go with the Projects page: My tasks above it, then each running project and the
-    /// templates below it. They move with the page and fold with its group.
+    /// Entries that go with a page and open parts of it: for Projects, My tasks above it and each running project
+    /// and the templates below; for My pages, each saved page. They move with the page and fold with its group.
     /// </summary>
-    public void ShowProjectLinks(IReadOnlyList<ProjectLink> above, IReadOnlyList<ProjectLink> below)
+    public void ShowLinks(Page page, IReadOnlyList<SubLink> above, IReadOnlyList<SubLink> below)
     {
-        aboveProjects = above;
-        belowProjects = below;
+        links[page] = (above, below);
         Apply();
     }
 
@@ -136,11 +134,10 @@ public sealed partial class SidebarViewModel : ObservableObject
                 icons.Add(module);
                 if (group is null || !group.CanFold || group.IsOpen)
                 {
-                    if (module.Key == Page.Projects)
-                        wanted.AddRange(aboveProjects);
+                    var (above, below) = links.GetValueOrDefault(module.Key, ([], []));
+                    wanted.AddRange(above);
                     wanted.Add(module);
-                    if (module.Key == Page.Projects)
-                        wanted.AddRange(belowProjects);
+                    wanted.AddRange(below);
                 }
             }
             else if (item is ToolLink tool)

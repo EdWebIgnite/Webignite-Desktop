@@ -246,6 +246,13 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>Projects kept to start others from.</summary>
+    /// <summary>The person's own pages and the widgets on each, in the order the sidebar lists them.</summary>
+    public IReadOnlyList<MyPage> MyPages
+    {
+        get => store.GetSetting<List<MyPage>>("my-pages") ?? [];
+        set => store.SetSetting("my-pages", value.ToList());
+    }
+
     public IReadOnlyList<ProjectTemplate> ProjectTemplates
     {
         get => store.GetSetting<List<ProjectTemplate>>("project-templates") ?? [];

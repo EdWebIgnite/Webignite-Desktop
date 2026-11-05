@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Webignite.Core.Layout;
 using Webignite.Core.Documents;
 using Webignite.Data;
 using Webignite.Desktop;
@@ -2312,6 +2313,56 @@ Save("site-check");
         vm.SelectedNav = vm[Page.Projects];
         Open(Page.Overview);
         Check("Another page takes the mark off the project entries", vm.SelectedNav is Module { Key: Page.Overview });
+
+        // My pages: a page of widgets the person puts together, saved by name in the sidebar.
+        Open(Page.MyPages);
+        var myPages = (MyPagesViewModel)vm[Page.MyPages].Main.Page;
+        Check("My pages starts with a word on what they're for", myPages.NoPages);
+        Save("my-pages-empty");
+        vm.SelectedNav = vm.Sidebar.Items.OfType<MyPageLink>().Single(l => l.Id is null);
+        Dispatcher.UIThread.RunJobs();
+        Check("New page in the sidebar makes a page and opens it to arrange", myPages.IsPage && myPages.IsEditing
+            && vm.Sidebar.Items.OfType<MyPageLink>().Any(l => l.Title == "My page"));
+        myPages.EditName = "Monday";
+        myPages.Keep();
+        foreach (var kind in new[] { WidgetKind.MyTasks, WidgetKind.Today, WidgetKind.Month, WidgetKind.Note, WidgetKind.Timer, WidgetKind.Calculator })
+            myPages.AddWidget(kind);
+        myPages.AddWidget(WidgetKind.Project, site.Id);
+        myPages.AddWidget(WidgetKind.Client, services.Clients.List().First(c => c.Name == "Bosveld Builders").Id);
+        ((NoteBody)myPages.Widgets.First(w => w.Kind == WidgetKind.Note).Body).Text = "Call Pieter after 10 about the photos";
+        myPages.Keep();
+        Dispatcher.UIThread.RunJobs();
+        var savedPage = services.Settings.MyPages.Single();
+        Check("A page keeps its name, its widgets and a note's words", savedPage.Name == "Monday" && savedPage.Widgets.Count == 8
+            && savedPage.Widgets.Single(w => w.Kind == WidgetKind.Note).Text == "Call Pieter after 10 about the photos"
+            && vm.Sidebar.Items.OfType<MyPageLink>().Any(l => l.Title == "Monday"));
+        Check("Widgets go on the grid without overlapping", savedPage.Widgets.All(x => savedPage.Widgets.All(y => x.Id == y.Id || !MyPages.Overlap(x, y))));
+        Check("The project widget shows the project's open tasks", myPages.Widgets.Single(w => w.Kind == WidgetKind.Project).Body is TasksBody { Lines.Count: > 0 } projectBody
+            && projectBody.Title == "Bosveld Builders new website");
+        var noteWidget = myPages.Widgets.First(w => w.Kind == WidgetKind.Note);
+        myPages.BeginArranging();
+        myPages.MoveTo(noteWidget, 0, 0);
+        myPages.EndArranging();
+        myPages.BeginArranging();
+        myPages.ResizeTo(noteWidget, 4, 3);
+        myPages.EndArranging();
+        savedPage = services.Settings.MyPages.Single();
+        Check("Dragging a widget to the top left puts it there and moves the others out of its way", noteWidget is { Column: 0, Row: 0, Width: 4, Height: 3 }
+            && savedPage.Widgets.Single(w => w.Kind == WidgetKind.Note) is { Column: 0, Row: 0, Width: 4, Height: 3 }
+            && savedPage.Widgets.All(x => savedPage.Widgets.All(y => x.Id == y.Id || !MyPages.Overlap(x, y))));
+        Save("my-pages-arranging");
+        myPages.ToggleEditingCommand.Execute(null);
+        window.Width = 1920;
+        window.Height = 1080;
+        Dispatcher.UIThread.RunJobs();
+        Check("The page on screen is the one marked in the sidebar", vm.SelectedNav is MyPageLink { Title: "Monday" });
+        Save("my-pages");
+        window.Width = 1280;
+        window.Height = 860;
+        myPages.ShowList();
+        Check("All my pages lists the pages made", myPages.Cards.Count == 1 && myPages.Cards[0].Name == "Monday");
+        Save("my-pages-list");
+        Open(Page.Overview);
     }
 
     // The quick note from any program: what is typed is kept however the box closes.

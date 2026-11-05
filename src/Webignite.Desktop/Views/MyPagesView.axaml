@@ -1,0 +1,287 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:v="using:Webignite.Desktop.Views"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.MyPagesView"
+             x:DataType="vm:MyPagesViewModel"
+             x:Name="Root">
+  <UserControl.Styles>
+    <!-- Each widget sits at its own cell on the grid. -->
+    <Style Selector="ItemsControl.widgets > ContentPresenter" x:DataType="vm:WidgetViewModel">
+      <Setter Property="c:WidgetGrid.Column" Value="{Binding Column}" />
+      <Setter Property="c:WidgetGrid.Row" Value="{Binding Row}" />
+      <Setter Property="c:WidgetGrid.Widths" Value="{Binding Width}" />
+      <Setter Property="c:WidgetGrid.Heights" Value="{Binding Height}" />
+    </Style>
+    <Style Selector="Border.widget">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.widget.arranging">
+      <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    </Style>
+    <Style Selector="Button.minday">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.minday:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="Border.monthdot">
+      <Setter Property="Width" Value="5" />
+      <Setter Property="Height" Value="5" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Background" Value="{DynamicResource Primary}" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <!-- My tasks, or one project's open tasks -->
+    <DataTemplate DataType="vm:TasksBody">
+      <Panel>
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding Empty}" TextWrapping="Wrap" IsVisible="{Binding Empty, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding Lines}">
+            <ItemsControl.DataTemplates>
+              <DataTemplate DataType="vm:TaskHeadingLine">
+                <TextBlock Classes="label" Text="{Binding Name}" Margin="0,8,0,4" />
+              </DataTemplate>
+              <DataTemplate DataType="vm:TaskLine">
+                <DockPanel Margin="0,2">
+                  <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Done}" VerticalAlignment="Top" Margin="0,0,4,0" ToolTip.Tip="Tick it off" />
+                  <StackPanel VerticalAlignment="Center">
+                    <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0" ToolTip.Tip="Open in Projects">
+                      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{DynamicResource Text}" />
+                    </Button>
+                    <TextBlock Classes="muted" FontSize="11" Text="{Binding About}" Classes.problem="{Binding Overdue}" IsVisible="{Binding HasAbout}"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </DockPanel>
+              </DataTemplate>
+            </ItemsControl.DataTemplates>
+          </ItemsControl>
+        </ScrollViewer>
+      </Panel>
+    </DataTemplate>
+
+    <!-- Today -->
+    <DataTemplate DataType="vm:TodayBody">
+      <Panel>
+        <TextBlock Classes="muted" FontSize="12" Text="Nothing booked or due today." IsVisible="{Binding IsEmpty}" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding Items}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AgendaItemViewModel">
+                <c:AgendaChip Padding="8,5" Margin="0,0,0,5">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="44" IsVisible="{Binding HasTime}" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="12" />
+                  </DockPanel>
+                </c:AgendaChip>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Panel>
+    </DataTemplate>
+
+    <!-- This month -->
+    <DataTemplate DataType="vm:MonthBody">
+      <DockPanel>
+        <ItemsControl DockPanel.Dock="Top" ItemsSource="{x:Static vm:MonthBody.WeekdayLetters}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="label" Text="{Binding}" HorizontalAlignment="Center" Margin="0,0,0,4" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <ItemsControl ItemsSource="{Binding Days}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:MonthDay">
+              <Button Classes="minday" ToolTip.Tip="{Binding Tip}"
+                      Command="{Binding $parent[ItemsControl].((vm:MonthBody)DataContext).OpenCalendarCommand}" Opacity="{Binding IsOtherMonth, Converter={x:Static v:MyPagesView.Faded}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Text="{Binding Number}" FontSize="12" HorizontalAlignment="Center" FontWeight="{Binding IsToday, Converter={x:Static v:MyPagesView.Bold}}" />
+                  <Border Classes="monthdot" HorizontalAlignment="Center" IsVisible="{Binding HasItems}" />
+                </StackPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </DockPanel>
+    </DataTemplate>
+
+    <!-- A note -->
+    <DataTemplate DataType="vm:NoteBody">
+      <TextBox Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap" VerticalAlignment="Stretch" VerticalContentAlignment="Top"
+               PlaceholderText="Type anything. It's kept as you go." BorderThickness="0" Background="Transparent" Padding="0" />
+    </DataTemplate>
+
+    <!-- The tools, as in their own windows -->
+    <DataTemplate DataType="vm:CalculatorBody">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled"><v:CalculatorView DataContext="{Binding Tools}" /></ScrollViewer>
+    </DataTemplate>
+    <DataTemplate DataType="vm:ClipboardBody">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled"><v:ClipboardView DataContext="{Binding Tools}" /></ScrollViewer>
+    </DataTemplate>
+    <DataTemplate DataType="vm:ColoursBody">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled"><v:ColourView DataContext="{Binding Tools}" /></ScrollViewer>
+    </DataTemplate>
+
+    <!-- The timer -->
+    <DataTemplate DataType="vm:TimerBody">
+      <StackPanel Spacing="8">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="primary" Content="Start" Command="{Binding StartCommand}" IsVisible="{Binding !Timer.IsRunning}" />
+          <Button DockPanel.Dock="Right" Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding Timer.IsRunning}" />
+          <TextBlock Text="{Binding Timer.Clock}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </DockPanel>
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding Timer.RunningFor}" TextTrimming="CharacterEllipsis" IsVisible="{Binding Timer.IsRunning}" />
+        <TextBox Text="{Binding Note}" PlaceholderText="What are you working on?" IsVisible="{Binding !Timer.IsRunning}" />
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" TextWrapping="Wrap" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- A client's card -->
+    <DataTemplate DataType="vm:ClientBody">
+      <Panel>
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding IsMissing}"
+                   Text="This client was removed. Remove the widget, or add another." />
+        <DockPanel IsVisible="{Binding !IsMissing}">
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+            <Button Content="Open client" Command="{Binding OpenCommand}" />
+            <Button Classes="quiet" Content="Write" Command="{Binding WriteCommand}" ToolTip.Tip="A new mail to them" />
+          </StackPanel>
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="3">
+              <TextBlock Text="{Binding Person}" FontWeight="SemiBold" />
+              <SelectableTextBlock Text="{Binding Email}" FontSize="12" />
+              <SelectableTextBlock Text="{Binding Phone}" FontSize="12" />
+              <SelectableTextBlock Text="{Binding Website}" FontSize="12" />
+              <TextBlock Classes="muted" FontSize="12" Text="{Binding Notes}" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Panel>
+    </DataTemplate>
+
+    <DataTemplate DataType="vm:SoonBody">
+      <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="This widget comes in the next update." />
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <StackPanel Spacing="18">
+    <!-- Heading -->
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top" IsVisible="{Binding IsPage}">
+        <Button x:Name="AddButton" Classes="primary" ToolTip.Tip="Put a widget on this page">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <c:Icon Data="{StaticResource Icon.Plus}" Size="14" VerticalAlignment="Center" />
+            <TextBlock Text="Add widget" VerticalAlignment="Center" />
+          </StackPanel>
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="AddOpening" />
+          </Button.Flyout>
+        </Button>
+        <Button Content="{Binding EditText}" Command="{Binding ToggleEditingCommand}" ToolTip.Tip="Drag widgets by their heading, size them from the corner, rename the page" />
+        <Button Classes="quiet" ToolTip.Tip="More">
+          <TextBlock Text="···" />
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="All my pages" Command="{Binding ShowListCommand}" />
+              <MenuItem Header="New page" Command="{Binding NewPageCommand}" />
+              <Separator />
+              <MenuItem Header="Delete this page" Command="{Binding DeletePageCommand}" />
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+      </StackPanel>
+      <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewPageCommand}" IsVisible="{Binding IsList}" VerticalAlignment="Top">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <c:Icon Data="{StaticResource Icon.Plus}" Size="14" VerticalAlignment="Center" />
+          <TextBlock Text="New page" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+      <StackPanel IsVisible="{Binding IsList}" Spacing="2">
+        <TextBlock Classes="h1" Text="My pages" />
+        <TextBlock Classes="muted" TextWrapping="Wrap" Text="Pages you put together yourself, from the parts of the app you use most. Each one shows in the sidebar." />
+      </StackPanel>
+      <Panel IsVisible="{Binding IsPage}">
+        <TextBlock Classes="h1" Text="{Binding EditName}" IsVisible="{Binding !IsEditing}" TextTrimming="CharacterEllipsis" />
+        <TextBox Text="{Binding EditName}" IsVisible="{Binding IsEditing}" FontSize="22" MaxWidth="480" HorizontalAlignment="Left" PlaceholderText="Name this page" />
+      </Panel>
+    </DockPanel>
+
+    <!-- All my pages -->
+    <c:EmptyState IsVisible="{Binding NoPages}" Icon="{StaticResource Icon.Tiles}" Title="No pages yet"
+                  Text="Make a page and put on it what you want to see together: My tasks, a project, Today, a note, the calculator, a client." />
+    <ItemsControl ItemsSource="{Binding Cards}" IsVisible="{Binding IsList}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><WrapPanel ItemSpacing="14" LineSpacing="14" /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:PageCard">
+          <Button Classes="row" Width="300" Padding="18,14" Command="{Binding OpenCommand}" HorizontalContentAlignment="Stretch">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" TextWrapping="Wrap" MaxLines="2" />
+            </StackPanel>
+          </Button>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <!-- The page on screen -->
+    <c:EmptyState IsVisible="{Binding IsEmptyPage}" Icon="{StaticResource Icon.Tiles}" Title="An empty page"
+                  Text="Click Add widget to put something on it. Then drag widgets by their heading and size them from their corner." />
+    <ItemsControl x:Name="Board" Classes="widgets" ItemsSource="{Binding Widgets}" IsVisible="{Binding IsPage}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <c:WidgetGrid ExtraRows="{Binding #Root.((vm:MyPagesViewModel)DataContext).ExtraRows}" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:WidgetViewModel">
+          <Border Classes="widget" Classes.arranging="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
+            <Panel>
+              <DockPanel Margin="16,12,16,14">
+                <!-- The heading: drag it to move the widget while arranging -->
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" Background="Transparent" PointerPressed="HeadingPressed"
+                           Cursor="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing, Converter={x:Static v:MyPagesView.MoveCursor}}">
+                  <Button DockPanel.Dock="Right" Classes="link" Padding="4,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Take this widget off the page"
+                          IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
+                    <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                  </Button>
+                  <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" Margin="0,0,6,0"
+                          VerticalAlignment="Center" IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}" />
+                  <TextBlock Classes="h2" FontSize="14" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </DockPanel>
+                <ContentControl Content="{Binding Body}" IsHitTestVisible="{Binding !#Root.((vm:MyPagesViewModel)DataContext).IsEditing}" />
+              </DockPanel>
+              <!-- The corner: drag it to size the widget while arranging -->
+              <Border Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomRightCorner"
+                      PointerPressed="CornerPressed" ToolTip.Tip="Drag to make it bigger or smaller"
+                      IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
+                <Path Data="M 14,4 L 4,14 M 14,9 L 9,14" Stroke="{DynamicResource Muted}" StrokeThickness="1.4" />
+              </Border>
+            </Panel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>
