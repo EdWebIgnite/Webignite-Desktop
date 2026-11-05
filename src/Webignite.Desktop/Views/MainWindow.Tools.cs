@@ -13,11 +13,14 @@ public partial class MainWindow
     private void WireTools(AppServices services)
     {
         services.Go.OpenToolAction = kind => ShowTool(kind, services);
+        // Clipboard history listens from the start, so what's copied before the tool is opened is there too.
+        Opened += (_, _) => services.Clipboard.Watch(this);
         Closing += (_, _) =>
         {
             foreach (var open in toolWindows.Values.ToList())
                 open.Close();
         };
+        Closed += (_, _) => services.Clipboard.Stop();
     }
 
     /// <summary>Opens a tool, or brings its window forward. Returns the window, for the screenshot tool.</summary>

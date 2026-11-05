@@ -113,3 +113,22 @@ public static class Colours
         return 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B);
     }
 }
+
+/// <summary>The magnified square round the pointer while picking a colour from the screen.</summary>
+public static class ColourLoupe
+{
+    /// <summary>Pixels each side of the one under the pointer.</summary>
+    public const int Reach = 5;
+
+    /// <summary>How many times bigger each pixel is drawn.</summary>
+    public const int Zoom = 12;
+
+    /// <summary>The square of pixels to magnify round (x, y), kept inside a picture of the given size.</summary>
+    public static ScreenGrab.Area Around(int x, int y, int width, int height)
+    {
+        var size = Math.Min(Reach * 2 + 1, Math.Min(width, height));
+        var left = Math.Clamp(x - Reach, 0, Math.Max(0, width - size));
+        var top = Math.Clamp(y - Reach, 0, Math.Max(0, height - size));
+        return new ScreenGrab.Area(left, top, size, size);
+    }
+}

@@ -18,7 +18,6 @@ public sealed partial class ToolsViewModel
     public partial Rgb? Colour { get; set; }
 
     [ObservableProperty] public partial string ColourMessage { get; set; } = "";
-    [ObservableProperty] public partial bool Picking { get; set; }
 
     public bool HasColour => Colour is not null;
     public string ColourHex => Colour?.Hex ?? "";

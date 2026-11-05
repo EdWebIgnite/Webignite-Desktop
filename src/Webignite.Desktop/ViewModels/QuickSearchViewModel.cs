@@ -5,7 +5,7 @@ using Webignite.Core.Search;
 
 namespace Webignite.Desktop.ViewModels;
 
-/// <summary>Ctrl+K: one box that finds clients, quotes, invoices, mail, to-dos and renewals.</summary>
+/// <summary>Ctrl+K: one box that finds clients, quotes, invoices, mail, to-dos, notes, site logins, files and renewals.</summary>
 public sealed partial class QuickSearchViewModel(AppServices services, Action<SearchHit> open) : ViewModelBase
 {
     private SearchSources sources = new();
@@ -32,6 +32,8 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
             Mail = [],
             Tasks = services.Store.ListTasks(),
             Renewals = services.Store.ListRenewals(),
+            Notes = services.Notes.List(),
+            Logins = services.Clients.AllLogins(),
         };
         Query = "";
         Results.Clear();
@@ -39,6 +41,23 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
         Refresh();
         MailLoaded = LoadMail(accounts, sources);
         MailLoaded.Forget("Reading mail for search");
+        FilesLoaded = LoadFiles(Files.FileOps.ClientRoot(services.Settings.Files), services.Settings.FileRecents);
+        FilesLoaded.Forget("Reading file names for search");
+    }
+
+    /// <summary>Done once file names have joined the search.</summary>
+    public Task FilesLoaded { get; private set; } = Task.CompletedTask;
+
+    // Waits for its turn after mail, so the two never replace each other's results.
+    private async Task LoadFiles(string? root, IReadOnlyList<string> recents)
+    {
+        var opened = sources;
+        var files = await Files.FileIndex.ReadAsync(root, recents);
+        await MailLoaded;
+        if (!IsOpen || !ReferenceEquals(sources.Notes, opened.Notes))
+            return;
+        sources = sources with { Files = files };
+        Refresh();
     }
 
     /// <summary>Done once the mail has joined the search, e.g. for the screenshot tool to wait on.</summary>
@@ -53,7 +72,13 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
         Refresh();
     }
 
-    public void Hide() => IsOpen = false;
+    // The file names and mail are let go when the box closes; they're read again next time.
+    public void Hide()
+    {
+        IsOpen = false;
+        sources = new SearchSources();
+        Results.Clear();
+    }
 
     partial void OnQueryChanged(string value) => Refresh();
 
@@ -79,7 +104,7 @@ public sealed partial class QuickSearchViewModel(AppServices services, Action<Se
     {
         if (Chosen is not { } hit)
             return;
-        IsOpen = false;
+        Hide();
         open(hit);
     }
 }

@@ -64,6 +64,9 @@ public sealed class ClientService(LocalStore store, TimeProvider? clock = null)
         return store.SaveClient(client);
     }
 
+    /// <summary>Every client's site logins, for Ctrl+K.</summary>
+    public IReadOnlyList<SiteLogin> AllLogins() => store.ListSiteLogins();
+
     /// <summary>A client's site logins, A to Z.</summary>
     public IReadOnlyList<SiteLogin> Logins(string clientId) => SiteLogins.Ordered(store.ListSiteLogins(clientId));
 

@@ -34,10 +34,9 @@ public partial class SettingsViewModel
             QuickNoteSay(problem!, true);
             return;
         }
-        var shots = services.Settings.Screenshots;
-        if (hotkey.ToString() == shots.Shortcut || hotkey.ToString() == shots.RecordShortcut)
+        if (Clash(hotkey, GlobalShortcut.QuickNote) is { } clash)
         {
-            QuickNoteSay("Screenshots or recording use those keys already. Pick others for the quick note.", true);
+            QuickNoteSay(clash, true);
             return;
         }
         services.Settings.Notes = services.Settings.Notes with { QuickShortcut = hotkey.ToString() };

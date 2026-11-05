@@ -55,6 +55,7 @@ public partial class MainWindow : Window
             WireRecording(main, services);
             WireQuickNote(services);
             WireTools(services);
+            WireColourPicker(services);
         }
     }
 

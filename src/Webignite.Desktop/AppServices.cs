@@ -157,6 +157,12 @@ public sealed class AppServices : IDisposable
     /// <summary>Set by the main window: takes the recording shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyRecordShortcut { get; set; }
 
+    /// <summary>Set by the main window: takes the colour picker shortcut from Settings again. Returns why not, when it can't.</summary>
+    public Func<string?>? ApplyColourShortcut { get; set; }
+
+    /// <summary>The last things copied while the app is open, in memory only.</summary>
+    public Files.ClipboardKeeper Clipboard { get; } = new();
+
     /// <summary>Settings asks the window to take up a new quick-note shortcut; returns a problem or null.</summary>
     public Func<string?>? ApplyQuickNoteShortcut { get; set; }
 

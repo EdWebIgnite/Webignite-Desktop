@@ -74,4 +74,54 @@ public sealed class QuickSearchTests
         Assert.Empty(QuickSearch.Find("old coffee task", Sources));
         Assert.Empty(QuickSearch.Find("   ", Sources));
     }
+
+    private static readonly SearchSources More = Sources with
+    {
+        Notes =
+        [
+            new Webignite.Core.Notes.Note { Id = "n1", NotebookId = "b", Title = "Karoo menu ideas", Text = "seasonal blends", ClientId = "c1" },
+            new Webignite.Core.Notes.Note { Id = "n2", NotebookId = "b", Title = "Karoo old plan", Deleted = DateTimeOffset.UnixEpoch },
+        ],
+        Logins =
+        [
+            new SiteLogin { Id = "l1", ClientId = "c1", Site = "WordPress admin", Address = "karoocoffee.co.za/wp-admin", UserName = "thandi", Password = "SecretKaroo1!" },
+            new SiteLogin { Id = "l2", ClientId = "gone", Site = "WordPress orphan" },
+        ],
+        Files = [@"C:\Projects\Karoo Coffee\Logo final.ai", @"C:\Projects\Karoo Coffee\Logo final.ai", "/home/eddie/Projects/Fynbos/brief.docx"],
+    };
+
+    [Fact]
+    public void Notes_are_found_by_title_and_words_but_not_from_Deleted()
+    {
+        var hits = QuickSearch.Find("karoo", More).Where(h => h.Kind == HitKind.Note).ToList();
+        Assert.Equal("n1", Assert.Single(hits).Note!.Id);
+        Assert.Contains("Karoo Coffee Roasters", hits[0].Detail, StringComparison.Ordinal);
+        Assert.Equal(HitKind.Note, Assert.Single(QuickSearch.Find("seasonal", More)).Kind);
+    }
+
+    [Fact]
+    public void Site_logins_are_found_by_site_and_user_but_never_by_password()
+    {
+        var hit = Assert.Single(QuickSearch.Find("wordpress", More));
+        Assert.Equal(("l1", "Karoo Coffee Roasters"), (hit.Login!.Id, hit.LoginClient!.Name));
+        Assert.Single(QuickSearch.Find("thandi", More));
+        Assert.Empty(QuickSearch.Find("SecretKaroo", More));
+        Assert.DoesNotContain("SecretKaroo1!", hit.Title + hit.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Files_are_found_by_name_once_each_with_their_folder()
+    {
+        var hit = Assert.Single(QuickSearch.Find("logo final", More));
+        Assert.Equal((HitKind.File, "Logo final.ai", @"C:\Projects\Karoo Coffee"), (hit.Kind, hit.Title, hit.Detail));
+        Assert.Equal("brief.docx", Assert.Single(QuickSearch.Find("brief", More)).Title);
+    }
+
+    [Theory]
+    [InlineData("node_modules", true)]
+    [InlineData(".git", true)]
+    [InlineData("wp-includes", true)]
+    [InlineData("Invoices", false)]
+    public void Code_and_cache_folders_are_skipped_when_reading_file_names(string folder, bool skipped) =>
+        Assert.Equal(skipped, Webignite.Core.Files.FileSearch.SkipWhenIndexing(folder));
 }

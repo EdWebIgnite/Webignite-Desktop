@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.ClipboardView"
+             x:DataType="vm:ToolsViewModel">
+  <StackPanel Spacing="10">
+    <DockPanel>
+      <Button DockPanel.Dock="Right" Classes="link" Content="Clear all" Command="{Binding ClearClipsCommand}" IsVisible="{Binding HasClips}" />
+      <TextBlock Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center"
+                 Text="The last 25 things you copied, newest first. Click one to copy it again." />
+    </DockPanel>
+    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding NoClips}"
+               Text="Nothing yet. Copy some text in any program and it shows here. Passwords are never kept, and it's all forgotten when Webignite closes." />
+    <ItemsControl ItemsSource="{Binding Clips}" IsVisible="{Binding HasClips}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:ClipRow">
+          <Border Classes="taskrow" Padding="0,2">
+            <Border.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Copy again" Command="{Binding CopyCommand}" />
+                <MenuItem Header="Forget this one" Command="{Binding ForgetCommand}" />
+              </ContextMenu>
+            </Border.ContextMenu>
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="link" Padding="6,2" VerticalAlignment="Top" Command="{Binding ForgetCommand}" ToolTip.Tip="Forget this one">
+                <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+              </Button>
+              <Button Classes="link" Command="{Binding CopyCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,4"
+                      ToolTip.Tip="Copy it again">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Ink}" />
+                  <TextBlock Classes="muted" FontSize="11" Text="{Binding Size}" />
+                </StackPanel>
+              </Button>
+            </DockPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <TextBlock Classes="muted" FontSize="12" Text="{Binding ClipMessage}" TextWrapping="Wrap"
+               IsVisible="{Binding ClipMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

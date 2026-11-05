@@ -1360,7 +1360,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -1383,6 +1383,18 @@ passwordWindow.Close();
 var colourWindow = window.ShowTool(ToolKind.Colours, services);
 SaveWindow(colourWindow, "tools-colours");
 colourWindow.Close();
+// Clipboard history: what was copied, newest first, in memory only.
+services.Clipboard.Add("thandi@karoocoffee.co.za");
+services.Clipboard.Add("Hi Pieter,\n\nThe new menu is live on the site. Have a look and shout if anything needs changing.\n\nEddie");
+services.Clipboard.Add("INV-0107");
+services.Clipboard.Add("thandi@karoocoffee.co.za");
+var clipWindow = window.ShowTool(ToolKind.Clipboard, services);
+Check("Clipboard history lists each copy once, newest first", clipWindow.Tools.Clips.Select(c => c.Text).SequenceEqual(["thandi@karoocoffee.co.za", "INV-0107", services.Clipboard.Items[2]]));
+SaveWindow(clipWindow, "tools-clipboard");
+clipWindow.Tools.Clips[1].ForgetCommand.Execute(null);
+Check("Forget takes one off", clipWindow.Tools.Clips.Count == 2 && services.Clipboard.Items.Count == 2);
+clipWindow.Close();
+Check("Closing the window stops it following the history", clipWindow.Tools.Clips.Count == 0);
 // Website images: two made-up photos, shrunk for real so the sizes are true.
 var photos = Path.Combine(data, "photos");
 Directory.CreateDirectory(photos);
@@ -1536,6 +1548,22 @@ Save("site-check");
     stopper.Show();
     stopper.Canvas.Stop();
     Check("Esc stops without a screenshot", stopper.Picked.IsCompletedSuccessfully && stopper.Picked.Result is null);
+
+    // The eyedropper over the same frozen screen: the loupe follows the pointer and a click keeps the colour.
+    var dropper = new ColourPickWindow(frozen, screenArea, 1);
+    dropper.Show();
+    dropper.Canvas.Hover(new Point(370, 668));
+    Dispatcher.UIThread.RunJobs();
+    using (var dropFrame = dropper.CaptureRenderedFrame())
+    using (var dropFile = File.Create(Path.Combine(output, "colour-picking.png")))
+        dropFrame?.Save(dropFile, new PngBitmapEncoderOptions());
+    var under = dropper.Canvas.Under;
+    dropper.Canvas.Pick(new Point(370, 668));
+    Check("A click keeps the colour under the pointer", under is not null && dropper.Picked.IsCompletedSuccessfully && dropper.Picked.Result == under);
+    var dropStop = new ColourPickWindow(frozen, screenArea, 1);
+    dropStop.Show();
+    dropStop.Canvas.Stop();
+    Check("Esc stops the colour picker without a colour", dropStop.Picked.IsCompletedSuccessfully && dropStop.Picked.Result is null);
 
     var grabbed = ScreenGrabWindow.Crop(frozen, picker.Picked.Result!.Value);
     frozen.Dispose();
@@ -1727,6 +1755,41 @@ Save("site-check");
     Check("A quick note goes into Notes with its title and checklist", quick.Saved is { Title: "Call the bank about the card", Checks: 1 }
         && Until(() => vm.Notes.Rows.Any(r => r.Name == "Call the bank about the card")));
 
+    // The same box makes a to-do or an event.
+    var quickTodo = new QuickNoteWindow(services) { Typed = "Send Bosveld the sitemap\nThe PDF from Friday's meeting" };
+    quickTodo.Show(Webignite.Core.Tools.CaptureKind.Todo);
+    quickTodo.Due = Webignite.Core.Tools.CaptureDue.Tomorrow;
+    quickTodo.Show();
+    Dispatcher.UIThread.RunJobs();
+    using (var todoFrame = quickTodo.CaptureRenderedFrame())
+    using (var todoFile = File.Create(Path.Combine(output, "quick-todo.png")))
+        todoFrame?.Save(todoFile, new PngBitmapEncoderOptions());
+    quickTodo.SaveAndClose();
+    Check("A quick to-do goes on the list, due tomorrow, with its notes", quickTodo.SavedTodo is { Title: "Send Bosveld the sitemap", Notes: "The PDF from Friday's meeting" } todoSaved
+        && todoSaved.Due == DateOnly.FromDateTime(DateTime.Today).AddDays(1) && store.ListTasks().Any(t => t.Id == todoSaved.Id));
+
+    var quickEvent = new QuickNoteWindow(services) { Typed = "Site walk-through with Pieter" };
+    quickEvent.Show(Webignite.Core.Tools.CaptureKind.Event);
+    quickEvent.Time = "after lunch";
+    quickEvent.Show();
+    quickEvent.SaveAndClose();
+    Check("An event with a time that can't be read stays open and says why", quickEvent.IsVisible && quickEvent.SavedEvent is null);
+    quickEvent.Time = "14:00-15:30";
+    Dispatcher.UIThread.RunJobs();
+    using (var eventFrame = quickEvent.CaptureRenderedFrame())
+    using (var eventFile = File.Create(Path.Combine(output, "quick-event.png")))
+        eventFrame?.Save(eventFile, new PngBitmapEncoderOptions());
+    quickEvent.SaveAndClose();
+    Check("A quick event goes in the calendar at its time", quickEvent.SavedEvent is { Title: "Site walk-through with Pieter" } eventSaved
+        && eventSaved.Start == new TimeOnly(14, 0) && eventSaved.End == new TimeOnly(15, 30) && store.GetEvent(eventSaved.Id) is not null);
+
+    var quickLost = new QuickNoteWindow(services) { Typed = "Dentist" };
+    quickLost.Show(Webignite.Core.Tools.CaptureKind.Event);
+    quickLost.Time = "sometime";
+    quickLost.Show();
+    quickLost.Close();
+    Check("Closed anyway, an event that can't be saved is kept as a note", quickLost.Saved is { } lostNote && lostNote.Text.Contains("sometime", StringComparison.Ordinal));
+
     var notesSettings = (SettingsViewModel)vm[Page.Settings].Main.Page;
     notesSettings.Open("notes");
     Open(Page.Settings);
@@ -1764,7 +1827,18 @@ vm.Search.Show();
 Wait(vm.Search.MailLoaded, "Search read the mail");
 vm.Search.Query = "karoo";
 Save("search");
-vm.Search.Hide();
+Wait(vm.Search.FilesLoaded, "Search read the file names");
+vm.Search.Query = "bosveld";
+var kinds = vm.Search.Results.Select(r => r.Kind).ToHashSet();
+Check("Ctrl+K finds notes, site logins and files too", kinds.Contains(Webignite.Core.Search.HitKind.Note)
+    && kinds.Contains(Webignite.Core.Search.HitKind.Login) && kinds.Contains(Webignite.Core.Search.HitKind.File));
+Check("A site login in Ctrl+K never shows its password", vm.Search.Results.Where(r => r.Kind == Webignite.Core.Search.HitKind.Login)
+    .All(r => !(r.Title + r.Detail).Contains("Bosveld#2026!", StringComparison.Ordinal)));
+Save("search-more");
+vm.Search.Query = "wordpress";
+vm.Search.OpenChosen();
+Check("Opening a site login opens its client", vm.Clients.Detail?.Title == "Bosveld Builders" && !vm.Search.IsOpen);
+vm.Clients.Detail?.BackCommand.Execute(null);
 
 // New mail while another page is open: a count beside Mail and a note in the corner.
 var mailIds = store.ListMailAccounts().Select(a => a.Id).ToList();

@@ -16,9 +16,12 @@ public sealed partial class LocalStore
 
     public void DeleteSiteLogin(string id) => Remove("site_logins", id);
 
+    /// <summary>Every client's logins, e.g. for Ctrl+K, which finds them by site name and never by password.</summary>
+    public IReadOnlyList<SiteLogin> ListSiteLogins() => ReadAll<SiteLogin>(SiteLoginContext, "SELECT id, payload FROM site_logins");
+
     /// <summary>One client's logins. The client id is encrypted, so every login is opened to find them.</summary>
     public IReadOnlyList<SiteLogin> ListSiteLogins(string clientId) =>
-        [.. ReadAll<SiteLogin>(SiteLoginContext, "SELECT id, payload FROM site_logins").Where(l => l.ClientId == clientId)];
+        [.. ListSiteLogins().Where(l => l.ClientId == clientId)];
 
     /// <summary>Removes a client and its logins as one. Returns the logins that went, for Undo.</summary>
     public IReadOnlyList<SiteLogin> DeleteClientWithLogins(string clientId) => InOneGo(() =>

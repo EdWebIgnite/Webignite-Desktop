@@ -65,6 +65,25 @@ public partial class MainWindow
                     services.Go.Note(saved.Id);
                     Activate();
                 });
+            if (box.SavedTodo is { } todo)
+            {
+                (DataContext as MainViewModel)?.RefreshPlanning();
+                var due = todo.Due is { } day ? ", due " + Webignite.Core.Wording.Day(day, DateOnly.FromDateTime(DateTime.Today)) : "";
+                ShowNote("To-do added", $"{todo.Title}{due}. Click to see your to-dos.", () =>
+                {
+                    services.Go.To(Page.Todo);
+                    Activate();
+                });
+            }
+            if (box.SavedEvent is { } added)
+            {
+                (DataContext as MainViewModel)?.RefreshPlanning();
+                ShowNote("Event added", $"{added.Title} is in the calendar. Click to see it.", () =>
+                {
+                    services.Go.To(Page.Calendar);
+                    Activate();
+                });
+            }
         };
         quickNote = box;
         box.Show();

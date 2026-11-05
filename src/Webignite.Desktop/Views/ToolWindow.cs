@@ -22,6 +22,7 @@ public sealed class ToolWindow : Window
             ToolKind.Calculator => 380,
             ToolKind.Passwords => 460,
             ToolKind.Colours => 480,
+            ToolKind.Clipboard => 460,
             ToolKind.Qr => 620,
             _ => 640,
         };
@@ -36,6 +37,7 @@ public sealed class ToolWindow : Window
             ToolKind.Calculator => new CalculatorView(),
             ToolKind.Passwords => new PasswordView(),
             ToolKind.Colours => new ColourView(),
+            ToolKind.Clipboard => new ClipboardView(),
             ToolKind.Qr => new QrView(),
             _ => new ImagesView(),
         };
@@ -52,6 +54,7 @@ public sealed class ToolWindow : Window
         ToolKind.Calculator => "Calculator",
         ToolKind.Passwords => "Password generator",
         ToolKind.Colours => "Colours",
+        ToolKind.Clipboard => "Clipboard history",
         ToolKind.Qr => "QR code",
         _ => "Website images",
     };

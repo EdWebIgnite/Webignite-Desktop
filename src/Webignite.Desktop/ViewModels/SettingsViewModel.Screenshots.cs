@@ -16,6 +16,7 @@ public partial class SettingsViewModel
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screenshots");
 
     [ObservableProperty] public partial string RecordShortcut { get; private set; } = "";
+    [ObservableProperty] public partial string ColourShortcut { get; private set; } = "";
 
     /// <summary>Record the microphone with the screen.</summary>
     public bool RecordMicrophone
@@ -32,6 +33,42 @@ public partial class SettingsViewModel
     {
         ScreenshotShortcut = services.Settings.Screenshots.Shortcut is { Length: > 0 } keys ? keys : "Off";
         RecordShortcut = services.Settings.Screenshots.RecordShortcut is { Length: > 0 } record ? record : "Off";
+        ColourShortcut = services.Settings.Screenshots.ColourShortcut is { Length: > 0 } colour ? colour : "Off";
+    }
+
+    /// <summary>Why these keys can't be used for this shortcut, when another one has them.</summary>
+    private string? Clash(Hotkey keys, GlobalShortcut wanted) =>
+        GlobalShortcuts.TakenBy(keys, services.Settings.Screenshots, services.Settings.Notes.QuickShortcut, wanted) is { } taken
+            ? GlobalShortcuts.Clash(taken, wanted)
+            : null;
+
+    /// <summary>The keys pressed in the colour picker shortcut box.</summary>
+    public void SetColourShortcut(string keys)
+    {
+        var (hotkey, problem) = Hotkey.Parse(keys);
+        if (hotkey is null)
+        {
+            Shortcut(problem!, true);
+            return;
+        }
+        if (Clash(hotkey, GlobalShortcut.ColourPicker) is { } clash)
+        {
+            Shortcut(clash, true);
+            return;
+        }
+        services.Settings.Screenshots = services.Settings.Screenshots with { ColourShortcut = hotkey.ToString() };
+        ColourShortcut = hotkey.ToString();
+        var taken = services.ApplyColourShortcut?.Invoke();
+        Shortcut(taken ?? $"Press {hotkey} in any program, then click a colour to copy its code.", taken is not null);
+    }
+
+    [RelayCommand]
+    private void ColourShortcutOff()
+    {
+        services.Settings.Screenshots = services.Settings.Screenshots with { ColourShortcut = "" };
+        ColourShortcut = "Off";
+        services.ApplyColourShortcut?.Invoke();
+        Shortcut("The colour picker shortcut is off. Pick colours from the Colours tool.", false);
     }
 
     /// <summary>The keys pressed in the recording shortcut box.</summary>
@@ -43,14 +80,9 @@ public partial class SettingsViewModel
             Shortcut(problem!, true);
             return;
         }
-        if (hotkey.ToString() == services.Settings.Screenshots.Shortcut)
+        if (Clash(hotkey, GlobalShortcut.Recording) is { } clash)
         {
-            Shortcut("That's the screenshot shortcut already. Pick other keys for recording.", true);
-            return;
-        }
-        if (hotkey.ToString() == services.Settings.Notes.QuickShortcut)
-        {
-            Shortcut("That's the quick-note shortcut already. Pick other keys for recording.", true);
+            Shortcut(clash, true);
             return;
         }
         services.Settings.Screenshots = services.Settings.Screenshots with { RecordShortcut = hotkey.ToString() };
@@ -68,14 +100,9 @@ public partial class SettingsViewModel
             Shortcut(problem!, true);
             return;
         }
-        if (hotkey.ToString() == services.Settings.Screenshots.RecordShortcut)
+        if (Clash(hotkey, GlobalShortcut.Screenshot) is { } clash)
         {
-            Shortcut("That's the recording shortcut already. Pick other keys for screenshots.", true);
-            return;
-        }
-        if (hotkey.ToString() == services.Settings.Notes.QuickShortcut)
-        {
-            Shortcut("That's the quick-note shortcut already. Pick other keys for screenshots.", true);
+            Shortcut(clash, true);
             return;
         }
         services.Settings.Screenshots = services.Settings.Screenshots with { Shortcut = hotkey.ToString() };

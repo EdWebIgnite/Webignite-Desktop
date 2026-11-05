@@ -9,6 +9,7 @@ public enum ToolKind
     Calculator,
     Passwords,
     Colours,
+    Clipboard,
     Qr,
     Images,
 }
