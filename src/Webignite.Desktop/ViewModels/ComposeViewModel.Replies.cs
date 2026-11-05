@@ -23,7 +23,7 @@ public partial class ComposeViewModel
     {
         var to = Recipients.Parse(To).People.FirstOrDefault();
         var client = SavedReplies.ClientFor(services.Clients.List(), to?.Address);
-        return SavedReplies.Fill(reply.Text, SavedReplies.FirstName(to, client), client?.Name);
+        return SavedReplies.Fill(reply.Text, SavedReplies.FirstName(to, client, services.Contacts.List()), client?.Name);
     }
 
     /// <summary>A reply as writing, ready to put in at the caret.</summary>

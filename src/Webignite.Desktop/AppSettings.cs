@@ -219,6 +219,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("mail-saved-replies", value.ToList());
     }
 
+    /// <summary>Whole mails kept to start others from, put in from the editor's Templates menu.</summary>
+    public IReadOnlyList<MailTemplate> MailTemplates
+    {
+        get => store.GetSetting<List<MailTemplate>>("mail-templates") ?? [];
+        set => store.SetSetting("mail-templates", value.ToList());
+    }
+
     /// <summary>Snoozed mail waiting in the Snoozed folder, and mail that came back from snooze lately.</summary>
     public SnoozeSettings Snooze
     {

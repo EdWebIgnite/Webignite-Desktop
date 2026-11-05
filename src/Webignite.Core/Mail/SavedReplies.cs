@@ -22,6 +22,15 @@ public static class SavedReplies
     public static Client? ClientFor(IEnumerable<Client> clients, string? address) => ClientMail.For(clients, address);
 
     /// <summary>
+    /// The first name for {name}: someone in Contacts with that exact address comes first (Marlene at accounts@ is
+    /// Marlene, not the client's contact person), then the rule below.
+    /// </summary>
+    public static string? FirstName(MailPerson? to, Client? client, IEnumerable<Person> people) =>
+        ContactRules.WithEmail(people, to?.Address) is { Name.Length: > 0 } person
+            ? FirstName(new MailPerson(person.Name, to!.Address), null)
+            : FirstName(to, client);
+
+    /// <summary>
     /// The first name to greet: the client's contact person when the mail is to the client's own address, else
     /// the first word of the name on the address. Null when there is no name, only an address.
     /// </summary>

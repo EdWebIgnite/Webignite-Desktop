@@ -113,6 +113,37 @@ public static class AddressBook
             .Where(c => Matches(c, typed)).Take(Limit).ToList();
     }
 
+    /// <summary>
+    /// The box's text with these people added at the end (a person picked from Contacts, or a group), anyone
+    /// already in the box left out, and whatever was half typed kept.
+    /// </summary>
+    public static string Add(string? text, IEnumerable<MailPerson> people)
+    {
+        var current = (text ?? "").Trim().TrimEnd(',', ';').Trim();
+        var already = new HashSet<string>(Recipients.Parse(current).People.Select(p => p.Address), StringComparer.OrdinalIgnoreCase);
+        var adding = people.Where(p => already.Add(p.Address)).Select(p => p.ToString()).ToList();
+        if (adding.Count == 0)
+            return text ?? "";
+        return (current.Length > 0 ? current + ", " : "") + string.Join(", ", adding) + ", ";
+    }
+
+    /// <summary>
+    /// The Contacts button's list in a mail: groups first, then everyone in Contacts with an address, A–Z, narrowed by
+    /// what's typed (name, company, client, group, address or phone).
+    /// </summary>
+    public static IReadOnlyList<Contact> Pick(IEnumerable<Person> people, IReadOnlyDictionary<string, string> clientNames, string? search)
+    {
+        var list = people.ToList();
+        var words = QuickSearch.Fold(search ?? "").Trim();
+        var groups = Groups(list).Where(g => words.Length == 0 || QuickSearch.Fold(g.Name ?? "").Contains(words, StringComparison.Ordinal));
+        var everyone = list
+            .Where(p => p.Email is not null)
+            .Where(p => ContactRules.Matches(p, search, p.ClientId is { } id && clientNames.TryGetValue(id, out var name) ? name : null))
+            .OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(p => new Contact(p.Name, p.Email!, 1000));
+        return [.. groups, .. everyone];
+    }
+
     /// <summary>The box's text with what was typed replaced by the person chosen, or by everyone in a group not already in it.</summary>
     public static string Insert(string? text, Contact chosen)
     {

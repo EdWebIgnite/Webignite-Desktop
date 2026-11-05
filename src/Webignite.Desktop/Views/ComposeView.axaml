@@ -29,6 +29,37 @@
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="To" VerticalAlignment="Center" />
         <Button DockPanel.Dock="Right" Classes="link" Content="Cc, Bcc, Reply-To" Command="{Binding ToggleCcCommand}" IsVisible="{Binding !ShowCc}" />
+        <Button x:Name="PeopleButton" DockPanel.Dock="Right" Classes="quiet icon" Margin="6,0,4,0" ToolTip.Tip="Contacts: pick people and groups">
+          <c:Icon Data="{StaticResource Icon.Contacts}" Size="16" />
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight" Opening="PeopleOpening">
+              <StackPanel Width="380" Spacing="8">
+                <TextBox x:Name="PeopleSearchBox" Text="{Binding PeopleSearch}" PlaceholderText="Search people and groups" />
+                <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoPeopleToPick}"
+                           Text="Nobody with an email address matches. Add people on the Contacts page." />
+                <ScrollViewer MaxHeight="340" HorizontalScrollBarVisibility="Disabled">
+                  <ItemsControl ItemsSource="{Binding PeopleToPick}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:PickPersonRow">
+                        <DockPanel Margin="0,2">
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                            <Button Classes="link" Content="To" Command="{Binding AddToCommand}" />
+                            <Button Classes="link" Content="Cc" Command="{Binding AddCcCommand}" />
+                            <Button Classes="link" Content="Bcc" Command="{Binding AddBccCommand}" />
+                          </StackPanel>
+                          <StackPanel>
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Classes="muted" FontSize="11" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </DockPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
         <TextBox x:Name="ToBox" Text="{Binding To}" PlaceholderText="Type a name or address" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
@@ -274,7 +305,31 @@
               <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="RepliesOpening" />
             </Button.Flyout>
           </Button>
+          <Button Classes="quiet format" Focusable="False" ToolTip.Tip="Whole mails kept to start others from">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Text="Templates" />
+              <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="TemplatesOpening" />
+            </Button.Flyout>
+          </Button>
         </WrapPanel>
+        <Border Classes="card" Padding="10,6" IsVisible="{Binding AskingTemplateName}">
+          <StackPanel Spacing="4">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+                <Button Classes="primary" Content="Save template" Command="{Binding SaveTemplateCommand}" />
+                <Button Classes="link" Content="Cancel" Command="{Binding CancelSaveTemplateCommand}" />
+              </StackPanel>
+              <TextBlock DockPanel.Dock="Left" Classes="muted" Text="Call it" VerticalAlignment="Center" Margin="0,0,8,0" />
+              <TextBox x:Name="TemplateNameBox" Text="{Binding TemplateName}" PlaceholderText="e.g. Monthly maintenance report" />
+            </DockPanel>
+            <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                       Text="Keeps To, Cc, the subject and the writing, without your signature. Type {name} or {client} where they should be filled in." />
+            <TextBlock Classes="problem" FontSize="12" Text="{Binding TemplateProblem}" IsVisible="{Binding HasTemplateProblem}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
         <Border Classes="card" Padding="10,6" IsVisible="{Binding AskingReplyName}">
           <StackPanel Spacing="4">
             <DockPanel>

@@ -1940,6 +1940,43 @@ Save("site-check");
     Save("contacts-person");
     people.CloseCommand.Execute(null);
 
+    // Writing a mail: the Contacts button adds a group to To, a template fills an empty mail and keeps the signature.
+    Open(Page.Mail);
+    vm.Mail.WriteCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    var writer = vm.Mail.Composer!;
+    writer.OpenPeople();
+    writer.PeopleSearch = "hosting";
+    var hostingRow = writer.PeopleToPick.FirstOrDefault(r => r.Name == "Hosting clients");
+    hostingRow?.AddToCommand.Execute(null);
+    Check("The Contacts button adds a whole group to To", hostingRow is not null && writer.To.Contains("accounts@bosveldbuilders.co.za", StringComparison.Ordinal));
+    writer.PeopleSearch = "";
+    services.Settings.MailTemplates =
+    [
+        Webignite.Core.Mail.MailTemplates.From("Monthly maintenance report", "", "", "Your {client} site this month",
+            Webignite.Core.Writing.RichText.FromText("Hi {name},\n\nHere is what we did on your site this month:\n\n- Plugins and WordPress updated\n- Backups checked\n- Uptime 99.9%"), "mt1"),
+    ];
+    var inserted = writer.UseTemplate(services.Settings.MailTemplates[0]);
+    Dispatcher.UIThread.RunJobs();
+    Check("A template fills an empty mail with the client filled in and the signature under it", inserted is null
+        && writer.Subject == "Your Bosveld Builders site this month" && writer.Body.StartsWith("Hi Marlene,", StringComparison.Ordinal) && writer.Document.HasSignature);
+    Save("mail-template");
+    var peopleButton = window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().FirstOrDefault(b => b.Name == "PeopleButton");
+    peopleButton?.Flyout?.ShowAt(peopleButton);
+    Dispatcher.UIThread.RunJobs();
+    Save("mail-contacts-button");
+    peopleButton?.Flyout?.Hide();
+    writer.StartSaveTemplateCommand.Execute(null);
+    writer.TemplateName = "Monthly maintenance report";
+    writer.SaveTemplateCommand.Execute(null);
+    Check("A template's name must be its own", writer.HasTemplateProblem && services.Settings.MailTemplates.Count == 1);
+    writer.TemplateName = "Monthly report, short";
+    writer.SaveTemplateCommand.Execute(null);
+    Check("Saving a mail as a template keeps it without the signature", services.Settings.MailTemplates.Count == 2
+        && !services.Settings.MailTemplates[1].Html.Contains("Webignite", StringComparison.OrdinalIgnoreCase) && !writer.AskingTemplateName);
+    services.Settings.MailTemplates = [];
+    writer.DiscardCommand.Execute(null);
+
     // The quick note from any program: what is typed is kept however the box closes.
     var quick = new QuickNoteWindow(services) { Typed = "Call the bank about the card\nThey said to phone after 9\n[ ] Card number ready" };
     quick.Show();

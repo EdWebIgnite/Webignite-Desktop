@@ -63,4 +63,15 @@ public sealed class SavedReplyTests
         Assert.Single(SavedReplies.Check("payment received", "Thanks again", existing));
         Assert.Empty(SavedReplies.Check("Quote follow-up", "Any news on the quote?", existing));
     }
+
+    [Fact]
+    public void Someone_in_Contacts_with_the_address_is_named_before_the_clients_contact_person()
+    {
+        var marlene = new Person { Id = "p1", Name = "Marlene Botha", Emails = [new ContactWay("Work", "accounts@karoocoffee.co.za")] };
+        var karoo = Karoo with { Email = "accounts@karoocoffee.co.za" };
+
+        Assert.Equal("Thandi", SavedReplies.FirstName(new MailPerson(null, "accounts@karoocoffee.co.za"), karoo, []));
+        Assert.Equal("Marlene", SavedReplies.FirstName(new MailPerson(null, "ACCOUNTS@karoocoffee.co.za"), karoo, [marlene]));
+        Assert.Equal("Thandi", SavedReplies.FirstName(new MailPerson(null, "thandi@karoocoffee.co.za"), Karoo, [marlene]));
+    }
 }
