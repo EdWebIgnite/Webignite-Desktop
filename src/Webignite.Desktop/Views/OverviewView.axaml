@@ -6,10 +6,10 @@
              x:DataType="vm:OverviewViewModel">
   <UserControl.Styles>
     <!-- Needs you stays calm: a line's action and its extra links show only while the pointer is on the line. -->
-    <Style Selector="DockPanel.needsrow :is(Control).needsextra">
+    <Style Selector="DockPanel.needsrow > Button.needsextra">
       <Setter Property="Opacity" Value="0" />
     </Style>
-    <Style Selector="DockPanel.needsrow:pointerover :is(Control).needsextra">
+    <Style Selector="DockPanel.needsrow:pointerover > Button.needsextra">
       <Setter Property="Opacity" Value="1" />
     </Style>
     <Style Selector="Button.needsline">
@@ -93,11 +93,12 @@
                 <Button DockPanel.Dock="Right" Classes="link needsextra" Content="No reply needed" Margin="10,0,0,0" IsVisible="{Binding CanWaveOff}"
                         Command="{Binding NoReplyNeededCommand}" VerticalAlignment="Center"
                         ToolTip.Tip="Takes it off this list. It comes back if they write again." />
+                <Button DockPanel.Dock="Right" Classes="link needsextra" Content="{Binding Action}" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}"
+                        FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" />
                 <Button Classes="row needsline" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         ToolTip.Tip="{Binding Action}">
                   <DockPanel>
                     <c:Spinner DockPanel.Dock="Right" IsVisible="{Binding Busy}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="8,0" />
-                    <TextBlock DockPanel.Dock="Right" Classes="muted needsextra" FontSize="12" Text="{Binding Action}" VerticalAlignment="Center" Margin="12,0,0,0" />
                     <Ellipse DockPanel.Dock="Left" Classes="dot" Classes.problem="{Binding Problem}" Margin="2,0,12,0" />
                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" Classes.problem="{Binding Problem}" />
                   </DockPanel>
