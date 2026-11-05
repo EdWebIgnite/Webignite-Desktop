@@ -26,25 +26,54 @@ public sealed class ClientService(LocalStore store, TimeProvider? clock = null)
     /// <summary>
     /// Saves what was typed on the client page: name and contact details, notes and the hourly rate. Only those
     /// fields are taken from <paramref name="edited"/>; notes, files, projects and onboarding stay as stored.
+    /// With <paramref name="loaded"/> (the client as the page showed it), only the fields typed over are taken,
+    /// so a change made meanwhile elsewhere (a number changed in Contacts) isn't put back.
     /// Returns the problems instead when it can't be saved, and nothing is changed.
     /// </summary>
-    public (Client? Saved, IReadOnlyList<string> Problems) SaveDetails(Client edited)
+    public (Client? Saved, IReadOnlyList<string> Problems) SaveDetails(Client edited, Client? loaded = null)
     {
         var problems = ClientDirectory.Check(edited, store.ListClients());
         if (problems.Count > 0)
             return (null, problems);
+        T Typed<T>(Func<Client, T> field, Client current) =>
+            loaded is not null && EqualityComparer<T>.Default.Equals(field(edited), field(loaded)) ? field(current) : field(edited);
         var saved = store.UpdateClient(edited.Id, current => current with
         {
-            Name = edited.Name,
-            ContactPerson = edited.ContactPerson,
-            Email = edited.Email,
-            Phone = edited.Phone,
-            Website = edited.Website,
-            Address = edited.Address,
-            Notes = edited.Notes,
-            HourlyRate = edited.HourlyRate,
+            Name = Typed(c => c.Name, current),
+            ContactPerson = Typed(c => c.ContactPerson, current),
+            Email = Typed(c => c.Email, current),
+            Phone = Typed(c => c.Phone, current),
+            Website = Typed(c => c.Website, current),
+            Address = Typed(c => c.Address, current),
+            Notes = Typed(c => c.Notes, current),
+            HourlyRate = Typed(c => c.HourlyRate, current),
         }) ?? store.SaveClient(edited with { Created = edited.Created == default ? clock.GetUtcNow() : edited.Created });
+        KeepPeopleInStep(saved);
         return (saved, []);
+    }
+
+    /// <summary>Raised when a client page's details change a person in Contacts, so the Contacts page catches up.</summary>
+    public event Action? PeopleChanged;
+
+    // The contact person's name and number, and the invoice address, typed on the client page go to the people
+    // they belong to in Contacts.
+    private void KeepPeopleInStep(Client client)
+    {
+        var changed = false;
+        if (client.MainContactId is { } mainId && store.GetContact(mainId) is { } main
+            && ContactRules.FromClient(main, client) is var updatedMain && updatedMain != main)
+        {
+            store.SaveContact(updatedMain with { Changed = clock.GetUtcNow() });
+            changed = true;
+        }
+        if (client.BillingContactId is { } billingId && store.GetContact(billingId) is { } billing
+            && ContactRules.BillingFromClient(billing, client) is var updatedBilling && updatedBilling != billing)
+        {
+            store.SaveContact(updatedBilling with { Changed = clock.GetUtcNow() });
+            changed = true;
+        }
+        if (changed)
+            PeopleChanged?.Invoke();
     }
 
     /// <summary>Changes a client as stored now (notes, files, projects, onboarding). Null when it was deleted.</summary>

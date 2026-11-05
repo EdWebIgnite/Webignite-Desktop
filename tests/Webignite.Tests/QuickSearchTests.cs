@@ -143,4 +143,17 @@ public sealed class QuickSearchTests
         Assert.Equal("brief.txt", inside.Title);
         Assert.Contains("retaining wall", inside.Detail, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void People_are_found_by_name_role_client_and_number()
+    {
+        var sources = Sources with
+        {
+            People = [new Person { Id = "p1", Name = "Thandi Mokoena", Role = "Owner", ClientId = "c1", Phones = [new ContactWay("Mobile", "082 555 0100")] }],
+        };
+        var hit = Assert.Single(QuickSearch.Find("thandi", sources));
+        Assert.Equal((HitKind.Person, "p1"), (hit.Kind, hit.Person!.Id));
+        Assert.Contains("Karoo Coffee Roasters", hit.Detail, StringComparison.Ordinal);
+        Assert.Contains(QuickSearch.Find("0100", sources), h => h.Kind == HitKind.Person);
+    }
 }

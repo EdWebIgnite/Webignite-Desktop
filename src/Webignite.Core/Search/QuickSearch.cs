@@ -9,7 +9,7 @@ using Webignite.Core.Tasks;
 
 namespace Webignite.Core.Search;
 
-public enum HitKind { Client, Quote, Invoice, Mail, Todo, Note, Login, File, Renewal }
+public enum HitKind { Client, Person, Quote, Invoice, Mail, Todo, Note, Login, File, Renewal }
 
 /// <summary>One search result. Exactly one of the references is set, matching the kind.</summary>
 public sealed record SearchHit(HitKind Kind, string Title, string Detail, int Score)
@@ -20,6 +20,7 @@ public sealed record SearchHit(HitKind Kind, string Title, string Detail, int Sc
     public TaskItem? Task { get; init; }
     public Renewal? Renewal { get; init; }
     public Note? Note { get; init; }
+    public Person? Person { get; init; }
 
     /// <summary>A site login, found by its site name, address, username or notes. Never by its password.</summary>
     public SiteLogin? Login { get; init; }
@@ -32,6 +33,7 @@ public sealed record SearchHit(HitKind Kind, string Title, string Detail, int Sc
     public string KindLabel => Kind switch
     {
         HitKind.Client => "Client",
+        HitKind.Person => "Person",
         HitKind.Quote => "Quote",
         HitKind.Invoice => "Invoice",
         HitKind.Mail => "Mail",
@@ -56,6 +58,9 @@ public sealed record SearchSources
     public IReadOnlyList<Note> Notes { get; init; } = [];
 
     public IReadOnlyList<SiteLogin> Logins { get; init; } = [];
+
+    /// <summary>People in Contacts.</summary>
+    public IReadOnlyList<Person> People { get; init; } = [];
 
     /// <summary>Paths of files and folders to match by name: recent files and what's in the client folders.</summary>
     public IReadOnlyList<string> Files { get; init; } = [];
@@ -83,6 +88,11 @@ public static class QuickSearch
         Add(hits, words, sources.Clients.Select(c => new SearchHit(HitKind.Client, c.Name,
             Join(c.ContactPerson, c.Email, c.Phone, c.Website), 0) { Client = c }),
             c => Join(c.Client!.Notes, c.Client.Address));
+
+        Add(hits, words, sources.People.Select(p => new SearchHit(HitKind.Person, p.Name,
+            Join(p.Role, ClientName(sources.Clients, p.ClientId) ?? p.Company, p.Email, p.Phone), 0) { Person = p }),
+            h => Join(string.Join(" ", h.Person!.Emails.Select(e => e.Value)), string.Join(" ", h.Person.Phones.Select(e => e.Value)),
+                string.Join(" ", h.Person.Groups), h.Person.Notes));
 
         foreach (var kind in new[] { DocumentKind.Quote, DocumentKind.Invoice })
         {

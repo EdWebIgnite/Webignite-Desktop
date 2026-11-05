@@ -12,6 +12,12 @@ public sealed record Client
     public string? Address { get; init; }
     public string? Notes { get; init; }
 
+    /// <summary>The person from Contacts who is this client's contact person; their name and number show here.</summary>
+    public string? MainContactId { get; init; }
+
+    /// <summary>The person from Contacts who gets quotes and invoices; their address is first in Email.</summary>
+    public string? BillingContactId { get; init; }
+
     /// <summary>The matching contact in Xero, once known.</summary>
     public string? XeroContactId { get; init; }
 

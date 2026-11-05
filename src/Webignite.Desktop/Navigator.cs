@@ -9,7 +9,7 @@ namespace Webignite.Desktop;
 public enum Page
 {
     Overview, Approvals, Mail,
-    Clients, Files, Retainers, Renewals,
+    Clients, Contacts, Files, Retainers, Renewals,
     Quotes, Invoices, Money, Reports,
     Todo, Notes, Calendar, Planner, Time,
     SiteCheck, Markup, Pdf,
@@ -42,6 +42,7 @@ public sealed class Navigator
     internal Action<bool>? RecordAction { get; set; }
     internal Action<IReadOnlyList<string>>? OpenPdfAction { get; set; }
     internal Action<string>? OpenNoteAction { get; set; }
+    internal Action<string?, string?>? OpenPersonAction { get; set; }
     internal Action<string, string>? ClientNotesAction { get; set; }
     internal Action? QuickNoteAction { get; set; }
     internal Action<ViewModels.ToolKind>? OpenToolAction { get; set; }
@@ -120,6 +121,12 @@ public sealed class Navigator
 
     /// <summary>Opens a note on the Notes page.</summary>
     public void Note(string id) => OpenNoteAction?.Invoke(id);
+
+    /// <summary>Opens a person in Contacts.</summary>
+    public void Person(string id) => OpenPersonAction?.Invoke(id, null);
+
+    /// <summary>A new person in Contacts, already with this client.</summary>
+    public void NewPerson(string clientId) => OpenPersonAction?.Invoke(null, clientId);
 
     /// <summary>Shows the notes about a client on the Notes page.</summary>
     public void ClientNotes(string clientId, string clientName) => ClientNotesAction?.Invoke(clientId, clientName);

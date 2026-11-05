@@ -1460,9 +1460,12 @@ imagesWindow.Close();
     Check("The arrow key goes on to the next picture in the folder, and round", Until(() => viewer.Picture.Name == "Shop Front (1).jpg" && viewer.Picture.FullWidth == 4032));
     viewer.Picture.ZoomInCommand.Execute(null);
     Check("Zooming by hand stops it following the window", !viewer.Picture.Fitting);
+    var noteBeforeTurn = services.ShowNote;
+    services.ShowNote = null; // the Undo note would stay in every picture after this one
     viewer.Picture.TurnRightCommand.Execute(null);
     Check("Turn saves the picture turned", Until(() => Webignite.Tools.PictureTools.Size(Path.Combine(photos, "Shop Front (1).jpg")) == (3024, 4032)
         && viewer.Picture.FullWidth == 3024));
+    services.ShowNote = noteBeforeTurn;
     viewer.Picture.AskDeleteCommand.Execute(null);
     Check("Delete asks first", viewer.Picture.ConfirmingDelete);
     viewer.Picture.KeepItCommand.Execute(null);
@@ -1854,6 +1857,48 @@ Save("site-check");
     withLogins.CancelLoginCommand.Execute(null);
     Check("Cancel leaves the saved logins as they were and forgets the typed password", withLogins.Logins.Count == 2 && withLogins.LoginPassword.Length == 0);
 
+    // Contacts: the people already on client pages become contacts once, linked both ways with their clients.
+    Open(Page.Contacts);
+    var people = (ContactsViewModel)vm[Page.Contacts].Main.Page;
+    Check("People already on client pages become contacts", people.Rows.Any(r => r.Name == "Pieter van Wyk" && r.Client?.Name == "Bosveld Builders"));
+    var bosveldId = services.Clients.Find("Bosveld Builders")!.Id;
+    people.New(bosveldId);
+    people.EditName = "Marlene Botha";
+    people.EditRole = "Accounts";
+    people.Emails[0].Value = "accounts@bosveldbuilders.co.za";
+    people.EditGroups = "Hosting clients";
+    people.SaveCommand.Execute(null);
+    Check("A new person is saved with their client and group", services.Contacts.ForClient(bosveldId).Any(p => p.Name == "Marlene Botha" && p.Groups.SequenceEqual(["Hosting clients"])));
+    Dispatcher.UIThread.RunJobs();
+    Save("contacts");
+    people.SaveCommand.Execute(null);
+    Check("Saving again keeps their client, after the list of clients was read again", people.EditClient?.Value?.Id == bosveldId
+        && services.Contacts.ForClient(bosveldId).Any(p => p.Name == "Marlene Botha"));
+    people.PickGroup("Hosting clients");
+    Check("Picking a group shows only its people", people.Rows.Count == 1 && people.Rows[0].Name == "Marlene Botha");
+    people.PickGroup(ContactsViewModel.AllGroups);
+    var marlene = services.Contacts.ForClient(bosveldId).First(p => p.Name == "Marlene Botha");
+    var pieter = services.Contacts.ForClient(bosveldId).First(p => p.Name == "Pieter van Wyk");
+    people.OpenPerson(pieter.Id);
+    people.Phones[0].Value = "083 444 5555";
+    people.SaveCommand.Execute(null);
+    Check("The contact person's new number shows on the client", services.Clients.Get(bosveldId)!.Phone == "083 444 5555");
+    people.CloseCommand.Execute(null);
+
+    Open(Page.Clients);
+    vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Bosveld Builders"));
+    var withPeople = vm.Clients.Detail!;
+    withPeople.People.First(p => p.Person.Id == marlene.Id).MakeBillingCommand.Execute(null);
+    Check("Sending invoices to someone puts their address first on the client", services.Clients.Get(bosveldId)!.Email!.StartsWith("accounts@bosveldbuilders.co.za", StringComparison.Ordinal)
+        && withPeople.Email.StartsWith("accounts@bosveldbuilders.co.za", StringComparison.Ordinal));
+    Dispatcher.UIThread.RunJobs();
+    if (window.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().FirstOrDefault(t => t.Text == "People") is { } peopleCard)
+        Avalonia.Controls.ControlExtensions.BringIntoView(peopleCard.GetVisualAncestors().OfType<Avalonia.Controls.Border>().First(b => b.Classes.Contains("card")));
+    Save("client-people");
+    withPeople.ContactPerson = "Pieter J van Wyk";
+    withPeople.SaveCommand.Execute(null);
+    Check("Changing the contact person on the client changes them in Contacts", services.Contacts.Get(pieter.Id)!.Name == "Pieter J van Wyk");
+
     // The quick note from any program: what is typed is kept however the box closes.
     var quick = new QuickNoteWindow(services) { Typed = "Call the bank about the card\nThey said to phone after 9\n[ ] Card number ready" };
     quick.Show();
@@ -1956,6 +2001,8 @@ vm.Search.Query = "bosveld";
 Check("A site login in Ctrl+K never shows its password", vm.Search.Results.Where(r => r.Kind == Webignite.Core.Search.HitKind.Login)
     .All(r => !(r.Title + r.Detail).Contains("Bosveld#2026!", StringComparison.Ordinal)));
 Save("search-more");
+vm.Search.Query = "marlene";
+Check("Ctrl+K finds people in Contacts", vm.Search.Results.Any(r => r.Kind == Webignite.Core.Search.HitKind.Person && r.Title == "Marlene Botha"));
 vm.Search.Query = "wordpress";
 vm.Search.OpenChosen();
 Check("Opening a site login opens its client", vm.Clients.Detail?.Title == "Bosveld Builders" && !vm.Search.IsOpen);

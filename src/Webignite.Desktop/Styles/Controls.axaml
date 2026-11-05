@@ -115,6 +115,15 @@
     <Setter Property="Foreground" Value="{DynamicResource Nav}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
   </Style>
+  <!-- A small label on a light card, e.g. "Contact person" -->
+  <Style Selector="Border.pill">
+    <Setter Property="Background" Value="{DynamicResource Canvas}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Padding" Value="8,1" />
+  </Style>
+
   <Style Selector="Border.tag">
     <Setter Property="Background" Value="{DynamicResource NavHover}" />
     <Setter Property="CornerRadius" Value="4" />

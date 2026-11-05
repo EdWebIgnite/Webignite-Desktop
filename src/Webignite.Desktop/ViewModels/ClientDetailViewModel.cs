@@ -24,15 +24,22 @@ public partial class ClientDetailViewModel : ViewModelBase
         this.isNew = isNew;
         this.services = services;
         this.close = close;
-        Name = client.Name;
-        ContactPerson = client.ContactPerson ?? "";
-        Email = client.Email ?? "";
-        Phone = client.Phone ?? "";
-        Website = client.Website ?? "";
-        Address = client.Address ?? "";
-        Notes = client.Notes ?? "";
-        HourlyRate = client.HourlyRate is { } rate ? rate.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "";
+        ShowDetails(client);
         Refresh();
+    }
+
+    // The details as stored, e.g. after the contact person changed in Contacts.
+    private void ShowDetails(Client shown)
+    {
+        client = shown;
+        Name = shown.Name;
+        ContactPerson = shown.ContactPerson ?? "";
+        Email = shown.Email ?? "";
+        Phone = shown.Phone ?? "";
+        Website = shown.Website ?? "";
+        Address = shown.Address ?? "";
+        Notes = shown.Notes ?? "";
+        HourlyRate = shown.HourlyRate is { } rate ? rate.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "";
     }
 
     /// <summary>The client's hourly rate as typed, e.g. "650". Blank means none.</summary>
@@ -139,7 +146,7 @@ public partial class ClientDetailViewModel : ViewModelBase
         var edited = Edited();
         Problems.Clear();
         var rateOk = TimeRules.TryParseRate(HourlyRate, out _);
-        var (saved, problems) = rateOk ? services.Clients.SaveDetails(edited) : (null, []);
+        var (saved, problems) = rateOk ? services.Clients.SaveDetails(edited, isNew ? null : client) : (null, []);
         foreach (var problem in problems)
             Problems.Add(problem);
         if (!rateOk)
@@ -152,7 +159,8 @@ public partial class ClientDetailViewModel : ViewModelBase
         }
 
         var renamed = !isNew && ClientDirectory.Key(client.Name) != ClientDirectory.Key(edited.Name);
-        client = saved;
+        // What's stored now, which may hold a change made elsewhere meanwhile, so the next save doesn't undo it.
+        ShowDetails(saved);
         isNew = false;
         SaveState = renamed
             ? "Quotes and invoices are matched by name, so older ones under the old name no longer show here."

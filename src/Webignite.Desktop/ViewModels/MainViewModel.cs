@@ -152,6 +152,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
             new NavGroup("client-work", "CLIENT WORK"),
             new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
+            new Module(Page.Contacts, "Contacts", () => new ContactsViewModel(services), "Contacts", fullBleed: true),
             new Module(Page.Retainers, "Retainers", () => new RetainersViewModel(services), "Retainers"),
             new Module(Page.Renewals, "Domains and hosting", () => new RenewalsViewModel(services), "Domains"),
             new NavGroup("billing", "BILLING"),
@@ -269,6 +270,15 @@ public partial class MainViewModel : ViewModelBase
         {
             Selected = this[Page.Notes];
             PageOf<NotesViewModel>(Page.Notes).OpenNote(id);
+        };
+        go.OpenPersonAction = (id, clientId) =>
+        {
+            Selected = this[Page.Contacts];
+            var contacts = PageOf<ContactsViewModel>(Page.Contacts);
+            if (id is not null)
+                contacts.OpenPerson(id);
+            else
+                contacts.New(clientId);
         };
         go.ClientNotesAction = (id, name) =>
         {
@@ -421,6 +431,9 @@ public partial class MainViewModel : ViewModelBase
             case Webignite.Core.Search.HitKind.Todo:
                 services.Go.To(Page.Todo);
                 break;
+            case Webignite.Core.Search.HitKind.Person:
+                services.Go.Person(hit.Person!.Id);
+                break;
             case Webignite.Core.Search.HitKind.Note:
                 services.Go.Note(hit.Note!.Id);
                 break;
@@ -496,6 +509,11 @@ public partial class MainViewModel : ViewModelBase
         foreach (var notes in Built<NotesViewModel>(Page.Notes))
             notes.Keep();
         string? problem = null;
+        foreach (var contacts in Built<ContactsViewModel>(Page.Contacts))
+        {
+            if (!contacts.Keep())
+                problem ??= $"{contacts.TabTitle} has something to fix before it can be saved.";
+        }
         foreach (var clients in Built<ClientsViewModel>(Page.Clients))
         {
             if (clients.Detail is { } client && !client.Leave())
