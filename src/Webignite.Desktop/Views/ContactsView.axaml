@@ -22,7 +22,21 @@
                   <TextBlock Text="New person" />
                 </StackPanel>
               </Button>
+              <Button Classes="quiet" Content="Import" Click="ImportClicked" ToolTip.Tip="People from a vCard (.vcf) or CSV file, e.g. from your phone, Outlook or Google" />
+              <Button Classes="quiet" Content="Export">
+                <Button.Flyout>
+                  <MenuFlyout>
+                    <MenuItem Header="Everyone as vCard (phones, Outlook, Google)" Click="ExportVCardClicked" />
+                    <MenuItem Header="Everyone as CSV (spreadsheet)" Click="ExportCsvClicked" />
+                    <Separator IsVisible="{Binding HasGroupPicked}" />
+                    <MenuItem Header="{Binding Group, StringFormat='Only {0} as vCard'}" Click="ExportGroupVCardClicked" IsVisible="{Binding HasGroupPicked}" />
+                    <MenuItem Header="{Binding Group, StringFormat='Only {0} as CSV'}" Click="ExportGroupCsvClicked" IsVisible="{Binding HasGroupPicked}" />
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
             </WrapPanel>
+            <TextBlock Classes="muted" FontSize="12" Text="{Binding FileMessage}" TextWrapping="Wrap"
+                       IsVisible="{Binding FileMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
 
           <Border Classes="pending" IsVisible="{Binding HasMailedOften}">

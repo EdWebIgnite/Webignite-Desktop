@@ -50,6 +50,20 @@ public sealed class ContactService(LocalStore store, TimeProvider? clock = null)
         return (saved, []);
     }
 
+    /// <summary>Adds people from a file at once (already tidied and checked against Contacts), telling the pages once.</summary>
+    public int Import(IEnumerable<Person> people)
+    {
+        var now = clock.GetUtcNow();
+        var added = 0;
+        foreach (var person in people.Where(p => ContactRules.Check(p).Count == 0))
+        {
+            store.SaveContact(person with { Created = now, Changed = now });
+            added++;
+        }
+        Changed?.Invoke();
+        return added;
+    }
+
     /// <summary>Removes a person. Returns them, for Undo.</summary>
     public Person? Delete(string id)
     {
