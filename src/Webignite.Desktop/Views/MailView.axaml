@@ -363,17 +363,17 @@
                   <Button.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                       <MenuItem Header="Folders" DataContext="{Binding Panels[folders]}" x:DataType="vm:PaneViewModel">
-                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
+                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown, Mode=TwoWay}" IsEnabled="{Binding CanToggle}" />
                         <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
                         <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
                       </MenuItem>
                       <MenuItem Header="Messages" DataContext="{Binding Panels[messages]}" x:DataType="vm:PaneViewModel">
-                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
+                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown, Mode=TwoWay}" IsEnabled="{Binding CanToggle}" />
                         <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
                         <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
                       </MenuItem>
                       <MenuItem Header="Reading pane" DataContext="{Binding Panels[reader]}" x:DataType="vm:PaneViewModel">
-                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
+                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown, Mode=TwoWay}" IsEnabled="{Binding CanToggle}" />
                         <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
                         <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
                       </MenuItem>

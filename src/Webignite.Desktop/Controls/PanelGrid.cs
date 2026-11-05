@@ -161,6 +161,14 @@ public sealed class PanelGrid : Grid
             splitter.DragCompleted += (_, _) => ReportWidths();
             splitters.Add(splitter);
             Children.Add(splitter);
+            // A small handle on the divider minimises the pane to its left.
+            if (Panels is { } owner && owner.CanHide(visible[i]))
+            {
+                var handle = Handle(owner, visible[i]);
+                SetColumn(handle, ColumnDefinitions.Count - 1);
+                rails.Add(handle);
+                Children.Add(handle);
+            }
         }
     }
 
@@ -170,16 +178,41 @@ public sealed class PanelGrid : Grid
         var rail = new Button
         {
             Classes = { "panerail" },
-            Content = new LayoutTransformControl
+            Content = new StackPanel
             {
-                LayoutTransform = new Avalonia.Media.RotateTransform(90),
-                Child = new TextBlock { Text = title, FontSize = 12, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center },
+                Spacing = 10,
+                Children =
+                {
+                    new Icon { Data = Geometry("Icon.SidebarShow"), Size = 14, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center },
+                    new LayoutTransformControl
+                    {
+                        LayoutTransform = new Avalonia.Media.RotateTransform(90),
+                        Child = new TextBlock { Text = title, FontSize = 12, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center },
+                    },
+                },
             },
         };
-        ToolTip.SetTip(rail, $"Show {title}");
+        ToolTip.SetTip(rail, $"Show {title} again");
         rail.Click += (_, _) => panels.Show(pane, true);
         return rail;
     }
+
+    // The minimise handle: a small tab half over the divider, in the middle of its height.
+    private static Button Handle(ViewModels.PanelsViewModel panels, string pane)
+    {
+        var handle = new Button
+        {
+            Classes = { "panehandle" },
+            Content = new Icon { Data = Geometry("Icon.ChevronLeft"), Size = 12 },
+            ZIndex = 11,
+        };
+        ToolTip.SetTip(handle, $"Minimise {panels.TitleOf(pane)}");
+        handle.Click += (_, _) => panels.Show(pane, false);
+        return handle;
+    }
+
+    private static Avalonia.Media.Geometry? Geometry(string key) =>
+        Avalonia.Application.Current?.TryGetResource(key, null, out var found) == true ? found as Avalonia.Media.Geometry : null;
 
     private static ContextMenu DividerMenu(ViewModels.PanelsViewModel panels, string left, string right)
     {

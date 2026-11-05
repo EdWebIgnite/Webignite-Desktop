@@ -396,6 +396,37 @@ services.Timer.Stop();
 vm.Time.Note = "";
 Open(Page.Clients);
 Save("clients");
+{
+    // Minimising a pane: the handle on the divider, the strip it leaves, the chip in the sidebar, and the button on the list.
+    void Click(Avalonia.Controls.Button? button)
+    {
+        button?.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+        button?.Command?.Execute(button.CommandParameter);
+        Dispatcher.UIThread.RunJobs();
+    }
+    Avalonia.Controls.Button? Find(string kind) => window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().FirstOrDefault(b => b.Classes.Contains(kind) && b.IsEffectivelyVisible);
+    var clientsPage = vm.Clients;
+    clientsPage.OpenCommand.Execute(clientsPage.Rows.First());
+    Dispatcher.UIThread.RunJobs();
+    var handle = Find("panehandle");
+    handle?.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+    Dispatcher.UIThread.RunJobs();
+    Check("The handle on the divider minimises the client list", handle is not null && !clientsPage.Panels["list"].IsShown);
+    Check("A minimised pane shows as a chip under its page in the sidebar", vm.HiddenPanes.Select(p => p.Title).SequenceEqual(["Client list"]) && Find("panechip") is not null
+        && Find("panerail") is not null);
+    Save("clients-list-minimised");
+    Click(Find("panechip"));
+    Check("The chip in the sidebar brings it back", clientsPage.Panels["list"].IsShown && vm.HiddenPanes.Count == 0);
+    var minimise = window.GetVisualDescendants().OfType<Avalonia.Controls.Button>()
+        .FirstOrDefault(b => ReferenceEquals(b.Command, clientsPage.Panels["list"].MinimiseCommand));
+    Click(minimise);
+    Check("The minimise button on the list works too", minimise is not null && !clientsPage.Panels["list"].IsShown);
+    var strip = Find("panerail");
+    strip?.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+    Dispatcher.UIThread.RunJobs();
+    Check("The strip brings it back", clientsPage.Panels["list"].IsShown);
+    clientsPage.Detail?.BackCommand.Execute(null);
+}
 Wait(vm.Clients.BringInFromXeroCommand.ExecuteAsync(null), "Bringing clients in from Xero by hand");
 Check("Bringing clients in without Xero says to connect it", vm.Clients.XeroMessage == "Connect Xero in Settings first.");
 vm.Clients.XeroMessage = "";

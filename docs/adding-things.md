@@ -45,7 +45,7 @@ Small tools (the calculator, QR codes) aren't pages. Add a value to `ToolKind` (
 
 ## Panes the person can drag, move and hide
 
-With `Panels` bound, a hidden pane leaves a slim strip with its name where it was, which brings it back with a click, and the divider between two panes has a right-click menu to hide either or put them back. Make the page's view model `IHasPanes` so Ctrl+Shift+1 to 4 show and hide its panes. Mail, Clients, Notes and Files are built this way.
+With `Panels` bound, each divider has a small minimise handle for the pane to its left, a minimised pane leaves a slim strip with its name where it was (a click brings it back), and the page's minimised panes show as chips under its name in the sidebar (`MainViewModel.HiddenPanes`) to bring them back too. The divider's right-click menu hides either pane or puts them back. A pane's own minimise button binds to `Panels[key].MinimiseCommand`; a menu tick binds `IsShown` with `Mode=TwoWay` (a menu item's tick is one-way otherwise, so nothing would happen). Make the page's view model `IHasPanes` so Ctrl+Shift+1 to 4 show and hide its panes. Mail, Clients, Notes and Files are built this way.
 
 Mail is the example. The rules (show, hide but never the last one, move, resize, match a saved layout to the panes the page has now) are in `Core.Layout.Panels`, with tests in `PanelsTests.cs`.
 
