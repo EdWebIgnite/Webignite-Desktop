@@ -235,6 +235,12 @@ public partial class MainViewModel : ViewModelBase
         go.OpenClientInNewTabAction = client =>
             ((ClientsViewModel)OpenInNewTab(this[Page.Clients]).Page).OpenClient(services.Clients.Get(client.Id) ?? client);
         go.OpenMailInNewTabAction = summary => ((MailViewModel)OpenInNewTab(mailModule).Page).OpenMessage(summary);
+        go.OpenMailInNewWindowAction = summary =>
+        {
+            var host = OpenInNewTab(mailModule);
+            ((MailViewModel)host.Page).OpenMessage(summary);
+            PopOut(host);
+        };
         go.OpenPdfAction = paths =>
         {
             // Opened in a PDF tools tab of its own when one already has work in it.
@@ -269,6 +275,17 @@ public partial class MainViewModel : ViewModelBase
             }
             Selected = this[Page.Files];
             PageOf<FilesViewModel>(Page.Files).GoTo(path);
+        };
+        go.OpenFolderInNewWindowAction = path =>
+        {
+            var host = OpenInNewTab(this[Page.Files]);
+            ((FilesViewModel)host.Page).GoTo(path);
+            PopOut(host);
+        };
+        go.MarkupPictureAction = path =>
+        {
+            Selected = this[Page.Markup];
+            Markup.Show(new Avalonia.Media.Imaging.Bitmap(path));
         };
         go.ShowFileAction = path =>
         {

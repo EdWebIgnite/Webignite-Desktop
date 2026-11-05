@@ -691,6 +691,15 @@ Save("mail");
     Check("The conversation folds up, and stays folded for the next mail", !vm.Mail.Reader.ThreadOpen && services.Settings.MailView.ThreadFolded);
     Save("mail-thread-folded");
     vm.Mail.Reader.ToggleThreadCommand.Execute(null);
+    var menu = vm.Mail.MessageMenu().Select(i => i.Header).ToList();
+    Check("A mail's right-click menu has the new choices", menu.Contains("Open in a new window") && menu.Contains("Make a to-do of it")
+        && menu.Contains("Save as a file…") && menu.Any(h => h.StartsWith("Write to", StringComparison.Ordinal)) && menu.Contains("Select all"));
+    vm.Mail.Reader.ToggleAttachmentsCommand.Execute(null);
+    Check("The attachments fold up and stay folded", !vm.Mail.Reader.AttachmentsOpen && services.Settings.MailView.AttachmentsFolded);
+    vm.Mail.Reader.ToggleRecipientsCommand.Execute(null);
+    Save("mail-folded-details");
+    vm.Mail.Reader.ToggleAttachmentsCommand.Execute(null);
+    vm.Mail.Reader.ToggleRecipientsCommand.Execute(null);
 }
 // The same mail in a dark look: it stays on white paper so it can be read.
 services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Dark, DarkPalette = DarkPalette.Graphite };
@@ -818,6 +827,23 @@ Save("client-mail");
     Check("Folders come first, then files by name", files.Items.OfType<FileRowViewModel>().Select(r => r.Name).Take(3).SequenceEqual(["Logo", "Photos", "Bosveld website brief.pdf"]));
     files.ShowAsCommand.Execute(Webignite.Core.Files.FileView.Details);
     Save("files-details");
+    {
+        // The right-click menus: on a picture, on a folder, and on empty space.
+        var filesView = window.GetVisualDescendants().OfType<FilesView>().First();
+        IEnumerable<string> Headers(IEnumerable<Avalonia.Controls.Control> items) =>
+            items.OfType<Avalonia.Controls.MenuItem>().Select(i => i.Header as string ?? "");
+        files.Selected = [files.Items.OfType<FileRowViewModel>().First(r => r.Name == "Site visit 1.png")];
+        var onPicture = Headers(filesView.MenuItems(files)).ToList();
+        files.Selected = [files.Items.OfType<FileRowViewModel>().First(r => r.Name == "Logo")];
+        var onFolder = Headers(filesView.MenuItems(files)).ToList();
+        files.Selected = [];
+        var onSpace = Headers(filesView.MenuItems(files)).ToList();
+        Check("A picture's right-click has Mark-up, Mail it, Link to a client and Copy as path",
+            onPicture.Contains("Draw on it in Mark-up") && onPicture.Contains("Mail it") && onPicture.Contains("Link to a client") && onPicture.Contains("Copy as path"));
+        Check("A folder's right-click opens it in a new window", onFolder.Contains("Open in a new window"));
+        Check("Right-click on empty space has View, Refresh and Favourites",
+            onSpace.Contains("View") && onSpace.Contains("Refresh") && onSpace.Any(h => h.Contains("Favourites", StringComparison.Ordinal)));
+    }
     files.GroupByCommand.Execute(Webignite.Core.Files.FileGrouping.Kind);
     Save("files-grouped");
     files.GroupByCommand.Execute(Webignite.Core.Files.FileGrouping.None);

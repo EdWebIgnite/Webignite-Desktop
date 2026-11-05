@@ -135,6 +135,9 @@ public partial class FolderNodeViewModel : ViewModelBase
         },
     };
 
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private Task MarkAllRead() => owner.MarkFolderRead(this);
+
     /// <summary>Only folders you made can be renamed or removed.</summary>
     public bool CanChange => Kind == FolderKind.Folder && FolderNames.CanChange(Folder);
 
