@@ -28,29 +28,68 @@ public static class PictureTools
     public static void Rotate(string path, int degrees)
     {
         using var upright = Upright(path);
-        var turned = new SKBitmap(upright.Height, upright.Width, upright.ColorType, upright.AlphaType);
+        using var turned = new SKBitmap(upright.Height, upright.Width, upright.ColorType, upright.AlphaType);
         using (var canvas = new SKCanvas(turned))
         {
             canvas.Translate(degrees > 0 ? turned.Width : 0, degrees > 0 ? 0 : turned.Height);
             canvas.RotateDegrees(degrees > 0 ? 90 : -90);
             canvas.DrawBitmap(upright, 0, 0);
         }
-        using (turned)
-        using (var image = SKImage.FromBitmap(turned))
+        SaveInPlace(turned, path);
+    }
+
+    /// <summary>Flips a picture left to right (or top to bottom), saving it in place.</summary>
+    public static void Flip(string path, bool topToBottom)
+    {
+        using var upright = Upright(path);
+        using var flipped = new SKBitmap(upright.Width, upright.Height, upright.ColorType, upright.AlphaType);
+        using (var canvas = new SKCanvas(flipped))
         {
-            var format = Path.GetExtension(path).ToLowerInvariant() switch
-            {
-                ".jpg" or ".jpeg" => SKEncodedImageFormat.Jpeg,
-                ".webp" => SKEncodedImageFormat.Webp,
-                ".bmp" => SKEncodedImageFormat.Bmp,
-                _ => SKEncodedImageFormat.Png,
-            };
-            using var data = image.Encode(format, 92) ?? throw new IOException($"Couldn't save {Path.GetFileName(path)} in its format.");
-            var temporary = path + ".turning";
-            using (var file = File.Create(temporary))
-                data.SaveTo(file);
-            File.Move(temporary, path, overwrite: true);
+            canvas.Scale(topToBottom ? 1 : -1, topToBottom ? -1 : 1, upright.Width / 2f, upright.Height / 2f);
+            canvas.DrawBitmap(upright, 0, 0);
         }
+        SaveInPlace(flipped, path);
+    }
+
+    /// <summary>Keeps only this part of the picture, in its own pixels (as it shows, the right way up), saved in place.</summary>
+    public static void Crop(string path, int x, int y, int width, int height)
+    {
+        using var upright = Upright(path);
+        var area = SKRectI.Intersect(new SKRectI(x, y, x + width, y + height), new SKRectI(0, 0, upright.Width, upright.Height));
+        if (area.Width < 1 || area.Height < 1)
+            throw new ArgumentException("Pick a part of the picture to keep.");
+        using var cropped = new SKBitmap(area.Width, area.Height, upright.ColorType, upright.AlphaType);
+        if (!upright.ExtractSubset(cropped, area))
+            throw new IOException("Couldn't cut that part out.");
+        using var copy = cropped.Copy();
+        SaveInPlace(copy, path);
+    }
+
+    /// <summary>Makes the picture this many pixels across and down, saved in place.</summary>
+    public static void Resize(string path, int width, int height)
+    {
+        using var upright = Upright(path);
+        using var resized = upright.Resize(new SKImageInfo(width, height, upright.ColorType, upright.AlphaType), new SKSamplingOptions(SKCubicResampler.Mitchell))
+            ?? throw new IOException("Couldn't resize it.");
+        SaveInPlace(resized, path);
+    }
+
+    // Saved in the file's own format, through a temporary file so a failed save never leaves half a picture.
+    private static void SaveInPlace(SKBitmap bitmap, string path)
+    {
+        using var image = SKImage.FromBitmap(bitmap);
+        var format = Path.GetExtension(path).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => SKEncodedImageFormat.Jpeg,
+            ".webp" => SKEncodedImageFormat.Webp,
+            ".bmp" => SKEncodedImageFormat.Bmp,
+            _ => SKEncodedImageFormat.Png,
+        };
+        using var data = image.Encode(format, 92) ?? throw new IOException($"Couldn't save {Path.GetFileName(path)} in its format.");
+        var temporary = path + ".saving";
+        using (var file = File.Create(temporary))
+            data.SaveTo(file);
+        File.Move(temporary, path, overwrite: true);
     }
 
     /// <summary>

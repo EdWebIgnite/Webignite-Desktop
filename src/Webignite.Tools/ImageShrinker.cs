@@ -11,7 +11,12 @@ public static class ImageShrinker
 {
     public sealed record Result(string Source, string? Output, long Before, long After, int Width, int Height, string? Problem);
 
-    public static Result Shrink(string path, ImageJob job)
+    /// <summary>A copy in another format at the same size, beside the original ("logo.png" makes "logo.webp").</summary>
+    public static Result Convert(string path, ImageFormat format, int quality = 90) =>
+        Shrink(path, new ImageJob(0, 0, format, quality), (source, chosen) => ImageRules.ConvertedPath(source, chosen, File.Exists));
+
+    /// <summary>A website-sized copy in a "web" folder beside the original, or where <paramref name="where"/> says.</summary>
+    public static Result Shrink(string path, ImageJob job, Func<string, ImageFormat, string>? where = null)
     {
         long before = 0;
         try
@@ -44,7 +49,7 @@ public static class ImageShrinker
             if (data is null)
                 return Failed("Couldn't save it in that format.");
 
-            var output = ImageRules.OutputPath(path, format, File.Exists);
+            var output = where?.Invoke(path, format) ?? ImageRules.OutputPath(path, format, File.Exists);
             Directory.CreateDirectory(Path.GetDirectoryName(output)!);
             using (var file = File.Create(output))
                 data.SaveTo(file);

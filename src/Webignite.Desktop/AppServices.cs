@@ -160,6 +160,16 @@ public sealed class AppServices : IDisposable
     /// <summary>Set by the main window: takes the colour picker shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyColourShortcut { get; set; }
 
+    /// <summary>A colour picked from the screen or a picture goes to the top of the recent colours.</summary>
+    public void RememberColour(string hex)
+    {
+        Settings.RecentColours = Webignite.Core.Tools.Colours.Remember(Settings.RecentColours, hex);
+        ColoursChanged?.Invoke();
+    }
+
+    /// <summary>Raised when the recent colours change, for the Colours tool if it's open.</summary>
+    public event Action? ColoursChanged;
+
     /// <summary>The last things copied while the app is open, in memory only.</summary>
     public Files.ClipboardKeeper Clipboard { get; } = new();
 

@@ -20,6 +20,17 @@ public readonly record struct Rgb(byte R, byte G, byte B)
 
 public static class Colours
 {
+    /// <summary>How many recent colours are kept.</summary>
+    public const int RecentKept = 12;
+
+    /// <summary>The recent colours with this one at the front, once, in upper case.</summary>
+    public static IReadOnlyList<string> Remember(IReadOnlyList<string> recent, string hex)
+    {
+        if (Parse(hex) is not { } colour)
+            return recent;
+        return [colour.Hex, .. recent.Where(r => !string.Equals(r, colour.Hex, StringComparison.OrdinalIgnoreCase)).Take(RecentKept - 1)];
+    }
+
     /// <summary>Reads #1c1d21, 1C1D21, #abc, or rgb(28, 29, 33).</summary>
     public static Rgb? Parse(string? text)
     {

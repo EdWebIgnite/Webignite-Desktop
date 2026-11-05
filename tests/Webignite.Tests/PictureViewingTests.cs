@@ -40,4 +40,47 @@ public sealed class PictureViewingTests
         Assert.StartsWith("3 of 12 · 4032 × 3024 · ", PictureViewing.Describe(2, 12, 4032, 3024, 2_200_000), StringComparison.Ordinal);
         Assert.Equal("800 × 600", PictureViewing.Describe(0, 1, 800, 600, 0));
     }
+
+    [Fact]
+    public void A_crop_dragged_on_a_zoomed_picture_is_in_the_pictures_own_pixels_and_stays_inside_it()
+    {
+        var area = PictureEditing.Crop(100, 50, 20, 250, zoom: 0.5, width: 800, height: 600);
+        Assert.Equal(new Webignite.Core.Tools.ScreenGrab.Area(40, 100, 160, 400), area);
+        Assert.Equal(new Webignite.Core.Tools.ScreenGrab.Area(0, 0, 800, 600), PictureEditing.Crop(-50, -50, 5000, 5000, 1, 800, 600));
+        Assert.True(PictureEditing.IsCrop(area, 800, 600));
+        Assert.False(PictureEditing.IsCrop(new(0, 0, 800, 600), 800, 600));
+        Assert.False(PictureEditing.IsCrop(new(10, 10, 2, 2), 800, 600));
+    }
+
+    [Fact]
+    public void Resizing_keeps_the_shape_from_the_side_typed_and_refuses_silly_sizes()
+    {
+        Assert.Equal((1920, 1440, (string?)null), PictureEditing.Resize(4032, 3024, 1920, null, keepShape: true));
+        Assert.Equal((1000, 750, (string?)null), PictureEditing.Resize(4032, 3024, 1000, 999, keepShape: true));
+        Assert.Equal((1000, 999, (string?)null), PictureEditing.Resize(4032, 3024, 1000, 999, keepShape: false));
+        Assert.NotNull(PictureEditing.Resize(4032, 3024, null, null, true).Problem);
+        Assert.NotNull(PictureEditing.Resize(4032, 3024, 0, null, true).Problem);
+        Assert.NotNull(PictureEditing.Resize(4032, 3024, 50000, null, true).Problem);
+        Assert.Equal(1440, PictureEditing.OtherSide(1920, 4032, 3024));
+    }
+
+    [Fact]
+    public void A_converted_copy_goes_beside_the_original_and_never_over_it()
+    {
+        Assert.Equal(System.IO.Path.Combine("Shots", "logo.webp"), Webignite.Core.Tools.ImageRules.ConvertedPath(System.IO.Path.Combine("Shots", "logo.png"), Webignite.Core.Tools.ImageFormat.WebP, _ => false));
+        var taken = System.IO.Path.Combine("Shots", "logo.webp");
+        Assert.Equal(System.IO.Path.Combine("Shots", "logo (2).webp"), Webignite.Core.Tools.ImageRules.ConvertedPath(System.IO.Path.Combine("Shots", "logo.png"), Webignite.Core.Tools.ImageFormat.WebP, p => p == taken));
+        Assert.Equal(System.IO.Path.Combine("Shots", "photo (2).png"), Webignite.Core.Tools.ImageRules.ConvertedPath(System.IO.Path.Combine("Shots", "photo.png"), Webignite.Core.Tools.ImageFormat.Png, _ => false));
+    }
+
+    [Fact]
+    public void Recent_colours_keep_the_newest_first_once_each()
+    {
+        IReadOnlyList<string> recent = [];
+        recent = Webignite.Core.Tools.Colours.Remember(recent, "#e8590c");
+        recent = Webignite.Core.Tools.Colours.Remember(recent, "#1C1D21");
+        recent = Webignite.Core.Tools.Colours.Remember(recent, "#E8590C");
+        Assert.Equal(["#E8590C", "#1C1D21"], recent);
+        Assert.Same(recent, Webignite.Core.Tools.Colours.Remember(recent, "not a colour"));
+    }
 }

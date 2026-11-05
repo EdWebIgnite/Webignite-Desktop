@@ -1457,6 +1457,53 @@ imagesWindow.Close();
     Check("Opening another picture uses the same viewer", ReferenceEquals(again, viewer) && Until(() => viewer.Picture.Name == "Team photo.png"));
     viewer.Close();
     Check("Closing the viewer lets the picture go", viewer.Picture.Picture is null);
+
+    // The viewer's tools, on copies so the pictures above stay as they are.
+    var editing = Path.Combine(data, "editing");
+    Directory.CreateDirectory(editing);
+    File.Copy(Path.Combine(photos, "Team photo.png"), Path.Combine(editing, "team.png"));
+    var team = Path.Combine(editing, "team.png");
+    var tools = window.ShowPicture(team, services);
+    var pic = tools.Picture;
+    Until(() => pic.Picture is not null);
+    var showNote = services.ShowNote;
+    Action? undo = null;
+    services.ShowNote = (_, _, act) => undo = act; // the Undo in the corner, kept to press below
+
+    pic.StartCropCommand.Execute(null);
+    pic.DragCrop(new Point(100 * pic.Zoom, 100 * pic.Zoom), new Point(1300 * pic.Zoom, 900 * pic.Zoom));
+    Dispatcher.UIThread.RunJobs();
+    SaveWindow(tools, "picture-crop");
+    pic.ApplyCropCommand.Execute(null);
+    Check("Crop keeps only the part dragged over", Until(() => Webignite.Tools.PictureTools.Size(team) == (1200, 800) && pic.FullWidth == 1200));
+    undo?.Invoke();
+    Check("Undo puts the picture back as it was", Until(() => Webignite.Tools.PictureTools.Size(team) == (2400, 1600) && pic.FullWidth == 2400));
+
+    pic.StartResizeCommand.Execute(null);
+    pic.ResizeWidth = "600";
+    Check("Resize fills in the height to keep the shape", pic.ResizeHeight == "400");
+    pic.ApplyResizeCommand.Execute(null);
+    Check("Resize saves the new size", Until(() => Webignite.Tools.PictureTools.Size(team) == (600, 400)));
+
+    pic.FlipAcrossCommand.Execute(null);
+    Check("Flip saves the picture flipped", Until(() => !pic.Busy && pic.Picture is not null && pic.FullWidth == 600));
+
+    pic.ConvertToCommand.Execute("WebP");
+    Check("Make a WebP copy shows before and after, beside the original", Until(() => pic.ShowingResult)
+        && File.Exists(Path.Combine(editing, "team.webp")) && pic.AfterText.Contains("WEBP", StringComparison.Ordinal));
+    SaveWindow(tools, "picture-before-after");
+    pic.ThrowResultAwayCommand.Execute(null);
+    Check("Throw it away deletes the copy", !File.Exists(Path.Combine(editing, "team.webp")) && !pic.ShowingResult);
+
+    pic.ShrinkForWebCommand.Execute(null);
+    Check("Shrink for a website makes a copy in a web folder", Until(() => pic.ShowingResult) && File.Exists(Path.Combine(editing, "web", "team.webp")));
+    pic.KeepResultCommand.Execute(null);
+
+    pic.StartPickingCommand.Execute(null);
+    pic.PickAt(new Point(10, 10)).GetAwaiter().GetResult();
+    Check("Picking from the picture copies the colour and remembers it", pic.PickedHex.StartsWith('#') && services.Settings.RecentColours.FirstOrDefault() == pic.PickedHex);
+    services.ShowNote = showNote;
+    tools.Close();
 }
 calc.AddToInvoiceCommand.Execute(null);
 calculatorWindow.Close();
