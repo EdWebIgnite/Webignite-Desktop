@@ -1686,6 +1686,36 @@ Save("site-check");
     vm.Clients.Detail.NoteLinks.First().OpenCommand.Execute(null);
     Check("Clicking one opens it in Notes", vm.Current.Key == Page.Notes && vm.Notes.Open?.Id == kickoff.Id);
 
+    // Site logins on the client's page: several under one client, passwords hidden until shown, bad addresses caught.
+    Open(Page.Clients);
+    vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Bosveld Builders"));
+    var withLogins = vm.Clients.Detail!;
+    withLogins.AddLoginCommand.Execute(null);
+    (withLogins.LoginSite, withLogins.LoginAddress, withLogins.LoginUser, withLogins.LoginPassword) = ("WordPress admin", "bosveldbuilders.co.za/wp-admin", "pieter", "Bosveld#2026!");
+    withLogins.SaveLoginCommand.Execute(null);
+    withLogins.AddLoginCommand.Execute(null);
+    (withLogins.LoginSite, withLogins.LoginAddress, withLogins.LoginUser, withLogins.LoginPassword, withLogins.LoginNotes) = ("Afrihost cPanel", "cp.afrihost.com", "bosveld", "kT7#pW2q", "2FA code goes to Pieter's phone");
+    withLogins.SaveLoginCommand.Execute(null);
+    Check("Several logins sit under one client, A to Z", withLogins.Logins.Select(l => l.Site).SequenceEqual(["Afrihost cPanel", "WordPress admin"])
+        && services.Clients.Logins(services.Clients.Find("Bosveld Builders")!.Id).Count == 2);
+    Check("Passwords show as dots until Show is clicked", withLogins.Logins.All(l => l.PasswordText == Webignite.Core.Clients.SiteLogins.Hidden));
+    withLogins.Logins[1].RevealCommand.Execute(null);
+    Check("Show reveals that one password only", withLogins.Logins[1].PasswordText == "Bosveld#2026!" && withLogins.Logins[0].PasswordText == Webignite.Core.Clients.SiteLogins.Hidden);
+    withLogins.AddLoginCommand.Execute(null);
+    (withLogins.LoginSite, withLogins.LoginAddress, withLogins.LoginUser) = ("Domain at domains.co.za", "javascript:alert(1)", "pieter@bosveldbuilders.co.za");
+    withLogins.SaveLoginCommand.Execute(null);
+    Check("A login address that isn't a web address is caught before saving", withLogins.HasLoginProblems && withLogins.Logins.Count == 2);
+    withLogins.LoginAddress = "domains.co.za/login";
+    Check("Fixing the address clears the problem", !withLogins.HasLoginProblems);
+    withLogins.MakeLoginPasswordCommand.Execute(null);
+    Check("Make one fills in a strong password", withLogins.LoginPassword.Length == 20);
+    Dispatcher.UIThread.RunJobs();
+    if (window.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().FirstOrDefault(t => t.Text == "Site logins") is { } loginsCard)
+        Avalonia.Controls.ControlExtensions.BringIntoView(loginsCard.GetVisualAncestors().OfType<Avalonia.Controls.Border>().First(b => b.Classes.Contains("card")));
+    Save("client-logins");
+    withLogins.CancelLoginCommand.Execute(null);
+    Check("Cancel leaves the saved logins as they were and forgets the typed password", withLogins.Logins.Count == 2 && withLogins.LoginPassword.Length == 0);
+
     // The quick note from any program: what is typed is kept however the box closes.
     var quick = new QuickNoteWindow(services) { Typed = "Call the bank about the card\nThey said to phone after 9\n[ ] Card number ready" };
     quick.Show();

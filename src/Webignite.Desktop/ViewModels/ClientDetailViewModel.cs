@@ -198,11 +198,11 @@ public partial class ClientDetailViewModel : ViewModelBase
         // Only the client page goes. Quotes, invoices and to-dos stay as they are. It asked first (AskDelete),
         // and Undo still brings it back.
         var gone = client;
-        services.Clients.Delete(gone.Id);
+        var logins = services.Clients.Delete(gone.Id);
         close();
         services.OfferUndo($"Deleted {gone.Name}", () =>
         {
-            services.Clients.Restore(gone);
+            services.Clients.Restore(gone, logins);
             services.Go.Client(gone);
         });
     }
