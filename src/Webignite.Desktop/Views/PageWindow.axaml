@@ -25,7 +25,9 @@
     </Border>
     <Panel>
       <ScrollViewer IsVisible="{Binding Scrolls}">
-        <TransitioningContentControl Content="{Binding ScrollingPage}" Margin="36,30" MaxWidth="1040" HorizontalAlignment="Stretch" />
+        <c:FitWidth>
+          <TransitioningContentControl Content="{Binding ScrollingPage}" Margin="36,30" MaxWidth="{Binding MaxContentWidth}" HorizontalAlignment="Stretch" />
+        </c:FitWidth>
       </ScrollViewer>
       <TransitioningContentControl Content="{Binding FullPage}" IsVisible="{Binding FullBleed}" />
     </Panel>

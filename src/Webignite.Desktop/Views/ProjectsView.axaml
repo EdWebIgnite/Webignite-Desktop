@@ -60,7 +60,7 @@
 
     <!-- The open project -->
     <ScrollViewer c:PanelGrid.Pane="project" c:PanelGrid.DefaultWidth="660" x:Name="ProjectScroll">
-      <Panel Margin="32,30" MaxWidth="1000" HorizontalAlignment="Stretch">
+      <Panel Margin="32,30" HorizontalAlignment="Stretch">
         <c:EmptyState IsVisible="{Binding IsClosed}" Icon="{StaticResource Icon.Projects}" Title="Pick a project"
                       Text="Its headings and tasks show here. Give tasks to yourself or your partner and set when they're due." VerticalAlignment="Top" />
         <!-- My tasks: everything given to me, by when it's due -->

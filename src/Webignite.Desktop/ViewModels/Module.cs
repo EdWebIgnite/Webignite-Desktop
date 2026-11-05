@@ -12,8 +12,9 @@ public sealed partial class Module : ObservableObject
 {
     private readonly Func<ViewModelBase> build;
 
-    public Module(Page key, string title, Func<ViewModelBase> build, string icon, bool fullBleed = false)
+    public Module(Page key, string title, Func<ViewModelBase> build, string icon, bool fullBleed = false, bool readingWidth = false)
     {
+        ReadingWidth = readingWidth;
         Key = key;
         Title = title;
         Icon = icon;
@@ -31,6 +32,12 @@ public sealed partial class Module : ObservableObject
     public string Icon { get; }
 
     public bool FullBleed { get; }
+
+    /// <summary>
+    /// Forms to read and fill in (Settings) keep a comfortable width on a big screen; everything else uses the
+    /// whole window, as lists, boards and calendars should.
+    /// </summary>
+    public bool ReadingWidth { get; }
 
     /// <summary>The module's own open copy, the one the sidebar shows.</summary>
     public PageHost Main { get; }

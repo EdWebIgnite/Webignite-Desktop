@@ -65,6 +65,9 @@ public sealed partial class PageHost(Module module, Func<ViewModelBase> build) :
     /// <summary>Most pages scroll inside a centred column; Mail fills the window with its own panes.</summary>
     public bool Scrolls => !FullBleed;
 
+    /// <summary>How wide the page may grow: as wide as the window, or a reading width for forms.</summary>
+    public double MaxContentWidth => Module.ReadingWidth ? 1040 : double.PositiveInfinity;
+
     // Each page is handed to only one of the two hosts, so its view is never built twice.
     public ViewModelBase? ScrollingPage => FullBleed ? null : Page;
     public ViewModelBase? FullPage => FullBleed ? Page : null;
