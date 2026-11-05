@@ -1138,6 +1138,18 @@ Save("client-mail");
         && File.Exists(Path.Combine(fynbosFolder, "Photos", "Drone shot.jpg")));
     files.UndoCommand.Execute(null);
     Check("Undo takes the queued copy away again", !Directory.Exists(Path.Combine(fynbosFolder, "Photos")));
+
+    // A folder moved onto another disk: /dev/shm is a disk of its own on Linux, like a second drive.
+    if (Directory.Exists("/dev/shm"))
+    {
+        var elsewhere = Path.Combine("/dev/shm", "webignite-snapshot-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(elsewhere, "Drafts"));
+        File.WriteAllText(Path.Combine(elsewhere, "Drafts", "brief.txt"), "Two pages, warm colours");
+        var landed = Path.Combine(data, "From another disk");
+        Webignite.Desktop.Files.FileOps.MoveOne(elsewhere, landed);
+        Check("A folder moves onto another disk with what's in it", !Directory.Exists(elsewhere)
+            && File.ReadAllText(Path.Combine(landed, "Drafts", "brief.txt")) == "Two pages, warm colours");
+    }
     var big = Path.Combine(site, "Walkthrough.mp4");
     File.WriteAllBytes(big, new byte[120_000_000]);
     files.Bring([big], move: false, into: fynbosFolder);
