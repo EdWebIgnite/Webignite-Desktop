@@ -104,6 +104,12 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable, IDisposable
     public string Clock => services.Timer.Clock;
 
     /// <summary>The timer that's running, if any. It survives closing the app.</summary>
+    /// <summary>Whether the boxes to type time in by hand are showing; a link until they're wanted.</summary>
+    [ObservableProperty] public partial bool AddingByHand { get; set; }
+
+    [RelayCommand]
+    private void ToggleByHand() => AddingByHand = !AddingByHand;
+
     public RunningTimer? Running => services.Timer.Running;
 
     public bool IsRunning => services.Timer.IsRunning;
