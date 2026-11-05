@@ -531,3 +531,26 @@ public sealed class ProjectRepeatServiceTests : IDisposable
         Assert.Equal("me", task.Created.By);
     }
 }
+
+/// <summary>How a task's due date reads in a list.</summary>
+public sealed class DueLabelTests
+{
+    private static readonly DateOnly Today = new(2026, 11, 5);
+
+    [Fact]
+    public void Nearby_days_read_as_words()
+    {
+        Assert.Equal("Today", ProjectRules.DueLabel(Today, Today));
+        Assert.Equal("Tomorrow", ProjectRules.DueLabel(Today.AddDays(1), Today));
+        Assert.Equal("Yesterday", ProjectRules.DueLabel(Today.AddDays(-1), Today));
+    }
+
+    [Fact]
+    public void The_coming_week_reads_as_the_day_and_later_as_the_date()
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        Assert.Equal(Today.AddDays(3).ToString("dddd", culture), ProjectRules.DueLabel(Today.AddDays(3), Today));
+        Assert.Equal(Today.AddDays(9).ToString("d MMM", culture), ProjectRules.DueLabel(Today.AddDays(9), Today));
+        Assert.Equal(new DateOnly(2027, 2, 1).ToString("d MMM yyyy", culture), ProjectRules.DueLabel(new DateOnly(2027, 2, 1), Today));
+    }
+}

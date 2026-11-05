@@ -478,6 +478,23 @@ public static class ProjectRules
         return (project, headings, tasks);
     }
 
+    /// <summary>
+    /// When a task is due, as a list shows it: Today, Tomorrow, Yesterday, the day's name within the coming week,
+    /// otherwise the date ("12 Nov"), with the year when it isn't this year. Dates follow the PC's region.
+    /// </summary>
+    public static string DueLabel(DateOnly due, DateOnly today)
+    {
+        var days = due.DayNumber - today.DayNumber;
+        return days switch
+        {
+            0 => "Today",
+            1 => "Tomorrow",
+            -1 => "Yesterday",
+            > 1 and < 7 => due.ToString("dddd", System.Globalization.CultureInfo.CurrentCulture),
+            _ => due.ToString(due.Year == today.Year ? "d MMM" : "d MMM yyyy", System.Globalization.CultureInfo.CurrentCulture),
+        };
+    }
+
     public static string Label(TaskPriority priority) => priority switch
     {
         TaskPriority.High => "High",

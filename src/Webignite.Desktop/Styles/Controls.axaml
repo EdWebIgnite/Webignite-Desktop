@@ -135,6 +135,26 @@
   <Style Selector="TextBlock.problem">
     <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
+  <!-- A value in a list row that reads as words and changes with a click: who a task is for, when it's due. -->
+  <Style Selector="Button.cell">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.cell:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Button.cell.empty">
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+  </Style>
+  <Style Selector="Button.cell.late">
+    <Setter Property="Foreground" Value="{DynamicResource Attention}" />
+  </Style>
   <Style Selector="Border.ready">
     <Setter Property="Background" Value="{DynamicResource OkSoft}" />
     <Setter Property="BorderBrush" Value="{DynamicResource OkLine}" />

@@ -109,7 +109,7 @@
               </DataTemplate>
               <DataTemplate DataType="vm:TaskRow">
                 <Border Background="Transparent" Padding="0,1" Opacity="{Binding Fade}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
-                  <Grid ColumnDefinitions="30,*,140,32">
+                  <Grid ColumnDefinitions="30,*,Auto,32">
                     <CheckBox IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Done" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,4">
                       <TextBox Classes="inline" Text="{Binding Title}" />
@@ -119,7 +119,8 @@
                         <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" />
                       </StackPanel>
                     </StackPanel>
-                    <CalendarDatePicker Grid.Column="2" SelectedDate="{Binding Due}" Watermark="Due" MinHeight="30" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                    <Button Grid.Column="2" Classes="cell" Classes.empty="{Binding !HasDue}" Classes.late="{Binding IsLate}" Content="{Binding DueText}"
+                            Click="DueClicked" MinWidth="90" VerticalAlignment="Center" ToolTip.Tip="When it's due" />
                     <Button Grid.Column="3" Classes="quiet" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0" VerticalAlignment="Center"
                             Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}" ToolTip.Tip="Open the task">
                       <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" />
@@ -166,13 +167,24 @@
           <TextBlock Classes="problem" Text="{Binding Message}" TextWrapping="Wrap"
                      IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
-          <WrapPanel ItemSpacing="8" LineSpacing="6">
-            <ComboBox x:Name="PriorityFilterBox" ItemsSource="{x:Static vm:ProjectsViewModel.PriorityFilters}" SelectedItem="{Binding FilterPriority, Mode=OneWay}"
-                      SelectionChanged="PriorityFilterPicked" MinWidth="140" ToolTip.Tip="Show tasks of one priority" />
-            <ComboBox x:Name="TagFilterBox" ItemsSource="{Binding TagFilters}" SelectedItem="{Binding FilterTag, Mode=OneWay}"
-                      SelectionChanged="TagFilterPicked" MinWidth="140" ToolTip.Tip="Show tasks with one tag" />
+          <!-- Filters out of the way: one button that says what's filtered -->
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="quiet" Classes.chosen="{Binding HasFilter}" Content="{Binding FilterText}" ToolTip.Tip="Show tasks of one priority or with one tag">
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft">
+                  <StackPanel Spacing="8" Width="220">
+                    <TextBlock Classes="label" Text="Priority" />
+                    <ComboBox x:Name="PriorityFilterBox" ItemsSource="{x:Static vm:ProjectsViewModel.PriorityFilters}" SelectedItem="{Binding FilterPriority, Mode=OneWay}"
+                              SelectionChanged="PriorityFilterPicked" HorizontalAlignment="Stretch" />
+                    <TextBlock Classes="label" Text="Tag" />
+                    <ComboBox x:Name="TagFilterBox" ItemsSource="{Binding TagFilters}" SelectedItem="{Binding FilterTag, Mode=OneWay}"
+                              SelectionChanged="TagFilterPicked" HorizontalAlignment="Stretch" />
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
             <Button Classes="link" Content="Show all" Command="{Binding ClearFilterCommand}" IsVisible="{Binding HasFilter}" VerticalAlignment="Center" />
-          </WrapPanel>
+          </StackPanel>
 
           <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}" IsVisible="{Binding IsList}">
             <ItemsControl.DataTemplates>
@@ -192,7 +204,7 @@
               <DataTemplate DataType="vm:TaskRow">
                 <Border Classes.droptop="{Binding DropAbove}" Classes.dropbottom="{Binding DropBelow}" Background="Transparent" Padding="0,1"
                         Opacity="{Binding Fade}" ContextRequested="TaskMenu">
-                  <Grid ColumnDefinitions="22,30,*,Auto,150,140,32,32">
+                  <Grid ColumnDefinitions="22,30,*,Auto,Auto,Auto,32">
                     <Border Classes="grip" Background="Transparent" Cursor="SizeAll" PointerPressed="GripPressed" ToolTip.Tip="Drag to move">
                       <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
@@ -203,14 +215,12 @@
                     </StackPanel>
                     <TextBlock Grid.Column="3" Classes="muted" FontSize="12" Text="{Binding Subtasks}" IsVisible="{Binding HasSubtasks}"
                                VerticalAlignment="Center" Margin="8,0" ToolTip.Tip="Subtasks done" />
-                    <ComboBox Grid.Column="4" ItemsSource="{Binding People}" SelectedItem="{Binding AssignedTo}" Margin="4,0" MinHeight="30"
-                              HorizontalAlignment="Stretch" ToolTip.Tip="Who it's for" />
-                    <CalendarDatePicker Grid.Column="5" SelectedDate="{Binding Due}" Watermark="Due" MinHeight="30" HorizontalAlignment="Stretch"
-                                        ToolTip.Tip="When it's due" />
-                    <Button Grid.Column="6" Classes="quiet" Padding="6" Margin="4,0,0,0" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete the task">
-                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
-                    </Button>
-                    <Button Grid.Column="7" Classes="quiet" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0"
+                    <!-- Who and when read as words; a click changes them. Delete is on the right-click menu. -->
+                    <Button Grid.Column="4" Classes="cell" Classes.empty="{Binding !HasWho}" Content="{Binding WhoText}" Click="WhoClicked"
+                            MinWidth="90" ToolTip.Tip="Who it's for" />
+                    <Button Grid.Column="5" Classes="cell" Classes.empty="{Binding !HasDue}" Classes.late="{Binding IsLate}" Content="{Binding DueText}"
+                            Click="DueClicked" MinWidth="90" ToolTip.Tip="When it's due" />
+                    <Button Grid.Column="6" Classes="quiet" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0"
                             Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}"
                             ToolTip.Tip="Open the task: notes, subtasks and what it's about">
                       <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" />
