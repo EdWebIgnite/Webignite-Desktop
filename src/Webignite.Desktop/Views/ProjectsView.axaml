@@ -63,6 +63,34 @@
       <Panel Margin="32,30" HorizontalAlignment="Stretch">
         <c:EmptyState IsVisible="{Binding IsClosed}" Icon="{StaticResource Icon.Projects}" Title="Pick a project"
                       Text="Its headings and tasks show here. Give tasks to yourself or your partner and set when they're due." VerticalAlignment="Top" />
+        <!-- Templates: start a project from one, or remove it -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsTemplates}">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="h1" Text="Templates" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Start a project from one: it gets the template's headings and tasks, with dates counted from today. Type a name under Projects first to use it." />
+          </StackPanel>
+          <c:EmptyState IsVisible="{Binding TemplatesEmpty}" Icon="{StaticResource Icon.Projects}" Title="No templates yet"
+                        Text="Open a project and click Save as template. It shows here, ready to start the next one from." />
+          <ItemsControl ItemsSource="{Binding TemplateRows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:TemplateRow">
+                <Border Classes="card" Padding="16,12" Margin="0,0,0,8">
+                  <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <Button Classes="link" Content="Remove" Command="{Binding RemoveCommand}" VerticalAlignment="Center" />
+                      <Button Classes="primary" Content="Start a project" Command="{Binding StartCommand}" />
+                    </StackPanel>
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" />
+                    </StackPanel>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
         <!-- My tasks: everything given to me, by when it's due -->
         <StackPanel Spacing="12" IsVisible="{Binding IsMyTasks}">
           <StackPanel Spacing="2">

@@ -2289,6 +2289,29 @@ Save("site-check");
         Check("A ticked repeating task isn't copied into a template, only its next one",
             projectsPage.Rows.OfType<TaskRow>().Count(r => r.Title == repeating.Title) == 1);
         Save("projects-template");
+
+        // The sidebar's Projects group: My tasks, each running project by name, All projects and Templates.
+        var links = vm.Sidebar.Items.OfType<ProjectLink>().ToList();
+        Check("The sidebar lists My tasks, each running project and Templates under Projects",
+            links.Select(l => l.Title).SequenceEqual(["My tasks", "Bosveld Builders new website", "Webignite SEO month", "Karoo Coffee website", "Templates"])
+            || (links.First().Kind == ProjectLinkKind.MyTasks && links.Last().Kind == ProjectLinkKind.Templates
+                && links.Any(l => l.Title == "Karoo Coffee website") && links.Any(l => l.Title == "Bosveld Builders new website")));
+        Check("The project open on the page is the one marked in the sidebar", vm.SelectedNav is ProjectLink { Title: "Karoo Coffee website" });
+        Save("projects-sidebar");
+        vm.SelectedNav = links.First(l => l.Title == "Bosveld Builders new website");
+        Dispatcher.UIThread.RunJobs();
+        Check("A project in the sidebar opens it", projectsPage.EditName == "Bosveld Builders new website" && vm.SelectedNav is ProjectLink { Title: "Bosveld Builders new website" });
+        vm.SelectedNav = links.First(l => l.Kind == ProjectLinkKind.MyTasks);
+        Dispatcher.UIThread.RunJobs();
+        Check("My tasks in the sidebar shows my tasks", projectsPage.IsMyTasks && vm.SelectedNav is ProjectLink { Kind: ProjectLinkKind.MyTasks });
+        vm.SelectedNav = links.First(l => l.Kind == ProjectLinkKind.Templates);
+        Dispatcher.UIThread.RunJobs();
+        Check("Templates in the sidebar lists the templates to start from", projectsPage.IsTemplates && projectsPage.TemplateRows.Count == projectsPage.Templates.Count
+            && vm.SelectedNav is ProjectLink { Kind: ProjectLinkKind.Templates });
+        Save("projects-templates");
+        vm.SelectedNav = vm[Page.Projects];
+        Open(Page.Overview);
+        Check("Another page takes the mark off the project entries", vm.SelectedNav is Module { Key: Page.Overview });
     }
 
     // The quick note from any program: what is typed is kept however the box closes.

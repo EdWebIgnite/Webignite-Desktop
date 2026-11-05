@@ -160,9 +160,10 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
             new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
+            new NavGroup("projects", "PROJECTS"),
+            new Module(Page.Projects, "All projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true),
             new NavGroup("planning", "PLANNING"),
             new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo"),
-            new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true),
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true),
             new Module(Page.Planner, "Planner", () => new PlannerViewModel(services), "Planner"),
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time"),
@@ -196,6 +197,8 @@ public partial class MainViewModel : ViewModelBase
         Current = Modules[0].Main;
         Selected = Modules[0];
         mailModule = this[Page.Mail];
+        ListProjects();
+        services.Projects.Changed += _ => ListProjects();
         Jobs = new BackgroundJobs(services)
         {
             CheckMail = CheckMailAsync,
@@ -478,13 +481,24 @@ public partial class MainViewModel : ViewModelBase
     public SidebarViewModel Sidebar { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectedNav))]
+    [NotifyPropertyChangedFor(nameof(SelectedNav), nameof(SelectedIcon))]
     public partial Module Selected { get; set; }
+
+    /// <summary>The icon strip's selection: always the page, as the strip has no entries for single projects.</summary>
+    public object? SelectedIcon
+    {
+        get => Selected;
+        set
+        {
+            SelectedNav = value;
+            OnPropertyChanged();
+        }
+    }
 
     /// <summary>The sidebar's selection. Headings can't be picked, so anything that isn't a page is ignored.</summary>
     public object? SelectedNav
     {
-        get => Selected;
+        get => (object?)ShownProjectLink() ?? Selected;
         set
         {
             if (value is Module module)
@@ -492,6 +506,8 @@ public partial class MainViewModel : ViewModelBase
                 Selected = module;
                 return;
             }
+            if (value is ProjectLink link)
+                OpenProjectLink(link);
             // A tool opens in a window of its own; the page on screen stays picked.
             if (value is ToolLink tool)
                 services.Go.Tool(tool.Kind);
@@ -551,6 +567,7 @@ public partial class MainViewModel : ViewModelBase
     {
         KeepInTabs(value);
         WatchPanes(value);
+        WatchProjects(value);
         leaving = null;
         value.LastSeen = DateTimeOffset.Now;
         if (Selected != value.Module)

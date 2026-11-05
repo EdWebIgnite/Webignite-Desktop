@@ -37,7 +37,16 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     public PanelsViewModel Panels { get; }
 
-    public string? TabTitle => IsMyTasks ? "My tasks" : open is null ? null : EditName.Trim().Length > 0 ? EditName.Trim() : "Project";
+    public string? TabTitle => IsMyTasks ? "My tasks" : IsTemplates ? "Templates" : open is null ? null : EditName.Trim().Length > 0 ? EditName.Trim() : "Project";
+
+    public const string ShowingMine = "#mine";
+    public const string ShowingTemplates = "#templates";
+
+    /// <summary>
+    /// What is on the right now: My tasks, the templates, a project's id, or null for nothing. The sidebar's
+    /// Projects group marks the matching entry.
+    /// </summary>
+    public string? Showing => IsMyTasks ? ShowingMine : IsTemplates ? ShowingTemplates : open?.Id;
 
     public bool HoldsWork => open is not null || Detail is not null || typed.Count > 0;
 
@@ -69,6 +78,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         }
         else if (IsMyTasks)
             ShowMyTasks();
+        else if (IsTemplates)
+            ListTemplates();
         if (Detail is { } detail)
         {
             if (services.Projects.GetTask(detail.Task.Id) is null)
@@ -119,6 +130,41 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     public IReadOnlyList<ProjectTemplate> Templates => services.Settings.ProjectTemplates;
 
+    /// <summary>The templates as shown in the Templates view, each with a way to start a project or remove it.</summary>
+    public ObservableCollection<TemplateRow> TemplateRows { get; } = [];
+
+    public bool TemplatesEmpty => IsTemplates && TemplateRows.Count == 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle), nameof(Showing), nameof(TemplatesEmpty))]
+    public partial bool IsTemplates { get; private set; }
+
+    /// <summary>Shows the templates on the right, to start a project from one or tidy them up.</summary>
+    public void ShowTemplates()
+    {
+        SaveTyped();
+        CloseProject();
+        IsMyTasks = false;
+        IsTemplates = true;
+        ListTemplates();
+        if (!Panels["project"].IsShown)
+            Panels["project"].IsShown = true;
+    }
+
+    private void TemplatesChanged()
+    {
+        OnPropertyChanged(nameof(Templates));
+        ListTemplates();
+    }
+
+    private void ListTemplates()
+    {
+        TemplateRows.Clear();
+        foreach (var template in Templates.OrderBy(t => t.Name, StringComparer.CurrentCultureIgnoreCase))
+            TemplateRows.Add(new TemplateRow(template, this));
+        OnPropertyChanged(nameof(TemplatesEmpty));
+    }
+
     /// <summary>Keeps the open project as a template, under its name; one of the same name is replaced.</summary>
     [RelayCommand]
     private void SaveAsTemplate()
@@ -129,9 +175,9 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         var template = services.Projects.TemplateOf(open.Id, open.Name);
         var replacing = Templates.Any(t => string.Equals(t.Name, template.Name, StringComparison.OrdinalIgnoreCase));
         services.Settings.ProjectTemplates = [.. Templates.Where(t => !string.Equals(t.Name, template.Name, StringComparison.OrdinalIgnoreCase)), template];
-        OnPropertyChanged(nameof(Templates));
+        TemplatesChanged();
         services.ShowNote?.Invoke(replacing ? "Template updated" : "Saved as a template",
-            $"{template.Name}: {template.Headings.Count} headings, {template.Tasks.Count} tasks. Start a project from it with the arrow next to +.", null);
+            $"{template.Name}: {template.Headings.Count} headings, {template.Tasks.Count} tasks. Start a project from it under Templates in the sidebar.", null);
     }
 
     /// <summary>A new project from a template, named as typed (or after the template), starting today.</summary>
@@ -149,11 +195,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     {
         var before = Templates;
         services.Settings.ProjectTemplates = [.. before.Where(t => t.Id != template.Id)];
-        OnPropertyChanged(nameof(Templates));
+        TemplatesChanged();
         services.OfferUndo($"Removed the template {template.Name}", () =>
         {
             services.Settings.ProjectTemplates = before;
-            OnPropertyChanged(nameof(Templates));
+            TemplatesChanged();
         });
     }
 
@@ -176,15 +222,15 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     // The open project
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle), nameof(HoldsWork))]
+    [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle), nameof(HoldsWork), nameof(Showing))]
     public partial bool IsOpen { get; private set; }
 
-    public bool IsClosed => !IsOpen && !IsMyTasks;
+    public bool IsClosed => !IsOpen && !IsMyTasks && !IsTemplates;
 
     // My tasks: everything given to me across projects, by when it's due.
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle))]
+    [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle), nameof(Showing))]
     public partial bool IsMyTasks { get; private set; }
 
     public ObservableCollection<object> MyRows { get; } = [];
@@ -195,10 +241,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     public bool MyTasksEmpty => IsMyTasks && MyRows.Count == 0;
 
     [RelayCommand]
-    private void ShowMine()
+    public void ShowMine()
     {
         SaveTyped();
         CloseProject();
+        IsTemplates = false;
         IsMyTasks = true;
         ShowMyTasks();
         if (!Panels["project"].IsShown)
@@ -346,6 +393,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         }
         open = project;
         IsMyTasks = false;
+        IsTemplates = false;
         MyRows.Clear();
         loading = true;
         EditName = project.Name;
@@ -361,6 +409,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         ShowTasks();
         if (!Panels["project"].IsShown)
             Panels["project"].IsShown = true;
+        OnPropertyChanged(nameof(Showing));
     }
 
     private void ShowTasks()
@@ -422,6 +471,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         open = null;
         IsOpen = false;
         Rows.Clear();
+        OnPropertyChanged(nameof(Showing));
         foreach (var row in SharedProjects.Concat(PersonalProjects))
             row.IsOpen = false;
     }
@@ -833,6 +883,23 @@ public sealed partial class TaskRow : ObservableObject
 
     [RelayCommand]
     private void Delete() => page.DeleteTask(this);
+}
+
+/// <summary>A template in the Templates view: what it holds, start a project from it, or remove it.</summary>
+public sealed partial class TemplateRow(ProjectTemplate template, ProjectsViewModel page)
+{
+    public ProjectTemplate Template { get; } = template;
+    public string Name => Template.Name;
+
+    public string About => $"{Count(Template.Headings.Count, "heading")}, {Count(Template.Tasks.Count, "task")}";
+
+    private static string Count(int n, string word) => n == 1 ? $"1 {word}" : $"{n} {word}s";
+
+    [RelayCommand]
+    private void Start() => page.NewFromTemplate(Template);
+
+    [RelayCommand]
+    private void Remove() => page.RemoveTemplate(Template);
 }
 
 /// <summary>A group in My tasks: Overdue, Today, This week, Later or No due date.</summary>
