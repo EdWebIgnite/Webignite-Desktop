@@ -30,6 +30,29 @@ public sealed partial class ToolsViewModel
 
     public ObservableCollection<ShadeRow> Shades { get; } = [];
 
+    /// <summary>Colours picked or copied lately, newest first, to pick up again with a click.</summary>
+    public ObservableCollection<ShadeRow> RecentColours { get; } = [];
+
+    public bool HasRecentColours => RecentColours.Count > 0;
+
+    /// <summary>Starts following the recent colours; the view calls it when shown and <see cref="StopColours"/> when closed.</summary>
+    public void WatchColours()
+    {
+        services.ColoursChanged += LoadRecentColours;
+        LoadRecentColours();
+    }
+
+    public void StopColours() => services.ColoursChanged -= LoadRecentColours;
+
+    private void LoadRecentColours()
+    {
+        RecentColours.Clear();
+        foreach (var hex in services.Settings.RecentColours)
+            if (Colours.Parse(hex) is { } colour)
+                RecentColours.Add(new ShadeRow(colour));
+        OnPropertyChanged(nameof(HasRecentColours));
+    }
+
     private static string Ratio(string text, double ratio) =>
         string.Create(CultureInfo.InvariantCulture, $"{text} text on it: {ratio:0.0} to 1, {Colours.Readability(ratio).ToLowerInvariant()}");
 
@@ -68,6 +91,8 @@ public sealed partial class ToolsViewModel
             return;
         await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, text);
         ColourMessage = $"Copied {text}.";
+        if (Colour is { } copied)
+            services.RememberColour(copied.Hex);
     }
 }
 

@@ -157,6 +157,9 @@ public sealed class AppServices : IDisposable
     /// <summary>Set by the main window: takes the recording shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyRecordShortcut { get; set; }
 
+    /// <summary>Set by the main window: takes the clipboard history shortcut from Settings again. Returns why not, when it can't.</summary>
+    public Func<string?>? ApplyClipboardShortcut { get; set; }
+
     /// <summary>Set by the main window: takes the colour picker shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyColourShortcut { get; set; }
 

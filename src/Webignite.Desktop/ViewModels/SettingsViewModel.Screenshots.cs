@@ -17,6 +17,7 @@ public partial class SettingsViewModel
 
     [ObservableProperty] public partial string RecordShortcut { get; private set; } = "";
     [ObservableProperty] public partial string ColourShortcut { get; private set; } = "";
+    [ObservableProperty] public partial string ClipboardShortcut { get; private set; } = "";
 
     /// <summary>Record the microphone with the screen.</summary>
     public bool RecordMicrophone
@@ -34,6 +35,7 @@ public partial class SettingsViewModel
         ScreenshotShortcut = services.Settings.Screenshots.Shortcut is { Length: > 0 } keys ? keys : "Off";
         RecordShortcut = services.Settings.Screenshots.RecordShortcut is { Length: > 0 } record ? record : "Off";
         ColourShortcut = services.Settings.Screenshots.ColourShortcut is { Length: > 0 } colour ? colour : "Off";
+        ClipboardShortcut = services.Settings.Screenshots.ClipboardShortcut is { Length: > 0 } clips ? clips : "Off";
     }
 
     /// <summary>Why these keys can't be used for this shortcut, when another one has them.</summary>
@@ -60,6 +62,35 @@ public partial class SettingsViewModel
         ColourShortcut = hotkey.ToString();
         var taken = services.ApplyColourShortcut?.Invoke();
         Shortcut(taken ?? $"Press {hotkey} in any program, then click a colour to copy its code.", taken is not null);
+    }
+
+    /// <summary>The keys pressed in the clipboard history shortcut box.</summary>
+    public void SetClipboardShortcut(string keys)
+    {
+        var (hotkey, problem) = Hotkey.Parse(keys);
+        if (hotkey is null)
+        {
+            Shortcut(problem!, true);
+            return;
+        }
+        if (Clash(hotkey, GlobalShortcut.ClipboardHistory) is { } clash)
+        {
+            Shortcut(clash, true);
+            return;
+        }
+        services.Settings.Screenshots = services.Settings.Screenshots with { ClipboardShortcut = hotkey.ToString() };
+        ClipboardShortcut = hotkey.ToString();
+        var taken = services.ApplyClipboardShortcut?.Invoke();
+        Shortcut(taken ?? $"Press {hotkey} in any program to see what you copied.", taken is not null);
+    }
+
+    [RelayCommand]
+    private void ClipboardShortcutOff()
+    {
+        services.Settings.Screenshots = services.Settings.Screenshots with { ClipboardShortcut = "" };
+        ClipboardShortcut = "Off";
+        services.ApplyClipboardShortcut?.Invoke();
+        Shortcut("The clipboard history shortcut is off. Open it from the sidebar under Computer.", false);
     }
 
     [RelayCommand]

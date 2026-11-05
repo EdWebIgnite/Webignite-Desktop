@@ -124,4 +124,23 @@ public sealed class QuickSearchTests
     [InlineData("Invoices", false)]
     public void Code_and_cache_folders_are_skipped_when_reading_file_names(string folder, bool skipped) =>
         Assert.Equal(skipped, Webignite.Core.Files.FileSearch.SkipWhenIndexing(folder));
+
+    [Fact]
+    public void Files_are_found_by_their_tags_and_the_words_inside_them()
+    {
+        var sources = Sources with
+        {
+            Files = ["/p/Bosveld/site-plan.pdf"],
+            FileWords = new Dictionary<string, string>
+            {
+                ["/p/Bosveld/site-plan.pdf"] = "Needs client OK",
+                ["/p/Bosveld/brief.txt"] = "…the retaining wall along the back…",
+            },
+        };
+        var tagged = Assert.Single(QuickSearch.Find("needs client", sources));
+        Assert.Equal(("site-plan.pdf", HitKind.File), (tagged.Title, tagged.Kind));
+        var inside = Assert.Single(QuickSearch.Find("retaining wall", sources));
+        Assert.Equal("brief.txt", inside.Title);
+        Assert.Contains("retaining wall", inside.Detail, StringComparison.Ordinal);
+    }
 }

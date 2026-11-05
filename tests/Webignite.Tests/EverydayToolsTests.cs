@@ -10,23 +10,50 @@ public sealed class EverydayToolsTests
     [Fact]
     public void Clipboard_history_keeps_the_newest_first_once_each_and_at_most_25()
     {
-        IReadOnlyList<string> items = [];
+        IReadOnlyList<Clip> items = [];
         for (var i = 1; i <= 30; i++)
-            items = ClipboardHistory.Add(items, "copy " + i);
+            items = ClipboardHistory.Add(items, new Clip("copy " + i));
         Assert.Equal(ClipboardHistory.Most, items.Count);
-        Assert.Equal("copy 30", items[0]);
-        items = ClipboardHistory.Add(items, "copy 20");
-        Assert.Equal("copy 20", items[0]);
-        Assert.Single(items, i => i == "copy 20");
+        Assert.Equal("copy 30", items[0].Text);
+        items = ClipboardHistory.Add(items, new Clip("copy 20"));
+        Assert.Equal("copy 20", items[0].Text);
+        Assert.Single(items, i => i.Text == "copy 20");
     }
 
     [Fact]
     public void Blank_and_huge_copies_are_not_kept()
     {
-        IReadOnlyList<string> items = ["kept"];
-        Assert.Same(items, ClipboardHistory.Add(items, "   \n"));
-        Assert.Same(items, ClipboardHistory.Add(items, null));
-        Assert.Same(items, ClipboardHistory.Add(items, new string('x', ClipboardHistory.LongestKept + 1)));
+        IReadOnlyList<Clip> items = [new Clip("kept")];
+        Assert.Same(items, ClipboardHistory.Add(items, new Clip("   \n")));
+        Assert.Same(items, ClipboardHistory.Add(items, new Clip(null)));
+        Assert.Same(items, ClipboardHistory.Add(items, new Clip(new string('x', ClipboardHistory.LongestKept + 1))));
+        Assert.Same(items, ClipboardHistory.Add(items, new Clip(null, new byte[ClipboardHistory.LargestPicture + 1], 10, 10)));
+    }
+
+    [Fact]
+    public void Pictures_are_kept_once_each_and_only_the_newest_few()
+    {
+        IReadOnlyList<Clip> items = [];
+        for (var i = 0; i < 12; i++)
+            items = ClipboardHistory.Add(items, new Clip(null, [(byte)i, 1, 2], 1920, 1080));
+        items = ClipboardHistory.Add(items, new Clip("text"));
+        Assert.Equal(ClipboardHistory.MostPictures, items.Count(c => c.IsPicture));
+        items = ClipboardHistory.Add(items, new Clip(null, [11, 1, 2], 1920, 1080));
+        Assert.Single(items, c => c.Key == new Clip(null, [11, 1, 2]).Key);
+        Assert.True(items[0].IsPicture);
+        Assert.Equal("Picture, 1920 × 1080", ClipboardHistory.Size(items[0]));
+    }
+
+    [Fact]
+    public void The_history_is_searched_by_its_words_and_picture_finds_the_pictures()
+    {
+        var text = new Clip("thandi@karoocoffee.co.za");
+        var picture = new Clip(null, [1, 2, 3], 800, 600);
+        Assert.True(ClipboardHistory.Matches(text, "karoo"));
+        Assert.False(ClipboardHistory.Matches(text, "bosveld"));
+        Assert.True(ClipboardHistory.Matches(picture, "picture"));
+        Assert.False(ClipboardHistory.Matches(picture, "karoo"));
+        Assert.True(ClipboardHistory.Matches(picture, ""));
     }
 
     [Fact]
@@ -34,7 +61,7 @@ public sealed class EverydayToolsTests
     {
         Assert.Equal("Hi Pieter, the site is live", ClipboardHistory.Preview("Hi Pieter,\n\n  the site   is live"));
         Assert.EndsWith("…", ClipboardHistory.Preview(new string('a', 200)), StringComparison.Ordinal);
-        Assert.StartsWith("2 lines", ClipboardHistory.Size("one\ntwo"), StringComparison.Ordinal);
+        Assert.StartsWith("2 lines", ClipboardHistory.Size(new Clip("one\ntwo")), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -108,5 +135,14 @@ public sealed class EverydayToolsTests
         Assert.Equal(GlobalShortcut.ColourPicker, GlobalShortcuts.TakenBy(colour!, shots, "Ctrl+Alt+N", GlobalShortcut.QuickNote));
         Assert.Equal("That's the colour picker shortcut already. Pick other keys for the quick note.",
             GlobalShortcuts.Clash(GlobalShortcut.ColourPicker, GlobalShortcut.QuickNote));
+    }
+
+    [Fact]
+    public void The_clipboard_history_shortcut_is_checked_against_the_others()
+    {
+        var shots = new ScreenshotSettings();
+        var (keys, _) = Hotkey.Parse("Ctrl+Alt+V");
+        Assert.Equal(GlobalShortcut.ClipboardHistory, GlobalShortcuts.TakenBy(keys!, shots, "Ctrl+Alt+N", GlobalShortcut.Screenshot));
+        Assert.Null(GlobalShortcuts.TakenBy(keys!, shots, "Ctrl+Alt+N", GlobalShortcut.ClipboardHistory));
     }
 }

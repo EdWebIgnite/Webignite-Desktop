@@ -59,6 +59,9 @@ public sealed record SearchSources
 
     /// <summary>Paths of files and folders to match by name: recent files and what's in the client folders.</summary>
     public IReadOnlyList<string> Files { get; init; } = [];
+
+    /// <summary>More to find a file by: its tags, and the words around a match found inside it.</summary>
+    public IReadOnlyDictionary<string, string> FileWords { get; init; } = new Dictionary<string, string>();
 }
 
 /// <summary>
@@ -111,7 +114,8 @@ public static class QuickSearch
             { Login = x.Login, LoginClient = x.Client }),
             h => h.Login!.Notes ?? "");
 
-        Add(hits, words, sources.Files.Distinct(StringComparer.OrdinalIgnoreCase).Select(p => new SearchHit(HitKind.File, FileName(p), Folder(p), 0) { FilePath = p }),
+        Add(hits, words, sources.Files.Concat(sources.FileWords.Keys).Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(p => new SearchHit(HitKind.File, FileName(p), Join(Folder(p), sources.FileWords.GetValueOrDefault(p)), 0) { FilePath = p }),
             _ => "");
 
         Add(hits, words, sources.Renewals.Select(r => new SearchHit(HitKind.Renewal, r.Name,

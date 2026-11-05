@@ -32,6 +32,22 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          <StackPanel Spacing="6" IsVisible="{Binding HasRecentColours}">
+            <TextBlock Classes="label" Text="Recent colours" />
+            <ItemsControl ItemsSource="{Binding RecentColours}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel ItemSpacing="4" LineSpacing="4" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShadeRow">
+                  <Button Classes="shade" Padding="0" ToolTip.Tip="{Binding Hex}"
+                          Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
+                    <Border Width="28" Height="28" CornerRadius="4" Background="{Binding Brush}" />
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
           <TextBlock Classes="muted" FontSize="12" Text="{Binding ColourMessage}" TextWrapping="Wrap"
                      IsVisible="{Binding ColourMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
