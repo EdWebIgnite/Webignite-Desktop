@@ -207,6 +207,16 @@ public sealed class AppSettings(LocalStore store)
     public PanelLayout? PanelLayout(string page) =>
         store.GetSetting<Dictionary<string, PanelLayout>>("panels")?.GetValueOrDefault(page);
 
+    public SectionLayout? SectionLayout(string page) =>
+        store.GetSetting<Dictionary<string, SectionLayout>>("sections")?.GetValueOrDefault(page);
+
+    public void SetSectionLayout(string page, SectionLayout layout)
+    {
+        var all = store.GetSetting<Dictionary<string, SectionLayout>>("sections") ?? [];
+        all[page] = layout;
+        store.SetSetting("sections", all);
+    }
+
     public void SetPanelLayout(string page, PanelLayout layout)
     {
         var all = store.GetSetting<Dictionary<string, PanelLayout>>("panels") ?? [];

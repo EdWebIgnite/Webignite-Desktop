@@ -2,6 +2,54 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="using:Webignite.Desktop.Controls">
 
+  <Styles.Resources>
+    <!-- A folding row on a page such as a client's: grip, arrow, icon, name and a one-line summary; what's in it below when open. -->
+    <ControlTheme x:Key="{x:Type c:FoldSection}" TargetType="c:FoldSection">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Name="PART_Row" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+            <StackPanel>
+              <Border Height="2" Background="{DynamicResource Primary}" IsVisible="{TemplateBinding DropAbove}" />
+              <Grid ColumnDefinitions="22,*">
+                <Border Name="PART_Grip" Background="Transparent" Cursor="SizeAll" ToolTip.Tip="Drag to move it. Right-click for more.">
+                  <c:Icon Data="{StaticResource Icon.Grip}" Size="13" Foreground="{DynamicResource Line2}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Button Name="PART_Header" Grid.Column="1" Classes="foldhead" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                  <Grid ColumnDefinitions="Auto,Auto,Auto,*">
+                    <c:Icon Name="PART_Chevron" Data="{StaticResource Icon.ChevronRight}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <c:Icon Grid.Column="1" Data="{TemplateBinding Icon}" Size="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <TextBlock Grid.Column="2" Text="{TemplateBinding Title}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBlock Grid.Column="3" Name="PART_Summary" Text="{TemplateBinding Summary}" Classes="muted" FontSize="13"
+                               HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Right" TextWrapping="Wrap" MaxLines="2" />
+                  </Grid>
+                </Button>
+              </Grid>
+              <ContentPresenter Content="{TemplateBinding Content}" IsVisible="{TemplateBinding IsOpen}" Margin="26,0,18,16" />
+            </StackPanel>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^[IsOpen=True] /template/ c|Icon#PART_Chevron">
+        <Setter Property="RenderTransform" Value="rotate(90deg)" />
+      </Style>
+      <Style Selector="^[Attention=True] /template/ TextBlock#PART_Summary">
+        <Setter Property="Foreground" Value="{DynamicResource Attention}" />
+      </Style>
+    </ControlTheme>
+  </Styles.Resources>
+
+  <!-- The header of a folding row: the whole line is the button. -->
+  <Style Selector="Button.foldhead">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="4,14,20,14" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.foldhead:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource Canvas}" />
     <Setter Property="Foreground" Value="{DynamicResource Text}" />

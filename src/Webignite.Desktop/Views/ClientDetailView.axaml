@@ -40,8 +40,9 @@
         </StackPanel>
       </DockPanel>
 
-      <Grid ColumnDefinitions="*,24,*">
-        <!-- Details -->
+
+      <Grid x:Name="Columns" ColumnDefinitions="*,24,1.25*" RowDefinitions="Auto,Auto">
+        <!-- Details, its own card -->
         <StackPanel Grid.Column="0" Spacing="18">
         <Border Classes="card" VerticalAlignment="Top">
           <StackPanel Spacing="12">
@@ -114,486 +115,407 @@
             </DockPanel>
           </StackPanel>
         </Border>
+        </StackPanel>
 
-        <!-- People: who's with this client in Contacts, the contact person, and who gets quotes and invoices -->
-        <Border Classes="card" IsVisible="{Binding IsSaved}">
-          <StackPanel Spacing="10">
-            <DockPanel>
-              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
-                <Button Classes="link" Content="Add someone from Contacts" IsVisible="{Binding HasUnlinked}" Padding="4,2">
-                  <Button.Flyout>
-                    <MenuFlyout Placement="BottomEdgeAlignedRight" ItemsSource="{Binding Unlinked}">
-                      <MenuFlyout.ItemContainerTheme>
-                        <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="cc:Person">
-                          <Setter Property="Header" Value="{Binding Name}" />
-                          <Setter Property="Command" Value="{Binding #Root.((vm:ClientDetailViewModel)DataContext).LinkPersonCommand}" />
-                          <Setter Property="CommandParameter" Value="{Binding}" />
-                        </ControlTheme>
-                      </MenuFlyout.ItemContainerTheme>
-                    </MenuFlyout>
-                  </Button.Flyout>
-                </Button>
-                <Button Classes="quiet" Content="New person" Command="{Binding AddPersonCommand}" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Contacts}" />
-                <TextBlock Classes="h2" Text="People" VerticalAlignment="Center" />
-              </StackPanel>
-            </DockPanel>
-            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoPeople}"
-                       Text="The owner, the accounts person and anyone else here. One is the contact person, and one gets quotes and invoices." />
-            <ItemsControl ItemsSource="{Binding People}" IsVisible="{Binding HasPeople}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ClientPersonRow">
-                  <Border Classes="taskrow" Padding="0,6">
-                    <Border.ContextMenu>
-                      <ContextMenu>
-                        <MenuItem Header="Open in Contacts" Command="{Binding OpenCommand}" />
-                        <MenuItem Header="Write a mail" Command="{Binding WriteCommand}" IsEnabled="{Binding HasEmail}" />
-                        <Separator />
-                        <MenuItem Header="Make the contact person" Command="{Binding MakeMainCommand}" IsEnabled="{Binding NotMain}" />
-                        <MenuItem Header="Send quotes and invoices to them" Command="{Binding MakeBillingCommand}" IsEnabled="{Binding CanGetInvoices}" />
-                        <Separator />
-                        <MenuItem Header="Not with this client any more" Command="{Binding UnlinkCommand}" />
-                      </ContextMenu>
-                    </Border.ContextMenu>
-                    <StackPanel Spacing="2">
-                      <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,1" FontWeight="SemiBold"
-                              HorizontalAlignment="Left" ToolTip.Tip="Open in Contacts" />
-                      <WrapPanel ItemSpacing="6" LineSpacing="4">
-                        <Border Classes="pill" IsVisible="{Binding IsMain}">
-                          <TextBlock FontSize="11" Text="Contact person" />
-                        </Border>
-                        <Border Classes="pill" IsVisible="{Binding GetsInvoices}">
-                          <TextBlock FontSize="11" Text="Gets quotes and invoices" />
-                        </Border>
-                      </WrapPanel>
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextWrapping="Wrap" />
-                      <WrapPanel ItemSpacing="12">
-                        <Button Classes="link" Content="Make contact person" Padding="0,2" Command="{Binding MakeMainCommand}" IsVisible="{Binding NotMain}" />
-                        <Button Classes="link" Content="Send invoices here" Padding="0,2" Command="{Binding MakeBillingCommand}" IsVisible="{Binding CanGetInvoices}" />
-                      </WrapPanel>
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Border>
-
-        <!-- Site logins: where to sign in for the sites looked after for them. Encrypted, never shown to assistants. -->
-        <Border Classes="card" IsVisible="{Binding IsSaved}">
-          <StackPanel Spacing="10">
-            <DockPanel>
-              <Button DockPanel.Dock="Right" Classes="quiet" Content="Add a login" Command="{Binding AddLoginCommand}" IsVisible="{Binding !EditingLogin}" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Key}" />
-                <TextBlock Classes="h2" Text="Site logins" VerticalAlignment="Center" />
-              </StackPanel>
-            </DockPanel>
-            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoLogins}"
-                       Text="WordPress, hosting, domain and any other logins for their sites. Kept encrypted on this PC and never shown to Claude or ChatGPT." />
-
-            <ItemsControl ItemsSource="{Binding Logins}" IsVisible="{Binding HasLogins}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:SiteLoginRow">
-                  <Border Classes="taskrow" Padding="0,6">
-                    <Border.ContextMenu>
-                      <ContextMenu>
-                        <MenuItem Header="Open the site" Command="{Binding OpenSiteCommand}" IsEnabled="{Binding HasAddress}" />
-                        <Separator />
-                        <MenuItem Header="Copy username" Command="{Binding CopyUserNameCommand}" IsEnabled="{Binding HasUserName}" />
-                        <MenuItem Header="Copy password" Command="{Binding CopyPasswordCommand}" IsEnabled="{Binding HasPassword}" />
-                        <MenuItem Header="Copy login address" Command="{Binding CopyAddressCommand}" IsEnabled="{Binding HasAddress}" />
-                        <MenuItem Header="{Binding ShowText, StringFormat='{}{0} password'}" Command="{Binding RevealCommand}" IsEnabled="{Binding HasPassword}" />
-                        <Separator />
-                        <MenuItem Header="Change" Command="{Binding EditCommand}" />
-                        <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
-                      </ContextMenu>
-                    </Border.ContextMenu>
-                    <StackPanel Spacing="2">
-                      <DockPanel>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
-                          <Button Classes="link" Content="Change" Padding="6,2" Command="{Binding EditCommand}" />
-                          <Button Classes="link" Padding="6,2" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this login. Undo brings it back.">
-                            <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
-                          </Button>
-                        </StackPanel>
-                        <TextBlock Text="{Binding Site}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
-                      </DockPanel>
-                      <Button Classes="link" Content="{Binding AddressText}" Command="{Binding OpenSiteCommand}" IsVisible="{Binding HasAddress}"
-                              Padding="0,1" HorizontalAlignment="Left" ToolTip.Tip="Open it in your browser" />
-                      <DockPanel IsVisible="{Binding HasUserName}">
-                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="Username" Width="64" VerticalAlignment="Center" />
-                        <Button DockPanel.Dock="Right" Classes="link" Content="Copy" Padding="6,1" Command="{Binding CopyUserNameCommand}" />
-                        <SelectableTextBlock Text="{Binding UserName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                      </DockPanel>
-                      <DockPanel IsVisible="{Binding HasPassword}">
-                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="Password" Width="64" VerticalAlignment="Center" />
-                        <Button DockPanel.Dock="Right" Classes="link" Content="Copy" Padding="6,1" Command="{Binding CopyPasswordCommand}"
-                                ToolTip.Tip="Cleared from the clipboard after 30 seconds, and kept out of Windows clipboard history" />
-                        <Button DockPanel.Dock="Right" Classes="link" Content="{Binding ShowText}" Padding="6,1" Command="{Binding RevealCommand}" />
-                        <SelectableTextBlock Text="{Binding PasswordText}" FontFamily="Consolas, Menlo, monospace" VerticalAlignment="Center" TextWrapping="Wrap" />
-                      </DockPanel>
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Notes}" TextWrapping="Wrap" IsVisible="{Binding HasNotes}" />
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <Border Classes="pending" IsVisible="{Binding EditingLogin}">
+        <!-- Everything else about them in one card, as rows that fold open. Drag a row by its grip to move it;
+             what's open and the order are remembered for every client. -->
+        <Border x:Name="SectionsCard" Grid.Column="2" Classes="card" Padding="0" VerticalAlignment="Top">
+          <c:FoldList Sections="{Binding Sections}">
+            <c:FoldSection Key="todo" Title="To-do and coming up" Icon="{StaticResource Icon.Todo}" Summary="{Binding TodoSummary}" Attention="{Binding TodoAttention}">
               <StackPanel Spacing="10">
-                <TextBlock FontWeight="SemiBold" Text="{Binding LoginFormTitle}" />
-                <StackPanel>
-                  <TextBlock Classes="label" Text="Site name" />
-                  <TextBox Text="{Binding LoginSite}" PlaceholderText="e.g. WordPress admin" />
+                              <ItemsControl ItemsSource="{Binding Tasks}">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate x:DataType="vm:ClientTaskViewModel">
+                                    <Border Classes="taskrow">
+                                      <DockPanel>
+                                        <Button DockPanel.Dock="Right" Classes="link" Content="Done" Command="{Binding FinishCommand}" />
+                                        <TextBlock DockPanel.Dock="Right" Classes="label" Classes.overdue="{Binding IsOverdue}" Text="{Binding DueText}"
+                                                   VerticalAlignment="Center" Margin="8,0" />
+                                        <TextBlock Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                      </DockPanel>
+                                    </Border>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                              <DockPanel>
+                                <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Command="{Binding AddTaskCommand}" Margin="8,0,0,0" />
+                                <TextBox Text="{Binding NewTask}" PlaceholderText="Something to do for this client" />
+                              </DockPanel>
+                <StackPanel Spacing="4" IsVisible="{Binding HasEvents}">
+                  <TextBlock Classes="label" Text="Coming up" />
+                  <ItemsControl ItemsSource="{Binding Events}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ClientEventViewModel">
+                        <DockPanel Margin="0,4">
+                          <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding When}" />
+                          <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
                 </StackPanel>
-                <StackPanel>
-                  <TextBlock Classes="label" Text="Login address" />
-                  <TextBox Text="{Binding LoginAddress}" PlaceholderText="e.g. karoocoffee.co.za/wp-admin" />
-                </StackPanel>
-                <StackPanel>
-                  <TextBlock Classes="label" Text="Username or email" />
-                  <TextBox Text="{Binding LoginUser}" PlaceholderText="Optional" />
-                </StackPanel>
-                <StackPanel Spacing="4">
-                  <TextBlock Classes="label" Text="Password" />
-                  <TextBox Text="{Binding LoginPassword}" PasswordChar="•" RevealPassword="{Binding ShowLoginPassword}" PlaceholderText="Optional" />
-                  <StackPanel Orientation="Horizontal" Spacing="12">
-                    <CheckBox Content="Show it" IsChecked="{Binding ShowLoginPassword}" />
-                    <Button Classes="link" Content="Make a strong one" Command="{Binding MakeLoginPasswordCommand}" Padding="0,2" />
-                  </StackPanel>
-                </StackPanel>
-                <StackPanel>
-                  <TextBlock Classes="label" Text="Notes" />
-                  <TextBox Text="{Binding LoginNotes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48"
-                           PlaceholderText="e.g. 2FA code goes to Pieter's phone" />
-                </StackPanel>
-                <ItemsControl ItemsSource="{Binding LoginProblems}" IsVisible="{Binding HasLoginProblems}">
+              </StackPanel>
+            </c:FoldSection>
+            <c:FoldSection Key="documents" Title="Quotes and invoices" Icon="{StaticResource Icon.Invoices}" Summary="{Binding DocumentsSummary}" Attention="{Binding DocumentsAttention}">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="muted" Text="None yet." IsVisible="{Binding !HasDocuments}" />
+                <ItemsControl ItemsSource="{Binding Documents}">
                   <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="x:String">
-                      <TextBlock Classes="muted problem" Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+                    <DataTemplate x:DataType="vm:DocumentRow">
+                      <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                              Command="{Binding #Root.((vm:ClientDetailViewModel)DataContext).OpenDocumentCommand}" CommandParameter="{Binding}">
+                        <Grid ColumnDefinitions="*,Auto,110,Auto">
+                          <StackPanel Grid.Column="0" Margin="8,0" Spacing="2">
+                            <TextBlock Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" />
+                            <TextBlock Classes="muted" FontSize="12" Text="{Binding Date}" />
+                          </StackPanel>
+                          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" ToolTip.Tip="{Binding Owing}">
+                            <Ellipse Classes="dot" Classes.done="{Binding IsDone}" Classes.problem="{Binding IsOverdue}" Classes.waiting="{Binding IsWaiting}" />
+                            <TextBlock Classes="status" Classes.problem="{Binding IsOverdue}" Text="{Binding Status}" FontSize="13" />
+                          </StackPanel>
+                          <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Total}" Margin="8,0" VerticalAlignment="Center" />
+                          <c:Icon Grid.Column="3" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" />
+                        </Grid>
+                      </Button>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button Classes="primary" Content="Save login" Command="{Binding SaveLoginCommand}" />
-                  <Button Classes="link" Content="Cancel" Command="{Binding CancelLoginCommand}" />
+              </StackPanel>
+            </c:FoldSection>
+            <c:FoldSection Key="mail" Title="Mail" Icon="{StaticResource Icon.Mail}" Summary="{Binding MailSummary}">
+              <StackPanel Spacing="10">
+                <Button Classes="quiet" Content="Write to them" Command="{Binding WriteMailCommand}" IsVisible="{Binding CanWriteMail}"  HorizontalAlignment="Left" />
+                              <TextBlock Classes="muted" Text="{Binding MailEmptyText}" TextWrapping="Wrap" IsVisible="{Binding !HasMail}" />
+                              <ItemsControl ItemsSource="{Binding Mail}">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate x:DataType="vm:ClientMailRow">
+                                    <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                            Command="{Binding #Root.((vm:ClientDetailViewModel)DataContext).OpenMailCommand}" CommandParameter="{Binding}">
+                                      <DockPanel Margin="8,0">
+                                        <c:Icon DockPanel.Dock="Right" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" Margin="8,0,0,0" />
+                                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" Margin="8,0,0,0" />
+                                        <StackPanel Spacing="2">
+                                          <TextBlock Text="{Binding Subject}" TextTrimming="CharacterEllipsis" Classes.unread="{Binding IsUnread}">
+                                            <TextBlock.Styles>
+                                              <Style Selector="TextBlock.unread"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+                                            </TextBlock.Styles>
+                                          </TextBlock>
+                                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                      </DockPanel>
+                                    </Button>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+              </StackPanel>
+            </c:FoldSection>
+            <c:FoldSection Key="people" Title="People" Icon="{StaticResource Icon.Contacts}" Summary="{Binding PeopleSummary}" IsVisible="{Binding IsSaved}">
+              <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Button Classes="link" Content="Add someone from Contacts" IsVisible="{Binding HasUnlinked}" Padding="4,2">
+                    <Button.Flyout>
+                      <MenuFlyout Placement="BottomEdgeAlignedRight" ItemsSource="{Binding Unlinked}">
+                        <MenuFlyout.ItemContainerTheme>
+                          <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="cc:Person">
+                            <Setter Property="Header" Value="{Binding Name}" />
+                            <Setter Property="Command" Value="{Binding #Root.((vm:ClientDetailViewModel)DataContext).LinkPersonCommand}" />
+                            <Setter Property="CommandParameter" Value="{Binding}" />
+                          </ControlTheme>
+                        </MenuFlyout.ItemContainerTheme>
+                      </MenuFlyout>
+                    </Button.Flyout>
+                  </Button>
+                  <Button Classes="quiet" Content="New person" Command="{Binding AddPersonCommand}" />
                 </StackPanel>
+                            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoPeople}"
+                                       Text="The owner, the accounts person and anyone else here. One is the contact person, and one gets quotes and invoices." />
+                            <ItemsControl ItemsSource="{Binding People}" IsVisible="{Binding HasPeople}">
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ClientPersonRow">
+                                  <Border Classes="taskrow" Padding="0,6">
+                                    <Border.ContextMenu>
+                                      <ContextMenu>
+                                        <MenuItem Header="Open in Contacts" Command="{Binding OpenCommand}" />
+                                        <MenuItem Header="Write a mail" Command="{Binding WriteCommand}" IsEnabled="{Binding HasEmail}" />
+                                        <Separator />
+                                        <MenuItem Header="Make the contact person" Command="{Binding MakeMainCommand}" IsEnabled="{Binding NotMain}" />
+                                        <MenuItem Header="Send quotes and invoices to them" Command="{Binding MakeBillingCommand}" IsEnabled="{Binding CanGetInvoices}" />
+                                        <Separator />
+                                        <MenuItem Header="Not with this client any more" Command="{Binding UnlinkCommand}" />
+                                      </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <StackPanel Spacing="2">
+                                      <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,1" FontWeight="SemiBold"
+                                              HorizontalAlignment="Left" ToolTip.Tip="Open in Contacts" />
+                                      <WrapPanel ItemSpacing="6" LineSpacing="4">
+                                        <Border Classes="pill" IsVisible="{Binding IsMain}">
+                                          <TextBlock FontSize="11" Text="Contact person" />
+                                        </Border>
+                                        <Border Classes="pill" IsVisible="{Binding GetsInvoices}">
+                                          <TextBlock FontSize="11" Text="Gets quotes and invoices" />
+                                        </Border>
+                                      </WrapPanel>
+                                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextWrapping="Wrap" />
+                                      <WrapPanel ItemSpacing="12">
+                                        <Button Classes="link" Content="Make contact person" Padding="0,2" Command="{Binding MakeMainCommand}" IsVisible="{Binding NotMain}" />
+                                        <Button Classes="link" Content="Send invoices here" Padding="0,2" Command="{Binding MakeBillingCommand}" IsVisible="{Binding CanGetInvoices}" />
+                                      </WrapPanel>
+                                    </StackPanel>
+                                  </Border>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
               </StackPanel>
-            </Border>
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding LoginsMessage}" TextWrapping="Wrap"
-                       IsVisible="{Binding LoginsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-          </StackPanel>
-        </Border>
-
-        <!-- Their folder on the PC, opened in Files -->
-        <Border Classes="card" IsVisible="{Binding IsSaved}">
-          <StackPanel Spacing="10">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <c:Icon Classes="cardicon" Data="{StaticResource Icon.Folder}" />
-              <TextBlock Classes="h2" Text="Folder" VerticalAlignment="Center" />
-            </StackPanel>
-            <TextBlock Text="{Binding FolderNote}" Classes="muted" TextWrapping="Wrap"
-                       IsVisible="{Binding FolderNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            <Button Classes="link" Content="{Binding FolderPath}" Command="{Binding OpenFolderCommand}" IsVisible="{Binding HasFolder}"
-                    Padding="0,2" HorizontalAlignment="Left" ToolTip.Tip="Open it in Files" />
-            <WrapPanel>
-              <Button Classes="quiet" Content="Yes, that's it" Command="{Binding ConfirmFolderCommand}" IsVisible="{Binding FolderIsGuess}" Margin="0,0,8,8" />
-              <Button Classes="quiet" Content="Open in Files" Command="{Binding OpenFolderCommand}" IsVisible="{Binding HasFolder}" Margin="0,0,8,8" />
-              <Button Classes="quiet" Content="Make their folder" Command="{Binding MakeFolderCommand}" IsVisible="{Binding CanMakeFolder}" Margin="0,0,8,8" />
-              <Button Classes="quiet" Content="Pick another" Click="PickFolder" IsVisible="{Binding HasFolder}" Margin="0,0,8,8" />
-              <Button Classes="quiet" Content="Pick a folder" Click="PickFolder" IsVisible="{Binding NoFolder}" Margin="0,0,8,8" />
-            </WrapPanel>
-          </StackPanel>
-        </Border>
-
-        <!-- Notes about them from the Notes page -->
-        <Border Classes="card" IsVisible="{Binding IsSaved}">
-          <StackPanel Spacing="10">
-            <DockPanel>
-              <Button DockPanel.Dock="Right" Classes="quiet" Content="New note" Command="{Binding NewClientNoteCommand}" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Notes}" />
-                <TextBlock Classes="h2" Text="Notebook notes" VerticalAlignment="Center" />
-              </StackPanel>
-            </DockPanel>
-            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoNoteLinks}"
-                       Text="Notes from Notes that are about them show here. Pick them as the client on the note." />
-            <ItemsControl ItemsSource="{Binding NoteLinks}" IsVisible="{Binding HasNoteLinks}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ClientNoteLink">
-                  <DockPanel Margin="0,2">
-                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0,0,0" />
-                    <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,2" HorizontalAlignment="Left" />
-                  </DockPanel>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <Button Classes="link" Content="{Binding MoreNotesText}" Command="{Binding AllClientNotesCommand}" IsVisible="{Binding HasMoreNotes}" Padding="0,2" />
-          </StackPanel>
-        </Border>
-
-        <!-- Notes and files -->
-        <Border x:Name="FilesDrop" Classes="card" IsVisible="{Binding IsSaved}" DragDrop.AllowDrop="True">
-          <StackPanel Spacing="10">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <c:Icon Classes="cardicon" Data="{StaticResource Icon.Quotes}" />
-              <TextBlock Classes="h2" Text="Notes and files" VerticalAlignment="Center" />
-            </StackPanel>
-            <TextBox Text="{Binding NewLogText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64"
-                     PlaceholderText="What was said or decided, e.g. Call with Pieter: wants the shop in phase two" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Classes="quiet" Content="Add note" Command="{Binding AddLogEntryCommand}" />
-              <Button Classes="quiet" Content="Link a file" Click="LinkFiles" ToolTip.Tip="Contracts, briefs, logos. The file stays where it is" />
-            </StackPanel>
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding RecordsMessage}" TextWrapping="Wrap"
-                       IsVisible="{Binding RecordsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-
-            <ItemsControl ItemsSource="{Binding FileRows}" IsVisible="{Binding HasFiles}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ClientFileRow">
-                  <DockPanel Margin="0,3">
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
-                      <Button Classes="link" Content="Folder" Padding="6,2" Command="{Binding ShowInFolderCommand}" IsVisible="{Binding !Missing}" />
-                      <Button Classes="link" Padding="6,2" Command="{Binding RemoveCommand}" ToolTip.Tip="Unlink. The file itself isn't deleted.">
-                        <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
-                      </Button>
-                    </StackPanel>
-                    <StackPanel>
-                      <Button Classes="link" Content="{Binding Name}" Padding="0,2" Command="{Binding OpenCommand}" IsVisible="{Binding !Missing}" HorizontalAlignment="Left" />
-                      <TextBlock Text="{Binding Name}" Margin="0,2" IsVisible="{Binding Missing}" TextDecorations="Strikethrough" />
-                      <TextBlock Classes="muted" FontSize="12" Classes.problem="{Binding Missing}" Text="{Binding Detail}" TextWrapping="Wrap" />
-                    </StackPanel>
-                  </DockPanel>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <ItemsControl ItemsSource="{Binding LogEntries}" IsVisible="{Binding HasLog}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ClientNoteRow">
-                  <DockPanel Margin="0,6,0,0">
-                    <Button DockPanel.Dock="Right" Classes="link" Padding="6,0" VerticalAlignment="Top" Command="{Binding RemoveCommand}" ToolTip.Tip="Delete this note">
-                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
-                    </Button>
-                    <TextBlock DockPanel.Dock="Top" Classes="label" Text="{Binding Day}" />
-                    <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" />
-                  </DockPanel>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !HasFiles}"
-                       Text="Drop files on this card to link them. Keep them in OneDrive so they're backed up too." />
-          </StackPanel>
-        </Border>
-        </StackPanel>
-
-        <StackPanel Grid.Column="2" Spacing="18">
-          <!-- New site checklist -->
-          <Border Classes="card" IsVisible="{Binding IsSaved}">
-            <StackPanel Spacing="10">
-              <!-- The note sits under the heading, so a narrow pane doesn't push them into each other. -->
-              <StackPanel Spacing="2">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <c:Icon Classes="cardicon" Data="{StaticResource Icon.Todo}" />
-                  <TextBlock Classes="h2" Text="New site checklist" VerticalAlignment="Center" />
+            </c:FoldSection>
+            <c:FoldSection Key="checklist" Title="New site checklist" Icon="{StaticResource Icon.Todo}" Summary="{Binding ChecklistSummary}" IsVisible="{Binding IsSaved}">
+              <StackPanel Spacing="10">
+                <StackPanel Spacing="8" IsVisible="{Binding CanStartOnboarding}">
+                  <TextBlock Classes="muted" TextWrapping="Wrap"
+                             Text="For a new website: the logo, content, photos, domain and hosting access you need from them, ticked off as each comes in." />
+                  <Button Classes="quiet" Content="Start the checklist" Command="{Binding StartOnboardingCommand}" HorizontalAlignment="Left" />
                 </StackPanel>
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding OnboardingProgress}" TextWrapping="Wrap" IsVisible="{Binding HasOnboarding}" />
+                <ItemsControl ItemsSource="{Binding OnboardingItems}" IsVisible="{Binding HasOnboarding}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OnboardingRow">
+                      <DockPanel Margin="0,1">
+                        <Button DockPanel.Dock="Right" Classes="link" Padding="6,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Not needed for this client">
+                          <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                        </Button>
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0" />
+                        <CheckBox IsChecked="{Binding Done}" Content="{Binding Name}" />
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <DockPanel IsVisible="{Binding HasOnboarding}">
+                  <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Margin="8,0,0,0" Command="{Binding AddOnboardingItemCommand}" />
+                  <TextBox Text="{Binding NewOnboardingItem}" PlaceholderText="Something else they need to send">
+                    <TextBox.KeyBindings>
+                      <KeyBinding Gesture="Enter" Command="{Binding AddOnboardingItemCommand}" />
+                    </TextBox.KeyBindings>
+                  </TextBox>
+                </DockPanel>
+                <DockPanel IsVisible="{Binding HasOnboarding}">
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Remove the checklist" Command="{Binding ClearOnboardingCommand}" />
+                  <Button Classes="quiet" Content="Draft a reminder" ToolTip.Tip="A mail to them listing what's still outstanding, for you to check and send" Command="{Binding DraftOnboardingReminderCommand}"
+                          IsVisible="{Binding OnboardingOutstanding}" HorizontalAlignment="Left" />
+                </DockPanel>
+                <TextBlock Classes="muted" Text="{Binding OnboardingMessage}" TextWrapping="Wrap"
+                           IsVisible="{Binding OnboardingMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </StackPanel>
-              <StackPanel Spacing="8" IsVisible="{Binding CanStartOnboarding}">
-                <TextBlock Classes="muted" TextWrapping="Wrap"
-                           Text="For a new website: the logo, content, photos, domain and hosting access you need from them, ticked off as each comes in." />
-                <Button Classes="quiet" Content="Start the checklist" Command="{Binding StartOnboardingCommand}" HorizontalAlignment="Left" />
-              </StackPanel>
-              <ItemsControl ItemsSource="{Binding OnboardingItems}" IsVisible="{Binding HasOnboarding}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:OnboardingRow">
-                    <DockPanel Margin="0,1">
-                      <Button DockPanel.Dock="Right" Classes="link" Padding="6,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Not needed for this client">
-                        <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
-                      </Button>
-                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0" />
-                      <CheckBox IsChecked="{Binding Done}" Content="{Binding Name}" />
-                    </DockPanel>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <DockPanel IsVisible="{Binding HasOnboarding}">
-                <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Margin="8,0,0,0" Command="{Binding AddOnboardingItemCommand}" />
-                <TextBox Text="{Binding NewOnboardingItem}" PlaceholderText="Something else they need to send">
-                  <TextBox.KeyBindings>
-                    <KeyBinding Gesture="Enter" Command="{Binding AddOnboardingItemCommand}" />
-                  </TextBox.KeyBindings>
-                </TextBox>
-              </DockPanel>
-              <DockPanel IsVisible="{Binding HasOnboarding}">
-                <Button DockPanel.Dock="Right" Classes="link" Content="Remove the checklist" Command="{Binding ClearOnboardingCommand}" />
-                <Button Classes="quiet" Content="Draft a reminder" ToolTip.Tip="A mail to them listing what's still outstanding, for you to check and send" Command="{Binding DraftOnboardingReminderCommand}"
-                        IsVisible="{Binding OnboardingOutstanding}" HorizontalAlignment="Left" />
-              </DockPanel>
-              <TextBlock Classes="muted" Text="{Binding OnboardingMessage}" TextWrapping="Wrap"
-                         IsVisible="{Binding OnboardingMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            </StackPanel>
-          </Border>
-          <!-- Projects and time -->
-          <Border Classes="card" IsVisible="{Binding IsSaved}">
-            <StackPanel Spacing="10">
-              <!-- The note sits under the heading, so a narrow pane doesn't push them into each other. -->
-              <StackPanel Spacing="2">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <c:Icon Classes="cardicon" Data="{StaticResource Icon.Time}" />
-                  <TextBlock Classes="h2" Text="Projects and time" VerticalAlignment="Center" />
-                </StackPanel>
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding TimeSummary}" TextWrapping="Wrap" />
-              </StackPanel>
-              <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasProjects}"
-                         Text="Add a project, like New website or Monthly SEO, to log time against it on the Time page." />
-              <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding HasProjects}" Text="Tick a project when it's finished. Its time is kept." />
-              <ItemsControl ItemsSource="{Binding ProjectRows}" IsVisible="{Binding HasProjects}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ClientProjectRow">
-                    <StackPanel Margin="0,2" Spacing="2">
-                      <CheckBox IsChecked="{Binding Finished}" ToolTip.Tip="Tick when finished. Its time is kept.">
-                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
-                      </CheckBox>
-                      <!-- Time logged, and the project's own rate when it differs from the client's. -->
-                      <StackPanel Orientation="Horizontal" Spacing="8" Margin="32,0,0,0">
-                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Time}" VerticalAlignment="Center" />
-                        <TextBox Text="{Binding Rate, UpdateSourceTrigger=LostFocus}" Width="96" MinHeight="0" FontSize="12" Padding="6,2"
-                                 PlaceholderText="Own rate, R" Classes.problem="{Binding RateProblem}"
-                                 ToolTip.Tip="This project's own hourly rate. Leave it empty to use the client's rate." />
+            </c:FoldSection>
+            <c:FoldSection Key="projects" Title="Projects and time" Icon="{StaticResource Icon.Time}" Summary="{Binding ProjectsSummary}" IsVisible="{Binding IsSaved}">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasProjects}"
+                           Text="Add a project, like New website or Monthly SEO, to log time against it on the Time page." />
+                <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding HasProjects}" Text="Tick a project when it's finished. Its time is kept." />
+                <ItemsControl ItemsSource="{Binding ProjectRows}" IsVisible="{Binding HasProjects}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ClientProjectRow">
+                      <StackPanel Margin="0,2" Spacing="2">
+                        <CheckBox IsChecked="{Binding Finished}" ToolTip.Tip="Tick when finished. Its time is kept.">
+                          <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
+                        </CheckBox>
+                        <!-- Time logged, and the project's own rate when it differs from the client's. -->
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="32,0,0,0">
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Time}" VerticalAlignment="Center" />
+                          <TextBox Text="{Binding Rate, UpdateSourceTrigger=LostFocus}" Width="96" MinHeight="0" FontSize="12" Padding="6,2"
+                                   PlaceholderText="Own rate, R" Classes.problem="{Binding RateProblem}"
+                                   ToolTip.Tip="This project's own hourly rate. Leave it empty to use the client's rate." />
+                        </StackPanel>
                       </StackPanel>
-                    </StackPanel>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <DockPanel>
-                <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Margin="8,0,0,0" Command="{Binding AddProjectCommand}" />
-                <TextBox Text="{Binding NewProjectName}" PlaceholderText="New project, e.g. New website">
-                  <TextBox.KeyBindings>
-                    <KeyBinding Gesture="Enter" Command="{Binding AddProjectCommand}" />
-                  </TextBox.KeyBindings>
-                </TextBox>
-              </DockPanel>
-            </StackPanel>
-          </Border>
-          <!-- Quotes and invoices -->
-          <Border Classes="card" Padding="0">
-            <StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="8" Margin="20,16,20,10">
-                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Invoices}" />
-                <TextBlock Classes="h2" Text="Quotes and invoices" VerticalAlignment="Center" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Margin="8,0,0,0" Command="{Binding AddProjectCommand}" />
+                  <TextBox Text="{Binding NewProjectName}" PlaceholderText="New project, e.g. New website">
+                    <TextBox.KeyBindings>
+                      <KeyBinding Gesture="Enter" Command="{Binding AddProjectCommand}" />
+                    </TextBox.KeyBindings>
+                  </TextBox>
+                </DockPanel>
               </StackPanel>
-              <TextBlock Classes="muted" Text="None yet." Margin="20,0,20,16" IsVisible="{Binding !HasDocuments}" />
-              <ItemsControl ItemsSource="{Binding Documents}" Margin="0,0,0,8">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:DocumentRow">
-                    <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                            Command="{Binding #Root.((vm:ClientDetailViewModel)DataContext).OpenDocumentCommand}" CommandParameter="{Binding}">
-                      <Grid ColumnDefinitions="*,Auto,110,Auto">
-                        <StackPanel Grid.Column="0" Margin="8,0" Spacing="2">
-                          <TextBlock Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Date}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" ToolTip.Tip="{Binding Owing}">
-                          <Ellipse Classes="dot" Classes.done="{Binding IsDone}" Classes.problem="{Binding IsOverdue}" Classes.waiting="{Binding IsWaiting}" />
-                          <TextBlock Classes="status" Classes.problem="{Binding IsOverdue}" Text="{Binding Status}" FontSize="13" />
-                        </StackPanel>
-                        <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Total}" Margin="8,0" VerticalAlignment="Center" />
-                        <c:Icon Grid.Column="3" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" />
-                      </Grid>
-                    </Button>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </Border>
+            </c:FoldSection>
+            <c:FoldSection Key="logins" Title="Site logins" Icon="{StaticResource Icon.Key}" Summary="{Binding LoginsSummary}" IsVisible="{Binding IsSaved}">
+              <StackPanel Spacing="10">
+                <Button Classes="quiet" Content="Add a login" Command="{Binding AddLoginCommand}" IsVisible="{Binding !EditingLogin}"  HorizontalAlignment="Left" />
+                            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoLogins}"
+                                       Text="WordPress, hosting, domain and any other logins for their sites. Kept encrypted on this PC and never shown to Claude or ChatGPT." />
 
-          <!-- Mail -->
-          <Border Classes="card" Padding="0">
-            <StackPanel>
-              <DockPanel Margin="20,16,20,10">
-                <Button DockPanel.Dock="Right" Classes="quiet" Content="Write to them" Command="{Binding WriteMailCommand}" IsVisible="{Binding CanWriteMail}" />
+                            <ItemsControl ItemsSource="{Binding Logins}" IsVisible="{Binding HasLogins}">
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SiteLoginRow">
+                                  <Border Classes="taskrow" Padding="0,6">
+                                    <Border.ContextMenu>
+                                      <ContextMenu>
+                                        <MenuItem Header="Open the site" Command="{Binding OpenSiteCommand}" IsEnabled="{Binding HasAddress}" />
+                                        <Separator />
+                                        <MenuItem Header="Copy username" Command="{Binding CopyUserNameCommand}" IsEnabled="{Binding HasUserName}" />
+                                        <MenuItem Header="Copy password" Command="{Binding CopyPasswordCommand}" IsEnabled="{Binding HasPassword}" />
+                                        <MenuItem Header="Copy login address" Command="{Binding CopyAddressCommand}" IsEnabled="{Binding HasAddress}" />
+                                        <MenuItem Header="{Binding ShowText, StringFormat='{}{0} password'}" Command="{Binding RevealCommand}" IsEnabled="{Binding HasPassword}" />
+                                        <Separator />
+                                        <MenuItem Header="Change" Command="{Binding EditCommand}" />
+                                        <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                                      </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <StackPanel Spacing="2">
+                                      <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+                                          <Button Classes="link" Content="Change" Padding="6,2" Command="{Binding EditCommand}" />
+                                          <Button Classes="link" Padding="6,2" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete this login. Undo brings it back.">
+                                            <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                                          </Button>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Site}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                      </DockPanel>
+                                      <Button Classes="link" Content="{Binding AddressText}" Command="{Binding OpenSiteCommand}" IsVisible="{Binding HasAddress}"
+                                              Padding="0,1" HorizontalAlignment="Left" ToolTip.Tip="Open it in your browser" />
+                                      <DockPanel IsVisible="{Binding HasUserName}">
+                                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="Username" Width="64" VerticalAlignment="Center" />
+                                        <Button DockPanel.Dock="Right" Classes="link" Content="Copy" Padding="6,1" Command="{Binding CopyUserNameCommand}" />
+                                        <SelectableTextBlock Text="{Binding UserName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                      </DockPanel>
+                                      <DockPanel IsVisible="{Binding HasPassword}">
+                                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="Password" Width="64" VerticalAlignment="Center" />
+                                        <Button DockPanel.Dock="Right" Classes="link" Content="Copy" Padding="6,1" Command="{Binding CopyPasswordCommand}"
+                                                ToolTip.Tip="Cleared from the clipboard after 30 seconds, and kept out of Windows clipboard history" />
+                                        <Button DockPanel.Dock="Right" Classes="link" Content="{Binding ShowText}" Padding="6,1" Command="{Binding RevealCommand}" />
+                                        <SelectableTextBlock Text="{Binding PasswordText}" FontFamily="Consolas, Menlo, monospace" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                      </DockPanel>
+                                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Notes}" TextWrapping="Wrap" IsVisible="{Binding HasNotes}" />
+                                    </StackPanel>
+                                  </Border>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Border Classes="pending" IsVisible="{Binding EditingLogin}">
+                              <StackPanel Spacing="10">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding LoginFormTitle}" />
+                                <StackPanel>
+                                  <TextBlock Classes="label" Text="Site name" />
+                                  <TextBox Text="{Binding LoginSite}" PlaceholderText="e.g. WordPress admin" />
+                                </StackPanel>
+                                <StackPanel>
+                                  <TextBlock Classes="label" Text="Login address" />
+                                  <TextBox Text="{Binding LoginAddress}" PlaceholderText="e.g. karoocoffee.co.za/wp-admin" />
+                                </StackPanel>
+                                <StackPanel>
+                                  <TextBlock Classes="label" Text="Username or email" />
+                                  <TextBox Text="{Binding LoginUser}" PlaceholderText="Optional" />
+                                </StackPanel>
+                                <StackPanel Spacing="4">
+                                  <TextBlock Classes="label" Text="Password" />
+                                  <TextBox Text="{Binding LoginPassword}" PasswordChar="•" RevealPassword="{Binding ShowLoginPassword}" PlaceholderText="Optional" />
+                                  <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="Show it" IsChecked="{Binding ShowLoginPassword}" />
+                                    <Button Classes="link" Content="Make a strong one" Command="{Binding MakeLoginPasswordCommand}" Padding="0,2" />
+                                  </StackPanel>
+                                </StackPanel>
+                                <StackPanel>
+                                  <TextBlock Classes="label" Text="Notes" />
+                                  <TextBox Text="{Binding LoginNotes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48"
+                                           PlaceholderText="e.g. 2FA code goes to Pieter's phone" />
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding LoginProblems}" IsVisible="{Binding HasLoginProblems}">
+                                  <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                      <TextBlock Classes="muted problem" Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                  </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                  <Button Classes="primary" Content="Save login" Command="{Binding SaveLoginCommand}" />
+                                  <Button Classes="link" Content="Cancel" Command="{Binding CancelLoginCommand}" />
+                                </StackPanel>
+                              </StackPanel>
+                            </Border>
+                            <TextBlock Classes="muted" FontSize="12" Text="{Binding LoginsMessage}" TextWrapping="Wrap"
+                                       IsVisible="{Binding LoginsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </StackPanel>
+            </c:FoldSection>
+            <c:FoldSection Key="files" Title="Files and notes" Icon="{StaticResource Icon.Folder}" Summary="{Binding FilesSummary}" x:Name="FilesDrop" DragDrop.AllowDrop="True" IsVisible="{Binding IsSaved}">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="label" Text="Their folder" />
+                <TextBlock Text="{Binding FolderNote}" Classes="muted" TextWrapping="Wrap"
+                           IsVisible="{Binding FolderNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Button Classes="link" Content="{Binding FolderPath}" Command="{Binding OpenFolderCommand}" IsVisible="{Binding HasFolder}"
+                        Padding="0,2" HorizontalAlignment="Left" ToolTip.Tip="Open it in Files" />
+                <WrapPanel>
+                  <Button Classes="quiet" Content="Yes, that's it" Command="{Binding ConfirmFolderCommand}" IsVisible="{Binding FolderIsGuess}" Margin="0,0,8,8" />
+                  <Button Classes="quiet" Content="Open in Files" Command="{Binding OpenFolderCommand}" IsVisible="{Binding HasFolder}" Margin="0,0,8,8" />
+                  <Button Classes="quiet" Content="Make their folder" Command="{Binding MakeFolderCommand}" IsVisible="{Binding CanMakeFolder}" Margin="0,0,8,8" />
+                  <Button Classes="quiet" Content="Pick another" Click="PickFolder" IsVisible="{Binding HasFolder}" Margin="0,0,8,8" />
+                  <Button Classes="quiet" Content="Pick a folder" Click="PickFolder" IsVisible="{Binding NoFolder}" Margin="0,0,8,8" />
+                </WrapPanel>
+                <DockPanel Margin="0,8,0,0">
+                  <Button DockPanel.Dock="Right" Classes="quiet" Content="New note" Command="{Binding NewClientNoteCommand}" />
+                  <TextBlock Classes="label" Text="Notebook notes" VerticalAlignment="Center" />
+                </DockPanel>
+                <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoNoteLinks}"
+                           Text="Notes from Notes that are about them show here. Pick them as the client on the note." />
+                <ItemsControl ItemsSource="{Binding NoteLinks}" IsVisible="{Binding HasNoteLinks}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ClientNoteLink">
+                      <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,2" HorizontalAlignment="Left" />
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Classes="link" Content="{Binding MoreNotesText}" Command="{Binding AllClientNotesCommand}" IsVisible="{Binding HasMoreNotes}" Padding="0,2" />
+                <TextBlock Classes="label" Text="Notes and linked files" Margin="0,8,0,0" />
+                <TextBox Text="{Binding NewLogText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64"
+                         PlaceholderText="What was said or decided, e.g. Call with Pieter: wants the shop in phase two" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <c:Icon Classes="cardicon" Data="{StaticResource Icon.Mail}" />
-                  <TextBlock Classes="h2" Text="Mail" VerticalAlignment="Center" />
+                  <Button Classes="quiet" Content="Add note" Command="{Binding AddLogEntryCommand}" />
+                  <Button Classes="quiet" Content="Link a file" Click="LinkFiles" ToolTip.Tip="Contracts, briefs, logos. The file stays where it is" />
                 </StackPanel>
-              </DockPanel>
-              <TextBlock Classes="muted" Text="{Binding MailEmptyText}" TextWrapping="Wrap" Margin="20,0,20,16" IsVisible="{Binding !HasMail}" />
-              <ItemsControl ItemsSource="{Binding Mail}" Margin="0,0,0,8">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ClientMailRow">
-                    <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                            Command="{Binding #Root.((vm:ClientDetailViewModel)DataContext).OpenMailCommand}" CommandParameter="{Binding}">
-                      <DockPanel Margin="8,0">
-                        <c:Icon DockPanel.Dock="Right" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" Margin="8,0,0,0" />
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" Margin="8,0,0,0" />
-                        <StackPanel Spacing="2">
-                          <TextBlock Text="{Binding Subject}" TextTrimming="CharacterEllipsis" Classes.unread="{Binding IsUnread}">
-                            <TextBlock.Styles>
-                              <Style Selector="TextBlock.unread"><Setter Property="FontWeight" Value="SemiBold" /></Style>
-                            </TextBlock.Styles>
-                          </TextBlock>
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding RecordsMessage}" TextWrapping="Wrap"
+                           IsVisible="{Binding RecordsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                <ItemsControl ItemsSource="{Binding FileRows}" IsVisible="{Binding HasFiles}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ClientFileRow">
+                      <DockPanel Margin="0,3">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+                          <Button Classes="link" Content="Folder" Padding="6,2" Command="{Binding ShowInFolderCommand}" IsVisible="{Binding !Missing}" />
+                          <Button Classes="link" Padding="6,2" Command="{Binding RemoveCommand}" ToolTip.Tip="Unlink. The file itself isn't deleted.">
+                            <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                          </Button>
+                        </StackPanel>
+                        <StackPanel>
+                          <Button Classes="link" Content="{Binding Name}" Padding="0,2" Command="{Binding OpenCommand}" IsVisible="{Binding !Missing}" HorizontalAlignment="Left" />
+                          <TextBlock Text="{Binding Name}" Margin="0,2" IsVisible="{Binding Missing}" TextDecorations="Strikethrough" />
+                          <TextBlock Classes="muted" FontSize="12" Classes.problem="{Binding Missing}" Text="{Binding Detail}" TextWrapping="Wrap" />
                         </StackPanel>
                       </DockPanel>
-                    </Button>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-          <!-- To-dos -->
-          <Border Classes="card" Padding="0">
-            <StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="8" Margin="20,16,20,10">
-                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Todo}" />
-                <TextBlock Classes="h2" Text="To-do" VerticalAlignment="Center" />
-              </StackPanel>
-              <ItemsControl ItemsSource="{Binding Tasks}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ClientTaskViewModel">
-                    <Border Classes="taskrow">
-                      <DockPanel>
-                        <Button DockPanel.Dock="Right" Classes="link" Content="Done" Command="{Binding FinishCommand}" />
-                        <TextBlock DockPanel.Dock="Right" Classes="label" Classes.overdue="{Binding IsOverdue}" Text="{Binding DueText}"
-                                   VerticalAlignment="Center" Margin="8,0" />
-                        <TextBlock Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <ItemsControl ItemsSource="{Binding LogEntries}" IsVisible="{Binding HasLog}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ClientNoteRow">
+                      <DockPanel Margin="0,6,0,0">
+                        <Button DockPanel.Dock="Right" Classes="link" Padding="6,0" VerticalAlignment="Top" Command="{Binding RemoveCommand}" ToolTip.Tip="Delete this note">
+                          <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                        </Button>
+                        <TextBlock DockPanel.Dock="Top" Classes="label" Text="{Binding Day}" />
+                        <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" />
                       </DockPanel>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <DockPanel Margin="16,12,16,16">
-                <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Command="{Binding AddTaskCommand}" Margin="8,0,0,0" />
-                <TextBox Text="{Binding NewTask}" PlaceholderText="Something to do for this client" />
-              </DockPanel>
-            </StackPanel>
-          </Border>
-
-          <!-- Events -->
-          <Border Classes="card" IsVisible="{Binding HasEvents}">
-            <StackPanel Spacing="8">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Calendar}" />
-                <TextBlock Classes="h2" Text="Coming up" VerticalAlignment="Center" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !HasFiles}"
+                           Text="Drop files here to link them. Keep them in OneDrive so they're backed up too." />
               </StackPanel>
-              <ItemsControl ItemsSource="{Binding Events}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ClientEventViewModel">
-                    <DockPanel Margin="0,4">
-                      <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding When}" />
-                      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                    </DockPanel>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </Border>
-        </StackPanel>
+            </c:FoldSection>
+          </c:FoldList>
+        </Border>
       </Grid>
     </StackPanel>
   </Panel>
