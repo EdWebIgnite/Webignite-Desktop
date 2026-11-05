@@ -24,11 +24,15 @@ public sealed class AppServices : IDisposable
         Settings = new AppSettings(store);
         Settings.XeroClientChanged += () => xero = null;
         Payments = new PaymentWatch(store, () => XeroApi);
+        XeroClients = new XeroClientWatch(store, () => XeroApi);
         SiteWatch = new UptimeWatch(store.ListClients, () => Settings.Uptime, s => Settings.Uptime = s);
     }
 
     /// <summary>Reads payments from Xero every half hour.</summary>
     public PaymentWatch Payments { get; }
+
+    /// <summary>Brings Xero's customers in as clients, on start and every few hours.</summary>
+    public XeroClientWatch XeroClients { get; }
 
     /// <summary>Visits watched websites every 15 minutes.</summary>
     public UptimeWatch SiteWatch { get; }
