@@ -260,6 +260,13 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>List or board on the Projects page.</summary>
+    /// <summary>How Calendar and Planner were sized by dragging.</summary>
+    public CalendarSizes CalendarSizes
+    {
+        get => store.GetSetting<CalendarSizes>("calendar-sizes") ?? new CalendarSizes();
+        set => store.SetSetting("calendar-sizes", value);
+    }
+
     public ProjectViewSettings ProjectView
     {
         get => store.GetSetting<ProjectViewSettings>("project-view") ?? new ProjectViewSettings();

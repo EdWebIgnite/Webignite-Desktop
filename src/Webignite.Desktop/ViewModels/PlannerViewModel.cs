@@ -13,9 +13,25 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
     private readonly AppServices services;
     private DateOnly weekStart;
 
+    /// <summary>How tall each day is, as dragged; NaN fits what's on the day (at least <see cref="DayMinHeight"/>).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DayMinHeight))]
+    public partial double DayHeight { get; set; }
+
+    /// <summary>Days fitting their content start a sensible height; dragged ones take exactly the height given.</summary>
+    public double DayMinHeight => double.IsNaN(DayHeight) ? 260 : Webignite.Core.Layout.CalendarSizing.LeastPlannerDay;
+
+    /// <summary>Keeps the days' height as dragged, or null to fit what's on them again.</summary>
+    public void KeepDayHeight(double? height)
+    {
+        DayHeight = height is { } h ? Webignite.Core.Layout.CalendarSizing.PlannerDay(h) : double.NaN;
+        services.Settings.CalendarSizes = services.Settings.CalendarSizes with { PlannerDayHeight = height is null ? null : DayHeight };
+    }
+
     public PlannerViewModel(AppServices services)
     {
         this.services = services;
+        DayHeight = services.Settings.CalendarSizes.PlannerDayHeight ?? double.NaN;
         weekStart = Dates.WeekStart(Today);
         Refresh();
     }

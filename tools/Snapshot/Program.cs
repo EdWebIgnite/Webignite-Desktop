@@ -2638,6 +2638,29 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Dispatcher.UIThread.RunJobs();
     var settings = window.GetVisualDescendants().OfType<SettingsView>().FirstOrDefault();
     Check("Settings keeps a reading width on a big screen", settings is { Bounds.Width: <= 1040 });
+
+    // Calendar and Planner sized by dragging: kept, and a fresh copy of the page opens at that size.
+    var calendarPage = (CalendarViewModel)vm[Page.Calendar].Main.Page;
+    calendarPage.KeepMonthHeight(420);
+    var sizedCalendar = vm.OpenAnother(Page.Calendar);
+    Dispatcher.UIThread.RunJobs();
+    var sizedView = window.GetVisualDescendants().OfType<CalendarView>().First(v => v.IsEffectivelyVisible);
+    var sizedScroller = sizedView.GetVisualDescendants().OfType<Avalonia.Controls.ScrollViewer>().First(s => s.Name == "MonthScroller");
+    Check("A month dragged shorter opens at that height", sizedScroller.Bounds.Height is > 300 and < 420
+        && services.Settings.CalendarSizes.MonthHeight == 420);
+    Save("calendar-sized");
+    calendarPage.KeepMonthHeight(null);
+    vm.CloseTab(sizedCalendar);
+    Open(Page.Planner);
+    var plannerPage = (PlannerViewModel)vm[Page.Planner].Main.Page;
+    plannerPage.KeepDayHeight(170);
+    Dispatcher.UIThread.RunJobs();
+    Check("Planner's days take the height they were dragged to, and keep it", plannerPage.DayHeight == 170
+        && services.Settings.CalendarSizes.PlannerDayHeight == 170);
+    Save("planner-sized");
+    plannerPage.KeepDayHeight(null);
+    Check("Double-clicking the handle fits the days to what's on them again", double.IsNaN(plannerPage.DayHeight)
+        && services.Settings.CalendarSizes.PlannerDayHeight is null);
     window.Width = 1280;
     window.Height = 860;
     Open(Page.Overview);

@@ -28,6 +28,18 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
 
     public static IReadOnlyList<string> WeekdayNames { get; } = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+    /// <summary>The month's height as dragged, or null to fill the window.</summary>
+    public double? MonthHeight => services.Settings.CalendarSizes.MonthHeight;
+
+    /// <summary>The day panel's width as dragged, or null for the usual width.</summary>
+    public double? SideWidth => services.Settings.CalendarSizes.SideWidth;
+
+    public void KeepMonthHeight(double? height) =>
+        services.Settings.CalendarSizes = services.Settings.CalendarSizes with { MonthHeight = height };
+
+    public void KeepSideWidth(double width) =>
+        services.Settings.CalendarSizes = services.Settings.CalendarSizes with { SideWidth = width };
+
     public ObservableCollection<DayCellViewModel> Days { get; } = [];
     public ObservableCollection<AgendaItemViewModel> SelectedItems { get; } = [];
 
