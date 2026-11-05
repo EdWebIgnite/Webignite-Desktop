@@ -60,6 +60,8 @@ public partial class FilesView : FullBleedView
 
     private FilesViewModel? Files => DataContext as FilesViewModel;
 
+    private void PaneResized(string pane, double width) => Files?.Panels.Resized(pane, width);
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);

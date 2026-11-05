@@ -8,7 +8,7 @@ using Webignite.Core.Layout;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>The Clients module: a searchable list, and one client's page when one is open.</summary>
-public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork, ITabTitle
+public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork, ITabTitle, IHasPanes
 {
     public string? TabTitle => Detail?.Title;
 

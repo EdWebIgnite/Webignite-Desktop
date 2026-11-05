@@ -14,7 +14,7 @@ namespace Webignite.Desktop.ViewModels;
 /// while it is shown, and thumbnails are drawn only for what is on screen; both stop when the page is let go.
 /// The changes it makes are in FilesViewModel.Actions.cs.
 /// </summary>
-public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDisposable, ITabTitle
+public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDisposable, ITabTitle, IHasPanes
 {
     private readonly AppServices services;
     private readonly Stack<string> back = new();
@@ -28,6 +28,7 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     public FilesViewModel(AppServices services, string? start = null)
     {
         this.services = services;
+        Panels = new PanelsViewModel(services.Settings, "files", [("places", "Places"), ("files", "Files")], spine: "files");
         var settings = services.Settings.Files;
         View = settings.View;
         Sort = settings.Sort;
@@ -68,6 +69,9 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
             PickChanged();
         }
     }
+
+    /// <summary>The side list and the files: the side list can be hidden, moved and sized.</summary>
+    public PanelsViewModel Panels { get; }
 
     /// <summary>The rows and, when grouped, their headings, in order.</summary>
     public ObservableCollection<object> Items { get; } = [];
