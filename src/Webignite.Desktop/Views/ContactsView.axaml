@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:mail="using:Webignite.Core.Mail"
              x:Class="Webignite.Desktop.Views.ContactsView"
              x:DataType="vm:ContactsViewModel"
              x:Name="Root">
@@ -23,6 +24,23 @@
               </Button>
             </WrapPanel>
           </StackPanel>
+
+          <Border Classes="pending" IsVisible="{Binding HasMailedOften}">
+            <StackPanel Spacing="8">
+              <TextBlock FontWeight="SemiBold" Text="People you mail often who aren't here yet" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding MailedOften}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="mail:Contact">
+                    <Button Classes="quiet" Margin="0,0,8,8" Content="{Binding Name, StringFormat='+ {0}'}" ToolTip.Tip="{Binding Address}"
+                            Command="{Binding #Root.((vm:ContactsViewModel)DataContext).AddMailedOftenCommand}" CommandParameter="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
 
           <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Contacts}" Title="No one here yet"
                         Text="Add the people you work with: owners, accounts people, suppliers. Each can be with a client."
@@ -172,6 +190,57 @@
                   <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" VerticalAlignment="Center" />
                 </StackPanel>
               </DockPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Their latest mail, and their client's quotes and invoices -->
+          <Border Classes="card" IsVisible="{Binding HasTheirMail}">
+            <StackPanel Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Mail}" />
+                <TextBlock Classes="h2" Text="Mail with them" VerticalAlignment="Center" />
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding TheirMail}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ClientMailRow">
+                    <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                            Command="{Binding #Root.((vm:ContactsViewModel)DataContext).OpenTheirMailCommand}" CommandParameter="{Binding}">
+                      <DockPanel Margin="8,0">
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" Margin="8,0,0,0" />
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </DockPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+          <Border Classes="card" IsVisible="{Binding HasTheirDocuments}">
+            <StackPanel Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Invoices}" />
+                <TextBlock Classes="h2" Text="Their client's quotes and invoices" VerticalAlignment="Center" />
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding TheirDocuments}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DocumentRow">
+                    <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                            Command="{Binding #Root.((vm:ContactsViewModel)DataContext).OpenTheirDocumentCommand}" CommandParameter="{Binding}">
+                      <Grid ColumnDefinitions="*,Auto,Auto" Margin="8,0">
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Number}" FontWeight="SemiBold" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Date}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Classes="muted" FontSize="12" Text="{Binding Status}" VerticalAlignment="Center" Margin="12,0" />
+                        <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Total}" VerticalAlignment="Center" />
+                      </Grid>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
           </Border>
         </StackPanel>

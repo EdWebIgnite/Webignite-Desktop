@@ -63,6 +63,8 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
             Groups.Add(group);
         if (!Groups.Contains(Group))
             Group = AllGroups;
+        else
+            OnPropertyChanged(nameof(Group)); // the list was rebuilt, so the drop-down needs its pick again
         ClientChoices = ClientPicker.Choices("No client", clients.Values.OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase));
         if (IsOpen)
             EditClient = ClientChoices.FirstOrDefault(c => c.Value?.Id == EditClient?.Value?.Id) ?? ClientChoices.FirstOrDefault();
@@ -74,6 +76,7 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
         };
         OnPropertyChanged(nameof(IsEmpty));
         Filter();
+        SuggestFromMail();
     }
 
     private void Filter()
@@ -172,6 +175,7 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
         Message = "";
         IsOpen = true;
         Changed();
+        LoadActivity(person);
         foreach (var row in all)
             row.IsOpen = row.Person.Id == person.Id;
         if (!Panels["person"].IsShown)

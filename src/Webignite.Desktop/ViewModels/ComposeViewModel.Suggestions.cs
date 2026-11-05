@@ -53,7 +53,7 @@ public partial class ComposeViewModel
         if ((contact ?? ChosenSuggestion) is not { } chosen)
             return null;
         var text = SuggestingFor switch { AddressField.Cc => Cc, AddressField.Bcc => Bcc, AddressField.ReplyTo => ReplyTo, _ => To };
-        var completed = AddressBook.Complete(text, chosen.Display);
+        var completed = AddressBook.Insert(text, chosen); // a group puts all its people in
         suggestRun++;
         switch (SuggestingFor)
         {

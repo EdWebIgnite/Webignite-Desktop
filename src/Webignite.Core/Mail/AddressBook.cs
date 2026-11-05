@@ -3,16 +3,21 @@ using Webignite.Core.Search;
 
 namespace Webignite.Core.Mail;
 
-/// <summary>Someone Eddie can write to, with how likely they are to be the one meant.</summary>
-public sealed record Contact(string? Name, string Address, int Score)
+/// <summary>
+/// Someone Eddie can write to, with how likely they are to be the one meant; or a group from Contacts, which
+/// puts all its people in the box at once.
+/// </summary>
+public sealed record Contact(string? Name, string Address, int Score, IReadOnlyList<MailPerson>? Members = null)
 {
     public MailPerson Person => new(Name, Address);
-    public string Display => Person.ToString();
+    public bool IsGroup => Members is not null;
+    public string Display => Members is { } members ? $"{Name} (group of {members.Count})" : Person.ToString();
 }
 
 /// <summary>
-/// Suggestions for To, Cc and Bcc, from clients and from mail already sent and received. People Eddie has
-/// written to rank above people who only wrote in; automatic senders are left out.
+/// Suggestions for To, Cc and Bcc: people in Contacts first, then clients and mail already sent and received.
+/// People Eddie has written to rank above people who only wrote in; automatic senders are left out. Groups in
+/// Contacts are offered too.
 /// </summary>
 public static class AddressBook
 {
@@ -20,7 +25,8 @@ public static class AddressBook
 
     private static readonly string[] Automatic = ["noreply", "no-reply", "donotreply", "do-not-reply", "mailer-daemon", "postmaster", "bounce", "notifications", "notification"];
 
-    public static IReadOnlyList<Contact> Build(IEnumerable<Client> clients, IEnumerable<MailSummary> mail, IEnumerable<string> ownAddresses, DateTimeOffset now)
+    public static IReadOnlyList<Contact> Build(IEnumerable<Client> clients, IEnumerable<MailSummary> mail, IEnumerable<string> ownAddresses, DateTimeOffset now,
+        IEnumerable<Person>? people = null)
     {
         var own = new HashSet<string>(ownAddresses, StringComparer.OrdinalIgnoreCase);
         var scores = new Dictionary<string, (string? Name, DateTimeOffset NameDate, int Score)>(StringComparer.OrdinalIgnoreCase);
@@ -40,6 +46,12 @@ public static class AddressBook
                 scores[address] = (useful, useful is null ? DateTimeOffset.MinValue : when, points);
         }
 
+        // A name typed in Contacts beats one read off a mail.
+        var known = (people ?? []).ToList();
+        foreach (var person in known)
+            foreach (var email in person.Emails)
+                Add(person.Name, email.Value, 200, DateTimeOffset.MaxValue);
+
         foreach (var client in clients)
         {
             foreach (var person in Recipients.Parse(client.Email).People)
@@ -58,8 +70,19 @@ public static class AddressBook
                 Add(sender.Name, sender.Address, 2 * recent, m.Date);
         }
 
-        return scores.Select(p => new Contact(p.Value.Name, p.Key, p.Value.Score))
-            .OrderByDescending(c => c.Score).ThenBy(c => c.Address, StringComparer.OrdinalIgnoreCase).ToList();
+        var everyone = scores.Select(p => new Contact(p.Value.Name, p.Key, p.Value.Score))
+            .OrderByDescending(c => c.Score).ThenBy(c => c.Address, StringComparer.OrdinalIgnoreCase);
+        return [.. Groups(known), .. everyone];
+    }
+
+    /// <summary>Each group in Contacts with the people in it who have an address, A–Z.</summary>
+    public static IReadOnlyList<Contact> Groups(IEnumerable<Person> people)
+    {
+        var list = people.ToList();
+        return [.. ContactRules.AllGroups(list).Select(group => new Contact(group, "group:" + group, 1000,
+                [.. list.Where(p => p.Email is not null && p.Groups.Contains(group, StringComparer.CurrentCultureIgnoreCase))
+                    .Select(p => new MailPerson(p.Name, p.Email!))]))
+            .Where(g => g.Members!.Count > 0)];
     }
 
     private static bool IsAutomatic(string address)
@@ -86,11 +109,23 @@ public static class AddressBook
         if (typed.Length == 0)
             return [];
         var already = new HashSet<string>(Recipients.Parse(text).People.Select(p => p.Address), StringComparer.OrdinalIgnoreCase);
-        return book.Where(c => !already.Contains(c.Address) && Matches(c, typed)).Take(Limit).ToList();
+        return book.Where(c => c.Members is { } members ? members.Any(m => !already.Contains(m.Address)) : !already.Contains(c.Address))
+            .Where(c => Matches(c, typed)).Take(Limit).ToList();
+    }
+
+    /// <summary>The box's text with what was typed replaced by the person chosen, or by everyone in a group not already in it.</summary>
+    public static string Insert(string? text, Contact chosen)
+    {
+        if (chosen.Members is not { } members)
+            return Complete(text, chosen.Display);
+        var already = new HashSet<string>(Recipients.Parse(text).People.Select(p => p.Address), StringComparer.OrdinalIgnoreCase);
+        return Complete(text, string.Join(", ", members.Where(m => !already.Contains(m.Address)).Select(m => m.ToString())));
     }
 
     private static bool Matches(Contact contact, string typed)
     {
+        if (contact.IsGroup)
+            return QuickSearch.Fold(contact.Name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Any(w => w.StartsWith(typed, StringComparison.Ordinal));
         var address = contact.Address.ToLowerInvariant();
         if (address.StartsWith(typed, StringComparison.Ordinal))
             return true;

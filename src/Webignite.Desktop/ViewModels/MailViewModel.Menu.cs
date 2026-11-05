@@ -52,6 +52,18 @@ public partial class MailViewModel
                     AddClientFrom(from, who);
                     return Task.CompletedTask;
                 }) { Icon = "Clients" };
+            var person = ContactRules.WithEmail(services.Contacts.List(), from.Address);
+            yield return person is not null
+                ? new($"Open {person.Name} in Contacts", () =>
+                {
+                    services.Go.Person(person.Id);
+                    return Task.CompletedTask;
+                }) { Icon = "Contacts" }
+                : new($"Add {who} to Contacts", () =>
+                {
+                    AddPersonFrom(from, client);
+                    return Task.CompletedTask;
+                }) { Icon = "Contacts" };
         }
         yield return MailMenuItem.Separator;
         yield return new("Make a to-do of it", () =>
@@ -60,6 +72,14 @@ public partial class MailViewModel
             return Task.CompletedTask;
         }) { Icon = "Todo" };
         yield return new("Save as a file…", () => SaveAsFile(mail)) { Icon = "Download" };
+    }
+
+    // The sender as a new person, with their client when their address or website is a client's, opened to check.
+    private void AddPersonFrom(MailPerson from, Client? client)
+    {
+        var (saved, _) = services.Contacts.Save(ContactRules.FromSender(from.Name, from.Address, client, Person.NewId(), DateTimeOffset.UtcNow));
+        if (saved is not null)
+            services.Go.Person(saved.Id);
     }
 
     private void AddClientFrom(MailPerson from, string who)
