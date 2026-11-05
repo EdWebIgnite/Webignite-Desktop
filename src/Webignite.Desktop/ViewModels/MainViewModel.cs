@@ -31,6 +31,18 @@ public partial class MainViewModel : ViewModelBase
             page.Refresh();
     }
 
+    /// <summary>Brings Xero's customers in as clients and tells the Clients pages that are open.</summary>
+    private async Task CheckXeroClientsAsync()
+    {
+        var news = await services.Work.Run("Bringing clients in from Xero", () => services.XeroClients.RunAsync());
+        if (news.Added + news.Filled == 0)
+            return;
+        foreach (var page in Built<ClientsViewModel>(Page.Clients))
+            page.Refresh();
+        if (news.Added > 0)
+            services.ShowNote?.Invoke("Clients from Xero", news.Summary + ".", () => Selected = this[Page.Clients]);
+    }
+
     /// <summary>Shows a note for each site that went down, came back, or has a certificate about to run out.</summary>
     private async Task CheckSitesAsync()
     {
@@ -179,6 +191,7 @@ public partial class MainViewModel : ViewModelBase
             CheckMail = CheckMailAsync,
             CheckPayments = () => CheckPaymentsAsync(),
             CheckSites = CheckSitesAsync,
+            CheckXeroClients = CheckXeroClientsAsync,
             EveryMinute = () => ReleaseIdle(PageIdle),
         };
         Jobs.Start();

@@ -137,6 +137,61 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
     public async Task<IReadOnlyList<XeroContact>> ContactsAsync(CancellationToken cancel = default) =>
         (await AllAsync("Contacts", "&includeArchived=true", cancel)).Select(ToContact).ToList();
 
+    /// <summary>Every contact with the details a client page has, archived ones included, for bringing customers in.</summary>
+    public async Task<IReadOnlyList<Webignite.Core.Clients.XeroCustomer>> CustomersAsync(CancellationToken cancel = default) =>
+        (await AllAsync("Contacts", "&includeArchived=true", cancel)).Select(ToCustomer).ToList();
+
+    public static Webignite.Core.Clients.XeroCustomer ToCustomer(JsonObject c)
+    {
+        var person = string.Join(' ', new[] { Str(c["FirstName"]), Str(c["LastName"]) }.Where(p => p.Length > 0));
+        return new Webignite.Core.Clients.XeroCustomer(
+            Str(c["ContactID"]),
+            Str(c["Name"]),
+            Str(c["EmailAddress"]) is { Length: > 0 } email ? email : null,
+            person.Length > 0 ? person : null,
+            Phone(c["Phones"] as JsonArray),
+            Address(c["Addresses"] as JsonArray),
+            Str(c["Website"]) is { Length: > 0 } site ? site : null,
+            Str(c["ContactStatus"]) == "ACTIVE",
+            c["IsCustomer"] is JsonValue customer && customer.TryGetValue<bool>(out var isCustomer) && isCustomer);
+    }
+
+    private static readonly string[] PhoneTypes = ["MOBILE", "DEFAULT", "DDI"];
+    private static readonly string[] AddressTypes = ["STREET", "POBOX"];
+    private static readonly string[] AddressParts = ["AddressLine1", "AddressLine2", "AddressLine3", "AddressLine4", "City", "Region", "PostalCode", "Country"];
+
+    // The mobile first, then the main number: area code and number, with the country code when it isn't 27.
+    private static string? Phone(JsonArray? phones)
+    {
+        if (phones is null)
+            return null;
+        foreach (var type in PhoneTypes)
+        {
+            if (phones.OfType<JsonObject>().FirstOrDefault(p => Str(p["PhoneType"]) == type && Str(p["PhoneNumber"]).Length > 0) is not { } phone)
+                continue;
+            var country = Str(phone["PhoneCountryCode"]).TrimStart('+', '0');
+            var number = string.Join(' ', new[] { Str(phone["PhoneAreaCode"]), Str(phone["PhoneNumber"]) }.Where(p => p.Length > 0));
+            return country.Length > 0 && country != "27" ? "+" + country + " " + number : number;
+        }
+        return null;
+    }
+
+    // The street address, else the postal one, on one line.
+    private static string? Address(JsonArray? addresses)
+    {
+        if (addresses is null)
+            return null;
+        foreach (var type in AddressTypes)
+        {
+            if (addresses.OfType<JsonObject>().FirstOrDefault(a => Str(a["AddressType"]) == type) is not { } address)
+                continue;
+            var parts = AddressParts.Select(k => Str(address[k])).Where(p => p.Length > 0).ToList();
+            if (parts.Count > 0)
+                return string.Join(", ", parts);
+        }
+        return null;
+    }
+
     public static XeroContact ToContact(JsonObject c) =>
         new(Str(c["ContactID"]), Str(c["Name"]), Str(c["EmailAddress"]) is { Length: > 0 } e ? e : null, Str(c["ContactStatus"]) == "ACTIVE");
 

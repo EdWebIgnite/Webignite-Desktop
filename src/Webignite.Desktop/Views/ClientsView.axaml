@@ -32,6 +32,8 @@
                   </MenuFlyout>
                 </Button.Flyout>
               </Button>
+              <Button Classes="quiet" Content="Bring in from Xero" Command="{Binding BringInFromXeroCommand}" IsEnabled="{Binding !BringingIn}"
+                      ToolTip.Tip="Xero's customers become clients here, and blank details are filled in. Xero isn't changed. This also happens every few hours." />
               <Button Classes="primary" Command="{Binding NewCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
@@ -42,6 +44,8 @@
             <StackPanel Spacing="4">
               <TextBlock Classes="h1" Text="Clients" />
               <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding !IsEmpty}" />
+              <TextBlock Classes="muted" FontSize="12" Text="{Binding XeroMessage}" TextWrapping="Wrap"
+                         IsVisible="{Binding XeroMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </StackPanel>
           </DockPanel>
 
