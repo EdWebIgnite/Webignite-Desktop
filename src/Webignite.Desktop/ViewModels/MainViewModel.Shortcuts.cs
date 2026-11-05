@@ -14,6 +14,7 @@ public partial class MainViewModel
         new("Ctrl+Alt+R", "From any program: start or stop recording the screen"),
         new("Ctrl+Alt+N", "From any program: a quick note, to-do or event (change it in Settings, Notes)"),
         new("Ctrl+Alt+C", "From any program: pick a colour off the screen and copy its code (Settings, Screenshots)"),
+        new("Ctrl+Alt+V", "From any program: clipboard history, the last things you copied (Settings, Screenshots)"),
         new("Ctrl+K", "Search clients, quotes, invoices, mail, to-dos, notes, site logins and files"),
         new("Ctrl+N", "New on this page: quote, invoice, client, retainer, domain, mail or note"),
         new("Ctrl+1 to Ctrl+9", "Jump to a page, in sidebar order"),

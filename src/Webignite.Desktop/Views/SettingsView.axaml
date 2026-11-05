@@ -437,6 +437,16 @@
           </StackPanel>
         </StackPanel>
         <StackPanel>
+          <TextBlock Classes="label" Text="Clipboard history shortcut" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox Width="220" Text="{Binding ClipboardShortcut, Mode=OneWay}" IsReadOnly="True"
+                     PlaceholderText="Click, then press the keys" KeyDown="ClipboardShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+V" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ClipboardShortcutOffCommand}" />
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+                     Text="Opens the last things you copied, text and pictures, from any program." />
+        </StackPanel>
+        <StackPanel>
           <TextBlock Classes="label" Text="Colour picker shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding ColourShortcut, Mode=OneWay}" IsReadOnly="True"

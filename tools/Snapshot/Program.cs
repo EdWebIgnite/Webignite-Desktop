@@ -1399,21 +1399,34 @@ qrWindow.Close();
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
 SaveWindow(passwordWindow, "tools-passwords");
 passwordWindow.Close();
+services.RememberColour("#1C1D21");
+services.RememberColour("#2F9E44");
 var colourWindow = window.ShowTool(ToolKind.Colours, services);
+Check("The Colours tool shows the recent colours", colourWindow.Tools.RecentColours.Select(c => c.Hex).Take(2).SequenceEqual(["#2F9E44", "#1C1D21"]));
 SaveWindow(colourWindow, "tools-colours");
 colourWindow.Close();
-// Clipboard history: what was copied, newest first, in memory only.
+// Clipboard history: what was copied, text and pictures, newest first, in memory only.
 services.Clipboard.Add("thandi@karoocoffee.co.za");
 services.Clipboard.Add("Hi Pieter,\n\nThe new menu is live on the site. Have a look and shout if anything needs changing.\n\nEddie");
+using (var shot = window.CaptureRenderedFrame()!)
+using (var shotStream = new MemoryStream())
+{
+    shot.Save(shotStream, new PngBitmapEncoderOptions());
+    services.Clipboard.Add(new Webignite.Core.Tools.Clip(null, shotStream.ToArray(), shot.PixelSize.Width, shot.PixelSize.Height));
+}
 services.Clipboard.Add("INV-0107");
 services.Clipboard.Add("thandi@karoocoffee.co.za");
 var clipWindow = window.ShowTool(ToolKind.Clipboard, services);
-Check("Clipboard history lists each copy once, newest first", clipWindow.Tools.Clips.Select(c => c.Text).SequenceEqual(["thandi@karoocoffee.co.za", "INV-0107", services.Clipboard.Items[2]]));
+Check("Clipboard history lists each copy once, newest first, pictures too", clipWindow.Tools.Clips.Count == 4
+    && clipWindow.Tools.Clips[0].Clip.Text == "thandi@karoocoffee.co.za" && clipWindow.Tools.Clips[2].IsPicture && clipWindow.Tools.Clips[2].Thumbnail is not null);
 SaveWindow(clipWindow, "tools-clipboard");
+clipWindow.Tools.ClipSearch = "pieter";
+Check("The search finds a copy by its words", clipWindow.Tools.Clips.Count == 1 && clipWindow.Tools.Clips[0].Preview.StartsWith("Hi Pieter", StringComparison.Ordinal));
+clipWindow.Tools.ClipSearch = "";
 clipWindow.Tools.Clips[1].ForgetCommand.Execute(null);
-Check("Forget takes one off", clipWindow.Tools.Clips.Count == 2 && services.Clipboard.Items.Count == 2);
+Check("Forget takes one off", clipWindow.Tools.Clips.Count == 3 && services.Clipboard.Items.Count == 3);
 clipWindow.Close();
-Check("Closing the window stops it following the history", clipWindow.Tools.Clips.Count == 0);
+Check("Closing the window stops it following the history and lets the pictures go", clipWindow.Tools.Clips.Count == 0);
 // Website images: two made-up photos, shrunk for real so the sizes are true.
 var photos = Path.Combine(data, "photos");
 Directory.CreateDirectory(photos);
@@ -1929,6 +1942,17 @@ vm.Search.Query = "bosveld";
 var kinds = vm.Search.Results.Select(r => r.Kind).ToHashSet();
 Check("Ctrl+K finds notes, site logins and files too", kinds.Contains(Webignite.Core.Search.HitKind.Note)
     && kinds.Contains(Webignite.Core.Search.HitKind.Login) && kinds.Contains(Webignite.Core.Search.HitKind.File));
+File.WriteAllText(Path.Combine(projects, "Bosveld Builders", "brief-notes.txt"), "Pieter wants the retaining wall along the back done first.");
+vm.Search.Query = "retaining wall";
+Wait(vm.Search.InsideLoaded, "Search looked inside the files");
+Check("Ctrl+K finds a file by the words inside it", vm.Search.Results.Any(r => r.Kind == Webignite.Core.Search.HitKind.File && r.Title == "brief-notes.txt"));
+Save("search-inside");
+var tagName = services.FileTags.Tags.First(t => services.FileTags.Count(t.Id) > 0).Name;
+vm.Search.Hide();
+vm.Search.Show();
+vm.Search.Query = tagName;
+Check("Ctrl+K finds files by their tag", vm.Search.Results.Any(r => r.Kind == Webignite.Core.Search.HitKind.File && r.Detail.Contains(tagName, StringComparison.Ordinal)));
+vm.Search.Query = "bosveld";
 Check("A site login in Ctrl+K never shows its password", vm.Search.Results.Where(r => r.Kind == Webignite.Core.Search.HitKind.Login)
     .All(r => !(r.Title + r.Detail).Contains("Bosveld#2026!", StringComparison.Ordinal)));
 Save("search-more");

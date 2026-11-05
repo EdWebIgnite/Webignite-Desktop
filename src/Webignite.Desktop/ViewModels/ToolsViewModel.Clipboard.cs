@@ -1,22 +1,26 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Webignite.Core.Tools;
 
 namespace Webignite.Desktop.ViewModels;
 
-// Clipboard history: what was copied while Webignite is open, newest first. Click one to copy it again.
+// Clipboard history: what was copied while Webignite is open, text and pictures, newest first. Click one to copy
+// it again; the search box finds a copy by its words.
 public sealed partial class ToolsViewModel
 {
     public ObservableCollection<ClipRow> Clips { get; } = [];
 
-    public bool HasClips => Clips.Count > 0;
-    public bool NoClips => Clips.Count == 0;
+    public bool HasClips => services.Clipboard.Items.Count > 0;
+    public bool NoClips => services.Clipboard.Items.Count == 0;
+    public bool NothingMatches => HasClips && Clips.Count == 0;
 
     [ObservableProperty] public partial string ClipMessage { get; set; } = "";
+    [ObservableProperty] public partial string ClipSearch { get; set; } = "";
 
-    /// <summary>Set by the view: puts text back on the clipboard.</summary>
-    public Func<string, Task>? CopyClip { get; set; }
+    /// <summary>Set by the view: puts a copy back on the clipboard.</summary>
+    public Func<Clip, Task>? CopyClip { get; set; }
 
     /// <summary>Starts showing the history; the view calls it when shown and <see cref="StopClipboard"/> when closed.</summary>
     public void WatchClipboard()
@@ -28,30 +32,41 @@ public sealed partial class ToolsViewModel
     public void StopClipboard()
     {
         services.Clipboard.Changed -= LoadClips;
-        Clips.Clear();
+        ClearClipRows();
     }
+
+    partial void OnClipSearchChanged(string value) => LoadClips();
 
     private void LoadClips()
     {
-        Clips.Clear();
-        foreach (var text in services.Clipboard.Items)
-            Clips.Add(new ClipRow(text, this));
+        ClearClipRows();
+        foreach (var clip in services.Clipboard.Items.Where(c => ClipboardHistory.Matches(c, ClipSearch)))
+            Clips.Add(new ClipRow(clip, this));
         OnPropertyChanged(nameof(HasClips));
         OnPropertyChanged(nameof(NoClips));
+        OnPropertyChanged(nameof(NothingMatches));
     }
 
-    internal async Task CopyAgain(string text)
+    // Each picture row holds a small picture; they're let go with the rows.
+    private void ClearClipRows()
+    {
+        foreach (var row in Clips)
+            row.Dispose();
+        Clips.Clear();
+    }
+
+    internal async Task CopyAgain(Clip clip)
     {
         if (CopyClip is not { } copy)
             return;
-        await copy(text);
-        services.Clipboard.Add(text); // to the top, also where Windows doesn't tell us (the screenshot tool)
+        await copy(clip);
+        services.Clipboard.Add(clip); // to the top, also where Windows doesn't tell us (the screenshot tool)
         ClipMessage = "Copied. Paste it where you need it.";
     }
 
-    internal void Forget(string text)
+    internal void Forget(Clip clip)
     {
-        services.Clipboard.Remove(text);
+        services.Clipboard.Remove(clip);
         ClipMessage = "";
     }
 
@@ -63,16 +78,40 @@ public sealed partial class ToolsViewModel
     }
 }
 
-/// <summary>One thing copied, shown on one line.</summary>
-public sealed partial class ClipRow(string text, ToolsViewModel tools)
+/// <summary>One thing copied: a line of its text, or a small picture.</summary>
+public sealed partial class ClipRow : IDisposable
 {
-    public string Text { get; } = text;
-    public string Preview { get; } = ClipboardHistory.Preview(text);
-    public string Size { get; } = ClipboardHistory.Size(text);
+    private readonly ToolsViewModel tools;
+
+    public ClipRow(Clip clip, ToolsViewModel tools)
+    {
+        this.tools = tools;
+        Clip = clip;
+        Preview = clip.Text is { } text ? ClipboardHistory.Preview(text) : "";
+        Size = ClipboardHistory.Size(clip);
+        if (clip.Picture is { } png)
+        {
+            using var stream = new MemoryStream(png);
+            Thumbnail = Bitmap.DecodeToHeight(stream, 64);
+        }
+    }
+
+    public Clip Clip { get; }
+    public string Preview { get; }
+    public string Size { get; }
+    public Bitmap? Thumbnail { get; private set; }
+    public bool IsPicture => Clip.IsPicture;
+    public bool IsText => !Clip.IsPicture;
 
     [RelayCommand]
-    private Task Copy() => tools.CopyAgain(Text);
+    private Task Copy() => tools.CopyAgain(Clip);
 
     [RelayCommand]
-    private void Forget() => tools.Forget(Text);
+    private void Forget() => tools.Forget(Clip);
+
+    public void Dispose()
+    {
+        Thumbnail?.Dispose();
+        Thumbnail = null;
+    }
 }

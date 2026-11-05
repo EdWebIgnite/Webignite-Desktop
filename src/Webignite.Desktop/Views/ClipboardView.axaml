@@ -8,10 +8,12 @@
     <DockPanel>
       <Button DockPanel.Dock="Right" Classes="link" Content="Clear all" Command="{Binding ClearClipsCommand}" IsVisible="{Binding HasClips}" />
       <TextBlock Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center"
-                 Text="The last 25 things you copied, newest first. Click one to copy it again." />
+                 Text="The last 25 things you copied, text and pictures, newest first. Click one to copy it again." />
     </DockPanel>
+    <TextBox Classes="search" Text="{Binding ClipSearch}" PlaceholderText="Search what you copied" IsVisible="{Binding HasClips}" />
+    <TextBlock Classes="muted" FontSize="12" Text="Nothing copied matches that." IsVisible="{Binding NothingMatches}" />
     <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding NoClips}"
-               Text="Nothing yet. Copy some text in any program and it shows here. Passwords are never kept, and it's all forgotten when Webignite closes." />
+               Text="Nothing yet. Copy some text or a picture in any program and it shows here. Passwords are never kept, and it's all forgotten when Webignite closes. Ctrl+Alt+V opens this from any program." />
     <ItemsControl ItemsSource="{Binding Clips}" IsVisible="{Binding HasClips}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:ClipRow">
@@ -29,7 +31,8 @@
               <Button Classes="link" Command="{Binding CopyCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,4"
                       ToolTip.Tip="Copy it again">
                 <StackPanel Spacing="1">
-                  <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Ink}" />
+                  <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Ink}" IsVisible="{Binding IsText}" />
+                  <Image Source="{Binding Thumbnail}" Height="64" HorizontalAlignment="Left" Stretch="Uniform" IsVisible="{Binding IsPicture}" />
                   <TextBlock Classes="muted" FontSize="11" Text="{Binding Size}" />
                 </StackPanel>
               </Button>

@@ -9,6 +9,25 @@ namespace Webignite.Desktop.Views;
 public partial class MainWindow
 {
     private readonly Dictionary<ToolKind, ToolWindow> toolWindows = [];
+    private Files.GlobalHotkey? clipboardKey;
+
+    private string? ApplyClipboardShortcut(AppServices services)
+    {
+        if (!OperatingSystem.IsWindows() || clipboardKey is null)
+            return null;
+        var shortcut = services.Settings.Screenshots.ClipboardShortcut;
+        if (string.IsNullOrWhiteSpace(shortcut))
+            return clipboardKey.Set(null);
+        var (keys, problem) = Webignite.Core.Tools.Hotkey.Parse(shortcut);
+        return problem ?? clipboardKey.Set(keys);
+    }
+
+    // From another program: with Webignite minimised, the tool shows on its own rather than hidden with the main window.
+    private void ShowClipboardFromAnywhere(AppServices services)
+    {
+        var window = ShowTool(ToolKind.Clipboard, services, owned: WindowState != Avalonia.Controls.WindowState.Minimized);
+        window.Activate();
+    }
 
     private void WireTools(AppServices services)
     {
@@ -21,10 +40,25 @@ public partial class MainWindow
                 open.Close();
         };
         Closed += (_, _) => services.Clipboard.Stop();
+        services.ApplyClipboardShortcut = () => ApplyClipboardShortcut(services);
+        Opened += (_, _) =>
+        {
+            if (!OperatingSystem.IsWindows())
+                return;
+            clipboardKey = new Files.GlobalHotkey(this, 0x574B, () => ShowClipboardFromAnywhere(services), "Screenshots");
+            if (ApplyClipboardShortcut(services) is { } problem)
+                ShowNote("Clipboard history shortcut not set", problem, () => services.Go.Settings("screenshots"));
+        };
+        Closed += (_, _) =>
+        {
+            if (OperatingSystem.IsWindows())
+                clipboardKey?.Release();
+            clipboardKey = null;
+        };
     }
 
     /// <summary>Opens a tool, or brings its window forward. Returns the window, for the screenshot tool.</summary>
-    public ToolWindow ShowTool(ToolKind kind, AppServices services)
+    public ToolWindow ShowTool(ToolKind kind, AppServices services, bool owned = true)
     {
         if (toolWindows.TryGetValue(kind, out var open))
         {
@@ -34,7 +68,10 @@ public partial class MainWindow
         var window = new ToolWindow(kind, new ToolsViewModel(services));
         window.Closed += (_, _) => toolWindows.Remove(kind);
         toolWindows[kind] = window;
-        window.Show(this);
+        if (owned)
+            window.Show(this);
+        else
+            window.Show();
         return window;
     }
 }

@@ -8,7 +8,7 @@ using Webignite.Core.Tools;
 namespace Webignite.Desktop.Files;
 
 /// <summary>
-/// Clipboard history: the last <see cref="ClipboardHistory.Most"/> bits of text copied in any program, kept in
+/// Clipboard history: the last <see cref="ClipboardHistory.Most"/> things copied in any program (text and pictures), kept in
 /// memory while Webignite is open and gone when it closes. Windows tells the main window when the clipboard
 /// changes (no polling). A copy marked private (Webignite's own password copies, password managers) is skipped.
 /// </summary>
@@ -19,28 +19,30 @@ public sealed class ClipboardKeeper
     // Windows' convention for "don't keep this": password managers and Webignite's site logins set it.
     private static readonly string[] PrivateFormats = ["ExcludeClipboardContentFromMonitorProcessing", "CanIncludeInClipboardHistory"];
 
-    private IReadOnlyList<string> items = [];
+    private IReadOnlyList<Clip> items = [];
     private TopLevel? window;
     private Win32Properties.CustomWndProcHookCallback? hook;
     private IntPtr handle;
 
-    public IReadOnlyList<string> Items => items;
+    public IReadOnlyList<Clip> Items => items;
 
     /// <summary>Raised on the screen's thread when something is added or taken off.</summary>
     public event Action? Changed;
 
-    public void Add(string? text)
+    public void Add(string? text) => Add(new Clip(text));
+
+    public void Add(Clip clip)
     {
-        var added = ClipboardHistory.Add(items, text);
+        var added = ClipboardHistory.Add(items, clip);
         if (ReferenceEquals(added, items))
             return;
         items = added;
         Changed?.Invoke();
     }
 
-    public void Remove(string text)
+    public void Remove(Clip clip)
     {
-        items = ClipboardHistory.Remove(items, text);
+        items = ClipboardHistory.Remove(items, clip.Key);
         Changed?.Invoke();
     }
 
@@ -89,7 +91,24 @@ public sealed class ClipboardKeeper
         if (formats.Any(f => PrivateFormats.Contains(f.Identifier, StringComparer.OrdinalIgnoreCase)))
             return;
         if (formats.Contains(DataFormat.Text))
+        {
             Add(await clipboard.TryGetTextAsync());
+        }
+        else if (formats.Contains(DataFormat.Bitmap) && await clipboard.TryGetBitmapAsync() is { } bitmap)
+        {
+            // Kept as PNG, made off the screen's thread; the picture itself is let go straight after.
+            using (bitmap)
+            {
+                var size = bitmap.PixelSize;
+                var png = await Task.Run(() =>
+                {
+                    using var stream = new MemoryStream();
+                    bitmap.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+                    return stream.ToArray();
+                });
+                Add(new Clip(null, png, size.Width, size.Height));
+            }
+        }
     }
 
     [DllImport("user32.dll", SetLastError = true)]

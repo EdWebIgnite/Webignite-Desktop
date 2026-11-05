@@ -373,7 +373,7 @@ public sealed partial class PdfViewModel : ViewModelBase, IHoldsWork, IDisposabl
         {
             await work();
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or DllNotFoundException or ArgumentException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException or DllNotFoundException or ArgumentException)
         {
             Say($"{problem}: {e.Message}", problem: true);
         }
