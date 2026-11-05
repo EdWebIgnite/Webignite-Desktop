@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -40,6 +41,46 @@ public partial class ProjectsView : FullBleedView
     }
 
     private ProjectsViewModel? Projects => DataContext as ProjectsViewModel;
+
+    // Who a task is for: the names to pick from, shown under the name clicked. Built only when clicked, so a long
+    // list doesn't carry a drop-down for every row.
+    private void WhoClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.DataContext is not TaskRow row)
+            return;
+        var list = new ListBox { ItemsSource = row.People, SelectedItem = row.AssignedTo, MinWidth = 180 };
+        var flyout = new Flyout { Content = list, Placement = PlacementMode.BottomEdgeAlignedLeft };
+        list.SelectionChanged += (_, _) =>
+        {
+            if (list.SelectedItem is Choice<string?> picked && picked != row.AssignedTo)
+                row.AssignedTo = picked;
+            flyout.Hide();
+        };
+        flyout.ShowAt(button);
+    }
+
+    // When a task is due: a month to pick a day from, and a way to take the date off.
+    private void DueClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.DataContext is not TaskRow row)
+            return;
+        var calendar = new Avalonia.Controls.Calendar { SelectedDate = row.Due, DisplayDate = row.Due ?? DateTime.Today };
+        var clear = new Button { Content = "No due date", IsVisible = row.Due is not null, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left };
+        clear.Classes.Add("link");
+        var flyout = new Flyout { Content = new StackPanel { Spacing = 6, Children = { calendar, clear } }, Placement = PlacementMode.BottomEdgeAlignedRight };
+        calendar.SelectedDatesChanged += (_, _) =>
+        {
+            if (calendar.SelectedDate is { } day && day.Date != row.Due?.Date)
+                row.Due = day.Date;
+            flyout.Hide();
+        };
+        clear.Click += (_, _) =>
+        {
+            row.Due = null;
+            flyout.Hide();
+        };
+        flyout.ShowAt(button);
+    }
     private ProjectsViewModel? watching;
     private bool tuckedList;
 

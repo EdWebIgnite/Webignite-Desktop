@@ -322,14 +322,19 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     public IReadOnlyList<Choice<string?>> TagFilters { get; private set; } = [new("Any tag", null)];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasFilter))]
+    [NotifyPropertyChangedFor(nameof(HasFilter), nameof(FilterText))]
     public partial Choice<TaskPriority?>? FilterPriority { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasFilter))]
+    [NotifyPropertyChangedFor(nameof(HasFilter), nameof(FilterText))]
     public partial Choice<string?>? FilterTag { get; private set; }
 
     public bool HasFilter => FilterPriority?.Value is not null || FilterTag?.Value is not null;
+
+    /// <summary>The filter button's words: "Filter", or what's picked, e.g. "High · design".</summary>
+    public string FilterText => HasFilter
+        ? string.Join(" · ", new[] { FilterPriority?.Value is null ? null : FilterPriority.Label, FilterTag?.Value }.Where(t => t is not null))
+        : "Filter";
 
     /// <summary>The priority picked in the filter; the list is one-way, so only a real pick counts.</summary>
     public void PickPriorityFilter(Choice<TaskPriority?> choice)
@@ -829,6 +834,15 @@ public sealed partial class TaskRow : ObservableObject
 
     public bool HasCardLine => CardLine.Length > 0;
 
+    /// <summary>Who it's for, as the list shows it: a name you click to change, or "No one".</summary>
+    public string WhoText => AssignedTo?.Value is null ? "No one" : AssignedTo.Label;
+    public bool HasWho => AssignedTo?.Value is not null;
+
+    /// <summary>When it's due, as the list shows it ("Tomorrow", "12 Nov"), or "Due date" when it has none.</summary>
+    public string DueText => Due is { } due ? ProjectRules.DueLabel(DateOnly.FromDateTime(due), DateOnly.FromDateTime(DateTime.Today)) : "Due date";
+    public bool HasDue => Due is not null;
+    public bool IsLate => Due is { } due && !Done && DateOnly.FromDateTime(due) < DateOnly.FromDateTime(DateTime.Today);
+
     [ObservableProperty] public partial Choice<string?>? AssignedTo { get; set; }
     [ObservableProperty] public partial DateTime? Due { get; set; }
     [ObservableProperty] public partial bool IsOpen { get; set; }
@@ -861,12 +875,15 @@ public sealed partial class TaskRow : ObservableObject
 
     partial void OnDoneChanged(bool value)
     {
+        OnPropertyChanged(nameof(IsLate));
         if (!loading)
             page.ChangeTask(this, t => t with { Done = value });
     }
 
     partial void OnAssignedToChanged(Choice<string?>? value)
     {
+        OnPropertyChanged(nameof(WhoText));
+        OnPropertyChanged(nameof(HasWho));
         OnPropertyChanged(nameof(CardLine));
         OnPropertyChanged(nameof(HasCardLine));
         if (!loading)
@@ -875,6 +892,9 @@ public sealed partial class TaskRow : ObservableObject
 
     partial void OnDueChanged(DateTime? value)
     {
+        OnPropertyChanged(nameof(DueText));
+        OnPropertyChanged(nameof(HasDue));
+        OnPropertyChanged(nameof(IsLate));
         OnPropertyChanged(nameof(CardLine));
         OnPropertyChanged(nameof(HasCardLine));
         if (!loading)
