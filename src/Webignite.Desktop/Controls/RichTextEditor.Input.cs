@@ -486,7 +486,7 @@ public sealed partial class RichTextEditor
     private void ShowMenu(object? sender, ContextRequestedEventArgs e)
     {
         var link = LinkOpened is null ? null : LinkAt(caret);
-        var items = new List<object>();
+        var items = SpellingMenu();
         if (link is not null)
         {
             items.Add(Item("Open link (Ctrl+click)", null, true, () => LinkOpened?.Invoke(link)));

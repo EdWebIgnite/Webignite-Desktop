@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Webignite.Core.Writing;
 using Webignite.Core.Backups;
 using Webignite.Data;
 using Webignite.Mail;
@@ -289,8 +291,47 @@ public sealed class AppServices : IDisposable
         return folder;
     }
 
+    private ISpelling? spelling;
+    private bool spellingTried;
+
+    /// <summary>
+    /// The spell checker for writing, made the first time it's asked for; null when spell check is off or the PC
+    /// has no checker. The snapshot tool puts in its own.
+    /// </summary>
+    public ISpelling? Spelling
+    {
+        get
+        {
+            if (!Settings.SpellCheck.On)
+                return null;
+            if (spelling is null && !spellingTried && OperatingSystem.IsWindows())
+            {
+                spellingTried = true;
+                try
+                {
+                    spelling = WindowsSpelling.Open(Settings.SpellCheck.Language);
+                }
+                catch (Exception e) when (e is COMException or InvalidCastException or TypeLoadException)
+                {
+                    AppLog.Write("Windows' spell checker couldn't be opened", e);
+                }
+            }
+            return spelling;
+        }
+        set => spelling = value;
+    }
+
+    /// <summary>Spell check was switched on or off, or to another language: the next mail asks again.</summary>
+    public void ResetSpelling()
+    {
+        (spelling as IDisposable)?.Dispose();
+        spelling = null;
+        spellingTried = false;
+    }
+
     public void Dispose()
     {
+        (spelling as IDisposable)?.Dispose();
         // Off the screen's thread: closing the connections continues on whatever thread it started on, so
         // waiting for it here, on that same thread, would only ever time out.
         if (mail is { } open)

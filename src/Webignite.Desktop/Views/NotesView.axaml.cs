@@ -72,6 +72,7 @@ public partial class NotesView : FullBleedView
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        Editor.Spelling = App.Services?.Spelling;
         if (Notes is { } notes)
             notes.FocusTitle = FocusTitle;
     }

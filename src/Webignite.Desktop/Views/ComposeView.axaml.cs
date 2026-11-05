@@ -57,6 +57,13 @@ public partial class ComposeView : UserControl
         ShowFormat();
     }
 
+    // Spell check comes on with the editor, so Windows' checker is only opened once a mail is written.
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Editor.Spelling = App.Services?.Spelling;
+    }
+
     // Each colour is its own button; the colours are what the mail will carry, not the app's own look.
     private void Swatches(ItemsControl list, IReadOnlyList<string> colours, string action)
     {

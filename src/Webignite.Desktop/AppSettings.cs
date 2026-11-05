@@ -5,6 +5,7 @@ using Webignite.Core.Layout;
 using Webignite.Core.Mail;
 using Webignite.Core.Tasks;
 using Webignite.Core.Web;
+using Webignite.Core.Writing;
 using Webignite.Data;
 
 namespace Webignite.Desktop;
@@ -217,6 +218,13 @@ public sealed class AppSettings(LocalStore store)
     {
         get => store.GetSetting<List<SavedReply>>("mail-saved-replies") ?? [];
         set => store.SetSetting("mail-saved-replies", value.ToList());
+    }
+
+    /// <summary>Spell check while writing a mail.</summary>
+    public SpellCheckSettings SpellCheck
+    {
+        get => store.GetSetting<SpellCheckSettings>("spell-check") ?? new SpellCheckSettings();
+        set => store.SetSetting("spell-check", value);
     }
 
     /// <summary>Whole mails kept to start others from, put in from the editor's Templates menu.</summary>

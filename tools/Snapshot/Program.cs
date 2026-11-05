@@ -295,6 +295,9 @@ settingsPage.Open("backups");
 Save("settings-backups");
 settingsPage.Open("emails");
 Save("settings-emails");
+settingsPage.Open("mail");
+Check("Settings, Mail shows the spelling choices", settingsPage.SpellCheckOn && settingsPage.SpellLanguages.Count > 0 && settingsPage.SpellNote.Length > 0);
+Save("settings-mail");
 settingsPage.Open("xero");
 
 // A short to-do list, before the sample to-dos below, so the hint under it shows.
@@ -1977,6 +1980,27 @@ Save("site-check");
     services.Settings.MailTemplates = [];
     writer.DiscardCommand.Execute(null);
 
+    // Spell check: Windows' checker stands in for a small word list here.
+    services.Spelling = new StandInSpelling();
+    vm.Mail.WriteCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    var speller = vm.Mail.Composer!;
+    var spellEditor = window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.RichTextEditor>().First();
+    spellEditor.Spelling = services.Spelling;
+    spellEditor.StartTyping();
+    spellEditor.InsertDocument(Webignite.Core.Writing.RichText.FromText("Thanks for teh paymnet"));
+    Dispatcher.UIThread.RunJobs();
+    var spellMenu = spellEditor.SpellingMenu().OfType<Avalonia.Controls.MenuItem>().ToList();
+    Check("A misspelt word offers the right spelling, adding it and ignoring it", spellMenu.Count == 3 && Equals(spellMenu[0].Header, "payment")
+        && Equals(spellMenu[1].Header, "Add \"paymnet\" to the dictionary"));
+    Save("mail-spelling");
+    spellMenu[0].RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.MenuItem.ClickEvent));
+    Dispatcher.UIThread.RunJobs();
+    Check("Picking a suggestion swaps the misspelt word", speller.Body.StartsWith("Thanks for teh payment", StringComparison.Ordinal));
+    spellEditor.Spelling = null;
+    services.Spelling = null;
+    speller.DiscardCommand.Execute(null);
+
     // The quick note from any program: what is typed is kept however the box closes.
     var quick = new QuickNoteWindow(services) { Typed = "Call the bank about the card\nThey said to phone after 9\n[ ] Card number ready" };
     quick.Show();
@@ -2260,6 +2284,24 @@ static byte[] SamplePdf(params string[] lines)
 }
 
 // Stands in for Windows' Media Foundation in the screenshots: frames from a picture, and a note of what was trimmed.
+/// <summary>Stands in for Windows' spell checker: two known misspellings and their fixes.</summary>
+sealed class StandInSpelling : Webignite.Core.Writing.ISpelling
+{
+    private readonly Dictionary<string, string> fixes = new() { ["teh"] = "the", ["paymnet"] = "payment" };
+    public string Language => "en-ZA";
+    public int Revision { get; private set; }
+    public bool IsWrong(string word) => fixes.ContainsKey(word);
+    public IReadOnlyList<string> Suggest(string word) => fixes.TryGetValue(word, out var fix) ? [fix] : [];
+
+    public void Add(string word)
+    {
+        fixes.Remove(word);
+        Revision++;
+    }
+
+    public void Ignore(string word) => Add(word);
+}
+
 sealed class StandInVideo(SkiaSharp.SKBitmap picture) : IVideoTools
 {
     public (TimeSpan Start, TimeSpan End)? Trimmed { get; private set; }
