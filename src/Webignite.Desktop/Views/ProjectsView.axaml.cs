@@ -36,6 +36,37 @@ public partial class ProjectsView : FullBleedView
     }
 
     private ProjectsViewModel? Projects => DataContext as ProjectsViewModel;
+    private ProjectsViewModel? watching;
+    private bool tuckedList;
+
+    // In a narrow window, opening a task tucks the project list away (its strip brings it back), and closing the
+    // task puts it back, so the task's pane has room beside the project.
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (watching is not null)
+            watching.PropertyChanged -= Watch;
+        watching = Projects;
+        if (watching is not null)
+            watching.PropertyChanged += Watch;
+    }
+
+    private void Watch(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(ProjectsViewModel.HasTask) || Projects is not { } projects)
+            return;
+        var list = projects.Panels["list"];
+        if (projects.HasTask && list.IsShown && Bounds.Width > 0 && Bounds.Width < 1400)
+        {
+            list.IsShown = false;
+            tuckedList = true;
+        }
+        else if (!projects.HasTask && tuckedList)
+        {
+            list.IsShown = true;
+            tuckedList = false;
+        }
+    }
 
     private void PaneResized(string pane, double width) => Projects?.Panels.Resized(pane, width);
 
@@ -66,6 +97,34 @@ public partial class ProjectsView : FullBleedView
         if (e.Key == Key.Enter && Projects is { } projects)
         {
             projects.AddHeadingCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    // The task pane's lists are one-way, so a list rebuilt never changes the task; only a real pick does.
+    private void HeadingPicked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (Projects?.Detail is { } task && HeadingBox.SelectedItem is Choice<string?> choice && choice != task.Heading)
+            task.PickHeading(choice);
+    }
+
+    private void TaskClientPicked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (Projects?.Detail is { } task && TaskClientBox.SelectedItem is Choice<Webignite.Core.Clients.Client?> choice && choice != task.Client)
+            task.PickClient(choice);
+    }
+
+    private void DocumentPicked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (Projects?.Detail is { } task && DocumentBox.SelectedItem is Choice<Webignite.Core.Documents.StoredDocument?> choice && choice != task.Document)
+            task.PickDocument(choice);
+    }
+
+    private void AddSubtaskKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Projects?.Detail is { } task)
+        {
+            task.AddSubtaskCommand.Execute(null);
             e.Handled = true;
         }
     }
