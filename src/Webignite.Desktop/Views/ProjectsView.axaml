@@ -21,6 +21,17 @@
           <TextBlock Classes="problem" FontSize="12" Text="{Binding ListMessage}" TextWrapping="Wrap"
                      IsVisible="{Binding ListMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
+          <Border Classes="card" Padding="0">
+            <Button Classes="row" Classes.open="{Binding IsMyTasks}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                    Command="{Binding ShowMineCommand}" ToolTip.Tip="Everything given to you, across your projects">
+              <Grid ColumnDefinitions="Auto,10,*,Auto" Margin="8,0">
+                <c:Icon Data="{StaticResource Icon.Check}" Size="16" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="My tasks" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="3" Classes="muted" Text="{Binding MyCount}" VerticalAlignment="Center" />
+              </Grid>
+            </Button>
+          </Border>
+
           <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Projects}" Title="No projects yet"
                         Text="Type a name above to start one: a website build, an SEO month, anything with steps." />
 
@@ -46,6 +57,46 @@
       <Panel Margin="32,30" MaxWidth="1000" HorizontalAlignment="Stretch">
         <c:EmptyState IsVisible="{Binding IsClosed}" Icon="{StaticResource Icon.Projects}" Title="Pick a project"
                       Text="Its headings and tasks show here. Give tasks to yourself or your partner and set when they're due." VerticalAlignment="Top" />
+        <!-- My tasks: everything given to me, by when it's due -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsMyTasks}">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="h1" Text="My tasks" />
+            <TextBlock Classes="muted" Text="{Binding MySummary}" />
+          </StackPanel>
+          <c:EmptyState IsVisible="{Binding MyTasksEmpty}" Icon="{StaticResource Icon.Check}" Title="All clear"
+                        Text="Tasks given to you in any project show here, soonest first. Ones with a due date show in Planner and Calendar too." />
+          <ItemsControl ItemsSource="{Binding MyRows}">
+            <ItemsControl.DataTemplates>
+              <DataTemplate DataType="vm:MyGroupRow">
+                <DockPanel Margin="0,14,0,2">
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Count}" VerticalAlignment="Center" />
+                  <TextBlock Classes="section" Classes.overdue="{Binding Overdue}" Text="{Binding Title}" />
+                </DockPanel>
+              </DataTemplate>
+              <DataTemplate DataType="vm:TaskRow">
+                <Border Background="Transparent" Padding="0,1" Opacity="{Binding Fade}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+                  <Grid ColumnDefinitions="30,*,140,32">
+                    <CheckBox IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Done" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,4">
+                      <TextBox Classes="inline" Text="{Binding Title}" />
+                      <StackPanel Orientation="Horizontal" Spacing="8" Margin="6,0,0,2">
+                        <TextBlock Classes="muted" FontSize="12" Text="{Binding ProjectName}" />
+                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Subtasks, StringFormat='{}{0} subtasks'}" IsVisible="{Binding HasSubtasks}" />
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" />
+                      </StackPanel>
+                    </StackPanel>
+                    <CalendarDatePicker Grid.Column="2" SelectedDate="{Binding Due}" Watermark="Due" MinHeight="30" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                    <Button Grid.Column="3" Classes="quiet" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0" VerticalAlignment="Center"
+                            Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}" ToolTip.Tip="Open the task">
+                      <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" />
+                    </Button>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.DataTemplates>
+          </ItemsControl>
+        </StackPanel>
+
         <StackPanel Spacing="16" IsVisible="{Binding IsOpen}">
           <DockPanel>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
@@ -207,6 +258,9 @@
           <StackPanel Spacing="14" IsVisible="{Binding #Root.((vm:ProjectsViewModel)DataContext).HasTask}" DataContext="{Binding Detail}" x:DataType="vm:TaskDetail">
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
+                <Button Classes="quiet" Padding="6" Command="{Binding StartTimerCommand}" ToolTip.Tip="Start the timer on this task (Time page)">
+                  <c:Icon Data="{StaticResource Icon.Time}" Size="14" />
+                </Button>
                 <Button Classes="quiet" Padding="6" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete the task and its subtasks">
                   <c:Icon Data="{StaticResource Icon.Trash}" Size="14" />
                 </Button>

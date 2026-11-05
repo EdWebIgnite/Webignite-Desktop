@@ -341,3 +341,72 @@ public sealed class ProjectTagTests
         Assert.Equal(made.At.AddHours(2), changed.Fields["priority"].At);
     }
 }
+
+/// <summary>My tasks across projects, and the ties to the calendar, mail and the timer.</summary>
+public sealed class MyTaskTests
+{
+    // Thursday 5 November 2026; the week runs Monday 2 to Sunday 8.
+    private static readonly DateOnly Today = new(2026, 11, 5);
+
+    private static ProjectTask Task(string id, string project = "p", string? who = "me", DateOnly? due = null, bool done = false, TaskPriority priority = TaskPriority.Normal) =>
+        new() { Id = id, ProjectId = project, Title = id, AssignedTo = who, Due = due, Done = done, Priority = priority };
+
+    [Fact]
+    public void My_tasks_are_open_tasks_given_to_me_in_live_projects()
+    {
+        var projects = new[]
+        {
+            new Project { Id = "p", Name = "Site" },
+            new Project { Id = "done", Name = "Old", Status = ProjectStatus.Done },
+            new Project { Id = "gone", Name = "Gone", Deleted = new Stamp("me", DateTimeOffset.UnixEpoch) },
+        };
+        var tasks = new[] { Task("mine"), Task("theirs", who: "partner"), Task("ticked", done: true), Task("old", "done"), Task("lost", "gone"), Task("nobody", who: null) };
+
+        Assert.Equal(["mine"], ProjectRules.Mine(tasks, projects, "me").Select(t => t.Id));
+    }
+
+    [Fact]
+    public void My_tasks_are_grouped_by_when_they_are_due_high_first()
+    {
+        var tasks = new[]
+        {
+            Task("late", due: Today.AddDays(-2)), Task("today", due: Today), Task("today-high", due: Today, priority: TaskPriority.High),
+            Task("sunday", due: new DateOnly(2026, 11, 8)), Task("next-week", due: new DateOnly(2026, 11, 9)), Task("whenever"),
+        };
+
+        var groups = ProjectRules.ByWhen(tasks, Today);
+
+        Assert.Equal(["Overdue", "Today", "This week", "Later", "No due date"], groups.Select(g => g.Title));
+        Assert.Equal(["today-high", "today"], groups[1].Tasks.Select(t => t.Id));
+        Assert.Equal(["sunday"], groups[2].Tasks.Select(t => t.Id));
+        Assert.Equal(["Today"], ProjectRules.ByWhen([Task("x", due: Today)], Today).Select(g => g.Title));
+    }
+
+    [Fact]
+    public void My_tasks_due_in_a_range_show_on_the_calendar_with_their_project()
+    {
+        var items = ProjectRules.Agenda(Today, Today.AddDays(6), [Task("Wireframes", due: Today), Task("Later", due: Today.AddDays(10)), Task("Whenever")],
+            new Dictionary<string, string> { ["p"] = "Bosveld Builders website" });
+
+        var item = Assert.Single(items);
+        Assert.Equal("Wireframes (Bosveld Builders website)", item.Title);
+        Assert.Equal(Webignite.Core.Calendar.AgendaKind.ProjectTask, item.Kind);
+        var all = Webignite.Core.Calendar.Agenda.Build(Today, Today, [], [], [], items);
+        Assert.Single(all);
+    }
+
+    [Fact]
+    public void A_task_from_a_mail_is_named_after_it_given_to_me_and_linked()
+    {
+        var mail = new Webignite.Core.Mail.MailSummary
+        {
+            AccountId = "a", Folder = "INBOX", Uid = 7, Subject = "  Site down? ",
+            From = new Webignite.Core.Mail.MailPerson("Pieter van Wyk", "pieter@bosveldbuilders.co.za"),
+        };
+        var task = ProjectRules.FromMail(mail, "p", "me", "c1");
+        Assert.Equal("Site down?", task.Title);
+        Assert.Equal(("me", "c1", (uint)7), (task.AssignedTo, task.ClientId, task.Mail!.Uid));
+        Assert.Equal("Mail from Pieter van Wyk", ProjectRules.FromMail(mail with { Subject = "" }, "p", "me", null).Title);
+        Assert.Equal("Wireframes, Bosveld Builders website", ProjectRules.TimerNote(Task("Wireframes"), "Bosveld Builders website"));
+    }
+}

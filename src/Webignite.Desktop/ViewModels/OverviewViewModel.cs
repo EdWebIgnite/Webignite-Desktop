@@ -93,7 +93,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
         var documents = services.Documents.List();
 
         Today.Clear();
-        foreach (var item in Agenda.Build(today, today, services.Store.ListEvents(today, today), tasks, documents).Where(i => !i.Done))
+        foreach (var item in Agenda.Build(today, today, services.Store.ListEvents(today, today), tasks, documents, services.Projects.Agenda(today, today, services.Me().Id)).Where(i => !i.Done))
             Today.Add(new AgendaItemViewModel(item));
         var overdueTasks = tasks.Count(t => TaskGroups.Of(t, today) == TaskGroup.Overdue);
         OverdueText = overdueTasks switch { 0 => "", 1 => "1 overdue to-do", _ => $"{overdueTasks} overdue to-dos" };

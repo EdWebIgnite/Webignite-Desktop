@@ -2153,6 +2153,47 @@ Save("site-check");
         Dispatcher.UIThread.RunJobs();
         Save("projects-tags");
         projectsPage.ClearFilterCommand.Execute(null);
+
+        // My tasks: everything given to me, by when it's due; opened beside the list; the timer started from one.
+        projectsPage.ShowMineCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        var myTasks = projectsPage.MyRows.OfType<TaskRow>().ToList();
+        Check("My tasks lists what's given to me across projects, grouped by when it's due", projectsPage.IsMyTasks && myTasks.Count > 0
+            && myTasks.All(r => r.Task.AssignedTo == team.Me.Id && !r.Task.Done) && projectsPage.MyRows.OfType<MyGroupRow>().Any()
+            && myTasks.All(r => r.ProjectName == "Bosveld Builders new website"));
+        projectsPage.OpenTaskCommand.Execute(myTasks[0]);
+        Check("A task opens beside My tasks", projectsPage.IsMyTasks && projectsPage.Detail?.Task.Id == myTasks[0].Task.Id);
+        projectsPage.Detail!.StartTimerCommand.Execute(null);
+        Check("The timer starts on a task, with its client", services.Timer.Running is { } timing
+            && timing.Note.StartsWith(myTasks[0].Title, StringComparison.Ordinal) && timing.ClientId == bosveldId);
+        services.Timer.Stop();
+        Dispatcher.UIThread.RunJobs();
+        Save("projects-my-tasks");
+        projectsPage.CloseTaskCommand.Execute(null);
+
+        // My tasks with a due date show in Planner, for the week they're due.
+        var dated = services.Projects.Mine(team.Me.Id).Where(t => t.Due is not null).OrderBy(t => t.Due).First();
+        Open(Page.Planner);
+        var planner = (PlannerViewModel)vm[Page.Planner].Main.Page;
+        while (planner.Days[0].Date > dated.Due)
+            planner.PreviousWeekCommand.Execute(null);
+        while (planner.Days[^1].Date < dated.Due)
+            planner.NextWeekCommand.Execute(null);
+        Check("My dated project tasks show in Planner", planner.Days.SelectMany(d => d.Items).Any(i => i.Item.Kind == Webignite.Core.Calendar.AgendaKind.ProjectTask
+            && i.Title.StartsWith(dated.Title, StringComparison.Ordinal)));
+        planner.ThisWeekCommand.Execute(null);
+
+        // A mail's right-click adds it to a project as a task, linked to the mail.
+        Open(Page.Mail);
+        if (vm.Mail.Messages.FirstOrDefault() is { } projectMail)
+        {
+            Wait(vm.Mail.Select(projectMail), "The mail opened");
+            var addTo = vm.Mail.MessageMenu().FirstOrDefault(i => i.Header == "Add to a project");
+            var into = addTo?.Items.FirstOrDefault(i => i.Header == "Bosveld Builders new website");
+            into?.Run?.Invoke().GetAwaiter().GetResult();
+            Check("A mail is added to a project as a task, with the mail linked", into is not null
+                && services.Projects.AllTasks(site.Id).Any(t => t.Mail?.Uid == projectMail.Summary.Uid && t.AssignedTo == team.Me.Id));
+        }
     }
 
     // The quick note from any program: what is typed is kept however the box closes.

@@ -77,6 +77,13 @@ public partial class MailViewModel
             MakeTodo(mail);
             return Task.CompletedTask;
         }) { Icon = "Todo" };
+        var projects = Webignite.Core.Projects.ProjectRules.Listed(services.Projects.Projects(), showDone: false);
+        if (projects.Count > 0)
+            yield return new("Add to a project") { Icon = "Projects", Items = [.. projects.Select(p => new MailMenuItem(p.Name, () =>
+            {
+                AddToProject(mail, p);
+                return Task.CompletedTask;
+            }))] };
         yield return new("Save as a file…", () => SaveAsFile(mail)) { Icon = "Download" };
     }
 
@@ -94,6 +101,19 @@ public partial class MailViewModel
         services.Clients.Change(client.Id, c => c with { Email = from.Address, ContactPerson = string.IsNullOrWhiteSpace(from.Name) ? null : from.Name });
         if (services.Clients.Get(client.Id) is { } saved)
             services.Go.Client(saved);
+    }
+
+    // A task in a project, named after the mail and linked to it, given to me; the note opens it.
+    private void AddToProject(MailSummary mail, Webignite.Core.Projects.Project project)
+    {
+        var client = ClientMail.For(services.Clients.List(), mail.From?.Address);
+        var (saved, problems) = services.Projects.AddTask(Webignite.Core.Projects.ProjectRules.FromMail(mail, project.Id, services.Me().Id, client?.Id));
+        if (saved is null)
+        {
+            services.ShowNote?.Invoke("Couldn't add it", string.Join(" ", problems), null);
+            return;
+        }
+        services.ShowNote?.Invoke($"Added to {project.Name}", saved.Title, () => services.Go.ProjectTask(saved.Id));
     }
 
     // A to-do to deal with the mail, naming who it's from and their client when known.

@@ -9,6 +9,7 @@ public enum AgendaKind
     Task,
     QuoteExpires,
     InvoiceDue,
+    ProjectTask,
 }
 
 /// <summary>One thing on a day: an event, a task, or a date from a quote or invoice.</summary>
@@ -21,10 +22,11 @@ public sealed record AgendaItem(DateOnly Date, AgendaKind Kind, string Title, Ti
 /// <summary>Brings events, tasks and document dates together for the calendar and planner.</summary>
 public static class Agenda
 {
+    /// <param name="projectTasks">Project tasks due in the range, already made into items (see <c>ProjectRules.Agenda</c>).</param>
     public static IReadOnlyList<AgendaItem> Build(DateOnly from, DateOnly to, IEnumerable<CalendarEvent> events,
-        IEnumerable<TaskItem> tasks, IEnumerable<StoredDocument> documents)
+        IEnumerable<TaskItem> tasks, IEnumerable<StoredDocument> documents, IEnumerable<AgendaItem>? projectTasks = null)
     {
-        var items = new List<AgendaItem>();
+        var items = new List<AgendaItem>(projectTasks ?? []);
         bool InRange(DateOnly date) => date >= from && date <= to;
 
         foreach (var e in events.Where(e => InRange(e.Date)))

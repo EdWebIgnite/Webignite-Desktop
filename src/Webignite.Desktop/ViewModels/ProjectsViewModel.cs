@@ -37,7 +37,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     public PanelsViewModel Panels { get; }
 
-    public string? TabTitle => open is null ? null : EditName.Trim().Length > 0 ? EditName.Trim() : "Project";
+    public string? TabTitle => IsMyTasks ? "My tasks" : open is null ? null : EditName.Trim().Length > 0 ? EditName.Trim() : "Project";
 
     public bool HoldsWork => open is not null || Detail is not null || typed.Count > 0;
 
@@ -67,6 +67,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             else
                 CloseProject();
         }
+        else if (IsMyTasks)
+            ShowMyTasks();
         if (Detail is { } detail)
         {
             if (services.Projects.GetTask(detail.Task.Id) is null)
@@ -82,6 +84,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         SharedProjects.Clear();
         PersonalProjects.Clear();
         var clients = services.Clients.List().ToDictionary(c => c.Id, c => c.Name);
+        MyCount = services.Projects.Mine(services.Me().Id).Count;
         foreach (var project in ProjectRules.Listed(services.Projects.Projects(), ShowDone))
         {
             var row = new ProjectRow(project, project.ClientId is { } id && clients.TryGetValue(id, out var name) ? name : null) { IsOpen = project.Id == open?.Id };
@@ -134,7 +137,61 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle), nameof(HoldsWork))]
     public partial bool IsOpen { get; private set; }
 
-    public bool IsClosed => !IsOpen;
+    public bool IsClosed => !IsOpen && !IsMyTasks;
+
+    // My tasks: everything given to me across projects, by when it's due.
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle))]
+    public partial bool IsMyTasks { get; private set; }
+
+    public ObservableCollection<object> MyRows { get; } = [];
+
+    [ObservableProperty] public partial int MyCount { get; private set; }
+    [ObservableProperty] public partial string MySummary { get; private set; } = "";
+
+    public bool MyTasksEmpty => IsMyTasks && MyRows.Count == 0;
+
+    [RelayCommand]
+    private void ShowMine()
+    {
+        SaveTyped();
+        CloseProject();
+        IsMyTasks = true;
+        ShowMyTasks();
+        if (!Panels["project"].IsShown)
+            Panels["project"].IsShown = true;
+    }
+
+    private void ShowMyTasks()
+    {
+        MyRows.Clear();
+        var me = services.Me().Id;
+        var mine = services.Projects.Mine(me);
+        MyCount = mine.Count;
+        var names = services.Projects.Projects().ToDictionary(p => p.Id, p => p.Name);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        foreach (var (title, tasks) in ProjectRules.ByWhen(mine, today))
+        {
+            MyRows.Add(new MyGroupRow(title, tasks.Count, title == "Overdue"));
+            foreach (var task in tasks)
+            {
+                var subtasks = task.ParentId is null ? ProjectRules.SubtaskCount(services.Projects.AllTasks(task.ProjectId).Where(t => t.ParentId == task.Id)) : "";
+                MyRows.Add(new TaskRow(task, null, subtasks, People, this)
+                {
+                    ProjectName = names.GetValueOrDefault(task.ProjectId),
+                    IsOpen = task.Id == Detail?.Task.Id,
+                });
+            }
+        }
+        MySummary = mine.Count switch
+        {
+            0 => "Nothing given to you right now.",
+            1 => "1 task given to you, across your projects.",
+            _ => $"{mine.Count} tasks given to you, across your projects.",
+        };
+        OnPropertyChanged(nameof(MyTasksEmpty));
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TabTitle))]
@@ -243,6 +300,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             FilterTag = null;
         }
         open = project;
+        IsMyTasks = false;
+        MyRows.Clear();
         loading = true;
         EditName = project.Name;
         EditShared = project.Shared;
@@ -261,6 +320,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     private void ShowTasks()
     {
+        if (IsMyTasks)
+        {
+            ShowMyTasks();
+            return;
+        }
         Rows.Clear();
         Columns.Clear();
         if (open is null)
@@ -623,6 +687,10 @@ public sealed partial class TaskRow : ObservableObject
         Reset();
     }
 
+    /// <summary>Its project, shown in My tasks.</summary>
+    public string? ProjectName { get; init; }
+    public bool HasProjectName => ProjectName is not null;
+
     /// <summary>The heading it's under in the list; null for a subtask in the task pane.</summary>
     public SectionRow? Section { get; }
     public string Subtasks { get; }
@@ -707,6 +775,14 @@ public sealed partial class TaskRow : ObservableObject
 
     [RelayCommand]
     private void Delete() => page.DeleteTask(this);
+}
+
+/// <summary>A group in My tasks: Overdue, Today, This week, Later or No due date.</summary>
+public sealed class MyGroupRow(string title, int count, bool overdue)
+{
+    public string Title { get; } = title;
+    public string Count { get; } = count.ToString(System.Globalization.CultureInfo.CurrentCulture);
+    public bool Overdue { get; } = overdue;
 }
 
 /// <summary>A column on the board: a heading, its cards, and a box to add one.</summary>
