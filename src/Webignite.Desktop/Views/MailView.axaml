@@ -83,6 +83,11 @@
       <Setter Property="CornerRadius" Value="8" />
       <Setter Property="Padding" Value="0,0,0,6" />
     </Style>
+    <Style Selector="Button.threadhead">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="12,8,12,4" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
     <Style Selector="Button.threadline">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="CornerRadius" Value="0" />
@@ -529,8 +534,15 @@
               <!-- The rest of the conversation, stacked: click a line to open that mail. -->
               <Border Classes="threadstack" IsVisible="{Binding HasThread}">
                 <StackPanel>
-                  <TextBlock Classes="label" Text="{Binding ThreadTitle}" Margin="12,8,12,4" />
-                  <ItemsControl ItemsSource="{Binding ThreadLines}">
+                  <Button Classes="threadhead" Command="{Binding ToggleThreadCommand}" ToolTip.Tip="{Binding ThreadToggleTip}"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" IsVisible="{Binding ThreadOpen}" VerticalAlignment="Center" />
+                      <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="12" IsVisible="{Binding !ThreadOpen}" VerticalAlignment="Center" />
+                      <TextBlock Classes="label" Text="{Binding ThreadTitle}" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </Button>
+                  <ItemsControl ItemsSource="{Binding ThreadLines}" IsVisible="{Binding ThreadOpen}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:ThreadLineViewModel">
                         <Button Classes="threadline" Classes.open="{Binding IsOpen}" Command="{Binding OpenCommand}"

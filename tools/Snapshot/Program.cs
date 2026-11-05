@@ -683,6 +683,15 @@ vm.Mail.StatusIsProblem = false;
 var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 Wait(vm.Mail.Select(opened), "The mail opened");
 Save("mail");
+{
+    // A long line in the conversation must not widen the page past the window and push the list off screen.
+    var mailView = window.GetVisualDescendants().OfType<MailView>().First();
+    Check("A conversation's long lines keep the mail page inside the window", vm.Mail.Reader?.HasThread == true && mailView.Bounds.Width <= window.Bounds.Width);
+    vm.Mail.Reader!.ToggleThreadCommand.Execute(null);
+    Check("The conversation folds up, and stays folded for the next mail", !vm.Mail.Reader.ThreadOpen && services.Settings.MailView.ThreadFolded);
+    Save("mail-thread-folded");
+    vm.Mail.Reader.ToggleThreadCommand.Execute(null);
+}
 // The same mail in a dark look: it stays on white paper so it can be read.
 services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Dark, DarkPalette = DarkPalette.Graphite };
 Save("dark-mail");
@@ -1724,7 +1733,8 @@ void SeedMail()
         Mail(work.Id, 41, "Lerato Dlamini", "lerato@fynbosphysio.co.za", "Booking page not loading on phones", "Morning Eddie, a few patients say the booking page just spins on their phones.", TimeSpan.FromHours(5), true, attachments: true, flagged: true, categories: ["clients"])
             with { MessageId = "<b2@fynbosphysio.co.za>", InReplyTo = "<b1@fynbosphysio.co.za>" },
         // The first mail in Lerato's conversation, so the reader shows the stack.
-        Mail(work.Id, 38, "Lerato Dlamini", "lerato@fynbosphysio.co.za", "Booking page slow", "Hi Eddie, is the booking page slow for you too? It took ages this morning.", TimeSpan.FromDays(1), true)
+        Mail(work.Id, 38, "Lerato Dlamini", "lerato@fynbosphysio.co.za", "Booking page slow",
+            "Hi Eddie, is the booking page slow for you too? It took ages this morning, and two patients phoned to say they gave up halfway through choosing a time, which has never happened before. From: Eddie <eddie@webignite.co.za> Sent: Monday", TimeSpan.FromDays(1), true)
             with { MessageId = "<b1@fynbosphysio.co.za>" },
         Mail(work.Id, 40, "xneelo", "noreply@xneelo.co.za", "Your hosting renewal for webignite.co.za", "Your hosting package renews on 15 December 2026.", TimeSpan.FromDays(2), true),
         Mail(work.Id, 39, "Google Search Console", "sc-noreply@google.com", "New coverage issue for fynbosphysio.co.za", "Search Console has found a new issue on your site.", TimeSpan.FromDays(4), true),
