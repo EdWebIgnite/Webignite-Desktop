@@ -695,7 +695,14 @@ Save("mail");
     Dispatcher.UIThread.RunJobs();
     Check("Clicking the strip brings the folders back", vm.Mail.Panels["folders"].IsShown);
     vm.TogglePaneCommand.Execute("2");
-    Check("The pane the page can't do without stays", vm.Mail.Panels["messages"].IsShown);
+    Dispatcher.UIThread.RunJobs();
+    Check("Ctrl+Shift+2 hides the mail list too, and the open mail gets the room", !vm.Mail.Panels["messages"].IsShown && vm.Mail.Panels["reader"].IsShown);
+    Save("mail-list-hidden");
+    vm.TogglePaneCommand.Execute("3");
+    vm.TogglePaneCommand.Execute("1");
+    Check("One pane always stays, whichever are hidden", vm.Mail.Panels["folders"].IsShown && !vm.Mail.Panels["reader"].IsShown);
+    vm.Mail.Panels.ResetCommand.Execute(null);
+    Check("Put the panes back shows all three again", vm.Mail.Panels["messages"].IsShown && vm.Mail.Panels["reader"].IsShown && vm.Mail.Panels["folders"].IsShown);
 }
 {
     // A long line in the conversation must not widen the page past the window and push the list off screen.

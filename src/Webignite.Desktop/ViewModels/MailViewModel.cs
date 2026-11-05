@@ -28,7 +28,7 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
         this.services = services;
         Setup = new MailSetupViewModel(services, OnSetupDone);
         Panels = new PanelsViewModel(services.Settings, "mail",
-            [("folders", "Folders"), ("messages", "Messages"), ("reader", "Reading pane")], spine: "messages");
+            [("folders", "Folders"), ("messages", "Messages"), ("reader", "Reading pane")]);
         Selection = new SelectionModel<MailRowViewModel> { SingleSelect = false, Source = Messages };
         Selection.SelectionChanged += (_, _) => OnSelectionChanged();
         Filters = Enum.GetValues<MailFilter>().Select(f => new FilterChip(MailFilters.Label(f), () => Filter = f) { IsOn = f == MailFilter.All }).ToList();

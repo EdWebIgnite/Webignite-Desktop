@@ -8,6 +8,15 @@ public sealed class PanelsTests
     private static readonly PanelLayout Mail = Panels.Default("folders", "messages", "reader");
 
     [Fact]
+    public void The_middle_pane_can_be_hidden_too_leaving_the_ones_either_side()
+    {
+        var layout = Panels.Show(Mail, "messages", false);
+        Assert.Equal(["folders", "reader"], Panels.Visible(layout));
+        Assert.True(Panels.CanHide(layout, "folders"));
+        Assert.Equal(["folders", "messages", "reader"], Panels.Visible(Panels.Show(layout, "messages", true)));
+    }
+
+    [Fact]
     public void Panes_can_be_hidden_and_shown_but_not_all_of_them()
     {
         var layout = Panels.Show(Mail, "folders", false);

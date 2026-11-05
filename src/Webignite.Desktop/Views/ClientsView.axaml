@@ -21,6 +21,7 @@
                   <Button.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                       <MenuItem Header="Client list" DataContext="{Binding Panels[list]}" x:DataType="vm:PaneViewModel">
+                        <MenuItem Header="Show" ToggleType="CheckBox" IsChecked="{Binding IsShown}" IsEnabled="{Binding CanHide}" />
                         <MenuItem Header="Move left" Command="{Binding MoveLeftCommand}" />
                         <MenuItem Header="Move right" Command="{Binding MoveRightCommand}" />
                       </MenuItem>

@@ -28,7 +28,7 @@ public sealed partial class FilesViewModel : ViewModelBase, IRefreshable, IDispo
     public FilesViewModel(AppServices services, string? start = null)
     {
         this.services = services;
-        Panels = new PanelsViewModel(services.Settings, "files", [("places", "Places"), ("files", "Files")], spine: "files");
+        Panels = new PanelsViewModel(services.Settings, "files", [("places", "Places"), ("files", "Files")]);
         var settings = services.Settings.Files;
         View = settings.View;
         Sort = settings.Sort;

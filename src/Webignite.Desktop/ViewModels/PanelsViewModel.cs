@@ -13,14 +13,12 @@ public sealed partial class PanelsViewModel : ObservableObject
     private readonly AppSettings settings;
     private readonly string page;
     private readonly string[] keys;
-    private readonly string? spine;
 
-    /// <param name="spine">A pane that can't be hidden, because the page makes no sense without it.</param>
-    public PanelsViewModel(AppSettings settings, string page, IReadOnlyList<(string Key, string Title)> panes, string? spine = null)
+    /// <summary>Any pane can be hidden, so long as one stays on screen; a hidden one leaves a strip to bring it back.</summary>
+    public PanelsViewModel(AppSettings settings, string page, IReadOnlyList<(string Key, string Title)> panes)
     {
         this.settings = settings;
         this.page = page;
-        this.spine = spine;
         keys = panes.Select(p => p.Key).ToArray();
         Layout = Panels.Reconcile(settings.PanelLayout(page), keys);
         Panes = panes.Select(p => new PaneViewModel(this, p.Key, p.Title)).ToList();
@@ -32,7 +30,7 @@ public sealed partial class PanelsViewModel : ObservableObject
 
     public PaneViewModel this[string key] => Panes.Single(p => p.Key == key);
 
-    public bool CanHide(string key) => key != spine && Panels.CanHide(Layout, key);
+    public bool CanHide(string key) => Panels.CanHide(Layout, key);
 
     public void Show(string key, bool show)
     {
