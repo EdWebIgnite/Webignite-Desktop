@@ -45,6 +45,9 @@ public interface ITracked
 
 public enum ProjectStatus { Active, OnHold, Done }
 
+/// <summary>How much a task matters: most are Normal.</summary>
+public enum TaskPriority { Normal, High, Low }
+
 /// <summary>
 /// A mail a task is about: where it was, and enough to show it without opening it. The message id finds it
 /// again after it's moved to another folder.
@@ -118,6 +121,11 @@ public sealed record ProjectTask : ITracked
 
     /// <summary>The mail it's about.</summary>
     public TaskMail? Mail { get; init; }
+
+    public TaskPriority Priority { get; init; }
+
+    /// <summary>Words to group and find tasks by, such as Hosting or SEO.</summary>
+    public IReadOnlyList<string> Tags { get; init; } = [];
 
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
@@ -275,6 +283,46 @@ public static class ProjectRules
         return $"{name}, {document.Customer.Name}{total}";
     }
 
+    public static string Label(TaskPriority priority) => priority switch
+    {
+        TaskPriority.High => "High",
+        TaskPriority.Low => "Low",
+        _ => "Normal",
+    };
+
+    /// <summary>
+    /// Tags as typed ("hosting, SEO,  Hosting") made tidy: split on commas, trimmed, each once whatever its case,
+    /// written as a tag already in use is written, else as typed.
+    /// </summary>
+    public static IReadOnlyList<string> Tags(string? typed, IEnumerable<string> known)
+    {
+        var existing = known.ToList();
+        var tags = new List<string>();
+        foreach (var part in (typed ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var tag = existing.FirstOrDefault(k => string.Equals(k, part, StringComparison.OrdinalIgnoreCase)) ?? part;
+            if (!tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+                tags.Add(tag);
+        }
+        return tags;
+    }
+
+    /// <summary>Every tag used on these tasks, A to Z.</summary>
+    public static IReadOnlyList<string> AllTags(IEnumerable<ProjectTask> tasks) =>
+        [.. tasks.Where(t => t.Deleted is null).SelectMany(t => t.Tags).DistinctBy(t => t, StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase)];
+
+    /// <summary>Whether a task shows under a filter; null means any priority, or any tag.</summary>
+    public static bool Shows(ProjectTask task, TaskPriority? priority, string? tag) =>
+        (priority is null || task.Priority == priority)
+        && (tag is null || task.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>A task added while the list is filtered gets the filter's priority and tag, so it stays in view.</summary>
+    public static ProjectTask Filtered(ProjectTask task, TaskPriority? priority, string? tag) => task with
+    {
+        Priority = priority ?? task.Priority,
+        Tags = tag is null || task.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase) ? task.Tags : [.. task.Tags, tag],
+    };
+
     public static string Label(ProjectStatus status) => status switch
     {
         ProjectStatus.OnHold => "On hold",
@@ -299,7 +347,7 @@ public static class ProjectRules
     [
         ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
-        ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail),
+        ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags),
     ];
 
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>

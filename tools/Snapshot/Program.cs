@@ -2109,6 +2109,34 @@ Save("site-check");
         Dispatcher.UIThread.RunJobs();
         Save("projects-board");
         projectsPage.ListViewCommand.Execute(null);
+
+        // Priority and tags: set on the task page, shown on rows, and filtered by.
+        projectsPage.OpenTaskById(pages.Id);
+        var tagged = projectsPage.Detail!;
+        tagged.Priority = ProjectsViewModel.Priorities.First(p => p.Value == Webignite.Core.Projects.TaskPriority.High);
+        tagged.TagsText = "Build, hosting";
+        projectsPage.Keep();
+        Check("A task's priority and tags are saved", services.Projects.GetTask(pages.Id) is { Priority: Webignite.Core.Projects.TaskPriority.High } withTags
+            && withTags.Tags.SequenceEqual(["Build", "hosting"]));
+        projectsPage.CloseTaskCommand.Execute(null);
+        projectsPage.OpenTaskById(contactForm.Task.Id);
+        projectsPage.Detail!.AddTagCommand.Execute("Build");
+        Check("A tag used elsewhere in the project is added with a click", services.Projects.GetTask(contactForm.Task.Id)!.Tags.SequenceEqual(["Build"]));
+        projectsPage.CloseTaskCommand.Execute(null);
+        projectsPage.PickTagFilter(projectsPage.TagFilters.First(t => t.Value == "Build"));
+        Check("Filtering by a tag shows only its tasks", projectsPage.Rows.OfType<TaskRow>().Count() == 2 && projectsPage.HasFilter);
+        projectsPage.PickPriorityFilter(ProjectsViewModel.PriorityFilters.First(p => p.Value == Webignite.Core.Projects.TaskPriority.High));
+        Check("Filtering by priority as well narrows it again", projectsPage.Rows.OfType<TaskRow>().Single().Task.Id == pages.Id);
+        var filteredAdd = projectsPage.Rows.OfType<AddTaskRow>().First(r => r.Section.Name == "Build");
+        filteredAdd.Title = "Speed test the pages";
+        filteredAdd.AddCommand.Execute(null);
+        Check("A task added while filtered takes the filter, so it stays in view",
+            projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == "Speed test the pages" && r.IsHigh && r.Tags.Contains("Build")));
+        projectsPage.ClearFilterCommand.Execute(null);
+        projectsPage.PickTagFilter(projectsPage.TagFilters.First(t => t.Value == "Build"));
+        Dispatcher.UIThread.RunJobs();
+        Save("projects-tags");
+        projectsPage.ClearFilterCommand.Execute(null);
     }
 
     // The quick note from any program: what is typed is kept however the box closes.

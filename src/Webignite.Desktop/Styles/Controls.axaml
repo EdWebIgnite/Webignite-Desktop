@@ -124,6 +124,15 @@
     <Setter Property="Padding" Value="8,1" />
   </Style>
 
+  <!-- A pill that stands out, e.g. a High priority task -->
+  <Style Selector="Border.pill.strong">
+    <Setter Property="Background" Value="{DynamicResource Primary}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+  </Style>
+  <Style Selector="Border.pill.strong > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+  </Style>
+
   <Style Selector="Border.tag">
     <Setter Property="Background" Value="{DynamicResource NavHover}" />
     <Setter Property="CornerRadius" Value="4" />

@@ -292,3 +292,52 @@ public sealed class ProjectTaskPageTests
         Assert.Equal("Draft invoice, Fynbos Physio", ProjectRules.DocumentLabel(docs[2]));
     }
 }
+
+/// <summary>Priority and tags on tasks, and filtering by them.</summary>
+public sealed class ProjectTagTests
+{
+    private static ProjectTask Task(string id, TaskPriority priority = TaskPriority.Normal, params string[] tags) =>
+        new() { Id = id, ProjectId = "p", Title = id, Priority = priority, Tags = tags };
+
+    [Fact]
+    public void Typed_tags_are_tidied_and_follow_how_a_tag_is_already_written()
+    {
+        Assert.Equal(["Hosting", "SEO"], ProjectRules.Tags(" hosting, SEO,, Hosting ", ["Hosting"]));
+        Assert.Equal(["new one"], ProjectRules.Tags("new one", []));
+        Assert.Empty(ProjectRules.Tags(" , ", []));
+        Assert.Equal(["Hosting", "SEO"], ProjectRules.AllTags([Task("a", tags: ["SEO", "Hosting"]), Task("b", tags: ["seo"])]));
+    }
+
+    [Fact]
+    public void The_filter_shows_tasks_with_the_priority_and_tag_picked()
+    {
+        var high = Task("a", TaskPriority.High, "SEO");
+        var low = Task("b", TaskPriority.Low, "Hosting");
+
+        Assert.True(ProjectRules.Shows(high, null, null));
+        Assert.True(ProjectRules.Shows(high, TaskPriority.High, "seo"));
+        Assert.False(ProjectRules.Shows(low, TaskPriority.High, null));
+        Assert.False(ProjectRules.Shows(low, null, "SEO"));
+    }
+
+    [Fact]
+    public void A_task_added_while_filtered_gets_the_filter_so_it_stays_in_view()
+    {
+        var added = ProjectRules.Filtered(Task("c"), TaskPriority.High, "SEO");
+        Assert.Equal(TaskPriority.High, added.Priority);
+        Assert.Equal(["SEO"], added.Tags);
+        Assert.Equal(["SEO"], ProjectRules.Filtered(Task("d", tags: ["seo"]), null, "SEO").Tags.Select(t => t.ToUpperInvariant()));
+    }
+
+    [Fact]
+    public void Changing_tags_is_recorded_like_any_other_field()
+    {
+        var made = new Stamp("me", DateTimeOffset.UnixEpoch);
+        var task = ProjectRules.Stamped(null, Task("t", tags: ["SEO"]), made);
+        var same = ProjectRules.Stamped(task, task with { Tags = ["SEO"] }, made with { At = made.At.AddHours(1) });
+        Assert.Equal(made, same.Fields["tags"]);
+        var changed = ProjectRules.Stamped(task, task with { Tags = ["SEO", "Hosting"], Priority = TaskPriority.High }, made with { At = made.At.AddHours(2) });
+        Assert.Equal(made.At.AddHours(2), changed.Fields["tags"].At);
+        Assert.Equal(made.At.AddHours(2), changed.Fields["priority"].At);
+    }
+}

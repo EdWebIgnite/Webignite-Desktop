@@ -133,6 +133,18 @@ public partial class ProjectsView : FullBleedView
             task.PickDocument(choice);
     }
 
+    private void PriorityFilterPicked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (Projects is { } projects && PriorityFilterBox.SelectedItem is Choice<TaskPriority?> choice && choice != projects.FilterPriority)
+            projects.PickPriorityFilter(choice);
+    }
+
+    private void TagFilterPicked(object? sender, SelectionChangedEventArgs e)
+    {
+        if (Projects is { } projects && TagFilterBox.SelectedItem is Choice<string?> choice && choice != projects.FilterTag)
+            projects.PickTagFilter(choice);
+    }
+
     private void AddSubtaskKey(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && Projects?.Detail is { } task)
