@@ -23,7 +23,7 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
     public NotesViewModel(AppServices services)
     {
         this.services = services;
-        Panels = new PanelsViewModel(services.Settings, "notes", [("notebooks", "Notebooks"), ("notes", "Notes list"), ("note", "Open note")], spine: "note");
+        Panels = new PanelsViewModel(services.Settings, "notes", [("notebooks", "Notebooks"), ("notes", "Notes list"), ("note", "Open note")]);
         services.Notes.Changed += NotesChanged;
         LoadClients();
         Reload();

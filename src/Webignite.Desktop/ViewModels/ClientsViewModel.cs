@@ -20,7 +20,7 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork,
     public ClientsViewModel(AppServices services)
     {
         this.services = services;
-        Panels = new PanelsViewModel(services.Settings, "clients", [("list", "Client list"), ("detail", "Open client")], spine: "list");
+        Panels = new PanelsViewModel(services.Settings, "clients", [("list", "Client list"), ("detail", "Open client")]);
         Refresh();
     }
 

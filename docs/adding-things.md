@@ -49,9 +49,9 @@ With `Panels` bound, a hidden pane leaves a slim strip with its name where it wa
 
 Mail is the example. The rules (show, hide but never the last one, move, resize, match a saved layout to the panes the page has now) are in `Core.Layout.Panels`, with tests in `PanelsTests.cs`.
 
-1. In the view model: `Panels = new PanelsViewModel(services.Settings, "thing", [("list", "List"), ("detail", "Detail")], spine: "list")`. The first string is the name the layout is saved under; `spine` is a pane that can never be hidden.
+1. In the view model: `Panels = new PanelsViewModel(services.Settings, "thing", [("list", "List"), ("detail", "Detail")])`. The first string is the name the layout is saved under. Any pane can be hidden as long as one stays; a hidden pane leaves a strip with its name to bring it back.
 2. In the view: a `<c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">` with each pane as a child carrying `c:PanelGrid.Pane="list"` and `c:PanelGrid.DefaultWidth="380"`. The last visible pane takes what is left. The code-behind passes the drag on: `void PaneResized(string pane, double width) => (DataContext as ThingViewModel)?.Panels.Resized(pane, width);`.
-3. A panes button with a `MenuFlyout`: one `MenuItem` per pane (`DataContext="{Binding Panels[list]}"`) holding a "Show" item with `ToggleType="CheckBox"` bound to `IsShown`, and "Move left" and "Move right" bound to `MoveLeftCommand` and `MoveRightCommand`; then "Put the panes back" bound to `Panels.ResetCommand`. The spine pane has no "Show", as it can't be hidden. Copy the one in `ClientsView.axaml`.
+3. A panes button with a `MenuFlyout`: one `MenuItem` per pane (`DataContext="{Binding Panels[list]}"`) holding a "Show" item with `ToggleType="CheckBox"` bound to `IsShown`, and "Move left" and "Move right" bound to `MoveLeftCommand` and `MoveRightCommand`; then "Put the panes back" bound to `Panels.ResetCommand`. Copy the one in `ClientsView.axaml`.
 
 ## A setting
 
