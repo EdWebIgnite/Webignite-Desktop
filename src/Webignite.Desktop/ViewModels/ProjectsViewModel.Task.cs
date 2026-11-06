@@ -171,7 +171,28 @@ public sealed partial class TaskDetail : ObservableObject
 
     [ObservableProperty] public partial string Title { get; set; } = "";
     [ObservableProperty] public partial bool Done { get; set; }
-    [ObservableProperty] public partial string Notes { get; set; } = "";
+    /// <summary>The description as plain text: what it says, for checks. The editor works on <see cref="Description"/>.</summary>
+    public string Notes
+    {
+        get => Webignite.Core.Writing.RichText.ToText(Description).TrimEnd();
+        set
+        {
+            Description = Webignite.Core.Writing.RichText.FromText(value);
+            DescriptionRevision++;
+        }
+    }
+
+    /// <summary>The description with its formatting, as Asana's: bold, lists, links. Saved a moment after typing stops.</summary>
+    [ObservableProperty] public partial Webignite.Core.Writing.RichDocument Description { get; set; } = Webignite.Core.Writing.RichDocument.Empty();
+
+    [ObservableProperty] public partial int DescriptionRevision { get; set; }
+
+    /// <summary>"0/1" by the Subtasks heading, as Asana's.</summary>
+    [ObservableProperty] public partial string SubtaskTally { get; private set; } = "";
+
+    /// <summary>Who it's for and what project and heading it's in, for the fields at the top.</summary>
+    public string ProjectName => page.OpenProjectName;
+
     [ObservableProperty] public partial Choice<string?>? AssignedTo { get; set; }
     [ObservableProperty] public partial DateTime? Start { get; set; }
     [ObservableProperty] public partial DateTime? Due { get; set; }
@@ -216,7 +237,8 @@ public sealed partial class TaskDetail : ObservableObject
         loading = true;
         Title = Task.Title;
         Done = Task.Done;
-        Notes = Task.Notes;
+        Description = ProjectRules.Description(Task);
+        DescriptionRevision = 0;
         AssignedTo = People.FirstOrDefault(p => p.Value == Task.AssignedTo) ?? People.FirstOrDefault();
         Start = Task.Start?.ToDateTime(TimeOnly.MinValue);
         Due = Task.Due?.ToDateTime(TimeOnly.MinValue);
@@ -277,9 +299,32 @@ public sealed partial class TaskDetail : ObservableObject
     internal void LoadSubtasks()
     {
         Subtasks.Clear();
-        foreach (var sub in services.Projects.AllTasks(Task.ProjectId).Where(t => t.ParentId == Task.Id))
+        var subs = services.Projects.AllTasks(Task.ProjectId).Where(t => t.ParentId == Task.Id).ToList();
+        foreach (var sub in subs)
             Subtasks.Add(new TaskRow(sub, null, "", People, page));
+        SubtaskTally = ProjectRules.SubtaskTally(subs);
+        OnPropertyChanged(nameof(HasSubtasks));
+        OnPropertyChanged(nameof(ShowSubtaskBox));
     }
+
+    public bool HasSubtasks => Subtasks.Count > 0;
+
+    /// <summary>The "2/3" by Subtasks worked out again, after one is ticked off or on.</summary>
+    internal void CountSubtasks() => SubtaskTally = ProjectRules.SubtaskTally(Subtasks.Select(r => r.Task));
+
+    /// <summary>The box to type a subtask: shown once there are some, or after + is clicked.</summary>
+    public bool ShowSubtaskBox => HasSubtasks || AddingSubtask;
+
+    public bool HasAssignee => AssignedTo?.Value is not null;
+
+    partial void OnAddingSubtaskChanged(bool value) => OnPropertyChanged(nameof(ShowSubtaskBox));
+
+    /// <summary>The subtask box is shown: always once there are subtasks, or after + is clicked.</summary>
+    [ObservableProperty] public partial bool AddingSubtask { get; set; }
+
+    /// <summary>The + by Subtasks, as Asana's: shows the box to type the first (or next) subtask.</summary>
+    [RelayCommand]
+    private void StartSubtask() => AddingSubtask = true;
 
     partial void OnTitleChanged(string value)
     {
@@ -287,9 +332,9 @@ public sealed partial class TaskDetail : ObservableObject
             page.Typed(this);
     }
 
-    partial void OnNotesChanged(string value)
+    partial void OnDescriptionRevisionChanged(int value)
     {
-        if (!loading)
+        if (!loading && value > 0)
             page.Typed(this);
     }
 
@@ -334,13 +379,17 @@ public sealed partial class TaskDetail : ObservableObject
             Problem = "Give the task a title.";
             return;
         }
-        var (title, notes) = (Title, Notes);
+        var (title, description) = (Title, Description.Clone());
         var tags = ProjectRules.Tags(TagsText, page.ProjectTags);
-        page.ChangeOpenTask(t => t with { Title = title, Notes = notes.TrimEnd(), Tags = tags }, typed: true);
+        page.ChangeOpenTask(t => ProjectRules.WithDescription(t, description) with { Title = title, Tags = tags }, typed: true);
     }
 
     partial void OnDoneChanged(bool value) => Change(t => t with { Done = value });
-    partial void OnAssignedToChanged(Choice<string?>? value) => Change(t => t with { AssignedTo = value?.Value });
+    partial void OnAssignedToChanged(Choice<string?>? value)
+    {
+        OnPropertyChanged(nameof(HasAssignee));
+        Change(t => t with { AssignedTo = value?.Value });
+    }
     partial void OnStartChanged(DateTime? value) => Change(t => t with { Start = value is { } d ? DateOnly.FromDateTime(d) : null });
     partial void OnDueChanged(DateTime? value) => Change(t => t with { Due = value is { } d ? DateOnly.FromDateTime(d) : null });
 

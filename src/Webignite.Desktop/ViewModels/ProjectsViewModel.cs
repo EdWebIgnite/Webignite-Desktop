@@ -420,6 +420,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     [RelayCommand]
     private void BoardView() => IsBoard = true;
 
+    public string OpenProjectName => open?.Name ?? "";
+
     public string SharedLabel => $"Shared with {services.Team().Partner!.Name}";
 
     private void LoadChoices()
@@ -682,7 +684,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         // A subtask ticked in the task pane changes its task's count in the list; a task changed in the list
         // shows in the task pane if it's open there.
         if (saved.ParentId is not null)
+        {
             ShowTasks();
+            Detail?.CountSubtasks();
+        }
         else if (Detail is { } detail && detail.Task.Id == saved.Id)
             detail.Reload();
     }

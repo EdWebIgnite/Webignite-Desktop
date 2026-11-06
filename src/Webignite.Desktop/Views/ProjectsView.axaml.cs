@@ -82,6 +82,9 @@ public partial class ProjectsView : FullBleedView
             Whole = true,
         });
 
+        // Narrow (a task open beside it), the list drops Priority and closes its cells up, as Asana's does.
+        ListArea.SizeChanged += (_, e) => ListArea.Classes.Set("narrowlist", e.NewSize.Width < 820);
+
         // Ctrl+click picks a task to drag along with others, Shift+click a run of them; a plain click elsewhere lets them go.
         TaskList.AddHandler(PointerPressedEvent, PickPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         Board.AddHandler(PointerPressedEvent, PickPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -307,14 +310,42 @@ public partial class ProjectsView : FullBleedView
             projects.PickTagFilter(choice);
     }
 
+    // Enter adds the subtask and leaves the box ready for the next, as in Asana; Esc stops adding.
     private void AddSubtaskKey(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && Projects?.Detail is { } task)
+        if (Projects?.Detail is not { } task)
+            return;
+        if (e.Key == Key.Enter)
         {
             task.AddSubtaskCommand.Execute(null);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => NewSubtaskBox.Focus());
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            task.AddingSubtask = false;
             e.Handled = true;
         }
     }
+
+    // The + by Subtasks (and in the pane's toolbar): the box to type one, with the cursor in it.
+    private void AddSubtaskClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Projects?.Detail is not { } task)
+            return;
+        task.StartSubtaskCommand.Execute(null);
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            NewSubtaskBox.BringIntoView();
+            NewSubtaskBox.Focus();
+        });
+    }
+
+    private void DescriptionBold(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleBold();
+    private void DescriptionItalic(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleItalic();
+    private void DescriptionUnderline(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleUnderline();
+    private void DescriptionBullets(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleList(Webignite.Core.Writing.ListKind.Bullet);
+    private void DescriptionNumbers(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleList(Webignite.Core.Writing.ListKind.Number);
 
     /// <summary>The templates to start a project from, then removing one.</summary>
     private void TemplatesOpening(object? sender, EventArgs e)
