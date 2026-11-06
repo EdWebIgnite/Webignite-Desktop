@@ -2380,6 +2380,32 @@ Save("site-check");
         projectsPage.ListViewCommand.Execute(null);
         projectsPage.Refresh();
 
+        // Dependencies, as Asana's: a task waits on others in its project, never round in a circle.
+        window.Width = 1900;
+        Dispatcher.UIThread.RunJobs();
+        projectsPage.OpenTaskById(pages.Id);
+        Dispatcher.UIThread.RunJobs();
+        var colourTask = services.Projects.AllTasks(site.Id).First(t => t.Title == "Colours and fonts");
+        projectsPage.Detail!.AddDependency(colourTask.Id);
+        Dispatcher.UIThread.RunJobs();
+        Check("A task can wait on another: it's in the pane, the other says what it holds up, and the list marks it",
+            projectsPage.Detail!.WaitingOn.Any(w => w.Title == "Colours and fonts")
+            && projectsPage.Rows.OfType<TaskRow>().Any(r => r.Task.Id == pages.Id && r.IsWaiting && r.WaitingTip == "Colours and fonts"));
+        for (var tick = 0; tick < 20; tick++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Thread.Sleep(15);
+        }
+        Save("task-dependencies");
+        window.Width = 1280;
+        projectsPage.OpenTaskById(colourTask.Id);
+        Check("The task held up says so, and can't wait on the one waiting on it", projectsPage.Detail!.BlockingText == "Holding up: Build the five pages"
+            && projectsPage.Detail.DependencyChoices().All(t => t.Id != pages.Id));
+        services.Projects.RemoveDependency(pages.Id, colourTask.Id);
+        projectsPage.CloseTaskCommand.Execute(null);
+        projectsPage.Refresh();
+
         // Priority and tags: set on the task page, shown on rows, and filtered by.
         projectsPage.OpenTaskById(pages.Id);
         var tagged = projectsPage.Detail!;

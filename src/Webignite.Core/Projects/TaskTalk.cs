@@ -20,7 +20,7 @@ public sealed record TaskComment : ITracked
 public enum ActivityKind
 {
     Created, Completed, Reopened, Assigned, Unassigned, DueSet, DueCleared, Moved, Renamed, DescriptionChanged,
-    Attached, Detached, SubtaskAdded, ProjectChanged, PriorityChanged,
+    Attached, Detached, SubtaskAdded, ProjectChanged, PriorityChanged, DependencyChanged,
 }
 
 /// <summary>
@@ -65,6 +65,8 @@ public static class TaskTalk
             changes.Add((ActivityKind.DescriptionChanged, ""));
         if (before.Priority != after.Priority)
             changes.Add((ActivityKind.PriorityChanged, after.Priority.ToString()));
+        if (!before.BlockedBy.SequenceEqual(after.BlockedBy))
+            changes.Add((ActivityKind.DependencyChanged, ""));
         foreach (var added in after.Attachments.Where(a => before.Attachments.All(b => b.Id != a.Id)))
             changes.Add((ActivityKind.Attached, added.FileName));
         foreach (var gone in before.Attachments.Where(b => after.Attachments.All(a => a.Id != b.Id)))
@@ -91,6 +93,7 @@ public static class TaskTalk
         ActivityKind.PriorityChanged => $"set the priority to {activity.Value}",
         ActivityKind.Attached => $"attached {activity.Value}",
         ActivityKind.Detached => $"removed {activity.Value}",
+        ActivityKind.DependencyChanged => "changed what this task is waiting on",
         _ => "changed this task",
     };
 

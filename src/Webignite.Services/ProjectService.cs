@@ -251,6 +251,18 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return (saved, []);
     }
 
+    /// <summary>Makes a task wait on another in its project, as Asana's dependencies; says why when it can't.</summary>
+    public (ProjectTask? Saved, IReadOnlyList<string> Problems) AddDependency(string id, string blockerId)
+    {
+        if (GetTask(id) is not { } task)
+            return (null, ["The task is gone."]);
+        var problem = TaskDependencies.Problem(task, blockerId, AllTasks(task.ProjectId));
+        return problem.Length > 0 ? (null, [problem]) : ChangeTask(id, t => TaskDependencies.Add(t, blockerId));
+    }
+
+    public (ProjectTask? Saved, IReadOnlyList<string> Problems) RemoveDependency(string id, string blockerId) =>
+        ChangeTask(id, t => TaskDependencies.Remove(t, blockerId));
+
     /// <summary>
     /// Moves a task to another project, as when it's dropped on the project in the sidebar: it goes last among the
     /// tasks under no heading there, and takes its subtasks along. A subtask moved on its own becomes a task.

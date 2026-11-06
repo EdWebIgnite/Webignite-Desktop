@@ -791,4 +791,20 @@ public partial class ProjectsView : FullBleedView
         new ContextMenu { ItemsSource = new object[] { open, clear } }.Open(sender as Control);
         e.Handled = true;
     }
+
+    // The tasks the open one could wait on, filled as the menu opens.
+    private void DependencyFilling(object? sender, EventArgs e)
+    {
+        if (sender is not MenuFlyout menu || Projects?.Detail is not { } detail)
+            return;
+        menu.Items.Clear();
+        foreach (var task in detail.DependencyChoices())
+        {
+            var item = new MenuItem { Header = task.ParentId is null ? task.Title : "    " + task.Title };
+            item.Click += (_, _) => detail.AddDependency(task.Id);
+            menu.Items.Add(item);
+        }
+        if (menu.Items.Count == 0)
+            menu.Items.Add(new MenuItem { Header = "No other task to wait on", IsEnabled = false });
+    }
 }

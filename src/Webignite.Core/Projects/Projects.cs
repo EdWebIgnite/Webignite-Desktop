@@ -244,6 +244,9 @@ public sealed record ProjectTask : ITracked
     /// <summary>A milestone, as Asana's: a moment that matters, shown with a diamond and on the Overview tab.</summary>
     public bool Milestone { get; init; }
 
+    /// <summary>The tasks in its project it's waiting on, by id, as Asana's dependencies.</summary>
+    public IReadOnlyList<string> BlockedBy { get; init; } = [];
+
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
     public Stamp? Deleted { get; init; }
@@ -685,7 +688,7 @@ public static class ProjectRules
         ("project", t => t.ProjectId), ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes), ("noteshtml", t => t.NotesHtml),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
         ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
-        ("attachments", t => t.Attachments), ("cover", t => t.CoverId), ("milestone", t => t.Milestone),
+        ("attachments", t => t.Attachments), ("cover", t => t.CoverId), ("milestone", t => t.Milestone), ("blockedby", t => t.BlockedBy),
     ];
 
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>
