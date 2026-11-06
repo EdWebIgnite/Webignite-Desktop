@@ -57,7 +57,7 @@
 
     <Border Classes="card" IsVisible="{Binding HasUnplanned}">
       <StackPanel Spacing="10">
-        <TextBlock Classes="h2" Text="To-dos without a day" />
+        <TextBlock Classes="h2" Text="Tasks and to-dos without a day" />
         <TextBlock Classes="muted" FontSize="12" Text="Give each one a day this week so it shows up above and on the calendar." />
         <ItemsControl ItemsSource="{Binding Unplanned}">
           <ItemsControl.ItemTemplate>
@@ -65,7 +65,10 @@
               <DockPanel Margin="0,0,0,6">
                 <ComboBox DockPanel.Dock="Right" Width="150" PlaceholderText="Plan for…" IsVisible="{Binding CanPlan}"
                           ItemsSource="{Binding Days}" SelectedItem="{Binding PlanFor}" />
-                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" />
+                </StackPanel>
               </DockPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

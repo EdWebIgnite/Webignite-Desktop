@@ -130,7 +130,7 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
         if (!PlannerHome.Widgets(services.Settings.Home).SequenceEqual(Widgets.Select(w => new HomeWidget(w.Kind, w.Full))))
             ShowWidgets();
         CompletedText = done == 1 ? "1 task completed" : $"{done} tasks completed";
-        OverdueLabel = PlannerHome.Overdue(services.Projects.Mine(me), Today) is { Count: > 0 } late ? $"Overdue ({late.Count})" : "Overdue";
+        OverdueLabel = PlannerHome.Overdue(services.Projects.Mine(me), services.Store.ListTasks(), Today) is { Count: > 0 } late ? $"Overdue ({late.Count})" : "Overdue";
         ShowTasks();
         Projects.Clear();
         Projects.Add(new HomeCreateTile(CreateProjectCommand));
@@ -146,21 +146,23 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
     {
         var me = services.Me().Id;
         var names = services.Projects.Projects().ToDictionary(p => p.Id, p => p.Name);
-        IReadOnlyList<ProjectTask> shown = Tab switch
+        // My tasks on Home has my to-dos too, as the My tasks page does.
+        var todos = services.Store.ListTasks();
+        IReadOnlyList<MyItem> shown = Tab switch
         {
-            HomeTab.Overdue => PlannerHome.Overdue(services.Projects.Mine(me), Today),
+            HomeTab.Overdue => PlannerHome.Overdue(services.Projects.Mine(me), todos, Today),
             HomeTab.Completed => PlannerHome.Completed(
-                services.Projects.Projects().SelectMany(p => services.Projects.AllTasks(p.Id)), me, DateTimeOffset.Now.AddDays(-14)),
-            _ => PlannerHome.Upcoming(services.Projects.Mine(me), Today),
+                services.Projects.Projects().SelectMany(p => services.Projects.AllTasks(p.Id)), todos, me, DateTimeOffset.Now.AddDays(-14)),
+            _ => PlannerHome.Upcoming(services.Projects.Mine(me), todos, Today),
         };
         Tasks.Clear();
-        foreach (var task in shown)
-            Tasks.Add(new HomeTaskRow(task, names.GetValueOrDefault(task.ProjectId) ?? "", Today, services));
+        foreach (var item in shown)
+            Tasks.Add(new HomeTaskRow(item, item.Task is { } task ? names.GetValueOrDefault(task.ProjectId) ?? "" : "To-do", Today, services, Refresh));
         EmptyText = Tab switch
         {
             HomeTab.Overdue => "Nothing overdue. Well done.",
             HomeTab.Completed => "Tasks you finish in the next while show here.",
-            _ => "Nothing coming up. Tasks given to you show here, soonest first.",
+            _ => "Nothing coming up. Tasks given to you and your to-dos show here, soonest first.",
         };
         OnPropertyChanged(nameof(HasNoTasks));
     }
@@ -172,26 +174,29 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
     }
 }
 
-/// <summary>A task on Home: tick it off, see its project and when it's due, click to open it.</summary>
+/// <summary>A task or one of my to-dos on Home: tick it off, see its project (or that it's a to-do) and when it's due, click to open it.</summary>
 public sealed partial class HomeTaskRow : ObservableObject
 {
     private readonly AppServices services;
+    private readonly Action refresh;
     private readonly bool loading;
 
-    public HomeTaskRow(ProjectTask task, string project, DateOnly today, AppServices services)
+    public HomeTaskRow(MyItem item, string project, DateOnly today, AppServices services, Action refresh)
     {
         this.services = services;
-        Task = task;
+        this.refresh = refresh;
+        Item = item;
         Project = project;
-        DueText = task.Due is { } due ? ProjectRules.DueLabel(due, today) : "";
-        IsLate = !task.Done && task.Due < today;
+        DueText = item.Due is { } due ? ProjectRules.DueLabel(due, today) : "";
+        var done = item.Task?.Done ?? item.Todo!.Done;
+        IsLate = !done && item.Due < today;
         loading = true;
-        Done = task.Done;
+        Done = done;
         loading = false;
     }
 
-    public ProjectTask Task { get; }
-    public string Title => Task.Title;
+    public MyItem Item { get; }
+    public string Title => Item.Title;
     public string Project { get; }
     public string DueText { get; }
     public bool IsLate { get; }
@@ -200,12 +205,26 @@ public sealed partial class HomeTaskRow : ObservableObject
 
     partial void OnDoneChanged(bool value)
     {
-        if (!loading)
-            services.Projects.ChangeTask(Task.Id, t => t with { Done = value });
+        if (loading)
+            return;
+        if (Item.Task is { } task)
+            services.Projects.ChangeTask(task.Id, t => t with { Done = value });
+        else if (Item.Todo is { } todo)
+        {
+            services.Store.SaveTask(todo with { Done = value, DoneAt = value ? DateTimeOffset.UtcNow : null });
+            refresh();
+        }
     }
 
+    /// <summary>A task opens in its project; a to-do opens My tasks, where to-dos live now.</summary>
     [RelayCommand]
-    private void Open() => services.Go.ProjectTask(Task.Id);
+    private void Open()
+    {
+        if (Item.Task is { } task)
+            services.Go.ProjectTask(task.Id);
+        else
+            services.Go.MyTasks();
+    }
 }
 
 /// <summary>A project on Home: its name and a tile to open it.</summary>

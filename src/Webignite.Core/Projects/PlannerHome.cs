@@ -36,6 +36,23 @@ public static class PlannerHome
     public static IReadOnlyList<ProjectTask> Overdue(IEnumerable<ProjectTask> mine, DateOnly today) =>
         [.. mine.Where(t => !t.Done && t.Due < today).OrderBy(t => t.Due).ThenBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase)];
 
+    /// <summary>My open tasks and to-dos not yet late, as My tasks has them: soonest first, those with no date last.</summary>
+    public static IReadOnlyList<MyItem> Upcoming(IEnumerable<ProjectTask> mine, IEnumerable<Tasks.TaskItem> todos, DateOnly today) =>
+        [.. Mix(mine, todos).Where(i => !(i.Due < today)).OrderBy(i => i.Due ?? DateOnly.MaxValue).ThenBy(i => i.Title, StringComparer.CurrentCultureIgnoreCase)];
+
+    /// <summary>My open tasks and to-dos past their date, the latest first.</summary>
+    public static IReadOnlyList<MyItem> Overdue(IEnumerable<ProjectTask> mine, IEnumerable<Tasks.TaskItem> todos, DateOnly today) =>
+        [.. Mix(mine, todos).Where(i => i.Due < today).OrderBy(i => i.Due).ThenBy(i => i.Title, StringComparer.CurrentCultureIgnoreCase)];
+
+    /// <summary>Tasks given to me and to-dos ticked off since a moment, the most recent first.</summary>
+    public static IReadOnlyList<MyItem> Completed(IEnumerable<ProjectTask> tasks, IEnumerable<Tasks.TaskItem> todos, string meId, DateTimeOffset since) =>
+        [.. Completed(tasks, meId, since).Select(t => (Item: new MyItem(t, null), At: DoneAt(t)))
+            .Concat(todos.Where(t => t.Done && (t.DoneAt ?? t.Created) >= since).Select(t => (Item: new MyItem(null, t), At: t.DoneAt ?? t.Created)))
+            .OrderByDescending(x => x.At).Select(x => x.Item)];
+
+    private static IEnumerable<MyItem> Mix(IEnumerable<ProjectTask> mine, IEnumerable<Tasks.TaskItem> todos) =>
+        mine.Where(t => !t.Done).Select(t => new MyItem(t, null)).Concat(todos.Where(t => !t.Done).Select(t => new MyItem(null, t)));
+
     /// <summary>When a task was ticked off: when its done field last changed, or when it last changed at all.</summary>
     public static DateTimeOffset DoneAt(ProjectTask task) => task.Fields.TryGetValue("done", out var stamp) ? stamp.At : task.Changed.At;
 

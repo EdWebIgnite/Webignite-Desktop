@@ -59,3 +59,28 @@ public class PlannerHomeWidgetsTests
         Assert.Equal((0, 0), PlannerHome.Load(tasks, "jaco", today));
     }
 }
+
+public class PlannerHomeTodosTests
+{
+    private static readonly DateOnly Today = new(2026, 11, 6);
+    private static readonly DateTimeOffset Now = new(2026, 11, 6, 12, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void Homes_my_tasks_mixes_in_my_to_dos_as_my_tasks_does()
+    {
+        var tasks = new[]
+        {
+            new ProjectTask { Id = "t1", ProjectId = "p", Title = "Wireframes", Due = Today.AddDays(2), AssignedTo = "me" },
+            new ProjectTask { Id = "t2", ProjectId = "p", Title = "Copy", Due = Today.AddDays(-1), AssignedTo = "me" },
+        };
+        var todos = new[]
+        {
+            new Webignite.Core.Tasks.TaskItem { Id = "d1", Title = "Call the bank", Due = Today, Created = Now },
+            new Webignite.Core.Tasks.TaskItem { Id = "d2", Title = "Old invoice", Due = Today.AddDays(-3), Created = Now },
+            new Webignite.Core.Tasks.TaskItem { Id = "d3", Title = "Done one", Done = true, DoneAt = Now.AddHours(-1), Created = Now.AddDays(-5) },
+        };
+        Assert.Equal(["Call the bank", "Wireframes"], PlannerHome.Upcoming(tasks, todos, Today).Select(i => i.Title));
+        Assert.Equal(["Old invoice", "Copy"], PlannerHome.Overdue(tasks, todos, Today).Select(i => i.Title));
+        Assert.Equal(["Done one"], PlannerHome.Completed(tasks, todos, "me", Now.AddDays(-14)).Select(i => i.Title));
+    }
+}
