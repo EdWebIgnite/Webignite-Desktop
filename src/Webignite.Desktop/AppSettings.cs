@@ -273,7 +273,14 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("planner-home", value);
     }
 
-    /// <summary>List or board on the Projects page.</summary>
+    /// <summary>Each project's own list or board, sort, grouping and folded headings, by project id.</summary>
+    public IReadOnlyDictionary<string, ProjectLayout> ProjectLayouts
+    {
+        get => store.GetSetting<Dictionary<string, ProjectLayout>>("project-layouts") ?? [];
+        set => store.SetSetting("project-layouts", value.ToDictionary(p => p.Key, p => p.Value));
+    }
+
+    /// <summary>List or board on the Projects page, for a project not yet shown either way.</summary>
     public ProjectViewSettings ProjectView
     {
         get => store.GetSetting<ProjectViewSettings>("project-view") ?? new ProjectViewSettings();

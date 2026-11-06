@@ -24,10 +24,12 @@ public partial class ProjectsView : FullBleedView
         // Tasks drag by any part of their row or card; headings by their name, in the list or as board columns.
         var tasks = new DragRules
         {
-            CanDrag = item => item is TaskRow or SectionRow { IsHeading: true } or BoardColumn { Section.IsHeading: true },
+            // Sorted or grouped by something else, the list keeps its order: nothing is dragged into place, as in Asana.
+            CanDrag = item => Projects?.CanReorder == true
+                && item is TaskRow { IsSubtask: false } or SectionRow { IsHeading: true } or BoardColumn { Section.IsHeading: true },
             CanDrop = (item, target, below) => (item, target) switch
             {
-                (TaskRow row, TaskRow on) => on != row && !(Projects?.Moving(row).Contains(on.Task) ?? false),
+                (TaskRow row, TaskRow on) => on != row && !on.IsSubtask && !(Projects?.Moving(row).Contains(on.Task) ?? false),
                 (TaskRow, SectionRow) => below,
                 (TaskRow, AddTaskRow) => !below,
                 (TaskRow, BoardColumn) => true,
@@ -94,6 +96,46 @@ public partial class ProjectsView : FullBleedView
     }
 
     private ProjectsViewModel? Projects => DataContext as ProjectsViewModel;
+
+    // Add task, as Asana's button: the cursor goes to the box under the first heading, ready to type.
+    private void AddTaskClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Projects is not { } projects)
+            return;
+        projects.ListViewCommand.Execute(null);
+        if (projects.Rows.OfType<SectionRow>().FirstOrDefault(r => r.IsFolded) is { } folded && folded == projects.Rows.OfType<SectionRow>().FirstOrDefault())
+            projects.Fold(folded);
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (projects.Rows.OfType<AddTaskRow>().FirstOrDefault() is { } add && TaskList.ContainerFromItem(add) is { } container
+                && container.GetVisualDescendants().OfType<TextBox>().FirstOrDefault() is { } box)
+            {
+                box.BringIntoView();
+                box.Focus();
+            }
+        });
+    }
+
+    private void AddHeadingClicked(object? sender, RoutedEventArgs e)
+    {
+        NewHeadingBox.BringIntoView();
+        NewHeadingBox.Focus();
+    }
+
+    // How much a task matters: High, Normal or Low, from its cell.
+    private void PriorityClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.DataContext is not TaskRow row)
+            return;
+        var menu = new MenuFlyout { Placement = PlacementMode.BottomEdgeAlignedLeft };
+        foreach (var priority in new[] { TaskPriority.High, TaskPriority.Normal, TaskPriority.Low })
+        {
+            var item = new MenuItem { Header = ProjectRules.Label(priority) };
+            item.Click += (_, _) => row.SetPriority(priority);
+            menu.Items.Add(item);
+        }
+        menu.ShowAt(button);
+    }
 
     private void PickPressed(object? sender, PointerPressedEventArgs e)
     {

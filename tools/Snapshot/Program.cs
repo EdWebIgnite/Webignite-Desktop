@@ -2253,7 +2253,8 @@ Save("site-check");
         projectsPage.Drop(buildCard, projectsPage.Columns.First(c => c.Section.Name == "Build").Cards.First(), below: false);
         Check("Dropping a card above another moves it up the column",
             projectsPage.Columns.First(c => c.Section.Name == "Build").Cards.First().Title == "Colours and fonts");
-        Check("The board is remembered for next time", services.Settings.ProjectView.Board);
+        Check("The board is remembered for next time, for this project", projectsPage.Layout.Board
+            && services.Settings.ProjectLayouts.Values.Any(l => l.Board));
         Dispatcher.UIThread.RunJobs();
         Save("projects-board");
         projectsPage.ListViewCommand.Execute(null);
@@ -2597,6 +2598,42 @@ Save("site-check");
                 && projectsPage.Sections.First(r => r.Name == "Build").Tasks[0].Id == back.Id && projectsPage.Detail.Subtasks.Count == subsBefore);
             projectsPage.CloseTaskCommand.Execute(null);
             window.Height = 1080;
+            Dispatcher.UIThread.RunJobs();
+
+            // The List tab as Asana's: folding headings, subtasks opened out under their task, sort and group.
+            var designRow = projectsPage.Rows.OfType<SectionRow>().First(r => r.Name == "Design");
+            designRow.FoldCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Check("A heading folds up to its name, and stays folded", projectsPage.Rows.OfType<SectionRow>().First(r => r.Name == "Design").IsFolded
+                && projectsPage.Rows.OfType<TaskRow>().All(r => r.Section?.Name != "Design") && projectsPage.Layout.Folded.Count == 1);
+            projectsPage.Rows.OfType<SectionRow>().First(r => r.Name == "Design").FoldCommand.Execute(null);
+            var withSubs = projectsPage.Rows.OfType<TaskRow>().First(r => r.HasSubtasks);
+            withSubs.ExpandCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Check("A task's arrow shows its subtasks under it, set in", projectsPage.Rows.OfType<TaskRow>().Any(r => r.IsSubtask));
+            window.Width = 1920;
+            Dispatcher.UIThread.RunJobs();
+            Save("list-tab");
+            projectsPage.SortByCommand.Execute(Webignite.Core.Projects.TaskSort.DueDate);
+            Check("Sorting by due date orders each heading and turns dragging into order off", !projectsPage.CanReorder && projectsPage.SortText == "Sort: Due date");
+            projectsPage.GroupByCommand.Execute(Webignite.Core.Projects.TaskGroup.Assignee);
+            Dispatcher.UIThread.RunJobs();
+            Check("Grouping by assignee makes a group per person", projectsPage.Rows.OfType<SectionRow>().Select(r => r.Title).Contains("No one")
+                && projectsPage.Rows.OfType<SectionRow>().All(r => r.IsMadeGroup) && projectsPage.Columns.All(c => c.Section.IsSection));
+            Save("list-grouped");
+            projectsPage.GroupByCommand.Execute(Webignite.Core.Projects.TaskGroup.Sections);
+            projectsPage.SortByCommand.Execute(Webignite.Core.Projects.TaskSort.None);
+            withSubs = projectsPage.Rows.OfType<TaskRow>().First(r => r.HasSubtasks);
+            withSubs.ExpandCommand.Execute(null);
+            projectsPage.BoardViewCommand.Execute(null);
+            projectsPage.OpenProject("snap-seo");
+            Dispatcher.UIThread.RunJobs();
+            var seoOnList = projectsPage.IsList;
+            projectsPage.OpenProject(site.Id);
+            Dispatcher.UIThread.RunJobs();
+            Check("Each project keeps its own list or board", seoOnList && projectsPage.IsBoard);
+            projectsPage.ListViewCommand.Execute(null);
+            window.Width = 1920;
             Dispatcher.UIThread.RunJobs();
 
             // The main sidebar: a page dragged to a new place, then put back.

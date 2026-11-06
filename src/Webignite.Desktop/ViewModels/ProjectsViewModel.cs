@@ -400,14 +400,19 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     /// <summary>Tags used in the open project, for the task pane to offer.</summary>
     public IReadOnlyList<string> ProjectTags { get; private set; } = [];
 
-    /// <summary>Board or list; remembered for next time.</summary>
+    /// <summary>Board or list, kept for each project.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsList))]
     public partial bool IsBoard { get; set; }
 
     public bool IsList => !IsBoard;
 
-    partial void OnIsBoardChanged(bool value) => services.Settings.ProjectView = services.Settings.ProjectView with { Board = value };
+    // Kept with the open project only: another project opens the way it was left, a new one as a list.
+    partial void OnIsBoardChanged(bool value)
+    {
+        if (open is not null && Layout.Board != value)
+            SaveLayout(Layout with { Board = value });
+    }
 
     [RelayCommand]
     private void ListView() => IsBoard = false;
@@ -439,6 +444,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             pickAnchor = null;
         }
         open = project;
+        Layout = LayoutOf(project.Id);
+        IsBoard = Layout.Board;
         IsMyTasks = false;
         IsTemplates = false;
         MyRows.Clear();
@@ -485,28 +492,48 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         OnPropertyChanged(nameof(FilterPriority));
         var priority = FilterPriority?.Value;
         var tag = FilterTag?.Value;
-        var shown = tasks.Where(t => t.ParentId is not null || ProjectRules.Shows(t, priority, tag));
-        var sections = ProjectRules.Sections(services.Projects.Headings(open.Id), shown);
-        foreach (var (heading, list) in sections)
+        var shown = tasks.Where(t => t.ParentId is not null || ProjectRules.Shows(t, priority, tag)).ToList();
+        var headings = services.Projects.Headings(open.Id);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        string? NameOf(string? id) => id is null ? null : People.FirstOrDefault(p => p.Value == id)?.Label;
+        TaskRow Row(ProjectTask task, SectionRow section) => new(task, section, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this)
         {
-            var section = new SectionRow(heading, list, this);
-            Rows.Add(section);
-            var cards = new List<TaskRow>();
-            foreach (var task in list)
-            {
-                var row = new TaskRow(task, section, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this)
-                {
-                    IsOpen = task.Id == Detail?.Task.Id,
-                    IsPicked = picked.Contains(task.Id),
-                };
-                Rows.Add(row);
-                cards.Add(row);
-            }
-            var add = new AddTaskRow(section, this);
-            Rows.Add(add);
-            // The same rows make the board: a column per heading.
-            Columns.Add(new BoardColumn(section, cards, add));
+            IsOpen = task.Id == Detail?.Task.Id,
+            IsPicked = picked.Contains(task.Id),
+            IsExpanded = expanded.Contains(task.Id),
+        };
+        // The board is always the project's headings; the list is grouped as picked, the same rows when by headings.
+        var sections = ProjectList.Arrange(headings, shown, Layout with { Group = TaskGroup.Sections }, NameOf, today);
+        sectionRows = [.. sections.Select(g => new SectionRow(g, this) { IsFolded = Layout.Folded.Contains(g.Key) })];
+        var rowsOf = new Dictionary<SectionRow, List<TaskRow>>();
+        foreach (var section in sectionRows)
+        {
+            var cards = section.Tasks.Select(t => Row(t, section)).ToList();
+            rowsOf[section] = cards;
+            Columns.Add(new BoardColumn(section, cards, new AddTaskRow(section, this)));
         }
+        var listSections = Layout.Group == TaskGroup.Sections ? sectionRows
+            : [.. ProjectList.Arrange(headings, shown, Layout, NameOf, today).Select(g => new SectionRow(g, this) { IsFolded = Layout.Folded.Contains(g.Key) })];
+        foreach (var section in listSections)
+        {
+            Rows.Add(section);
+            if (section.IsFolded)
+                continue;
+            var rows = rowsOf.TryGetValue(section, out var made) ? made : [.. section.Tasks.Select(t => Row(t, section))];
+            foreach (var row in rows)
+            {
+                Rows.Add(row);
+                // A task opened out shows its subtasks under it, set in, as in Asana.
+                if (row.IsExpanded)
+                {
+                    foreach (var sub in tasks.Where(t => t.ParentId == row.Task.Id))
+                        Rows.Add(new TaskRow(sub, section, "", People, this) { IsOpen = sub.Id == Detail?.Task.Id });
+                }
+            }
+            if (section.IsSection)
+                Rows.Add(Columns.FirstOrDefault(c => c.Section == section)?.Add ?? new AddTaskRow(section, this));
+        }
+        OnPropertyChanged(nameof(CanReorder));
         Summary = SummaryOf(tasks);
         if (HasFilter)
             Summary += $". Showing {sections.Sum(x => x.Tasks.Count)} that match.";
@@ -687,7 +714,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     }
 
     /// <summary>The headings a task can move to, for its right-click menu.</summary>
-    public IReadOnlyList<SectionRow> Sections => [.. Rows.OfType<SectionRow>()];
+    /// <summary>The project's headings (and the tasks under none) as the board has them, whatever the list is grouped by.</summary>
+    public IReadOnlyList<SectionRow> Sections => sectionRows;
+
+    private IReadOnlyList<SectionRow> sectionRows = [];
 
     /// <summary>
     /// A task dragged onto another task (above or below it), onto a heading (to the top of its tasks), to the end
@@ -862,7 +892,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     private void ShowPicks()
     {
-        foreach (var row in Rows.OfType<TaskRow>())
+        foreach (var row in Rows.OfType<TaskRow>().Concat(Columns.SelectMany(c => c.Cards)))
             row.IsPicked = picked.Contains(row.Task.Id);
         OnPropertyChanged(nameof(PickedCount));
     }
@@ -960,16 +990,37 @@ public sealed partial class ProjectRow(Project project, string? clientName) : Ob
     [ObservableProperty] public partial bool IsOpen { get; set; }
 }
 
-/// <summary>A heading in the open project (or the tasks under no heading), with its name to change.</summary>
-public sealed partial class SectionRow(Heading? heading, IReadOnlyList<ProjectTask> tasks, ProjectsViewModel page) : ObservableObject
+/// <summary>
+/// A heading in the open project (or the tasks under no heading), with its name to change; or, when the list is
+/// grouped by when, who or priority, one of those groups. It folds up to its name, as in Asana.
+/// </summary>
+public sealed partial class SectionRow(ListGroup group, ProjectsViewModel page) : ObservableObject
 {
-    public Heading? Heading { get; } = heading;
-    public IReadOnlyList<ProjectTask> Tasks { get; } = tasks;
+    public ListGroup Group { get; } = group;
+    public Heading? Heading => Group.Heading;
+    public IReadOnlyList<ProjectTask> Tasks => Group.Tasks;
     public bool IsHeading => Heading is not null;
-    public bool IsLoose => Heading is null;
+    public bool IsLoose => Group.IsSection && Heading is null;
+
+    /// <summary>A heading or the tasks under none, rather than a group the Group menu made.</summary>
+    public bool IsSection => Group.IsSection;
+
+    /// <summary>A group the Group menu made: its name can't be changed.</summary>
+    public bool IsMadeGroup => !Group.IsSection;
+
+    public string Title => Group.Title;
     public string Count => Tasks.Count == 0 ? "" : $"{Tasks.Count(t => t.Done)}/{Tasks.Count}";
 
-    [ObservableProperty] public partial string Name { get; set; } = heading?.Name ?? "No heading";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOpenOut))]
+    public partial bool IsFolded { get; set; }
+
+    public bool IsOpenOut => !IsFolded;
+
+    [RelayCommand]
+    private void Fold() => page.Fold(this);
+
+    [ObservableProperty] public partial string Name { get; set; } = group.Heading?.Name ?? group.Title;
 
     partial void OnNameChanged(string value)
     {
@@ -1000,6 +1051,27 @@ public sealed partial class TaskRow : ObservableObject
     /// <summary>Picked with Ctrl or Shift, to drag along with others.</summary>
     [ObservableProperty] public partial bool IsPicked { get; set; }
 
+    /// <summary>Its subtasks shown under it in the list.</summary>
+    [ObservableProperty] public partial bool IsExpanded { get; set; }
+
+    /// <summary>A subtask shown under its task in the list, set in.</summary>
+    public bool IsSubtask => Task.ParentId is not null;
+
+    [RelayCommand]
+    private void Expand() => page.Expand(this);
+
+    public string PriorityText => Task.Priority == TaskPriority.Normal ? "" : ProjectRules.Label(Task.Priority);
+    public bool HasPriority => Task.Priority != TaskPriority.Normal;
+
+    /// <summary>Who it's for, as initials for the face in the Assignee column.</summary>
+    public string WhoInitials => AssignedTo?.Value is null ? "" : AssignedTo.Label;
+
+    internal void SetPriority(TaskPriority priority)
+    {
+        page.ChangeTask(this, t => t with { Priority = priority });
+        Reset();
+    }
+
     /// <summary>What dragging it takes: the picked tasks when it's one of them, otherwise just it.</summary>
     public IReadOnlyList<ProjectTask> Moving => page.Moving(this);
 
@@ -1028,6 +1100,9 @@ public sealed partial class TaskRow : ObservableObject
     public bool IsLow => Task.Priority == TaskPriority.Low;
     public IReadOnlyList<string> Tags => Task.Tags;
     public bool HasMarks => Task.Priority != TaskPriority.Normal || Task.Tags.Count > 0 || Task.Repeat != TaskRepeat.None;
+
+    /// <summary>Tags or a repeat to show under the name in the list, where priority has a column of its own.</summary>
+    public bool HasListMarks => Task.Tags.Count > 0 || Task.Repeat != TaskRepeat.None;
     public bool Repeats => Task.Repeat != TaskRepeat.None;
     public string RepeatLabel => ProjectRules.Label(Task.Repeat);
 
@@ -1062,6 +1137,9 @@ public sealed partial class TaskRow : ObservableObject
         OnPropertyChanged(nameof(IsLow));
         OnPropertyChanged(nameof(Tags));
         OnPropertyChanged(nameof(HasMarks));
+        OnPropertyChanged(nameof(HasListMarks));
+        OnPropertyChanged(nameof(PriorityText));
+        OnPropertyChanged(nameof(HasPriority));
         OnPropertyChanged(nameof(Repeats));
         OnPropertyChanged(nameof(RepeatLabel));
         loading = true;

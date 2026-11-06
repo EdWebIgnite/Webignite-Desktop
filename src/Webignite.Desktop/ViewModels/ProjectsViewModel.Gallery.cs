@@ -91,6 +91,9 @@ public sealed partial class ProjectsViewModel
         SaveTyped();
         var start = DateOnly.FromDateTime(PreviewStart ?? DateTime.Today);
         var saved = Ours(() => services.Projects.AddFromTemplate(card.Template, PreviewName, start));
+        // A board template opens on its board.
+        if (card.Board)
+            StartLayout(saved.Id, new ProjectLayout { Board = true });
         // A template from the gallery brings its own colour and icon, as Asana's do.
         if (card.Icon is { } icon && card.Colour is { } colour)
             saved = Ours(() => services.Projects.Change(saved.Id, p => p with { Icon = icon, Colour = colour })).Saved ?? saved;
