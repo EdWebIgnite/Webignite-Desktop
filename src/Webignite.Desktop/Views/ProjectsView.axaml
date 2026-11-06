@@ -1276,6 +1276,8 @@
                     </ItemsControl>
                     <TextBlock Classes="muted" Text="No task has a due date yet. Drag one from Unscheduled onto a day, or give it a date in the list."
                                IsVisible="{Binding NoTimelineBars}" Margin="16,40" TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left" />
+                    <!-- Arrows from a task to the ones waiting on it, as Asana's timeline draws them -->
+                    <Canvas x:Name="TimelineArrows" IsHitTestVisible="False" />
                   </Panel>
                 </StackPanel>
               </ScrollViewer>

@@ -2338,6 +2338,8 @@ Save("site-check");
         var datedBefore = services.Projects.AllTasks(site.Id).ToDictionary(t => t.Id, t => (t.Start, t.Due));
         var fivePages = services.Projects.AllTasks(site.Id).First(t => t.Title == "Build the five pages");
         services.Projects.ChangeTask(fivePages.Id, t => t with { Start = t.Due!.Value.AddDays(-8) });
+        var coloursFirst = services.Projects.AllTasks(site.Id).First(t => t.Title == "Colours and fonts");
+        services.Projects.AddDependency(fivePages.Id, coloursFirst.Id);
         services.Projects.ChangeTask(services.Projects.AllTasks(site.Id).First(t => t.Title == "Point the domain at the new site").Id, t => t with { Start = null, Due = null });
         projectsPage.TimelineViewCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
@@ -2357,7 +2359,14 @@ Save("site-check");
         Check("A task with no date dropped on a day of the timeline is due then", services.Projects.GetTask(domainTask.Task.Id)!.Due == launchDay.Day
             && projectsPage.Unscheduled.All(r => r.Title != "Point the domain at the new site"));
         window.Width = 1900;
-        Dispatcher.UIThread.RunJobs();
+        for (var tick = 0; tick < 10; tick++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Thread.Sleep(15);
+        }
+        var arrows = window.GetVisualDescendants().OfType<Avalonia.Controls.Canvas>().First(c => c.Name == "TimelineArrows");
+        Check("The timeline draws an arrow from a task to the one waiting on it", arrows.Children.Count == 1);
         Save("projects-timeline");
 
         // The Calendar tab, as Asana's: a month of weeks with each task on its due date.
@@ -2374,7 +2383,8 @@ Save("site-check");
         Dispatcher.UIThread.RunJobs();
         Save("projects-calendar");
         window.Width = 1280;
-        // Put the dates back for the checks after.
+        // Put the dates back for the checks after, and take the dependency off.
+        services.Projects.RemoveDependency(fivePages.Id, coloursFirst.Id);
         foreach (var (id, (start, due)) in datedBefore)
             services.Projects.ChangeTask(id, t => t with { Start = start, Due = due });
         projectsPage.ListViewCommand.Execute(null);
