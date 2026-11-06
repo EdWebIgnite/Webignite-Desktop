@@ -34,9 +34,11 @@ public sealed partial class SidebarViewModel : ObservableObject
                 case NavGroup group: group.Owner = this; break;
                 case Module module: module.Sidebar = this; break;
                 case ToolLink tool: tool.Sidebar = this; break;
+                case SectionLink section: section.Sidebar = this; break;
             }
         }
         Items = [];
+        PlannerItems = [];
         Pages = [];
         Apply();
     }
@@ -46,6 +48,7 @@ public sealed partial class SidebarViewModel : ObservableObject
         NavGroup group => Sidebar.Heading(group.Key),
         Module module => module.Key.ToString(),
         ToolLink tool => "tool-" + tool.Kind,
+        SectionLink section => "section-" + section.Key,
         _ => throw new ArgumentException("Not a sidebar entry", nameof(item)),
     };
 
@@ -72,8 +75,52 @@ public sealed partial class SidebarViewModel : ObservableObject
         OnPropertyChanged(nameof(ToggleTip));
     }
 
-    /// <summary>What the list shows now: headings, and the pages of groups that are open.</summary>
+    /// <summary>What the main list shows now: headings, and the pages of groups that are open.</summary>
     public ObservableCollection<object> Items { get; }
+
+    /// <summary>
+    /// The Planner sidebar: a way back, Home, My tasks and Projects, each running project under Work, and the
+    /// planning pages (To-do, Calendar, Week, Time). It takes the main list's place while a Planner page is open.
+    /// </summary>
+    public ObservableCollection<object> PlannerItems { get; }
+
+    /// <summary>The list on screen: Planner's while in that section, the main one otherwise.</summary>
+    public ObservableCollection<object> Shown => IsPlanner ? PlannerItems : Items;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Shown))]
+    public partial bool IsPlanner { get; private set; }
+
+    public SidebarBack PlannerBack { get; } = new("Planner");
+    public NavHeading WorkHeading { get; } = new("WORK", "New project");
+    private readonly NavHeading planHeading = new("PLAN");
+    private readonly NavHeading plannerGap = new("");
+    private List<object> mainIcons = [];
+    private List<object> plannerIcons = [];
+
+    /// <summary>Shows the Planner sidebar; a Planner page opening calls it.</summary>
+    public void EnterPlanner()
+    {
+        IsPlanner = true;
+        ShowIcons();
+    }
+
+    /// <summary>Back to the main sidebar: the back arrow, or another page opening.</summary>
+    public void LeavePlanner()
+    {
+        IsPlanner = false;
+        ShowIcons();
+    }
+
+    private void ShowIcons()
+    {
+        var icons = IsPlanner ? plannerIcons : mainIcons;
+        if (IconPages.SequenceEqual(icons))
+            return;
+        IconPages.Clear();
+        foreach (var entry in icons)
+            IconPages.Add(entry);
+    }
 
     /// <summary>Every page in the order the sidebar has them, folded or not. Ctrl+1 to Ctrl+9 count down this.</summary>
     public List<Module> Pages { get; }
@@ -127,6 +174,18 @@ public sealed partial class SidebarViewModel : ObservableObject
                 heading.IsOpen = layout.IsOpen(heading.Key);
                 wanted.Add(heading);
             }
+            else if (item is Module { InPlanner: true } planned)
+            {
+                planned.Group = group;
+                Pages.Add(planned);
+            }
+            else if (item is SectionLink section)
+            {
+                section.Group = group;
+                icons.Add(section);
+                if (group is null || !group.CanFold || group.IsOpen)
+                    wanted.Add(section);
+            }
             else if (item is Module module)
             {
                 module.Group = group;
@@ -148,41 +207,62 @@ public sealed partial class SidebarViewModel : ObservableObject
                     wanted.Add(tool);
             }
         }
-        Rebuild(wanted);
-        if (!IconPages.SequenceEqual(icons))
-        {
-            IconPages.Clear();
-            foreach (var entry in icons)
-                IconPages.Add(entry);
-        }
+        Rebuild(Items, wanted);
+        mainIcons = icons;
+        BuildPlanner(order);
+        ShowIcons();
         foreach (var item in byKey.Values)
         {
             if (item is Module module)
                 module.Changed();
             else if (item is ToolLink tool)
                 tool.Changed();
+            else if (item is SectionLink section)
+                section.Changed();
             else if (item is NavGroup heading)
                 heading.Changed();
         }
     }
 
-    // Change the list in place so the ListBox keeps its scroll and the page stays selected.
-    private void Rebuild(List<object> wanted)
+    // The Planner sidebar, built from the Planner pages in the app's order and the links that go with Projects.
+    private void BuildPlanner(List<string> order)
     {
-        if (wanted.SequenceEqual(Items))
+        var pages = order.Select(k => byKey[k]).OfType<Module>().Where(m => m.InPlanner).ToList();
+        var home = pages.FirstOrDefault(m => m.Key == Page.Home);
+        var projects = pages.FirstOrDefault(m => m.Key == Page.Projects);
+        var (above, below) = links.GetValueOrDefault(Page.Projects, ([], []));
+        var wanted = new List<object> { PlannerBack };
+        if (home is not null)
+            wanted.Add(home);
+        wanted.Add(plannerGap);
+        wanted.AddRange(above);
+        if (projects is not null)
+            wanted.Add(projects);
+        wanted.Add(WorkHeading);
+        wanted.AddRange(below);
+        wanted.Add(planHeading);
+        wanted.AddRange(pages.Where(m => m != home && m != projects));
+        Rebuild(PlannerItems, wanted);
+        plannerIcons = [PlannerBack, .. pages];
+    }
+
+    // Change a list in place so the ListBox keeps its scroll and the page stays selected.
+    private static void Rebuild(ObservableCollection<object> list, List<object> wanted)
+    {
+        if (wanted.SequenceEqual(list))
             return;
-        for (var i = Items.Count - 1; i >= 0; i--)
-            if (!wanted.Contains(Items[i]))
-                Items.RemoveAt(i);
+        for (var i = list.Count - 1; i >= 0; i--)
+            if (!wanted.Contains(list[i]))
+                list.RemoveAt(i);
         for (var i = 0; i < wanted.Count; i++)
         {
-            var at = Items.IndexOf(wanted[i]);
+            var at = list.IndexOf(wanted[i]);
             if (at == i)
                 continue;
             if (at >= 0)
-                Items.Move(at, i);
+                list.Move(at, i);
             else
-                Items.Insert(i, wanted[i]);
+                list.Insert(i, wanted[i]);
         }
     }
 }

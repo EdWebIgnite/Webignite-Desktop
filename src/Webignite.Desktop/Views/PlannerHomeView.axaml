@@ -1,0 +1,142 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.PlannerHomeView"
+             x:DataType="vm:PlannerHomeViewModel">
+  <UserControl.Styles>
+    <!-- The tabs on the My tasks card: words, the picked one underlined -->
+    <Style Selector="Button.hometab">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0,0,0,2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="2,6" />
+      <Setter Property="Margin" Value="0,0,18,0" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.hometab.on">
+      <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="Button.hometab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <!-- A project on the Projects card: a square with its letters, then its name -->
+    <Style Selector="Button.projecttile">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.projecttile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="Border.projectsquare">
+      <Setter Property="Width" Value="48" />
+      <Setter Property="Height" Value="48" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Spacing="24">
+    <!-- The date, the greeting and the week so far -->
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom" Margin="0,0,0,6">
+        <TextBlock Classes="muted" Text="My week" VerticalAlignment="Center" />
+        <c:Icon Data="{StaticResource Icon.Check}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="10,0,0,0" />
+        <TextBlock Classes="muted" Text="{Binding CompletedText}" VerticalAlignment="Center" />
+      </StackPanel>
+      <StackPanel Spacing="2">
+        <TextBlock Text="{Binding DateText}" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding Greeting}" FontSize="30" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </DockPanel>
+
+    <!-- My tasks and Projects, side by side on a wide screen -->
+    <Grid x:Name="Cards" ColumnDefinitions="*,24,*" RowDefinitions="Auto,Auto">
+      <Border x:Name="TasksCard" Classes="card" MinHeight="380" VerticalAlignment="Stretch">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Spacing="10">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="link" Content="See all" Command="{Binding OpenMyTasksCommand}" VerticalAlignment="Center" />
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <c:Monogram Text="{Binding MyName}" Size="30" VerticalAlignment="Center" />
+                <TextBlock Classes="h2" Text="My tasks" VerticalAlignment="Center" />
+              </StackPanel>
+            </DockPanel>
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="hometab" Classes.on="{Binding IsUpcoming}" Content="Upcoming"
+                      Command="{Binding ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Upcoming}" />
+              <Button Classes="hometab" Classes.on="{Binding IsOverdue}" Content="{Binding OverdueLabel}"
+                      Command="{Binding ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Overdue}" />
+              <Button Classes="hometab" Classes.on="{Binding IsCompleted}" Content="Completed"
+                      Command="{Binding ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Completed}" />
+            </StackPanel>
+            <Border Height="1" Background="{DynamicResource Line}" Margin="0,-10,0,0" />
+          </StackPanel>
+          <Panel>
+            <TextBlock Classes="muted" Text="{Binding EmptyText}" IsVisible="{Binding HasNoTasks}" TextWrapping="Wrap" Margin="0,14,0,0" />
+            <ItemsControl ItemsSource="{Binding Tasks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HomeTaskRow">
+                  <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,8">
+                    <DockPanel>
+                      <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding DueText}" Classes="muted" Classes.problem="{Binding IsLate}" FontSize="12"
+                                 VerticalAlignment="Center" Margin="10,0,0,0" />
+                      <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0" ToolTip.Tip="{Binding Project}">
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text}" />
+                      </Button>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Panel>
+        </DockPanel>
+      </Border>
+
+      <Border x:Name="ProjectsCard" Grid.Column="2" Classes="card" MinHeight="380" VerticalAlignment="Stretch">
+        <StackPanel Spacing="12">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="link" Content="Browse projects" Command="{Binding BrowseProjectsCommand}" VerticalAlignment="Center" />
+            <TextBlock Classes="h2" Text="Projects" VerticalAlignment="Center" />
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding Projects}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.DataTemplates>
+              <DataTemplate DataType="vm:HomeCreateTile">
+                <Button Classes="projecttile" Command="{Binding Create}">
+                  <StackPanel Orientation="Horizontal" Spacing="14">
+                    <Border Classes="projectsquare" Background="Transparent" BorderBrush="{DynamicResource Line2}" BorderThickness="1.5">
+                      <c:Icon Data="{StaticResource Icon.Plus}" Size="18" Foreground="{DynamicResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Classes="muted" Text="Create project" VerticalAlignment="Center" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+              <DataTemplate DataType="vm:HomeProjectTile">
+                <Button Classes="projecttile" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Name}">
+                  <DockPanel>
+                    <Border DockPanel.Dock="Left" Classes="projectsquare" Margin="0,0,14,0">
+                      <TextBlock Text="{Binding Initials}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  </DockPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.DataTemplates>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </StackPanel>
+</UserControl>
