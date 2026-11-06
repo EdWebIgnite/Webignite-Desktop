@@ -4,6 +4,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using Webignite.Core.Projects;
 using Webignite.Desktop.Controls;
@@ -80,6 +81,15 @@ public partial class ProjectsView : FullBleedView
         DropZones.Add(new DropZone(SubtaskArea, (item, _) => Projects?.TakesAsSubtask(item) == true, (item, _) => Projects?.MakeSubtasks((TaskRow)item))
         {
             Whole = true,
+        });
+
+        // Files dropped on the open task are attached to it.
+        TaskPane.AddHandler(DragDrop.DragOverEvent, (_, e) =>
+            e.DragEffects = Projects?.HasTask == true && e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None);
+        TaskPane.AddHandler(DragDrop.DropEvent, (_, e) =>
+        {
+            if (Projects is { Detail: { } task } projects && e.DataTransfer.TryGetFiles() is { } files)
+                projects.Attach(task.Task.Id, files.Select(f => f.TryGetLocalPath()).OfType<string>());
         });
 
         // Narrow (a task open beside it), the list drops Priority and closes its cells up, as Asana's does.
@@ -339,6 +349,44 @@ public partial class ProjectsView : FullBleedView
             NewSubtaskBox.BringIntoView();
             NewSubtaskBox.Focus();
         });
+    }
+
+    // Attach files to the open task: picked here, or dropped on the task pane from Windows or the Files page.
+    private void AttachClicked(object? sender, RoutedEventArgs e) => AttachAsync().Forget("Attaching files", tell: true);
+
+    private async Task AttachAsync()
+    {
+        if (Projects?.Detail is not { } task)
+            return;
+        var paths = await Webignite.Desktop.Files.Picker.Files(this, "Attach files", many: true);
+        if (paths.Count > 0)
+            Projects?.Attach(task.Task.Id, paths);
+    }
+
+    // An attached file's right-click menu: open it, show it in its folder, the task it's on, the cover, remove it.
+    private void AttachmentMenu(object? sender, ContextRequestedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not AttachmentRow row)
+            return;
+        var items = new List<object>();
+        MenuItem Item(string header, System.Windows.Input.ICommand command)
+        {
+            var item = new MenuItem { Header = header, Command = command };
+            items.Add(item);
+            return item;
+        }
+        Item("Open", row.OpenCommand);
+        Item("Show in its folder", row.ShowInFolderCommand);
+        if (Projects?.Detail?.Task.Id != row.Task.Id)
+            Item("Open the task", row.OpenTaskCommand);
+        if (row.CanBeCover)
+            Item("Set as cover", row.MakeCoverCommand);
+        if (row.IsCover)
+            Item("Remove cover", row.RemoveCoverCommand);
+        items.Add(new Separator());
+        Item("Remove the file", row.RemoveCommand);
+        new ContextMenu { ItemsSource = items }.Open(sender as Control);
+        e.Handled = true;
     }
 
     private void DescriptionBold(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleBold();

@@ -77,6 +77,54 @@ public sealed record TemplateTask
     public IReadOnlyList<string> Subtasks { get; init; } = [];
 }
 
+/// <summary>A file attached to a task: its name as attached, its size, and who added it when. The file is kept on this PC.</summary>
+public sealed record TaskAttachment(string Id, string FileName, long Size, DateTimeOffset Added, string AddedBy)
+{
+    public bool IsPicture => Webignite.Core.Files.FileKinds.IsPicture(FileName);
+}
+
+/// <summary>A file in a project's Files tab: the task it's on, and the file.</summary>
+public sealed record ProjectFile(ProjectTask Task, TaskAttachment Attachment);
+
+/// <summary>Attachments on tasks, and the picture on a card, as Asana's.</summary>
+public static class Attachments
+{
+    /// <summary>A file attached: added last; the first picture becomes the card's cover when it has none.</summary>
+    public static ProjectTask Add(ProjectTask task, TaskAttachment attachment) => task with
+    {
+        Attachments = [.. task.Attachments, attachment],
+        CoverId = task.CoverId ?? (attachment.IsPicture ? attachment.Id : null),
+    };
+
+    /// <summary>A file taken off; when it was the cover, the card has none.</summary>
+    public static ProjectTask Remove(ProjectTask task, string attachmentId) => task with
+    {
+        Attachments = [.. task.Attachments.Where(a => a.Id != attachmentId)],
+        CoverId = task.CoverId == attachmentId ? null : task.CoverId,
+    };
+
+    /// <summary>A picture as the card's cover, or none.</summary>
+    public static ProjectTask SetCover(ProjectTask task, string? attachmentId) =>
+        task with { CoverId = attachmentId is not null && task.Attachments.Any(a => a.Id == attachmentId && a.IsPicture) ? attachmentId : null };
+
+    /// <summary>The card's cover picture, if it has one still attached.</summary>
+    public static TaskAttachment? Cover(ProjectTask task) =>
+        task.CoverId is { } id ? task.Attachments.FirstOrDefault(a => a.Id == id && a.IsPicture) : null;
+
+    /// <summary>Every file on a project's tasks and subtasks, the newest first, for its Files tab.</summary>
+    public static IReadOnlyList<ProjectFile> Of(IEnumerable<ProjectTask> tasks) =>
+        [.. tasks.Where(t => t.Deleted is null).SelectMany(t => t.Attachments.Select(a => new ProjectFile(t, a))).OrderByDescending(f => f.Attachment.Added)];
+
+    /// <summary>A file's name made safe to keep on disk: no folder signs or characters Windows refuses.</summary>
+    public static string SafeName(string name)
+    {
+        var file = System.IO.Path.GetFileName(name.Replace('\\', '/').Split('/').Last());
+        var bad = System.IO.Path.GetInvalidFileNameChars().Concat(['<', '>', ':', '"', '|', '?', '*']).ToHashSet();
+        var safe = new string([.. file.Select(c => bad.Contains(c) || char.IsControl(c) ? '_' : c)]).Trim().TrimEnd('.');
+        return safe.Length == 0 ? "file" : safe;
+    }
+}
+
 /// <summary>How much a task matters: most are Normal.</summary>
 public enum TaskPriority { Normal, High, Low }
 
@@ -177,6 +225,12 @@ public sealed record ProjectTask : ITracked
 
     /// <summary>Ticking it off makes the next one, due a day, week, month or year later.</summary>
     public TaskRepeat Repeat { get; init; }
+
+    /// <summary>Files attached to it, kept on this PC.</summary>
+    public IReadOnlyList<TaskAttachment> Attachments { get; init; } = [];
+
+    /// <summary>The picture shown on top of its card on the board, as Asana's cover; null for none.</summary>
+    public string? CoverId { get; init; }
 
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
@@ -622,6 +676,7 @@ public static class ProjectRules
         ("project", t => t.ProjectId), ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes), ("noteshtml", t => t.NotesHtml),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
         ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
+        ("attachments", t => t.Attachments), ("cover", t => t.CoverId),
     ];
 
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>

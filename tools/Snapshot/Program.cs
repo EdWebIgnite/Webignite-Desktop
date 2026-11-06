@@ -2647,6 +2647,47 @@ Save("site-check");
             Dispatcher.UIThread.RunJobs();
             Check("Each project keeps its own list or board", seoOnList && projectsPage.IsBoard);
             projectsPage.ListViewCommand.Execute(null);
+
+            // Attachments, as Asana's: a picture attached shows in the task pane, becomes the card's cover, and is in Files.
+            var shotPath = Path.Combine(data, "Shopfront.png");
+            File.WriteAllBytes(shotPath, logo);
+            var briefPath = Path.Combine(data, "Brief.pdf");
+            File.WriteAllBytes(briefPath, new byte[12_000]);
+            var coloursTask = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Colours and fonts");
+            projectsPage.OpenTaskById(coloursTask.Task.Id);
+            projectsPage.Attach(coloursTask.Task.Id, [shotPath, briefPath]);
+            var attachedUntil = DateTime.UtcNow.AddSeconds(5);
+            while (projectsPage.Detail!.Attachments.Any(a => a.IsPicture && !a.HasPicture) && DateTime.UtcNow < attachedUntil)
+            {
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(10);
+            }
+            Check("Files attached show in the task pane, the picture shown small", projectsPage.Detail.Attachments.Count == 2
+                && projectsPage.Detail.Attachments.Any(a => a.IsPicture && a.HasPicture && a.IsCover));
+            Check("A paperclip in the list counts the files", projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Colours and fonts").AttachmentCount == "2");
+            Save("task-attachments");
+            projectsPage.BoardViewCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            var coverCard = projectsPage.Columns.SelectMany(c => c.Cards).First(r => r.Title == "Colours and fonts");
+            var coverUntil = DateTime.UtcNow.AddSeconds(5);
+            while (coverCard.Cover?.HasPicture != true && DateTime.UtcNow < coverUntil)
+            {
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(10);
+            }
+            Check("The picture is the card's cover on the board", coverCard.HasCover && coverCard.Cover?.HasPicture == true);
+            Save("board-cover");
+            projectsPage.FilesViewCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Check("The Files tab lists every file in the project, with its task", projectsPage.IsFiles && !projectsPage.IsList && !projectsPage.IsBoard
+                && projectsPage.ProjectFiles.Count == 2 && projectsPage.ProjectFiles.All(f => f.TaskTitle == "Colours and fonts"));
+            Save("project-files");
+            var pdfRow = projectsPage.ProjectFiles.First(f => !f.IsPicture);
+            pdfRow.RemoveCommand.Execute(null);
+            Check("Removing a file takes it off the task and out of Files", projectsPage.ProjectFiles.Count == 1
+                && services.Projects.GetTask(coloursTask.Task.Id)!.Attachments.Count == 1);
+            projectsPage.CloseTaskCommand.Execute(null);
+            projectsPage.ListViewCommand.Execute(null);
             window.Width = 1920;
             Dispatcher.UIThread.RunJobs();
 
