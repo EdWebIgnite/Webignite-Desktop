@@ -160,16 +160,20 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
         EditGroups = string.Join(", ", person.Groups);
         EditNotes = person.Notes ?? "";
         EditClient = ClientChoices.FirstOrDefault(c => c.Value?.Id == person.ClientId) ?? ClientChoices.FirstOrDefault();
+        // Someone new gets an empty email and number to type into; someone saved without one just gets the link to add it.
+        var isNew = services.Contacts.Get(person.Id) is null;
         Emails.Clear();
         foreach (var email in person.Emails)
             Emails.Add(new WayRow(email.Label, email.Value, this, isEmail: true));
-        if (Emails.Count == 0)
+        if (Emails.Count == 0 && isNew)
             Emails.Add(new WayRow("Work", "", this, isEmail: true));
         Phones.Clear();
         foreach (var phone in person.Phones)
             Phones.Add(new WayRow(phone.Label, phone.Value, this, isEmail: false));
-        if (Phones.Count == 0)
+        if (Phones.Count == 0 && isNew)
             Phones.Add(new WayRow("Mobile", "", this, isEmail: false));
+        OnPropertyChanged(nameof(AddEmailText));
+        OnPropertyChanged(nameof(AddPhoneText));
         Problems.Clear();
         OnPropertyChanged(nameof(HasProblems));
         Message = "";
@@ -229,7 +233,12 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
             return false;
         open = saved;
         if (!quietly)
+        {
             Message = "Saved.";
+            // An email or number left empty goes once it's saved; the link adds one again.
+            foreach (var empty in Emails.Concat(Phones).Where(w => w.Value.Trim().Length == 0).ToList())
+                RemoveWay(empty);
+        }
         Changed();
         return true;
     }
@@ -257,16 +266,30 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
             services.OfferUndo($"Deleted {gone.Name}", () => services.Contacts.Restore(gone));
     }
 
-    [RelayCommand]
-    private void AddEmail() => Emails.Add(new WayRow(Emails.Count == 0 ? "Work" : "Other", "", this, isEmail: true));
+    public string AddEmailText => Emails.Count == 0 ? "+ Add an email" : "+ Another email";
+
+    public string AddPhoneText => Phones.Count == 0 ? "+ Add a number" : "+ Another number";
 
     [RelayCommand]
-    private void AddPhone() => Phones.Add(new WayRow(Phones.Count == 0 ? "Mobile" : "Work", "", this, isEmail: false));
+    private void AddEmail()
+    {
+        Emails.Add(new WayRow(Emails.Count == 0 ? "Work" : "Other", "", this, isEmail: true));
+        OnPropertyChanged(nameof(AddEmailText));
+    }
+
+    [RelayCommand]
+    private void AddPhone()
+    {
+        Phones.Add(new WayRow(Phones.Count == 0 ? "Mobile" : "Work", "", this, isEmail: false));
+        OnPropertyChanged(nameof(AddPhoneText));
+    }
 
     internal void RemoveWay(WayRow row)
     {
         if (!Emails.Remove(row))
             Phones.Remove(row);
+        OnPropertyChanged(nameof(AddEmailText));
+        OnPropertyChanged(nameof(AddPhoneText));
     }
 
     [RelayCommand]
