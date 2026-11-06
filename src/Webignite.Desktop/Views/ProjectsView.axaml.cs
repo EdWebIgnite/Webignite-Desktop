@@ -4,6 +4,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using Webignite.Core.Projects;
@@ -106,6 +107,13 @@ public partial class ProjectsView : FullBleedView
         DropZones.Add(new DropZone(TimelineColumns, (item, target) => item is TaskRow && target is TimelineDay,
             (item, target) => Projects?.Schedule((TaskRow)item, (TimelineDay)target)));
 
+        // The timeline's arrows are drawn once its bars are laid out, each time the bars are made again.
+        DataContextChanged += (_, _) =>
+        {
+            arrowsFor?.TimelineLanes.CollectionChanged -= LanesChanged;
+            arrowsFor = Projects;
+            arrowsFor?.TimelineLanes.CollectionChanged += LanesChanged;
+        };
         TimelineScroll.ScrollChanged += (_, _) =>
         {
             if (Projects is { } projects)
@@ -933,5 +941,50 @@ public partial class ProjectsView : FullBleedView
         delete.Click += (_, _) => row.DeleteCommand.Execute(null);
         new ContextMenu { ItemsSource = new object[] { due, move, about, new Separator(), delete } }.Open(sender as Control);
         e.Handled = true;
+    }
+
+    private ProjectsViewModel? arrowsFor;
+
+    private void LanesChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
+        Avalonia.Threading.Dispatcher.UIThread.Post(DrawTimelineArrows, Avalonia.Threading.DispatcherPriority.Loaded);
+
+    // An arrow from each task's bar to the bars of the tasks waiting on it: out from the end of one, down or up,
+    // and into the start of the other, with a small head, as Asana's timeline draws dependencies.
+    private void DrawTimelineArrows()
+    {
+        TimelineArrows.Children.Clear();
+        if (Projects is not { IsTimeline: true })
+            return;
+        var bars = TimelineArrows.Parent is Visual area
+            ? area.GetVisualDescendants().OfType<Border>()
+                .Where(b => b.Classes.Contains("timelinebar") && b.DataContext is TimelineBarRow && b.IsEffectivelyVisible)
+                .Select(b => (Row: (TimelineBarRow)b.DataContext!, Box: b.TranslatePoint(default, TimelineArrows) is { } at ? new Rect(at, b.Bounds.Size) : default))
+                .Where(b => b.Box.Width > 0)
+                .ToDictionary(b => b.Row.Row.Task.Id, b => b.Box)
+            : [];
+        foreach (var (id, box) in bars)
+        {
+            if (Projects.TimelineLanes.SelectMany(l => l.Bars).FirstOrDefault(b => b.Row.Task.Id == id) is not { } row)
+                continue;
+            foreach (var blocker in row.Row.Task.BlockedBy)
+            {
+                if (!bars.TryGetValue(blocker, out var from))
+                    continue;
+                var (x2, y2) = (box.Left - 2, box.Center.Y);
+                // A short bar has its name beside it, so the arrow leaves from underneath rather than through the name.
+                var shortBar = Projects.TimelineLanes.SelectMany(l => l.Bars).FirstOrDefault(b => b.Row.Task.Id == blocker) is { NameBeside: true };
+                var line = shortBar && Math.Abs(y2 - from.Center.Y) > from.Height
+                    ? FormattableString.Invariant($"M {from.Center.X},{(y2 > from.Center.Y ? from.Bottom : from.Top)} V {y2} H {x2}")
+                    : FormattableString.Invariant($"M {from.Right},{from.Center.Y} H {from.Right + 10} V {y2} H {x2}");
+                var path = new Avalonia.Controls.Shapes.Path
+                {
+                    Data = Geometry.Parse(line + FormattableString.Invariant($" M {x2 - 5},{y2 - 4} L {x2},{y2} L {x2 - 5},{y2 + 4}")),
+                    StrokeThickness = 1.5,
+                    StrokeJoin = PenLineJoin.Round,
+                };
+                path.Bind(Avalonia.Controls.Shapes.Shape.StrokeProperty, path.GetResourceObservable("Muted"));
+                TimelineArrows.Children.Add(path);
+            }
+        }
     }
 }
