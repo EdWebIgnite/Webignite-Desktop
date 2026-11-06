@@ -524,7 +524,13 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         {
             var cards = section.Tasks.Select(t => Row(t, section)).ToList();
             rowsOf[section] = cards;
-            Columns.Add(new BoardColumn(section, cards, new AddTaskRow(section, this)));
+            var add = new AddTaskRow(section, this);
+            if (typingCard is { } typing && typing.Key == section.Group.Key)
+            {
+                add.AtTop = typing.Top;
+                add.IsTyping = true;
+            }
+            Columns.Add(new BoardColumn(section, cards, add));
         }
         var listSections = Layout.Group == TaskGroup.Sections ? sectionRows
             : [.. ProjectList.Arrange(headings, shown, Layout, NameOf, today).Select(g => new SectionRow(g, this) { IsFolded = Layout.Folded.Contains(g.Key) })];
@@ -658,18 +664,28 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     // Tasks
 
-    internal void AddTask(SectionRow section, string title)
+    internal void AddTask(SectionRow section, string title, bool first = false, bool keepTyping = false)
     {
         if (open is null || title.Trim().Length == 0)
             return;
         var (saved, problems) = Ours(() => services.Projects.AddTask(ProjectRules.Filtered(new ProjectTask
         {
             Id = ProjectRules.NewId(), ProjectId = open.Id, HeadingId = section.Heading?.Id, Title = title,
-        }, FilterPriority?.Value, FilterTag?.Value)));
+        }, FilterPriority?.Value, FilterTag?.Value), first));
         Message = saved is null ? string.Join(" ", problems) : "";
-        if (saved is not null)
-            ShowTasks();
+        if (saved is null)
+            return;
+        // On the board the box stays open for the next card, as Asana's does.
+        typingCard = keepTyping ? (section.Group.Key, first) : null;
+        ShowTasks();
+        typingCard = null;
     }
+
+    /// <summary>The board column whose add box stays open after a card is added, and whether at its top.</summary>
+    private (string Key, bool Top)? typingCard;
+
+    /// <summary>The Add heading column at the end of the board is being typed in.</summary>
+    [ObservableProperty] public partial bool IsAddingColumn { get; set; }
 
     internal void ChangeTask(TaskRow row, Func<ProjectTask, ProjectTask> change)
     {
@@ -1040,6 +1056,9 @@ public sealed partial class SectionRow(ListGroup group, ProjectsViewModel page) 
     public string Title => Group.Title;
     public string Count => Tasks.Count == 0 ? "" : $"{Tasks.Count(t => t.Done)}/{Tasks.Count}";
 
+    /// <summary>How many tasks it has, by its name on the board, as Asana's.</summary>
+    public string Total => Tasks.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsOpenOut))]
     public partial bool IsFolded { get; set; }
@@ -1159,6 +1178,9 @@ public sealed partial class TaskRow : ObservableObject
 
     public bool HasCardLine => CardLine.Length > 0;
 
+    /// <summary>The foot of a card on the board: a face and a due date on the left, counts on the right.</summary>
+    public bool HasCardFoot => HasWho || HasDue || HasSubtasks || HasComments || HasAttachments;
+
     /// <summary>Who it's for, as the list shows it: a name you click to change, or "No one".</summary>
     public string WhoText => AssignedTo?.Value is null ? "No one" : AssignedTo.Label;
     public bool HasWho => AssignedTo?.Value is not null;
@@ -1212,6 +1234,8 @@ public sealed partial class TaskRow : ObservableObject
         OnPropertyChanged(nameof(HasWho));
         OnPropertyChanged(nameof(CardLine));
         OnPropertyChanged(nameof(HasCardLine));
+        OnPropertyChanged(nameof(WhoInitials));
+        OnPropertyChanged(nameof(HasCardFoot));
         if (!loading)
             page.ChangeTask(this, t => t with { AssignedTo = value?.Value });
     }
@@ -1223,6 +1247,7 @@ public sealed partial class TaskRow : ObservableObject
         OnPropertyChanged(nameof(IsLate));
         OnPropertyChanged(nameof(CardLine));
         OnPropertyChanged(nameof(HasCardLine));
+        OnPropertyChanged(nameof(HasCardFoot));
         if (!loading)
             page.ChangeTask(this, t => t with { Due = value is { } d ? DateOnly.FromDateTime(d) : null });
     }
@@ -1247,12 +1272,29 @@ public sealed partial class BoardColumn(SectionRow section, IReadOnlyList<TaskRo
     public AddTaskRow Add { get; } = add;
 }
 
-/// <summary>The box under a heading's tasks for adding one.</summary>
+/// <summary>
+/// The box under a heading's tasks for adding one. On the board it opens when asked, from "Add task" under a
+/// column or the + at its top, as Asana's.
+/// </summary>
 public sealed partial class AddTaskRow(SectionRow section, ProjectsViewModel page) : ObservableObject
 {
     public SectionRow Section { get; } = section;
 
     [ObservableProperty] public partial string Title { get; set; } = "";
+
+    /// <summary>The board column's box is open.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTypingTop), nameof(IsTypingBottom), nameof(ShowsAddButton))]
+    public partial bool IsTyping { get; set; }
+
+    /// <summary>The new card goes at the top of the column, from its +.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTypingTop), nameof(IsTypingBottom))]
+    public partial bool AtTop { get; set; }
+
+    public bool IsTypingTop => IsTyping && AtTop;
+    public bool IsTypingBottom => IsTyping && !AtTop;
+    public bool ShowsAddButton => !IsTyping;
 
     [RelayCommand]
     private void Add()
@@ -1260,5 +1302,16 @@ public sealed partial class AddTaskRow(SectionRow section, ProjectsViewModel pag
         var title = Title;
         Title = "";
         page.AddTask(Section, title);
+    }
+
+    /// <summary>Adds the card typed on the board, keeping the box open for the next.</summary>
+    public void AddCard()
+    {
+        var title = Title;
+        Title = "";
+        if (title.Trim().Length == 0)
+            IsTyping = false;
+        else
+            page.AddTask(Section, title, AtTop, keepTyping: true);
     }
 }

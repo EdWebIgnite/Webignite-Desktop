@@ -39,6 +39,7 @@
   <StreamGeometry x:Key="Icon.Download">M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3</StreamGeometry>
   <StreamGeometry x:Key="Icon.Search">M21 21 l-4.34-4.34 M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Inbox">M22 12 L16 12 L14 15 L10 15 L8 12 L2 12 M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.More">M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Plus">M5 12h14 M12 5v14</StreamGeometry>
   <StreamGeometry x:Key="Icon.Alert">M12 8v4 M12 16h.01 M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Bell">M10.268 21a2 2 0 0 0 3.464 0 M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326</StreamGeometry>

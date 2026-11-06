@@ -190,13 +190,14 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
 
     public ProjectTask? GetTask(string id) => store.GetProjectTask(id) is { Deleted: null } task ? task : null;
 
-    /// <summary>A new task (or subtask) at the end of its heading, or its task's subtasks.</summary>
-    public (ProjectTask? Saved, IReadOnlyList<string> Problems) AddTask(ProjectTask typed)
+    /// <summary>A new task (or subtask) at the end of its heading, or its task's subtasks; at the top with <paramref name="first"/>.</summary>
+    public (ProjectTask? Saved, IReadOnlyList<string> Problems) AddTask(ProjectTask typed, bool first = false)
     {
         if (Get(typed.ProjectId) is null)
             return (null, ["The project is gone."]);
         var siblings = AllTasks(typed.ProjectId).Where(t => t.ParentId == typed.ParentId && (typed.ParentId is not null || t.HeadingId == typed.HeadingId));
-        var task = typed with { Title = typed.Title.Trim(), Order = ProjectRules.NextOrder(siblings.Select(t => t.Order)) };
+        var orders = siblings.Select(t => t.Order);
+        var task = typed with { Title = typed.Title.Trim(), Order = first ? ProjectRules.FirstOrder(orders) : ProjectRules.NextOrder(orders) };
         var problems = ProjectRules.Check(task, task.ParentId is { } parent ? GetTask(parent) : null);
         if (problems.Count > 0)
             return (null, problems);
