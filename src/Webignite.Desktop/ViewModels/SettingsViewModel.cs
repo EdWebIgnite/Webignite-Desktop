@@ -94,6 +94,9 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     public bool IsGraphite => services.Settings.Appearance.DarkPalette == DarkPalette.Graphite;
     public bool IsMidnight => services.Settings.Appearance.DarkPalette == DarkPalette.Midnight;
     public bool IsWarm => services.Settings.Appearance.DarkPalette == DarkPalette.Warm;
+    public bool IsAsanaDark => services.Settings.Appearance.DarkPalette == DarkPalette.Asana;
+    public bool IsStandardLight => services.Settings.Appearance.LightPalette == LightPalette.Standard;
+    public bool IsAsanaLight => services.Settings.Appearance.LightPalette == LightPalette.Asana;
 
     [RelayCommand]
     private void UseTheme(string theme)
@@ -114,11 +117,23 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
             });
     }
 
+    /// <summary>Picking a light look while the app is dark switches it to light, so the choice shows straight away.</summary>
+    [RelayCommand]
+    private void UseLightPalette(string palette)
+    {
+        if (Enum.TryParse<LightPalette>(palette, out var value))
+            SetLook(services.Settings.Appearance with
+            {
+                LightPalette = value,
+                Theme = services.Settings.Appearance.Theme == Theme.Dark ? Theme.Light : services.Settings.Appearance.Theme,
+            });
+    }
+
     private void SetLook(AppearanceSettings look) => services.Settings.Appearance = look;
 
     private void LookChanged(AppearanceSettings look)
     {
-        foreach (var name in new[] { nameof(IsLight), nameof(IsDark), nameof(IsFollowingWindows), nameof(IsGraphite), nameof(IsMidnight), nameof(IsWarm) })
+        foreach (var name in new[] { nameof(IsLight), nameof(IsDark), nameof(IsFollowingWindows), nameof(IsGraphite), nameof(IsMidnight), nameof(IsWarm), nameof(IsAsanaDark), nameof(IsStandardLight), nameof(IsAsanaLight) })
             OnPropertyChanged(name);
     }
 

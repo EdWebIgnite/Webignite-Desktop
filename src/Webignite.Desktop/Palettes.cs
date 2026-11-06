@@ -7,7 +7,7 @@ using Avalonia.Styling;
 namespace Webignite.Desktop;
 
 /// <summary>
-/// Swaps the colour palette: the light one, or one of the dark ones. Every screen reads its colours by name
+/// Swaps the colour palette: one of the light ones, or one of the dark ones. Every screen reads its colours by name
 /// with DynamicResource, so swapping the dictionary repaints the whole app at once.
 /// </summary>
 public static class Palettes
@@ -16,13 +16,16 @@ public static class Palettes
     private static AppearanceSettings? applied;
     private static bool following;
 
-    public static Uri Source(DarkPalette? dark) => new(dark is { } d
-        ? $"avares://Webignite/Styles/Palette.Dark.{d}.axaml"
-        : "avares://Webignite/Styles/Palette.axaml");
+    private const string Standard = "avares://Webignite/Styles/Palette.axaml";
+
+    public static Uri Source(DarkPalette dark) => new($"avares://Webignite/Styles/Palette.Dark.{dark}.axaml");
+
+    public static Uri Source(LightPalette light) => new(light == LightPalette.Standard ? Standard : $"avares://Webignite/Styles/Palette.Light.{light}.axaml");
 
     /// <summary>A palette on its own, for the previews in Settings.</summary>
-    public static IResourceDictionary Load(DarkPalette? dark) =>
-        new ResourceInclude((Uri?)null) { Source = Source(dark) }.Loaded;
+    public static IResourceDictionary Load(DarkPalette dark) => new ResourceInclude((Uri?)null) { Source = Source(dark) }.Loaded;
+
+    public static IResourceDictionary Load(LightPalette light) => new ResourceInclude((Uri?)null) { Source = Source(light) }.Loaded;
 
     public static bool IsDark(AppearanceSettings settings, IPlatformSettings? platform) => settings.Theme switch
     {
@@ -47,7 +50,7 @@ public static class Palettes
         }
 
         var dark = IsDark(settings, app.PlatformSettings);
-        var source = Source(dark ? settings.DarkPalette : null);
+        var source = dark ? Source(settings.DarkPalette) : Source(settings.LightPalette);
         app.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
 
         var merged = app.Resources.MergedDictionaries;
@@ -55,7 +58,8 @@ public static class Palettes
             return;
         // Before the first swap, the palette is the dictionary from App.axaml that holds the colour names.
         IResourceProvider? existing = (IResourceProvider?)current ?? merged.OfType<ResourceDictionary>().FirstOrDefault(d => d.ContainsKey("Canvas"));
-        if (current is null && !dark)
+        // The app's own light palette is already there from App.axaml.
+        if (current is null && source.OriginalString == Standard)
             return;
         var next = new ResourceInclude((Uri?)null) { Source = source };
         var index = existing is null ? -1 : merged.IndexOf(existing);

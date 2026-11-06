@@ -5,23 +5,26 @@
              x:Class="Webignite.Desktop.Views.PlannerHomeView"
              x:DataType="vm:PlannerHomeViewModel">
   <UserControl.Styles>
-    <!-- The tabs on the My tasks card: words, the picked one underlined -->
+        <!-- The tabs on the My tasks card: words, the picked one in a pill, as Asana's Home -->
     <Style Selector="Button.hometab">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0,0,0,2" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="CornerRadius" Value="0" />
-      <Setter Property="Padding" Value="2,6" />
-      <Setter Property="Margin" Value="0,0,18,0" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="Margin" Value="0,0,4,0" />
       <Setter Property="Foreground" Value="{DynamicResource Muted}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
-    <Style Selector="Button.hometab.on">
-      <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
-      <Setter Property="Foreground" Value="{DynamicResource Text}" />
-    </Style>
     <Style Selector="Button.hometab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="Button.hometab.on">
+      <Setter Property="Background" Value="{DynamicResource Picked}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPicked}" />
+    </Style>
+    <Style Selector="Button.hometab.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Picked}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPicked}" />
     </Style>
     <!-- A project on the Projects card: a square with its letters, then its name -->
     <Style Selector="Button.projecttile">
@@ -78,7 +81,7 @@
               <Button Classes="hometab" Classes.on="{Binding IsCompleted}" Content="Completed"
                       Command="{Binding ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Completed}" />
             </StackPanel>
-            <Border Height="1" Background="{DynamicResource Line}" Margin="0,-10,0,0" />
+            <Border Height="1" Background="{DynamicResource Line}" Margin="-20,0" />
           </StackPanel>
           <Panel>
             <TextBlock Classes="muted" Text="{Binding EmptyText}" IsVisible="{Binding HasNoTasks}" TextWrapping="Wrap" Margin="0,14,0,0" />
@@ -127,7 +130,7 @@
                 <Button Classes="projecttile" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Name}">
                   <DockPanel>
                     <Border DockPanel.Dock="Left" Classes="projectsquare" Margin="0,0,14,0" Background="{Binding Colour, Converter={x:Static c:ProjectColours.Brush}}">
-                      <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="22" Foreground="{DynamicResource OnPrimary}"
+                      <c:Icon Data="{Binding Icon, Converter={x:Static c:ProjectColours.Icon}}" Size="24" Foreground="{DynamicResource OnProject}"
                               HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />

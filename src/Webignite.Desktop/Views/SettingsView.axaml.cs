@@ -17,6 +17,9 @@ public partial class SettingsView : UserControl
         PreviewGraphite.Resources.MergedDictionaries.Add(Palettes.Load(DarkPalette.Graphite));
         PreviewMidnight.Resources.MergedDictionaries.Add(Palettes.Load(DarkPalette.Midnight));
         PreviewWarm.Resources.MergedDictionaries.Add(Palettes.Load(DarkPalette.Warm));
+        PreviewAsanaDark.Resources.MergedDictionaries.Add(Palettes.Load(DarkPalette.Asana));
+        PreviewStandardLight.Resources.MergedDictionaries.Add(Palettes.Load(LightPalette.Standard));
+        PreviewAsanaLight.Resources.MergedDictionaries.Add(Palettes.Load(LightPalette.Asana));
     }
 
     private void ChooseBackupFolder(object? sender, RoutedEventArgs e) => ChooseBackupFolderAsync(sender, e).Forget("Choosing the backup folder", tell: true);

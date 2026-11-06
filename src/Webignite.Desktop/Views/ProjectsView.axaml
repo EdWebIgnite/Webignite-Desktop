@@ -147,22 +147,31 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
             <StackPanel Orientation="Horizontal" Spacing="6">
-              <Button Classes="projecthead" ToolTip.Tip="Its colour and icon">
-                <Border Width="34" Height="34" CornerRadius="8" Background="{Binding EditColour, Converter={x:Static c:ProjectColours.Brush}}">
-                  <c:Icon Data="{Binding EditIcon, Converter={x:Static c:IconConverter.Instance}}" Size="18" Foreground="{DynamicResource OnPrimary}"
+              <Button Classes="projecthead" ToolTip.Tip="Set colour and icon">
+                <Border Classes="projecttile" Width="34" Height="34" CornerRadius="8" Background="{Binding EditColour, Converter={x:Static c:ProjectColours.Brush}}">
+                  <c:Icon Data="{Binding EditIcon, Converter={x:Static c:ProjectColours.Icon}}" Size="18" Foreground="{DynamicResource OnProject}"
                           HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <Button.Flyout>
+                  <!-- As Asana's "Set colour & icon": the square as it will look, then its 16 colours and 32 icons -->
                   <Flyout Placement="BottomEdgeAlignedLeft">
-                    <StackPanel Spacing="10" Width="248">
+                    <StackPanel Spacing="10" Width="292">
+                      <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Border Width="48" Height="48" CornerRadius="10" Background="{Binding EditColour, Converter={x:Static c:ProjectColours.Brush}}">
+                          <c:Icon Data="{Binding EditIcon, Converter={x:Static c:ProjectColours.Icon}}" Size="24" Foreground="{DynamicResource OnProject}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Set colour and icon" FontWeight="SemiBold" VerticalAlignment="Center" />
+                      </StackPanel>
                       <TextBlock Classes="label" Text="Colour" />
                       <ItemsControl ItemsSource="{x:Static vm:ProjectsViewModel.ColourChoices}">
                         <ItemsControl.ItemsPanel>
-                          <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+                          <ItemsPanelTemplate><UniformGrid Columns="8" /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="x:String">
-                            <Button Classes="swatch" ToolTip.Tip="{Binding}" Background="{Binding Converter={x:Static c:ProjectColours.Brush}}"
+                            <Button Classes="swatch" Margin="0,0,6,6" ToolTip.Tip="{Binding Converter={x:Static c:ProjectColours.ColourLabel}}"
+                                    Background="{Binding Converter={x:Static c:ProjectColours.Brush}}"
                                     Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).PickColourCommand}" CommandParameter="{Binding}" />
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -170,12 +179,13 @@
                       <TextBlock Classes="label" Text="Icon" />
                       <ItemsControl ItemsSource="{x:Static vm:ProjectsViewModel.IconChoices}">
                         <ItemsControl.ItemsPanel>
-                          <ItemsPanelTemplate><WrapPanel ItemSpacing="4" LineSpacing="4" /></ItemsPanelTemplate>
+                          <ItemsPanelTemplate><UniformGrid Columns="8" /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="x:String">
-                            <Button Classes="quiet" Padding="6" Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).PickIconCommand}" CommandParameter="{Binding}">
-                              <c:Icon Data="{Binding Converter={x:Static c:IconConverter.Instance}}" Size="16" />
+                            <Button Classes="quiet" Padding="7" Margin="0,0,2,2" ToolTip.Tip="{Binding Converter={x:Static c:ProjectColours.IconLabel}}"
+                                    Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).PickIconCommand}" CommandParameter="{Binding}">
+                              <c:Icon Data="{Binding Converter={x:Static c:ProjectColours.Icon}}" Size="18" />
                             </Button>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>

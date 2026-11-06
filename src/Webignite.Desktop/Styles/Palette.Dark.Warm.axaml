@@ -23,6 +23,9 @@
   <!-- Selected text in boxes: a soft highlight the text stays readable on. -->
   <SolidColorBrush x:Key="Selection" Color="#6B5537" />
   <SolidColorBrush x:Key="OnSelection" Color="#EDE6DD" />
+  <!-- A picked tab or filter shown as a pill, as Asana marks the picked tab on Home. -->
+  <SolidColorBrush x:Key="Picked" Color="#6B5537" />
+  <SolidColorBrush x:Key="OnPicked" Color="#EDE6DD" />
   <SolidColorBrush x:Key="Ink" Color="#FFFFFF" />
   <SolidColorBrush x:Key="Muted" Color="#A89D90" />
 
@@ -59,6 +62,26 @@
   <SolidColorBrush x:Key="CategoryPink" Color="#F06AAE" />
   <SolidColorBrush x:Key="CategoryGrey" Color="#9C9CA3" />
   <SolidColorBrush x:Key="Important" Color="#FFA733" />
+
+  <!-- Project squares: Asana's 16 project colours, the same in light and dark, with a near-black picture on top.
+       Red and green appear here only as a project's own colour; they still mean problem and done everywhere else. -->
+  <SolidColorBrush x:Key="ProjectRed" Color="#FF8576" />
+  <SolidColorBrush x:Key="ProjectOrange" Color="#FF9F4B" />
+  <SolidColorBrush x:Key="ProjectYellowOrange" Color="#F7BD51" />
+  <SolidColorBrush x:Key="ProjectYellow" Color="#FFD721" />
+  <SolidColorBrush x:Key="ProjectYellowGreen" Color="#C3E684" />
+  <SolidColorBrush x:Key="ProjectGreen" Color="#82D990" />
+  <SolidColorBrush x:Key="ProjectBlueGreen" Color="#6AD8BC" />
+  <SolidColorBrush x:Key="ProjectAqua" Color="#93F0D9" />
+  <SolidColorBrush x:Key="ProjectBlue" Color="#8DB8FF" />
+  <SolidColorBrush x:Key="ProjectIndigo" Color="#B8ACFF" />
+  <SolidColorBrush x:Key="ProjectPurple" Color="#E39EF2" />
+  <SolidColorBrush x:Key="ProjectMagenta" Color="#FFBEFF" />
+  <SolidColorBrush x:Key="ProjectHotPink" Color="#FC96BF" />
+  <SolidColorBrush x:Key="ProjectPink" Color="#FFC6BD" />
+  <SolidColorBrush x:Key="ProjectCoolGrey" Color="#AAAAAA" />
+  <SolidColorBrush x:Key="ProjectNone" Color="#D9D9D9" />
+  <SolidColorBrush x:Key="OnProject" Color="#050505" />
 
   <!-- Depth: cards sit just above the page; cards you can click rise a little more under the mouse. -->
   <BoxShadows x:Key="CardShadow">0 1 2 0 #40000000, 0 4 14 0 #33000000</BoxShadows>

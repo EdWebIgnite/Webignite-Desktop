@@ -1,0 +1,112 @@
+<!--
+  Dark palette "Asana": the colours of Asana's dark theme, read from its own design tokens (Nov 2026).
+  Same names as Palette.axaml. Plain neutral greys with no blue in them: page #1E1E1E, cards #2B2B2B, sidebar
+  #262626; blue for buttons and what's picked. Red and green still mean "needs attention" and "done" only.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="Canvas" Color="#1E1E1E" />
+  <SolidColorBrush x:Key="Surface" Color="#2B2B2B" />
+  <!-- Behind a page of a PDF or a picture: white, as on paper, in every look. -->
+  <SolidColorBrush x:Key="Paper" Color="#FFFFFF" />
+  <!-- Writing on paper (the mail editor): the paper stays white in every palette, so its ink does too. -->
+  <SolidColorBrush x:Key="PaperText" Color="#1F2A26" />
+  <SolidColorBrush x:Key="PaperLine" Color="#C8CDD0" />
+  <SolidColorBrush x:Key="PaperMuted" Color="#7A8580" />
+  <SolidColorBrush x:Key="PaperShade" Color="#F4F5F5" />
+  <SolidColorBrush x:Key="PaperLink" Color="#1A5FB4" />
+  <SolidColorBrush x:Key="PaperSelection" Color="#B9D3F5" />
+  <SolidColorBrush x:Key="Surface2" Color="#333333" />
+  <SolidColorBrush x:Key="TableHead" Color="#262626" />
+  <SolidColorBrush x:Key="Line" Color="#333333" />
+  <SolidColorBrush x:Key="Line2" Color="#505050" />
+  <SolidColorBrush x:Key="Text" Color="#F3F3F3" />
+  <!-- Selected text in boxes: a soft highlight the text stays readable on. -->
+  <SolidColorBrush x:Key="Selection" Color="#002F73" />
+  <SolidColorBrush x:Key="OnSelection" Color="#F3F3F3" />
+  <!-- A picked tab or filter shown as a pill, as Asana marks the picked tab on Home. -->
+  <SolidColorBrush x:Key="Picked" Color="#001B4E" />
+  <SolidColorBrush x:Key="OnPicked" Color="#6CA0F8" />
+  <SolidColorBrush x:Key="Ink" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Muted" Color="#A0A0A0" />
+
+  <!-- Sidebar: a soft black, not pure black and not grey, with white text. -->
+  <SolidColorBrush x:Key="Nav" Color="#262626" />
+  <SolidColorBrush x:Key="NavHover" Color="#323232" />
+  <SolidColorBrush x:Key="NavSelected" Color="#3E3E3E" />
+  <SolidColorBrush x:Key="NavText" Color="#F3F3F3" />
+  <SolidColorBrush x:Key="NavMuted" Color="#A0A0A0" />
+  <!-- Dims the page behind the Ctrl+K search box. -->
+  <SolidColorBrush x:Key="Scrim" Color="#99000000" />
+
+  <SolidColorBrush x:Key="Primary" Color="#4075CF" />
+  <SolidColorBrush x:Key="PrimaryHover" Color="#2C60B8" />
+  <SolidColorBrush x:Key="OnPrimary" Color="#FFFFFF" />
+
+  <SolidColorBrush x:Key="Attention" Color="#FF7263" />
+  <SolidColorBrush x:Key="AttentionSoft" Color="#5D0404" />
+  <SolidColorBrush x:Key="AttentionLine" Color="#BE241E" />
+  <SolidColorBrush x:Key="InvoiceTint" Color="#6CA0F8" />
+  <SolidColorBrush x:Key="InvoiceSoft" Color="#001B4E" />
+  <SolidColorBrush x:Key="QuoteTint" Color="#9E8FFC" />
+  <SolidColorBrush x:Key="QuoteSoft" Color="#281568" />
+  <SolidColorBrush x:Key="Ok" Color="#48B560" />
+  <SolidColorBrush x:Key="OkSoft" Color="#0B3315" />
+  <SolidColorBrush x:Key="OkLine" Color="#135D28" />
+
+  <!-- Mail categories and the Important mark: dots and flags only, never backgrounds. No red or green here. -->
+  <SolidColorBrush x:Key="CategoryBlue" Color="#6CA0F8" />
+  <SolidColorBrush x:Key="CategoryPurple" Color="#9E8FFC" />
+  <SolidColorBrush x:Key="CategoryOrange" Color="#FF7A00" />
+  <SolidColorBrush x:Key="CategoryYellow" Color="#E9C300" />
+  <SolidColorBrush x:Key="CategoryTeal" Color="#3AB191" />
+  <SolidColorBrush x:Key="CategoryPink" Color="#FD6CA7" />
+  <SolidColorBrush x:Key="CategoryGrey" Color="#A0A0A0" />
+  <SolidColorBrush x:Key="Important" Color="#FF7A00" />
+
+  <!-- Project squares: Asana's 16 project colours, the same in light and dark, with a near-black picture on top.
+       Red and green appear here only as a project's own colour; they still mean problem and done everywhere else. -->
+  <SolidColorBrush x:Key="ProjectRed" Color="#FF8576" />
+  <SolidColorBrush x:Key="ProjectOrange" Color="#FF9F4B" />
+  <SolidColorBrush x:Key="ProjectYellowOrange" Color="#F7BD51" />
+  <SolidColorBrush x:Key="ProjectYellow" Color="#FFD721" />
+  <SolidColorBrush x:Key="ProjectYellowGreen" Color="#C3E684" />
+  <SolidColorBrush x:Key="ProjectGreen" Color="#82D990" />
+  <SolidColorBrush x:Key="ProjectBlueGreen" Color="#6AD8BC" />
+  <SolidColorBrush x:Key="ProjectAqua" Color="#93F0D9" />
+  <SolidColorBrush x:Key="ProjectBlue" Color="#8DB8FF" />
+  <SolidColorBrush x:Key="ProjectIndigo" Color="#B8ACFF" />
+  <SolidColorBrush x:Key="ProjectPurple" Color="#E39EF2" />
+  <SolidColorBrush x:Key="ProjectMagenta" Color="#FFBEFF" />
+  <SolidColorBrush x:Key="ProjectHotPink" Color="#FC96BF" />
+  <SolidColorBrush x:Key="ProjectPink" Color="#FFC6BD" />
+  <SolidColorBrush x:Key="ProjectCoolGrey" Color="#AAAAAA" />
+  <SolidColorBrush x:Key="ProjectNone" Color="#D9D9D9" />
+  <SolidColorBrush x:Key="OnProject" Color="#050505" />
+
+  <!-- Depth: cards sit just above the page; cards you can click rise a little more under the mouse. -->
+  <!-- Two layers: a tight edge and a soft spread, so cards sit on the page rather than float. -->
+  <BoxShadows x:Key="CardShadow">0 1 4 0 #4D1E1E1E</BoxShadows>
+  <BoxShadows x:Key="CardShadowRaised">0 3 8 0 #4D1E1E1E, 0 6 12 0 #4D000000</BoxShadows>
+  <!-- Under things that float over the page: the Ctrl+K box, a note in the corner, the address suggestions. -->
+  <BoxShadows x:Key="OverlayShadow">0 6 12 0 #4D1E1E1E, 0 12 32 0 #80000000</BoxShadows>
+  <BoxShadows x:Key="PopupShadow">0 3 8 0 #66000000</BoxShadows>
+  <!-- Under a table heading pinned at the top while its rows scroll. -->
+  <BoxShadows x:Key="HeadShadow">0 3 8 0 #66000000</BoxShadows>
+
+  <!-- Mark-up pens, drawn on client screenshots. Red marks what needs fixing. -->
+  <Color x:Key="MarkRed">#E03131</Color>
+  <Color x:Key="MarkYellow">#FCC419</Color>
+  <Color x:Key="MarkBlue">#1971C2</Color>
+  <!-- Round a numbered note, and its number: white, or black on the yellow pen. -->
+  <Color x:Key="MarkOutline">#FFFFFF</Color>
+  <Color x:Key="MarkOnYellow">#000000</Color>
+
+  <!-- Fluent accent follows the primary colour, so focus rings and selections match. -->
+  <Color x:Key="SystemAccentColor">#4075CF</Color>
+
+  <!-- Notes in the window corner (new mail): white card with a soft black strip, like the sidebar. -->
+  <SolidColorBrush x:Key="NotificationCardInformationBackgroundBrush" Color="#4075CF" />
+  <SolidColorBrush x:Key="NotificationCardBackgroundBrush" Color="#2B2B2B" />
+  <SolidColorBrush x:Key="NotificationCardForegroundBrush" Color="#F3F3F3" />
+</ResourceDictionary>
