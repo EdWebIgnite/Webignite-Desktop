@@ -38,6 +38,35 @@ public partial class MainViewModel : ViewModelBase
             page.Refresh();
     }
 
+    /// <summary>
+    /// Claude or ChatGPT changed something: the pages already built that show it read it again. Projects tell
+    /// their own listeners (sidebar, Home, widgets, the Projects pages); the rest are refreshed here.
+    /// </summary>
+    private void ShowAssistantChanges(IReadOnlyList<string> areas)
+    {
+        var pages = new HashSet<Page>();
+        foreach (var area in areas)
+        {
+            if (area == "projects")
+                services.Projects.ChangedElsewhere();
+            pages.UnionWith(area switch
+            {
+                "projects" => [Page.Calendar, Page.Planner, Page.Overview, Page.MyPages],
+                "todos" => [Page.Calendar, Page.Planner, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
+                "clients" => [Page.Clients, Page.Overview, Page.Retainers],
+                "contacts" => [Page.Contacts],
+                "notes" => [Page.Notes],
+                "calendar" => [Page.Calendar, Page.Planner, Page.Overview, Page.Home],
+                "time" => [Page.Time, Page.Overview],
+                "renewals" => [Page.Renewals, Page.Overview],
+                _ => [],
+            });
+        }
+        // A page with work open (a note being written, a client being edited) is left alone so nothing typed is lost.
+        foreach (var page in Built<IRefreshable>([.. pages]).Where(p => p is not IHoldsWork { HoldsWork: true }))
+            page.Refresh();
+    }
+
     /// <summary>Brings Xero's customers in as clients and tells the Clients pages that are open.</summary>
     private async Task CheckXeroClientsAsync()
     {
@@ -216,6 +245,7 @@ public partial class MainViewModel : ViewModelBase
             CheckSites = CheckSitesAsync,
             CheckXeroClients = CheckXeroClientsAsync,
             EveryMinute = () => ReleaseIdle(PageIdle),
+            AssistantChanged = ShowAssistantChanges,
         };
         Jobs.Start();
 

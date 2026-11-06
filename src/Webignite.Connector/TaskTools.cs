@@ -8,7 +8,7 @@ using Webignite.Data;
 
 namespace Webignite.Connector;
 
-/// <summary>Eddie's to-do list for Claude and ChatGPT: read it, and add to it. Ticking off stays with Eddie.</summary>
+/// <summary>Eddie's to-do list for Claude and ChatGPT: read it, add to it, change and tick off. Never delete.</summary>
 [McpServerToolType]
 public sealed class TaskTools(AssistantTasks tasks)
 {
@@ -23,7 +23,7 @@ public sealed class TaskTools(AssistantTasks tasks)
 
     [McpServerTool(Name = "add_todo", Title = "Add a to-do", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Adds a to-do to Eddie's list in Webignite, marked as from you. If an open to-do with the same title is already "
-        + "there, nothing new is added. You can't tick off, change or delete to-dos.")]
+        + "there, nothing new is added.")]
     public string AddTodo(
         [Description("What needs doing, short, e.g. Send Karoo Coffee the sitemap.")] string title,
         [Description("When it's due, as yyyy-MM-dd. Leave out if there's no date.")] string? due = null,
@@ -41,13 +41,27 @@ public sealed class TaskTools(AssistantTasks tasks)
         }
     }
 
-    private static TaskSource Source(McpServer? server)
+    [McpServerTool(Name = "update_todo", Title = "Change or tick off a to-do", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Changes a to-do on Eddie's list, ticks it off (done true) or opens it again (done false). Only what you give "
+        + "changes. To-dos can't be deleted.")]
+    public string UpdateTodo(
+        [Description("The to-do's title (or part of it, if only one matches) or its id.")] string todo,
+        [Description("A new title.")] string? title = null,
+        [Description("The due date as yyyy-MM-dd, or none to clear it.")] string? due = null,
+        [Description("New notes, in place of the old ones.")] string? notes = null,
+        [Description("true to tick it off, false to open it again.")] bool? done = null)
     {
-        var name = server?.ClientInfo?.Name ?? "";
-        return name.Contains("openai", StringComparison.OrdinalIgnoreCase) || name.Contains("chatgpt", StringComparison.OrdinalIgnoreCase)
-            ? TaskSource.ChatGpt
-            : TaskSource.Claude;
+        try
+        {
+            return Json(tasks.Update(todo, title, due, notes, done));
+        }
+        catch (ArgumentException e)
+        {
+            throw new McpException(e.Message);
+        }
     }
+
+    private static TaskSource Source(McpServer? server) => Assistant.IsChatGpt(server) ? TaskSource.ChatGpt : TaskSource.Claude;
 
     private static string Json<T>(T value) => JsonSerializer.Serialize(value, DocumentJson.Options);
 }

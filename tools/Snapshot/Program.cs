@@ -2384,6 +2384,18 @@ Save("site-check");
         projectsPage.ListViewCommand.Execute(null);
         projectsPage.Refresh();
 
+        // Claude or ChatGPT adds a task through the connector (another process, the same database): the open page
+        // shows it at the next look, every 3 seconds, without the app being told. (The headless screen runs no timers.)
+        {
+            var connector = new Webignite.Services.AssistantPlanner(services.Store);
+            var fromClaude = connector.AddTask(site.Id, "Check the contact form on a phone", assignee: "me");
+            vm.Jobs.LookForAssistants();
+            var seen = Until(() => projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == "Check the contact form on a phone"));
+            Check("A task Claude adds through the connector shows on the open project by itself", seen);
+            services.Projects.DeleteTask(fromClaude.Task.Id);
+            projectsPage.Refresh();
+        }
+
         // Dependencies, as Asana's: a task waits on others in its project, never round in a circle.
         window.Width = 1900;
         Dispatcher.UIThread.RunJobs();
