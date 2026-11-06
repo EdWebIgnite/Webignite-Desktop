@@ -24,8 +24,7 @@ public sealed partial class ProjectsViewModel
     {
         if (value)
         {
-            IsBoard = false;
-            IsFiles = false;
+            ShowOnly(ProjectTab.Overview);
             LoadOverview();
         }
         if (open is not null && Layout.Overview != value)

@@ -2334,6 +2334,52 @@ Save("site-check");
         projectsPage.ListViewCommand.Execute(null);
         projectsPage.Refresh();
 
+        // The Timeline tab, as Asana's: bars from start to due under their headings, dragged a day at a time.
+        var datedBefore = services.Projects.AllTasks(site.Id).ToDictionary(t => t.Id, t => (t.Start, t.Due));
+        var fivePages = services.Projects.AllTasks(site.Id).First(t => t.Title == "Build the five pages");
+        services.Projects.ChangeTask(fivePages.Id, t => t with { Start = t.Due!.Value.AddDays(-8) });
+        services.Projects.ChangeTask(services.Projects.AllTasks(site.Id).First(t => t.Title == "Point the domain at the new site").Id, t => t with { Start = null, Due = null });
+        projectsPage.TimelineViewCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Check("The Timeline tab shows each heading's dated tasks as bars, and the rest under Unscheduled", projectsPage.IsTimeline
+            && projectsPage.TimelineLanes.Count > 0 && projectsPage.Unscheduled.Any(r => r.Title == "Point the domain at the new site")
+            && projectsPage.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages").Bar.Length == 9);
+        var fiveBar = projectsPage.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages");
+        var fiveDue = fiveBar.Bar.Task.Due!.Value;
+        projectsPage.DragBar(fiveBar, 2, BarEdge.Move);
+        Check("Dragging a bar moves its start and due date together", services.Projects.GetTask(fivePages.Id)!.Due == fiveDue.AddDays(2)
+            && services.Projects.GetTask(fivePages.Id)!.Start == fiveDue.AddDays(-6));
+        projectsPage.DragBar(projectsPage.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages"), 3, BarEdge.End);
+        Check("Dragging a bar's end stretches it", services.Projects.GetTask(fivePages.Id)!.Due == fiveDue.AddDays(5));
+        var domainTask = projectsPage.Unscheduled.First(r => r.Title == "Point the domain at the new site");
+        var launchDay = projectsPage.TimelineDays.First(d => d.Day == fiveDue.AddDays(9));
+        projectsPage.Schedule(domainTask, launchDay);
+        Check("A task with no date dropped on a day of the timeline is due then", services.Projects.GetTask(domainTask.Task.Id)!.Due == launchDay.Day
+            && projectsPage.Unscheduled.All(r => r.Title != "Point the domain at the new site"));
+        window.Width = 1900;
+        Dispatcher.UIThread.RunJobs();
+        Save("projects-timeline");
+
+        // The Calendar tab, as Asana's: a month of weeks with each task on its due date.
+        projectsPage.CalendarViewCommand.Execute(null);
+        while (projectsPage.CalendarMonth.Month != fiveDue.Month || projectsPage.CalendarMonth.Year != fiveDue.Year)
+            projectsPage.NextMonthCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Check("The Calendar tab shows six weeks with tasks on their due dates", projectsPage.IsCalendar && projectsPage.CalendarCells.Count == 42
+            && projectsPage.CalendarCells.Any(c => c.Tasks.Any(t => t.Title == "Point the domain at the new site")));
+        var onCalendar = projectsPage.CalendarCells.SelectMany(c => c.Tasks).First(t => t.Title == "Point the domain at the new site");
+        projectsPage.MoveToDay(onCalendar, launchDay.Day.AddDays(1));
+        Check("A task dragged to another day of the calendar is due then", services.Projects.GetTask(domainTask.Task.Id)!.Due == launchDay.Day.AddDays(1));
+        Check("Sort and Group hide on Timeline and Calendar", !projectsPage.ShowsSortGroup);
+        Dispatcher.UIThread.RunJobs();
+        Save("projects-calendar");
+        window.Width = 1280;
+        // Put the dates back for the checks after.
+        foreach (var (id, (start, due)) in datedBefore)
+            services.Projects.ChangeTask(id, t => t with { Start = start, Due = due });
+        projectsPage.ListViewCommand.Execute(null);
+        projectsPage.Refresh();
+
         // Priority and tags: set on the task page, shown on rows, and filtered by.
         projectsPage.OpenTaskById(pages.Id);
         var tagged = projectsPage.Detail!;
