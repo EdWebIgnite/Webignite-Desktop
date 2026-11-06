@@ -99,6 +99,38 @@ public static class Recipients
     public static string Format(IEnumerable<MailPerson> people) => string.Join(", ", people.Select(p => p.ToString()));
 
     // Splits on commas and semicolons, except inside quotes or angle brackets ("Mokoena, Thandi" <t@k.co.za>).
+    /// <summary>
+    /// An address box as chips, as Gmail shows them: every address followed by a comma or semicolon is done (a
+    /// chip), and what follows the last one is still being typed.
+    /// </summary>
+    public static (IReadOnlyList<string> Done, string Typing) Chips(string? text)
+    {
+        var parts = Split(text ?? "").ToList();
+        var done = parts.Take(parts.Count - 1).Select(p => p.Trim()).Where(p => p.Length > 0).ToList();
+        return (done, parts[^1].TrimStart());
+    }
+
+    /// <summary>The box's text from its chips and what's being typed: "a, b, typing".</summary>
+    public static string Join(IEnumerable<string> done, string typing)
+    {
+        var list = done.ToList();
+        return list.Count == 0 ? typing : string.Join(", ", list) + ", " + typing;
+    }
+
+    /// <summary>
+    /// What a chip says: the person's name, typed with the address or known from Contacts, clients or mail they've
+    /// sent; otherwise the address. And whether it's a real address.
+    /// </summary>
+    public static (string Label, bool Valid) Chip(string entry, IReadOnlyDictionary<string, string>? names = null)
+    {
+        var (people, _) = Parse(entry);
+        if (people is not [var person])
+            return (entry.Trim(), false);
+        if (person.Name is { Length: > 0 } name)
+            return (name, true);
+        return (names is not null && names.TryGetValue(person.Address, out var known) ? known : person.Address, true);
+    }
+
     private static IEnumerable<string> Split(string text)
     {
         var current = new StringBuilder();

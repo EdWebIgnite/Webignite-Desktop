@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.Platform.Storage;
 using Webignite.Core.Writing;
+using Webignite.Desktop.Controls;
 using Webignite.Desktop.ViewModels;
 
 using Webignite.Desktop.Files;
@@ -326,15 +327,16 @@ public partial class ComposeView : UserControl
     private ComposeViewModel? Compose => DataContext as ComposeViewModel;
 
     // Suggest names and addresses only while the person is typing in the box, not when it's filled in for them.
-    private void Watch(TextBox box, AddressField field)
+    private void Watch(AddressBox address, AddressField field)
     {
+        var box = address.Box;
         box.TextChanged += (_, _) =>
         {
             if (box.IsFocused && Compose is { } compose)
             {
-                SuggestionsPopup.PlacementTarget = box;
+                SuggestionsPopup.PlacementTarget = address;
                 // Suggestions are a help, not a must: a failed lookup is logged, not shown while typing.
-                compose.SuggestAsync(field, box.Text).Forget("Suggesting addresses");
+                compose.SuggestAsync(field, address.Text).Forget("Suggesting addresses");
             }
         };
         box.AddHandler(KeyDownEvent, (_, e) =>
@@ -345,7 +347,7 @@ public partial class ComposeView : UserControl
             {
                 case Key.Down: compose.MoveSuggestion(1); e.Handled = true; break;
                 case Key.Up: compose.MoveSuggestion(-1); e.Handled = true; break;
-                case Key.Enter or Key.Tab: Accept(box); e.Handled = true; break;
+                case Key.Enter or Key.Tab: Accept(address); e.Handled = true; break;
                 case Key.Escape: compose.CloseSuggestions(); e.Handled = true; break;
             }
         }, RoutingStrategies.Tunnel);
@@ -357,19 +359,20 @@ public partial class ComposeView : UserControl
         });
     }
 
-    private void Accept(TextBox box, Webignite.Core.Mail.Contact? contact = null)
+    // The picked person becomes a chip; the cursor goes back to the box for the next one.
+    private void Accept(AddressBox address, Webignite.Core.Mail.Contact? contact = null)
     {
-        if (Compose?.AcceptSuggestion(contact) is { } text)
+        if (Compose?.AcceptSuggestion(contact) is not null)
         {
-            box.Focus();
-            box.CaretIndex = text.Length;
+            address.Box.Focus();
+            address.Box.CaretIndex = address.Box.Text?.Length ?? 0;
         }
     }
 
     private void SuggestionTapped(object? sender, TappedEventArgs e)
     {
-        if (SuggestionsPopup.PlacementTarget is TextBox box && SuggestionList.SelectedItem is Webignite.Core.Mail.Contact contact)
-            Accept(box, contact);
+        if (SuggestionsPopup.PlacementTarget is AddressBox address && SuggestionList.SelectedItem is Webignite.Core.Mail.Contact contact)
+            Accept(address, contact);
     }
 
     private void OnAttach(object? sender, RoutedEventArgs e) => OnAttachAsync(sender, e).Forget("Attaching files", tell: true);

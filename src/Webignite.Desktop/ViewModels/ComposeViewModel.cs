@@ -54,6 +54,8 @@ public partial class ComposeViewModel : ViewModelBase
             : mail.Quote is not null ? "Reply"
             : "New mail";
         savedState = State();
+        // Names on the chips are a help: if Contacts can't be read, the addresses show instead.
+        LoadNamesAsync().Forget("Reading names for the address boxes");
     }
 
     public IReadOnlyList<MailAccount> Accounts { get; }
@@ -91,19 +93,24 @@ public partial class ComposeViewModel : ViewModelBase
     partial void OnMessageChanged(string value) => OnPropertyChanged(nameof(HasMessage));
 
     /// <summary>
-    /// The writing a mail opens with: a draft written here comes back exactly; anything else is its text with
-    /// the mailbox's signature under it (a draft from elsewhere already has its own).
+    /// The writing a mail opens with: a draft written here comes back as it was; anything else is its text. Every
+    /// mail, a reply or a draft an assistant wrote included, gets the mailbox's signature right after the writing
+    /// when it doesn't carry it already.
     /// </summary>
     private static RichDocument Writing(OutgoingMail mail, MailAccount from)
     {
+        if (mail.Html is null && mail.DraftUid is null)
+            return RichText.Starting(mail.Body, Signature(from));
+        RichDocument writing;
         if (mail.Html is { } html)
         {
             var images = mail.Images.ToDictionary(i => "cid:" + i.ContentId, i => (i.Data, i.ContentType));
-            return RichHtml.Read(html, src => images.TryGetValue(src, out var found) ? found : RichHtml.DataAddress(src));
+            writing = RichHtml.Read(html, src => images.TryGetValue(src, out var found) ? found : RichHtml.DataAddress(src));
         }
-        if (mail.DraftUid is not null)
-            return RichText.FromText(mail.Body);
-        return RichText.Starting(mail.Body, Signature(from));
+        else
+            writing = RichText.FromText(mail.Body);
+        RichText.AddSignatureIfMissing(writing, Signature(from));
+        return writing;
     }
 
     private static IReadOnlyList<Block> Signature(MailAccount account) =>

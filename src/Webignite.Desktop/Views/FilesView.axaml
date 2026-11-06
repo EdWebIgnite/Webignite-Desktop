@@ -111,7 +111,7 @@
                 <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
               </StackPanel>
               <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="TagFilterOpening" />
+                <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="TagFilterOpening" />
               </Button.Flyout>
             </Button>
             <Button Classes="quiet format" Classes.on="{Binding IsShowFiltered}" ToolTip.Tip="Show only one kind of file, or files from a time">
@@ -120,7 +120,7 @@
                 <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
               </StackPanel>
               <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="ShowFilterOpening" />
+                <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="ShowFilterOpening" />
               </Button.Flyout>
             </Button>
             <Button Classes="quiet format" Classes.on="{Binding ShowingSpace}" Command="{Binding ToggleSpaceCommand}" ToolTip.Tip="What's taking space: folder sizes, biggest first">

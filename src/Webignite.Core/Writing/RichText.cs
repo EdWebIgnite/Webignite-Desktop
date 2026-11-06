@@ -155,6 +155,29 @@ public static partial class RichText
         return blocks;
     }
 
+    /// <summary>
+    /// Puts the signature right after the writing when the mail doesn't carry it yet: a reply, a draft another
+    /// program or an assistant wrote, or one saved before a signature was set. One already there, marked or typed
+    /// out in full, is left alone, so it never shows twice.
+    /// </summary>
+    public static bool AddSignatureIfMissing(RichDocument document, IReadOnlyList<Block> signature)
+    {
+        if (signature.Count == 0 || document.Blocks.Any(b => b.IsSignature))
+            return false;
+        var probe = new RichDocument();
+        probe.Blocks.AddRange(signature.OfType<TextBlock>().Select(b => b.Clone()));
+        var words = Squeeze(ToText(probe));
+        if (words.Length > 0 && Squeeze(ToText(document)).Contains(words, StringComparison.OrdinalIgnoreCase))
+            return false;
+        // A blank line between the writing and the signature, unless the writing already ends with one.
+        if (document.Blocks.Count == 0 || document.Blocks[^1] is not TextBlock { Length: 0 })
+            document.Blocks.Add(new TextBlock());
+        RichEditing.InsertSignature(document, [.. signature.Select(b => b.Clone())]);
+        return true;
+    }
+
+    private static string Squeeze(string text) => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
     /// <summary>A new mail's writing: the text, a blank line and the signature, or just room to type.</summary>
     public static RichDocument Starting(string? text, IReadOnlyList<Block> signature)
     {

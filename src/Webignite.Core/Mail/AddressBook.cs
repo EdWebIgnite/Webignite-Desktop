@@ -91,6 +91,18 @@ public static class AddressBook
         return Automatic.Any(a => local.Contains(a, StringComparison.Ordinal));
     }
 
+    /// <summary>The names the book knows, by address, for showing a person's name on their chip.</summary>
+    public static IReadOnlyDictionary<string, string> Names(IEnumerable<Contact> book)
+    {
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var contact in book)
+        {
+            if (!contact.IsGroup && !string.IsNullOrWhiteSpace(contact.Name))
+                names.TryAdd(contact.Address, contact.Name.Trim());
+        }
+        return names;
+    }
+
     /// <summary>The address being typed: whatever follows the last comma or semicolon.</summary>
     public static string LastPart(string? text)
     {

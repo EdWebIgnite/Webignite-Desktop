@@ -138,7 +138,7 @@
             <Button Classes="quiet format icon" ToolTip.Tip="Move to another notebook or folder" IsEnabled="{Binding CanEdit}">
               <c:Icon Data="{StaticResource Icon.FolderMove}" Size="16" />
               <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="MoveMenuOpening" />
+                <c:FreshMenu Placement="BottomEdgeAlignedRight" Filling="MoveMenuOpening" />
               </Button.Flyout>
             </Button>
             <Button Classes="quiet format icon" Command="{Binding DeleteOpenCommand}" ToolTip.Tip="Delete (it waits in Deleted for 30 days)" IsVisible="{Binding CanEdit}">

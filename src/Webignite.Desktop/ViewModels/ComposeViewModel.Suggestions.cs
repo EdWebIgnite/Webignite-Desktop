@@ -16,6 +16,11 @@ public partial class ComposeViewModel
 
     public AddressField SuggestingFor { get; private set; }
 
+    /// <summary>Names by address, from Contacts, clients and people who've mailed, so a known person's chip shows their name.</summary>
+    [ObservableProperty] public partial IReadOnlyDictionary<string, string>? KnownNames { get; private set; }
+
+    private async Task LoadNamesAsync() => KnownNames = AddressBook.Names(await services.AddressBookAsync());
+
     private int suggestRun;
 
     /// <summary>Called as the person types in an address box. Older lookups that finish late are ignored.</summary>
