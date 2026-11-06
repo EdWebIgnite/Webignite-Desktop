@@ -300,9 +300,25 @@ public partial class MainWindow : Window
     private void KeepSearchOpen(object? sender, PointerPressedEventArgs e) => e.Handled = true;
 
     /// <summary>A note in the bottom corner of the window. It fades after a few seconds; clicking it runs the action.</summary>
+    private static readonly TimeSpan NoteShows = TimeSpan.FromSeconds(8);
+
+    // What was said in the corner lately, so the same note raised twice in a row shows once.
+    private readonly Dictionary<string, DateTime> lately = [];
+
     private void ShowNote(string title, string text, Action? onClick)
     {
-        notes.Show(new Notification(title, text, NotificationType.Information, TimeSpan.FromSeconds(8), onClick: () =>
+        var now = DateTime.UtcNow;
+        foreach (var gone in lately.Where(n => now - n.Value > NoteShows).Select(n => n.Key).ToList())
+            lately.Remove(gone);
+        // Each undo is its own, so those always show.
+        var key = title + "\n" + text;
+        if (onClick is null || text != "Click here to undo.")
+        {
+            if (lately.ContainsKey(key))
+                return;
+            lately[key] = now;
+        }
+        notes.Show(new Notification(title, text, NotificationType.Information, NoteShows, onClick: () =>
         {
             if (WindowState == WindowState.Minimized)
                 WindowState = WindowState.Normal;

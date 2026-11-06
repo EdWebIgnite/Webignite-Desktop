@@ -44,6 +44,14 @@
     <Style Selector="Border.taskrow.subtask > Grid > Border.grip">
       <Setter Property="IsVisible" Value="False" />
     </Style>
+    <!-- Tools on a row or heading show when the pointer is over it (or the task is open), as Asana's do. They can
+         still be clicked or reached with the keyboard while hidden. -->
+    <Style Selector="Button.reveal">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Border.taskrow:pointerover Button.reveal, Border.myrow:pointerover Button.reveal, Border.listsection:pointerover Button.reveal, Button.reveal.open, Button.reveal:focus">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
     <Style Selector="Border.listsection">
       <Setter Property="Margin" Value="0,16,0,0" />
       <Setter Property="Padding" Value="0,0,0,2" />
@@ -616,7 +624,7 @@
                 </DockPanel>
               </DataTemplate>
               <DataTemplate DataType="vm:TaskRow">
-                <Border Background="Transparent" Padding="0,1" Opacity="{Binding Fade}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+                <Border Classes="myrow" Background="Transparent" Padding="0,1" Opacity="{Binding Fade}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
                   <Grid ColumnDefinitions="30,*,Auto,32">
                     <CheckBox Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,4">
@@ -629,7 +637,7 @@
                     </StackPanel>
                     <Button Grid.Column="2" Classes="cell" Classes.empty="{Binding !HasDue}" Classes.late="{Binding IsLate}" Content="{Binding DueText}"
                             Click="DueClicked" MinWidth="90" VerticalAlignment="Center" ToolTip.Tip="When it's due" />
-                    <Button Grid.Column="3" Classes="quiet" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0" VerticalAlignment="Center"
+                    <Button Grid.Column="3" Classes="quiet reveal" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0" VerticalAlignment="Center"
                             Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}" ToolTip.Tip="Open the task">
                       <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" />
                     </Button>
@@ -1087,7 +1095,7 @@
                         <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" IsVisible="{Binding IsFolded}" />
                       </Panel>
                     </Button>
-                    <Button DockPanel.Dock="Right" Classes="quiet" Padding="6" IsVisible="{Binding IsHeading}" Command="{Binding DeleteCommand}"
+                    <Button DockPanel.Dock="Right" Classes="quiet reveal" Padding="6" IsVisible="{Binding IsHeading}" Command="{Binding DeleteCommand}"
                             ToolTip.Tip="Delete the heading; its tasks stay, under no heading">
                       <c:Icon Data="{StaticResource Icon.Trash}" Size="14" />
                     </Button>
@@ -1185,7 +1193,7 @@
                     <!-- Room under the heading's +, so the columns line up -->
                     <Border Classes="cellline fieldadd" />
                     </StackPanel>
-                    <Button Grid.Column="7" Classes="quiet" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0"
+                    <Button Grid.Column="7" Classes="quiet reveal" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0"
                             Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}"
                             ToolTip.Tip="Open the task: notes, subtasks and what it's about">
                       <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" />
@@ -1195,7 +1203,9 @@
               </DataTemplate>
               <DataTemplate DataType="vm:AddTaskRow">
                 <DockPanel Margin="50,2,0,0">
-                  <Button DockPanel.Dock="Right" Classes="link" Content="Add" Command="{Binding AddCommand}" Margin="8,0,0,0" />
+                  <!-- Enter adds; the button only shows once something is typed. -->
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Add" Command="{Binding AddCommand}" Margin="8,0,0,0"
+                          IsVisible="{Binding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   <TextBox Classes="inline addtaskbox" Text="{Binding Title}" PlaceholderText="Add task…" KeyDown="AddTaskKey" />
                 </DockPanel>
               </DataTemplate>

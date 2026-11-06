@@ -2023,6 +2023,7 @@ Save("site-check");
     people.SaveCommand.Execute(null);
     Check("A new person is saved with their client and group", services.Contacts.ForClient(bosveldId).Any(p => p.Name == "Marlene Botha" && p.Groups.SequenceEqual(["Hosting clients"])));
     Dispatcher.UIThread.RunJobs();
+    Check("Someone saved without a number shows only the link to add one", people.Phones.Count == 0 && people.AddPhoneText == "+ Add a number");
     Save("contacts");
     people.SaveCommand.Execute(null);
     Check("Saving again keeps their client, after the list of clients was read again", people.EditClient?.Value?.Id == bosveldId
@@ -2033,6 +2034,8 @@ Save("site-check");
     var marlene = services.Contacts.ForClient(bosveldId).First(p => p.Name == "Marlene Botha");
     var pieter = services.Contacts.ForClient(bosveldId).First(p => p.Name == "Pieter van Wyk");
     people.OpenPerson(pieter.Id);
+    if (people.Phones.Count == 0)
+        people.AddPhoneCommand.Execute(null);
     people.Phones[0].Value = "083 444 5555";
     people.SaveCommand.Execute(null);
     Check("The contact person's new number shows on the client", services.Clients.Get(bosveldId)!.Phone == "083 444 5555");
