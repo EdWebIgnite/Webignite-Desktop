@@ -310,10 +310,11 @@ public partial class MainViewModel : ViewModelBase
             Selected = this[Page.Projects];
             PageOf<ProjectsViewModel>(Page.Projects).ShowMine();
         };
+        // Create project opens the template gallery, with a blank project as its first choice, as in Asana.
         go.NewProjectAction = () =>
         {
             Selected = this[Page.Projects];
-            PageOf<ProjectsViewModel>(Page.Projects).NewProjectCommand.Execute(null);
+            PageOf<ProjectsViewModel>(Page.Projects).ShowTemplates();
         };
         go.ClientNotesAction = (id, name) =>
         {

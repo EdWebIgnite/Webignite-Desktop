@@ -2308,9 +2308,33 @@ Save("site-check");
         Check("My tasks in the sidebar shows my tasks", projectsPage.IsMyTasks && vm.SelectedNav is ProjectLink { Kind: ProjectLinkKind.MyTasks });
         vm.SelectedNav = links.First(l => l.Kind == ProjectLinkKind.Templates);
         Dispatcher.UIThread.RunJobs();
-        Check("Templates in the sidebar lists the templates to start from", projectsPage.IsTemplates && projectsPage.TemplateRows.Count == projectsPage.Templates.Count
+        Check("Templates in the sidebar opens the gallery: my templates and the ones that come with the app", projectsPage.IsGallery
+            && projectsPage.GalleryCards.Count == projectsPage.Templates.Count + Webignite.Core.Projects.BuiltInTemplates.All.Count
             && vm.SelectedNav is ProjectLink { Kind: ProjectLinkKind.Templates });
-        Save("projects-templates");
+        window.Width = 1920;
+        window.Height = 1080;
+        Dispatcher.UIThread.RunJobs();
+        Save("template-gallery");
+        projectsPage.ShowCategory(Webignite.Core.Projects.BuiltInTemplates.Marketing);
+        Check("A category shows only its templates, its chip picked", projectsPage.GalleryCards.All(c => c.Category == "Marketing")
+            && projectsPage.GalleryChips.Single(c => c.IsOn).Name == "Marketing");
+        projectsPage.ShowCategory(ProjectsViewModel.AllTemplates);
+        projectsPage.GalleryCards.First(c => c.Name == "Web design process").OpenCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Check("A template opens to show its headings and tasks, ready to name", projectsPage.IsPreviewing && projectsPage.PreviewHeadings.Count == 5
+            && projectsPage.PreviewName == "Web design process");
+        Save("template-preview");
+        projectsPage.PreviewName = "Fynbos Physio website";
+        projectsPage.UseTemplateCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        var fromGallery = services.Projects.Projects().First(p => p.Name == "Fynbos Physio website");
+        Check("Use template makes the project with its headings, tasks, colour and icon, and opens it", projectsPage.EditName == "Fynbos Physio website"
+            && services.Projects.Headings(fromGallery.Id).Count == 5 && services.Projects.AllTasks(fromGallery.Id).Count > 15
+            && fromGallery is { Icon: "PageLayout", Colour: "Blue" });
+        services.Projects.Delete(fromGallery.Id);
+        window.Width = 1280;
+        window.Height = 860;
+        Dispatcher.UIThread.RunJobs();
         vm.SelectedNav = vm[Page.Projects];
         Open(Page.Overview);
         Check("Another page takes the mark off the project entries", vm.SelectedNav is Module { Key: Page.Overview });
