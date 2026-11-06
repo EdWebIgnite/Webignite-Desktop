@@ -93,12 +93,6 @@ public partial class SettingsView : UserControl
             settings.PickQuickNotebook(notebook);
     }
 
-    private void SpellLanguagePicked(object? sender, SelectionChangedEventArgs e)
-    {
-        if (DataContext is SettingsViewModel settings && (sender as ComboBox)?.SelectedItem is Choice<string?> choice && choice != settings.SpellLanguage)
-            settings.PickSpellLanguage(choice);
-    }
-
     private static string? Pressed(KeyEventArgs e)
     {
         if (e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt

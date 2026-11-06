@@ -40,15 +40,20 @@ public sealed class WindowsSpelling : ISpelling, IDisposable
         }
     }
 
-    /// <summary>A checker in the language wanted, or the closest the PC has. Null when Windows has none.</summary>
-    public static WindowsSpelling? Open(string? wanted)
+    /// <summary>
+    /// A checker for the languages wanted that the PC has, checked together (or the closest the PC has). Null when
+    /// Windows has none.
+    /// </summary>
+    public static ISpelling? Open(IReadOnlyList<string> wanted)
     {
         var factory = Factory();
         try
         {
-            if (Spelling.Pick(wanted, Read(factory.get_SupportedLanguages())) is not { } language)
+            var languages = Spelling.PickAll(wanted, Read(factory.get_SupportedLanguages()));
+            if (languages.Count == 0)
                 return null;
-            return new WindowsSpelling(factory.CreateSpellChecker(language), language);
+            var checkers = languages.Select(l => (ISpelling)new WindowsSpelling(factory.CreateSpellChecker(l), l)).ToList();
+            return checkers.Count == 1 ? checkers[0] : new MultiSpelling(checkers);
         }
         finally
         {

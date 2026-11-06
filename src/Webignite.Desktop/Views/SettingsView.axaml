@@ -359,12 +359,19 @@
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Spelling" />
         <CheckBox IsChecked="{Binding SpellCheckOn}" Content="Check spelling as I write mail and notes" />
-        <StackPanel Orientation="Horizontal" Spacing="10" IsEnabled="{Binding SpellCheckOn}">
-          <TextBlock Text="Language" VerticalAlignment="Center" />
-          <ComboBox x:Name="SpellLanguageBox" ItemsSource="{Binding SpellLanguages}" SelectedItem="{Binding SpellLanguage, Mode=OneWay}"
-                    SelectionChanged="SpellLanguagePicked" MinWidth="280" />
+        <StackPanel Spacing="4" IsEnabled="{Binding SpellCheckOn}">
+          <TextBlock Classes="label" Text="Languages, checked together" />
+          <ItemsControl ItemsSource="{Binding SpellLanguages}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:SpellLanguageRow">
+                <CheckBox IsChecked="{Binding IsOn}" Content="{Binding Name}" IsEnabled="{Binding IsOnPc}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
         <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding SpellNote}" />
+        <Button Content="Add a language in Windows" Command="{Binding OpenWindowsLanguagesCommand}" IsVisible="{Binding SpellLanguageMissing}"
+                HorizontalAlignment="Left" />
         <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
                    Text="A wavy line marks a word Windows doesn't know. Right-click it for suggestions, to add it to the dictionary, or to ignore it." />
       </StackPanel>
