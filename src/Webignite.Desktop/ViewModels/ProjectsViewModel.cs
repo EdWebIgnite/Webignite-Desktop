@@ -246,14 +246,23 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         MyRows.Clear();
         var me = services.Me().Id;
         var mine = services.Projects.Mine(me);
-        MyCount = mine.Count;
+        var todos = MyTodos();
+        var openTodos = todos.Count(t => !t.Done);
+        MyCount = mine.Count + openTodos;
         var names = services.Projects.Projects().ToDictionary(p => p.Id, p => p.Name);
         var today = DateOnly.FromDateTime(DateTime.Today);
-        foreach (var (title, tasks) in ProjectRules.ByWhen(mine, today))
+        // Tasks given to me and my own to-dos, together by when they're due, as Asana's My tasks.
+        foreach (var (title, items) in MyWork.ByWhen(mine, todos, today))
         {
-            MyRows.Add(new MyGroupRow(title, tasks.Count, title == "Overdue"));
-            foreach (var task in tasks)
+            MyRows.Add(new MyGroupRow(title, items.Count, title == "Overdue"));
+            foreach (var item in items)
             {
+                if (item.Todo is { } todo)
+                {
+                    MyRows.Add(new TodoRow(todo, this));
+                    continue;
+                }
+                var task = item.Task!;
                 var subtasks = task.ParentId is null ? ProjectRules.SubtaskCount(services.Projects.AllTasks(task.ProjectId).Where(t => t.ParentId == task.Id)) : "";
                 MyRows.Add(new TaskRow(task, null, subtasks, People, this)
                 {
@@ -262,12 +271,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 });
             }
         }
-        MySummary = mine.Count switch
-        {
-            0 => "Nothing given to you right now.",
-            1 => "1 task given to you, across your projects.",
-            _ => $"{mine.Count} tasks given to you, across your projects.",
-        };
+        MySummary = MyWork.Summary(mine.Count, openTodos);
+        MyMessage = "";
         OnPropertyChanged(nameof(MyTasksEmpty));
     }
 

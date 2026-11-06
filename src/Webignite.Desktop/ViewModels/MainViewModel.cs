@@ -165,7 +165,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
             new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
             new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true) { InPlanner = true },
-            new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo") { InPlanner = true },
+            new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo") { InPlanner = true, InSidebar = false },
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
             new Module(Page.Planner, "Week", () => new PlannerViewModel(services), "Planner") { InPlanner = true },
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time") { InPlanner = true },
@@ -222,7 +222,14 @@ public partial class MainViewModel : ViewModelBase
 
         // How other pages get here. Each one lands on the right page first, then opens the thing.
         var go = services.Go;
-        go.OpenPage = page => Selected = this[page];
+        // To-dos show in My tasks now, so anything that would open To-do opens My tasks.
+        go.OpenPage = page =>
+        {
+            if (page == Page.Todo)
+                go.MyTasks();
+            else
+                Selected = this[page];
+        };
         go.OpenMailAction = summary =>
         {
             Selected = mailModule;

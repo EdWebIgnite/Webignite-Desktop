@@ -881,4 +881,57 @@ public partial class ProjectsView : FullBleedView
             e.Handled = true;
         }
     }
+
+    // My to-dos in My tasks
+
+    private void TodoKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Projects is { } projects)
+        {
+            projects.AddTodoCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private static IEnumerable<MenuItem> DueItems(TodoRow row)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        (string Label, DateOnly? Due)[] choices =
+        [
+            ("Today", today), ("Tomorrow", today.AddDays(1)), ("Next week", Webignite.Core.Tasks.TaskGroups.NextMonday(today)), ("No date", null),
+        ];
+        foreach (var (label, due) in choices)
+        {
+            var item = new MenuItem { Header = label };
+            item.Click += (_, _) => row.SetDue(due);
+            yield return item;
+        }
+    }
+
+    private void TodoDueClicked(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is TodoRow row)
+            new ContextMenu { ItemsSource = DueItems(row).ToList() }.Open(sender as Control);
+    }
+
+    private void TodoMenu(object? sender, ContextRequestedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not TodoRow row)
+            return;
+        var due = new MenuItem { Header = "Due", ItemsSource = DueItems(row).ToList() };
+        var move = new MenuItem { Header = "Move into a project" };
+        foreach (var project in row.Projects)
+        {
+            var item = new MenuItem { Header = project.Name };
+            item.Click += (_, _) => row.MoveInto(project);
+            move.Items.Add(item);
+        }
+        move.IsEnabled = move.Items.Count > 0;
+        var about = new MenuItem { Header = "Open what it's about", IsEnabled = row.HasAbout };
+        about.Click += (_, _) => row.OpenAboutCommand.Execute(null);
+        var delete = new MenuItem { Header = "Remove the to-do" };
+        delete.Click += (_, _) => row.DeleteCommand.Execute(null);
+        new ContextMenu { ItemsSource = new object[] { due, move, about, new Separator(), delete } }.Open(sender as Control);
+        e.Handled = true;
+    }
 }
