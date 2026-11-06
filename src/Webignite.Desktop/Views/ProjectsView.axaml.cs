@@ -280,6 +280,11 @@ public partial class ProjectsView : FullBleedView
         if (Projects is not { } projects || sender is not MenuFlyout flyout)
             return;
         flyout.Items.Clear();
+        var gallery = new MenuItem { Header = "Template gallery…" };
+        ToolTip.SetTip(gallery, "Start from one of the templates that come with the app, or one of your own");
+        gallery.Click += (_, _) => projects.ShowTemplates();
+        flyout.Items.Add(gallery);
+        flyout.Items.Add(new Separator());
         foreach (var template in projects.Templates)
         {
             var item = new MenuItem { Header = $"New from {template.Name}" };
