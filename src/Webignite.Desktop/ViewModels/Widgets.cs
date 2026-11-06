@@ -46,6 +46,7 @@ public abstract partial class WidgetBody : ObservableObject, IDisposable
         WidgetKind.Client => new ClientBody(services, widget.Target),
         WidgetKind.NeedsYou => new NeedsYouBody(services),
         WidgetKind.Mail => new MailBody(services),
+        WidgetKind.Files => new FilesBody(widget, services, page),
         _ => new SoonBody(),
     };
 }
@@ -464,4 +465,176 @@ public sealed partial class MailBody : WidgetBody
 
     [RelayCommand]
     private void OpenMail() => services.Go.To(Page.Mail);
+}
+
+/// <summary>
+/// A small file explorer: a folder's files and folders, folders first. A folder opens in place and the arrow goes
+/// back up; a file opens in its program, and drags out to mail or another program. It remembers its folder and
+/// follows changes to it while the page is open; closing the page lets the watcher go.
+/// </summary>
+public sealed partial class FilesBody : WidgetBody
+{
+    private readonly string widgetId;
+    private readonly AppServices services;
+    private readonly MyPagesViewModel page;
+    private FileSystemWatcher? watcher;
+    private readonly DispatcherTimer settle = new() { Interval = TimeSpan.FromMilliseconds(400) };
+    private int reading;
+
+    public FilesBody(Widget widget, AppServices services, MyPagesViewModel page)
+    {
+        widgetId = widget.Id;
+        this.services = services;
+        this.page = page;
+        settle.Tick += (_, _) =>
+        {
+            settle.Stop();
+            Refresh();
+        };
+        Folder = MyPages.StartFolder(widget.Target, Directory.Exists, Webignite.Desktop.Files.FileOps.ClientRoot(services.Settings.Files),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+        Watch();
+        Refresh();
+    }
+
+    public ObservableCollection<FileLine> Lines { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FolderName), nameof(CanGoUp))]
+    public partial string Folder { get; private set; }
+
+    public string FolderName => Webignite.Core.Files.FilePaths.Crumbs(Folder) is { Count: > 0 } crumbs ? crumbs[^1].Name : Folder;
+    public bool CanGoUp => Webignite.Core.Files.FilePaths.Parent(Folder) is not null;
+
+    public override string? Title => FolderName;
+
+    [ObservableProperty] public partial string Empty { get; private set; } = "";
+
+    public bool IsEmpty => Empty.Length > 0;
+
+    partial void OnEmptyChanged(string value) => OnPropertyChanged(nameof(IsEmpty));
+
+    /// <summary>Reads the folder off the screen's thread; a newer read wins over one still going.</summary>
+    public override void Refresh() => ReadAsync().Forget("Reading a folder for the Files widget");
+
+    private async Task ReadAsync()
+    {
+        var mine = ++reading;
+        var folder = Folder;
+        IReadOnlyList<Webignite.Core.Files.FileEntry>? entries = null;
+        var problem = "";
+        await Task.Run(() =>
+        {
+            try
+            {
+                entries = Webignite.Core.Files.FileLists.Sort(Webignite.Desktop.Files.FileOps.List(folder), Webignite.Core.Files.FileSort.Name, false);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                problem = Directory.Exists(folder) ? "This folder can't be read." : "This folder isn't there any more. Pick another.";
+            }
+        });
+        if (mine != reading)
+            return;
+        Lines.Clear();
+        foreach (var entry in entries ?? [])
+            Lines.Add(new FileLine(entry, this));
+        Empty = problem.Length > 0 ? problem : Lines.Count == 0 ? "Nothing in this folder yet." : "";
+    }
+
+    /// <summary>Shows another folder, and keeps it with the page.</summary>
+    public void Go(string folder)
+    {
+        if (string.Equals(folder, Folder, StringComparison.OrdinalIgnoreCase))
+            return;
+        Folder = folder;
+        OnPropertyChanged(nameof(Title));
+        page.SetTarget(widgetId, folder);
+        Watch();
+        Refresh();
+    }
+
+    [RelayCommand]
+    private void Up()
+    {
+        if (Webignite.Core.Files.FilePaths.Parent(Folder) is { } parent)
+            Go(parent);
+    }
+
+    [RelayCommand]
+    private void OpenInFiles() => services.Go.Folder(Folder);
+
+    internal void OpenInFiles(string folder) => services.Go.Folder(folder);
+
+    private void Watch()
+    {
+        watcher?.Dispose();
+        watcher = null;
+        if (!Directory.Exists(Folder))
+            return;
+        try
+        {
+            watcher = new FileSystemWatcher(Folder)
+            {
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size | NotifyFilters.LastWrite,
+                IncludeSubdirectories = false,
+            };
+            FileSystemEventHandler changed = (_, _) => Dispatcher.UIThread.Post(() =>
+            {
+                settle.Stop();
+                settle.Start();
+            });
+            watcher.Created += changed;
+            watcher.Deleted += changed;
+            watcher.Changed += changed;
+            watcher.Renamed += (_, _) => Dispatcher.UIThread.Post(() =>
+            {
+                settle.Stop();
+                settle.Start();
+            });
+            watcher.EnableRaisingEvents = true;
+        }
+        catch (Exception e) when (e is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            Webignite.Data.AppLog.Write("Watching a folder for the Files widget", e);
+            watcher?.Dispose();
+            watcher = null;
+        }
+    }
+
+    public override void Dispose()
+    {
+        settle.Stop();
+        watcher?.Dispose();
+        watcher = null;
+        base.Dispose();
+    }
+}
+
+/// <summary>A file or folder in the Files widget.</summary>
+public sealed partial class FileLine(Webignite.Core.Files.FileEntry entry, FilesBody body) : ObservableObject
+{
+    public Webignite.Core.Files.FileEntry Entry { get; } = entry;
+    public FilesBody Body { get; } = body;
+    public string Name => Entry.Name;
+    public string Path => Entry.Path;
+    public bool IsFolder => Entry.IsFolder;
+    public bool IsFile => !Entry.IsFolder;
+    public string About => Entry.IsFolder ? "Folder" : Webignite.Core.Files.FileSizes.Format(Entry.Size);
+
+    /// <summary>A folder opens in the widget; a file opens in its program.</summary>
+    [RelayCommand]
+    private void Open()
+    {
+        if (IsFolder)
+            Body.Go(Path);
+        else if (File.Exists(Path))
+            Webignite.Desktop.Files.FileOps.Open(Path);
+        else
+            Body.Refresh();
+    }
+
+    /// <summary>The Files page, at the folder or the folder the file is in.</summary>
+    [RelayCommand]
+    private void ShowInFiles() => Body.OpenInFiles(IsFolder ? Path : Webignite.Core.Files.FilePaths.Parent(Path) ?? Path);
 }

@@ -41,6 +41,20 @@
       <Setter Property="CornerRadius" Value="3" />
       <Setter Property="Background" Value="{DynamicResource Primary}" />
     </Style>
+    <Style Selector="Border.fileline">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="6,5" />
+      <Setter Property="Margin" Value="-6,0" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.fileline:pointerover">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="Button.filestool">
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
   </UserControl.Styles>
 
   <UserControl.DataTemplates>
@@ -225,6 +239,49 @@
                       </StackPanel>
                     </DockPanel>
                   </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Panel>
+      </DockPanel>
+    </DataTemplate>
+
+    <!-- A small file explorer: a folder opens in place, a file opens on a double-click and drags out -->
+    <DataTemplate DataType="vm:FilesBody">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+          <Button DockPanel.Dock="Left" Classes="quiet filestool" Command="{Binding UpCommand}" IsEnabled="{Binding CanGoUp}" ToolTip.Tip="Up a folder">
+            <c:Icon Data="{StaticResource Icon.Up}" Size="13" />
+          </Button>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2">
+            <Button Classes="quiet filestool" Click="PickFilesFolder" ToolTip.Tip="Show another folder">
+              <c:Icon Data="{StaticResource Icon.Folder}" Size="13" />
+            </Button>
+            <Button Classes="quiet filestool" Command="{Binding OpenInFilesCommand}" ToolTip.Tip="Open this folder in Files">
+              <c:Icon Data="{StaticResource Icon.NewWindow}" Size="13" />
+            </Button>
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" TextTrimming="CharacterEllipsis"
+                     VerticalAlignment="Center" Margin="6,0" />
+        </DockPanel>
+        <Panel>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding Empty}" IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Lines}" Margin="0,0,12,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FileLine">
+                  <Border Classes="fileline" Tapped="FileLineTapped" DoubleTapped="FileLineDoubleTapped" ContextRequested="FileLineMenu"
+                          PointerPressed="FileLinePressed" PointerMoved="FileLineMoved" ToolTip.Tip="{Binding Name}">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="11" Text="{Binding About}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                      <Panel DockPanel.Dock="Left" Width="18" Margin="0,0,8,0">
+                        <c:Icon Data="{StaticResource Icon.Folder}" Size="14" IsVisible="{Binding IsFolder}" Foreground="{DynamicResource Muted}" />
+                        <c:Icon Data="{StaticResource Icon.Quotes}" Size="14" IsVisible="{Binding IsFile}" Foreground="{DynamicResource Muted}" />
+                      </Panel>
+                      <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                  </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
