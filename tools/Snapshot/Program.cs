@@ -8,6 +8,7 @@ using Webignite.Core.Layout;
 using Webignite.Core.Documents;
 using Webignite.Data;
 using Webignite.Desktop;
+using Webignite.Desktop.Controls;
 using Webignite.Desktop.ViewModels;
 using Webignite.Desktop.Views;
 using Webignite.Xero.Auth;
@@ -2351,7 +2352,7 @@ Save("site-check");
         // A project's header as Asana's: its coloured square, a star and how it's going.
         projectsPage.OpenProject(site.Id);
         Open(Page.Projects);
-        projectsPage.PickColourCommand.Execute("Teal");
+        projectsPage.PickColourCommand.Execute("Aqua");
         projectsPage.PickIconCommand.Execute("Star");
         projectsPage.SetHealthCommand.Execute(Webignite.Core.Projects.ProjectHealth.AtRisk);
         var webignite = services.Projects.Projects().First(p => p.Name == "Webignite SEO month");
@@ -2360,15 +2361,37 @@ Save("site-check");
         projectsPage.OpenProject(site.Id);
         Dispatcher.UIThread.RunJobs();
         var stored = services.Projects.Get(site.Id)!;
-        Check("A project keeps the colour, icon and status picked in its header", stored is { Colour: "Teal", Icon: "Star", Health: Webignite.Core.Projects.ProjectHealth.AtRisk }
+        Check("A project keeps the colour, icon and status picked in its header", stored is { Colour: "Aqua", Icon: "Star", Health: Webignite.Core.Projects.ProjectHealth.AtRisk }
             && projectsPage.HealthText == "At risk");
         var projectLinks = vm.Sidebar.PlannerItems.OfType<ProjectLink>().Where(l => l.Kind == ProjectLinkKind.Project).ToList();
         Check("The sidebar shows each project's coloured square, starred ones first", projectLinks.First().Title == "Webignite SEO month"
-            && projectLinks.Single(l => l.Id == site.Id) is { TileColour: "Teal", TileIcon: "Star", HasTile: true });
+            && projectLinks.Single(l => l.Id == site.Id) is { TileColour: "Aqua", TileIcon: "Star", HasTile: true });
         window.Width = 1920;
         window.Height = 1080;
         Dispatcher.UIThread.RunJobs();
         Save("project-header");
+
+        // Asana's own looks, light and dark: Home, a project, and its colour and icon picker.
+        Check("Asana's 16 colours and 32 icons each have a brush and a drawing", Webignite.Core.Projects.ProjectLooks.Colours.All(c => ProjectColours.Brush.Convert(c, typeof(object), null, System.Globalization.CultureInfo.InvariantCulture) is not null)
+            && Webignite.Core.Projects.ProjectLooks.Icons.All(i => ProjectColours.Icon.Convert(i, typeof(object), null, System.Globalization.CultureInfo.InvariantCulture) is not null));
+        foreach (var (theme, name) in new[] { (Theme.Light, "light"), (Theme.Dark, "dark") })
+        {
+            services.Settings.Appearance = services.Settings.Appearance with { Theme = theme, LightPalette = LightPalette.Asana, DarkPalette = DarkPalette.Asana };
+            Dispatcher.UIThread.RunJobs();
+            Open(Page.Home);
+            Save($"asana-{name}-home");
+            Open(Page.Projects);
+            projectsPage.OpenProject(site.Id);
+            Dispatcher.UIThread.RunJobs();
+            Save($"asana-{name}-project");
+            var picker = window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().First(b => Avalonia.Controls.ToolTip.GetTip(b) as string == "Set colour and icon");
+            picker.Flyout?.ShowAt(picker);
+            Dispatcher.UIThread.RunJobs();
+            Save($"asana-{name}-picker");
+            picker.Flyout?.Hide();
+        }
+        services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Light, LightPalette = LightPalette.Standard, DarkPalette = DarkPalette.Graphite };
+        Dispatcher.UIThread.RunJobs();
         window.Width = 1280;
         window.Height = 860;
         Open(Page.Overview);

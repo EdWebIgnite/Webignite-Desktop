@@ -625,16 +625,50 @@ public static class ProjectRules
 /// </summary>
 public static class ProjectLooks
 {
-    /// <summary>Icon names, as in the app's icon set without the "Icon." in front.</summary>
+    /// <summary>
+    /// Icon names, Asana's 32 project icons; each is drawn as "Project.{name}" in the app's icon set. Asana's
+    /// default is the list.
+    /// </summary>
     public static IReadOnlyList<string> Icons { get; } =
-        ["Projects", "Checklist", "Tiles", "Calendar", "Star", "Flag", "Mail", "Folder", "Picture", "Clients", "Money", "Domains", "SiteCheck", "Markup", "Notes", "Bell"];
+    [
+        "List", "Board", "Timeline", "Calendar", "Rocket", "People", "Graph", "Star",
+        "Bug", "LightBulb", "Globe", "Gear", "Notebook", "Computer", "Check", "Target",
+        "Html", "Megaphone", "ChatBubbles", "Briefcase", "PageLayout", "MountainFlag", "Puzzle", "Presentation",
+        "LineAndSymbols", "SpeedDial", "Ribbon", "Shoe", "ShoppingBasket", "Map", "Ticket", "Coins",
+    ];
 
-    /// <summary>Colour names; each has a matching Category brush in the palette. Red and green are left out: they mean problem and done.</summary>
-    public static IReadOnlyList<string> Colours { get; } = ["Blue", "Purple", "Orange", "Yellow", "Teal", "Pink", "Grey"];
+    /// <summary>
+    /// Colour names, Asana's 16 in its order; each has a "Project{name}" brush in the palette. Red and green are
+    /// allowed here, on a project's square only; everywhere else they still mean problem and done.
+    /// </summary>
+    public static IReadOnlyList<string> Colours { get; } =
+    [
+        "Red", "Orange", "YellowOrange", "Yellow", "YellowGreen", "Green", "BlueGreen", "Aqua",
+        "Blue", "Indigo", "Purple", "Magenta", "HotPink", "Pink", "CoolGrey", "None",
+    ];
 
-    public static string IconOf(Project project) => Icons.Contains(project.Icon) ? project.Icon : Icons[0];
+    // Names used before Asana's set came in, so projects keep a look close to the one picked.
+    private static readonly Dictionary<string, string> OldIcons = new(StringComparer.Ordinal)
+    {
+        ["Projects"] = "List", ["Checklist"] = "Check", ["Tiles"] = "Board", ["Flag"] = "MountainFlag",
+        ["Mail"] = "ChatBubbles", ["Folder"] = "Briefcase", ["Picture"] = "PageLayout", ["Clients"] = "People",
+        ["Money"] = "Coins", ["Domains"] = "Globe", ["SiteCheck"] = "Graph", ["Markup"] = "LineAndSymbols",
+        ["Notes"] = "Notebook", ["Bell"] = "Megaphone",
+    };
 
-    public static string ColourOf(Project project) => Colours.Contains(project.Colour) ? project.Colour : ColourFor(project.Name);
+    private static readonly Dictionary<string, string> OldColours = new(StringComparer.Ordinal)
+    {
+        ["Teal"] = "BlueGreen", ["Grey"] = "CoolGrey",
+    };
+
+    // The colours a name can land on by itself: bright ones, never grey or none.
+    private static readonly string[] Picked = [.. Colours.Where(c => c is not ("CoolGrey" or "None"))];
+
+    public static string IconOf(Project project) =>
+        Icons.Contains(project.Icon) ? project.Icon : OldIcons.GetValueOrDefault(project.Icon) ?? Icons[0];
+
+    public static string ColourOf(Project project) =>
+        Colours.Contains(project.Colour) ? project.Colour : OldColours.GetValueOrDefault(project.Colour) ?? ColourFor(project.Name);
 
     /// <summary>A colour from a name, always the same for the same name.</summary>
     public static string ColourFor(string name)
@@ -642,8 +676,34 @@ public static class ProjectLooks
         var sum = 0;
         foreach (var c in name.Trim().ToUpperInvariant())
             sum = (sum * 31 + c) % 9973;
-        return Colours[sum % (Colours.Count - 1)];
+        return Picked[sum % Picked.Length];
     }
+
+    /// <summary>A colour's name as Asana shows it, in plain words.</summary>
+    public static string ColourLabel(string colour) => colour switch
+    {
+        "YellowOrange" => "Yellow-orange",
+        "YellowGreen" => "Yellow-green",
+        "BlueGreen" => "Blue-green",
+        "HotPink" => "Hot pink",
+        "CoolGrey" => "Cool grey",
+        "None" => "No colour",
+        _ => colour,
+    };
+
+    /// <summary>An icon's name in plain words, for its tip.</summary>
+    public static string IconLabel(string icon) => icon switch
+    {
+        "LightBulb" => "Light bulb",
+        "Html" => "Code",
+        "ChatBubbles" => "Chat bubbles",
+        "PageLayout" => "Page layout",
+        "MountainFlag" => "Mountain",
+        "LineAndSymbols" => "Shapes",
+        "SpeedDial" => "Speed dial",
+        "ShoppingBasket" => "Shopping basket",
+        _ => icon,
+    };
 
     public static string Label(ProjectHealth health) => health switch
     {

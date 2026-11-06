@@ -124,7 +124,77 @@
           </StackPanel>
         </Border>
         <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                   Text="Pick the dark look you like. Same as Windows switches between light and your dark look when Windows does." />
+                   Text="Pick a light look and a dark look. Same as Windows switches between your light and dark looks when Windows does." />
+        <TextBlock Classes="label" Text="Light look" />
+        <WrapPanel>
+          <Button Classes="palette" Classes.on="{Binding IsStandardLight}" Command="{Binding UseLightPaletteCommand}" CommandParameter="Standard">
+            <StackPanel Spacing="8">
+              <Border x:Name="PreviewStandardLight" Width="200" Height="112" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Canvas}">
+                <Grid ColumnDefinitions="46,*">
+                  <Border Background="{DynamicResource Nav}" Padding="7,10">
+                    <StackPanel Spacing="7">
+                      <Border Height="6" CornerRadius="3" Background="{DynamicResource NavText}" Width="26" HorizontalAlignment="Left" />
+                      <Border Height="10" CornerRadius="3" Background="{DynamicResource NavSelected}" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="24" HorizontalAlignment="Left" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="20" HorizontalAlignment="Left" />
+                    </StackPanel>
+                  </Border>
+                  <StackPanel Grid.Column="1" Margin="10" Spacing="8">
+                    <Border Height="7" CornerRadius="3" Background="{DynamicResource Ink}" Width="60" HorizontalAlignment="Left" />
+                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="8">
+                      <StackPanel Spacing="5">
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Text}" Width="80" HorizontalAlignment="Left" />
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Muted}" Width="56" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Border Height="12" Width="38" CornerRadius="3" Background="{DynamicResource Primary}" />
+                          <Border Height="12" Width="24" CornerRadius="3" Background="{DynamicResource AttentionSoft}" BorderBrush="{DynamicResource AttentionLine}" BorderThickness="1" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <StackPanel Spacing="1">
+                <TextBlock Text="Webignite" FontWeight="SemiBold" />
+                <TextBlock Classes="muted" FontSize="12" Text="Light page, black sidebar" />
+              </StackPanel>
+            </StackPanel>
+          </Button>
+          <Button Classes="palette" Classes.on="{Binding IsAsanaLight}" Command="{Binding UseLightPaletteCommand}" CommandParameter="Asana">
+            <StackPanel Spacing="8">
+              <Border x:Name="PreviewAsanaLight" Width="200" Height="112" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Canvas}">
+                <Grid ColumnDefinitions="46,*">
+                  <Border Background="{DynamicResource Nav}" Padding="7,10">
+                    <StackPanel Spacing="7">
+                      <Border Height="6" CornerRadius="3" Background="{DynamicResource NavText}" Width="26" HorizontalAlignment="Left" />
+                      <Border Height="10" CornerRadius="3" Background="{DynamicResource NavSelected}" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="24" HorizontalAlignment="Left" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="20" HorizontalAlignment="Left" />
+                    </StackPanel>
+                  </Border>
+                  <StackPanel Grid.Column="1" Margin="10" Spacing="8">
+                    <Border Height="7" CornerRadius="3" Background="{DynamicResource Ink}" Width="60" HorizontalAlignment="Left" />
+                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="8">
+                      <StackPanel Spacing="5">
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Text}" Width="80" HorizontalAlignment="Left" />
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Muted}" Width="56" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Border Height="12" Width="38" CornerRadius="3" Background="{DynamicResource Primary}" />
+                          <Border Height="12" Width="24" CornerRadius="3" Background="{DynamicResource AttentionSoft}" BorderBrush="{DynamicResource AttentionLine}" BorderThickness="1" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <StackPanel Spacing="1">
+                <TextBlock Text="Asana" FontWeight="SemiBold" />
+                <TextBlock Classes="muted" FontSize="12" Text="Asana's light colours" />
+              </StackPanel>
+            </StackPanel>
+          </Button>
+        </WrapPanel>
+        <TextBlock Classes="label" Text="Dark look" />
         <WrapPanel>
           <Button Classes="palette" Classes.on="{Binding IsGraphite}" Command="{Binding UseDarkPaletteCommand}" CommandParameter="Graphite">
             <StackPanel Spacing="8">
@@ -222,6 +292,39 @@
               <StackPanel Spacing="1">
                 <TextBlock Text="Warm" FontWeight="SemiBold" />
                 <TextBlock Classes="muted" FontSize="12" Text="Charcoal brown" />
+              </StackPanel>
+            </StackPanel>
+          </Button>
+          <Button Classes="palette" Classes.on="{Binding IsAsanaDark}" Command="{Binding UseDarkPaletteCommand}" CommandParameter="Asana">
+            <StackPanel Spacing="8">
+              <Border x:Name="PreviewAsanaDark" Width="200" Height="112" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Canvas}">
+                <Grid ColumnDefinitions="46,*">
+                  <Border Background="{DynamicResource Nav}" Padding="7,10">
+                    <StackPanel Spacing="7">
+                      <Border Height="6" CornerRadius="3" Background="{DynamicResource NavText}" Width="26" HorizontalAlignment="Left" />
+                      <Border Height="10" CornerRadius="3" Background="{DynamicResource NavSelected}" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="24" HorizontalAlignment="Left" />
+                      <Border Height="5" CornerRadius="2" Background="{DynamicResource NavMuted}" Width="20" HorizontalAlignment="Left" />
+                    </StackPanel>
+                  </Border>
+                  <StackPanel Grid.Column="1" Margin="10" Spacing="8">
+                    <Border Height="7" CornerRadius="3" Background="{DynamicResource Ink}" Width="60" HorizontalAlignment="Left" />
+                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Padding="8">
+                      <StackPanel Spacing="5">
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Text}" Width="80" HorizontalAlignment="Left" />
+                        <Border Height="5" CornerRadius="2" Background="{DynamicResource Muted}" Width="56" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                          <Border Height="12" Width="38" CornerRadius="3" Background="{DynamicResource Primary}" />
+                          <Border Height="12" Width="24" CornerRadius="3" Background="{DynamicResource AttentionSoft}" BorderBrush="{DynamicResource AttentionLine}" BorderThickness="1" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <StackPanel Spacing="1">
+                <TextBlock Text="Asana" FontWeight="SemiBold" />
+                <TextBlock Classes="muted" FontSize="12" Text="Asana's dark greys" />
               </StackPanel>
             </StackPanel>
           </Button>

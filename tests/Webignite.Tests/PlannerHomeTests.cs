@@ -77,9 +77,22 @@ public sealed class ProjectLooksTests
     public void A_picked_icon_and_colour_are_kept_and_unknown_ones_fall_back()
     {
         Assert.Equal("Star", ProjectLooks.IconOf(P("A", icon: "Star")));
-        Assert.Equal("Projects", ProjectLooks.IconOf(P("A", icon: "Nonsense")));
-        Assert.Equal("Teal", ProjectLooks.ColourOf(P("A", colour: "Teal")));
-        Assert.Equal(ProjectLooks.ColourFor("Amos Website"), ProjectLooks.ColourOf(P("Amos Website", colour: "Red")));
+        Assert.Equal("List", ProjectLooks.IconOf(P("A", icon: "Nonsense")));
+        Assert.Equal("Red", ProjectLooks.ColourOf(P("A", colour: "Red")));
+        Assert.Equal(ProjectLooks.ColourFor("Amos Website"), ProjectLooks.ColourOf(P("Amos Website", colour: "Mauve")));
+        Assert.Equal(32, ProjectLooks.Icons.Count);
+        Assert.Equal(16, ProjectLooks.Colours.Count);
+    }
+
+    [Fact]
+    public void Looks_picked_before_Asanas_set_came_in_are_kept_close()
+    {
+        Assert.Equal("BlueGreen", ProjectLooks.ColourOf(P("A", colour: "Teal")));
+        Assert.Equal("CoolGrey", ProjectLooks.ColourOf(P("A", colour: "Grey")));
+        Assert.Equal("Board", ProjectLooks.IconOf(P("A", icon: "Tiles")));
+        Assert.Equal("Coins", ProjectLooks.IconOf(P("A", icon: "Money")));
+        Assert.Equal("Cool grey", ProjectLooks.ColourLabel("CoolGrey"));
+        Assert.Equal("Light bulb", ProjectLooks.IconLabel("LightBulb"));
     }
 
     [Fact]
@@ -87,7 +100,8 @@ public sealed class ProjectLooksTests
     {
         Assert.Equal(ProjectLooks.ColourFor("Vida Pets"), ProjectLooks.ColourFor(" vida pets "));
         var picked = Names.Select(ProjectLooks.ColourFor).ToList();
-        Assert.DoesNotContain("Grey", picked);
+        Assert.DoesNotContain("CoolGrey", picked);
+        Assert.DoesNotContain("None", picked);
         Assert.True(picked.Distinct().Count() > 2);
     }
 
