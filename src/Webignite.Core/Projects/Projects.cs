@@ -61,6 +61,9 @@ public sealed record ProjectTemplate
     public required string Name { get; init; }
     public IReadOnlyList<string> Headings { get; init; } = [];
     public IReadOnlyList<TemplateTask> Tasks { get; init; } = [];
+
+    /// <summary>The project's custom fields, with their options; tasks keep their values by these fields' ids.</summary>
+    public IReadOnlyList<CustomField> Fields { get; init; } = [];
 }
 
 /// <summary>A task in a template; <see cref="Heading"/> is a heading's name, or null for none.</summary>
@@ -75,6 +78,15 @@ public sealed record TemplateTask
     public int? StartDay { get; init; }
     public int? DueDay { get; init; }
     public IReadOnlyList<string> Subtasks { get; init; } = [];
+
+    /// <summary>A milestone, shown with a diamond.</summary>
+    public bool Milestone { get; init; }
+
+    /// <summary>Its values for the template's custom fields, by field id.</summary>
+    public IReadOnlyDictionary<string, string> Values { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>The tasks it waits on, by their place in the template's list of tasks.</summary>
+    public IReadOnlyList<int> WaitsOn { get; init; } = [];
 }
 
 /// <summary>A file attached to a task: its name as attached, its size, and who added it when. The file is kept on this PC.</summary>
@@ -548,7 +560,7 @@ public static class ProjectRules
     /// after the earliest date in it. Who tasks were given to, what's done and links to mail or invoices stay behind,
     /// and so do repeating tasks already ticked off (the next one is there).
     /// </summary>
-    public static ProjectTemplate TemplateOf(string name, IEnumerable<Heading> headings, IEnumerable<ProjectTask> tasks)
+    public static ProjectTemplate TemplateOf(string name, IEnumerable<Heading> headings, IEnumerable<ProjectTask> tasks, IReadOnlyList<CustomField>? fields = null)
     {
         var live = headings.Where(h => h.Deleted is null).OrderBy(h => h.Order).ToList();
         // A repeating task already ticked off has a next one carrying on, so only that one goes in.
@@ -557,11 +569,15 @@ public static class ProjectRules
         var dates = top.SelectMany(t => new[] { t.Start, t.Due }).OfType<DateOnly>().ToList();
         var first = dates.Count == 0 ? (DateOnly?)null : dates.Min();
         int? Day(DateOnly? date) => date is { } d && first is { } f ? d.DayNumber - f.DayNumber : null;
+        // Dependencies and field values come along by place, so a project made from it waits and reads the same.
+        var place = top.Select((t, i) => (t.Id, i)).ToDictionary(x => x.Id, x => x.i);
+        var known = (fields ?? []).Select(f => f.Id).ToHashSet();
         return new ProjectTemplate
         {
             Id = NewId(),
             Name = name.Trim(),
             Headings = [.. live.Select(h => h.Name)],
+            Fields = fields ?? [],
             Tasks = [.. top.Select(t => new TemplateTask
             {
                 Title = t.Title,
@@ -573,6 +589,9 @@ public static class ProjectRules
                 StartDay = Day(t.Start),
                 DueDay = Day(t.Due),
                 Subtasks = [.. all.Where(s => s.ParentId == t.Id).OrderBy(s => s.Order).Select(s => s.Title)],
+                Milestone = t.Milestone,
+                Values = t.Values.Where(v => known.Contains(v.Key)).ToDictionary(v => v.Key, v => v.Value),
+                WaitsOn = [.. t.BlockedBy.Where(place.ContainsKey).Select(id => place[id])],
             })],
         };
     }
@@ -581,9 +600,22 @@ public static class ProjectRules
     public static (Project Project, IReadOnlyList<Heading> Headings, IReadOnlyList<ProjectTask> Tasks) FromTemplate(
         ProjectTemplate template, string name, DateOnly start, double order)
     {
-        var project = new Project { Id = NewId(), Name = string.IsNullOrWhiteSpace(name) ? template.Name : name.Trim(), Order = order };
+        // The template's fields come over with new ids, and the values of each task with them.
+        var fieldIds = template.Fields.ToDictionary(f => f.Id, _ => NewId());
+        var optionIds = template.Fields.SelectMany(f => f.Options).ToDictionary(o => o.Id, _ => NewId());
+        var fields = template.Fields.Select(f => f with
+        {
+            Id = fieldIds[f.Id],
+            Options = [.. f.Options.Select(o => o with { Id = optionIds[o.Id] })],
+        }).ToList();
+        string Value(string value) => optionIds.TryGetValue(value, out var option) ? option : value;
+        var project = new Project
+        {
+            Id = NewId(), Name = string.IsNullOrWhiteSpace(name) ? template.Name : name.Trim(), Order = order, CustomFields = fields,
+        };
         var headings = template.Headings.Select((h, i) => new Heading { Id = NewId(), ProjectId = project.Id, Name = h, Order = i + 1 }).ToList();
         var tasks = new List<ProjectTask>();
+        var made = new List<ProjectTask>();
         var place = 0;
         foreach (var t in template.Tasks)
         {
@@ -600,12 +632,24 @@ public static class ProjectRules
                 Start = t.StartDay is { } s ? start.AddDays(s) : null,
                 Due = t.DueDay is { } d ? start.AddDays(d) : null,
                 Order = ++place,
+                Milestone = t.Milestone,
+                Values = t.Values.Where(v => fieldIds.ContainsKey(v.Key)).ToDictionary(v => fieldIds[v.Key], v => Value(v.Value)),
             };
+            made.Add(task);
             tasks.Add(task);
             tasks.AddRange(t.Subtasks.Select((title, i) => new ProjectTask
             {
                 Id = NewId(), ProjectId = project.Id, HeadingId = task.HeadingId, ParentId = task.Id, Title = title, Order = i + 1,
             }));
+        }
+        // What each task waits on, now that every task has its new id.
+        for (var i = 0; i < template.Tasks.Count; i++)
+        {
+            var waits = template.Tasks[i].WaitsOn.Where(w => w >= 0 && w < made.Count && w != i).Select(w => made[w].Id).ToList();
+            if (waits.Count == 0)
+                continue;
+            var at = tasks.IndexOf(made[i]);
+            tasks[at] = made[i] = made[i] with { BlockedBy = waits };
         }
         return (project, headings, tasks);
     }
