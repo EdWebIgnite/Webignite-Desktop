@@ -10,12 +10,20 @@ namespace Webignite.Desktop;
 public sealed class BackgroundJobs(AppServices services) : IDisposable
 {
     private readonly DispatcherTimer minute = new() { Interval = TimeSpan.FromMinutes(1) };
+    private readonly DispatcherTimer assistants = new() { Interval = TimeSpan.FromSeconds(3) };
+    private DateTimeOffset assistantsSeen;
     private DateTimeOffset lastBackupLook = DateTimeOffset.Now;
 
     public Func<Task>? CheckMail { get; init; }
     public Func<Task>? CheckPayments { get; init; }
     public Func<Task>? CheckSites { get; init; }
     public Func<Task>? CheckXeroClients { get; init; }
+
+    /// <summary>
+    /// Claude or ChatGPT changed something through the connector (another process, the same database): which
+    /// areas, e.g. projects or todos. Looked for every few seconds; reading the note is one small query.
+    /// </summary>
+    public Action<IReadOnlyList<string>>? AssistantChanged { get; init; }
 
     /// <summary>Runs once a minute after the jobs, for small housekeeping such as letting unused pages go.</summary>
     public Action? EveryMinute { get; init; }
@@ -31,6 +39,30 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
             CheckMail().Forget("Checking mail");
         minute.Tick += Tick;
         minute.Start();
+        if (AssistantChanged is not null)
+        {
+            assistantsSeen = Webignite.Data.AssistantSignal.Read(services.Store)?.At ?? DateTimeOffset.MinValue;
+            assistants.Tick += AssistantsTick;
+            assistants.Start();
+        }
+    }
+
+    private void AssistantsTick(object? sender, EventArgs e) => LookForAssistants();
+
+    /// <summary>What the timer does every few seconds: if Claude or ChatGPT changed something since, says what.</summary>
+    public void LookForAssistants()
+    {
+        try
+        {
+            if (Webignite.Data.AssistantSignal.Read(services.Store) is not { } mark || mark.At <= assistantsSeen)
+                return;
+            assistantsSeen = mark.At;
+            AssistantChanged?.Invoke(mark.Areas);
+        }
+        catch (Exception problem) when (problem is Microsoft.Data.Sqlite.SqliteException or System.Text.Json.JsonException)
+        {
+            Webignite.Data.AppLog.Write("Looking for changes from Claude or ChatGPT", problem);
+        }
     }
 
     private void Tick(object? sender, EventArgs e)
@@ -62,5 +94,7 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
     {
         minute.Stop();
         minute.Tick -= Tick;
+        assistants.Stop();
+        assistants.Tick -= AssistantsTick;
     }
 }

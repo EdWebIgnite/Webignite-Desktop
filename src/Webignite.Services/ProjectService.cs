@@ -75,6 +75,9 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
 
     public event Action<string?>? Changed;
 
+    /// <summary>Tells the open pages that projects changed outside this app, e.g. Claude or ChatGPT through the connector.</summary>
+    public void ChangedElsewhere() => Changed?.Invoke(null);
+
     private Stamp Now() => new(me(), clock.GetUtcNow());
 
     // Projects

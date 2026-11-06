@@ -5,6 +5,7 @@ using ModelContextProtocol.Protocol;
 using Webignite.Connector;
 using Webignite.Data;
 using Webignite.Mail;
+using Webignite.Services;
 
 // The connector Claude Desktop starts to reach Webignite. It talks over stdin and stdout, so nothing
 // else may be written to stdout: logs go to stderr.
@@ -16,6 +17,7 @@ builder.Services.AddSingleton<ISecretStore>(_ => OperatingSystem.IsWindows() ? n
 builder.Services.AddSingleton(sp => new MailService(sp.GetRequiredService<LocalStore>(), sp.GetRequiredService<ISecretStore>()));
 builder.Services.AddSingleton(sp => new AssistantDocuments(sp.GetRequiredService<LocalStore>()));
 builder.Services.AddSingleton(sp => new AssistantTasks(sp.GetRequiredService<LocalStore>()));
+builder.Services.AddSingleton(sp => new AssistantPlanner(sp.GetRequiredService<LocalStore>()));
 builder.Services.AddSingleton(sp => new AssistantTools(sp.GetRequiredService<LocalStore>(), sp.GetRequiredService<MailService>()));
 
 builder.Services
@@ -27,6 +29,7 @@ builder.Services
     .WithStdioServerTransport()
     .WithTools<MailTools>()
     .WithTools<DocumentTools>()
-    .WithTools<TaskTools>();
+    .WithTools<TaskTools>()
+    .WithTools<PlannerTools>();
 
 await builder.Build().RunAsync();
