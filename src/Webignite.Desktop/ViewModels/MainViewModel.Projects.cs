@@ -56,11 +56,20 @@ public partial class MainViewModel
     {
         if (!TakesTask(dragged, target) || dragged is not TaskRow row || target is not ProjectLink link)
             return;
-        var (saved, problems) = services.Projects.MoveTask(row.Task.Id, link.Id!);
-        if (saved is null)
-            services.ShowNote?.Invoke("Couldn't move it", string.Join(" ", problems), null);
-        else
-            services.ShowNote?.Invoke($"Moved to {link.Title}", saved.Title, () => services.Go.ProjectTask(saved.Id));
+        var moving = row.Moving.Where(t => t.ProjectId != link.Id).ToList();
+        var moved = new List<ProjectTask>();
+        foreach (var task in moving)
+        {
+            var (saved, problems) = services.Projects.MoveTask(task.Id, link.Id!);
+            if (saved is null)
+                services.ShowNote?.Invoke("Couldn't move it", $"{task.Title}: {string.Join(" ", problems)}", null);
+            else
+                moved.Add(saved);
+        }
+        if (moved.Count == 1)
+            services.ShowNote?.Invoke($"Moved to {link.Title}", moved[0].Title, () => services.Go.ProjectTask(moved[0].Id));
+        else if (moved.Count > 1)
+            services.ShowNote?.Invoke($"Moved to {link.Title}", $"{moved.Count} tasks", () => services.Go.Project(link.Id!));
     }
 
     private IReadOnlyList<Project> SidebarProjects() =>

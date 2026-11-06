@@ -2466,6 +2466,81 @@ Save("site-check");
                 && projectsPage.Rows.OfType<TaskRow>().All(r => r.Task.Id != dragMe.Id));
             services.Projects.DeleteTask(dragMe.Id);
 
+            // Headings drag in the list, and as columns on the board; one order serves both. Tall, so every heading shows.
+            window.Height = 1300;
+            Dispatcher.UIThread.RunJobs();
+            List<string> HeadingNames() => [.. projectsPage.Rows.OfType<SectionRow>().Where(r => r.IsHeading).Select(r => r.Name)];
+            var launch = projectsPage.Rows.OfType<SectionRow>().First(r => r.Name == "Launch");
+            var designHeading = projectsPage.Rows.OfType<SectionRow>().First(r => r.Name == "Design");
+            taskList.ScrollIntoView(designHeading);
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            DragOnto(Row(taskList, launch), Row(taskList, designHeading), 0.2);
+            Check("A heading dragged above another moves there with its tasks", HeadingNames().SequenceEqual(["Launch", "Design", "Build"])
+                && projectsPage.Sections.First(r => r.Name == "Launch").Tasks.Count == 2);
+            projectsPage.BoardViewCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            var board = window.GetVisualDescendants().OfType<Avalonia.Controls.ItemsControl>().First(c => c.Name == "Board");
+            var buildColumn = projectsPage.Columns.First(c => c.Section.Name == "Build");
+            var launchColumn = projectsPage.Columns.First(c => c.Section.Name == "Launch");
+            var columnTop = Row(board, buildColumn).TranslatePoint(new Point(Row(board, buildColumn).Bounds.Width / 2, 14), window) ?? default;
+            var launchLeft = Row(board, launchColumn).TranslatePoint(new Point(10, 14), window) ?? default;
+            Press(columnTop);
+            MoveTo(columnTop, launchLeft);
+            Save("drag-board-column");
+            Let(launchLeft);
+            Check("A board column dragged to the left of another moves there, and the list follows", HeadingNames().SequenceEqual(["Build", "Launch", "Design"]));
+            projectsPage.ListViewCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            // Ctrl+click picks two tasks; dragging one takes both, in their order.
+            var coloursRow = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Colours and fonts");
+            var speed = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Speed test the pages");
+            foreach (var pick in new[] { coloursRow, speed })
+            {
+                var p = Centre(Row(taskList, pick), 0.5);
+                p = p.WithX(p.X - Row(taskList, pick).Bounds.Width / 2 + 20);
+                window.MouseDown(p, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.Control);
+                window.MouseUp(p, Avalonia.Input.MouseButton.Left, Avalonia.Input.RawInputModifiers.Control);
+                Dispatcher.UIThread.RunJobs();
+            }
+            Check("Ctrl+click picks tasks to drag together", projectsPage.PickedCount == 2 && coloursRow.IsPicked && speed.IsPicked);
+            var designAdd = projectsPage.Rows.OfType<AddTaskRow>().First(a => a.Section.Name == "Design");
+            start = Centre(Row(taskList, coloursRow));
+            Press(start);
+            MoveTo(start, Centre(Row(taskList, designAdd), 0.2));
+            Save("drag-picked-tasks");
+            Let(Centre(Row(taskList, designAdd), 0.2));
+            var designTasks = projectsPage.Sections.First(r => r.Name == "Design").Tasks.Select(t => t.Title).ToList();
+            Check("Both picked tasks land at the end of Design, in their order", designTasks.TakeLast(2).SequenceEqual(["Colours and fonts", "Speed test the pages"]));
+
+            projectsPage.ClearPicks();
+            // Subtasks: a task dragged onto the open task's subtasks becomes one; dragged back to the list, a task again.
+            var wireframes = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Wireframes for the home page");
+            projectsPage.OpenTaskById(wireframes.Task.Id);
+            Dispatcher.UIThread.RunJobs();
+            var area = window.GetVisualDescendants().OfType<Avalonia.Controls.StackPanel>().First(c => c.Name == "SubtaskArea");
+            var speedRow = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Speed test the pages");
+            var subsBefore = projectsPage.Detail!.Subtasks.Count;
+            DragOnto(Row(taskList, speedRow), area, 0.5);
+            Check("A task dragged onto the open task's subtasks becomes its last subtask", projectsPage.Detail.Subtasks.Count == subsBefore + 1
+                && projectsPage.Detail.Subtasks[^1].Title == "Speed test the pages" && services.Projects.GetTask(speedRow.Task.Id)?.ParentId == wireframes.Task.Id);
+            var subList = window.GetVisualDescendants().OfType<Avalonia.Controls.ItemsControl>().First(c => c.Name == "SubtaskList");
+            Dispatcher.UIThread.RunJobs();
+            DragOnto(Row(subList, projectsPage.Detail.Subtasks[^1]), Row(subList, projectsPage.Detail.Subtasks[0]), 0.2);
+            Check("A subtask dragged above the first one moves there", projectsPage.Detail.Subtasks[0].Title == "Speed test the pages");
+            var firstTask = projectsPage.Rows.OfType<TaskRow>().First(r => r.Section?.Name == "Build");
+            start = Centre(Row(subList, projectsPage.Detail.Subtasks[0]));
+            Press(start);
+            MoveTo(start, Centre(Row(taskList, firstTask)));
+            Save("drag-subtask-out");
+            Let(Centre(Row(taskList, firstTask)));
+            Check("A subtask dragged onto the list becomes a task there", services.Projects.GetTask(speedRow.Task.Id) is { ParentId: null } back
+                && projectsPage.Sections.First(r => r.Name == "Build").Tasks[0].Id == back.Id && projectsPage.Detail.Subtasks.Count == subsBefore);
+            projectsPage.CloseTaskCommand.Execute(null);
+            window.Height = 1080;
+            Dispatcher.UIThread.RunJobs();
+
             // The main sidebar: a page dragged to a new place, then put back.
             vm.SelectedNav = vm.Sidebar.PlannerBack;
             Dispatcher.UIThread.RunJobs();

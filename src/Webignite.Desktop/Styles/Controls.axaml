@@ -658,6 +658,16 @@
   <Style Selector="Border.taskrow:pointerover > Grid > Border.grip, Border.card:pointerover > Grid > Border.grip">
     <Setter Property="Opacity" Value="1" />
   </Style>
+  <!-- A task's row can be grabbed anywhere; tasks picked with Ctrl or Shift, to drag together, are tinted. -->
+  <Style Selector="Border.taskrow">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.taskrow.picked">
+    <Setter Property="Background" Value="{DynamicResource Picked}" />
+  </Style>
+  <Style Selector="Border.card.picked">
+    <Setter Property="BorderBrush" Value="{DynamicResource DropMark}" />
+  </Style>
   <Style Selector="ComboBox:pointerover /template/ Border#Background">
     <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
     <Setter Property="Background" Value="{DynamicResource Surface}" />

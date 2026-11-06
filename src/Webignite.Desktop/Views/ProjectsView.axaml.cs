@@ -21,23 +21,68 @@ public partial class ProjectsView : FullBleedView
     public ProjectsView()
     {
         InitializeComponent();
+        // Tasks drag by any part of their row or card; headings by their name, in the list or as board columns.
         var tasks = new DragRules
         {
-            CanDrag = item => item is TaskRow,
-            CanDrop = (item, target, below) => target switch
+            CanDrag = item => item is TaskRow or SectionRow { IsHeading: true } or BoardColumn { Section.IsHeading: true },
+            CanDrop = (item, target, below) => (item, target) switch
             {
-                TaskRow row => row != item,
-                SectionRow => below,
-                AddTaskRow => !below,
-                BoardColumn => true,
+                (TaskRow row, TaskRow on) => on != row && !(Projects?.Moving(row).Contains(on.Task) ?? false),
+                (TaskRow, SectionRow) => below,
+                (TaskRow, AddTaskRow) => !below,
+                (TaskRow, BoardColumn) => true,
+                (SectionRow heading, _) => Projects?.CanMoveHeading(heading, target, below) == true,
+                (BoardColumn column, BoardColumn) => Projects?.CanMoveHeading(column.Section, target, below) == true,
                 _ => false,
             },
-            Drop = (item, target, below) => Projects?.Drop((TaskRow)item, target, below),
-            IsInto = item => item is BoardColumn,
-            Label = item => (item as TaskRow)?.Title ?? "",
+            Drop = (item, target, below) =>
+            {
+                switch (item)
+                {
+                    case TaskRow row:
+                        Projects?.Drop(row, target, below);
+                        break;
+                    case SectionRow heading:
+                        Projects?.MoveHeading(heading, target, below);
+                        break;
+                    case BoardColumn column:
+                        Projects?.MoveHeading(column.Section, target, below);
+                        break;
+                }
+            },
+            IsInto = (item, target) => item is TaskRow && target is BoardColumn,
+            Across = target => target is BoardColumn,
+            Label = item => item switch
+            {
+                TaskRow row when row.Moving.Count > 1 => $"{row.Moving.Count} tasks",
+                TaskRow row => row.Title,
+                SectionRow heading => heading.Name,
+                BoardColumn column => column.Section.Name,
+                _ => "",
+            },
         };
         DragReorder.Attach(TaskList, tasks);
         DragReorder.Attach(Board, tasks);
+
+        // The open task's subtasks drag into order; one dragged onto the list becomes a task there, and a task
+        // dragged from the list onto the subtasks becomes one of them.
+        DragReorder.Attach(SubtaskList, new DragRules
+        {
+            CanDrag = item => item is TaskRow,
+            CanDrop = (item, target, _) => item is TaskRow && target is TaskRow on && on != item,
+            Drop = (item, target, below) => Projects?.MoveSubtask((TaskRow)item, (TaskRow)target, below),
+            Label = item => (item as TaskRow)?.Title ?? "",
+        });
+        foreach (var list in new Control[] { TaskList, Board })
+            DropZones.Add(new DropZone(list, ProjectsViewModel.TakesSubtaskBack, (item, target) => Projects?.Unnest((TaskRow)item, target)));
+        DropZones.Add(new DropZone(SubtaskArea, (item, _) => Projects?.TakesAsSubtask(item) == true, (item, _) => Projects?.MakeSubtasks((TaskRow)item))
+        {
+            Whole = true,
+        });
+
+        // Ctrl+click picks a task to drag along with others, Shift+click a run of them; a plain click elsewhere lets them go.
+        TaskList.AddHandler(PointerPressedEvent, PickPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+        Board.AddHandler(PointerPressedEvent, PickPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         NewProjectBox.KeyDown += (_, e) =>
         {
             if (e.Key == Key.Enter && Projects is { } projects)
@@ -49,6 +94,32 @@ public partial class ProjectsView : FullBleedView
     }
 
     private ProjectsViewModel? Projects => DataContext as ProjectsViewModel;
+
+    private void PickPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (Projects is not { } projects || sender is not Control host || !e.GetCurrentPoint(host).Properties.IsLeftButtonPressed)
+            return;
+        var (_, item) = DragReorder.FindItem(host, e.Source as Visual, data => data is TaskRow);
+        var ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+        if (item is TaskRow row && (ctrl || shift))
+        {
+            projects.Pick(row, run: shift);
+            e.Handled = true;
+        }
+        else if (item is not TaskRow { IsPicked: true })
+            projects.ClearPicks();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && Projects is { PickedCount: > 0 } projects)
+        {
+            projects.ClearPicks();
+            e.Handled = true;
+        }
+        base.OnKeyDown(e);
+    }
 
     // Who a task is for: the names to pick from, shown under the name clicked. Built only when clicked, so a long
     // list doesn't carry a drop-down for every row.

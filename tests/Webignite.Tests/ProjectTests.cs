@@ -92,6 +92,26 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void A_heading_dragged_lands_before_another_or_last_and_its_order_is_kept()
+    {
+        var project = NewProject();
+        var design = projects.AddHeading(project.Id, "Design").Saved!;
+        var build = projects.AddHeading(project.Id, "Build").Saved!;
+        var launch = projects.AddHeading(project.Id, "Launch").Saved!;
+        var headings = projects.Headings(project.Id);
+
+        var order = ProjectRules.PlaceHeading(headings, launch.Id, design.Id)!.Value;
+        projects.ChangeHeading(launch.Id, h => h with { Order = order });
+        Assert.Equal(["Launch", "Design", "Build"], projects.Headings(project.Id).OrderBy(h => h.Order).Select(h => h.Name));
+
+        var last = ProjectRules.PlaceHeading(projects.Headings(project.Id), launch.Id, null)!.Value;
+        projects.ChangeHeading(launch.Id, h => h with { Order = last });
+        Assert.Equal(["Design", "Build", "Launch"], projects.Headings(project.Id).OrderBy(h => h.Order).Select(h => h.Name));
+        Assert.Null(ProjectRules.PlaceHeading(projects.Headings(project.Id), build.Id, launch.Id));
+        Assert.Null(ProjectRules.PlaceHeading(projects.Headings(project.Id), launch.Id, null));
+    }
+
+    [Fact]
     public void A_project_dragged_among_starred_ones_is_starred_and_lands_between_its_neighbours()
     {
         Project P(string id, double order, bool star = false) => new() { Id = id, Name = id, Order = order, Favourite = star };

@@ -435,6 +435,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         {
             FilterPriority = PriorityFilters[0];
             FilterTag = null;
+            picked.Clear();
+            pickAnchor = null;
         }
         open = project;
         IsMyTasks = false;
@@ -492,7 +494,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             var cards = new List<TaskRow>();
             foreach (var task in list)
             {
-                var row = new TaskRow(task, section, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this) { IsOpen = task.Id == Detail?.Task.Id };
+                var row = new TaskRow(task, section, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this)
+                {
+                    IsOpen = task.Id == Detail?.Task.Id,
+                    IsPicked = picked.Contains(task.Id),
+                };
                 Rows.Add(row);
                 cards.Add(row);
             }
@@ -684,38 +690,186 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     public IReadOnlyList<SectionRow> Sections => [.. Rows.OfType<SectionRow>()];
 
     /// <summary>
-    /// A task dragged onto another task (above or below it) or onto a heading (to the top of its tasks), or
-    /// moved with its menu (to the end of a heading).
+    /// A task dragged onto another task (above or below it), onto a heading (to the top of its tasks), to the end
+    /// of a heading, or into a board column. When it's one of several picked, they all go, in their order.
     /// </summary>
     public void Drop(TaskRow dragged, object target, bool below)
     {
         SaveTyped();
-        var (section, index) = target switch
-        {
-            TaskRow { Section: { } under } task => (under, under.Tasks.ToList().FindIndex(t => t.Id == task.Task.Id) + (below ? 1 : 0)),
-            SectionRow heading => (heading, 0),
-            AddTaskRow add => (add.Section, add.Section.Tasks.Count),
-            BoardColumn column => (column.Section, column.Section.Tasks.Count),
-            _ => (null, 0),
-        };
+        var ids = Moving(dragged).Select(t => t.Id).ToList();
+        if (target is TaskRow { Task.Id: var on } && ids.Contains(on))
+            return;
+        var (section, index) = Spot(target, below);
         if (section is not null)
-            Place(dragged, section, index);
+            Place(ids, section.Heading?.Id, index);
     }
 
     /// <summary>Moves a task to the end of a heading, from its right-click menu.</summary>
     public void MoveTo(TaskRow row, SectionRow section)
     {
         SaveTyped();
-        Place(row, section, section.Tasks.Count);
+        Place(Moving(row).Select(t => t.Id).ToList(), section.Heading?.Id, section.Tasks.Count);
     }
 
-    private void Place(TaskRow dragged, SectionRow section, int index)
+    // Which heading and which place among its tasks a drop on something means.
+    private static (SectionRow? Section, int Index) Spot(object target, bool below) => target switch
     {
-        var order = ProjectRules.PlaceAt(section.Tasks, index, dragged.Task.Id);
-        Ours(() => services.Projects.ChangeTask(dragged.Task.Id, t => t with { HeadingId = section.Heading?.Id, Order = order }));
+        TaskRow { Section: { } under } task => (under, under.Tasks.ToList().FindIndex(t => t.Id == task.Task.Id) + (below ? 1 : 0)),
+        SectionRow heading => (heading, 0),
+        AddTaskRow add => (add.Section, add.Section.Tasks.Count),
+        BoardColumn column => (column.Section, column.Section.Tasks.Count),
+        _ => (null, 0),
+    };
+
+    // Puts each task in turn at the place, the next just after the one before. A subtask put here becomes a task.
+    private void Place(IReadOnlyList<string> ids, string? headingId, int index)
+    {
+        foreach (var id in ids)
+        {
+            if (Sections.FirstOrDefault(s => s.Heading?.Id == headingId) is not { } section)
+                break;
+            var order = ProjectRules.PlaceAt(section.Tasks, index, id);
+            Ours(() => services.Projects.ChangeTask(id, t => t with { HeadingId = headingId, ParentId = null, Order = order }));
+            ShowTasks();
+            index = (Sections.FirstOrDefault(s => s.Heading?.Id == headingId)?.Tasks.ToList().FindIndex(t => t.Id == id) ?? index) + 1;
+        }
+        Detail?.LoadSubtasks();
+    }
+
+    // Headings, dragged in the list or as board columns: they share one order.
+
+    /// <summary>Where a dragged heading would land: before which heading, or last (null). Not before the tasks under no heading.</summary>
+    private (bool Ok, string? Before) HeadingSpot(object target, bool below)
+    {
+        var sections = Sections;
+        switch (target)
+        {
+            case SectionRow { Heading: { } heading } when !below:
+                return (true, heading.Id);
+            case AddTaskRow add when below && sections.Count > 0 && add.Section == sections[^1]:
+                return (true, null);
+            case BoardColumn column:
+                var at = Columns.IndexOf(column);
+                if (!below)
+                    return column.Section.Heading is { } h ? (true, h.Id) : (false, null);
+                return (true, at + 1 < Columns.Count ? Columns[at + 1].Section.Heading?.Id : null);
+            default:
+                return (false, null);
+        }
+    }
+
+    public bool CanMoveHeading(SectionRow moving, object target, bool below) =>
+        open is not null && moving.Heading is { } heading && HeadingSpot(target, below) is (true, var before)
+        && ProjectRules.PlaceHeading(services.Projects.Headings(open.Id), heading.Id, before) is not null;
+
+    /// <summary>Drops a dragged heading, with its tasks, before another or last.</summary>
+    public void MoveHeading(SectionRow moving, object target, bool below)
+    {
+        if (!CanMoveHeading(moving, target, below) || HeadingSpot(target, below) is not (true, var before)
+            || ProjectRules.PlaceHeading(services.Projects.Headings(open!.Id), moving.Heading!.Id, before) is not { } order)
+            return;
+        SaveTyped();
+        Ours(() => services.Projects.ChangeHeading(moving.Heading.Id, h => h with { Order = order }));
         ShowTasks();
     }
 
+    // Subtasks, in the open task's pane: dragged into order, dragged out to the list to become tasks, and tasks
+    // dragged in from the list to become its subtasks, as in Asana.
+
+    /// <summary>Drops a subtask above or below another of the same task.</summary>
+    public void MoveSubtask(TaskRow sub, TaskRow target, bool below)
+    {
+        if (Detail is not { } detail || sub == target)
+            return;
+        SaveTyped();
+        var list = detail.Subtasks.Select(r => r.Task).ToList();
+        var order = ProjectRules.PlaceAt(list, detail.Subtasks.IndexOf(target) + (below ? 1 : 0), sub.Task.Id);
+        Ours(() => services.Projects.ChangeTask(sub.Task.Id, t => t with { Order = order }));
+        detail.LoadSubtasks();
+    }
+
+    /// <summary>A task from the list can become a subtask of the open task, when it's in the same project and isn't that task.</summary>
+    public bool TakesAsSubtask(object dragged) =>
+        dragged is TaskRow { Section: not null } row && Detail is { } detail && row.Task.ProjectId == detail.Task.ProjectId
+        && Moving(row).All(t => t.Id != detail.Task.Id);
+
+    /// <summary>Makes tasks dragged from the list into the open task's subtasks, last among them.</summary>
+    public void MakeSubtasks(TaskRow row)
+    {
+        if (!TakesAsSubtask(row) || Detail is not { } detail)
+            return;
+        SaveTyped();
+        foreach (var task in Moving(row))
+        {
+            var order = ProjectRules.NextOrder(detail.Subtasks.Select(r => r.Task.Order));
+            var (saved, problems) = Ours(() => services.Projects.ChangeTask(task.Id, t => t with { ParentId = detail.Task.Id, HeadingId = detail.Task.HeadingId, Order = order }));
+            if (saved is null)
+                Message = $"{task.Title}: {string.Join(" ", problems)}";
+            detail.LoadSubtasks();
+        }
+        picked.Clear();
+        ShowTasks();
+    }
+
+    /// <summary>A subtask from the open task's pane can be dropped on the list, where it becomes a task.</summary>
+    public static bool TakesSubtaskBack(object dragged, object target) =>
+        dragged is TaskRow { Section: null, Task.ParentId: not null } && target is TaskRow { Section: not null } or SectionRow or AddTaskRow or BoardColumn;
+
+    /// <summary>Drops a subtask on the list: it becomes a task, just above the task it's dropped on, or in that heading.</summary>
+    public void Unnest(TaskRow sub, object target)
+    {
+        if (!TakesSubtaskBack(sub, target) || Spot(target, below: false) is not ({ } section, var index))
+            return;
+        SaveTyped();
+        Place([sub.Task.Id], section.Heading?.Id, index);
+    }
+
+    // Picking several tasks, as in Asana: Ctrl+click adds or takes one away, Shift+click picks a run. Dragging
+    // one of them takes them all; a plain click on another task lets them go.
+
+    private readonly HashSet<string> picked = [];
+    private string? pickAnchor;
+
+    public int PickedCount => picked.Count;
+
+    public void Pick(TaskRow row, bool run)
+    {
+        var list = Rows.OfType<TaskRow>().ToList();
+        var anchor = pickAnchor is null ? -1 : list.FindIndex(r => r.Task.Id == pickAnchor);
+        var at = list.FindIndex(r => r.Task.Id == row.Task.Id);
+        if (run && anchor >= 0 && at >= 0)
+        {
+            foreach (var r in list.Skip(Math.Min(anchor, at)).Take(Math.Abs(anchor - at) + 1))
+                picked.Add(r.Task.Id);
+        }
+        else
+        {
+            if (!picked.Remove(row.Task.Id))
+                picked.Add(row.Task.Id);
+            pickAnchor = row.Task.Id;
+        }
+        ShowPicks();
+    }
+
+    public void ClearPicks()
+    {
+        if (picked.Count == 0)
+            return;
+        picked.Clear();
+        pickAnchor = null;
+        ShowPicks();
+    }
+
+    private void ShowPicks()
+    {
+        foreach (var row in Rows.OfType<TaskRow>())
+            row.IsPicked = picked.Contains(row.Task.Id);
+        OnPropertyChanged(nameof(PickedCount));
+    }
+
+    /// <summary>What a drag of this row takes: every picked task, in the list's order, when it's one of them; otherwise just it.</summary>
+    public IReadOnlyList<ProjectTask> Moving(TaskRow row) =>
+        row.IsPicked && picked.Count > 1 ? [.. Rows.OfType<TaskRow>().Where(r => picked.Contains(r.Task.Id)).Select(r => r.Task)] : [row.Task];
 
     // Typing: names and titles are saved a moment after typing stops.
 
@@ -843,6 +997,12 @@ public sealed partial class TaskRow : ObservableObject
         Reset();
     }
 
+    /// <summary>Picked with Ctrl or Shift, to drag along with others.</summary>
+    [ObservableProperty] public partial bool IsPicked { get; set; }
+
+    /// <summary>What dragging it takes: the picked tasks when it's one of them, otherwise just it.</summary>
+    public IReadOnlyList<ProjectTask> Moving => page.Moving(this);
+
     /// <summary>Its project, shown in My tasks.</summary>
     public string? ProjectName { get; init; }
     public bool HasProjectName => ProjectName is not null;
@@ -964,9 +1124,6 @@ public sealed partial class BoardColumn(SectionRow section, IReadOnlyList<TaskRo
     public SectionRow Section { get; } = section;
     public IReadOnlyList<TaskRow> Cards { get; } = cards;
     public AddTaskRow Add { get; } = add;
-
-
-    /// <summary>The column's edge while a card is held over it.</summary>
 }
 
 /// <summary>The box under a heading's tasks for adding one.</summary>
