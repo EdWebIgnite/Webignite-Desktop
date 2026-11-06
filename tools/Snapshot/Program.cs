@@ -2179,6 +2179,13 @@ Save("site-check");
         var projectsPage = (ProjectsViewModel)vm[Page.Projects].Main.Page;
         projectsPage.OpenProject(site.Id);
         Dispatcher.UIThread.RunJobs();
+        Check("The list of projects tucks away while a project is open; the Planner sidebar lists them", !projectsPage.Panels["list"].IsShown);
+        vm.SelectedNav = vm[Page.Projects];
+        Dispatcher.UIThread.RunJobs();
+        Check("Projects in the sidebar goes back to all projects, with the list showing", projectsPage.Showing is null && projectsPage.Panels["list"].IsShown);
+        Save("projects-all");
+        projectsPage.OpenProject(site.Id);
+        Dispatcher.UIThread.RunJobs();
         Check("Projects lists shared and personal projects", projectsPage.SharedProjects.Count == 1 && projectsPage.PersonalProjects.Count == 1);
         Check("An open project shows its headings with their tasks", projectsPage.Rows.OfType<SectionRow>().Select(r => r.Name).SequenceEqual(["No heading", "Design", "Build", "Launch"])
             && projectsPage.Rows.OfType<TaskRow>().Count() == 5 && projectsPage.Rows.OfType<TaskRow>().First(r => r.Title.StartsWith("Wireframes", StringComparison.Ordinal)).Subtasks == "1 of 2");

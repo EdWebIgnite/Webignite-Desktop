@@ -562,6 +562,9 @@ public partial class MainViewModel : ViewModelBase
                 return;
             if (value is Module module)
             {
+                // Projects, clicked while a project, My tasks or Templates is open there, goes back to all projects.
+                if (module.Key == Page.Projects && Selected == module && Current.Page is ProjectsViewModel { Showing: not null } projects)
+                    projects.ShowAll();
                 Selected = module;
                 return;
             }
