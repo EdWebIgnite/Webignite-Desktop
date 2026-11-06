@@ -2491,8 +2491,25 @@ Save("site-check");
         Check("The timer starts on a task, with its client", services.Timer.Running is { } timing
             && timing.Note.StartsWith(myTasks[0].Title, StringComparison.Ordinal) && timing.ClientId == bosveldId);
         services.Timer.Stop();
+        // My own to-dos show in My tasks with what's given to me, as Asana's; the box adds one.
+        projectsPage.CloseTaskCommand.Execute(null);
+        projectsPage.NewTodo = "Renew the Karoo Coffee domain";
+        projectsPage.AddTodoCommand.Execute(null);
+        Check("My tasks lists my to-dos with the tasks given to me, and the box adds one",
+            projectsPage.MyRows.OfType<TodoRow>().Any(r => r.Title == "Renew the Karoo Coffee domain")
+            && projectsPage.MySummary.Contains("of your own", StringComparison.Ordinal));
+        services.Go.To(Page.Todo);
         Dispatcher.UIThread.RunJobs();
+        Check("Anything that opened To-do opens My tasks", vm.Selected.Key == Page.Projects && projectsPage.IsMyTasks);
+        window.Width = 1900;
+        for (var tick = 0; tick < 10; tick++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Thread.Sleep(15);
+        }
         Save("projects-my-tasks");
+        window.Width = 1280;
         projectsPage.CloseTaskCommand.Execute(null);
 
         // My tasks with a due date show in Planner, for the week they're due.
@@ -2599,7 +2616,7 @@ Save("site-check");
         var homePage = (PlannerHomeViewModel)vm.Current.Page;
         Check("Clicking Planner opens Home and swaps the sidebar for Planner's", vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Home
             && vm.Sidebar.PlannerItems.First() is SidebarBack
-            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Projects", "To-do", "Calendar", "Week", "Time"])
+            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Projects", "Calendar", "Week", "Time"])
             && vm.Sidebar.PlannerItems.OfType<ProjectLink>().Any(l => l.Kind == ProjectLinkKind.MyTasks));
         Check("Home greets, counts the week and lists my tasks and recent projects", homePage.Greeting.Contains(services.Me().Name, StringComparison.Ordinal)
             && homePage.CompletedText.EndsWith("completed", StringComparison.Ordinal)
@@ -2684,10 +2701,11 @@ Save("site-check");
                 && services.Projects.Projects().First(p => p.Name == "Karoo Coffee website").Favourite);
 
             var time = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Time);
-            var todo = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Todo);
-            DragOnto(Row(plannerList, time), Row(plannerList, todo), 0.2);
+            var week = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Planner);
+            DragOnto(Row(plannerList, time), Row(plannerList, week), 0.2);
             var planKeys = vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Key).ToList();
-            Check("A page under Plan dragged above another moves there", planKeys.IndexOf(Page.Time) == planKeys.IndexOf(Page.Todo) - 1);
+            Check("A page under Plan dragged above another moves there", planKeys.IndexOf(Page.Time) == planKeys.IndexOf(Page.Planner) - 1);
+            Check("To-do isn't in the Planner sidebar: its to-dos show in My tasks", !planKeys.Contains(Page.Todo));
 
             var calendar = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Calendar);
             var at = Centre(Row(plannerList, calendar));

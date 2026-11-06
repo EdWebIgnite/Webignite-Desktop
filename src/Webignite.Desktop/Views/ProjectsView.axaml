@@ -576,16 +576,39 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <!-- My tasks: everything given to me, by when it's due -->
+        <!-- My tasks, as Asana's: everything given to me and my own to-dos, by when it's due -->
         <StackPanel Spacing="12" IsVisible="{Binding IsMyTasks}">
           <StackPanel Spacing="2">
             <TextBlock Classes="h1" Text="My tasks" />
             <TextBlock Classes="muted" Text="{Binding MySummary}" />
           </StackPanel>
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding AddTodoCommand}" Margin="8,0,0,0" />
+            <TextBox Text="{Binding NewTodo}" PlaceholderText="Add a to-do of your own, then Enter" KeyDown="TodoKey" />
+          </DockPanel>
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding MyMessage}" IsVisible="{Binding HasMyMessage}" />
           <c:EmptyState IsVisible="{Binding MyTasksEmpty}" Icon="{StaticResource Icon.Check}" Title="All clear"
-                        Text="Tasks given to you in any project show here, soonest first. Ones with a due date show in Planner and Calendar too." />
+                        Text="Tasks given to you in any project and your own to-dos show here, soonest first. Ones with a due date show in Week and Calendar too." />
           <ItemsControl ItemsSource="{Binding MyRows}">
             <ItemsControl.DataTemplates>
+              <DataTemplate DataType="vm:TodoRow">
+                <Border Background="Transparent" Padding="0,1" Opacity="{Binding Fade}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1"
+                        ContextRequested="TodoMenu" ToolTip.Tip="{Binding Tip}">
+                  <Grid ColumnDefinitions="30,*,Auto,32">
+                    <CheckBox Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,6">
+                      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="cell" Classes.empty="{Binding !HasDue}" Classes.late="{Binding IsLate}" Content="{Binding DueText}"
+                            Click="TodoDueClicked" MinWidth="90" VerticalAlignment="Center" ToolTip.Tip="When it's due" />
+                    <Button Grid.Column="3" Classes="quiet" Padding="6" Margin="4,0,0,0" VerticalAlignment="Center" Command="{Binding OpenAboutCommand}"
+                            IsVisible="{Binding HasAbout}" ToolTip.Tip="Open the client or document it's about">
+                      <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" />
+                    </Button>
+                  </Grid>
+                </Border>
+              </DataTemplate>
               <DataTemplate DataType="vm:MyGroupRow">
                 <DockPanel Margin="0,14,0,2">
                   <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Count}" VerticalAlignment="Center" />
@@ -595,7 +618,7 @@
               <DataTemplate DataType="vm:TaskRow">
                 <Border Background="Transparent" Padding="0,1" Opacity="{Binding Fade}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
                   <Grid ColumnDefinitions="30,*,Auto,32">
-                    <CheckBox IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Done" />
+                    <CheckBox Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,4">
                       <TextBox Classes="inline" Text="{Binding Title}" />
                       <StackPanel Orientation="Horizontal" Spacing="8" Margin="6,0,0,2">
