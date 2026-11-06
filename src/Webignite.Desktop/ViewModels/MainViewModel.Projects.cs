@@ -16,13 +16,15 @@ public partial class MainViewModel
     /// <summary>Lists the running projects under Projects in the sidebar, keeping the entries already there.</summary>
     private void ListProjects()
     {
-        var running = ProjectRules.Listed(services.Projects.Projects(), showDone: false);
+        var running = ProjectLooks.SidebarOrder(ProjectRules.Listed(services.Projects.Projects(), showDone: false));
         var links = new List<ProjectLink>();
         foreach (var project in running)
         {
             if (!projectLinks.TryGetValue(project.Id, out var link))
                 projectLinks[project.Id] = link = new ProjectLink(ProjectLinkKind.Project, project.Id, project.Name, "");
             link.Title = project.Name;
+            link.TileColour = ProjectLooks.ColourOf(project);
+            link.TileIcon = ProjectLooks.IconOf(project);
             links.Add(link);
         }
         foreach (var gone in projectLinks.Keys.Except(running.Select(p => p.Id)).ToList())

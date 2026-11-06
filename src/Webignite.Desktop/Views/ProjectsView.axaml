@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:core="using:Webignite.Core.Projects"
              x:Class="Webignite.Desktop.Views.ProjectsView"
              x:DataType="vm:ProjectsViewModel"
              x:Name="Root">
@@ -133,42 +134,104 @@
         </StackPanel>
 
         <StackPanel Spacing="16" IsVisible="{Binding IsOpen}">
+          <!-- The header, as Asana's: the project's square, its name, a menu, a star and its status; who's on it on the right -->
           <DockPanel>
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
-              <Border Classes="segments" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
-                  <Button Classes="segment" Classes.on="{Binding IsList}" Content="List" Command="{Binding ListViewCommand}" />
-                  <Button Classes="segment" Classes.on="{Binding IsBoard}" Content="Board" Command="{Binding BoardViewCommand}"
-                          ToolTip.Tip="Headings as columns; drag cards across and up and down" />
-                </StackPanel>
-              </Border>
-              <Button Classes="quiet" Content="Save as template" Command="{Binding SaveAsTemplateCommand}"
-                      ToolTip.Tip="Keep its headings, tasks and subtasks to start other projects from" />
-              <Button Classes="quiet" ToolTip.Tip="Delete the project and its tasks" Command="{Binding DeleteProjectCommand}">
-                <c:Icon Data="{StaticResource Icon.Trash}" Size="16" />
+            <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding Members}" VerticalAlignment="Center">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="-6" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <c:Monogram Text="{Binding}" Size="28" ToolTip.Tip="{Binding}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Classes="projecthead" ToolTip.Tip="Its colour and icon">
+                <Border Width="34" Height="34" CornerRadius="8" Background="{Binding EditColour, Converter={x:Static c:ProjectColours.Brush}}">
+                  <c:Icon Data="{Binding EditIcon, Converter={x:Static c:IconConverter.Instance}}" Size="18" Foreground="{DynamicResource OnPrimary}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Button.Flyout>
+                  <Flyout Placement="BottomEdgeAlignedLeft">
+                    <StackPanel Spacing="10" Width="248">
+                      <TextBlock Classes="label" Text="Colour" />
+                      <ItemsControl ItemsSource="{x:Static vm:ProjectsViewModel.ColourChoices}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="x:String">
+                            <Button Classes="swatch" ToolTip.Tip="{Binding}" Background="{Binding Converter={x:Static c:ProjectColours.Brush}}"
+                                    Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).PickColourCommand}" CommandParameter="{Binding}" />
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <TextBlock Classes="label" Text="Icon" />
+                      <ItemsControl ItemsSource="{x:Static vm:ProjectsViewModel.IconChoices}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate><WrapPanel ItemSpacing="4" LineSpacing="4" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="x:String">
+                            <Button Classes="quiet" Padding="6" Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).PickIconCommand}" CommandParameter="{Binding}">
+                              <c:Icon Data="{Binding Converter={x:Static c:IconConverter.Instance}}" Size="16" />
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Flyout>
+                </Button.Flyout>
               </Button>
-              <Button Classes="link" Content="Close" Command="{Binding CloseCommand}" />
-            </StackPanel>
-            <StackPanel Spacing="2">
-              <TextBox Classes="inline heading" FontSize="22" Text="{Binding EditName}" PlaceholderText="Project name" />
-              <TextBlock Classes="muted" Margin="7,0,0,0" Text="{Binding Summary}" />
+              <TextBox Classes="inline heading" FontSize="22" Text="{Binding EditName}" PlaceholderText="Project name" MinWidth="120" MaxWidth="520" VerticalAlignment="Center" />
+              <Button Classes="quiet" Padding="6" VerticalAlignment="Center" ToolTip.Tip="More">
+                <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="14" />
+                <Button.Flyout>
+                  <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                    <MenuItem Header="Save as template" Command="{Binding SaveAsTemplateCommand}"
+                              ToolTip.Tip="Keep its headings, tasks and subtasks to start other projects from" />
+                    <MenuItem Header="Delete the project" Command="{Binding DeleteProjectCommand}" />
+                    <Separator />
+                    <MenuItem Header="Close" Command="{Binding CloseCommand}" />
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
+              <Button Classes="quiet" Padding="6" VerticalAlignment="Center" Command="{Binding ToggleFavouriteCommand}"
+                      ToolTip.Tip="Star it: starred projects come first in the sidebar">
+                <c:Icon Data="{StaticResource Icon.Star}" Size="15" Classes.starred="{Binding EditFavourite}" />
+              </Button>
+              <Button Classes="quiet" VerticalAlignment="Center" Padding="8,4" ToolTip.Tip="How it's going">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Ellipse Width="9" Height="9" Fill="{Binding EditHealth, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding HealthText}" FontSize="12" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button.Flyout>
+                  <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                    <MenuItem Header="On track" Command="{Binding SetHealthCommand}" CommandParameter="{x:Static core:ProjectHealth.OnTrack}" />
+                    <MenuItem Header="At risk" Command="{Binding SetHealthCommand}" CommandParameter="{x:Static core:ProjectHealth.AtRisk}" />
+                    <MenuItem Header="Off track" Command="{Binding SetHealthCommand}" CommandParameter="{x:Static core:ProjectHealth.OffTrack}" />
+                    <Separator />
+                    <MenuItem Header="Clear the status" Command="{Binding SetHealthCommand}" CommandParameter="{x:Static core:ProjectHealth.None}" />
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
             </StackPanel>
           </DockPanel>
 
-          <WrapPanel ItemSpacing="10" LineSpacing="8">
-            <CheckBox IsChecked="{Binding EditShared}" Content="{Binding SharedLabel}" VerticalAlignment="Center"
-                      ToolTip.Tip="Shared projects reach your partner once sync is set up. Until then they stay on this PC." />
-            <ComboBox x:Name="ClientBox" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding EditClient, Mode=OneWay}"
-                      SelectionChanged="ClientPicked" MinWidth="200" ToolTip.Tip="The client it's for" />
-            <ComboBox x:Name="StatusBox" ItemsSource="{x:Static vm:ProjectsViewModel.Statuses}" SelectedItem="{Binding EditStatus, Mode=OneWay}"
-                      SelectionChanged="StatusPicked" MinWidth="120" />
-            <CalendarDatePicker SelectedDate="{Binding EditDue}" Watermark="Due date" Width="150" ToolTip.Tip="When the whole project is due" />
-          </WrapPanel>
-          <TextBlock Classes="problem" Text="{Binding Message}" TextWrapping="Wrap"
-                     IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <!-- The views, as Asana's tabs -->
+          <DockPanel Margin="0,-6,0,0">
+            <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Summary}" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="viewtab" Classes.on="{Binding IsList}" Content="List" Command="{Binding ListViewCommand}" />
+              <Button Classes="viewtab" Classes.on="{Binding IsBoard}" Content="Board" Command="{Binding BoardViewCommand}"
+                      ToolTip.Tip="Headings as columns; drag cards across and up and down" />
+            </StackPanel>
+          </DockPanel>
+          <Border Height="1" Background="{DynamicResource Line}" Margin="0,-17,0,0" />
 
-          <!-- Filters out of the way: one button that says what's filtered -->
-          <StackPanel Orientation="Horizontal" Spacing="8">
+          <!-- One row under the tabs: the filter, then the project's details (they move to Overview later) -->
+          <StackPanel Orientation="Horizontal" Spacing="10">
             <Button Classes="quiet" Classes.chosen="{Binding HasFilter}" Content="{Binding FilterText}" ToolTip.Tip="Show tasks of one priority or with one tag">
               <Button.Flyout>
                 <Flyout Placement="BottomEdgeAlignedLeft">
@@ -184,7 +247,17 @@
               </Button.Flyout>
             </Button>
             <Button Classes="link" Content="Show all" Command="{Binding ClearFilterCommand}" IsVisible="{Binding HasFilter}" VerticalAlignment="Center" />
+            <Border Width="1" Height="22" Background="{DynamicResource Line}" Margin="4,0" VerticalAlignment="Center" />
+            <CheckBox IsChecked="{Binding EditShared}" Content="{Binding SharedLabel}" VerticalAlignment="Center"
+                      ToolTip.Tip="Shared projects reach your partner once sync is set up. Until then they stay on this PC." />
+            <ComboBox x:Name="ClientBox" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding EditClient, Mode=OneWay}"
+                      SelectionChanged="ClientPicked" MinWidth="200" ToolTip.Tip="The client it's for" />
+            <ComboBox x:Name="StatusBox" ItemsSource="{x:Static vm:ProjectsViewModel.Statuses}" SelectedItem="{Binding EditStatus, Mode=OneWay}"
+                      SelectionChanged="StatusPicked" MinWidth="120" />
+            <CalendarDatePicker SelectedDate="{Binding EditDue}" Watermark="Due date" Width="150" ToolTip.Tip="When the whole project is due" />
           </StackPanel>
+          <TextBlock Classes="problem" Text="{Binding Message}" TextWrapping="Wrap"
+                     IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
           <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}" IsVisible="{Binding IsList}">
             <ItemsControl.DataTemplates>

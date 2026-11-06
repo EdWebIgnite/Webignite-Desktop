@@ -126,8 +126,9 @@
               <DataTemplate DataType="vm:HomeProjectTile">
                 <Button Classes="projecttile" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Name}">
                   <DockPanel>
-                    <Border DockPanel.Dock="Left" Classes="projectsquare" Margin="0,0,14,0">
-                      <TextBlock Text="{Binding Initials}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Border DockPanel.Dock="Left" Classes="projectsquare" Margin="0,0,14,0" Background="{Binding Colour, Converter={x:Static c:ProjectColours.Brush}}">
+                      <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="22" Foreground="{DynamicResource OnPrimary}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                   </DockPanel>

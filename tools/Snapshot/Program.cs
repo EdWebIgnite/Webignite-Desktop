@@ -2348,6 +2348,31 @@ Save("site-check");
         Open(Page.Overview);
         Check("Another page keeps the main sidebar", !vm.Sidebar.IsPlanner);
 
+        // A project's header as Asana's: its coloured square, a star and how it's going.
+        projectsPage.OpenProject(site.Id);
+        Open(Page.Projects);
+        projectsPage.PickColourCommand.Execute("Teal");
+        projectsPage.PickIconCommand.Execute("Star");
+        projectsPage.SetHealthCommand.Execute(Webignite.Core.Projects.ProjectHealth.AtRisk);
+        var webignite = services.Projects.Projects().First(p => p.Name == "Webignite SEO month");
+        projectsPage.OpenProject(webignite.Id);
+        projectsPage.ToggleFavouriteCommand.Execute(null);
+        projectsPage.OpenProject(site.Id);
+        Dispatcher.UIThread.RunJobs();
+        var stored = services.Projects.Get(site.Id)!;
+        Check("A project keeps the colour, icon and status picked in its header", stored is { Colour: "Teal", Icon: "Star", Health: Webignite.Core.Projects.ProjectHealth.AtRisk }
+            && projectsPage.HealthText == "At risk");
+        var projectLinks = vm.Sidebar.PlannerItems.OfType<ProjectLink>().Where(l => l.Kind == ProjectLinkKind.Project).ToList();
+        Check("The sidebar shows each project's coloured square, starred ones first", projectLinks.First().Title == "Webignite SEO month"
+            && projectLinks.Single(l => l.Id == site.Id) is { TileColour: "Teal", TileIcon: "Star", HasTile: true });
+        window.Width = 1920;
+        window.Height = 1080;
+        Dispatcher.UIThread.RunJobs();
+        Save("project-header");
+        window.Width = 1280;
+        window.Height = 860;
+        Open(Page.Overview);
+
         // My pages: a page of widgets the person puts together, saved by name in the sidebar.
         Open(Page.MyPages);
         var myPages = (MyPagesViewModel)vm[Page.MyPages].Main.Page;
