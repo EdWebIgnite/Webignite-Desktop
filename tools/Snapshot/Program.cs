@@ -2628,6 +2628,47 @@ Save("site-check");
         window.Height = 1080;
         Dispatcher.UIThread.RunJobs();
         Save("planner-home");
+
+        // Home's widgets, as Asana's Customise: add a notepad, people, status updates and milestones; resize and move them.
+        Check("Home starts with My tasks and Projects", homePage.Widgets.Select(w => w.Kind).SequenceEqual([Webignite.Core.Projects.HomeWidgetKind.MyTasks, Webignite.Core.Projects.HomeWidgetKind.Projects]));
+        var homeHealth = services.Projects.Get(site.Id)!.Health;
+        services.Projects.PostStatus(site.Id, Webignite.Core.Projects.ProjectHealth.AtRisk, "Waiting on photos from Pieter before the gallery goes in.");
+        var launchMilestone = services.Projects.AllTasks(site.Id).First(t => t.Title == "Contact form to info@");
+        services.Projects.ChangeTask(launchMilestone.Id, t => t with { Milestone = true });
+        foreach (var kind in new[] { Webignite.Core.Projects.HomeWidgetKind.People, Webignite.Core.Projects.HomeWidgetKind.StatusUpdates,
+            Webignite.Core.Projects.HomeWidgetKind.Milestones, Webignite.Core.Projects.HomeWidgetKind.Notepad })
+            homePage.WidgetChoices.First(c => c.Kind == kind).IsOn = true;
+        homePage.Notepad = "Call Pieter after 10 about the photos.\nQuote for the Karoo shop: R 8 500.";
+        homePage.KeepNotepad();
+        homePage.Refresh();
+        Check("Customise adds widgets, kept with Home, and the notepad keeps its words",
+            homePage.Widgets.Count == 6 && services.Settings.Home.Widgets!.Count == 6 && services.Settings.Home.Notepad.StartsWith("Call Pieter", StringComparison.Ordinal));
+        Check("People, status updates and milestones show what's going on", homePage.People.Count == 2
+            && homePage.StatusUpdates.Any(u => u.Text.StartsWith("Waiting on photos", StringComparison.Ordinal))
+            && homePage.Milestones.Any(m => m.Title == "Contact form to info@"));
+        homePage.Widgets.First(w => w.Kind == Webignite.Core.Projects.HomeWidgetKind.Notepad).ResizeCommand.Execute(null);
+        homePage.MoveWidget(homePage.Widgets.First(w => w.Kind == Webignite.Core.Projects.HomeWidgetKind.StatusUpdates),
+            homePage.Widgets.First(w => w.Kind == Webignite.Core.Projects.HomeWidgetKind.MyTasks), after: true);
+        Check("A widget goes full width from its menu, and drags after another",
+            homePage.Widgets.First(w => w.Kind == Webignite.Core.Projects.HomeWidgetKind.Notepad).Full
+            && homePage.Widgets[1].Kind == Webignite.Core.Projects.HomeWidgetKind.StatusUpdates);
+        window.Height = 1600;
+        for (var tick = 0; tick < 10; tick++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Thread.Sleep(15);
+        }
+        Save("planner-home-widgets");
+        window.Height = 1080;
+        homePage.Widgets.First(w => w.Kind == Webignite.Core.Projects.HomeWidgetKind.People).RemoveCommand.Execute(null);
+        Check("A widget comes off Home from its menu", homePage.Widgets.All(w => w.Kind != Webignite.Core.Projects.HomeWidgetKind.People)
+            && !homePage.WidgetChoices.First(c => c.Kind == Webignite.Core.Projects.HomeWidgetKind.People).IsOn);
+        // Back to Home as it started, for the pictures after.
+        services.Settings.Home = services.Settings.Home with { Widgets = null };
+        services.Projects.ChangeTask(launchMilestone.Id, t => t with { Milestone = false });
+        services.Projects.Change(site.Id, p => p with { Health = homeHealth, Updates = [] });
+        homePage.Refresh();
         Open(Page.Planner);
         Check("The week planner is called Week inside Planner", vm.Selected.Title == "Week" && vm.Sidebar.IsPlanner);
         vm.SelectedNav = vm.Sidebar.PlannerBack;

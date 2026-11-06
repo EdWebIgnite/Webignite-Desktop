@@ -53,6 +53,9 @@ public sealed class DragReorder
         // A box being typed in keeps its own dragging, to pick words; one that isn't, such as a task's name, drags the row.
         if (e.Source is Visual source && source.FindAncestorOfType<TextBox>(includeSelf: true) is { IsFocused: true })
             return;
+        // With a handle set, only a press on it picks the row up, so rows can hold other draggable things.
+        if (rules.Handle is { } handle && (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<StyledElement>().Any(v => v.Classes.Contains(handle)) != true)
+            return;
         var (container, item) = ItemAt(e.Source as Visual, rules.CanDrag);
         if (container is null || item is null)
             return;
@@ -347,6 +350,12 @@ public sealed record DragRules
 {
     /// <summary>What can be picked up.</summary>
     public Func<object, bool> CanDrag { get; init; } = _ => true;
+
+    /// <summary>
+    /// A style class: when set, a row is picked up only by a press on an element with it (a widget's heading, say),
+    /// so the row can hold things that drag on their own.
+    /// </summary>
+    public string? Handle { get; init; }
 
     /// <summary>What a row can land next to: the dragged item, the one under the pointer, and whether below (or after) it.</summary>
     public Func<object, object, bool, bool> CanDrop { get; init; } = (_, _, _) => true;
