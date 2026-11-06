@@ -34,7 +34,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Tells the open to-do, calendar, planner and overview pages that something was added from elsewhere.</summary>
     public void RefreshPlanning()
     {
-        foreach (var page in Built<IRefreshable>(Page.Todo, Page.Calendar, Page.Planner, Page.Overview))
+        foreach (var page in Built<IRefreshable>(Page.Calendar, Page.Planner, Page.Overview))
             page.Refresh();
     }
 
@@ -165,7 +165,6 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
             new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
             new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true) { InPlanner = true },
-            new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo") { InPlanner = true, InSidebar = false },
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
             new Module(Page.Planner, "Week", () => new PlannerViewModel(services), "Planner") { InPlanner = true },
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time") { InPlanner = true },
@@ -222,14 +221,7 @@ public partial class MainViewModel : ViewModelBase
 
         // How other pages get here. Each one lands on the right page first, then opens the thing.
         var go = services.Go;
-        // To-dos show in My tasks now, so anything that would open To-do opens My tasks.
-        go.OpenPage = page =>
-        {
-            if (page == Page.Todo)
-                go.MyTasks();
-            else
-                Selected = this[page];
-        };
+        go.OpenPage = page => Selected = this[page];
         go.OpenMailAction = summary =>
         {
             Selected = mailModule;
@@ -472,7 +464,7 @@ public partial class MainViewModel : ViewModelBase
                 services.Go.Mail(hit.Mail!);
                 break;
             case Webignite.Core.Search.HitKind.Todo:
-                services.Go.To(Page.Todo);
+                services.Go.MyTasks();
                 break;
             case Webignite.Core.Search.HitKind.Person:
                 services.Go.Person(hit.Person!.Id);
@@ -498,7 +490,6 @@ public partial class MainViewModel : ViewModelBase
     // Each of these builds its page if it isn't built yet, so a jump from elsewhere always lands on it.
     public DocumentsViewModel Quotes => PageOf<DocumentsViewModel>(Page.Quotes);
     public DocumentsViewModel Invoices => PageOf<DocumentsViewModel>(Page.Invoices);
-    public TodoViewModel Todo => PageOf<TodoViewModel>(Page.Todo);
     public OverviewViewModel Overview => PageOf<OverviewViewModel>(Page.Overview);
     public ClientsViewModel Clients => PageOf<ClientsViewModel>(Page.Clients);
     public FilesViewModel Files => PageOf<FilesViewModel>(Page.Files);

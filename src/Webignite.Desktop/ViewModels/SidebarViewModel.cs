@@ -189,8 +189,6 @@ public sealed partial class SidebarViewModel : ObservableObject
                 heading.IsOpen = layout.IsOpen(heading.Key);
                 wanted.Add(heading);
             }
-            else if (item is Module { InPlanner: true, InSidebar: false })
-                continue;
             else if (item is Module { InPlanner: true } planned)
             {
                 planned.Group = group;
@@ -244,7 +242,7 @@ public sealed partial class SidebarViewModel : ObservableObject
     // The Planner sidebar, built from the Planner pages in the app's order and the links that go with Projects.
     private void BuildPlanner(List<string> order)
     {
-        var pages = order.Select(k => byKey[k]).OfType<Module>().Where(m => m.InPlanner && m.InSidebar).ToList();
+        var pages = order.Select(k => byKey[k]).OfType<Module>().Where(m => m.InPlanner).ToList();
         var home = pages.FirstOrDefault(m => m.Key == Page.Home);
         var projects = pages.FirstOrDefault(m => m.Key == Page.Projects);
         var (above, below) = links.GetValueOrDefault(Page.Projects, ([], []));

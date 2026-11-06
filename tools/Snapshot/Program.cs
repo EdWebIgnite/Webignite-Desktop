@@ -312,10 +312,6 @@ settingsPage.SaveTeamCommand.Execute(null);
 Save("settings-projects");
 settingsPage.Open("xero");
 
-// A short to-do list, before the sample to-dos below, so the hint under it shows.
-Open(Page.Todo);
-Save("todo-short");
-
 var today = DateOnly.FromDateTime(DateTime.Today);
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t1", Title = "Send Bosveld the sitemap for sign-off", Due = today, Created = DateTimeOffset.UtcNow });
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t2", Title = "Renew webignite.co.za SSL certificate", Due = today.AddDays(3), Created = DateTimeOffset.UtcNow });
@@ -326,9 +322,7 @@ var overdue = store.List(DocumentKind.Invoice).First(d => d.Xero.Number is not n
 store.Save(overdue with { Document = overdue.Document with { Date = today.AddDays(-21), DueOrExpiryDate = today.AddDays(-14) } });
 var quote = store.List(DocumentKind.Quote)[0];
 store.Save(quote with { Status = DocumentStatus.InXero, Xero = quote.Xero with { Number = "QU-0031", Status = "SENT" } });
-Open(Page.Overview); // away and back, so To-do reads the sample to-dos above
-Open(Page.Todo);
-Save("todo");
+Open(Page.Overview);
 
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e1", Title = "Kick-off with Bosveld Builders", Date = today, Start = new TimeOnly(10, 0), Location = "Teams" });
 store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e2", Title = "Fynbos Physio photo shoot", Date = today.AddDays(2), Start = new TimeOnly(14, 30) });
@@ -2508,9 +2502,7 @@ Save("site-check");
         Check("My tasks lists my to-dos with the tasks given to me, and the box adds one",
             projectsPage.MyRows.OfType<TodoRow>().Any(r => r.Title == "Renew the Karoo Coffee domain")
             && projectsPage.MySummary.Contains("of your own", StringComparison.Ordinal));
-        services.Go.To(Page.Todo);
-        Dispatcher.UIThread.RunJobs();
-        Check("Anything that opened To-do opens My tasks", vm.Selected.Key == Page.Projects && projectsPage.IsMyTasks);
+        Check("There's no To-do page any more: to-dos live in My tasks", !Enum.GetNames<Page>().Contains("Todo"));
         window.Width = 1900;
         for (var tick = 0; tick < 10; tick++)
         {
@@ -2759,7 +2751,7 @@ Save("site-check");
             DragOnto(Row(plannerList, time), Row(plannerList, week), 0.2);
             var planKeys = vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Key).ToList();
             Check("A page under Plan dragged above another moves there", planKeys.IndexOf(Page.Time) == planKeys.IndexOf(Page.Planner) - 1);
-            Check("To-do isn't in the Planner sidebar: its to-dos show in My tasks", !planKeys.Contains(Page.Todo));
+            Check("To-do isn't in the Planner sidebar: its to-dos show in My tasks", vm.Sidebar.PlannerItems.OfType<Module>().All(m => m.Title != "To-do"));
 
             var calendar = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Calendar);
             var at = Centre(Row(plannerList, calendar));
@@ -3183,10 +3175,11 @@ Save("site-check");
     Check("Clients have a right-click menu", MenuSize<Avalonia.Controls.Button>(Page.Clients) >= 8);
     vm.Invoices.Editor = null;
     Check("Invoices have a right-click menu", MenuSize<Avalonia.Controls.Button>(Page.Invoices) >= 4);
-    Check("To-dos have a right-click menu", MenuSize<Avalonia.Controls.Border>(Page.Todo) >= 4);
-    var firstTask = vm.Todo.Groups.SelectMany(g => g.Items).First(t => !t.IsDone);
-    firstTask.DueTomorrowCommand.Execute(null);
-    Check("A to-do's right-click moves its due day", store.ListTasks().First(t => t.Id == firstTask.Task.Id).Due == DateOnly.FromDateTime(DateTime.Today).AddDays(1));
+    services.Go.MyTasks();
+    Dispatcher.UIThread.RunJobs();
+    var firstTodo = ((ProjectsViewModel)vm.Current.Page).MyRows.OfType<TodoRow>().First(t => !t.Done);
+    firstTodo.SetDue(DateOnly.FromDateTime(DateTime.Today).AddDays(1));
+    Check("A to-do in My tasks moves its due day", store.ListTasks().First(t => t.Id == firstTodo.Todo.Id).Due == DateOnly.FromDateTime(DateTime.Today).AddDays(1));
     Open(Page.Clients);
     vm.Clients.NewQuoteForCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
     Check("New quote for them opens a quote for that client", vm.Clients.Detail?.Editor is { CustomerName: "Fynbos Physio" });
@@ -3364,10 +3357,10 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Check("On a big screen the calendar's days grow to fill the height", days.Count >= 28 && days[0].Bounds.Height > 120);
     var monthScroller = calendarView.GetVisualDescendants().OfType<Avalonia.Controls.ScrollViewer>().First(s => s.Name == "MonthScroller");
     Check("On a big screen the month fits without scrolling", monthScroller.Extent.Height <= monthScroller.Viewport.Height + 1);
-    Open(Page.Todo);
+    Open(Page.Retainers);
     Dispatcher.UIThread.RunJobs();
-    var todo = window.GetVisualDescendants().OfType<TodoView>().FirstOrDefault();
-    Check("On a big screen a list page is wider than the old reading width", todo is { Bounds.Width: > 1200 });
+    var listPage = window.GetVisualDescendants().OfType<RetainersView>().FirstOrDefault();
+    Check("On a big screen a list page is wider than the old reading width", listPage is { Bounds.Width: > 1200 });
     Open(Page.Settings);
     Dispatcher.UIThread.RunJobs();
     var settings = window.GetVisualDescendants().OfType<SettingsView>().FirstOrDefault();

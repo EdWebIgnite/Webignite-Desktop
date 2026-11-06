@@ -39,9 +39,6 @@ public sealed partial class Module : ObservableObject
     /// </summary>
     public bool InPlanner { get; init; }
 
-    /// <summary>Listed in the sidebar. To-do isn't: its to-dos show in My tasks, and anything that opened it opens My tasks.</summary>
-    public bool InSidebar { get; init; } = true;
-
     /// <summary>
     /// Forms to read and fill in (Settings) keep a comfortable width on a big screen; everything else uses the
     /// whole window, as lists, boards and calendars should.

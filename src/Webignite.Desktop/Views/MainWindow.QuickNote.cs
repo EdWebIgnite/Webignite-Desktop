@@ -71,7 +71,7 @@ public partial class MainWindow
                 var due = todo.Due is { } day ? ", due " + Webignite.Core.Wording.Day(day, DateOnly.FromDateTime(DateTime.Today)) : "";
                 ShowNote("To-do added", $"{todo.Title}{due}. Click to see your to-dos.", () =>
                 {
-                    services.Go.To(Page.Todo);
+                    services.Go.MyTasks();
                     Activate();
                 });
             }
