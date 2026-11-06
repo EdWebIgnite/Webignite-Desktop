@@ -101,7 +101,7 @@ flowchart BT
 | `Webignite.Xero` | `XeroSession` (sign-in, tokens), `XeroApi`, `XeroDrafts` (create and check drafts), `XeroSending` (PDFs, mark sent), `XeroStandings` (payments). | none |
 | `Webignite.Mail` | `MailService` (sync, read, mark, move, send; `MailRetry` decides when a dropped connection is tried again), `MailComposer`, `MailReader`, `AssistantTools` (what an assistant may do with mail). | MailKit |
 | `Webignite.Services` | `DocumentService`, `ClientService` and `NoteService`, through which pages read and change quotes, invoices, clients and notes (each change applied to the record as stored now); `PaymentWatch`, `XeroClientWatch`, `UptimeWatch`, `SiteChecker`: each has `Due(now)` and `RunAsync`. | none |
-| `Webignite.Connector` | The MCP server and its tools: Planner (`PlannerTools`, rules in `AssistantPlanner` in Services), documents, to-dos, mail. Assistants act for Eddie but never delete, send or approve. Every change leaves `AssistantSignal` (Data, setting `assistant-changed`), which `BackgroundJobs` looks at every 3 seconds so the open app shows it (`MainViewModel.ShowAssistantChanges`). Logs go to stderr only. | ModelContextProtocol, Hosting |
+| `Webignite.Connector` | The MCP server and its tools: Planner (`PlannerTools`, rules in `AssistantPlanner` in Services); clients and their history, Contacts, notes, calendar, time, renewals and retainers (`BusinessTools`, rules in `AssistantBusiness` in Services; site logins are never reachable); documents, to-dos, mail. Assistants act for Eddie but never delete, send or approve. Every change leaves `AssistantSignal` (Data, setting `assistant-changed`), which `BackgroundJobs` looks at every 3 seconds so the open app shows it (`MainViewModel.ShowAssistantChanges`). Logs go to stderr only. | ModelContextProtocol, Hosting |
 | `Webignite.Desktop` | The app: `AppServices`, `AppSettings`, `Navigator`, `MailDrafts`, `BackgroundJobs`, `MailCheck`, `TimerClock`, pages (view models and views), controls, styles. | Avalonia, CommunityToolkit.Mvvm, HtmlRenderer, Velopack |
 | `Webignite.Tools` | The heavier tools: screen recording to MP4 (`Recording/`: `ScreenRecorder`, `VideoWriter`, `VideoFile`, through Windows' Media Foundation and WASAPI), PDF pages (`PdfPages`), PDF text and page counts (`PdfText`), putting files into one PDF (`PdfMaker`), building PDFs page by page with turns, words and a signature (`PdfEdit`, through PDFium), turning pictures and reading their size (`PictureTools`), picture shrinking (`ImageShrinker`), QR codes (`QrCodes`), and pictures decoded for the picture viewer (`PictureTools.ForViewing`). Only read from disk when a tool is first used. | Docnet.Core, QRCoder, Avalonia.Skia |
 | `tests/Webignite.Tests` | xUnit v3 tests, one file per area. | xunit.v3 |
@@ -314,7 +314,7 @@ sequenceDiagram
     actor Eddie
     participant AI as Claude Desktop
     participant Conn as Webignite.Connector
-    participant Rules as AssistantPlanner / AssistantDocuments / AssistantTasks / AssistantTools
+    participant Rules as AssistantPlanner / AssistantBusiness / AssistantDocuments / AssistantTasks / AssistantTools
     participant Store as LocalStore
     participant App as Webignite (To approve)
 

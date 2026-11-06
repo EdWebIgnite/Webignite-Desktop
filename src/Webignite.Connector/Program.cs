@@ -18,6 +18,7 @@ builder.Services.AddSingleton(sp => new MailService(sp.GetRequiredService<LocalS
 builder.Services.AddSingleton(sp => new AssistantDocuments(sp.GetRequiredService<LocalStore>()));
 builder.Services.AddSingleton(sp => new AssistantTasks(sp.GetRequiredService<LocalStore>()));
 builder.Services.AddSingleton(sp => new AssistantPlanner(sp.GetRequiredService<LocalStore>()));
+builder.Services.AddSingleton(sp => new AssistantBusiness(sp.GetRequiredService<LocalStore>()));
 builder.Services.AddSingleton(sp => new AssistantTools(sp.GetRequiredService<LocalStore>(), sp.GetRequiredService<MailService>()));
 
 builder.Services
@@ -30,6 +31,7 @@ builder.Services
     .WithTools<MailTools>()
     .WithTools<DocumentTools>()
     .WithTools<TaskTools>()
-    .WithTools<PlannerTools>();
+    .WithTools<PlannerTools>()
+    .WithTools<BusinessTools>();
 
 await builder.Build().RunAsync();
