@@ -29,6 +29,7 @@ public sealed partial class ProjectsViewModel
         if (value)
         {
             IsBoard = false;
+            IsOverview = false;
             ListFiles();
         }
         if (open is not null && Layout.Files != value)

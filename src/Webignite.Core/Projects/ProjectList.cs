@@ -17,6 +17,9 @@ public sealed record ProjectLayout
     /// <summary>The Files tab: every file attached in the project.</summary>
     public bool Files { get; init; }
 
+    /// <summary>The Overview tab: what the project is about and how it's going.</summary>
+    public bool Overview { get; init; }
+
     public TaskSort Sort { get; init; }
     public TaskGroup Group { get; init; }
 

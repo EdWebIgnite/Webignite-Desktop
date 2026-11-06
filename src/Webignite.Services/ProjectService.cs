@@ -112,6 +112,26 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return (saved, []);
     }
 
+    /// <summary>Posts a status update on the project's Overview; the header's status follows it.</summary>
+    public (Project? Saved, IReadOnlyList<string> Problems) PostStatus(string id, ProjectHealth health, string text)
+    {
+        if (Get(id) is not { } current)
+            return (null, ["The project is gone."]);
+        var (changed, problem) = ProjectOverview.Post(current, health, text, Now(), ProjectRules.NewId());
+        return changed is null ? (null, [problem]) : Change(id, p => p with { Health = changed.Health, Updates = changed.Updates });
+    }
+
+    /// <summary>Adds a key resource to the project's Overview.</summary>
+    public (Project? Saved, IReadOnlyList<string> Problems) AddLink(string id, string title, string url)
+    {
+        if (Get(id) is not { } current)
+            return (null, ["The project is gone."]);
+        var (changed, problem) = ProjectOverview.AddLink(current, title, url, ProjectRules.NewId());
+        return changed is null ? (null, [problem]) : Change(id, p => p with { Links = changed.Links });
+    }
+
+    public (Project? Saved, IReadOnlyList<string> Problems) RemoveLink(string id, string linkId) => Change(id, p => ProjectOverview.RemoveLink(p, linkId));
+
     /// <summary>Deletes a project with its headings and tasks. Returns what went, for Undo.</summary>
     public ProjectWork? Delete(string id)
     {

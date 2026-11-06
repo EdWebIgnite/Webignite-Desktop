@@ -147,7 +147,16 @@ public sealed record Project : ITracked
     public string? ClientId { get; init; }
     public ProjectStatus Status { get; init; }
     public DateOnly? Due { get; init; }
+
+    /// <summary>Its description on the Overview tab, as plain text; <see cref="NotesHtml"/> keeps any formatting.</summary>
     public string Notes { get; init; } = "";
+    public string NotesHtml { get; init; } = "";
+
+    /// <summary>Key resources on the Overview tab: links to the brief, the staging site and so on.</summary>
+    public IReadOnlyList<ProjectLink> Links { get; init; } = [];
+
+    /// <summary>Status updates, the newest first.</summary>
+    public IReadOnlyList<StatusUpdate> Updates { get; init; } = [];
 
     /// <summary>Its picture in the sidebar and on Home: an icon's name from <see cref="ProjectLooks.Icons"/>.</summary>
     public string Icon { get; init; } = "";
@@ -231,6 +240,9 @@ public sealed record ProjectTask : ITracked
 
     /// <summary>The picture shown on top of its card on the board, as Asana's cover; null for none.</summary>
     public string? CoverId { get; init; }
+
+    /// <summary>A milestone, as Asana's: a moment that matters, shown with a diamond and on the Overview tab.</summary>
+    public bool Milestone { get; init; }
 
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
@@ -361,20 +373,13 @@ public static class ProjectRules
     }
 
     /// <summary>A task's description to edit: its formatted notes, or its plain notes when it has none.</summary>
-    public static Webignite.Core.Writing.RichDocument Description(ProjectTask task) =>
-        task.NotesHtml.Length > 0 ? Webignite.Core.Writing.RichHtml.Read(task.NotesHtml, Webignite.Core.Writing.RichHtml.DataAddress)
-        : task.Notes.Trim().Length > 0 ? Webignite.Core.Writing.RichText.FromText(task.Notes)
-        : Webignite.Core.Writing.RichDocument.Empty();
+    public static Webignite.Core.Writing.RichDocument Description(ProjectTask task) => RichNotes.Read(task.Notes, task.NotesHtml);
 
     /// <summary>A description written: the plain text and, when there's any formatting, the HTML. Nothing written clears both.</summary>
     public static ProjectTask WithDescription(ProjectTask task, Webignite.Core.Writing.RichDocument description)
     {
-        var text = Webignite.Core.Writing.RichText.ToText(description).TrimEnd();
-        if (text.Length == 0 && !description.Blocks.Any(b => b is not Webignite.Core.Writing.TextBlock))
-            return task with { Notes = "", NotesHtml = "" };
-        var html = Webignite.Core.Writing.RichHtml.Write(description, Webignite.Core.Writing.RichHtml.ToDataAddress);
-        var plain = Webignite.Core.Writing.RichHtml.Write(Webignite.Core.Writing.RichText.FromText(text), Webignite.Core.Writing.RichHtml.ToDataAddress);
-        return task with { Notes = text, NotesHtml = html == plain ? "" : html };
+        var (notes, html) = RichNotes.Write(description);
+        return task with { Notes = notes, NotesHtml = html };
     }
 
     /// <summary>"0/1" for the subtasks header, as Asana's; empty when there are none.</summary>
@@ -667,6 +672,7 @@ public static class ProjectRules
         ("icon", p => p.Icon), ("colour", p => p.Colour), ("health", p => p.Health), ("favourite", p => p.Favourite),
         ("name", p => p.Name), ("shared", p => p.Shared), ("client", p => p.ClientId), ("status", p => p.Status),
         ("due", p => p.Due), ("notes", p => p.Notes), ("order", p => p.Order),
+        ("noteshtml", p => p.NotesHtml), ("links", p => p.Links), ("updates", p => p.Updates),
     ];
 
     private static readonly (string Name, Func<Heading, object?> Value)[] HeadingFields =
@@ -679,7 +685,7 @@ public static class ProjectRules
         ("project", t => t.ProjectId), ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes), ("noteshtml", t => t.NotesHtml),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
         ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
-        ("attachments", t => t.Attachments), ("cover", t => t.CoverId),
+        ("attachments", t => t.Attachments), ("cover", t => t.CoverId), ("milestone", t => t.Milestone),
     ];
 
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>

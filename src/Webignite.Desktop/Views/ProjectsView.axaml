@@ -236,6 +236,52 @@
       <Setter Property="VerticalAlignment" Value="Top" />
       <Setter Property="Padding" Value="0,4,0,0" />
     </Style>
+    <!-- The Overview tab, as Asana's -->
+    <Style Selector="TextBlock.overviewhead">
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.overviewcard">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="16,14" />
+    </Style>
+    <Style Selector="Button.healthpick">
+      <Setter Property="Padding" Value="9,5" />
+    </Style>
+    <Style Selector="Button.healthpick.on">
+      <Setter Property="Background" Value="{DynamicResource Picked}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DropMark}" />
+    </Style>
+    <Style Selector="Border.updaterow">
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+      <Setter Property="Padding" Value="0,10,0,0" />
+    </Style>
+    <Style Selector="Button.linktile">
+      <Setter Property="Width" Value="260" />
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Border.linkicon">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="Border.linkicon > c|Icon">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.latetext">
+      <Setter Property="Foreground" Value="{DynamicResource Attention}" />
+    </Style>
   </UserControl.Styles>
   <!-- Projects on the left, the open one on the right. The panes move, resize and hide as on Mail. -->
   <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">
@@ -538,6 +584,8 @@
           <DockPanel Margin="0,-6,0,0">
             <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Summary}" VerticalAlignment="Center" />
             <StackPanel Orientation="Horizontal">
+              <Button Classes="viewtab" Classes.on="{Binding IsOverview}" Content="Overview" Command="{Binding OverviewViewCommand}"
+                      ToolTip.Tip="What the project is about, its key links and milestones, and how it's going" />
               <Button Classes="viewtab" Classes.on="{Binding IsList}" Content="List" Command="{Binding ListViewCommand}" />
               <Button Classes="viewtab" Classes.on="{Binding IsBoard}" Content="Board" Command="{Binding BoardViewCommand}"
                       ToolTip.Tip="Headings as columns; drag cards across and up and down" />
@@ -547,8 +595,8 @@
           </DockPanel>
           <Border Height="1" Background="{DynamicResource Line}" Margin="0,-17,0,0" />
 
-          <!-- Under the tabs, as Asana's: Add task on the left; filter, sort, group and the project's details on the right -->
-          <DockPanel>
+          <!-- Under the tabs, as Asana's: Add task on the left; filter, sort and group on the right -->
+          <DockPanel IsVisible="{Binding ShowsTaskTools}">
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="1">
               <Button x:Name="AddTaskButton" Classes="primary addtask" Click="AddTaskClicked" ToolTip.Tip="Add a task at the top of the first heading">
                 <StackPanel Orientation="Horizontal" Spacing="6">
@@ -616,35 +664,210 @@
                   </MenuFlyout>
                 </Button.Flyout>
               </Button>
-              <!-- The project's details, until the Overview tab takes them -->
-              <Button Classes="quiet listtool" ToolTip.Tip="Shared, the client, its status and due date">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <c:Icon Data="{StaticResource Icon.Settings}" Size="13" VerticalAlignment="Center" />
-                  <TextBlock Text="Details" VerticalAlignment="Center" />
-                </StackPanel>
-                <Button.Flyout>
-                  <Flyout Placement="BottomEdgeAlignedRight">
-                    <StackPanel Spacing="10" Width="300">
-                      <CheckBox IsChecked="{Binding EditShared}" Content="{Binding SharedLabel}"
-                                ToolTip.Tip="Shared projects reach your partner once sync is set up. Until then they stay on this PC." />
-                      <TextBlock Classes="label" Text="Client" />
-                      <ComboBox x:Name="ClientBox" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding EditClient, Mode=OneWay}"
-                                SelectionChanged="ClientPicked" HorizontalAlignment="Stretch" ToolTip.Tip="The client it's for" />
-                      <TextBlock Classes="label" Text="Status" />
-                      <ComboBox x:Name="StatusBox" ItemsSource="{x:Static vm:ProjectsViewModel.Statuses}" SelectedItem="{Binding EditStatus, Mode=OneWay}"
-                                SelectionChanged="StatusPicked" HorizontalAlignment="Stretch" />
-                      <TextBlock Classes="label" Text="Due date" />
-                      <CalendarDatePicker SelectedDate="{Binding EditDue}" Watermark="Due date" HorizontalAlignment="Stretch" ToolTip.Tip="When the whole project is due" />
-                    </StackPanel>
-                  </Flyout>
-                </Button.Flyout>
-              </Button>
             </StackPanel>
             <TextBlock Classes="muted" FontSize="12" Margin="12,0" VerticalAlignment="Center" Text="Sorted or grouped: drag to reorder is off until Sort is None and Group is Headings."
                        IsVisible="{Binding !CanReorder}" TextTrimming="CharacterEllipsis" />
           </DockPanel>
           <TextBlock Classes="problem" Text="{Binding Message}" TextWrapping="Wrap"
                      IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+          <!-- The Overview tab, as Asana's: the description, roles, key resources and milestones on the left; how it's
+               going, how far it has come and its details on the right. -->
+          <Grid ColumnDefinitions="*,28,320" IsVisible="{Binding IsOverview}" Margin="0,4,0,0">
+            <StackPanel Spacing="28">
+              <StackPanel Spacing="8">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2">
+                    <Button Classes="quiet format" Focusable="False" Click="ProjectBold" ToolTip.Tip="Bold (Ctrl+B)"><c:Icon Data="{StaticResource Icon.Bold}" Size="13" /></Button>
+                    <Button Classes="quiet format" Focusable="False" Click="ProjectItalic" ToolTip.Tip="Italic (Ctrl+I)"><c:Icon Data="{StaticResource Icon.Italic}" Size="13" /></Button>
+                    <Button Classes="quiet format" Focusable="False" Click="ProjectUnderline" ToolTip.Tip="Underline (Ctrl+U)"><c:Icon Data="{StaticResource Icon.Underline}" Size="13" /></Button>
+                    <Button Classes="quiet format" Focusable="False" Click="ProjectBullets" ToolTip.Tip="Bullets"><c:Icon Data="{StaticResource Icon.Bullets}" Size="13" /></Button>
+                    <Button Classes="quiet format" Focusable="False" Click="ProjectNumbers" ToolTip.Tip="Numbered list"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
+                  </StackPanel>
+                  <TextBlock Classes="overviewhead" Text="Project description" VerticalAlignment="Center" />
+                </DockPanel>
+                <Border Classes="description">
+                  <c:RichTextEditor x:Name="ProjectDescriptionEditor" Document="{Binding ProjectDescription}" Revision="{Binding ProjectDescriptionRevision}" PageColours="True"
+                                    Placeholder="What's this project about? The goal, what's in and out, who to talk to…" Padding="14,12" MinHeight="120" />
+                </Border>
+              </StackPanel>
+
+              <StackPanel Spacing="10">
+                <TextBlock Classes="overviewhead" Text="Project roles" />
+                <ItemsControl ItemsSource="{Binding Roles}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel ItemSpacing="24" LineSpacing="10" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RoleRow">
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <c:Monogram Text="{Binding Name}" Size="34" VerticalAlignment="Center" />
+                        <StackPanel VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Role}" />
+                        </StackPanel>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="muted" FontSize="12" Text="Tick Shared under Details to add your partner. They see it once sync is set up."
+                           IsVisible="{Binding !EditShared}" TextWrapping="Wrap" />
+              </StackPanel>
+
+              <StackPanel Spacing="8">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="quiet coltool" Click="StartLinkClicked" ToolTip.Tip="Add a link">
+                    <c:Icon Data="{StaticResource Icon.Plus}" Size="14" />
+                  </Button>
+                  <TextBlock Classes="overviewhead" Text="Key resources" VerticalAlignment="Center" />
+                </DockPanel>
+                <TextBlock Classes="muted" Text="Links to the brief, the staging site or a shared folder, kept in one place."
+                           IsVisible="{Binding NoLinks}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding Links}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel ItemSpacing="10" LineSpacing="10" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LinkRow">
+                      <Button Classes="linktile" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Url}">
+                        <DockPanel>
+                          <Button DockPanel.Dock="Right" Classes="quiet coltool" Command="{Binding RemoveCommand}" ToolTip.Tip="Take the link off" VerticalAlignment="Center" Margin="6,0,0,0">
+                            <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                          </Button>
+                          <Border DockPanel.Dock="Left" Classes="linkicon">
+                            <c:Icon Data="{StaticResource Icon.Link}" Size="15" />
+                          </Border>
+                          <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Classes="muted" FontSize="12" Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </DockPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Classes="description" Padding="12" IsVisible="{Binding IsAddingLink}">
+                  <StackPanel Spacing="8">
+                    <TextBox x:Name="LinkUrlBox" Text="{Binding NewLinkUrl}" PlaceholderText="Web address, e.g. staging.bosveld.co.za" KeyDown="LinkKey" />
+                    <TextBox Text="{Binding NewLinkTitle}" PlaceholderText="Name (optional), e.g. Staging site" KeyDown="LinkKey" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Classes="primary" Content="Add link" Command="{Binding AddLinkCommand}" />
+                      <Button Classes="quiet" Content="Cancel" Command="{Binding CancelLinkCommand}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+
+              <StackPanel Spacing="8">
+                <TextBlock Classes="overviewhead" Text="Milestones" />
+                <TextBlock Classes="muted" Text="The moments that matter, like sign-off or going live. Right-click any task to make it one."
+                           IsVisible="{Binding NoMilestones}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding Milestones}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TaskRow">
+                      <Border Classes="taskrow" Opacity="{Binding Fade}" ContextRequested="TaskMenu">
+                        <Grid ColumnDefinitions="28,*,Auto,36">
+                          <CheckBox Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
+                          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <c:Icon Data="{StaticResource Icon.Milestone}" Size="13" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                          </StackPanel>
+                          <Button Grid.Column="2" Classes="cell" Classes.empty="{Binding !HasDue}" Classes.late="{Binding IsLate}" Content="{Binding DueText}"
+                                  Click="DueClicked" MinWidth="90" VerticalAlignment="Center" ToolTip.Tip="When it's due" />
+                          <Button Grid.Column="3" Classes="quiet" Padding="6" Margin="4,0,0,0" VerticalAlignment="Center"
+                                  Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}" ToolTip.Tip="Open it">
+                            <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" />
+                          </Button>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBox Classes="inline addtaskbox" Text="{Binding NewMilestone}" PlaceholderText="Add a milestone, then Enter" KeyDown="MilestoneKey" />
+              </StackPanel>
+              <TextBlock Classes="muted" FontSize="12" Text="{Binding MadeText}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Spacing="16">
+              <!-- How it's going, as Asana's status updates -->
+              <Border Classes="overviewcard">
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="overviewhead" Text="What's the status?" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Classes="quiet healthpick" Classes.on="{Binding UpdateOnTrack}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.OnTrack}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.OnTrack}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
+                        <TextBlock Text="On track" FontSize="12" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="quiet healthpick" Classes.on="{Binding UpdateAtRisk}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.AtRisk}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.AtRisk}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
+                        <TextBlock Text="At risk" FontSize="12" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="quiet healthpick" Classes.on="{Binding UpdateOffTrack}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.OffTrack}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.OffTrack}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
+                        <TextBlock Text="Off track" FontSize="12" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                  <StackPanel Spacing="8" IsVisible="{Binding IsWritingUpdate}">
+                    <TextBox Text="{Binding UpdateText}" PlaceholderText="What's happened, what's next, anything in the way?" AcceptsReturn="True"
+                             TextWrapping="Wrap" MinHeight="80" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Classes="primary" Content="Post update" Command="{Binding PostUpdateCommand}" />
+                      <Button Classes="quiet" Content="Cancel" Command="{Binding CancelUpdateCommand}" />
+                    </StackPanel>
+                  </StackPanel>
+                  <TextBlock Classes="muted" FontSize="12" Text="Pick one to write an update. The newest sets the status in the header."
+                             IsVisible="{Binding NoUpdates}" TextWrapping="Wrap" />
+                  <ItemsControl ItemsSource="{Binding Updates}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:UpdateRow">
+                        <Border Classes="updaterow">
+                          <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <Ellipse Width="9" Height="9" Fill="{Binding Health, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
+                              <TextBlock Text="{Binding HealthText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding HasText}" />
+                            <TextBlock Classes="muted" FontSize="12" Text="{Binding Byline}" />
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="overviewcard">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="overviewhead" Text="Progress" />
+                  <ProgressBar Value="{Binding ProgressShare}" Minimum="0" Maximum="100" Height="6" />
+                  <TextBlock Text="{Binding ProgressText}" />
+                  <TextBlock Classes="latetext" Text="{Binding LateText}" IsVisible="{Binding HasLate}" />
+                </StackPanel>
+              </Border>
+
+              <Border Classes="overviewcard">
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="overviewhead" Text="Details" />
+                  <CheckBox IsChecked="{Binding EditShared}" Content="{Binding SharedLabel}"
+                            ToolTip.Tip="Shared projects reach your partner once sync is set up. Until then they stay on this PC." />
+                  <TextBlock Classes="label" Text="Client" />
+                  <ComboBox x:Name="ClientBox" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding EditClient, Mode=OneWay}"
+                            SelectionChanged="ClientPicked" HorizontalAlignment="Stretch" ToolTip.Tip="The client it's for" />
+                  <TextBlock Classes="label" Text="Status" />
+                  <ComboBox x:Name="StatusBox" ItemsSource="{x:Static vm:ProjectsViewModel.Statuses}" SelectedItem="{Binding EditStatus, Mode=OneWay}"
+                            SelectionChanged="StatusPicked" HorizontalAlignment="Stretch" />
+                  <TextBlock Classes="label" Text="Due date" />
+                  <CalendarDatePicker SelectedDate="{Binding EditDue}" PlaceholderText="Due date" HorizontalAlignment="Stretch" ToolTip.Tip="When the whole project is due" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Grid>
 
           <!-- The list, as Asana's: column headings, then each heading (folding) with its tasks in cells -->
           <StackPanel x:Name="ListArea" IsVisible="{Binding IsList}">
@@ -695,6 +918,8 @@
                           <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" IsVisible="{Binding IsExpanded}" />
                         </Panel>
                       </Button>
+                      <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Milestone}" Size="12" Foreground="{DynamicResource Muted}" IsVisible="{Binding IsMilestone}"
+                              VerticalAlignment="Center" Margin="6,0,0,0" ToolTip.Tip="Milestone" />
                       <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasComments}" ToolTip.Tip="Comments" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="3">
                           <TextBlock Text="{Binding CommentText}" FontSize="11" VerticalAlignment="Center" />
@@ -834,7 +1059,11 @@
                                   <StackPanel Margin="12,10,12,11" Spacing="8">
                                     <Grid ColumnDefinitions="Auto,*">
                                       <CheckBox Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Top" ToolTip.Tip="Mark complete" />
-                                      <TextBlock Grid.Column="1" Text="{Binding Title}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                      <DockPanel Grid.Column="1" Margin="0,2,0,0">
+                                        <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Milestone}" Size="12" Foreground="{DynamicResource Muted}"
+                                                IsVisible="{Binding IsMilestone}" VerticalAlignment="Top" Margin="0,3,6,0" ToolTip.Tip="Milestone" />
+                                        <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+                                      </DockPanel>
                                     </Grid>
                                     <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" />
                                     <DockPanel IsVisible="{Binding HasCardFoot}">

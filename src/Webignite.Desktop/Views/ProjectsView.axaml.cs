@@ -542,6 +542,45 @@ public partial class ProjectsView : FullBleedView
         e.Handled = true;
     }
 
+    private void ProjectBold(object? sender, RoutedEventArgs e) => ProjectDescriptionEditor.ToggleBold();
+    private void ProjectItalic(object? sender, RoutedEventArgs e) => ProjectDescriptionEditor.ToggleItalic();
+    private void ProjectUnderline(object? sender, RoutedEventArgs e) => ProjectDescriptionEditor.ToggleUnderline();
+    private void ProjectBullets(object? sender, RoutedEventArgs e) => ProjectDescriptionEditor.ToggleList(Webignite.Core.Writing.ListKind.Bullet);
+    private void ProjectNumbers(object? sender, RoutedEventArgs e) => ProjectDescriptionEditor.ToggleList(Webignite.Core.Writing.ListKind.Number);
+
+    private void StartLinkClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Projects is not { } projects)
+            return;
+        projects.IsAddingLink = true;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => LinkUrlBox.Focus());
+    }
+
+    private void LinkKey(object? sender, KeyEventArgs e)
+    {
+        if (Projects is not { } projects)
+            return;
+        if (e.Key == Key.Enter)
+        {
+            projects.AddLinkCommand.Execute(null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            projects.CancelLinkCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private void MilestoneKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Projects is { } projects)
+        {
+            projects.AddMilestoneCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
     private void DescriptionBold(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleBold();
     private void DescriptionItalic(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleItalic();
     private void DescriptionUnderline(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleUnderline();
@@ -595,9 +634,11 @@ public partial class ProjectsView : FullBleedView
             move.Items.Add(item);
         }
         move.IsEnabled = move.Items.Count > 0;
+        var milestone = new MenuItem { Header = row.IsMilestone ? "Make it a task again" : "Mark as milestone" };
+        milestone.Click += (_, _) => projects.SetMilestone(row, !row.IsMilestone);
         var delete = new MenuItem { Header = "Delete the task" };
         delete.Click += (_, _) => row.DeleteCommand.Execute(null);
-        new ContextMenu { ItemsSource = new object[] { move, new Separator(), delete } }.Open(sender as Control);
+        new ContextMenu { ItemsSource = new object[] { move, milestone, new Separator(), delete } }.Open(sender as Control);
         e.Handled = true;
     }
 }
