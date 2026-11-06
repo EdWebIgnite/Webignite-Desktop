@@ -402,7 +402,8 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
     }
 
     /// <summary>A project as a template, to start others from.</summary>
-    public ProjectTemplate TemplateOf(string projectId, string name) => ProjectRules.TemplateOf(name, Headings(projectId), AllTasks(projectId));
+    public ProjectTemplate TemplateOf(string projectId, string name) =>
+        ProjectRules.TemplateOf(name, Headings(projectId), AllTasks(projectId), Get(projectId)?.CustomFields);
 
     /// <summary>Deletes a task with its subtasks. Returns what went, for Undo.</summary>
     public ProjectWork? DeleteTask(string id)

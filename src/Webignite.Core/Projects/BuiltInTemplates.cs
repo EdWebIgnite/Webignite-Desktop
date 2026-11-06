@@ -28,8 +28,10 @@ public static class BuiltInTemplates
     public static IReadOnlyList<string> Categories => [.. Order.Where(c => All.Any(t => t.Category == c))];
 
     private static TemplateTask T(string title, string heading, int? due = null, int? start = null, string notes = "",
-        TaskPriority priority = TaskPriority.Normal, string[]? tags = null, string[]? subtasks = null, TaskRepeat repeat = TaskRepeat.None) => new()
+        TaskPriority priority = TaskPriority.Normal, string[]? tags = null, string[]? subtasks = null, TaskRepeat repeat = TaskRepeat.None,
+        bool milestone = false) => new()
         {
+            Milestone = milestone,
             Title = title,
             Heading = heading,
             DueDay = due,
@@ -66,8 +68,8 @@ public static class BuiltInTemplates
             T("SEO basics: titles, descriptions and sitemap", "Development", 34),
             T("Test on phone, tablet and desktop", "Testing and launch", 36),
             T("Speed test and fix what's slow", "Testing and launch", 37),
-            T("Client sign-off", "Testing and launch", 38, priority: TaskPriority.High),
-            T("Point the domain and go live", "Testing and launch", 40),
+            T("Client sign-off", "Testing and launch", 38, priority: TaskPriority.High, milestone: true),
+            T("Point the domain and go live", "Testing and launch", 40, milestone: true),
             T("Hand over logins and a short how-to", "Testing and launch", 42)),
 
         Make("client-onboarding", "Client onboarding", Sales,

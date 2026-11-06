@@ -286,6 +286,35 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void A_template_keeps_milestones_custom_fields_and_what_waits_on_what()
+    {
+        var project = NewProject();
+        var field = projects.AddField(project.Id, "Stage", FieldKind.Choice, ["Not started", "Doing"]).Saved!.CustomFields.Single();
+        var design = NewTask(project.Id, "Design sign-off");
+        var build = NewTask(project.Id, "Build the pages");
+        projects.ChangeTask(design.Id, t => t with { Milestone = true });
+        projects.SetFieldValue(design.Id, field.Id, "Doing", System.Globalization.CultureInfo.InvariantCulture);
+        projects.AddDependency(build.Id, design.Id);
+
+        var template = projects.TemplateOf(project.Id, "Website");
+        Assert.Single(template.Fields);
+        Assert.True(template.Tasks[0].Milestone);
+        Assert.Equal([0], template.Tasks[1].WaitsOn);
+
+        var made = projects.AddFromTemplate(template, "Karoo website", new DateOnly(2026, 12, 1));
+        var newField = Assert.Single(made.CustomFields);
+        Assert.NotEqual(field.Id, newField.Id);
+        var tasks = projects.AllTasks(made.Id);
+        var newDesign = tasks.Single(t => t.Title == "Design sign-off");
+        var newBuild = tasks.Single(t => t.Title == "Build the pages");
+        Assert.True(newDesign.Milestone);
+        Assert.Equal("Doing", CustomFields.Show(newField, newDesign.Values[newField.Id], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal([newDesign.Id], newBuild.BlockedBy);
+        // The original stays as it was.
+        Assert.Equal([design.Id], projects.GetTask(build.Id)!.BlockedBy);
+    }
+
+    [Fact]
     public void Deleting_leaves_a_marker_with_who_and_when_and_undo_puts_it_all_back()
     {
         var project = NewProject();
