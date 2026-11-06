@@ -619,6 +619,38 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="15" />
   </Style>
+  <!-- The template gallery: round category chips (the picked one a pill, as in Asana) and a card per template. -->
+  <Style Selector="Button.gallerychip">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="18" />
+    <Setter Property="Padding" Value="14,6" />
+  </Style>
+  <Style Selector="Button.gallerychip.on">
+    <Setter Property="Background" Value="{DynamicResource Picked}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPicked}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Picked}" />
+  </Style>
+  <Style Selector="Button.gallerychip.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Picked}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPicked}" />
+  </Style>
+  <Style Selector="Button.gallerycard">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="16,14" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="MinHeight" Value="96" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.gallerycard:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+  </Style>
   <!-- A task's six dots show under the mouse, as in Asana: the whole row or card can be dragged (Controls/DragReorder.cs). -->
   <Style Selector="Border.taskrow > Grid > Border.grip, Border.card > Grid > Border.grip">
     <Setter Property="Opacity" Value="0" />

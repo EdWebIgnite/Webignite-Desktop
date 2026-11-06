@@ -64,30 +64,104 @@
       <Panel Margin="32,30" HorizontalAlignment="Stretch">
         <c:EmptyState IsVisible="{Binding IsClosed}" Icon="{StaticResource Icon.Projects}" Title="Pick a project"
                       Text="Its headings and tasks show here. Give tasks to yourself or your partner and set when they're due." VerticalAlignment="Top" />
-        <!-- Templates: start a project from one, or remove it -->
-        <StackPanel Spacing="12" IsVisible="{Binding IsTemplates}">
-          <StackPanel Spacing="2">
-            <TextBlock Classes="h1" Text="Templates" />
-            <TextBlock Classes="muted" TextWrapping="Wrap"
-                       Text="Start a project from one: it gets the template's headings and tasks, with dates counted from today. Type a name under Projects first to use it." />
-          </StackPanel>
-          <c:EmptyState IsVisible="{Binding TemplatesEmpty}" Icon="{StaticResource Icon.Projects}" Title="No templates yet"
-                        Text="Open a project and click Save as template. It shows here, ready to start the next one from." />
-          <ItemsControl ItemsSource="{Binding TemplateRows}">
+        <!-- The template gallery, as Asana's: categories along the top, a card per template, a blank project -->
+        <StackPanel Spacing="18" IsVisible="{Binding IsGallery}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding BlankProjectCommand}" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:Icon Data="{StaticResource Icon.Plus}" Size="14" VerticalAlignment="Center" />
+                <TextBlock Text="Blank project" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <StackPanel Spacing="2">
+              <TextBlock Classes="h1" Text="Template gallery" />
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Start a project with headings and tasks already in place, or a blank one." />
+            </StackPanel>
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding GalleryChips}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:TemplateRow">
-                <Border Classes="card" Padding="16,12" Margin="0,0,0,8">
+              <DataTemplate x:DataType="vm:GalleryChip">
+                <Button Classes="gallerychip" Classes.on="{Binding IsOn}" Content="{Binding Name}" Command="{Binding ShowCommand}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <c:EmptyState IsVisible="{Binding GalleryEmpty}" Icon="{StaticResource Icon.Tiles}" Title="No templates of your own yet"
+                        Text="Open a project and click Save as template in the menu next to its name. It shows here, ready to start the next one from." />
+          <ItemsControl ItemsSource="{Binding GalleryCards}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel ItemSpacing="12" LineSpacing="12" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:GalleryCard">
+                <Button Classes="gallerycard" Command="{Binding OpenCommand}" Width="300" ToolTip.Tip="See what's in it">
                   <DockPanel>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                      <Button Classes="link" Content="Remove" Command="{Binding RemoveCommand}" VerticalAlignment="Center" />
-                      <Button Classes="primary" Content="Start a project" Command="{Binding StartCommand}" />
-                    </StackPanel>
-                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="9" VerticalAlignment="Top" Margin="0,0,12,0"
+                            Background="{Binding TileColour, Converter={x:Static c:ProjectColours.Brush}}">
+                      <c:Icon Data="{Binding TileIcon, Converter={x:Static c:ProjectColours.Icon}}" Size="20" Foreground="{DynamicResource OnProject}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Spacing="4">
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Description}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                   </DockPanel>
-                </Border>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+        <!-- A template opened: what's in it, and a name and start date to use it -->
+        <StackPanel Spacing="16" IsVisible="{Binding IsPreviewing}">
+          <Button Classes="link" Command="{Binding BackToGalleryCommand}" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <c:Icon Data="{StaticResource Icon.ChevronLeft}" Size="14" VerticalAlignment="Center" />
+              <TextBlock Text="Template gallery" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <Border Width="48" Height="48" CornerRadius="10" Background="{Binding Previewing.TileColour, Converter={x:Static c:ProjectColours.Brush}, FallbackValue={x:Null}}">
+              <c:Icon Data="{Binding Previewing.TileIcon, Converter={x:Static c:ProjectColours.Icon}, FallbackValue={x:Null}}" Size="24" Foreground="{DynamicResource OnProject}"
+                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="h1" Text="{Binding Previewing.Name, FallbackValue=''}" />
+              <TextBlock Classes="muted" Text="{Binding Previewing.About, FallbackValue=''}" />
+            </StackPanel>
+          </StackPanel>
+          <TextBlock TextWrapping="Wrap" Text="{Binding Previewing.Description, FallbackValue=''}" MaxWidth="640" HorizontalAlignment="Left" />
+          <Border Classes="card" Padding="16">
+            <StackPanel Spacing="12">
+              <TextBlock Classes="h2" Text="Use this template" />
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBox Text="{Binding PreviewName}" PlaceholderText="Project name" Width="320" />
+                <CalendarDatePicker SelectedDate="{Binding PreviewStart}" Watermark="Starts on" Width="160" ToolTip.Tip="Its tasks' dates count from this day" />
+                <Button Classes="primary" Content="Use template" Command="{Binding UseTemplateCommand}" />
+                <Button Classes="link" Content="Remove the template" Command="{Binding RemovePreviewedCommand}" IsVisible="{Binding Previewing.IsMine, FallbackValue=False}"
+                        VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <ItemsControl ItemsSource="{Binding PreviewHeadings}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:GalleryHeading">
+                <StackPanel Spacing="4" Margin="0,0,0,14">
+                  <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,0,0,4">
+                    <TextBlock Classes="section" Text="{Binding Name}" />
+                  </Border>
+                  <ItemsControl ItemsSource="{Binding Tasks}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <StackPanel Orientation="Horizontal" Spacing="10" Margin="2,3">
+                          <c:Icon Data="{StaticResource Icon.Check}" Size="13" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
