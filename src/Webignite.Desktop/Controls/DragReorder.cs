@@ -48,7 +48,7 @@ public sealed class DragReorder
 
     private void Pressed(object? sender, PointerPressedEventArgs e)
     {
-        if (drag is not null || !e.GetCurrentPoint(host).Properties.IsLeftButtonPressed || e.ClickCount > 1)
+        if (drag is not null || !e.GetCurrentPoint(host).Properties.IsLeftButtonPressed)
             return;
         // A box being typed in keeps its own dragging, to pick words; one that isn't, such as a task's name, drags the row.
         if (e.Source is Visual source && source.FindAncestorOfType<TextBox>(includeSelf: true) is { IsFocused: true })
@@ -144,9 +144,11 @@ public sealed class DragReorder
         if (new Rect(host.Bounds.Size).Contains(point))
         {
             var (container, item) = ItemAt(host.InputHitTest(point) as Visual, _ => true);
+            if (container is null)
+                (container, item) = ItemUnder(host, point);
             if (container is not null && item is not null && !ReferenceEquals(item, going.Item))
             {
-                if (rules.IsInto(item))
+                if (rules.IsInto(going.Item, item))
                 {
                     if (rules.CanDrop(going.Item, item, true))
                     {
@@ -190,7 +192,24 @@ public sealed class DragReorder
     /// <summary>The innermost row under a point whose data passes the test: a child of an items panel, or of the host itself.</summary>
     internal (Control? Container, object? Item) ItemAt(Visual? from, Func<object, bool> test) => FindItem(host, from, test);
 
-    internal static (Control? Container, object? Item) FindItem(Control host, Visual? from, Func<object, bool> test)
+    // Over a gap no pointer can hit (a heading's space above it, say): the row whose box holds the point, innermost first.
+    private static (Control? Container, object? Item) ItemUnder(Control host, Point point)
+    {
+        (Control?, object?) found = (null, null);
+        foreach (var panel in host.GetVisualDescendants().OfType<Panel>().Where(p => p.IsItemsHost && p.IsEffectivelyVisible))
+        {
+            foreach (var child in panel.Children)
+            {
+                if (child.DataContext is not { } data || child.TranslatePoint(default, host) is not { } origin)
+                    continue;
+                if (new Rect(origin, child.Bounds.Size).Contains(point))
+                    found = (child, data);
+            }
+        }
+        return found;
+    }
+
+    public static (Control? Container, object? Item) FindItem(Control host, Visual? from, Func<object, bool> test)
     {
         for (var visual = from; visual is not null && visual != host; visual = visual.GetVisualParent())
         {
@@ -335,8 +354,8 @@ public sealed record DragRules
     /// <summary>Puts it there.</summary>
     public Action<object, object, bool> Drop { get; init; } = (_, _, _) => { };
 
-    /// <summary>Items that something goes into rather than next to, marked with a ring: a board column, say.</summary>
-    public Func<object, bool> IsInto { get; init; } = _ => false;
+    /// <summary>For what's dragged, the items it goes into rather than next to, marked with a ring: a board column for a card, say.</summary>
+    public Func<object, object, bool> IsInto { get; init; } = (_, _) => false;
 
     /// <summary>For an item, whether above or below is decided by left and right rather than up and down (tiles in a grid, columns in a row).</summary>
     public Func<object, bool> Across { get; init; } = _ => false;
@@ -348,8 +367,14 @@ public sealed record DragRules
     public Func<object, string> Label { get; init; } = item => item.ToString() ?? "";
 }
 
-/// <summary>A place outside a list that takes something dragged from it: what it takes, and what dropping does.</summary>
-public sealed record DropZone(Control Host, Func<object, object, bool> Takes, Action<object, object> Drop);
+/// <summary>
+/// A place outside a list that takes something dragged from it: what it takes, and what dropping does. Its rows
+/// take things one by one; with <see cref="Whole"/>, the place as a whole takes them, its data being the target.
+/// </summary>
+public sealed record DropZone(Control Host, Func<object, object, bool> Takes, Action<object, object> Drop)
+{
+    public bool Whole { get; init; }
+}
 
 /// <summary>
 /// The window's drop zones, such as the projects in the sidebar taking a task dragged from a project's list. A
@@ -359,9 +384,16 @@ public static class DropZones
 {
     private static readonly List<DropZone> Zones = [];
 
+    /// <summary>Takes things while its control is on screen; a page shown again takes them again.</summary>
     public static void Add(DropZone zone)
     {
-        Zones.Add(zone);
+        if (TopLevel.GetTopLevel(zone.Host) is not null)
+            Zones.Add(zone);
+        zone.Host.AttachedToVisualTree += (_, _) =>
+        {
+            if (!Zones.Contains(zone))
+                Zones.Add(zone);
+        };
         zone.Host.DetachedFromVisualTree += (_, _) => Zones.Remove(zone);
     }
 
@@ -375,6 +407,12 @@ public static class DropZones
             var point = e.GetPosition(zone.Host);
             if (!new Rect(zone.Host.Bounds.Size).Contains(point))
                 continue;
+            if (zone.Whole)
+            {
+                if (zone.Host.DataContext is { } data && zone.Takes(dragged, data))
+                    return (zone, zone.Host, data);
+                continue;
+            }
             var (container, item) = DragReorder.FindItem(zone.Host, zone.Host.InputHitTest(point) as Visual, data => zone.Takes(dragged, data));
             if (container is not null && item is not null)
                 return (zone, container, item);

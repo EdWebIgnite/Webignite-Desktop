@@ -280,6 +280,24 @@ public static class ProjectRules
         return Between(index > 0 ? others[index - 1].Order : null, index < others.Count ? others[index].Order : null);
     }
 
+    /// <summary>
+    /// Where a heading dragged among a project's headings lands: just before <paramref name="beforeId"/>, or last
+    /// when that's null. Returns its new order, or null when it wouldn't move. Headings are shared by the list and
+    /// the board, so one order serves both, as in Asana.
+    /// </summary>
+    public static double? PlaceHeading(IReadOnlyList<Heading> headings, string movingId, string? beforeId)
+    {
+        var list = headings.Where(h => h.Deleted is null).OrderBy(h => h.Order).ToList();
+        var from = list.FindIndex(h => h.Id == movingId);
+        if (from < 0 || movingId == beforeId)
+            return null;
+        var others = list.Where(h => h.Id != movingId).ToList();
+        var index = beforeId is null ? others.Count : others.FindIndex(h => h.Id == beforeId);
+        if (index < 0 || index == from)
+            return null;
+        return Between(index > 0 ? others[index - 1].Order : null, index < others.Count ? others[index].Order : null);
+    }
+
     /// <summary>"2 of 3" for a task's subtasks; empty when it has none.</summary>
     public static string SubtaskCount(IEnumerable<ProjectTask> subtasks)
     {
