@@ -7,6 +7,58 @@
              xmlns:html="using:TheArtOfDev.HtmlRenderer.Avalonia"
              x:Class="Webignite.Desktop.Views.ComposeView"
              x:DataType="vm:ComposeViewModel">
+  <UserControl.Styles>
+    <!-- An address box in a mail (Controls/AddressBox.cs): looks like a text box, each address a block with rounded corners in it, as in Gmail. -->
+    <Style Selector="Border.addressbox">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+      <Setter Property="Padding" Value="5,3" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Cursor" Value="IBeam" />
+    </Style>
+    <Style Selector="Border.addressbox:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    </Style>
+    <Style Selector="TextBox.addressinput">
+      <Setter Property="MinHeight" Value="26" />
+      <Setter Property="Padding" Value="4,3" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.addressinput /template/ Border#PART_BorderElement">
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="TextBox.addressinput:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="TextBox.addressinput:focus /template/ Border#PART_BorderElement">
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.addresschip">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="Padding" Value="8,2,3,2" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+    <Style Selector="Border.addresschip.bad">
+      <Setter Property="Background" Value="{DynamicResource AttentionSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AttentionLine}" />
+    </Style>
+    <Style Selector="Button.chipremove">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="4" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
   <Panel x:Name="Root" DragDrop.AllowDrop="True" Background="Transparent">
   <DockPanel>
     <!-- Header and address fields -->
@@ -60,19 +112,19 @@
             </Flyout>
           </Button.Flyout>
         </Button>
-        <TextBox x:Name="ToBox" Text="{Binding To}" PlaceholderText="Type a name or address" />
+        <c:AddressBox x:Name="ToBox" Names="{Binding KnownNames}" Text="{Binding To}" PlaceholderText="Type a name or address" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Cc" VerticalAlignment="Center" />
-        <TextBox x:Name="CcBox" Text="{Binding Cc}" />
+        <c:AddressBox x:Name="CcBox" Names="{Binding KnownNames}" Text="{Binding Cc}" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Bcc" VerticalAlignment="Center" />
-        <TextBox x:Name="BccBox" Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
+        <c:AddressBox x:Name="BccBox" Names="{Binding KnownNames}" Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
       </DockPanel>
       <DockPanel IsVisible="{Binding ShowCc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Reply-To" VerticalAlignment="Center" />
-        <TextBox x:Name="ReplyToBox" Text="{Binding ReplyTo}" PlaceholderText="Where replies go, when not to you" />
+        <c:AddressBox x:Name="ReplyToBox" Names="{Binding KnownNames}" Text="{Binding ReplyTo}" PlaceholderText="Where replies go, when not to you" />
       </DockPanel>
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Subject" VerticalAlignment="Center" />
@@ -153,7 +205,7 @@
                 <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
               </StackPanel>
               <Button.Flyout>
-                <MenuFlyout Placement="TopEdgeAlignedRight" Opening="SendLaterOpening" />
+                <c:FreshMenu Placement="TopEdgeAlignedRight" Filling="SendLaterOpening" />
               </Button.Flyout>
             </Button>
             <Button Classes="primary" Content="Send" Command="{Binding SendCommand}" IsEnabled="{Binding !IsWorking}" />
@@ -302,7 +354,7 @@
               <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
             </StackPanel>
             <Button.Flyout>
-              <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="RepliesOpening" />
+              <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="RepliesOpening" />
             </Button.Flyout>
           </Button>
           <Button Classes="quiet format" Focusable="False" ToolTip.Tip="Whole mails kept to start others from">
@@ -311,7 +363,7 @@
               <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" VerticalAlignment="Center" />
             </StackPanel>
             <Button.Flyout>
-              <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="TemplatesOpening" />
+              <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="TemplatesOpening" />
             </Button.Flyout>
           </Button>
         </WrapPanel>

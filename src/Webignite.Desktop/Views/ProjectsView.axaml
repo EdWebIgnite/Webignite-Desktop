@@ -17,7 +17,7 @@
             <Button DockPanel.Dock="Right" Classes="quiet" Margin="6,0,0,0" ToolTip.Tip="Start a project from a template">
               <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="14" />
               <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="TemplatesOpening" />
+                <c:FreshMenu Placement="BottomEdgeAlignedRight" Filling="TemplatesOpening" />
               </Button.Flyout>
             </Button>
             <Button DockPanel.Dock="Right" Classes="primary" Margin="8,0,0,0" Command="{Binding NewProjectCommand}" ToolTip.Tip="Start a project">

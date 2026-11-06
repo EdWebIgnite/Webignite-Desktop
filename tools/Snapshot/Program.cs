@@ -1370,10 +1370,12 @@ Check("The signature is in the mail once, picture and all",
     && vm.Mail.Composer.Body.Split("Webignite Accounts").Length == 2);
 // Address suggestions: type in To and check the list fills in.
 {
-    var toBox = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Avalonia.Controls.TextBox>().First(b => b.Name == "ToBox");
+    var toAddress = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<AddressBox>().First(b => b.Name == "ToBox");
+    Check("An address in To shows as a chip, as in Gmail", toAddress.Chips.Count == 1 && toAddress.Box.Text == "");
+    var toBox = toAddress.Box;
     toBox.Focus();
     Dispatcher.UIThread.RunJobs();
-    toBox.Text = "Thandi Mokoena <accounts@karoocoffee.co.za>, pie";
+    toBox.Text = "pie";
     var until = DateTime.UtcNow.AddSeconds(5);
     while (!vm.Mail.Composer!.HasSuggestions && DateTime.UtcNow < until)
     {
@@ -1382,7 +1384,63 @@ Check("The signature is in the mail once, picture and all",
     }
     Check("Typing in To suggests addresses", vm.Mail.Composer!.HasSuggestions);
     vm.Mail.Composer.AcceptSuggestion();
-    Check("Picking a suggestion fills it in", vm.Mail.Composer.To.Contains("pieter", StringComparison.OrdinalIgnoreCase));
+    Dispatcher.UIThread.RunJobs();
+    Check("Picking a suggestion fills it in, as a chip of its own", vm.Mail.Composer.To.Contains("pieter", StringComparison.OrdinalIgnoreCase)
+        && toAddress.Chips.Count == 2 && toAddress.Box.Text == "");
+    toBox.Text = "leon@trimax.co.za, jaco@webignite";
+    Dispatcher.UIThread.RunJobs();
+    Check("A comma makes what was typed a chip", toAddress.Chips.Count == 3 && toAddress.Box.Text == "jaco@webignite");
+    toBox.Text = "";
+    toBox.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Back });
+    Dispatcher.UIThread.RunJobs();
+    Check("Backspace in an empty box takes the last chip back to change it", toAddress.Chips.Count == 2 && toAddress.Box.Text == "leon@trimax.co.za");
+    toBox.Text = "leon@trimax";
+    toBox.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter });
+    Dispatcher.UIThread.RunJobs();
+    Save("compose-chips");
+    Check("Enter makes a chip, and one that isn't a full address is marked", toAddress.Chips.Count == 3
+        && Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(toAddress).OfType<Avalonia.Controls.Border>().Count(b => b.Classes.Contains("addresschip") && b.Classes.Contains("bad")) == 1);
+
+    // Send later, and every menu made as it opens, fills itself first, so it opens whole and not as a thin line.
+    var later = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<Avalonia.Controls.Button>()
+        .First(b => Avalonia.Controls.ToolTip.GetTip(b) as string == "Send at a time you pick");
+    var laterMenu = (FreshMenu)later.Flyout!;
+    laterMenu.ShowAt(later);
+    Dispatcher.UIThread.RunJobs();
+    Save("compose-send-later");
+    Check("Send later fills its menu before it opens, so it opens whole", laterMenu.IsOpen && laterMenu.Items.Count >= 3);
+    laterMenu.Hide();
+    var nothing = new FreshMenu();
+    nothing.ShowAt(later);
+    Check("A menu with nothing in it doesn't open as an empty line", !nothing.IsOpen);
+}
+// A reply an assistant drafted (a draft from elsewhere, plain text) gets the signature right after the writing.
+{
+    var drafted = new Webignite.Core.Mail.OutgoingMail
+    {
+        AccountId = invoiceBox.Id,
+        To = [new(null, "accounts@karoocoffee.co.za")],
+        Cc = [new(null, "leon@trimax.co.za"), new(null, "jaco@webignite.co.za")],
+        Subject = "Re: WEBSITE FEEDBACK",
+        Body = "Hi Derek,\n\nEk volg net graag op oor die veranderinge.\n\nBaie dankie!",
+        DraftUid = 77,
+    };
+    vm.Mail.Composer!.DiscardCommand.Execute(null);
+    services.Go.ComposeMail(drafted, null, null);
+    Dispatcher.UIThread.RunJobs();
+    var body = vm.Mail.Composer!.Body;
+    var until2 = DateTime.UtcNow.AddSeconds(5);
+    while (vm.Mail.Composer!.KnownNames is null && DateTime.UtcNow < until2)
+    {
+        Dispatcher.UIThread.RunJobs();
+        Thread.Sleep(10);
+    }
+    Check("A chip for someone known from mail or Contacts shows just their name", vm.Mail.Composer.KnownNames?.Count > 0
+        && Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<AddressBox>().First(b => b.Name == "ToBox")
+            .GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => !t.Text!.Contains('@') && t.Text.Length > 0));
+    Check("A drafted reply gets the signature right after the writing", body.Contains("Baie dankie!\n\nWebignite Accounts", StringComparison.Ordinal)
+        && body.Split("Webignite Accounts").Length == 2);
+    Save("compose-reply-signature");
 }
 // Formatting: a mail using the format bar's styles, typed straight onto the paper.
 {

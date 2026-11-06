@@ -523,19 +523,19 @@
             <Button Classes="tool" ToolTip.Tip="Categories">
               <c:Icon Data="{StaticResource Icon.Tag}" Size="17" />
               <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="CategoryFlyoutOpening" />
+                <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="CategoryFlyoutOpening" />
               </Button.Flyout>
             </Button>
             <Button Classes="tool" ToolTip.Tip="Snooze until later">
               <c:Icon Data="{StaticResource Icon.Snooze}" Size="17" />
               <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="SnoozeFlyoutOpening" />
+                <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="SnoozeFlyoutOpening" />
               </Button.Flyout>
             </Button>
             <Button Classes="tool" ToolTip.Tip="Move to a folder">
               <c:Icon Data="{StaticResource Icon.FolderMove}" Size="17" />
               <Button.Flyout>
-                <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="MoveFlyoutOpening" />
+                <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="MoveFlyoutOpening" />
               </Button.Flyout>
             </Button>
           </StackPanel>

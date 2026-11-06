@@ -176,3 +176,48 @@ public sealed class MailWritingTests
         return MailComposer.ToBytes(message);
     }
 }
+
+/// <summary>Writing a mail: the signature on every mail, and addresses shown as chips.</summary>
+public sealed class ComposeChipsAndSignatureTests
+{
+    private static IReadOnlyList<Webignite.Core.Writing.Block> Sig() => Webignite.Core.Writing.RichText.Signature("Eddie\nWebignite\n082 555 0101", null, null);
+
+    [Fact]
+    public void A_draft_without_the_signature_gets_it_right_after_the_writing()
+    {
+        var draft = Webignite.Core.Writing.RichText.FromText("Hi Derek,\n\nEk volg net op.\n\nBaie dankie!");
+        Assert.True(Webignite.Core.Writing.RichText.AddSignatureIfMissing(draft, Sig()));
+        var text = Webignite.Core.Writing.RichText.ToText(draft);
+        Assert.EndsWith("Baie dankie!\n\nEddie\nWebignite\n082 555 0101", text.TrimEnd(), StringComparison.Ordinal);
+        Assert.Equal(3, draft.Blocks.Count(b => b.IsSignature));
+    }
+
+    [Fact]
+    public void A_signature_already_there_is_never_added_twice()
+    {
+        var marked = Webignite.Core.Writing.RichText.Starting("Hi", Sig());
+        Assert.False(Webignite.Core.Writing.RichText.AddSignatureIfMissing(marked, Sig()));
+        var typed = Webignite.Core.Writing.RichText.FromText("Hi Thandi\n\nThanks,\nEddie\nWebignite\n082 555 0101");
+        Assert.False(Webignite.Core.Writing.RichText.AddSignatureIfMissing(typed, Sig()));
+        Assert.False(Webignite.Core.Writing.RichText.AddSignatureIfMissing(typed, []));
+    }
+
+    [Fact]
+    public void An_address_box_splits_into_chips_and_what_is_being_typed()
+    {
+        var (done, typing) = Webignite.Core.Mail.Recipients.Chips("leon@trimax.co.za, \"Webignite, Jaco\" <jaco@webignite.co.za>; pie");
+        Assert.Equal(["leon@trimax.co.za", "\"Webignite, Jaco\" <jaco@webignite.co.za>"], done);
+        Assert.Equal("pie", typing);
+        Assert.Equal("", Webignite.Core.Mail.Recipients.Chips("leon@trimax.co.za, ").Typing);
+        Assert.Equal("leon@trimax.co.za, pie", Webignite.Core.Mail.Recipients.Join(["leon@trimax.co.za"], "pie"));
+        Assert.Equal("pie", Webignite.Core.Mail.Recipients.Join([], "pie"));
+        Assert.Equal(("Webignite, Jaco", true), Webignite.Core.Mail.Recipients.Chip("\"Webignite, Jaco\" <jaco@webignite.co.za>"));
+        Assert.Equal(("leon@trimax", false), Webignite.Core.Mail.Recipients.Chip("leon@trimax"));
+        // Someone known from Contacts or mail shows by name alone.
+        var names = Webignite.Core.Mail.AddressBook.Names([new("Derek Steyn", "derek@trimax.co.za", 5), new(null, "info@trimax.co.za", 1),
+            new("Trimax team", "", 1, [new("Derek Steyn", "derek@trimax.co.za")])]);
+        Assert.Equal(("Derek Steyn", true), Webignite.Core.Mail.Recipients.Chip("DEREK@trimax.co.za", names));
+        Assert.Equal(("info@trimax.co.za", true), Webignite.Core.Mail.Recipients.Chip("info@trimax.co.za", names));
+        Assert.Single(names);
+    }
+}

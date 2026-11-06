@@ -53,6 +53,10 @@ Mail is the example. The rules (show, hide but never the last one, move, resize,
 2. In the view: a `<c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">` with each pane as a child carrying `c:PanelGrid.Pane="list"` and `c:PanelGrid.DefaultWidth="380"`. The last visible pane takes what is left. The code-behind passes the drag on: `void PaneResized(string pane, double width) => (DataContext as ThingViewModel)?.Panels.Resized(pane, width);`.
 3. A panes button with a `MenuFlyout`: one `MenuItem` per pane (`DataContext="{Binding Panels[list]}"`) holding a "Show" item with `ToggleType="CheckBox"` bound to `IsShown`, and "Move left" and "Move right" bound to `MoveLeftCommand` and `MoveRightCommand`; then "Put the panes back" bound to `Panels.ResetCommand`. Copy the one in `ClientsView.axaml`.
 
+## A drop-down menu made as it opens
+
+Use `c:FreshMenu` with `Filling="…"`, not a `MenuFlyout` filled in `Opening`: a MenuFlyout filled while opening opens as a thin empty line on Windows. A FreshMenu with nothing in it doesn't open at all.
+
 ## Rows the person can drag into order
 
 Attach `DragReorder` to the items control with `DragRules`: what can be picked up, where it can land (above or below another item, or into one with `IsInto`), what dropping does (a view model method that changes the record as stored now), and the words on the card. Put the ordering rule in Core with tests, as `Sidebar.MoveTo` and `ProjectLooks.PlaceAt` are. For a list box, set `Click` so a press only picks the row when it wasn't a drag. To take things dragged from another list, add a `DropZone`.

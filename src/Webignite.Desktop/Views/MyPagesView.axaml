@@ -248,7 +248,7 @@
             <TextBlock Text="Add widget" VerticalAlignment="Center" />
           </StackPanel>
           <Button.Flyout>
-            <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="AddOpening" />
+            <c:FreshMenu Placement="BottomEdgeAlignedRight" Filling="AddOpening" />
           </Button.Flyout>
         </Button>
         <Button Content="{Binding EditText}" Command="{Binding ToggleEditingCommand}" ToolTip.Tip="Drag widgets by their heading, size them from the corner, rename the page" />
