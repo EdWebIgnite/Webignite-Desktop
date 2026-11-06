@@ -2219,6 +2219,20 @@ Save("site-check");
         taskPage.Notes = "Use the photos Pieter sent. Keep the home page short.";
         projectsPage.Keep();
         Check("A task's notes are saved once typing stops", services.Projects.GetTask(wire.Id)!.Notes.StartsWith("Use the photos", StringComparison.Ordinal));
+        Check("The Subtasks heading counts how many are done, as Asana's", taskPage.SubtaskTally == "2/3" && taskPage.ShowSubtaskBox);
+        // A description with formatting keeps it, and its plain words stay for search and templates.
+        var described = Webignite.Core.Writing.RichText.FromText("Use the photos Pieter sent.\n**Keep the home page short.**");
+        taskPage.Description = described;
+        taskPage.DescriptionRevision++;
+        projectsPage.Keep();
+        var withFormat = services.Projects.GetTask(wire.Id)!;
+        Check("A description keeps its bold, with its plain words beside it", withFormat.NotesHtml.Contains("<b>", StringComparison.OrdinalIgnoreCase)
+            && withFormat.Notes.Contains("Keep the home page short.", StringComparison.Ordinal));
+        projectsPage.OpenTaskById(wire.Id);
+        Dispatcher.UIThread.RunJobs();
+        taskPage = projectsPage.Detail!;
+        Check("Opened again, the description comes back formatted", taskPage.Description.Blocks.OfType<Webignite.Core.Writing.TextBlock>()
+            .Any(b => b.Runs.Any(r => r.Format.Bold)));
         taskPage.PickClient(taskPage.Clients.First(c => c.Value?.Id == bosveldId));
         Check("A task can be about a client", services.Projects.GetTask(wire.Id)!.ClientId == bosveldId);
         if (taskPage.Documents.Skip(1).FirstOrDefault() is { } linkedDocument)

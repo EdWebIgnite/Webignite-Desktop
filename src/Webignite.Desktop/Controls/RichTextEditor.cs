@@ -38,6 +38,11 @@ public sealed partial class RichTextEditor : Control
     public Thickness Padding { get => GetValue(PaddingProperty); set => SetValue(PaddingProperty, value); }
     public string? Placeholder { get => GetValue(PlaceholderProperty); set => SetValue(PlaceholderProperty, value); }
 
+    /// <summary>Writes in the page's colours (light or dark) instead of on white paper, for writing that isn't a mail.</summary>
+    public static readonly StyledProperty<bool> PageColoursProperty = AvaloniaProperty.Register<RichTextEditor, bool>(nameof(PageColours));
+
+    public bool PageColours { get => GetValue(PageColoursProperty); set => SetValue(PageColoursProperty, value); }
+
     /// <summary>The caret or selection moved, or the look under it changed: the toolbar refreshes.</summary>
     public event EventHandler? SelectionChanged;
 
@@ -331,7 +336,20 @@ public sealed partial class RichTextEditor : Control
     };
 
     private IBrush Brush(string key) =>
-        this.TryFindResource(key, ActualThemeVariant, out var value) && value is IBrush brush ? brush : Brushes.Black;
+        this.TryFindResource(PageColours ? PageKey(key) : key, ActualThemeVariant, out var value) && value is IBrush brush ? brush : Brushes.Black;
+
+    // On the page rather than on paper (a task's description), writing takes the page's own colours, light or dark.
+    private static string PageKey(string key) => key switch
+    {
+        "PaperText" => "Text",
+        "PaperMuted" => "Muted",
+        "PaperLine" => "Line2",
+        "PaperShade" => "Surface2",
+        "PaperLink" => "CategoryBlue",
+        "PaperSelection" => "Selection",
+        "Paper" => "Surface",
+        _ => key,
+    };
 
     private void DisposeLayouts()
     {

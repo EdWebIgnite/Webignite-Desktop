@@ -75,4 +75,24 @@ public sealed class ProjectListLayoutTests
         Assert.Equal("Due date", ProjectList.Label(TaskSort.DueDate));
         Assert.Equal("Sections", ProjectList.Label(TaskGroup.Sections));
     }
+
+    [Fact]
+    public void A_description_keeps_its_formatting_and_its_plain_text()
+    {
+        var task = T("Brief", 1);
+        var plain = ProjectRules.Description(task with { Notes = "Use the photos Pieter sent." });
+        Assert.Equal("Use the photos Pieter sent.", Webignite.Core.Writing.RichText.ToText(plain).TrimEnd());
+
+        var bold = Webignite.Core.Writing.RichText.FromText("Logins:\n**Hosting** in the vault");
+        var saved = ProjectRules.WithDescription(task, bold);
+        Assert.Contains("Hosting", saved.Notes, StringComparison.Ordinal);
+        Assert.Contains("<b>", saved.NotesHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Hosting", Webignite.Core.Writing.RichText.ToText(ProjectRules.Description(saved)), StringComparison.Ordinal);
+
+        var simple = ProjectRules.WithDescription(task, Webignite.Core.Writing.RichText.FromText("Just words"));
+        Assert.Equal(("Just words", ""), (simple.Notes, simple.NotesHtml));
+        Assert.Equal(("", ""), (ProjectRules.WithDescription(saved, Webignite.Core.Writing.RichDocument.Empty()) is var empty ? (empty.Notes, empty.NotesHtml) : default));
+        Assert.Equal("1/2", ProjectRules.SubtaskTally([T("a", 1) with { Done = true }, T("b", 2)]));
+        Assert.Equal("", ProjectRules.SubtaskTally([]));
+    }
 }

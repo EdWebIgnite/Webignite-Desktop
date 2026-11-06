@@ -146,7 +146,12 @@ public sealed record ProjectTask : ITracked
     public string? HeadingId { get; init; }
     public string? ParentId { get; init; }
     public string Title { get; init; } = "";
+
+    /// <summary>The description as plain text, for search, templates and assistants.</summary>
     public string Notes { get; init; } = "";
+
+    /// <summary>The description with its formatting (bold, lists, links), as the editor's HTML; empty for plain notes.</summary>
+    public string NotesHtml { get; init; } = "";
 
     /// <summary>The teammate it's given to, by id.</summary>
     public string? AssignedTo { get; init; }
@@ -296,6 +301,30 @@ public static class ProjectRules
         if (index < 0 || index == from)
             return null;
         return Between(index > 0 ? others[index - 1].Order : null, index < others.Count ? others[index].Order : null);
+    }
+
+    /// <summary>A task's description to edit: its formatted notes, or its plain notes when it has none.</summary>
+    public static Webignite.Core.Writing.RichDocument Description(ProjectTask task) =>
+        task.NotesHtml.Length > 0 ? Webignite.Core.Writing.RichHtml.Read(task.NotesHtml, Webignite.Core.Writing.RichHtml.DataAddress)
+        : task.Notes.Trim().Length > 0 ? Webignite.Core.Writing.RichText.FromText(task.Notes)
+        : Webignite.Core.Writing.RichDocument.Empty();
+
+    /// <summary>A description written: the plain text and, when there's any formatting, the HTML. Nothing written clears both.</summary>
+    public static ProjectTask WithDescription(ProjectTask task, Webignite.Core.Writing.RichDocument description)
+    {
+        var text = Webignite.Core.Writing.RichText.ToText(description).TrimEnd();
+        if (text.Length == 0 && !description.Blocks.Any(b => b is not Webignite.Core.Writing.TextBlock))
+            return task with { Notes = "", NotesHtml = "" };
+        var html = Webignite.Core.Writing.RichHtml.Write(description, Webignite.Core.Writing.RichHtml.ToDataAddress);
+        var plain = Webignite.Core.Writing.RichHtml.Write(Webignite.Core.Writing.RichText.FromText(text), Webignite.Core.Writing.RichHtml.ToDataAddress);
+        return task with { Notes = text, NotesHtml = html == plain ? "" : html };
+    }
+
+    /// <summary>"0/1" for the subtasks header, as Asana's; empty when there are none.</summary>
+    public static string SubtaskTally(IEnumerable<ProjectTask> subtasks)
+    {
+        var list = subtasks.Where(t => t.Deleted is null).ToList();
+        return list.Count == 0 ? "" : $"{list.Count(t => t.Done)}/{list.Count}";
     }
 
     /// <summary>"2 of 3" for a task's subtasks; empty when it has none.</summary>
@@ -590,7 +619,7 @@ public static class ProjectRules
 
     private static readonly (string Name, Func<ProjectTask, object?> Value)[] TaskFields =
     [
-        ("project", t => t.ProjectId), ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes),
+        ("project", t => t.ProjectId), ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes), ("noteshtml", t => t.NotesHtml),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
         ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
     ];

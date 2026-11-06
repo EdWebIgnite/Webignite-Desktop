@@ -24,6 +24,13 @@
       <Setter Property="BorderThickness" Value="1,0,0,0" />
       <Setter Property="VerticalAlignment" Value="Stretch" />
     </Style>
+    <Style Selector="Border.whocell"><Setter Property="Width" Value="160" /></Style>
+    <Style Selector="Border.duecell"><Setter Property="Width" Value="120" /></Style>
+    <Style Selector="Border.prioritycell"><Setter Property="Width" Value="100" /></Style>
+    <!-- A narrow list (a task open beside it): Priority hides and the cells close up, so names keep their room. -->
+    <Style Selector="StackPanel.narrowlist Border.whocell"><Setter Property="Width" Value="120" /></Style>
+    <Style Selector="StackPanel.narrowlist Border.duecell"><Setter Property="Width" Value="96" /></Style>
+    <Style Selector="StackPanel.narrowlist Border.prioritycell"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector="Border.taskrow">
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="0,0,0,1" />
@@ -72,6 +79,50 @@
     <Style Selector="CheckBox.tick:checked /template/ Border#NormalRectangle">
       <Setter Property="Background" Value="{DynamicResource Ok}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Ok}" />
+    </Style>
+    <!-- The task pane, as Asana's -->
+    <Style Selector="ToggleButton.markdone">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10,5" />
+    </Style>
+    <Style Selector="ToggleButton.markdone:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource OkSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource OkLine}" />
+      <Setter Property="Foreground" Value="{DynamicResource Ok}" />
+    </Style>
+    <Style Selector="Button.panetool">
+      <Setter Property="Padding" Value="7" />
+    </Style>
+    <Style Selector="Grid.fields > TextBlock.field">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.projectchip">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.description">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Border.description:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    </Style>
+    <Style Selector="Border.subtaskrow">
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Padding" Value="0,2" />
+      <Setter Property="Background" Value="Transparent" />
     </Style>
   </UserControl.Styles>
   <!-- Projects on the left, the open one on the right. The panes move, resize and hide as on Mail. -->
@@ -482,13 +533,13 @@
                      IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
           <!-- The list, as Asana's: column headings, then each heading (folding) with its tasks in cells -->
-          <StackPanel IsVisible="{Binding IsList}">
+          <StackPanel x:Name="ListArea" IsVisible="{Binding IsList}">
             <Border Classes="listhead">
-              <Grid ColumnDefinitions="22,28,*,160,120,100,36">
+              <Grid ColumnDefinitions="22,28,*,Auto,Auto,Auto,36">
                 <TextBlock Grid.Column="2" Text="Task name" />
-                <Border Grid.Column="3" Classes="cellline"><TextBlock Text="Assignee" /></Border>
-                <Border Grid.Column="4" Classes="cellline"><TextBlock Text="Due date" /></Border>
-                <Border Grid.Column="5" Classes="cellline"><TextBlock Text="Priority" /></Border>
+                <Border Grid.Column="3" Classes="cellline whocell"><TextBlock Text="Assignee" /></Border>
+                <Border Grid.Column="4" Classes="cellline duecell"><TextBlock Text="Due date" /></Border>
+                <Border Grid.Column="5" Classes="cellline prioritycell"><TextBlock Text="Priority" /></Border>
               </Grid>
             </Border>
           <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}">
@@ -516,7 +567,7 @@
               </DataTemplate>
               <DataTemplate DataType="vm:TaskRow">
                 <Border Classes="taskrow" Classes.picked="{Binding IsPicked}" Classes.subtask="{Binding IsSubtask}" Opacity="{Binding Fade}" ContextRequested="TaskMenu">
-                  <Grid ColumnDefinitions="22,28,*,160,120,100,36">
+                  <Grid ColumnDefinitions="22,28,*,Auto,Auto,Auto,36">
                     <Border Classes="grip" Background="Transparent" ToolTip.Tip="Drag the row to move it">
                       <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
@@ -542,7 +593,7 @@
                       </StackPanel>
                     </DockPanel>
                     <!-- Who, when and priority read as words in cells; a click changes them. Delete is on the right-click menu. -->
-                    <Border Grid.Column="3" Classes="cellline">
+                    <Border Grid.Column="3" Classes="cellline whocell">
                       <Button Classes="cell" Click="WhoClicked" ToolTip.Tip="Who it's for" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                           <c:Monogram Text="{Binding WhoInitials}" Size="20" IsVisible="{Binding HasWho}" VerticalAlignment="Center" />
@@ -550,11 +601,11 @@
                         </StackPanel>
                       </Button>
                     </Border>
-                    <Border Grid.Column="4" Classes="cellline">
+                    <Border Grid.Column="4" Classes="cellline duecell">
                       <Button Classes="cell" Classes.empty="{Binding !HasDue}" Classes.late="{Binding IsLate}" Content="{Binding DueText}"
                               Click="DueClicked" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" ToolTip.Tip="When it's due" />
                     </Border>
-                    <Border Grid.Column="5" Classes="cellline">
+                    <Border Grid.Column="5" Classes="cellline prioritycell">
                       <Button Classes="cell" Click="PriorityClicked" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" ToolTip.Tip="How much it matters">
                         <Border Classes="pill" Classes.strong="{Binding IsHigh}" IsVisible="{Binding HasPriority}">
                           <TextBlock Text="{Binding PriorityText}" FontSize="11" />
@@ -643,38 +694,61 @@
           <c:EmptyState IsVisible="{Binding !HasTask}" Icon="{StaticResource Icon.Projects}" Title="Open a task"
                         Text="Click the arrow at the end of a task to see its notes and subtasks here." VerticalAlignment="Top" />
           <StackPanel Spacing="14" IsVisible="{Binding #Root.((vm:ProjectsViewModel)DataContext).HasTask}" DataContext="{Binding Detail}" x:DataType="vm:TaskDetail">
+            <!-- As Asana's: Mark complete on the left; the timer, add a subtask, delete and close on the right -->
             <DockPanel>
-              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
-                <Button Classes="quiet" Padding="6" Command="{Binding StartTimerCommand}" ToolTip.Tip="Start the timer on this task (Time page)">
-                  <c:Icon Data="{StaticResource Icon.Time}" Size="14" />
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <Button Classes="quiet panetool" Command="{Binding StartTimerCommand}" ToolTip.Tip="Start the timer on this task (Time page)">
+                  <c:Icon Data="{StaticResource Icon.Time}" Size="15" />
                 </Button>
-                <Button Classes="quiet" Padding="6" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete the task and its subtasks">
-                  <c:Icon Data="{StaticResource Icon.Trash}" Size="14" />
+                <Button Classes="quiet panetool" Click="AddSubtaskClicked" ToolTip.Tip="Add a subtask">
+                  <c:Icon Data="{StaticResource Icon.Checklist}" Size="15" />
                 </Button>
-                <Button Classes="link" Content="Close" Command="{Binding CloseCommand}" />
+                <Button Classes="quiet panetool" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete the task and its subtasks">
+                  <c:Icon Data="{StaticResource Icon.Trash}" Size="15" />
+                </Button>
+                <Button Classes="quiet panetool" Command="{Binding CloseCommand}" ToolTip.Tip="Close (Esc)">
+                  <c:Icon Data="{StaticResource Icon.Close}" Size="15" />
+                </Button>
               </StackPanel>
-              <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Done}" VerticalAlignment="Top" Margin="0,6,4,0" ToolTip.Tip="Done" />
-              <TextBox Classes="inline heading" FontSize="18" Text="{Binding Title}" TextWrapping="Wrap" PlaceholderText="Task title" />
+              <ToggleButton Classes="markdone" IsChecked="{Binding Done}" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <c:Icon Data="{StaticResource Icon.Check}" Size="14" VerticalAlignment="Center" />
+                  <Panel>
+                    <TextBlock Text="Mark complete" IsVisible="{Binding !Done}" />
+                    <TextBlock Text="Completed" IsVisible="{Binding Done}" />
+                  </Panel>
+                </StackPanel>
+              </ToggleButton>
             </DockPanel>
+            <Border Height="1" Background="{DynamicResource Line}" Margin="-24,0" />
+            <TextBox Classes="inline heading" FontSize="22" Text="{Binding Title}" TextWrapping="Wrap" PlaceholderText="Write a task name" />
             <TextBlock Classes="problem" Text="{Binding Problem}" IsVisible="{Binding HasProblem}" TextWrapping="Wrap" />
 
-            <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
-              <TextBlock Classes="muted" Text="For" VerticalAlignment="Center" />
-              <ComboBox Grid.Column="1" ItemsSource="{Binding People}" SelectedItem="{Binding AssignedTo}" HorizontalAlignment="Stretch" />
-              <TextBlock Grid.Row="1" Classes="muted" Text="Start" VerticalAlignment="Center" />
-              <CalendarDatePicker Grid.Row="1" Grid.Column="1" SelectedDate="{Binding Start}" Watermark="No start date" HorizontalAlignment="Stretch" />
-              <TextBlock Grid.Row="2" Classes="muted" Text="Due" VerticalAlignment="Center" />
-              <CalendarDatePicker Grid.Row="2" Grid.Column="1" SelectedDate="{Binding Due}" Watermark="No due date" HorizontalAlignment="Stretch" />
-              <TextBlock Grid.Row="3" Classes="muted" Text="Heading" VerticalAlignment="Center" />
-              <ComboBox Grid.Row="3" Grid.Column="1" x:Name="HeadingBox" ItemsSource="{Binding Headings}" SelectedItem="{Binding Heading, Mode=OneWay}"
-                        SelectionChanged="HeadingPicked" HorizontalAlignment="Stretch" />
-              <TextBlock Grid.Row="4" Classes="muted" Text="Priority" VerticalAlignment="Center" />
-              <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Priorities}" SelectedItem="{Binding Priority}" HorizontalAlignment="Stretch" />
-              <TextBlock Grid.Row="6" Classes="muted" Text="Repeats" VerticalAlignment="Center" />
-              <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Repeats}" SelectedItem="{Binding Repeat}" HorizontalAlignment="Stretch"
-                        ToolTip.Tip="Ticking it off makes the next one" />
-              <TextBlock Grid.Row="5" Classes="muted" Text="Tags" VerticalAlignment="Top" Margin="0,8,0,0" />
-              <StackPanel Grid.Row="5" Grid.Column="1" Spacing="6">
+            <!-- The fields, as Asana's: name on the left, value on the right -->
+            <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="fields">
+              <TextBlock Classes="field" Text="Assignee" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <c:Monogram Text="{Binding AssignedTo.Label, FallbackValue=''}" Size="24" IsVisible="{Binding HasAssignee}" VerticalAlignment="Center" />
+                <ComboBox ItemsSource="{Binding People}" SelectedItem="{Binding AssignedTo}" MinWidth="180" />
+              </StackPanel>
+              <TextBlock Grid.Row="1" Classes="field" Text="Due date" />
+              <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,16,*">
+                <CalendarDatePicker SelectedDate="{Binding Start}" Watermark="Start" HorizontalAlignment="Stretch" ToolTip.Tip="When work on it starts (optional)" />
+                <TextBlock Grid.Column="1" Text="–" Classes="muted" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <CalendarDatePicker Grid.Column="2" SelectedDate="{Binding Due}" Watermark="Due" HorizontalAlignment="Stretch" />
+              </Grid>
+              <TextBlock Grid.Row="2" Classes="field" Text="Projects" />
+              <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,8,*">
+                <Border Classes="projectchip" ToolTip.Tip="{Binding ProjectName}">
+                  <TextBlock Text="{Binding ProjectName}" TextTrimming="CharacterEllipsis" />
+                </Border>
+                <ComboBox Grid.Column="2" x:Name="HeadingBox" ItemsSource="{Binding Headings}" SelectedItem="{Binding Heading, Mode=OneWay}"
+                          SelectionChanged="HeadingPicked" HorizontalAlignment="Stretch" ToolTip.Tip="Its heading in the project" />
+              </Grid>
+              <TextBlock Grid.Row="3" Classes="field" Text="Priority" />
+              <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding Priorities}" SelectedItem="{Binding Priority}" MinWidth="140" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="4" Classes="field" Text="Tags" VerticalAlignment="Top" Margin="0,8,0,0" />
+              <StackPanel Grid.Row="4" Grid.Column="1" Spacing="6">
                 <TextBox Text="{Binding TagsText}" PlaceholderText="e.g. Hosting, SEO" />
                 <ItemsControl ItemsSource="{Binding OtherTags}" IsVisible="{Binding HasOtherTags}">
                   <ItemsControl.ItemsPanel>
@@ -688,38 +762,73 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
               </StackPanel>
+              <TextBlock Grid.Row="5" Classes="field" Text="Repeats" />
+              <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{Binding Repeats}" SelectedItem="{Binding Repeat}" MinWidth="180" HorizontalAlignment="Left"
+                        ToolTip.Tip="Ticking it off makes the next one" />
             </Grid>
 
+            <!-- Description, with formatting as Asana's -->
             <StackPanel Spacing="6">
-              <TextBlock Classes="label" Text="Notes" />
-              <TextBox Text="{Binding Notes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="90" PlaceholderText="What needs doing, links, logins to use..." />
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2">
+                  <Button Classes="quiet format" Focusable="False" Click="DescriptionBold" ToolTip.Tip="Bold (Ctrl+B)"><c:Icon Data="{StaticResource Icon.Bold}" Size="13" /></Button>
+                  <Button Classes="quiet format" Focusable="False" Click="DescriptionItalic" ToolTip.Tip="Italic (Ctrl+I)"><c:Icon Data="{StaticResource Icon.Italic}" Size="13" /></Button>
+                  <Button Classes="quiet format" Focusable="False" Click="DescriptionUnderline" ToolTip.Tip="Underline (Ctrl+U)"><c:Icon Data="{StaticResource Icon.Underline}" Size="13" /></Button>
+                  <Button Classes="quiet format" Focusable="False" Click="DescriptionBullets" ToolTip.Tip="Bullets"><c:Icon Data="{StaticResource Icon.Bullets}" Size="13" /></Button>
+                  <Button Classes="quiet format" Focusable="False" Click="DescriptionNumbers" ToolTip.Tip="Numbered list"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
+                </StackPanel>
+                <TextBlock Classes="label" Text="Description" VerticalAlignment="Center" />
+              </DockPanel>
+              <Border Classes="description">
+                <c:RichTextEditor x:Name="DescriptionEditor" Document="{Binding Description}" Revision="{Binding DescriptionRevision}" PageColours="True"
+                                  Placeholder="What is this task about? Links, logins to use, what's needed…" Padding="12,10" MinHeight="96" />
+              </Border>
             </StackPanel>
 
-            <StackPanel x:Name="SubtaskArea" Spacing="6" Background="Transparent">
-              <TextBlock Classes="label" Text="Subtasks" />
+            <!-- Subtasks, as Asana's: a heading with how many are done and a + to add one -->
+            <StackPanel x:Name="SubtaskArea" Spacing="4" Background="Transparent">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="label" Text="Subtasks" VerticalAlignment="Center" />
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding SubtaskTally}" VerticalAlignment="Center" />
+                <Button Classes="quiet panetool" Click="AddSubtaskClicked" ToolTip.Tip="Add a subtask">
+                  <c:Icon Data="{StaticResource Icon.Plus}" Size="13" />
+                </Button>
+              </StackPanel>
               <ItemsControl x:Name="SubtaskList" ItemsSource="{Binding Subtasks}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:TaskRow">
-                    <Grid ColumnDefinitions="30,*,110,32" Opacity="{Binding Fade}" Margin="0,1" Background="Transparent">
-                      <CheckBox IsChecked="{Binding Done}" VerticalAlignment="Center" />
-                      <TextBox Grid.Column="1" Classes="inline" Text="{Binding Title}" />
-                      <ComboBox Grid.Column="2" ItemsSource="{Binding People}" SelectedItem="{Binding AssignedTo}" MinHeight="30" Margin="4,0" HorizontalAlignment="Stretch"
-                                ToolTip.Tip="Who it's for" />
-                      <Button Grid.Column="3" Classes="quiet" Padding="6" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete the subtask">
-                        <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
-                      </Button>
-                    </Grid>
+                    <Border Classes="subtaskrow" Opacity="{Binding Fade}">
+                      <Grid ColumnDefinitions="28,*,Auto,Auto,30">
+                        <CheckBox Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
+                        <TextBox Grid.Column="1" Classes="inline" Text="{Binding Title}" />
+                        <Button Grid.Column="2" Classes="cell" Click="WhoClicked" ToolTip.Tip="{Binding WhoText}">
+                          <Panel>
+                            <c:Monogram Text="{Binding WhoInitials}" Size="22" IsVisible="{Binding HasWho}" />
+                            <c:Icon Data="{StaticResource Icon.Clients}" Size="14" Foreground="{DynamicResource Muted}" IsVisible="{Binding !HasWho}" />
+                          </Panel>
+                        </Button>
+                        <Button Grid.Column="3" Classes="cell" Classes.empty="{Binding !HasDue}" Classes.late="{Binding IsLate}" Click="DueClicked" ToolTip.Tip="When it's due">
+                          <Panel>
+                            <TextBlock Text="{Binding DueText}" IsVisible="{Binding HasDue}" />
+                            <c:Icon Data="{StaticResource Icon.Calendar}" Size="14" Foreground="{DynamicResource Muted}" IsVisible="{Binding !HasDue}" />
+                          </Panel>
+                        </Button>
+                        <Button Grid.Column="4" Classes="quiet" Padding="6" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete the subtask">
+                          <c:Icon Data="{StaticResource Icon.Close}" Size="11" />
+                        </Button>
+                      </Grid>
+                    </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-              <DockPanel>
-                <Button DockPanel.Dock="Right" Classes="link" Content="Add" Command="{Binding AddSubtaskCommand}" Margin="8,0,0,0" />
-                <TextBox Classes="inline" Text="{Binding NewSubtask}" PlaceholderText="Add a subtask, then Enter" KeyDown="AddSubtaskKey" />
+              <DockPanel IsVisible="{Binding ShowSubtaskBox}" Margin="28,2,0,0">
+                <TextBox x:Name="NewSubtaskBox" Classes="inline" Text="{Binding NewSubtask}" PlaceholderText="Add subtask, then Enter for the next" KeyDown="AddSubtaskKey" />
               </DockPanel>
+              <Button Classes="link" Content="Add subtask" Click="AddSubtaskClicked" IsVisible="{Binding !ShowSubtaskBox}" HorizontalAlignment="Left" />
             </StackPanel>
 
             <StackPanel Spacing="8">
-              <TextBlock Classes="label" Text="What it's about" />
+              <TextBlock Classes="label" Text="Linked to" />
               <DockPanel>
                 <Button DockPanel.Dock="Right" Classes="link" Content="Open" Command="{Binding OpenClientCommand}" IsVisible="{Binding HasClient}" Margin="8,0,0,0" />
                 <ComboBox x:Name="TaskClientBox" ItemsSource="{Binding Clients}" SelectedItem="{Binding Client, Mode=OneWay}"
