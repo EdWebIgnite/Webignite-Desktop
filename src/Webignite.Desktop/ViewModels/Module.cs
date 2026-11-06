@@ -34,6 +34,12 @@ public sealed partial class Module : ObservableObject
     public bool FullBleed { get; }
 
     /// <summary>
+    /// A page of the Planner section (Home, My tasks and projects, Calendar, Week, Time): it shows in the Planner
+    /// sidebar, not the main one, and opening it brings the Planner sidebar up.
+    /// </summary>
+    public bool InPlanner { get; init; }
+
+    /// <summary>
     /// Forms to read and fill in (Settings) keep a comfortable width on a big screen; everything else uses the
     /// whole window, as lists, boards and calendars should.
     /// </summary>

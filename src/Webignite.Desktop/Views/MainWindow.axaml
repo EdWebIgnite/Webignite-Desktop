@@ -67,6 +67,16 @@
         <ListBox Classes="nav icons" ItemsSource="{Binding Sidebar.IconPages}" SelectedItem="{Binding SelectedIcon}"
                  ScrollViewer.VerticalScrollBarVisibility="Hidden">
           <ListBox.DataTemplates>
+            <DataTemplate DataType="vm:SidebarBack">
+              <Panel Background="Transparent" ToolTip.Tip="Back to the main sidebar" ToolTip.Placement="Right">
+                <c:Icon Classes="navicon" Data="{StaticResource Icon.Back}" Size="20" HorizontalAlignment="Center" />
+              </Panel>
+            </DataTemplate>
+            <DataTemplate DataType="vm:SectionLink">
+              <Panel Background="Transparent" ToolTip.Tip="{Binding Title}" ToolTip.Placement="Right">
+                <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="20" HorizontalAlignment="Center" />
+              </Panel>
+            </DataTemplate>
             <DataTemplate DataType="vm:ToolLink">
               <Panel Background="Transparent" ToolTip.Tip="{Binding Title}" ToolTip.Placement="Right">
                 <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="20" HorizontalAlignment="Center" />
@@ -129,9 +139,9 @@
                      Text="{Binding Updates.VersionText, StringFormat='{}{0} · Data stays on this PC'}" />
         </StackPanel>
 
-        <ListBox x:Name="Nav" Classes="nav" ItemsSource="{Binding Sidebar.Items}" SelectedItem="{Binding SelectedNav}"
-                 ContainerPrepared="PrepareNavItem" ScrollViewer.VerticalScrollBarVisibility="Hidden">
-          <ListBox.DataTemplates>
+        <!-- The main list, and the Planner one that takes its place while a Planner page is open -->
+        <Panel>
+          <Panel.DataTemplates>
             <DataTemplate DataType="vm:NavGroup">
               <DockPanel Background="Transparent">
                 <DockPanel.ContextMenu>
@@ -148,6 +158,40 @@
                   <c:Icon Classes="fold" Size="14" Foreground="{DynamicResource NavMuted}" IsVisible="{Binding IsFolded}" Data="{StaticResource Icon.ChevronRight}" />
                 </Panel>
                 <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+              </DockPanel>
+            </DataTemplate>
+            <!-- The top of the Planner sidebar: back to the main one -->
+            <DataTemplate DataType="vm:SidebarBack">
+              <StackPanel Orientation="Horizontal" Spacing="10" Background="Transparent" ToolTip.Tip="Back to the main sidebar">
+                <c:Icon Classes="navicon" Data="{StaticResource Icon.Back}" Size="16" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </StackPanel>
+            </DataTemplate>
+            <!-- A heading in the Planner sidebar, with + when something can be added under it -->
+            <DataTemplate DataType="vm:NavHeading">
+              <DockPanel Background="Transparent" IsVisible="{Binding !IsGap}">
+                <Button DockPanel.Dock="Right" Classes="navtoggle" Padding="3" Margin="0,0,-4,0" IsVisible="{Binding HasAdd}"
+                        Command="{Binding AddCommand}" ToolTip.Tip="{Binding AddTip}" VerticalAlignment="Center">
+                  <c:Icon Data="{StaticResource Icon.Plus}" Size="13" Foreground="{DynamicResource NavMuted}" />
+                </Button>
+                <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+              </DockPanel>
+            </DataTemplate>
+            <!-- A section with a sidebar of its own (Planner): the arrow says it opens one -->
+            <DataTemplate DataType="vm:SectionLink">
+              <DockPanel Background="Transparent" ToolTip.Tip="Home, My tasks, projects, Calendar, Week and Time">
+                <DockPanel.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" />
+                    <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" />
+                    <Separator />
+                    <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
+                  </ContextMenu>
+                </DockPanel.ContextMenu>
+                <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.ChevronRight}" Size="14" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+                <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
+                        Margin="0,0,12,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>
             <DataTemplate DataType="vm:ToolLink">
@@ -223,8 +267,12 @@
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>
-          </ListBox.DataTemplates>
-        </ListBox>
+          </Panel.DataTemplates>
+          <ListBox x:Name="Nav" Classes="nav" ItemsSource="{Binding Sidebar.Items}" SelectedItem="{Binding SelectedNav}" IsVisible="{Binding !Sidebar.IsPlanner}"
+                   ContainerPrepared="PrepareNavItem" ScrollViewer.VerticalScrollBarVisibility="Hidden" />
+          <ListBox x:Name="PlannerNav" Classes="nav" ItemsSource="{Binding Sidebar.PlannerItems}" SelectedItem="{Binding SelectedNav}" IsVisible="{Binding Sidebar.IsPlanner}"
+                   ContainerPrepared="PrepareNavItem" ScrollViewer.VerticalScrollBarVisibility="Hidden" />
+        </Panel>
       </DockPanel>
     </Border>
 

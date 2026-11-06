@@ -150,6 +150,8 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Overview, "Overview", () => new OverviewViewModel(services) { CheckPayments = () => CheckPaymentsAsync(byHand: true) }, "Overview"),
             new Module(Page.Approvals, "To approve", () => new ApprovalsViewModel(services), "Approve"),
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
+            plannerSection,
+            new Module(Page.Home, "Home", () => new PlannerHomeViewModel(services), "Home") { InPlanner = true },
             new NavGroup("my-pages", "MY PAGES"),
             new Module(Page.MyPages, "All my pages", () => new MyPagesViewModel(services), "Tiles"),
             new NavGroup("client-work", "CLIENT WORK"),
@@ -162,13 +164,11 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
             new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
-            new NavGroup("projects", "PROJECTS"),
-            new Module(Page.Projects, "All projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true),
-            new NavGroup("planning", "PLANNING"),
-            new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo"),
-            new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true),
-            new Module(Page.Planner, "Planner", () => new PlannerViewModel(services), "Planner"),
-            new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time"),
+            new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true) { InPlanner = true },
+            new Module(Page.Todo, "To-do", () => new TodoViewModel(services), "Todo") { InPlanner = true },
+            new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
+            new Module(Page.Planner, "Week", () => new PlannerViewModel(services), "Planner") { InPlanner = true },
+            new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time") { InPlanner = true },
             new NavGroup("computer", "COMPUTER"),
             new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
             new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
@@ -199,6 +199,13 @@ public partial class MainViewModel : ViewModelBase
         Current = Modules[0].Main;
         Selected = Modules[0];
         mailModule = this[Page.Mail];
+        Sidebar.WorkHeading.AddCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => services.Go.NewProject());
+        // When the sidebar swaps lists, the list now on screen marks the page.
+        Sidebar.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SidebarViewModel.IsPlanner))
+                OnPropertyChanged(nameof(SelectedNav));
+        };
         ListProjects();
         services.Projects.Changed += _ => ListProjects();
         ListMyPages();
@@ -292,6 +299,21 @@ public partial class MainViewModel : ViewModelBase
         {
             Selected = this[Page.Projects];
             PageOf<ProjectsViewModel>(Page.Projects).OpenTaskById(id);
+        };
+        go.OpenProjectAction = id =>
+        {
+            Selected = this[Page.Projects];
+            PageOf<ProjectsViewModel>(Page.Projects).OpenProject(id);
+        };
+        go.MyTasksAction = () =>
+        {
+            Selected = this[Page.Projects];
+            PageOf<ProjectsViewModel>(Page.Projects).ShowMine();
+        };
+        go.NewProjectAction = () =>
+        {
+            Selected = this[Page.Projects];
+            PageOf<ProjectsViewModel>(Page.Projects).NewProjectCommand.Execute(null);
         };
         go.ClientNotesAction = (id, name) =>
         {
@@ -502,9 +524,13 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>The sidebar's selection. Headings can't be picked, so anything that isn't a page is ignored.</summary>
     public object? SelectedNav
     {
-        get => (object?)ShownProjectLink() ?? (object?)ShownMyPageLink() ?? Selected;
+        get => (object?)ShownProjectLink() ?? (object?)ShownMyPageLink()
+            ?? (Selected is { InPlanner: true } && !Sidebar.IsPlanner ? plannerSection : Selected);
         set
         {
+            // A list that doesn't hold the page on screen clears its pick; that's not a choice.
+            if (value is null)
+                return;
             if (value is Module module)
             {
                 Selected = module;
@@ -514,6 +540,14 @@ public partial class MainViewModel : ViewModelBase
                 OpenProjectLink(link);
             if (value is MyPageLink pageLink)
                 OpenMyPageLink(pageLink);
+            // The Planner entry opens Home and its sidebar; the arrow at the top goes back to the main sidebar.
+            if (value is SectionLink)
+            {
+                Selected = this[Page.Home];
+                Sidebar.EnterPlanner();
+            }
+            if (value is SidebarBack)
+                Sidebar.LeavePlanner();
             // A tool opens in a window of its own; the page on screen stays picked.
             if (value is ToolLink tool)
                 services.Go.Tool(tool.Kind);
@@ -561,6 +595,11 @@ public partial class MainViewModel : ViewModelBase
     {
         if (Current?.Module != value)
             Current = TabFor(value) ?? LastUsed(value);
+        // A Planner page brings the Planner sidebar up; any other page puts the main one back.
+        if (value.InPlanner)
+            Sidebar?.EnterPlanner();
+        else
+            Sidebar?.LeavePlanner();
     }
 
     partial void OnCurrentChanging(PageHost value)

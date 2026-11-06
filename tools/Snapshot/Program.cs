@@ -279,7 +279,7 @@ Save("sidebar-icons");
 vm.Sidebar.Toggle();
 Save("sidebar-hidden");
 vm.Sidebar.Toggle();
-vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "planning").MoveUpCommand.Execute(null);
+vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "computer").MoveUpCommand.Execute(null);
 vm[Page.Mail].MoveDownCommand.Execute(null);
 vm[Page.Mail].MoveDownCommand.Execute(null);
 Save("sidebar-reordered");
@@ -2292,7 +2292,7 @@ Save("site-check");
         Save("projects-template");
 
         // The sidebar's Projects group: My tasks, each running project by name, All projects and Templates.
-        var links = vm.Sidebar.Items.OfType<ProjectLink>().ToList();
+        var links = vm.Sidebar.PlannerItems.OfType<ProjectLink>().ToList();
         Check("The sidebar lists My tasks, each running project and Templates under Projects",
             links.Select(l => l.Title).SequenceEqual(["My tasks", "Bosveld Builders new website", "Webignite SEO month", "Karoo Coffee website", "Templates"])
             || (links.First().Kind == ProjectLinkKind.MyTasks && links.Last().Kind == ProjectLinkKind.Templates
@@ -2313,6 +2313,40 @@ Save("site-check");
         vm.SelectedNav = vm[Page.Projects];
         Open(Page.Overview);
         Check("Another page takes the mark off the project entries", vm.SelectedNav is Module { Key: Page.Overview });
+
+        // Planner: its own sidebar, entered from the main one, with Home first and a way back.
+        Check("The main sidebar has a Planner entry and no Projects or Planning groups",
+            vm.Sidebar.Items.OfType<SectionLink>().Any(l => l.Title == "Planner")
+            && !vm.Sidebar.Items.OfType<Module>().Any(m => m.InPlanner)
+            && !vm.Sidebar.Items.OfType<NavGroup>().Any(g => g.Key is "projects" or "planning"));
+        vm.SelectedNav = vm.Sidebar.Items.OfType<SectionLink>().First();
+        Dispatcher.UIThread.RunJobs();
+        var homePage = (PlannerHomeViewModel)vm.Current.Page;
+        Check("Clicking Planner opens Home and swaps the sidebar for Planner's", vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Home
+            && vm.Sidebar.PlannerItems.First() is SidebarBack
+            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Projects", "To-do", "Calendar", "Week", "Time"])
+            && vm.Sidebar.PlannerItems.OfType<ProjectLink>().Any(l => l.Kind == ProjectLinkKind.MyTasks));
+        Check("Home greets, counts the week and lists my tasks and recent projects", homePage.Greeting.Contains(services.Me().Name, StringComparison.Ordinal)
+            && homePage.CompletedText.EndsWith("completed", StringComparison.Ordinal)
+            && homePage.Projects.OfType<HomeProjectTile>().Any() && homePage.Projects.First() is HomeCreateTile);
+        homePage.ShowTabCommand.Execute(HomeTab.Completed);
+        Check("Home's Completed tab shows tasks I ticked off lately", homePage.IsCompleted && homePage.Tasks.Count > 0);
+        homePage.ShowTabCommand.Execute(HomeTab.Upcoming);
+        window.Width = 1920;
+        window.Height = 1080;
+        Dispatcher.UIThread.RunJobs();
+        Save("planner-home");
+        Open(Page.Planner);
+        Check("The week planner is called Week inside Planner", vm.Selected.Title == "Week" && vm.Sidebar.IsPlanner);
+        vm.SelectedNav = vm.Sidebar.PlannerBack;
+        Dispatcher.UIThread.RunJobs();
+        Check("The arrow at the top goes back to the main sidebar, leaving the page as it was", !vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Planner
+            && vm.SelectedNav is SectionLink);
+        Save("planner-back");
+        window.Width = 1280;
+        window.Height = 860;
+        Open(Page.Overview);
+        Check("Another page keeps the main sidebar", !vm.Sidebar.IsPlanner);
 
         // My pages: a page of widgets the person puts together, saved by name in the sidebar.
         Open(Page.MyPages);

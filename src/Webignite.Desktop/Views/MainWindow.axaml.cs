@@ -20,6 +20,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         // Before the ListBox sees the press, so clicking a heading folds its group instead of selecting it.
         Nav.AddHandler(PointerPressedEvent, NavPressed, RoutingStrategies.Tunnel);
+        PlannerNav.AddHandler(PointerPressedEvent, NavPressed, RoutingStrategies.Tunnel);
         // Made before the window's template is applied, so it can put itself in the window's top layer.
         notes = new WindowNotificationManager(this) { Position = NotificationPosition.BottomRight, MaxItems = 3 };
     }
@@ -171,9 +172,11 @@ public partial class MainWindow : Window
     {
         if (e.Container is not ListBoxItem item || DataContext is not MainViewModel main)
             return;
-        var heading = main.Sidebar.Items[e.Index] is NavGroup;
+        var entry = (sender as ListBox)?.Items[e.Index];
+        var heading = entry is NavGroup or NavHeading;
         item.Classes.Set("heading", heading);
-        item.Classes.Set("gap", main.Sidebar.Items[e.Index] is NavGroup { CanFold: false });
+        item.Classes.Set("gap", entry is NavGroup { CanFold: false } or NavHeading { IsGap: true });
+        item.Classes.Set("back", entry is SidebarBack);
         item.Focusable = !heading;
     }
 

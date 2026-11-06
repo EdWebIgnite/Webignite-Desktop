@@ -7,6 +7,7 @@ namespace Webignite.Desktop.ViewModels;
 // part of the Projects page. The entry for what the page shows is the one marked.
 public partial class MainViewModel
 {
+    private readonly SectionLink plannerSection = new("planner", "Planner", "Planner");
     private readonly ProjectLink myTasksLink = new(ProjectLinkKind.MyTasks, null, "My tasks", "Check");
     private readonly ProjectLink templatesLink = new(ProjectLinkKind.Templates, null, "Templates", "Tiles");
     private readonly Dictionary<string, ProjectLink> projectLinks = [];
@@ -42,7 +43,7 @@ public partial class MainViewModel
             _ => projectLinks.GetValueOrDefault(showing),
         };
         // Only one the sidebar shows can be marked; in a folded group the page itself stays picked.
-        return link is not null && Sidebar.Items.Contains(link) ? link : null;
+        return link is not null && Sidebar.Shown.Contains(link) ? link : null;
     }
 
     private void OpenProjectLink(ProjectLink link)

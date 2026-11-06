@@ -11,7 +11,7 @@ public enum Page
     Overview, Approvals, Mail,
     Clients, Contacts, Files, Retainers, Renewals,
     Quotes, Invoices, Money, Reports,
-    Todo, Projects, Notes, Calendar, Planner, Time, MyPages,
+    Home, Todo, Projects, Notes, Calendar, Planner, Time, MyPages,
     SiteCheck, Markup, Pdf,
     Settings,
 }
@@ -44,6 +44,9 @@ public sealed class Navigator
     internal Action<string>? OpenNoteAction { get; set; }
     internal Action<string?, string?>? OpenPersonAction { get; set; }
     internal Action<string>? OpenProjectTaskAction { get; set; }
+    internal Action<string>? OpenProjectAction { get; set; }
+    internal Action? MyTasksAction { get; set; }
+    internal Action? NewProjectAction { get; set; }
     internal Action<string, string>? ClientNotesAction { get; set; }
     internal Action? QuickNoteAction { get; set; }
     internal Action<ViewModels.ToolKind>? OpenToolAction { get; set; }
@@ -128,6 +131,15 @@ public sealed class Navigator
 
     /// <summary>Opens a task on the Projects page, beside its project.</summary>
     public void ProjectTask(string id) => OpenProjectTaskAction?.Invoke(id);
+
+    /// <summary>Opens a project on the Projects page.</summary>
+    public void Project(string id) => OpenProjectAction?.Invoke(id);
+
+    /// <summary>Shows My tasks on the Projects page.</summary>
+    public void MyTasks() => MyTasksAction?.Invoke();
+
+    /// <summary>Makes a new project and opens it, ready to be named.</summary>
+    public void NewProject() => NewProjectAction?.Invoke();
 
     /// <summary>A new person in Contacts, already with this client.</summary>
     public void NewPerson(string clientId) => OpenPersonAction?.Invoke(null, clientId);
