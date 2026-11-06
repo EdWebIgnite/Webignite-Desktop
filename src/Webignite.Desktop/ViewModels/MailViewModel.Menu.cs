@@ -129,7 +129,7 @@ public partial class MailViewModel
             Customer = client?.Name,
             Created = DateTimeOffset.UtcNow,
         });
-        services.ShowNote?.Invoke("Added to your to-do list", subject, () => services.Go.To(Page.Todo));
+        services.ShowNote?.Invoke("Added to My tasks", subject, () => services.Go.MyTasks());
     }
 
     // The whole mail as an .eml file, which Outlook and other mail programs open.
