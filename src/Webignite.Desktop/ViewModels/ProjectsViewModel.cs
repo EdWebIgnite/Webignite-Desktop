@@ -513,7 +513,9 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             IsOpen = task.Id == Detail?.Task.Id,
             IsPicked = picked.Contains(task.Id),
             IsExpanded = expanded.Contains(task.Id),
+            CommentCount = commentCounts.GetValueOrDefault(task.Id),
         };
+        commentCounts = services.Projects.CommentCounts();
         // The board is always the project's headings; the list is grouped as picked, the same rows when by headings.
         var sections = ProjectList.Arrange(headings, shown, Layout with { Group = TaskGroup.Sections }, NameOf, today);
         sectionRows = [.. sections.Select(g => new SectionRow(g, this) { IsFolded = Layout.Folded.Contains(g.Key) })];
@@ -729,6 +731,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     }
 
     /// <summary>The headings a task can move to, for its right-click menu.</summary>
+    private IReadOnlyDictionary<string, int> commentCounts = new Dictionary<string, int>();
+
+    /// <summary>A comment was added, changed or deleted: the speech bubbles in the list are counted again.</summary>
+    internal void CommentsChanged() => ShowTasks();
+
     /// <summary>The project's headings (and the tasks under none) as the board has them, whatever the list is grouped by.</summary>
     public IReadOnlyList<SectionRow> Sections => sectionRows;
 
@@ -1075,6 +1082,11 @@ public sealed partial class TaskRow : ObservableObject
 
     /// <summary>Its subtasks shown under it in the list.</summary>
     [ObservableProperty] public partial bool IsExpanded { get; set; }
+
+    /// <summary>How many comments it has, by a speech bubble in the list, as Asana's.</summary>
+    public int CommentCount { get; init; }
+    public bool HasComments => CommentCount > 0;
+    public string CommentText => CommentCount.ToString(System.Globalization.CultureInfo.CurrentCulture);
 
     /// <summary>How many files are attached, by a paperclip in the list, as Asana's.</summary>
     public string AttachmentCount => Task.Attachments.Count == 0 ? "" : Task.Attachments.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);

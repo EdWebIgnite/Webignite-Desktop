@@ -162,6 +162,16 @@ public sealed partial class LocalStore : IDisposable
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS task_comments (
+                id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS task_activity (
+                id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL,
+                payload BLOB NOT NULL
+            );
             """);
         try
         {

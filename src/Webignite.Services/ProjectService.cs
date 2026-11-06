@@ -200,7 +200,9 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         var problems = ProjectRules.Check(task, task.ParentId is { } parent ? GetTask(parent) : null);
         if (problems.Count > 0)
             return (null, problems);
-        var saved = store.SaveProjectTask(ProjectRules.Stamped(null, task, Now()));
+        var now = Now();
+        var saved = store.SaveProjectTask(ProjectRules.Stamped(null, task, now));
+        Record(null, saved, now);
         Changed?.Invoke(task.ProjectId);
         return (saved, []);
     }
@@ -223,6 +225,7 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             : [];
         var saved = ProjectRules.Stamped(current, changed, now);
         store.SaveProjectWork([], [], [saved, .. subtasks, .. NextOf(current, saved, now)]);
+        Record(current, saved, now);
         Changed?.Invoke(current.ProjectId);
         return (saved, []);
     }
@@ -246,9 +249,72 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             ? AllTasks(current.ProjectId).Where(t => t.ParentId == id).Select(t => ProjectRules.Stamped(t, t with { ProjectId = projectId, HeadingId = null }, now)).ToList()
             : [];
         store.SaveProjectWork([], [], [moved, .. subtasks]);
+        Record(current, moved, now);
         Changed?.Invoke(current.ProjectId);
         Changed?.Invoke(projectId);
         return (moved, []);
+    }
+
+    // Comments and the feed, as Asana's. Kept on this PC; comments are stamped so they can sync later.
+
+    /// <summary>A task's comments, not deleted, oldest first.</summary>
+    public IReadOnlyList<TaskComment> Comments(string taskId) =>
+        [.. store.ListComments(taskId).Where(c => c.Deleted is null).OrderBy(c => c.Created.At)];
+
+    /// <summary>What happened to a task, oldest first.</summary>
+    public IReadOnlyList<TaskActivity> Activity(string taskId) => [.. store.ListActivity(taskId).OrderBy(a => a.At.At)];
+
+    /// <summary>How many comments each task has, for the speech bubbles in the list.</summary>
+    public IReadOnlyDictionary<string, int> CommentCounts() => store.CommentCounts();
+
+    /// <summary>A comment on a task, by me, now. The problem instead when there's nothing in it or the task is gone.</summary>
+    public (TaskComment? Saved, string? Problem) AddComment(string taskId, string text)
+    {
+        if (TaskTalk.Check(text) is { Length: > 0 } problem)
+            return (null, problem);
+        if (GetTask(taskId) is not { } task)
+            return (null, "The task is gone.");
+        var comment = new TaskComment { Id = ProjectRules.NewId(), TaskId = taskId, ProjectId = task.ProjectId, Text = text.Trim() };
+        var saved = store.SaveComment(ProjectRules.Stamped(null, comment, Now()));
+        Changed?.Invoke(task.ProjectId);
+        return (saved, null);
+    }
+
+    /// <summary>A comment's words changed, as stored now.</summary>
+    public TaskComment? EditComment(string id, string text)
+    {
+        if (store.GetComment(id) is not { Deleted: null } current || TaskTalk.Check(text).Length > 0)
+            return null;
+        var saved = store.SaveComment(ProjectRules.Stamped(current, current with { Text = text.Trim() }, Now()));
+        Changed?.Invoke(current.ProjectId);
+        return saved;
+    }
+
+    /// <summary>Deletes a comment, leaving a marker so the deletion can sync; returns it, for Undo.</summary>
+    public TaskComment? DeleteComment(string id)
+    {
+        if (store.GetComment(id) is not { Deleted: null } current)
+            return null;
+        store.SaveComment(current with { Deleted = Now() });
+        Changed?.Invoke(current.ProjectId);
+        return current;
+    }
+
+    public void RestoreComment(TaskComment comment)
+    {
+        store.SaveComment(comment with { Deleted = null });
+        Changed?.Invoke(comment.ProjectId);
+    }
+
+    // What changed, written to the task's feed.
+    private void Record(ProjectTask? before, ProjectTask after, Stamp now)
+    {
+        var headings = Headings(after.ProjectId).ToDictionary(h => h.Id, h => h.Name);
+        foreach (var (kind, value) in TaskTalk.Changes(before, after, id => id is null ? null : headings.GetValueOrDefault(id), id => Get(id)?.Name))
+            store.SaveActivity(new TaskActivity(ProjectRules.NewId(), after.Id, after.ProjectId, now, kind, value));
+        // A subtask added shows on its task's feed too, as in Asana.
+        if (before is null && after.ParentId is { } parent)
+            store.SaveActivity(new TaskActivity(ProjectRules.NewId(), parent, after.ProjectId, now, ActivityKind.SubtaskAdded, after.Title));
     }
 
     // A repeating task just ticked off: the next one, straight after it, with its subtasks fresh.

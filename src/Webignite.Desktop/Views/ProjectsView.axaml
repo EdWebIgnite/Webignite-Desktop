@@ -118,6 +118,22 @@
     <Style Selector="Border.description:focus-within">
       <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
     </Style>
+    <Style Selector="Button.feedtab">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.feedtab.on">
+      <Setter Property="Background" Value="{DynamicResource Picked}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPicked}" />
+    </Style>
+    <Style Selector="Button.feedtab.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Picked}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPicked}" />
+    </Style>
     <Style Selector="Button.filetile">
       <Setter Property="Background" Value="{DynamicResource Surface}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
@@ -602,6 +618,12 @@
                           <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" IsVisible="{Binding IsExpanded}" />
                         </Panel>
                       </Button>
+                      <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasComments}" ToolTip.Tip="Comments" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                          <TextBlock Text="{Binding CommentText}" FontSize="11" VerticalAlignment="Center" />
+                          <c:Icon Data="{StaticResource Project.ChatBubbles}" Size="11" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Border>
                       <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasAttachments}" ToolTip.Tip="Files attached" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="3">
                           <TextBlock Text="{Binding AttachmentCount}" FontSize="11" VerticalAlignment="Center" />
@@ -967,6 +989,44 @@
             </StackPanel>
 
             <TextBlock Classes="muted" FontSize="12" Text="{Binding History}" TextWrapping="Wrap" Margin="0,8,0,0" />
+
+            <!-- The feed, as Asana's: Comments or All activity, then a box to comment -->
+            <Border Height="1" Background="{DynamicResource Line}" Margin="-24,4" />
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <Button Classes="feedtab" Classes.on="{Binding ShowsComments}" Content="Comments" Command="{Binding ShowCommentsCommand}" />
+              <Button Classes="feedtab" Classes.on="{Binding ShowsAll}" Content="All activity" Command="{Binding ShowAllActivityCommand}" />
+            </StackPanel>
+            <TextBlock Classes="muted" FontSize="12" Text="No comments yet. Write one below." IsVisible="{Binding NoFeed}" />
+            <ItemsControl ItemsSource="{Binding Feed}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FeedRow">
+                  <DockPanel Margin="0,0,0,12" Background="Transparent" ContextRequested="FeedMenu">
+                    <c:Monogram DockPanel.Dock="Left" Text="{Binding Who}" Size="26" VerticalAlignment="Top" Margin="0,0,10,0" IsVisible="{Binding IsComment}" />
+                    <Ellipse DockPanel.Dock="Left" Width="6" Height="6" Fill="{DynamicResource Line2}" VerticalAlignment="Top"
+                             Margin="10,7,20,0" IsVisible="{Binding IsActivity}" />
+                    <StackPanel Spacing="2">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding Who}" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock Text="{Binding Text}" FontSize="13" Classes="muted" IsVisible="{Binding IsActivity}" TextWrapping="Wrap" MaxWidth="300" />
+                        <TextBlock Text="{Binding When}" Classes="muted" FontSize="12" />
+                      </StackPanel>
+                      <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding IsComment}" />
+                    </StackPanel>
+                  </DockPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <DockPanel>
+              <c:Monogram DockPanel.Dock="Left" Text="{Binding MyName}" Size="28" VerticalAlignment="Top" Margin="0,2,10,0" />
+              <StackPanel Spacing="6">
+                <TextBox x:Name="CommentBox" Text="{Binding NewComment}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64"
+                         PlaceholderText="Add a comment (Ctrl+Enter to post)" KeyDown="CommentKey" />
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                  <Button Classes="link" Content="Cancel" Command="{Binding CancelEditCommand}" IsVisible="{Binding EditingCommentId, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  <Button Classes="primary" Content="{Binding CommentButton}" Command="{Binding PostCommentCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </DockPanel>
           </StackPanel>
         </Panel>
       </ScrollViewer>
