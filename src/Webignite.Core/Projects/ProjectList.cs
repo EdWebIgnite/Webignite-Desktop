@@ -13,6 +13,10 @@ public enum TaskGroup { Sections, DueDate, Assignee, Priority }
 public sealed record ProjectLayout
 {
     public bool Board { get; init; }
+
+    /// <summary>The Files tab: every file attached in the project.</summary>
+    public bool Files { get; init; }
+
     public TaskSort Sort { get; init; }
     public TaskGroup Group { get; init; }
 

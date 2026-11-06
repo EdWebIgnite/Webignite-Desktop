@@ -95,4 +95,27 @@ public sealed class ProjectListLayoutTests
         Assert.Equal("1/2", ProjectRules.SubtaskTally([T("a", 1) with { Done = true }, T("b", 2)]));
         Assert.Equal("", ProjectRules.SubtaskTally([]));
     }
+
+    [Fact]
+    public void The_first_picture_attached_becomes_the_cover_and_goes_with_it()
+    {
+        var at = DateTimeOffset.UnixEpoch;
+        var pdf = new TaskAttachment("a1", "Brief.pdf", 48_000, at, "me");
+        var photo = new TaskAttachment("a2", "Shopfront.JPG", 2_000_000, at.AddMinutes(1), "me");
+        var logo = new TaskAttachment("a3", "logo.png", 9_000, at.AddMinutes(2), "me");
+        var task = Webignite.Core.Projects.Attachments.Add(T("Photos", 1), pdf);
+        Assert.Null(task.CoverId);
+        task = Webignite.Core.Projects.Attachments.Add(task, photo);
+        task = Webignite.Core.Projects.Attachments.Add(task, logo);
+        Assert.Equal("a2", task.CoverId);
+        Assert.Equal("Shopfront.JPG", Webignite.Core.Projects.Attachments.Cover(task)!.FileName);
+        Assert.Null(Webignite.Core.Projects.Attachments.SetCover(task, "a1").CoverId);
+        Assert.Equal("a3", Webignite.Core.Projects.Attachments.SetCover(task, "a3").CoverId);
+        var removed = Webignite.Core.Projects.Attachments.Remove(task, "a2");
+        Assert.Null(removed.CoverId);
+        Assert.Equal(["a1", "a3"], removed.Attachments.Select(a => a.Id));
+        Assert.Equal(["a3", "a2", "a1"], Webignite.Core.Projects.Attachments.Of([task]).Select(f => f.Attachment.Id));
+        Assert.Equal("report_final_.pdf", Webignite.Core.Projects.Attachments.SafeName("C:\\temp\\report:final?.pdf"));
+        Assert.Equal("file", Webignite.Core.Projects.Attachments.SafeName("..."));
+    }
 }

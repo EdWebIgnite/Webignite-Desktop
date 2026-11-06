@@ -216,6 +216,11 @@ public sealed partial class TaskDetail : ObservableObject
     public bool HasOtherTags => OtherTags.Count > 0;
 
     public ObservableCollection<TaskRow> Subtasks { get; } = [];
+
+    /// <summary>Files attached to the task, as tiles, pictures shown small.</summary>
+    public ObservableCollection<AttachmentRow> Attachments { get; } = [];
+
+    public bool HasAttachments => Attachments.Count > 0;
     public ObservableCollection<MailHit> MailFound { get; } = [];
 
     public bool HasProblem => Problem.Length > 0;
@@ -255,6 +260,10 @@ public sealed partial class TaskDetail : ObservableObject
         loading = false;
         ShowLinksAndHistory();
         LoadSubtasks();
+        Attachments.Clear();
+        foreach (var attachment in Task.Attachments)
+            Attachments.Add(new AttachmentRow(Task, attachment, page, 120));
+        OnPropertyChanged(nameof(HasAttachments));
     }
 
     /// <summary>After a save: the stamps and links shown again; what's being typed is left as it is.</summary>

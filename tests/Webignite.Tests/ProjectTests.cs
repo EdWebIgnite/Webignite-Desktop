@@ -23,7 +23,7 @@ public sealed class ProjectTests : IDisposable
     public ProjectTests()
     {
         store = new LocalStore(Path.Combine(folder, "webignite.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
-        projects = new ProjectService(store, () => who, clock);
+        projects = new ProjectService(store, () => who, clock, Path.Combine(folder, "attachments"));
     }
 
     public void Dispose()
@@ -65,6 +65,32 @@ public sealed class ProjectTests : IDisposable
         Assert.All(stored.Fields.Values, s => Assert.Equal(stored.Created, s));
         Assert.Contains("name", stored.Fields.Keys);
         Assert.Null(stored.Deleted);
+    }
+
+    [Fact]
+    public void A_file_attached_is_copied_with_the_app_and_deleted_when_taken_off()
+    {
+        var project = NewProject();
+        var task = NewTask(project.Id, "Home page photos");
+        var source = Path.Combine(folder, "Shopfront.jpg");
+        File.WriteAllBytes(source, [0xFF, 0xD8, 0xFF, 1, 2, 3]);
+
+        var (saved, problem) = projects.Attach(task.Id, source);
+
+        Assert.Null(problem);
+        var attachment = Assert.Single(saved!.Attachments);
+        Assert.Equal(("Shopfront.jpg", 6L, "eddie"), (attachment.FileName, attachment.Size, attachment.AddedBy));
+        Assert.Equal(attachment.Id, saved.CoverId);
+        var kept = projects.PathOf(task.Id, attachment);
+        Assert.True(File.Exists(kept));
+        File.Delete(source);
+        Assert.True(File.Exists(kept));
+
+        var after = projects.Detach(task.Id, attachment.Id)!;
+        Assert.Empty(after.Attachments);
+        Assert.Null(after.CoverId);
+        Assert.False(File.Exists(kept));
+        Assert.NotNull(projects.Attach(task.Id, source).Problem);
     }
 
     [Fact]

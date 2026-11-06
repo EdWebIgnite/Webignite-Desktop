@@ -118,6 +118,25 @@
     <Style Selector="Border.description:focus-within">
       <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
     </Style>
+    <Style Selector="Button.filetile">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Border.filethumb">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.coverbadge">
+      <Setter Property="Background" Value="{DynamicResource Picked}" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="5,1" />
+      <Setter Property="Margin" Value="4" />
+    </Style>
     <Style Selector="Border.subtaskrow">
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="0,0,0,1" />
@@ -429,6 +448,8 @@
               <Button Classes="viewtab" Classes.on="{Binding IsList}" Content="List" Command="{Binding ListViewCommand}" />
               <Button Classes="viewtab" Classes.on="{Binding IsBoard}" Content="Board" Command="{Binding BoardViewCommand}"
                       ToolTip.Tip="Headings as columns; drag cards across and up and down" />
+              <Button Classes="viewtab" Classes.on="{Binding IsFiles}" Content="Files" Command="{Binding FilesViewCommand}"
+                      ToolTip.Tip="Every file attached to the project's tasks" />
             </StackPanel>
           </DockPanel>
           <Border Height="1" Background="{DynamicResource Line}" Margin="0,-17,0,0" />
@@ -581,6 +602,12 @@
                           <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" IsVisible="{Binding IsExpanded}" />
                         </Panel>
                       </Button>
+                      <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasAttachments}" ToolTip.Tip="Files attached" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                          <TextBlock Text="{Binding AttachmentCount}" FontSize="11" VerticalAlignment="Center" />
+                          <c:Icon Data="{StaticResource Icon.Paperclip}" Size="11" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Border>
                       <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasSubtasks}" ToolTip.Tip="Subtasks done" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="3">
                           <TextBlock Text="{Binding Subtasks}" FontSize="11" VerticalAlignment="Center" />
@@ -630,6 +657,34 @@
           </ItemsControl>
           </StackPanel>
 
+          <!-- The Files tab, as Asana's: every file attached in the project, pictures shown small -->
+          <StackPanel Spacing="10" IsVisible="{Binding IsFiles}">
+            <c:EmptyState IsVisible="{Binding NoProjectFiles}" Icon="{StaticResource Icon.Paperclip}" Title="No files yet"
+                          Text="Open a task and attach files, or drop them on it. They show here, with the task they're on." />
+            <ItemsControl ItemsSource="{Binding ProjectFiles}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel ItemSpacing="12" LineSpacing="12" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AttachmentRow">
+                  <Button Classes="filetile" Width="184" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Name}" ContextRequested="AttachmentMenu">
+                    <StackPanel Spacing="6">
+                      <Border Classes="filethumb" Height="112">
+                        <Panel>
+                          <Image Source="{Binding Picture}" Stretch="UniformToFill" IsVisible="{Binding HasPicture}" />
+                          <c:Icon Data="{StaticResource Icon.Quotes}" Size="32" Foreground="{DynamicResource Muted}" IsVisible="{Binding ShowsIcon}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Panel>
+                      </Border>
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding TaskTitle}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
           <!-- The board: a column per heading, its tasks as cards. -->
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding IsBoard}">
             <ItemsControl x:Name="Board" ItemsSource="{Binding Columns}">
@@ -650,6 +705,11 @@
                             <Border Padding="0,3" Background="Transparent"
                                     ContextRequested="TaskMenu">
                               <Border Classes="card" Classes.open="{Binding IsOpen}" Classes.picked="{Binding IsPicked}" Padding="8" Opacity="{Binding Fade}">
+                                <StackPanel Spacing="8">
+                                <!-- Its cover picture, as Asana's -->
+                                <Border CornerRadius="6" ClipToBounds="True" IsVisible="{Binding HasCover}" Margin="-2,-2,-2,0">
+                                  <Image Source="{Binding Cover.Picture, FallbackValue={x:Null}}" Height="130" Stretch="UniformToFill" />
+                                </Border>
                                 <Grid ColumnDefinitions="18,26,*">
                                   <Border Classes="grip" Background="Transparent" ToolTip.Tip="Drag the card to move it" VerticalAlignment="Top" Margin="0,3,0,0">
                                     <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" />
@@ -665,6 +725,7 @@
                                     </StackPanel>
                                   </Button>
                                 </Grid>
+                                </StackPanel>
                               </Border>
                             </Border>
                           </DataTemplate>
@@ -687,7 +748,7 @@
     </ScrollViewer>
 
     <!-- The open task -->
-    <Border c:PanelGrid.Pane="task" c:PanelGrid.DefaultWidth="440" Background="{DynamicResource Surface2}"
+    <Border x:Name="TaskPane" c:PanelGrid.Pane="task" c:PanelGrid.DefaultWidth="440" Background="{DynamicResource Surface2}" DragDrop.AllowDrop="True"
             BorderBrush="{DynamicResource Line}" BorderThickness="1,0,0,0">
       <ScrollViewer>
         <Panel Margin="24,30">
@@ -699,6 +760,9 @@
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                 <Button Classes="quiet panetool" Command="{Binding StartTimerCommand}" ToolTip.Tip="Start the timer on this task (Time page)">
                   <c:Icon Data="{StaticResource Icon.Time}" Size="15" />
+                </Button>
+                <Button Classes="quiet panetool" Click="AttachClicked" ToolTip.Tip="Attach files (or drop them on the task)">
+                  <c:Icon Data="{StaticResource Icon.Paperclip}" Size="15" />
                 </Button>
                 <Button Classes="quiet panetool" Click="AddSubtaskClicked" ToolTip.Tip="Add a subtask">
                   <c:Icon Data="{StaticResource Icon.Checklist}" Size="15" />
@@ -783,6 +847,40 @@
                 <c:RichTextEditor x:Name="DescriptionEditor" Document="{Binding Description}" Revision="{Binding DescriptionRevision}" PageColours="True"
                                   Placeholder="What is this task about? Links, logins to use, what's needed…" Padding="12,10" MinHeight="96" />
               </Border>
+            </StackPanel>
+
+            <!-- Attachments, as Asana's: tiles, pictures shown small; right-click for the cover, the folder or to remove -->
+            <StackPanel Spacing="6" IsVisible="{Binding HasAttachments}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="label" Text="Attachments" VerticalAlignment="Center" />
+                <Button Classes="quiet panetool" Click="AttachClicked" ToolTip.Tip="Attach files">
+                  <c:Icon Data="{StaticResource Icon.Plus}" Size="13" />
+                </Button>
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding Attachments}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:AttachmentRow">
+                    <Button Classes="filetile" Width="128" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding About}" ContextRequested="AttachmentMenu">
+                      <StackPanel Spacing="4">
+                        <Border Classes="filethumb" Height="76">
+                          <Panel>
+                            <Image Source="{Binding Picture}" Stretch="UniformToFill" IsVisible="{Binding HasPicture}" />
+                            <c:Icon Data="{StaticResource Icon.Quotes}" Size="24" Foreground="{DynamicResource Muted}" IsVisible="{Binding ShowsIcon}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border Classes="coverbadge" IsVisible="{Binding IsCover}" HorizontalAlignment="Left" VerticalAlignment="Top">
+                              <TextBlock Text="Cover" FontSize="10" />
+                            </Border>
+                          </Panel>
+                        </Border>
+                        <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
 
             <!-- Subtasks, as Asana's: a heading with how many are done and a + to add one -->

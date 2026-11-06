@@ -9,9 +9,69 @@ namespace Webignite.Services;
 /// can be added later without redoing anything. Deleting leaves a marker; Undo takes it away again.
 /// <see cref="Changed"/> tells every open page, with the project's id, or null when it's about projects as a whole.
 /// </summary>
-public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvider? clock = null)
+public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvider? clock = null, string? attachmentsFolder = null)
 {
     private readonly TimeProvider clock = clock ?? TimeProvider.System;
+
+    /// <summary>Where attached files are kept on this PC: a folder per file, under its task's folder.</summary>
+    public string AttachmentsFolder { get; } = attachmentsFolder ?? Path.Combine(DataPaths.Root(), "attachments");
+
+    /// <summary>Where an attached file is kept.</summary>
+    public string PathOf(string taskId, TaskAttachment attachment) =>
+        Path.Combine(AttachmentsFolder, taskId, attachment.Id, Attachments.SafeName(attachment.FileName));
+
+    /// <summary>
+    /// Attaches a file to a task: a copy is kept with the app, so the task still has it when the original moves.
+    /// The first picture becomes the card's cover. Null with the problem when the file can't be read.
+    /// </summary>
+    public (ProjectTask? Saved, string? Problem) Attach(string taskId, string sourcePath)
+    {
+        if (GetTask(taskId) is null)
+            return (null, "The task is gone.");
+        var info = new FileInfo(sourcePath);
+        if (!info.Exists)
+            return (null, $"{Path.GetFileName(sourcePath)} isn't there any more.");
+        var attachment = new TaskAttachment(ProjectRules.NewId(), Attachments.SafeName(info.Name), info.Length, clock.GetUtcNow(), me());
+        var target = PathOf(taskId, attachment);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(sourcePath, target, overwrite: false);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            AppLog.Write("Attaching a file to a task", e);
+            return (null, $"{info.Name} couldn't be copied: {e.Message}");
+        }
+        var (saved, problems) = ChangeTask(taskId, t => Attachments.Add(t, attachment));
+        if (saved is null)
+            TryDelete(Path.GetDirectoryName(target)!);
+        return (saved, saved is null ? string.Join(" ", problems) : null);
+    }
+
+    /// <summary>Takes a file off a task and deletes the copy kept with the app.</summary>
+    public ProjectTask? Detach(string taskId, string attachmentId)
+    {
+        if (GetTask(taskId) is not { } task || task.Attachments.FirstOrDefault(a => a.Id == attachmentId) is not { } attachment)
+            return null;
+        var (saved, _) = ChangeTask(taskId, t => Attachments.Remove(t, attachmentId));
+        if (saved is not null)
+            TryDelete(Path.GetDirectoryName(PathOf(taskId, attachment))!);
+        return saved;
+    }
+
+    private static void TryDelete(string folder)
+    {
+        try
+        {
+            if (Directory.Exists(folder))
+                Directory.Delete(folder, recursive: true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            AppLog.Write("Deleting an attached file", e);
+        }
+    }
 
     public event Action<string?>? Changed;
 

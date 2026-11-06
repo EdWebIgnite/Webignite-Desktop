@@ -405,20 +405,29 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     [NotifyPropertyChangedFor(nameof(IsList))]
     public partial bool IsBoard { get; set; }
 
-    public bool IsList => !IsBoard;
+    public bool IsList => !IsBoard && !IsFiles;
 
     // Kept with the open project only: another project opens the way it was left, a new one as a list.
     partial void OnIsBoardChanged(bool value)
     {
+        OnPropertyChanged(nameof(NoProjectFiles));
         if (open is not null && Layout.Board != value)
             SaveLayout(Layout with { Board = value });
     }
 
     [RelayCommand]
-    private void ListView() => IsBoard = false;
+    private void ListView()
+    {
+        IsFiles = false;
+        IsBoard = false;
+    }
 
     [RelayCommand]
-    private void BoardView() => IsBoard = true;
+    private void BoardView()
+    {
+        IsFiles = false;
+        IsBoard = true;
+    }
 
     public string OpenProjectName => open?.Name ?? "";
 
@@ -447,7 +456,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         }
         open = project;
         Layout = LayoutOf(project.Id);
-        IsBoard = Layout.Board;
+        IsBoard = Layout.Board && !Layout.Files;
+        IsFiles = Layout.Files;
         IsMyTasks = false;
         IsTemplates = false;
         MyRows.Clear();
@@ -974,8 +984,15 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             ShowList();
     }
 
+    /// <summary>A note under the project's header, such as a file that's gone.</summary>
+    internal void Tell(string message) => Message = message;
+
+    /// <summary>Shows an attached file in the app's Files page, picked.</summary>
+    internal void ShowFile(string path) => services.Go.ShowFile(path);
+
     public void Dispose()
     {
+        LetPicturesGo();
         SaveTyped();
         typing.Stop();
         services.Projects.Changed -= ElsewhereChanged;
@@ -1058,6 +1075,15 @@ public sealed partial class TaskRow : ObservableObject
 
     /// <summary>Its subtasks shown under it in the list.</summary>
     [ObservableProperty] public partial bool IsExpanded { get; set; }
+
+    /// <summary>How many files are attached, by a paperclip in the list, as Asana's.</summary>
+    public string AttachmentCount => Task.Attachments.Count == 0 ? "" : Task.Attachments.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);
+    public bool HasAttachments => Task.Attachments.Count > 0;
+
+    /// <summary>Its cover picture, on top of its card on the board.</summary>
+    public AttachmentRow? Cover => cover ??= Attachments.Cover(Task) is { } picture ? page.CoverRow(Task, picture) : null;
+    private AttachmentRow? cover;
+    public bool HasCover => Attachments.Cover(Task) is not null;
 
     /// <summary>A subtask shown under its task in the list, set in.</summary>
     public bool IsSubtask => Task.ParentId is not null;
