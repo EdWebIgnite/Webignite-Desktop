@@ -291,7 +291,7 @@ public sealed partial class MarkupViewModel : ViewModelBase, IHoldsWork, IDispos
             Customer = Client?.Name,
             Created = DateTimeOffset.UtcNow,
         });
-        Say("Added to your to-do list, with where the screenshot is saved.");
+        Say("Added to My tasks, with where the screenshot is saved.");
     }
 
     public void Say(string text, bool problem = false)

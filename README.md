@@ -8,17 +8,19 @@ Native Windows software for running Webignite: quotes, invoices, clients, mail a
 
 **Billing.** Quotes and invoices with totals that fill in as you type, a price list for one-click lines, copy a document or make an invoice from a quote, search and filters. Documents go to Xero as drafts, you approve them in the app, and the invoice is emailed from your own mailbox with Xero's PDF. Payments are read back from Xero so money owed is right. Monthly statements, overdue reminders and quote follow-ups are drafted for you.
 
-**Clients.** One page per client: contact details, notes and linked files, their documents, mail, to-dos, projects, time and a new-site checklist. Retainers draft their invoice on the day. Domains and hosting renewals raise a to-do and, if the client pays, the renewal invoice.
+**Clients.** One page per client: contact details, notes and linked files, their documents, mail, people, to-dos, projects, time, site logins (encrypted, never shown to assistants) and a new-site checklist. Contacts holds everyone, linked both ways with clients, with vCard and CSV import and export. Retainers draft their invoice on the day. Domains and hosting renewals raise a to-do and, if the client pays, the renewal invoice.
 
 **Money.** Money received and expenses month by month, recurring expenses added on their day, an income projection (expected against came in, 12 months, with a chart) and reports for the tax year (1 March to February).
 
-**Planning.** To-do, calendar, weekly planner and time tracking (a timer or typed-in hours, for a client, a project or nobody).
+**Planner.** Projects laid out like Asana: Home, My tasks (project tasks and to-dos together), and each project with Overview, List, Board, Timeline, Calendar and Files tabs; sections, subtasks, assignees, priority, tags, custom fields, dependencies, milestones, comments, attachments, repeating tasks and templates. Also the calendar, a week planner and time tracking (a timer or typed-in hours, for a client, a project or nobody). My pages are pages you build from widgets.
+
+**Computer.** An explorer for the whole PC with tags, search inside files, Quick Look and a copy queue; PDF tools (join, split, reorder, fill in and sign); notebooks with checklists and tables; screenshots and screen recording from any program; a picture viewer with crop, resize and convert; clipboard history and a colour picker.
 
 **Mail.** Both mailboxes over IMAP and SMTP (MailKit), read in a native HTML viewer with scripts off and remote images blocked. Write with bold, lists, links, signature pictures and drag-and-drop attachments. Mail is checked in the background and new mail is announced. Address suggestions come from clients and past mail. Organise it with your own categories (coloured dots, kept on the server as IMAP keywords so Thunderbird and phones see them), an Important mark, quick filters, your own folders, Archive, a right-click menu, several messages at once, drag onto a folder, and keys.
 
 **Web tools.** Site check (DNS, MX, SPF, DKIM, DMARC, RDAP and a PageSpeed run, with results kept), uptime and certificate watch for client sites, a mark-up tool for screenshots, image resizing and WebP, calculator, password generator, colour picker and QR codes.
 
-**Assistants.** `Webignite.Connector` is an MCP server that Claude Desktop and ChatGPT start locally. They can search and read mail, draft replies, list and prepare quotes and invoices, and read and add to-dos. Only a person approves or sends.
+**Assistants.** `Webignite.Connector` is an MCP server that Claude Desktop and ChatGPT start locally. They can work in Planner (projects, tasks, sections, fields, dependencies, comments), keep the to-do list, look after clients and their history, Contacts, notes, the calendar, time and renewals, search and read mail and draft replies, and prepare quotes and invoices. They never delete, send or approve, and never see site logins. The open app shows their changes within a few seconds.
 
 **Everything else.** Encrypted daily backups, Ctrl+K search across everything, a morning summary, keyboard shortcuts, Undo after removing, light and dark looks with a motion setting, in-app updates from GitHub releases.
 
@@ -58,7 +60,7 @@ To add a page, a setting, a table, a background check, an assistant tool or a te
 | `tests/Webignite.Tests` | xUnit tests for Core, Data, Xero, Mail and Services. Xero and mail are tested against fake HTTP handlers. |
 | `tools/Snapshot` | Renders every screen to PNG without opening a window, using a throwaway database with sample data. |
 
-Colours live in `src/Webignite.Desktop/Styles/Palette.axaml` and the three `Palette.Dark.*.axaml` files, which all hold the same names. The only other colours are inside mail itself: mail is shown on white paper in every look, so its base text colour is written into the mail's own HTML.
+Colours live in `src/Webignite.Desktop/Styles/Palette.axaml`, `Palette.Light.Asana.axaml` and the four `Palette.Dark.*.axaml` files, which all hold the same names. The only other colours are inside mail itself: mail is shown on white paper in every look, so its base text colour is written into the mail's own HTML.
 
 ## Where things live on the PC
 

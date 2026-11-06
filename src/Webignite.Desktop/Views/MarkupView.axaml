@@ -163,7 +163,7 @@
               <Button Classes="quiet" Content="Copy picture" Command="{Binding CopyImageCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
               <Button Classes="quiet" Content="{Binding SaveToText}" Command="{Binding SaveToFolderCommand}"
                       ToolTip.Tip="Saves it as a PNG in the client's folder when they have one, else in your Screenshots folder" />
-              <Button Classes="quiet" Content="Add to my to-do list" Command="{Binding AddToTodoCommand}" ToolTip.Tip="Saves it and adds a to-do that says where it is" />
+              <Button Classes="quiet" Content="Add to My tasks" Command="{Binding AddToTodoCommand}" ToolTip.Tip="Saves it and adds a to-do in My tasks that says where it is" />
               <Button Classes="link" Content="Save as…" Click="SavePng" />
               <Button Classes="link" Content="Show in Files" Command="{Binding ShowSavedCommand}" IsVisible="{Binding HasSaved}" />
             </WrapPanel>
