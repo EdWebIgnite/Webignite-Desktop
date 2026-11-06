@@ -260,6 +260,7 @@ public sealed partial class TaskDetail : ObservableObject
         loading = false;
         ShowLinksAndHistory();
         LoadSubtasks();
+        LoadDependencies();
         Attachments.Clear();
         foreach (var attachment in Task.Attachments)
             Attachments.Add(new AttachmentRow(Task, attachment, page, 120));
@@ -394,7 +395,12 @@ public sealed partial class TaskDetail : ObservableObject
         page.ChangeOpenTask(t => ProjectRules.WithDescription(t, description) with { Title = title, Tags = tags }, typed: true);
     }
 
-    partial void OnDoneChanged(bool value) => Change(t => t with { Done = value });
+    partial void OnDoneChanged(bool value)
+    {
+        Change(t => t with { Done = value });
+        if (value && !loading && TaskDependencies.WaitingOn(Task, services.Projects.AllTasks(Task.ProjectId)) is { Length: > 0 } waiting)
+            page.Tell($"Done, though it was still waiting on {waiting}.");
+    }
     partial void OnAssignedToChanged(Choice<string?>? value)
     {
         OnPropertyChanged(nameof(HasAssignee));

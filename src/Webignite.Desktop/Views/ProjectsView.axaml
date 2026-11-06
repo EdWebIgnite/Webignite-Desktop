@@ -1040,6 +1040,8 @@
                       </Button>
                       <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Milestone}" Size="12" Foreground="{DynamicResource Muted}" IsVisible="{Binding IsMilestone}"
                               VerticalAlignment="Center" Margin="6,0,0,0" ToolTip.Tip="Milestone" />
+                      <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Blocked}" Size="12" Foreground="{DynamicResource Muted}" IsVisible="{Binding IsWaiting}"
+                              VerticalAlignment="Center" Margin="6,0,0,0" ToolTip.Tip="{Binding WaitingText}" />
                       <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasComments}" ToolTip.Tip="Comments" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="3">
                           <TextBlock Text="{Binding CommentText}" FontSize="11" VerticalAlignment="Center" />
@@ -1253,6 +1255,7 @@
                               <Border Classes="calendartask" Classes.done="{Binding Done}">
                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                   <c:Icon Data="{StaticResource Icon.Milestone}" Size="10" IsVisible="{Binding IsMilestone}" VerticalAlignment="Center" />
+                                  <c:Icon Data="{StaticResource Icon.Blocked}" Size="10" IsVisible="{Binding IsWaiting}" VerticalAlignment="Center" ToolTip.Tip="{Binding WaitingText}" />
                                   <TextBlock Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 </StackPanel>
                               </Border>
@@ -1349,6 +1352,8 @@
                                       <DockPanel Grid.Column="1" Margin="0,2,0,0">
                                         <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Milestone}" Size="12" Foreground="{DynamicResource Muted}"
                                                 IsVisible="{Binding IsMilestone}" VerticalAlignment="Top" Margin="0,3,6,0" ToolTip.Tip="Milestone" />
+                                        <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Blocked}" Size="12" Foreground="{DynamicResource Muted}"
+                                                IsVisible="{Binding IsWaiting}" VerticalAlignment="Top" Margin="0,3,6,0" ToolTip.Tip="{Binding WaitingText}" />
                                         <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
                                       </DockPanel>
                                     </Grid>
@@ -1459,7 +1464,7 @@
             <TextBlock Classes="problem" Text="{Binding Problem}" IsVisible="{Binding HasProblem}" TextWrapping="Wrap" />
 
             <!-- The fields, as Asana's: name on the left, value on the right -->
-            <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="fields">
+            <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="fields">
               <TextBlock Classes="field" Text="Assignee" />
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <c:Monogram Text="{Binding AssignedTo.Label, FallbackValue=''}" Size="24" IsVisible="{Binding HasAssignee}" VerticalAlignment="Center" />
@@ -1499,6 +1504,36 @@
               <TextBlock Grid.Row="5" Classes="field" Text="Repeats" />
               <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{Binding Repeats}" SelectedItem="{Binding Repeat}" MinWidth="180" HorizontalAlignment="Left"
                         ToolTip.Tip="Ticking it off makes the next one" />
+              <!-- Dependencies, as Asana's: the tasks it's waiting on, and the ones it holds up -->
+              <TextBlock Grid.Row="6" Classes="field" Text="Waiting on" VerticalAlignment="Top" Margin="0,7,0,0" />
+              <StackPanel Grid.Row="6" Grid.Column="1" Spacing="4">
+                <ItemsControl ItemsSource="{Binding WaitingOn}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DependencyRow">
+                      <Border Classes="projectchip" Margin="0,0,0,4" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <c:Icon Data="{StaticResource Icon.Check}" Size="12" Foreground="{DynamicResource Ok}" IsVisible="{Binding Done}" VerticalAlignment="Center" />
+                          <c:Icon Data="{StaticResource Icon.Blocked}" Size="12" Foreground="{DynamicResource Muted}" IsVisible="{Binding Open}" VerticalAlignment="Center" />
+                          <Button Classes="link" Padding="0" Content="{Binding Title}" Command="{Binding ShowCommand}" ToolTip.Tip="Open it" />
+                          <Button Classes="quiet coltool" Command="{Binding RemoveCommand}" ToolTip.Tip="Stop waiting on it" Padding="3">
+                            <c:Icon Data="{StaticResource Icon.Close}" Size="10" />
+                          </Button>
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Classes="quiet" Padding="8,4" HorizontalAlignment="Left" ToolTip.Tip="Pick a task in this project that has to be done first">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <c:Icon Data="{StaticResource Icon.Plus}" Size="12" VerticalAlignment="Center" />
+                    <TextBlock Text="Add a task it waits on" FontSize="12" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <Button.Flyout>
+                    <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="DependencyFilling" />
+                  </Button.Flyout>
+                </Button>
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding BlockingText}" IsVisible="{Binding HasBlocking}" TextWrapping="Wrap" />
+              </StackPanel>
             </Grid>
 
             <!-- Description, with formatting as Asana's -->

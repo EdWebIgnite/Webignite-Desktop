@@ -505,6 +505,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             IsPicked = picked.Contains(task.Id),
             IsExpanded = expanded.Contains(task.Id),
             CommentCount = commentCounts.GetValueOrDefault(task.Id),
+            WaitingTip = TaskDependencies.WaitingOn(task, tasks),
         };
         commentCounts = services.Projects.CommentCounts();
         // The board is always the project's headings; the list is grouped as picked, the same rows when by headings.
@@ -550,6 +551,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         {
             IsOpen = task.Id == Detail?.Task.Id,
             CommentCount = commentCounts.GetValueOrDefault(task.Id),
+            WaitingTip = TaskDependencies.WaitingOn(task, tasks),
         };
         LoadTimeline(shown, headings, Plain);
         LoadCalendar(shown, Plain);
@@ -1126,6 +1128,11 @@ public sealed partial class TaskRow : ObservableObject
     /// <summary>A milestone, shown with a diamond, as Asana's.</summary>
     public bool IsMilestone => Task.Milestone;
 
+    /// <summary>The open tasks it's still waiting on, by name; empty when it isn't waiting.</summary>
+    public string WaitingTip { get; init; } = "";
+    public bool IsWaiting => WaitingTip.Length > 0;
+    public string WaitingText => "Waiting on " + WaitingTip;
+
     [RelayCommand]
     private void Expand() => page.Expand(this);
 
@@ -1231,8 +1238,11 @@ public sealed partial class TaskRow : ObservableObject
     partial void OnDoneChanged(bool value)
     {
         OnPropertyChanged(nameof(IsLate));
-        if (!loading)
-            page.ChangeTask(this, t => t with { Done = value });
+        if (loading)
+            return;
+        page.ChangeTask(this, t => t with { Done = value });
+        if (value && IsWaiting)
+            page.Tell($"Done, though it was still waiting on {WaitingTip}.");
     }
 
     partial void OnAssignedToChanged(Choice<string?>? value)
