@@ -1855,7 +1855,7 @@ Save("site-check");
     vm.Markup.SaveToFolderCommand.Execute(null);
     Check("Save puts it in the client's folder", vm.Markup.SavedPath is { } shotPath && Path.GetDirectoryName(shotPath) == Path.Combine(projects, "Bosveld Builders") && File.Exists(shotPath));
     vm.Markup.AddToTodoCommand.Execute(null);
-    Check("Add to my to-do list makes a to-do that says where it is",
+    Check("Add to My tasks makes a to-do that says where it is",
         store.ListTasks().Any(t => t.Customer == "Bosveld Builders" && t.Notes?.Contains(vm.Markup.SavedPath!, StringComparison.Ordinal) == true));
 
     var shortcutSettings = (SettingsViewModel)vm[Page.Settings].Main.Page;

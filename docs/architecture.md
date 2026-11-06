@@ -272,7 +272,7 @@ sequenceDiagram
     participant Mail as Mail page (ComposeViewModel)
     participant Service as MailService
 
-    Eddie->>Editor: Email it
+    Eddie->>Editor: Approve and email
     Editor->>Sending: PrepareAsync
     Sending->>Xero: PDF and contact email
     Editor->>Mail: open the filled-in mail with the PDF (through MailDrafts)
@@ -283,7 +283,7 @@ sequenceDiagram
     Sending->>Xero: invoice marked sent, quote marked SENT
 ```
 
-Approving the invoice and marking it sent are the only Xero writes that aren't drafts, and they happen only from the person's own click on Email it. Claude and ChatGPT never get this far.
+Approving the invoice and marking it sent are the only Xero writes that aren't drafts, and they happen only from the person's own click on the email button (Approve and email, Email the invoice or quote, or Email it on the list's right-click menu). Claude and ChatGPT never get this far.
 
 ### Mail arrives
 

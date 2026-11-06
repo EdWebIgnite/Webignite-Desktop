@@ -13,7 +13,7 @@
         <Button Classes="quiet" Content="›" Command="{Binding NextWeekCommand}" ToolTip.Tip="Next week" />
       </StackPanel>
       <StackPanel>
-        <TextBlock Classes="h1" Text="Planner" />
+        <TextBlock Classes="h1" Text="Week" />
         <TextBlock Classes="muted" Text="{Binding WeekTitle}" />
       </StackPanel>
     </DockPanel>
