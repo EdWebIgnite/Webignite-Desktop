@@ -59,13 +59,38 @@ public sealed class SpellingTests
     }
 
     [Fact]
-    public void South_African_English_is_used_when_the_PC_has_it_then_British_then_American()
+    public void British_English_is_used_when_the_PC_has_it_then_South_African_then_American()
     {
-        Assert.Equal("en-ZA", Spelling.Pick(null, ["en-US", "en-GB", "en-ZA"]));
-        Assert.Equal("en-GB", Spelling.Pick(null, ["en-US", "en-GB", "af-ZA"]));
+        Assert.Equal("en-GB", Spelling.Pick(null, ["en-US", "en-GB", "en-ZA"]));
+        Assert.Equal("en-ZA", Spelling.Pick(null, ["en-US", "en-ZA", "af-ZA"]));
         Assert.Equal("en-US", Spelling.Pick("", ["af-ZA", "en-US"]));
         Assert.Equal("af-ZA", Spelling.Pick("AF-za", ["af-ZA", "en-US"]));
         Assert.Equal("en-GB", Spelling.Pick("xh-ZA", ["en-GB", "af-ZA"]));
         Assert.Null(Spelling.Pick(null, []));
+    }
+
+    [Fact]
+    public void British_South_African_English_and_Afrikaans_are_checked_together_by_default()
+    {
+        Assert.Equal(["en-GB", "en-ZA", "af-ZA"], Spelling.Wanted(new SpellCheckSettings()));
+        Assert.Equal(["en-US"], Spelling.Wanted(new SpellCheckSettings { Language = "en-US" }));
+        Assert.Equal(["af-ZA"], Spelling.Wanted(new SpellCheckSettings { Language = "en-US", Languages = ["af-ZA"] }));
+        Assert.Equal(["EN-gb", "af-ZA"], Spelling.PickAll(Spelling.Usual, ["af-ZA", "en-US", "EN-gb"]));
+        Assert.Equal(["en-US"], Spelling.PickAll(["xh-ZA"], ["en-US"]));
+        Assert.Equal(["en-ZA"], Spelling.Missing(Spelling.Usual, ["en-GB", "af-ZA"]));
+    }
+
+    [Fact]
+    public void A_word_is_wrong_only_when_no_language_knows_it_and_suggestions_start_with_British()
+    {
+        var british = new Dictionary("colour", "thanks");
+        var afrikaans = new Dictionary("baie", "dankie");
+        using var both = new MultiSpelling([british, afrikaans]);
+        Assert.DoesNotContain(Spelling.Mistakes("Baie dankie, thanks for the colour", both), m => m.Word is "Baie" or "dankie" or "thanks" or "colour");
+        Assert.True(both.IsWrong("zzzq"));
+        both.Add("Webignite");
+        Assert.False(both.IsWrong("Webignite"));
+        Assert.False(british.IsWrong("Webignite"));
+        Assert.True(afrikaans.IsWrong("Webignite"));
     }
 }

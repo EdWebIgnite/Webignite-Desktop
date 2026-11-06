@@ -30,8 +30,32 @@ public readonly record struct Misspelt(int Start, int Length, string Word);
 /// <summary>Which words in writing are checked, and which are wrong.</summary>
 public static partial class Spelling
 {
-    /// <summary>Languages tried in turn when the one picked isn't on the PC.</summary>
-    public static readonly IReadOnlyList<string> Fallbacks = ["en-ZA", "en-GB", "en-US"];
+    /// <summary>Languages tried in turn when none of those picked is on the PC: British English first, as preferred.</summary>
+    public static readonly IReadOnlyList<string> Fallbacks = ["en-GB", "en-ZA", "en-US"];
+
+    /// <summary>The languages checked unless others are picked: British English (preferred), South African English and Afrikaans.</summary>
+    public static readonly IReadOnlyList<string> Usual = ["en-GB", "en-ZA", "af-ZA"];
+
+    /// <summary>The languages wanted: those picked, an older single pick, or the usual three.</summary>
+    public static IReadOnlyList<string> Wanted(SpellCheckSettings settings) =>
+        settings.Languages is { Count: > 0 } picked ? picked
+        : !string.IsNullOrWhiteSpace(settings.Language) ? [settings.Language.Trim()]
+        : Usual;
+
+    /// <summary>
+    /// The wanted languages the PC has, in the order wanted (the first gives suggestions first). When it has none
+    /// of them, the closest it has, so spelling is still checked.
+    /// </summary>
+    public static IReadOnlyList<string> PickAll(IReadOnlyList<string> wanted, IReadOnlyCollection<string> available)
+    {
+        var found = wanted.Select(w => available.FirstOrDefault(a => string.Equals(a, w.Trim(), StringComparison.OrdinalIgnoreCase)))
+            .OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        return found.Count > 0 ? found : Pick(null, available) is { } closest ? [closest] : [];
+    }
+
+    /// <summary>The wanted languages the PC doesn't have, to say how to add them.</summary>
+    public static IReadOnlyList<string> Missing(IReadOnlyList<string> wanted, IReadOnlyCollection<string> available) =>
+        [.. wanted.Where(w => !available.Any(a => string.Equals(a, w.Trim(), StringComparison.OrdinalIgnoreCase)))];
 
     /// <summary>
     /// The words worth checking. Left out: web and email addresses, file names, anything with a digit in it (R1 500,
@@ -67,7 +91,7 @@ public static partial class Spelling
         Words(text).Where(w => offset >= w.Start && offset <= w.Start + w.Length).Select(w => (Misspelt?)w).FirstOrDefault(w => checker.IsWrong(w!.Value.Word));
 
     /// <summary>
-    /// The language to use: the one picked when the PC has it, else South African English, British, then American,
+    /// The language to use: the one picked when the PC has it, else British English, South African, then American,
     /// else whatever the PC has.
     /// </summary>
     public static string? Pick(string? wanted, IReadOnlyCollection<string> available)
@@ -93,11 +117,51 @@ public static partial class Spelling
     private static partial Regex Word();
 }
 
-/// <summary>Spell check while writing: on or off, and the language when not the default.</summary>
+/// <summary>Spell check while writing: on or off, and the languages when not the usual three.</summary>
 public sealed record SpellCheckSettings
 {
     public bool On { get; init; } = true;
 
-    /// <summary>A language tag such as en-ZA; empty means South African English, or the closest the PC has.</summary>
+    /// <summary>A single language tag, as picked before several could be; read only when <see cref="Languages"/> is empty.</summary>
     public string? Language { get; init; }
+
+    /// <summary>The languages to check in, the preferred first; empty means <see cref="Spelling.Usual"/>.</summary>
+    public IReadOnlyList<string>? Languages { get; init; }
+}
+
+/// <summary>
+/// Several dictionaries checked together, for writing in more than one language (English and Afrikaans in one
+/// mail): a word is wrong only when none of them knows it. Suggestions come from the first, the preferred
+/// language, then the others; a word added goes in the first.
+/// </summary>
+public sealed class MultiSpelling(IReadOnlyList<ISpelling> checkers) : ISpelling, IDisposable
+{
+    public IReadOnlyList<ISpelling> Checkers { get; } = checkers;
+
+    public string Language => string.Join(", ", Checkers.Select(c => c.Language));
+
+    public int Revision => Checkers.Sum(c => c.Revision);
+
+    public bool IsWrong(string word) => Checkers.Count > 0 && Checkers.All(c => c.IsWrong(word));
+
+    public IReadOnlyList<string> Suggest(string word) =>
+        [.. Checkers.SelectMany(c => c.Suggest(word)).Distinct(StringComparer.Ordinal).Take(6)];
+
+    public void Add(string word)
+    {
+        if (Checkers.Count > 0)
+            Checkers[0].Add(word);
+    }
+
+    public void Ignore(string word)
+    {
+        foreach (var checker in Checkers)
+            checker.Ignore(word);
+    }
+
+    public void Dispose()
+    {
+        foreach (var checker in Checkers)
+            (checker as IDisposable)?.Dispose();
+    }
 }

@@ -356,7 +356,7 @@ public sealed class AppServices : IDisposable
                 spellingTried = true;
                 try
                 {
-                    spelling = WindowsSpelling.Open(Settings.SpellCheck.Language);
+                    spelling = WindowsSpelling.Open(Webignite.Core.Writing.Spelling.Wanted(Settings.SpellCheck));
                 }
                 catch (Exception e) when (e is COMException or InvalidCastException or TypeLoadException)
                 {
