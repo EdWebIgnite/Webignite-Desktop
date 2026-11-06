@@ -90,7 +90,15 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
         var dayChoices = Days.Where(d => d.Date >= Today).Select(d => new DueChoice(d.Name, _ => d.Date)).ToList();
         Unplanned.Clear();
         foreach (var task in TaskGroups.Sort(tasks.Where(t => !t.Done && t.Due is null)))
-            Unplanned.Add(new UnplannedTaskViewModel(task, dayChoices, this));
+            Unplanned.Add(new UnplannedTaskViewModel(task.Title, "To-do", dayChoices, day => Plan(task, day)));
+        // Tasks given to me in projects with no due date, as My tasks has them.
+        var names = services.Projects.Projects().ToDictionary(p => p.Id, p => p.Name);
+        foreach (var task in services.Projects.Mine(services.Me().Id).Where(t => t.Due is null).OrderBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase))
+            Unplanned.Add(new UnplannedTaskViewModel(task.Title, names.GetValueOrDefault(task.ProjectId) ?? "", dayChoices, day =>
+            {
+                services.Projects.ChangeTask(task.Id, t => t with { Due = day });
+                Refresh();
+            }));
         OnPropertyChanged(nameof(HasUnplanned));
     }
 }
@@ -104,9 +112,11 @@ public sealed class PlannerDayViewModel(DateOnly date, bool isToday, IReadOnlyLi
     public bool IsFree => Items.Count == 0;
 }
 
-public sealed class UnplannedTaskViewModel(TaskItem task, IReadOnlyList<DueChoice> days, PlannerViewModel owner) : ViewModelBase
+/// <summary>A to-do, or a task given to me in a project, with no day yet: pick one to plan it.</summary>
+public sealed class UnplannedTaskViewModel(string title, string about, IReadOnlyList<DueChoice> days, Action<DateOnly> plan) : ViewModelBase
 {
-    public string Title => task.Title;
+    public string Title => title;
+    public string About => about;
     public IReadOnlyList<DueChoice> Days { get; } = days;
     public bool CanPlan => Days.Count > 0;
 
@@ -116,7 +126,7 @@ public sealed class UnplannedTaskViewModel(TaskItem task, IReadOnlyList<DueChoic
         set
         {
             if (value?.Pick(default) is { } day)
-                owner.Plan(task, day);
+                plan(day);
         }
     }
 }

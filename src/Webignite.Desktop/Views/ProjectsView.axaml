@@ -262,7 +262,7 @@
       <Setter Property="Padding" Value="0,10,0,0" />
     </Style>
     <Style Selector="Button.linktile">
-      <Setter Property="Width" Value="260" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="Background" Value="{DynamicResource Surface}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="1" />
@@ -883,13 +883,13 @@
                 </DockPanel>
                 <TextBlock Classes="muted" Text="Links to the brief, the staging site or a shared folder, kept in one place."
                            IsVisible="{Binding NoLinks}" TextWrapping="Wrap" />
-                <ItemsControl ItemsSource="{Binding Links}">
+                <ItemsControl ItemsSource="{Binding Links}" Margin="0,0,-10,-10">
                   <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate><WrapPanel ItemSpacing="10" LineSpacing="10" /></ItemsPanelTemplate>
+                    <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:LinkRow">
-                      <Button Classes="linktile" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Url}">
+                      <Button Classes="linktile" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Url}" Margin="0,0,10,10">
                         <DockPanel>
                           <Button DockPanel.Dock="Right" Classes="quiet coltool" Command="{Binding RemoveCommand}" ToolTip.Tip="Take the link off" VerticalAlignment="Center" Margin="6,0,0,0">
                             <c:Icon Data="{StaticResource Icon.Close}" Size="12" />

@@ -2624,6 +2624,7 @@ Save("site-check");
         homePage.ShowTabCommand.Execute(HomeTab.Completed);
         Check("Home's Completed tab shows tasks I ticked off lately", homePage.IsCompleted && homePage.Tasks.Count > 0);
         homePage.ShowTabCommand.Execute(HomeTab.Upcoming);
+        Check("Home's My tasks has my to-dos too, as the My tasks page does", homePage.Tasks.Any(t => t.Item.Todo is not null) && homePage.Tasks.Any(t => t.Item.Task is not null));
         window.Width = 1920;
         window.Height = 1080;
         Dispatcher.UIThread.RunJobs();
@@ -2671,6 +2672,8 @@ Save("site-check");
         homePage.Refresh();
         Open(Page.Planner);
         Check("The week planner is called Week inside Planner", vm.Selected.Title == "Week" && vm.Sidebar.IsPlanner);
+        Check("Week's list without a day has project tasks given to me as well as to-dos",
+            ((PlannerViewModel)vm.Current.Page).Unplanned.Any(u => u.About == "To-do") && ((PlannerViewModel)vm.Current.Page).Unplanned.Any(u => u.About != "To-do"));
         vm.SelectedNav = vm.Sidebar.PlannerBack;
         Dispatcher.UIThread.RunJobs();
         Check("The arrow at the top goes back to the main sidebar, leaving the page as it was", !vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Planner
