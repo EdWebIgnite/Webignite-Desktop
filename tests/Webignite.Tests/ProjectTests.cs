@@ -68,6 +68,35 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void Comments_and_what_happened_make_the_task_feed()
+    {
+        var project = NewProject();
+        var build = projects.AddHeading(project.Id, "Build").Saved!;
+        var task = NewTask(project.Id, "Contact form");
+        clock.Now = clock.Now.AddMinutes(1);
+        projects.ChangeTask(task.Id, t => t with { Done = true, HeadingId = build.Id, Order = 9 });
+        NewTask(project.Id, "Spam filter", parent: task.Id);
+        who = "jaco";
+        var (comment, problem) = projects.AddComment(task.Id, "  Tested on my phone, works.  ");
+        Assert.Null(problem);
+        Assert.NotNull(projects.AddComment(task.Id, " ").Problem);
+
+        Assert.Equal("Tested on my phone, works.", Assert.Single(projects.Comments(task.Id)).Text);
+        Assert.Equal("jaco", comment!.Created.By);
+        Assert.Equal([ActivityKind.Created, ActivityKind.Completed, ActivityKind.Moved, ActivityKind.SubtaskAdded],
+            projects.Activity(task.Id).Select(a => a.Kind));
+        Assert.Equal(1, projects.CommentCounts()[task.Id]);
+
+        projects.EditComment(comment.Id, "Tested on phone and tablet.");
+        Assert.Equal("Tested on phone and tablet.", projects.Comments(task.Id)[0].Text);
+        var gone = projects.DeleteComment(comment.Id)!;
+        Assert.Empty(projects.Comments(task.Id));
+        Assert.False(projects.CommentCounts().ContainsKey(task.Id));
+        projects.RestoreComment(gone);
+        Assert.Single(projects.Comments(task.Id));
+    }
+
+    [Fact]
     public void A_file_attached_is_copied_with_the_app_and_deleted_when_taken_off()
     {
         var project = NewProject();

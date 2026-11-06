@@ -284,6 +284,7 @@ public sealed partial class TaskDetail : ObservableObject
         var team = services.Team();
         var names = new Dictionary<string, string> { [team.Me!.Id] = team.Me.Name, [team.Partner!.Id] = team.Partner.Name };
         History = ProjectRules.History(Task, names, TimeZoneInfo.Local, CultureInfo.CurrentCulture);
+        LoadFeed();
         OnPropertyChanged(nameof(HasMail));
         OnPropertyChanged(nameof(NoMail));
         OnPropertyChanged(nameof(MailSubject));

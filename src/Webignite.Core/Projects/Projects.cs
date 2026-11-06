@@ -686,6 +686,14 @@ public static class ProjectRules
         return after with { Created = created, Fields = fields, Changed = changed ? now : before!.Changed, Deleted = before?.Deleted };
     }
 
+    private static readonly (string Name, Func<TaskComment, object?> Value)[] CommentFields = [("text", c => c.Text)];
+
+    public static TaskComment Stamped(TaskComment? before, TaskComment after, Stamp now)
+    {
+        var (created, fields, changed) = Mark(before, after, now, CommentFields);
+        return after with { Created = created, Fields = fields, Changed = changed ? now : before!.Changed, Deleted = before?.Deleted };
+    }
+
     public static Heading Stamped(Heading? before, Heading after, Stamp now)
     {
         var (created, fields, changed) = Mark(before, after, now, HeadingFields);

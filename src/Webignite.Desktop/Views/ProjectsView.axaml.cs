@@ -389,6 +389,39 @@ public partial class ProjectsView : FullBleedView
         e.Handled = true;
     }
 
+    // Ctrl+Enter posts the comment, as in Asana; Enter alone is a new line.
+    private void CommentKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && e.KeyModifiers.HasFlag(KeyModifiers.Control) && Projects?.Detail is { } task)
+        {
+            task.PostCommentCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    // A comment's right-click menu: copy it, and change or delete my own.
+    private void FeedMenu(object? sender, ContextRequestedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not FeedRow { IsComment: true } row)
+            return;
+        var copy = new MenuItem { Header = "Copy" };
+        copy.Click += (_, _) =>
+        {
+            if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+                Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, row.Text).Forget("Copying a comment");
+        };
+        var items = new List<object> { copy };
+        if (row.IsMine)
+        {
+            var edit = new MenuItem { Header = "Edit", Command = row.EditCommand };
+            edit.Click += (_, _) => CommentBox.Focus();
+            items.Add(edit);
+            items.Add(new MenuItem { Header = "Delete", Command = row.DeleteCommand });
+        }
+        new ContextMenu { ItemsSource = items }.Open(sender as Control);
+        e.Handled = true;
+    }
+
     private void DescriptionBold(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleBold();
     private void DescriptionItalic(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleItalic();
     private void DescriptionUnderline(object? sender, RoutedEventArgs e) => DescriptionEditor.ToggleUnderline();

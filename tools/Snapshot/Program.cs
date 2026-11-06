@@ -2686,6 +2686,34 @@ Save("site-check");
             pdfRow.RemoveCommand.Execute(null);
             Check("Removing a file takes it off the task and out of Files", projectsPage.ProjectFiles.Count == 1
                 && services.Projects.GetTask(coloursTask.Task.Id)!.Attachments.Count == 1);
+            // Comments and All activity, as Asana's: a comment posted shows in the feed and counts in the list.
+            projectsPage.ListViewCommand.Execute(null);
+            projectsPage.OpenTaskById(coloursTask.Task.Id);
+            Dispatcher.UIThread.RunJobs();
+            var talk = projectsPage.Detail!;
+            talk.NewComment = "Jaco, the client prefers the darker green. Can you swap it?";
+            talk.PostCommentCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Check("A comment posted shows in the task's feed, by me, today", talk.Feed.Count == 1 && talk.Feed[0].IsComment && talk.Feed[0].When.StartsWith("Today", StringComparison.Ordinal)
+                && talk.NewComment.Length == 0);
+            Check("A speech bubble in the list counts the comments", projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == coloursTask.Task.Id).CommentCount == 1);
+            talk.ShowAllActivityCommand.Execute(null);
+            Check("All activity adds what happened: attached, removed, and the comment", talk.Feed.Count > 1
+                && talk.Feed.Any(f => f.Text.StartsWith("attached", StringComparison.Ordinal)) && talk.Feed.Any(f => f.IsComment));
+            window.Width = 1920;
+            window.Height = 1300;
+            Dispatcher.UIThread.RunJobs();
+            var paneScroll = window.GetVisualDescendants().OfType<Avalonia.Controls.Border>().First(b => b.Name == "TaskPane")
+                .GetVisualDescendants().OfType<Avalonia.Controls.ScrollViewer>().First();
+            paneScroll.Offset = new Vector(0, 10_000);
+            Dispatcher.UIThread.RunJobs();
+            Save("task-activity");
+            paneScroll.Offset = default;
+            window.Height = 1080;
+            talk.ShowCommentsCommand.Execute(null);
+            talk.Feed[0].DeleteCommand.Execute(null);
+            Check("Deleting my comment takes it out of the feed and the list's count", talk.Feed.Count == 0
+                && projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == coloursTask.Task.Id).CommentCount == 0);
             projectsPage.CloseTaskCommand.Execute(null);
             projectsPage.ListViewCommand.Execute(null);
             window.Width = 1920;
