@@ -252,6 +252,24 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void Status_updates_and_key_resources_are_kept_on_the_project_and_stamped()
+    {
+        var project = NewProject();
+        var (posted, problems) = projects.PostStatus(project.Id, ProjectHealth.OnTrack, "Home page signed off.");
+        Assert.Empty(problems);
+        Assert.Equal(ProjectHealth.OnTrack, posted!.Health);
+        Assert.Equal(who, Assert.Single(posted.Updates).By);
+        Assert.True(posted.Fields.ContainsKey("updates"));
+        Assert.Single(projects.PostStatus(project.Id, ProjectHealth.None, "").Problems);
+
+        var (linked, _) = projects.AddLink(project.Id, "Staging", "staging.bosveld.co.za");
+        Assert.Equal("https://staging.bosveld.co.za", Assert.Single(projects.Get(project.Id)!.Links).Url);
+        Assert.Single(projects.AddLink(project.Id, "", "nope").Problems);
+        projects.RemoveLink(project.Id, linked!.Links[0].Id);
+        Assert.Empty(projects.Get(project.Id)!.Links);
+    }
+
+    [Fact]
     public void Deleting_leaves_a_marker_with_who_and_when_and_undo_puts_it_all_back()
     {
         var project = NewProject();

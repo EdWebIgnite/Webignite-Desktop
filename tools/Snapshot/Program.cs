@@ -2296,6 +2296,44 @@ Save("site-check");
         projectsPage.Refresh();
         projectsPage.ListViewCommand.Execute(null);
 
+        // The Overview tab, as Asana's: description, key resources, milestones and status updates.
+        var healthBefore = services.Projects.Get(site.Id)!.Health;
+        projectsPage.OverviewViewCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Check("The Overview tab shows, and the task tools hide", projectsPage.IsOverview && !projectsPage.IsList && !projectsPage.ShowsTaskTools);
+        projectsPage.ProjectDescription = Webignite.Core.Writing.RichText.FromText("Six pages to start, with online booking for site visits in phase two. Pieter signs off each page before it goes live.");
+        projectsPage.ProjectDescriptionRevision++;
+        projectsPage.Keep();
+        Check("The project description is kept once typing stops", services.Projects.Get(site.Id)!.Notes.StartsWith("Six pages", StringComparison.Ordinal));
+        projectsPage.NewLinkUrl = "staging.bosveld.co.za";
+        projectsPage.NewLinkTitle = "Staging site";
+        projectsPage.AddLinkCommand.Execute(null);
+        projectsPage.NewLinkUrl = "figma.com/file/bosveld";
+        projectsPage.AddLinkCommand.Execute(null);
+        Check("Key resources are added, a bare address made whole and named after its site", projectsPage.Links.Count == 2
+            && projectsPage.Links[0].Url == "https://staging.bosveld.co.za" && projectsPage.Links[1].Title == "figma.com");
+        projectsPage.NewMilestone = "Client sign-off";
+        projectsPage.AddMilestoneCommand.Execute(null);
+        projectsPage.SetMilestone(projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Point the domain at the new site"), true);
+        Check("Milestones show on the Overview, in their order when none has a date",
+            projectsPage.Milestones.Select(m => m.Title).SequenceEqual(["Point the domain at the new site", "Client sign-off"]));
+        Check("A task marked as a milestone shows a diamond in the list", projectsPage.Rows.OfType<TaskRow>().Any(r => r.IsMilestone));
+        projectsPage.StartUpdateCommand.Execute(Webignite.Core.Projects.ProjectHealth.AtRisk);
+        projectsPage.UpdateText = "Home page is signed off. Waiting on photos from Pieter before the gallery can go in.";
+        projectsPage.PostUpdateCommand.Execute(null);
+        Check("A status update posted goes on the Overview and sets the header's status",
+            projectsPage.Updates.Count == 1 && projectsPage.EditHealth == Webignite.Core.Projects.ProjectHealth.AtRisk && !projectsPage.IsWritingUpdate);
+        window.Width = 1900;
+        Dispatcher.UIThread.RunJobs();
+        Save("projects-overview");
+        window.Width = 1280;
+        // Put the project back for the checks after.
+        services.Projects.DeleteTask(projectsPage.Milestones.First(m => m.Title == "Client sign-off").Task.Id);
+        services.Projects.ChangeTask(projectsPage.Milestones.First().Task.Id, t => t with { Milestone = false });
+        services.Projects.Change(site.Id, p => p with { Health = healthBefore, Updates = [], Links = [] });
+        projectsPage.ListViewCommand.Execute(null);
+        projectsPage.Refresh();
+
         // Priority and tags: set on the task page, shown on rows, and filtered by.
         projectsPage.OpenTaskById(pages.Id);
         var tagged = projectsPage.Detail!;

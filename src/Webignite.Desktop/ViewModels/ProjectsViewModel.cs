@@ -405,7 +405,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     [NotifyPropertyChangedFor(nameof(IsList))]
     public partial bool IsBoard { get; set; }
 
-    public bool IsList => !IsBoard && !IsFiles;
+    public bool IsList => !IsBoard && !IsFiles && !IsOverview;
 
     // Kept with the open project only: another project opens the way it was left, a new one as a list.
     partial void OnIsBoardChanged(bool value)
@@ -419,6 +419,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     private void ListView()
     {
         IsFiles = false;
+        IsOverview = false;
         IsBoard = false;
     }
 
@@ -426,6 +427,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     private void BoardView()
     {
         IsFiles = false;
+        IsOverview = false;
         IsBoard = true;
     }
 
@@ -456,8 +458,9 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         }
         open = project;
         Layout = LayoutOf(project.Id);
-        IsBoard = Layout.Board && !Layout.Files;
-        IsFiles = Layout.Files;
+        IsBoard = Layout.Board && !Layout.Files && !Layout.Overview;
+        IsFiles = Layout.Files && !Layout.Overview;
+        IsOverview = Layout.Overview;
         IsMyTasks = false;
         IsTemplates = false;
         MyRows.Clear();
@@ -554,6 +557,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 Rows.Add(Columns.FirstOrDefault(c => c.Section == section)?.Add ?? new AddTaskRow(section, this));
         }
         OnPropertyChanged(nameof(CanReorder));
+        LoadOverview();
         Summary = SummaryOf(tasks);
         if (HasFilter)
             Summary += $". Showing {sections.Sum(x => x.Tasks.Count)} that match.";
@@ -701,6 +705,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         row.Task = saved;
         if (open is { } project)
             Summary = SummaryOf(services.Projects.AllTasks(project.Id));
+        if (IsOverview)
+            LoadOverview();
         // A repeating task ticked off has made its next one.
         if (!wasDone && saved.Done && saved.Repeat != TaskRepeat.None)
         {
@@ -975,6 +981,9 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 case TaskDetail detail when detail == Detail:
                     detail.SaveTyped();
                     break;
+                case var description when description == DescriptionTyped && open is not null:
+                    SaveDescription();
+                    break;
                 case SectionRow { Heading: { } heading } section when section.Name.Trim().Length > 0:
                     Ours(() => services.Projects.ChangeHeading(heading.Id, h => h with { Name = section.Name }));
                     break;
@@ -1118,6 +1127,9 @@ public sealed partial class TaskRow : ObservableObject
 
     /// <summary>A subtask shown under its task in the list, set in.</summary>
     public bool IsSubtask => Task.ParentId is not null;
+
+    /// <summary>A milestone, shown with a diamond, as Asana's.</summary>
+    public bool IsMilestone => Task.Milestone;
 
     [RelayCommand]
     private void Expand() => page.Expand(this);
