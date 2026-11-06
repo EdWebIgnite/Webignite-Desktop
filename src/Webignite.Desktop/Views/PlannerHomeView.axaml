@@ -40,6 +40,26 @@
     <Style Selector="Button.projecttile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource Surface2}" />
     </Style>
+    <!-- A round tick that fills green when the task is done, as in Asana and the project list -->
+    <Style Selector="CheckBox.tick">
+      <Setter Property="CornerRadius" Value="10" />
+    </Style>
+    <Style Selector="CheckBox.tick /template/ Border#NormalRectangle">
+      <Setter Property="CornerRadius" Value="10" />
+    </Style>
+    <Style Selector="CheckBox.tick:checked /template/ Border#NormalRectangle">
+      <Setter Property="Background" Value="{DynamicResource Ok}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Ok}" />
+    </Style>
+    <!-- A widget is dragged by its heading -->
+    <Style Selector="DockPanel.widgethandle">
+      <Setter Property="Cursor" Value="SizeAll" />
+    </Style>
+    <Style Selector="Button.widgetmenu">
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
     <Style Selector="Border.projectsquare">
       <Setter Property="Width" Value="48" />
       <Setter Property="Height" Value="48" />
@@ -49,12 +69,39 @@
   </UserControl.Styles>
 
   <StackPanel Spacing="24">
-    <!-- The date, the greeting and the week so far -->
+    <!-- The date, the greeting, the week so far and Customise, as Asana's Home -->
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom" Margin="0,0,0,6">
         <TextBlock Classes="muted" Text="My week" VerticalAlignment="Center" />
         <c:Icon Data="{StaticResource Icon.Check}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="10,0,0,0" />
-        <TextBlock Classes="muted" Text="{Binding CompletedText}" VerticalAlignment="Center" />
+        <TextBlock Classes="muted" Text="{Binding CompletedText}" VerticalAlignment="Center" Margin="0,0,12,0" />
+        <Button Classes="quiet" Padding="10,5" ToolTip.Tip="Add or take off widgets">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <c:Icon Data="{StaticResource Icon.Tiles}" Size="13" VerticalAlignment="Center" />
+            <TextBlock Text="Customise" VerticalAlignment="Center" />
+          </StackPanel>
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <StackPanel Spacing="10" Width="300">
+                <TextBlock Classes="h2" Text="Widgets" />
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                           Text="Tick to add one to Home. Drag a widget by its heading to move it; its ··· menu makes it full or half width." />
+                <ItemsControl ItemsSource="{Binding WidgetChoices}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:HomeWidgetChoice">
+                      <CheckBox IsChecked="{Binding IsOn}" Margin="0,4">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                          <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </CheckBox>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
       </StackPanel>
       <StackPanel Spacing="2">
         <TextBlock Text="{Binding DateText}" FontWeight="SemiBold" />
@@ -62,102 +109,205 @@
       </StackPanel>
     </DockPanel>
 
-    <!-- My tasks and Projects, side by side on a wide screen -->
-    <Grid x:Name="Cards" ColumnDefinitions="*,24,*" RowDefinitions="Auto,Auto">
-      <Border x:Name="TasksCard" Classes="card" MinHeight="380" VerticalAlignment="Stretch">
-        <DockPanel>
-          <StackPanel DockPanel.Dock="Top" Spacing="10">
-            <DockPanel>
-              <Button DockPanel.Dock="Right" Classes="link" Content="See all" Command="{Binding OpenMyTasksCommand}" VerticalAlignment="Center" />
-              <StackPanel Orientation="Horizontal" Spacing="10">
-                <c:Monogram Text="{Binding MyName}" Size="30" VerticalAlignment="Center" />
-                <TextBlock Classes="h2" Text="My tasks" VerticalAlignment="Center" />
-              </StackPanel>
-            </DockPanel>
-            <StackPanel Orientation="Horizontal">
-              <Button Classes="hometab" Classes.on="{Binding IsUpcoming}" Content="Upcoming"
-                      Command="{Binding ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Upcoming}" />
-              <Button Classes="hometab" Classes.on="{Binding IsOverdue}" Content="{Binding OverdueLabel}"
-                      Command="{Binding ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Overdue}" />
-              <Button Classes="hometab" Classes.on="{Binding IsCompleted}" Content="Completed"
-                      Command="{Binding ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Completed}" />
-            </StackPanel>
-            <Border Height="1" Background="{DynamicResource Line}" Margin="-20,0" />
-          </StackPanel>
-          <Panel>
-            <TextBlock Classes="muted" Text="{Binding EmptyText}" IsVisible="{Binding HasNoTasks}" TextWrapping="Wrap" Margin="0,14,0,0" />
-            <ItemsControl ItemsSource="{Binding Tasks}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:HomeTaskRow">
-                  <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,8">
-                    <DockPanel>
-                      <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
-                      <TextBlock DockPanel.Dock="Right" Text="{Binding DueText}" Classes="muted" Classes.problem="{Binding IsLate}" FontSize="12"
-                                 VerticalAlignment="Center" Margin="10,0,0,0" />
-                      <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0" ToolTip.Tip="{Binding Project}">
-                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text}" />
-                      </Button>
-                    </DockPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </Panel>
-        </DockPanel>
-      </Border>
+    <c:EmptyState IsVisible="{Binding NoWidgets}" Icon="{StaticResource Icon.Tiles}" Title="Home is empty"
+                  Text="Customise, top right, adds widgets: your tasks, projects, a notepad, people, status updates and milestones." />
 
-      <Border x:Name="ProjectsCard" Grid.Column="2" Classes="card" MinHeight="380" VerticalAlignment="Stretch">
-        <StackPanel Spacing="12">
-          <DockPanel>
-            <Button DockPanel.Dock="Right" Classes="link" Content="Browse projects" Command="{Binding BrowseProjectsCommand}" VerticalAlignment="Center" />
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <TextBlock Classes="h2" Text="Projects" VerticalAlignment="Center" />
-              <!-- As Asana's: which projects the card shows. In order, the tiles can be dragged. -->
-              <Button Classes="quiet" Padding="8,4" VerticalAlignment="Center" ToolTip.Tip="Which projects to show">
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                  <TextBlock Classes="muted" Text="{Binding ProjectsShownText}" FontSize="12" VerticalAlignment="Center" />
-                  <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
-                </StackPanel>
-                <Button.Flyout>
-                  <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                    <MenuItem Header="Recent" Command="{Binding ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Recent}" />
-                    <MenuItem Header="Starred" Command="{Binding ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Starred}" />
-                    <MenuItem Header="In my order (drag to arrange)" Command="{Binding ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Ordered}" />
-                  </MenuFlyout>
-                </Button.Flyout>
-              </Button>
-            </StackPanel>
-          </DockPanel>
-          <ItemsControl x:Name="ProjectTiles" ItemsSource="{Binding Projects}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.DataTemplates>
-              <DataTemplate DataType="vm:HomeCreateTile">
-                <Button Classes="projecttile" Command="{Binding Create}">
-                  <StackPanel Orientation="Horizontal" Spacing="14">
-                    <Border Classes="projectsquare" Background="Transparent" BorderBrush="{DynamicResource Line2}" BorderThickness="1.5">
-                      <c:Icon Data="{StaticResource Icon.Plus}" Size="18" Foreground="{DynamicResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <TextBlock Classes="muted" Text="Create project" VerticalAlignment="Center" FontWeight="SemiBold" />
-                  </StackPanel>
+    <!-- The widgets, two to a row on a wide screen; full-width ones take a row each -->
+    <ItemsControl x:Name="WidgetList" ItemsSource="{Binding Widgets}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><WrapPanel ItemSpacing="24" LineSpacing="24" /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:HomeWidgetRow">
+          <Border Classes="card" Width="{Binding Width}" MinHeight="380" VerticalAlignment="Stretch">
+            <DockPanel>
+              <DockPanel DockPanel.Dock="Top" Classes="widgethandle" Background="Transparent" Margin="0,0,0,10">
+                <Button DockPanel.Dock="Right" Classes="quiet widgetmenu" ToolTip.Tip="More">
+                  <c:Icon Data="{StaticResource Icon.More}" Size="14" />
+                  <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                      <MenuItem Header="{Binding SizeText}" Command="{Binding ResizeCommand}" />
+                      <MenuItem Header="Take it off Home" Command="{Binding RemoveCommand}" />
+                    </MenuFlyout>
+                  </Button.Flyout>
                 </Button>
-              </DataTemplate>
-              <DataTemplate DataType="vm:HomeProjectTile">
-                <Button Classes="projecttile" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Name}">
-                  <DockPanel>
-                    <Border DockPanel.Dock="Left" Classes="projectsquare" Margin="0,0,14,0" Background="{Binding Colour, Converter={x:Static c:ProjectColours.Brush}}">
-                      <c:Icon Data="{Binding Icon, Converter={x:Static c:ProjectColours.Icon}}" Size="24" Foreground="{DynamicResource OnProject}"
-                              HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                  </DockPanel>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.DataTemplates>
-          </ItemsControl>
-        </StackPanel>
-      </Border>
-    </Grid>
+                <TextBlock Classes="h2" Text="{Binding Title}" VerticalAlignment="Center" />
+              </DockPanel>
+              <ContentControl Content="{Binding}">
+                <ContentControl.DataTemplates>
+                  <!-- My tasks: Upcoming, Overdue and Completed -->
+                  <DataTemplate DataType="vm:HomeTasksWidget">
+                    <DockPanel>
+                      <StackPanel DockPanel.Dock="Top" Spacing="10">
+                        <DockPanel>
+                          <Button DockPanel.Dock="Right" Classes="link" Content="See all" Command="{Binding Page.OpenMyTasksCommand}" VerticalAlignment="Center" />
+                          <StackPanel Orientation="Horizontal">
+                            <Button Classes="hometab" Classes.on="{Binding Page.IsUpcoming}" Content="Upcoming"
+                                    Command="{Binding Page.ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Upcoming}" />
+                            <Button Classes="hometab" Classes.on="{Binding Page.IsOverdue}" Content="{Binding Page.OverdueLabel}"
+                                    Command="{Binding Page.ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Overdue}" />
+                            <Button Classes="hometab" Classes.on="{Binding Page.IsCompleted}" Content="Completed"
+                                    Command="{Binding Page.ShowTabCommand}" CommandParameter="{x:Static vm:HomeTab.Completed}" />
+                          </StackPanel>
+                        </DockPanel>
+                        <Border Height="1" Background="{DynamicResource Line}" Margin="-20,0" />
+                      </StackPanel>
+                      <Panel>
+                        <TextBlock Classes="muted" Text="{Binding Page.EmptyText}" IsVisible="{Binding Page.HasNoTasks}" TextWrapping="Wrap" Margin="0,14,0,0" />
+                        <ItemsControl ItemsSource="{Binding Page.Tasks}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HomeTaskRow">
+                              <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,8">
+                                <DockPanel>
+                                  <CheckBox DockPanel.Dock="Left" Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
+                                  <TextBlock DockPanel.Dock="Right" Text="{Binding DueText}" Classes="muted" Classes.problem="{Binding IsLate}" FontSize="12"
+                                             VerticalAlignment="Center" Margin="10,0,0,0" />
+                                  <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0" ToolTip.Tip="{Binding Project}">
+                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text}" />
+                                  </Button>
+                                </DockPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Panel>
+                    </DockPanel>
+                  </DataTemplate>
+
+                  <!-- Projects: recent, starred or in my order, with Create project first -->
+                  <DataTemplate DataType="vm:HomeProjectsWidget">
+                    <StackPanel Spacing="12">
+                      <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="link" Content="Browse projects" Command="{Binding Page.BrowseProjectsCommand}" VerticalAlignment="Center" />
+                        <Button Classes="quiet" Padding="8,4" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip.Tip="Which projects to show">
+                          <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Classes="muted" Text="{Binding Page.ProjectsShownText}" FontSize="12" VerticalAlignment="Center" />
+                            <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
+                          </StackPanel>
+                          <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                              <MenuItem Header="Recent" Command="{Binding Page.ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Recent}" />
+                              <MenuItem Header="Starred" Command="{Binding Page.ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Starred}" />
+                              <MenuItem Header="In my order (drag to arrange)" Command="{Binding Page.ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Ordered}" />
+                            </MenuFlyout>
+                          </Button.Flyout>
+                        </Button>
+                      </DockPanel>
+                      <ItemsControl x:Name="ProjectTiles" ItemsSource="{Binding Page.Projects}" Loaded="ProjectTilesLoaded">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.DataTemplates>
+                          <DataTemplate DataType="vm:HomeCreateTile">
+                            <Button Classes="projecttile" Command="{Binding Create}">
+                              <StackPanel Orientation="Horizontal" Spacing="14">
+                                <Border Classes="projectsquare" Background="Transparent" BorderBrush="{DynamicResource Line2}" BorderThickness="1.5">
+                                  <c:Icon Data="{StaticResource Icon.Plus}" Size="18" Foreground="{DynamicResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Classes="muted" Text="Create project" VerticalAlignment="Center" FontWeight="SemiBold" />
+                              </StackPanel>
+                            </Button>
+                          </DataTemplate>
+                          <DataTemplate DataType="vm:HomeProjectTile">
+                            <Button Classes="projecttile" Command="{Binding OpenCommand}" ToolTip.Tip="{Binding Name}">
+                              <DockPanel>
+                                <Border DockPanel.Dock="Left" Classes="projectsquare" Margin="0,0,14,0" Background="{Binding Colour, Converter={x:Static c:ProjectColours.Brush}}">
+                                  <c:Icon Data="{Binding Icon, Converter={x:Static c:ProjectColours.Icon}}" Size="24" Foreground="{DynamicResource OnProject}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                              </DockPanel>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.DataTemplates>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+
+                  <!-- A private notepad, kept on this PC -->
+                  <DataTemplate DataType="vm:HomeNotepadWidget">
+                    <TextBox Text="{Binding Page.Notepad}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="300" VerticalContentAlignment="Top"
+                             PlaceholderText="Jot down anything: ideas, a phone number, what to do after lunch. Only you see it, on this PC." />
+                  </DataTemplate>
+
+                  <!-- People: me and my partner, with what's on each plate -->
+                  <DataTemplate DataType="vm:HomePeopleWidget">
+                    <ItemsControl ItemsSource="{Binding Page.People}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:HomePersonLine">
+                          <Button Classes="projecttile" Command="{Binding OpenCommand}" Margin="0,0,0,6">
+                            <DockPanel>
+                              <c:Monogram DockPanel.Dock="Left" Text="{Binding Name}" Size="40" Margin="0,0,14,0" VerticalAlignment="Center" />
+                              <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                <TextBlock Classes="muted" FontSize="12" Text="{Binding Role}" />
+                                <TextBlock FontSize="12" Text="{Binding Load}" Classes.problem="{Binding HasLate}" />
+                              </StackPanel>
+                            </DockPanel>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </DataTemplate>
+
+                  <!-- Status updates: each project's newest word -->
+                  <DataTemplate DataType="vm:HomeStatusWidget">
+                    <Panel>
+                      <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding Page.NoStatusUpdates}"
+                                 Text="No status updates yet. Post one on a project's Overview tab and the newest shows here." />
+                      <ItemsControl ItemsSource="{Binding Page.StatusUpdates}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:HomeStatusLine">
+                            <Button Classes="projecttile" Command="{Binding OpenCommand}" Margin="0,0,0,4">
+                              <StackPanel Spacing="3">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                  <Ellipse Width="9" Height="9" Fill="{Binding Health, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
+                                  <TextBlock Text="{Binding Project}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                  <TextBlock Classes="muted" FontSize="12" Text="{Binding HealthText}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasText}" />
+                                <TextBlock Classes="muted" FontSize="12" Text="{Binding Byline}" />
+                              </StackPanel>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Panel>
+                  </DataTemplate>
+
+                  <!-- Milestones coming up across projects -->
+                  <DataTemplate DataType="vm:HomeMilestonesWidget">
+                    <Panel>
+                      <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding Page.NoMilestones}"
+                                 Text="No milestones coming up. Right-click a task in a project to mark it as one." />
+                      <ItemsControl ItemsSource="{Binding Page.Milestones}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:HomeMilestoneLine">
+                            <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,8">
+                              <DockPanel>
+                                <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Milestone}" Size="13" Foreground="{DynamicResource Muted}"
+                                        VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding DueText}" Classes="muted" Classes.problem="{Binding IsLate}" FontSize="12"
+                                           VerticalAlignment="Center" Margin="10,0,0,0" />
+                                <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0">
+                                  <StackPanel>
+                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text}" />
+                                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Project}" />
+                                  </StackPanel>
+                                </Button>
+                              </DockPanel>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Panel>
+                  </DataTemplate>
+                </ContentControl.DataTemplates>
+              </ContentControl>
+            </DockPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
   </StackPanel>
 </UserControl>

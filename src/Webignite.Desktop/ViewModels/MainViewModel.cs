@@ -582,6 +582,8 @@ public partial class MainViewModel : ViewModelBase
             projects.Keep();
         foreach (var pages in Built<MyPagesViewModel>(Page.MyPages))
             pages.Keep();
+        foreach (var home in Built<PlannerHomeViewModel>(Page.Home))
+            home.KeepNotepad();
         string? problem = null;
         foreach (var contacts in Built<ContactsViewModel>(Page.Contacts))
         {

@@ -17,7 +17,7 @@ public enum HomeTab
 /// Planner's Home, laid out as Asana's: the date and a greeting, how many tasks I finished this week, my tasks in
 /// three tabs, and the projects worked on lately with a way to start a new one.
 /// </summary>
-public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, IDisposable
+public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, IHoldsWork, IDisposable
 {
     private const int RecentCount = 8;
     private readonly AppServices services;
@@ -26,6 +26,9 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
     {
         this.services = services;
         services.Projects.Changed += ProjectsChanged;
+        notepadTyping.Tick += (_, _) => KeepNotepad();
+        LoadNotepad();
+        ShowWidgets();
         Refresh();
     }
 
@@ -34,6 +37,9 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
     public string Greeting => $"{PlannerHome.Greeting(DateTime.Now.Hour)}, {services.Me().Name}";
 
     public string MyName => services.Me().Name;
+
+    /// <summary>The notepad has words not yet kept.</summary>
+    public bool HoldsWork => notepadTyped;
 
     [ObservableProperty] public partial string CompletedText { get; private set; } = "";
 
@@ -119,6 +125,10 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
         var me = services.Me().Id;
         var all = services.Projects.Projects().SelectMany(p => services.Projects.AllTasks(p.Id)).ToList();
         var done = PlannerHome.Completed(all, me, PlannerHome.WeekStart(DateTimeOffset.Now)).Count;
+        LoadWidgetData(all);
+        // Another copy of Home may have changed the widgets; only then are they built again, so typing isn't lost.
+        if (!PlannerHome.Widgets(services.Settings.Home).SequenceEqual(Widgets.Select(w => new HomeWidget(w.Kind, w.Full))))
+            ShowWidgets();
         CompletedText = done == 1 ? "1 task completed" : $"{done} tasks completed";
         OverdueLabel = PlannerHome.Overdue(services.Projects.Mine(me), Today) is { Count: > 0 } late ? $"Overdue ({late.Count})" : "Overdue";
         ShowTasks();
@@ -155,7 +165,11 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
         OnPropertyChanged(nameof(HasNoTasks));
     }
 
-    public void Dispose() => services.Projects.Changed -= ProjectsChanged;
+    public void Dispose()
+    {
+        KeepNotepad();
+        services.Projects.Changed -= ProjectsChanged;
+    }
 }
 
 /// <summary>A task on Home: tick it off, see its project and when it's due, click to open it.</summary>
