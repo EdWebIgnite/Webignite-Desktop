@@ -405,7 +405,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     [NotifyPropertyChangedFor(nameof(IsList))]
     public partial bool IsBoard { get; set; }
 
-    public bool IsList => !IsBoard && !IsFiles && !IsOverview;
+    public bool IsList => !IsBoard && !IsFiles && !IsOverview && !IsTimeline && !IsCalendar;
 
     // Kept with the open project only: another project opens the way it was left, a new one as a list.
     partial void OnIsBoardChanged(bool value)
@@ -416,20 +416,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     }
 
     [RelayCommand]
-    private void ListView()
-    {
-        IsFiles = false;
-        IsOverview = false;
-        IsBoard = false;
-    }
+    private void ListView() => ShowOnly(ProjectTab.List);
 
     [RelayCommand]
-    private void BoardView()
-    {
-        IsFiles = false;
-        IsOverview = false;
-        IsBoard = true;
-    }
+    private void BoardView() => ShowOnly(ProjectTab.Board);
 
     public string OpenProjectName => open?.Name ?? "";
 
@@ -458,9 +448,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         }
         open = project;
         Layout = LayoutOf(project.Id);
-        IsBoard = Layout.Board && !Layout.Files && !Layout.Overview;
-        IsFiles = Layout.Files && !Layout.Overview;
-        IsOverview = Layout.Overview;
+        ShowOnly(TabOf(Layout));
         IsMyTasks = false;
         IsTemplates = false;
         MyRows.Clear();
@@ -558,6 +546,13 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         }
         OnPropertyChanged(nameof(CanReorder));
         LoadOverview();
+        TaskRow Plain(ProjectTask task) => new(task, null, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this)
+        {
+            IsOpen = task.Id == Detail?.Task.Id,
+            CommentCount = commentCounts.GetValueOrDefault(task.Id),
+        };
+        LoadTimeline(shown, headings, Plain);
+        LoadCalendar(shown, Plain);
         Summary = SummaryOf(tasks);
         if (HasFilter)
             Summary += $". Showing {sections.Sum(x => x.Tasks.Count)} that match.";

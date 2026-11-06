@@ -20,6 +20,12 @@ public sealed record ProjectLayout
     /// <summary>The Overview tab: what the project is about and how it's going.</summary>
     public bool Overview { get; init; }
 
+    /// <summary>The Timeline tab: tasks as bars from their start to their due date.</summary>
+    public bool Timeline { get; init; }
+
+    /// <summary>The Calendar tab: a month with each task on its due date.</summary>
+    public bool Calendar { get; init; }
+
     public TaskSort Sort { get; init; }
     public TaskGroup Group { get; init; }
 

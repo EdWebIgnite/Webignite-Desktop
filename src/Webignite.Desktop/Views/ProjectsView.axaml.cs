@@ -83,6 +83,42 @@ public partial class ProjectsView : FullBleedView
             Whole = true,
         });
 
+        // The calendar: a task dragged onto another day is due then.
+        DragReorder.Attach(CalendarGrid, new DragRules
+        {
+            CanDrag = item => item is TaskRow,
+            IsInto = (_, target) => target is CalendarCellRow or TaskRow,
+            CanDrop = (item, target, _) => item is TaskRow row && DayOf(target) is { } day && day != row.Task.Due,
+            Drop = (item, target, _) =>
+            {
+                if (DayOf(target) is { } day)
+                    Projects?.MoveToDay((TaskRow)item, day);
+            },
+            Label = item => (item as TaskRow)?.Title ?? "",
+        });
+        // The timeline: a task with no date dragged from Unscheduled onto a day is due that day.
+        DragReorder.Attach(UnscheduledList, new DragRules
+        {
+            CanDrag = item => item is TaskRow,
+            CanDrop = (_, _, _) => false,
+            Label = item => (item as TaskRow)?.Title ?? "",
+        });
+        DropZones.Add(new DropZone(TimelineColumns, (item, target) => item is TaskRow && target is TimelineDay,
+            (item, target) => Projects?.Schedule((TaskRow)item, (TimelineDay)target)));
+
+        TimelineScroll.ScrollChanged += (_, _) =>
+        {
+            if (Projects is { } projects)
+                projects.TimelineScrollX = TimelineScroll.Offset.X;
+        };
+        // The timeline opens with today near its left edge, a few days in.
+        TimelineScroll.PropertyChanged += (_, e) =>
+        {
+            // Only when it's fresh: after a drag it stays where the person left it.
+            if (e.Property == ScrollViewer.ExtentProperty && TimelineScroll.Offset.X == 0 && Projects is { IsTimeline: true } projects)
+                TimelineScroll.Offset = TimelineScroll.Offset.WithX(Math.Max(0, projects.TodayLeft - 4 * ProjectsViewModel.DayWidth));
+        };
+
         // Files dropped on the open task are attached to it.
         TaskPane.AddHandler(DragDrop.DragOverEvent, (_, e) =>
             e.DragEffects = Projects?.HasTask == true && e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None);
@@ -639,6 +675,120 @@ public partial class ProjectsView : FullBleedView
         var delete = new MenuItem { Header = "Delete the task" };
         delete.Click += (_, _) => row.DeleteCommand.Execute(null);
         new ContextMenu { ItemsSource = new object[] { move, milestone, new Separator(), delete } }.Open(sender as Control);
+        e.Handled = true;
+    }
+
+    // The calendar day a task lands on: the day itself, or the day of the task it's dropped on.
+    private static DateOnly? DayOf(object target) => target switch
+    {
+        CalendarCellRow cell => cell.Day,
+        TaskRow { Task.Due: { } due } => due,
+        _ => null,
+    };
+
+    private void DayAddKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || (sender as Control)?.DataContext is not CalendarCellRow cell)
+            return;
+        e.Handled = true;
+        Avalonia.LogicalTree.LogicalExtensions.FindLogicalAncestorOfType<Popup>(sender as Control)?.Close();
+        cell.AddCommand.Execute(null);
+    }
+
+    // A timeline bar dragged a day at a time: the whole bar moves, an end stretches it. A press and release
+    // without moving opens the task.
+    private BarDrag? barDrag;
+
+    private sealed record BarDrag(Border Bar, StackPanel Holder, TimelineBarRow Row, BarEdge Edge, double StartX, double Width, Thickness Margin)
+    {
+        public int Days { get; set; }
+        public bool Moved { get; set; }
+    }
+
+    private void BarPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Border pressed || !e.GetCurrentPoint(pressed).Properties.IsLeftButtonPressed)
+            return;
+        var bar = pressed.Classes.Contains("timelinebar") ? pressed : pressed.FindAncestorOfType<Border>() is { } outer && outer.Classes.Contains("timelinebar") ? outer : null;
+        if (bar?.DataContext is not TimelineBarRow row || bar.Parent is not StackPanel holder)
+            return;
+        var edge = (pressed.Tag as string) switch { "start" => BarEdge.Start, "end" => BarEdge.End, _ => BarEdge.Move };
+        barDrag = new BarDrag(bar, holder, row, edge, e.GetPosition(TimelineColumns).X, bar.Width, holder.Margin);
+        e.Pointer.Capture(pressed);
+        e.Handled = true;
+    }
+
+    private void BarMoved(object? sender, PointerEventArgs e)
+    {
+        if (barDrag is not { } drag)
+            return;
+        var dx = e.GetPosition(TimelineColumns).X - drag.StartX;
+        if (Math.Abs(dx) > 3)
+            drag.Moved = true;
+        var day = ProjectsViewModel.DayWidth;
+        var days = (int)Math.Round(dx / day);
+        var least = day - 4;
+        switch (drag.Edge)
+        {
+            case BarEdge.Move:
+                break;
+            case BarEdge.Start:
+                days = Math.Min(days, (int)Math.Round((drag.Width - least) / day));
+                break;
+            case BarEdge.End:
+                days = Math.Max(days, -(int)Math.Round((drag.Width - least) / day));
+                break;
+        }
+        drag.Days = days;
+        drag.Holder.Margin = drag.Edge == BarEdge.End ? drag.Margin : new Thickness(drag.Margin.Left + days * day, drag.Margin.Top, drag.Margin.Right, drag.Margin.Bottom);
+        drag.Bar.Width = drag.Edge switch
+        {
+            BarEdge.Start => drag.Width - days * day,
+            BarEdge.End => drag.Width + days * day,
+            _ => drag.Width,
+        };
+        e.Handled = true;
+    }
+
+    private void BarReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (barDrag is not { } drag)
+            return;
+        barDrag = null;
+        e.Pointer.Capture(null);
+        e.Handled = true;
+        if (!drag.Moved)
+            Projects?.OpenTaskCommand.Execute(drag.Row.Row);
+        else if (drag.Days == 0)
+            Restore(drag);
+        else
+            Projects?.DragBar(drag.Row, drag.Days, drag.Edge);
+    }
+
+    private void BarLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        if (barDrag is { } drag)
+        {
+            barDrag = null;
+            Restore(drag);
+        }
+    }
+
+    private static void Restore(BarDrag drag)
+    {
+        drag.Holder.Margin = drag.Margin;
+        drag.Bar.Width = drag.Width;
+    }
+
+    private void BarMenu(object? sender, ContextRequestedEventArgs e)
+    {
+        if (Projects is not { } projects || (sender as Control)?.DataContext is not TimelineBarRow bar)
+            return;
+        var open = new MenuItem { Header = "Open the task" };
+        open.Click += (_, _) => projects.OpenTaskCommand.Execute(bar.Row);
+        var clear = new MenuItem { Header = "Take its dates off" };
+        clear.Click += (_, _) => projects.ClearDates(bar.Row);
+        new ContextMenu { ItemsSource = new object[] { open, clear } }.Open(sender as Control);
         e.Handled = true;
     }
 }
