@@ -114,6 +114,53 @@ public static class Sidebar
         return moved is null ? layout : layout with { Order = moved };
     }
 
+    public static bool CanMoveTo(SidebarLayout layout, IReadOnlyList<string> defaults, string key, string target, bool below) =>
+        MovedTo(Resolve(layout, defaults), key, target, below) is { } moved && !moved.SequenceEqual(Resolve(layout, defaults));
+
+    /// <summary>
+    /// Drops an entry next to another, as when it's dragged: just above <paramref name="target"/>, or just below
+    /// it. A page can land anywhere above the bottom, so it can change group; dropped just below a heading it
+    /// goes first in that group. A heading takes its pages with it and lands before the target's group when
+    /// dropped above that group's heading, otherwise after the group. Nothing moves into or out of the bottom.
+    /// </summary>
+    public static SidebarLayout MoveTo(SidebarLayout layout, IReadOnlyList<string> defaults, string key, string target, bool below)
+    {
+        var order = Resolve(layout, defaults);
+        var moved = MovedTo(order, key, target, below);
+        return moved is null || moved.SequenceEqual(order) ? layout : layout with { Order = moved };
+    }
+
+    private static List<string>? MovedTo(List<string> order, string key, string target, bool below)
+    {
+        var at = order.IndexOf(key);
+        var to = order.IndexOf(target);
+        var pinned = order.FindLastIndex(IsHeading);
+        if (at < 0 || to < 0 || key == target || pinned < 0 || at >= pinned || to > pinned || (to == pinned && below))
+            return null;
+        if (!IsHeading(key))
+        {
+            var rest = order.Where(k => k != key).ToList();
+            var place = rest.IndexOf(target) + (below ? 1 : 0);
+            rest.Insert(place, key);
+            return rest;
+        }
+        var firstHeading = order.FindIndex(IsHeading);
+        if (to < firstHeading)
+            return null;
+        var blocks = Blocks(order, firstHeading, pinned);
+        var source = blocks.Find(b => b.Start == at);
+        // The pinned heading itself stands for the end of the last group.
+        var into = to == pinned ? blocks[^1] : blocks.Find(b => to >= b.Start && to < b.Start + b.Length);
+        if (into == source)
+            return null;
+        var before = to != pinned && to == into.Start && !below;
+        var block = order.Skip(source.Start).Take(source.Length).ToList();
+        var others = order.Take(source.Start).Concat(order.Skip(source.Start + source.Length)).ToList();
+        var anchor = others.IndexOf(order[into.Start]) + (before ? 0 : into.Length);
+        others.InsertRange(anchor, block);
+        return others;
+    }
+
     private static List<string>? Moved(List<string> order, string key, int by)
     {
         var at = order.IndexOf(key);

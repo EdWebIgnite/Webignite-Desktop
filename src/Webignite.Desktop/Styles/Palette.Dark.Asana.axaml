@@ -27,6 +27,8 @@
   <!-- A picked tab or filter shown as a pill, as Asana marks the picked tab on Home. -->
   <SolidColorBrush x:Key="Picked" Color="#001B4E" />
   <SolidColorBrush x:Key="OnPicked" Color="#6CA0F8" />
+  <!-- Where something dragged will land: the line, the ring and the card's outline, blue as in Asana. -->
+  <SolidColorBrush x:Key="DropMark" Color="#4075CF" />
   <SolidColorBrush x:Key="Ink" Color="#FFFFFF" />
   <SolidColorBrush x:Key="Muted" Color="#A0A0A0" />
 

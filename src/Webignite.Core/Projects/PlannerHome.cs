@@ -1,5 +1,14 @@
 namespace Webignite.Core.Projects;
 
+/// <summary>Which projects Home's Projects card shows, as Asana's choice above it: recent, starred, or all in my order.</summary>
+public enum HomeProjects { Recent, Starred, Ordered }
+
+/// <summary>How Home was left: what the Projects card shows.</summary>
+public sealed record HomeSettings
+{
+    public HomeProjects Projects { get; init; }
+}
+
 /// <summary>
 /// What Planner's Home shows: a greeting, my tasks in three tabs (Upcoming, Overdue, Completed), how many I
 /// finished this week, and the projects worked on most lately.
@@ -33,4 +42,26 @@ public static class PlannerHome
     /// <summary>The projects still going, the ones changed most lately first.</summary>
     public static IReadOnlyList<Project> Recent(IEnumerable<Project> projects, int count) =>
         [.. projects.Where(p => p.Deleted is null && p.Status != ProjectStatus.Done).OrderByDescending(p => p.Changed.At).Take(count)];
+
+    /// <summary>
+    /// The projects for Home's Projects card: the ones changed most lately, the starred ones, or all still going,
+    /// in the order the sidebar has them (starred first). Only the last two can be put in order by dragging.
+    /// </summary>
+    public static IReadOnlyList<Project> Shown(IEnumerable<Project> projects, HomeProjects which, int count)
+    {
+        var going = projects.Where(p => p.Deleted is null && p.Status != ProjectStatus.Done).ToList();
+        return which switch
+        {
+            HomeProjects.Starred => [.. ProjectLooks.SidebarOrder(going.Where(p => p.Favourite)).Take(count)],
+            HomeProjects.Ordered => [.. ProjectLooks.SidebarOrder(going).Take(count)],
+            _ => Recent(going, count),
+        };
+    }
+
+    public static string Label(HomeProjects which) => which switch
+    {
+        HomeProjects.Starred => "Starred",
+        HomeProjects.Ordered => "In my order",
+        _ => "Recent",
+    };
 }

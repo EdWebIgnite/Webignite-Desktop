@@ -827,7 +827,6 @@ public sealed partial class SectionRow(Heading? heading, IReadOnlyList<ProjectTa
     public string Count => Tasks.Count == 0 ? "" : $"{Tasks.Count(t => t.Done)}/{Tasks.Count}";
 
     [ObservableProperty] public partial string Name { get; set; } = heading?.Name ?? "No heading";
-    [ObservableProperty] public partial bool DropHere { get; set; }
 
     partial void OnNameChanged(string value)
     {
@@ -905,8 +904,6 @@ public sealed partial class TaskRow : ObservableObject
     [ObservableProperty] public partial Choice<string?>? AssignedTo { get; set; }
     [ObservableProperty] public partial DateTime? Due { get; set; }
     [ObservableProperty] public partial bool IsOpen { get; set; }
-    [ObservableProperty] public partial bool DropAbove { get; set; }
-    [ObservableProperty] public partial bool DropBelow { get; set; }
 
     /// <summary>Shows the task as stored, e.g. after a change that wasn't allowed.</summary>
     public void Reset()
@@ -996,10 +993,8 @@ public sealed partial class BoardColumn(SectionRow section, IReadOnlyList<TaskRo
     public IReadOnlyList<TaskRow> Cards { get; } = cards;
     public AddTaskRow Add { get; } = add;
 
-    [ObservableProperty] public partial bool DropHere { get; set; }
 
     /// <summary>The column's edge while a card is held over it.</summary>
-    public static readonly Avalonia.Data.Converters.FuncValueConverter<bool, Avalonia.Thickness> DropEdge = new(on => on ? new Avalonia.Thickness(2) : default);
 }
 
 /// <summary>The box under a heading's tasks for adding one.</summary>

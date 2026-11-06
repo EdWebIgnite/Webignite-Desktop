@@ -119,6 +119,39 @@ public sealed class SidebarOrderTests
     }
 
     [Fact]
+    public void A_dragged_page_lands_above_or_below_where_it_is_dropped()
+    {
+        var layout = Sidebar.MoveTo(new SidebarLayout(), Defaults, "Todo", "Mail", below: false);
+        Assert.Equal(["Overview", "Todo", "Mail", "#client-work", "Clients", "Retainers", "#billing", "Quotes", "Invoices", "#planning", "#end", "Settings"],
+            Sidebar.Resolve(layout, Defaults));
+        layout = Sidebar.MoveTo(new SidebarLayout(), Defaults, "Overview", "#billing", below: true);
+        Assert.Equal("billing", Sidebar.GroupOf(Sidebar.Resolve(layout, Defaults), "Overview"));
+        Assert.Equal("Quotes", Sidebar.Resolve(layout, Defaults)[Sidebar.Resolve(layout, Defaults).IndexOf("Overview") + 1]);
+        // Above the bottom heading is the end of the last group; past it is not allowed.
+        layout = Sidebar.MoveTo(new SidebarLayout(), Defaults, "Mail", "#end", below: false);
+        Assert.Equal("planning", Sidebar.GroupOf(Sidebar.Resolve(layout, Defaults), "Mail"));
+        Assert.False(Sidebar.CanMoveTo(new SidebarLayout(), Defaults, "Mail", "#end", below: true));
+        Assert.False(Sidebar.CanMoveTo(new SidebarLayout(), Defaults, "Mail", "Settings", below: false));
+        Assert.False(Sidebar.CanMoveTo(new SidebarLayout(), Defaults, "Mail", "Overview", below: true));
+    }
+
+    [Fact]
+    public void A_dragged_heading_takes_its_pages_before_or_after_another_group()
+    {
+        var layout = Sidebar.MoveTo(new SidebarLayout(), Defaults, "#planning", "#client-work", below: false);
+        Assert.Equal(["Overview", "Mail", "#planning", "Todo", "#client-work", "Clients", "Retainers", "#billing", "Quotes", "Invoices", "#end", "Settings"],
+            Sidebar.Resolve(layout, Defaults));
+        layout = Sidebar.MoveTo(new SidebarLayout(), Defaults, "#client-work", "Quotes", below: false);
+        Assert.Equal(["Overview", "Mail", "#billing", "Quotes", "Invoices", "#client-work", "Clients", "Retainers", "#planning", "Todo", "#end", "Settings"],
+            Sidebar.Resolve(layout, Defaults));
+        layout = Sidebar.MoveTo(new SidebarLayout(), Defaults, "#client-work", "#end", below: false);
+        Assert.Equal(["Overview", "Mail", "#billing", "Quotes", "Invoices", "#planning", "Todo", "#client-work", "Clients", "Retainers", "#end", "Settings"],
+            Sidebar.Resolve(layout, Defaults));
+        Assert.False(Sidebar.CanMoveTo(new SidebarLayout(), Defaults, "#billing", "Overview", below: false));
+        Assert.False(Sidebar.CanMoveTo(new SidebarLayout(), Defaults, "#billing", "Invoices", below: true));
+    }
+
+    [Fact]
     public void A_page_added_later_slots_in_after_the_one_it_follows_and_a_gone_page_is_dropped()
     {
         var layout = new SidebarLayout { Order = ["Mail", "Overview", "#client-work", "Retainers", "Clients", "Gone", "#billing", "Quotes", "Invoices", "#planning", "Todo", "#end", "Settings"] };

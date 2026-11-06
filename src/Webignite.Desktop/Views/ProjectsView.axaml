@@ -272,7 +272,7 @@
           <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}" IsVisible="{Binding IsList}">
             <ItemsControl.DataTemplates>
               <DataTemplate DataType="vm:SectionRow">
-                <Border Classes.droptop="{Binding DropHere}" Margin="0,14,0,2" Padding="0,0,0,4" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+                <Border Margin="0,14,0,2" Padding="0,0,0,4" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
                   <DockPanel>
                     <Button DockPanel.Dock="Right" Classes="quiet" Padding="6" IsVisible="{Binding IsHeading}" Command="{Binding DeleteCommand}"
                             ToolTip.Tip="Delete the heading; its tasks stay, under no heading">
@@ -285,10 +285,10 @@
                 </Border>
               </DataTemplate>
               <DataTemplate DataType="vm:TaskRow">
-                <Border Classes.droptop="{Binding DropAbove}" Classes.dropbottom="{Binding DropBelow}" Background="Transparent" Padding="0,1"
+                <Border Classes="taskrow" Background="Transparent" Padding="0,1"
                         Opacity="{Binding Fade}" ContextRequested="TaskMenu">
                   <Grid ColumnDefinitions="22,30,*,Auto,Auto,Auto,32">
-                    <Border Classes="grip" Background="Transparent" Cursor="SizeAll" PointerPressed="GripPressed" ToolTip.Tip="Drag to move">
+                    <Border Classes="grip" Background="Transparent" ToolTip.Tip="Drag the row to move it">
                       <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
                     <CheckBox Grid.Column="1" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Done" />
@@ -328,8 +328,7 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:BoardColumn">
-                  <Border Width="270" Background="{DynamicResource TableHead}" CornerRadius="10" Padding="10" VerticalAlignment="Top"
-                          BorderBrush="{DynamicResource Primary}" BorderThickness="{Binding DropHere, Converter={x:Static vm:BoardColumn.DropEdge}}">
+                  <Border Width="270" Background="{DynamicResource TableHead}" CornerRadius="10" Padding="10" VerticalAlignment="Top">
                     <StackPanel Spacing="8">
                       <DockPanel Margin="4,0">
                         <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Section.Count}" VerticalAlignment="Center" />
@@ -338,11 +337,11 @@
                       <ItemsControl ItemsSource="{Binding Cards}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:TaskRow">
-                            <Border Classes.droptop="{Binding DropAbove}" Classes.dropbottom="{Binding DropBelow}" Padding="0,3" Background="Transparent"
+                            <Border Padding="0,3" Background="Transparent"
                                     ContextRequested="TaskMenu">
                               <Border Classes="card" Classes.open="{Binding IsOpen}" Padding="8" Opacity="{Binding Fade}">
                                 <Grid ColumnDefinitions="18,26,*">
-                                  <Border Background="Transparent" Cursor="SizeAll" PointerPressed="GripPressed" ToolTip.Tip="Drag to move" VerticalAlignment="Top" Margin="0,3,0,0">
+                                  <Border Classes="grip" Background="Transparent" ToolTip.Tip="Drag the card to move it" VerticalAlignment="Top" Margin="0,3,0,0">
                                     <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" />
                                   </Border>
                                   <CheckBox Grid.Column="1" IsChecked="{Binding Done}" VerticalAlignment="Top" ToolTip.Tip="Done" />

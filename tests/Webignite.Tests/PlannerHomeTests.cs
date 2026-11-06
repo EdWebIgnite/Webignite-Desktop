@@ -63,6 +63,27 @@ public sealed class PlannerHomeTests
     }
 }
 
+/// <summary>Home's Projects card: recent, starred, or all in my order.</summary>
+public sealed class HomeProjectsTests
+{
+    private static Project P(string name, double order, bool star = false, int changed = 0, ProjectStatus status = ProjectStatus.Active) => new()
+    {
+        Id = name, Name = name, Order = order, Favourite = star, Status = status,
+        Changed = new Stamp("me", DateTimeOffset.UnixEpoch.AddDays(changed)),
+    };
+
+    [Fact]
+    public void The_card_shows_recent_starred_or_all_in_order_and_never_done_ones()
+    {
+        Project[] all = [P("A", 1, changed: 5), P("B", 2, star: true, changed: 1), P("C", 3, changed: 9), P("D", 4, star: true), P("Done", 0, changed: 20, status: ProjectStatus.Done)];
+        Assert.Equal(["C", "A", "B", "D"], PlannerHome.Shown(all, HomeProjects.Recent, 8).Select(p => p.Name));
+        Assert.Equal(["B", "D"], PlannerHome.Shown(all, HomeProjects.Starred, 8).Select(p => p.Name));
+        Assert.Equal(["B", "D", "A", "C"], PlannerHome.Shown(all, HomeProjects.Ordered, 8).Select(p => p.Name));
+        Assert.Equal(["B", "D"], PlannerHome.Shown(all, HomeProjects.Ordered, 2).Select(p => p.Name));
+        Assert.Equal("In my order", PlannerHome.Label(HomeProjects.Ordered));
+    }
+}
+
 /// <summary>A project's look: its icon, its colour and its status, as Asana shows them.</summary>
 public sealed class ProjectLooksTests
 {

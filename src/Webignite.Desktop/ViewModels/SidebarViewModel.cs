@@ -148,6 +148,21 @@ public sealed partial class SidebarViewModel : ObservableObject
 
     internal bool CanMove(object item, int by) => Sidebar.CanMove(layout, defaults, Key(item), by);
 
+    /// <summary>True for an entry that can be dragged: a page, a group heading, a tool or a section.</summary>
+    public bool CanDrag(object item) => item is NavGroup { CanFold: true } or Module or ToolLink or SectionLink && byKey.ContainsKey(Key(item));
+
+    /// <summary>Whether an entry dragged onto another would land just above it, or just below it.</summary>
+    public bool CanMoveTo(object item, object target, bool below) =>
+        CanDrag(item) && target is NavGroup or Module or ToolLink or SectionLink && byKey.ContainsKey(Key(target))
+        && Sidebar.CanMoveTo(layout, defaults, Key(item), Key(target), below);
+
+    /// <summary>Drops a dragged entry just above or below another; a heading takes its pages with it.</summary>
+    public void MoveTo(object item, object target, bool below)
+    {
+        if (CanMoveTo(item, target, below))
+            Change(Sidebar.MoveTo(layout, defaults, Key(item), Key(target), below));
+    }
+
     private void Change(SidebarLayout changed)
     {
         if (changed == layout)

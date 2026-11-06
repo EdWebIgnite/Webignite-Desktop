@@ -619,13 +619,12 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="15" />
   </Style>
-  <Style Selector="Border.droptop">
-    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
-    <Setter Property="BorderThickness" Value="0,2,0,0" />
+  <!-- A task's six dots show under the mouse, as in Asana: the whole row or card can be dragged (Controls/DragReorder.cs). -->
+  <Style Selector="Border.taskrow > Grid > Border.grip, Border.card > Grid > Border.grip">
+    <Setter Property="Opacity" Value="0" />
   </Style>
-  <Style Selector="Border.dropbottom">
-    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
-    <Setter Property="BorderThickness" Value="0,0,0,2" />
+  <Style Selector="Border.taskrow:pointerover > Grid > Border.grip, Border.card:pointerover > Grid > Border.grip">
+    <Setter Property="Opacity" Value="1" />
   </Style>
   <Style Selector="ComboBox:pointerover /template/ Border#Background">
     <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
