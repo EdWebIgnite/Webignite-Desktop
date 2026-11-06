@@ -297,6 +297,9 @@ public static class ProjectRules
     /// <summary>The place after the last one, for something added at the end.</summary>
     public static double NextOrder(IEnumerable<double> orders) => orders.DefaultIfEmpty(0).Max() + 1;
 
+    /// <summary>The place before the first one, for something added at the top, as a board column's + does.</summary>
+    public static double FirstOrder(IEnumerable<double> orders) => orders.DefaultIfEmpty(2).Min() - 1;
+
     /// <summary>A place between two neighbours, for something dropped between them; either can be missing.</summary>
     public static double Between(double? before, double? after) => (before, after) switch
     {

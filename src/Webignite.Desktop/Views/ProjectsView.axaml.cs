@@ -115,6 +115,12 @@ public partial class ProjectsView : FullBleedView
     {
         if (Projects is not { } projects)
             return;
+        // On the board, Add task opens a card at the top of the first column, as Asana's.
+        if (projects.IsBoard && projects.Columns.FirstOrDefault() is { } first)
+        {
+            OpenCardBox(first, top: true);
+            return;
+        }
         projects.ListViewCommand.Execute(null);
         if (projects.Rows.OfType<SectionRow>().FirstOrDefault(r => r.IsFolded) is { } folded && folded == projects.Rows.OfType<SectionRow>().FirstOrDefault())
             projects.Fold(folded);
@@ -131,6 +137,11 @@ public partial class ProjectsView : FullBleedView
 
     private void AddHeadingClicked(object? sender, RoutedEventArgs e)
     {
+        if (Projects is { IsBoard: true })
+        {
+            AddColumnClicked(sender, e);
+            return;
+        }
         NewHeadingBox.BringIntoView();
         NewHeadingBox.Focus();
     }
@@ -271,13 +282,122 @@ public partial class ProjectsView : FullBleedView
         }
     }
 
+    // The board, as Asana's: "Add task" under a column or its + opens a box for a card; Enter adds it and keeps
+    // the box open for the next, Esc or clicking away with nothing typed closes it.
     private void AddCardKey(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && (sender as Control)?.DataContext is BoardColumn column)
+        if ((sender as Control)?.DataContext is not BoardColumn column)
+            return;
+        if (e.Key == Key.Enter)
         {
-            column.Add.AddCommand.Execute(null);
+            column.Add.AddCard();
             e.Handled = true;
         }
+        else if (e.Key == Key.Escape)
+        {
+            column.Add.Title = "";
+            column.Add.IsTyping = false;
+            e.Handled = true;
+        }
+    }
+
+    private void AddCardClicked(object? sender, RoutedEventArgs e) => OpenCardBox((sender as StyledElement)?.DataContext as BoardColumn, top: false);
+
+    private void AddCardTopClicked(object? sender, RoutedEventArgs e) => OpenCardBox((sender as StyledElement)?.DataContext as BoardColumn, top: true);
+
+    private void OpenCardBox(BoardColumn? column, bool top)
+    {
+        if (column is null)
+            return;
+        column.Add.AtTop = top;
+        column.Add.IsTyping = true;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (Board.ContainerFromItem(column) is { } container
+                && container.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(b => b.Classes.Contains("cardbox") && b.IsVisible) is { } box)
+            {
+                box.BringIntoView();
+                box.Focus();
+            }
+        });
+    }
+
+    // A box rebuilt open after a card was added takes the cursor straight back.
+    private void CardBoxLoaded(object? sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox { IsVisible: true } box && box.DataContext is BoardColumn { Add.IsTyping: true })
+            box.Focus();
+    }
+
+    private void CardBoxLeft(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is BoardColumn { Add: { } add } && add.Title.Trim().Length == 0)
+            add.IsTyping = false;
+    }
+
+    private void RenameColumnClicked(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as StyledElement)?.DataContext is not BoardColumn column)
+            return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (Board.ContainerFromItem(column) is { } container
+                && container.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(b => b.Classes.Contains("columnname")) is { } box)
+            {
+                box.Focus();
+                box.SelectAll();
+            }
+        });
+    }
+
+    // A click on a card opens it, as Asana's; the tick and Ctrl or Shift clicks (picking) don't.
+    private void CardTapped(object? sender, TappedEventArgs e)
+    {
+        if (Projects is not { } projects || (sender as Control)?.DataContext is not TaskRow row
+            || e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Shift)
+            || (e.Source as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is not null)
+            return;
+        projects.OpenTaskCommand.Execute(row);
+    }
+
+    private void AddColumnClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Projects is not { } projects)
+            return;
+        projects.IsAddingColumn = true;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            NewColumnBox.BringIntoView();
+            NewColumnBox.Focus();
+        });
+    }
+
+    private void AddColumnKey(object? sender, KeyEventArgs e)
+    {
+        if (Projects is not { } projects)
+            return;
+        if (e.Key == Key.Enter)
+        {
+            projects.AddHeadingCommand.Execute(null);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                NewColumnBox.BringIntoView();
+                NewColumnBox.Focus();
+            });
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            projects.NewHeadingName = "";
+            projects.IsAddingColumn = false;
+            e.Handled = true;
+        }
+    }
+
+    private void ColumnBoxLeft(object? sender, RoutedEventArgs e)
+    {
+        if (Projects is { } projects && projects.NewHeadingName.Trim().Length == 0)
+            projects.IsAddingColumn = false;
     }
 
     private void AddHeadingKey(object? sender, KeyEventArgs e)

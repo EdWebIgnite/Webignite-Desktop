@@ -159,6 +159,83 @@
       <Setter Property="Padding" Value="0,2" />
       <Setter Property="Background" Value="Transparent" />
     </Style>
+    <!-- The board, as Asana's: soft columns, cards with a line round them and a cover across the top. -->
+    <Style Selector="Border.boardcolumn">
+      <Setter Property="Width" Value="280" />
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="8,6,8,8" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="DockPanel.columnhead">
+      <Setter Property="Margin" Value="2,0,0,2" />
+      <Setter Property="MinHeight" Value="34" />
+    </Style>
+    <Style Selector="TextBlock.columntitle">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="Margin" Value="7,0" />
+    </Style>
+    <Style Selector="Button.coltool">
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBlock.columncount">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="6,0" />
+    </Style>
+    <Style Selector="Border.boardcard">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.boardcard:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
+    </Style>
+    <Style Selector="Border.boardcard.open">
+      <Setter Property="BorderBrush" Value="{DynamicResource DropMark}" />
+    </Style>
+    <Style Selector="Border.boardcard.picked">
+      <Setter Property="BorderBrush" Value="{DynamicResource DropMark}" />
+      <Setter Property="Background" Value="{DynamicResource Picked}" />
+    </Style>
+    <Style Selector="Border.cardcover">
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="CornerRadius" Value="7,7,0,0" />
+    </Style>
+    <Style Selector="StackPanel.cardcount">
+      <Setter Property="Orientation" Value="Horizontal" />
+      <Setter Property="Spacing" Value="3" />
+    </Style>
+    <Style Selector="StackPanel.cardcount > TextBlock, TextBlock.carddue">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="StackPanel.cardcount > c|Icon">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.carddue.late">
+      <Setter Property="Foreground" Value="{DynamicResource Attention}" />
+    </Style>
+    <Style Selector="Button.addcard">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Padding" Value="8,7" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="Border.addcolumn">
+      <Setter Property="Width" Value="280" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Padding" Value="0,4,0,0" />
+    </Style>
   </UserControl.Styles>
   <!-- Projects on the left, the open one on the right. The panes move, resize and hide as on Mail. -->
   <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized">
@@ -707,61 +784,116 @@
             </ItemsControl>
           </StackPanel>
 
-          <!-- The board: a column per heading, its tasks as cards. -->
+          <!-- The board, as Asana's: a column per heading with its name, how many tasks, a + and a menu; cards under it,
+               "Add task" at its foot, and a column at the end to add a heading. -->
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding IsBoard}">
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,8">
             <ItemsControl x:Name="Board" ItemsSource="{Binding Columns}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="12" /></ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:BoardColumn">
-                  <Border Width="270" Background="{DynamicResource TableHead}" CornerRadius="10" Padding="10" VerticalAlignment="Top">
-                    <StackPanel Spacing="8">
-                      <DockPanel Margin="4,0">
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Section.Count}" VerticalAlignment="Center" />
-                        <TextBlock FontWeight="SemiBold" Text="{Binding Section.Name}" TextTrimming="CharacterEllipsis" />
+                  <Border Classes="boardcolumn">
+                    <StackPanel Spacing="2">
+                      <DockPanel Classes="columnhead">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                          <Button Classes="quiet coltool" Click="AddCardTopClicked" ToolTip.Tip="Add a task at the top">
+                            <c:Icon Data="{StaticResource Icon.Plus}" Size="14" />
+                          </Button>
+                          <Button Classes="quiet coltool" ToolTip.Tip="More">
+                            <c:Icon Data="{StaticResource Icon.More}" Size="14" />
+                            <Button.Flyout>
+                              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuItem Header="Add task at the top" Click="AddCardTopClicked" />
+                                <MenuItem Header="Add task at the bottom" Click="AddCardClicked" />
+                                <MenuItem Header="Rename heading" Click="RenameColumnClicked" IsVisible="{Binding Section.IsHeading}" />
+                                <MenuItem Header="Delete heading" Command="{Binding Section.DeleteCommand}" IsVisible="{Binding Section.IsHeading}" />
+                              </MenuFlyout>
+                            </Button.Flyout>
+                          </Button>
+                        </StackPanel>
+                        <TextBlock DockPanel.Dock="Right" Classes="columncount" Text="{Binding Section.Total}" />
+                        <Panel VerticalAlignment="Center">
+                          <TextBox Classes="inline heading columnname" Text="{Binding Section.Name}" IsVisible="{Binding Section.IsHeading}" />
+                          <TextBlock Classes="columntitle" Text="{Binding Section.Title}" IsVisible="{Binding !Section.IsHeading}" />
+                        </Panel>
                       </DockPanel>
+                      <TextBox Classes="cardbox" Text="{Binding Add.Title}" PlaceholderText="Write a task name" IsVisible="{Binding Add.IsTypingTop}"
+                               KeyDown="AddCardKey" LostFocus="CardBoxLeft" Loaded="CardBoxLoaded" Margin="0,4" />
                       <ItemsControl ItemsSource="{Binding Cards}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:TaskRow">
-                            <Border Padding="0,3" Background="Transparent"
-                                    ContextRequested="TaskMenu">
-                              <Border Classes="card" Classes.open="{Binding IsOpen}" Classes.picked="{Binding IsPicked}" Padding="8" Opacity="{Binding Fade}">
-                                <StackPanel Spacing="8">
-                                <!-- Its cover picture, as Asana's -->
-                                <Border CornerRadius="6" ClipToBounds="True" IsVisible="{Binding HasCover}" Margin="-2,-2,-2,0">
-                                  <Image Source="{Binding Cover.Picture, FallbackValue={x:Null}}" Height="130" Stretch="UniformToFill" />
-                                </Border>
-                                <Grid ColumnDefinitions="18,26,*">
-                                  <Border Classes="grip" Background="Transparent" ToolTip.Tip="Drag the card to move it" VerticalAlignment="Top" Margin="0,3,0,0">
-                                    <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" />
+                            <Border Padding="0,4" Background="Transparent" ContextRequested="TaskMenu" Tapped="CardTapped">
+                              <Border Classes="boardcard" Classes.open="{Binding IsOpen}" Classes.picked="{Binding IsPicked}" Opacity="{Binding Fade}">
+                                <StackPanel>
+                                  <!-- Its cover picture across the top, as Asana's -->
+                                  <Border Classes="cardcover" IsVisible="{Binding HasCover}">
+                                    <Image Source="{Binding Cover.Picture, FallbackValue={x:Null}}" Height="130" Stretch="UniformToFill" />
                                   </Border>
-                                  <CheckBox Grid.Column="1" IsChecked="{Binding Done}" VerticalAlignment="Top" ToolTip.Tip="Done" />
-                                  <Button Grid.Column="2" Classes="link" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                          Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}"
-                                          ToolTip.Tip="Open the task">
-                                    <StackPanel Spacing="3">
-                                      <TextBlock Text="{Binding Title}" TextWrapping="Wrap" Foreground="{DynamicResource Text}" />
-                                      <TextBlock Classes="muted" FontSize="12" Text="{Binding CardLine}" IsVisible="{Binding HasCardLine}" TextWrapping="Wrap" />
-                                      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" Margin="0,2,0,0" />
-                                    </StackPanel>
-                                  </Button>
-                                </Grid>
+                                  <StackPanel Margin="12,10,12,11" Spacing="8">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                      <CheckBox Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Top" ToolTip.Tip="Mark complete" />
+                                      <TextBlock Grid.Column="1" Text="{Binding Title}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    </Grid>
+                                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" />
+                                    <DockPanel IsVisible="{Binding HasCardFoot}">
+                                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                        <StackPanel Classes="cardcount" IsVisible="{Binding HasSubtasks}" ToolTip.Tip="Subtasks done">
+                                          <TextBlock Text="{Binding Subtasks}" />
+                                          <c:Icon Data="{StaticResource Icon.Checklist}" Size="12" />
+                                        </StackPanel>
+                                        <StackPanel Classes="cardcount" IsVisible="{Binding HasComments}" ToolTip.Tip="Comments">
+                                          <TextBlock Text="{Binding CommentText}" />
+                                          <c:Icon Data="{StaticResource Project.ChatBubbles}" Size="12" />
+                                        </StackPanel>
+                                        <StackPanel Classes="cardcount" IsVisible="{Binding HasAttachments}" ToolTip.Tip="Files attached">
+                                          <TextBlock Text="{Binding AttachmentCount}" />
+                                          <c:Icon Data="{StaticResource Icon.Paperclip}" Size="12" />
+                                        </StackPanel>
+                                      </StackPanel>
+                                      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <c:Monogram Text="{Binding WhoInitials}" Size="22" IsVisible="{Binding HasWho}" ToolTip.Tip="{Binding WhoText}" />
+                                        <TextBlock Classes="carddue" Classes.late="{Binding IsLate}" Text="{Binding DueText}" IsVisible="{Binding HasDue}" VerticalAlignment="Center" />
+                                      </StackPanel>
+                                    </DockPanel>
+                                  </StackPanel>
                                 </StackPanel>
                               </Border>
                             </Border>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
-                      <TextBox Classes="inline" Text="{Binding Add.Title}" PlaceholderText="Add a card, then Enter" KeyDown="AddCardKey" />
+                      <TextBox Classes="cardbox" Text="{Binding Add.Title}" PlaceholderText="Write a task name" IsVisible="{Binding Add.IsTypingBottom}"
+                               KeyDown="AddCardKey" LostFocus="CardBoxLeft" Loaded="CardBoxLoaded" Margin="0,4" />
+                      <Button Classes="quiet addcard" Click="AddCardClicked" IsVisible="{Binding Add.ShowsAddButton}" ToolTip.Tip="Add a task to this heading">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <c:Icon Data="{StaticResource Icon.Plus}" Size="13" VerticalAlignment="Center" />
+                          <TextBlock Text="Add task" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
                     </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+            <!-- Add a heading, as Asana's column at the end of the board -->
+            <Border Classes="addcolumn">
+              <Panel>
+                <Button Classes="quiet addcard" Click="AddColumnClicked" IsVisible="{Binding !IsAddingColumn}" ToolTip.Tip="Add a heading: a new column">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <c:Icon Data="{StaticResource Icon.Plus}" Size="13" VerticalAlignment="Center" />
+                    <TextBlock Text="Add heading" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+                <TextBox x:Name="NewColumnBox" Classes="cardbox" Text="{Binding NewHeadingName}" PlaceholderText="Name the heading, then Enter"
+                         IsVisible="{Binding IsAddingColumn}" KeyDown="AddColumnKey" LostFocus="ColumnBoxLeft" />
+              </Panel>
+            </Border>
+            </StackPanel>
           </ScrollViewer>
 
-          <DockPanel Margin="0,8,0,0">
+          <DockPanel Margin="0,8,0,0" IsVisible="{Binding IsList}">
             <Button DockPanel.Dock="Right" Classes="quiet" Content="Add heading" Command="{Binding AddHeadingCommand}" Margin="8,0,0,0" />
             <TextBox x:Name="NewHeadingBox" Text="{Binding NewHeadingName}" PlaceholderText="New heading, e.g. Design, Build, Launch" KeyDown="AddHeadingKey" />
           </DockPanel>

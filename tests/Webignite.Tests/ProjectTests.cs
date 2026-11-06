@@ -237,6 +237,21 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void A_board_column_adds_at_the_top_or_the_bottom()
+    {
+        var project = NewProject();
+        var design = projects.AddHeading(project.Id, "Design").Saved!;
+        var middle = NewTask(project.Id, "Wireframes", design.Id);
+        var last = NewTask(project.Id, "Colours", design.Id);
+        var top = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, HeadingId = design.Id, Title = "Brief" }, first: true).Saved!;
+        Assert.Equal(["Brief", "Wireframes", "Colours"], projects.AllTasks(project.Id).Select(t => t.Title));
+        Assert.True(top.Order < middle.Order && middle.Order < last.Order);
+        // At the top of an empty heading it still comes first once others follow.
+        Assert.Equal(1, ProjectRules.FirstOrder([]));
+        Assert.Equal(-1, ProjectRules.FirstOrder([0, 3]));
+    }
+
+    [Fact]
     public void Deleting_leaves_a_marker_with_who_and_when_and_undo_puts_it_all_back()
     {
         var project = NewProject();

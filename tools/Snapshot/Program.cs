@@ -2269,8 +2269,31 @@ Save("site-check");
             projectsPage.Columns.First(c => c.Section.Name == "Build").Cards.First().Title == "Colours and fonts");
         Check("The board is remembered for next time, for this project", projectsPage.Layout.Board
             && services.Settings.ProjectLayouts.Values.Any(l => l.Board));
+        var boardLaunch = projectsPage.Columns.First(c => c.Section.Name == "Launch");
+        Check("Each column shows how many tasks it has, by its name", boardLaunch.Section.Total == boardLaunch.Cards.Count.ToString(System.Globalization.CultureInfo.CurrentCulture));
+        boardLaunch.Add.AtTop = true;
+        boardLaunch.Add.IsTyping = true;
+        boardLaunch.Add.Title = "Go-live checklist";
+        boardLaunch.Add.AddCard();
+        boardLaunch = projectsPage.Columns.First(c => c.Section.Name == "Launch");
+        Check("The + at a column's top adds a card there and keeps the box open for the next",
+            boardLaunch.Cards.First().Title == "Go-live checklist" && boardLaunch.Add.IsTypingTop);
+        boardLaunch.Add.IsTyping = false;
+        projectsPage.IsAddingColumn = true;
+        projectsPage.NewHeadingName = "Aftercare";
+        projectsPage.AddHeadingCommand.Execute(null);
+        Check("The column at the end of the board adds a heading", projectsPage.Columns.Last().Section.Name == "Aftercare");
+        projectsPage.IsAddingColumn = false;
+        Check("A card shows a face, a due date and its counts at its foot",
+            projectsPage.Columns.SelectMany(c => c.Cards).Any(c => c.HasCardFoot && c.HasWho));
+        window.Width = 1900;
         Dispatcher.UIThread.RunJobs();
         Save("projects-board");
+        window.Width = 1280;
+        // Put the project back as it was for the checks after: no Aftercare heading, no extra card.
+        services.Projects.DeleteHeading(projectsPage.Columns.Last().Section.Heading!.Id);
+        services.Projects.DeleteTask(projectsPage.Columns.SelectMany(c => c.Cards).First(c => c.Title == "Go-live checklist").Task.Id);
+        projectsPage.Refresh();
         projectsPage.ListViewCommand.Execute(null);
 
         // Priority and tags: set on the task page, shown on rows, and filtered by.
