@@ -2406,6 +2406,50 @@ Save("site-check");
         projectsPage.CloseTaskCommand.Execute(null);
         projectsPage.Refresh();
 
+        // Custom fields, as Asana's: a choice with coloured options and a number, as list columns, card pills and pane rows.
+        projectsPage.NewFieldName = "Stage";
+        projectsPage.NewFieldKind = ProjectsViewModel.FieldKinds.First(k => k.Value == Webignite.Core.Projects.FieldKind.Choice);
+        projectsPage.NewFieldOptions = "Not started, Doing, Waiting on client, Done";
+        projectsPage.AddFieldCommand.Execute(null);
+        projectsPage.NewFieldName = "Hours";
+        projectsPage.NewFieldKind = ProjectsViewModel.FieldKinds.First(k => k.Value == Webignite.Core.Projects.FieldKind.Number);
+        projectsPage.AddFieldCommand.Execute(null);
+        var stageField = services.Projects.Get(site.Id)!.CustomFields.First(f => f.Name == "Stage");
+        var hoursField = services.Projects.Get(site.Id)!.CustomFields.First(f => f.Name == "Hours");
+        projectsPage.SetFieldValue(pages.Id, stageField.Id, "Doing");
+        projectsPage.SetFieldValue(pages.Id, hoursField.Id, "12.5");
+        projectsPage.SetFieldValue(colourTask.Id, stageField.Id, "Waiting on client");
+        projectsPage.SetFieldValue(colourTask.Id, hoursField.Id, "lots");
+        Check("A number field turns down words and says why", projectsPage.Message.Contains("number", StringComparison.Ordinal));
+        projectsPage.SetFieldValue(colourTask.Id, hoursField.Id, "3");
+        Check("Custom fields show as list columns with each task's value, choices as coloured pills",
+            projectsPage.FieldHeaders.Select(h => h.Name).SequenceEqual(["Stage", "Hours"])
+            && projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == pages.Id).FieldCells is [{ IsPill: true, Text: "Doing" }, { Text: var hoursText }]
+            && hoursText.Length > 0);
+        window.Width = 1900;
+        Dispatcher.UIThread.RunJobs();
+        for (var tick = 0; tick < 20; tick++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Thread.Sleep(15);
+        }
+        Save("projects-fields");
+        projectsPage.OpenTaskById(pages.Id);
+        Check("The task pane has a row for each field, set as picked", projectsPage.Detail!.FieldEditors.Count == 2
+            && projectsPage.Detail.FieldEditors[0].Picked?.Label == "Doing");
+        projectsPage.CloseTaskCommand.Execute(null);
+        projectsPage.BoardViewCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Check("Board cards show the choices as pills", projectsPage.Columns.SelectMany(c => c.Cards).First(c => c.Task.Id == pages.Id).Pills.Single().Text == "Doing");
+        Save("projects-board-fields");
+        window.Width = 1280;
+        projectsPage.ListViewCommand.Execute(null);
+        // Take the fields off again for the checks after.
+        services.Projects.RemoveField(site.Id, stageField.Id);
+        services.Projects.RemoveField(site.Id, hoursField.Id);
+        projectsPage.Refresh();
+
         // Priority and tags: set on the task page, shown on rows, and filtered by.
         projectsPage.OpenTaskById(pages.Id);
         var tagged = projectsPage.Detail!;

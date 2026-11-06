@@ -506,7 +506,9 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             IsExpanded = expanded.Contains(task.Id),
             CommentCount = commentCounts.GetValueOrDefault(task.Id),
             WaitingTip = TaskDependencies.WaitingOn(task, tasks),
+            FieldCells = CellsFor(task),
         };
+        LoadFieldHeaders();
         commentCounts = services.Projects.CommentCounts();
         // The board is always the project's headings; the list is grouped as picked, the same rows when by headings.
         var sections = ProjectList.Arrange(headings, shown, Layout with { Group = TaskGroup.Sections }, NameOf, today);
@@ -552,6 +554,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             IsOpen = task.Id == Detail?.Task.Id,
             CommentCount = commentCounts.GetValueOrDefault(task.Id),
             WaitingTip = TaskDependencies.WaitingOn(task, tasks),
+            FieldCells = CellsFor(task),
         };
         LoadTimeline(shown, headings, Plain);
         LoadCalendar(shown, Plain);
@@ -1131,6 +1134,11 @@ public sealed partial class TaskRow : ObservableObject
     /// <summary>The open tasks it's still waiting on, by name; empty when it isn't waiting.</summary>
     public string WaitingTip { get; init; } = "";
     public bool IsWaiting => WaitingTip.Length > 0;
+
+    /// <summary>Its values for the project's custom fields: cells in the list; the choices show as pills on its card.</summary>
+    public IReadOnlyList<FieldCell> FieldCells { get; init; } = [];
+    public IReadOnlyList<FieldCell> Pills => [.. FieldCells.Where(c => c.IsPill)];
+    public bool HasPills => FieldCells.Any(c => c.IsPill);
     public string WaitingText => "Waiting on " + WaitingTip;
 
     [RelayCommand]

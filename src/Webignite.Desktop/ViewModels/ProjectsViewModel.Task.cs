@@ -261,6 +261,7 @@ public sealed partial class TaskDetail : ObservableObject
         ShowLinksAndHistory();
         LoadSubtasks();
         LoadDependencies();
+        LoadFieldEditors();
         Attachments.Clear();
         foreach (var attachment in Task.Attachments)
             Attachments.Add(new AttachmentRow(Task, attachment, page, 120));

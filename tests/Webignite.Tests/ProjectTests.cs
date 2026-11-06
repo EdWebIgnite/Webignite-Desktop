@@ -270,6 +270,22 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void Custom_fields_are_kept_on_the_project_and_their_values_on_tasks()
+    {
+        var project = NewProject();
+        var (saved, problems) = projects.AddField(project.Id, "Hours", FieldKind.Number, []);
+        Assert.Empty(problems);
+        var field = Assert.Single(saved!.CustomFields);
+        Assert.True(saved.Fields.ContainsKey("customfields"));
+        var task = NewTask(project.Id, "Wireframes");
+        Assert.Equal("4.5", projects.SetFieldValue(task.Id, field.Id, "4.5", System.Globalization.CultureInfo.InvariantCulture).Saved!.Values[field.Id]);
+        Assert.Single(projects.SetFieldValue(task.Id, field.Id, "lots", System.Globalization.CultureInfo.InvariantCulture).Problems);
+        Assert.Empty(projects.SetFieldValue(task.Id, field.Id, "", System.Globalization.CultureInfo.InvariantCulture).Saved!.Values);
+        projects.RemoveField(project.Id, field.Id);
+        Assert.Empty(projects.Get(project.Id)!.CustomFields);
+    }
+
+    [Fact]
     public void Deleting_leaves_a_marker_with_who_and_when_and_undo_puts_it_all_back()
     {
         var project = NewProject();

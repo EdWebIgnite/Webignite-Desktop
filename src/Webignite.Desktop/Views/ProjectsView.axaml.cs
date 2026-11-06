@@ -807,4 +807,78 @@ public partial class ProjectsView : FullBleedView
         if (menu.Items.Count == 0)
             menu.Items.Add(new MenuItem { Header = "No other task to wait on", IsEnabled = false });
     }
+
+    // A custom field's cell in the list: a choice picks from its options; text, a number or a date is typed.
+    private void FieldCellClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.DataContext is not FieldCell cell)
+            return;
+        if (cell.Field.Kind == FieldKind.Choice)
+        {
+            var items = new List<object>();
+            foreach (var option in cell.Field.Options)
+            {
+                var item = new MenuItem { Header = option.Name };
+                item.Click += (_, _) => cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id, option.Id);
+                items.Add(item);
+            }
+            var clear = new MenuItem { Header = "Clear", IsEnabled = cell.HasValue };
+            clear.Click += (_, _) => cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id, "");
+            items.Add(new Separator());
+            items.Add(clear);
+            new ContextMenu { ItemsSource = items }.Open(button);
+            return;
+        }
+        var flyout = new Flyout { Placement = PlacementMode.BottomEdgeAlignedLeft };
+        if (cell.Field.Kind == FieldKind.Date)
+        {
+            var picker = new Calendar
+            {
+                SelectedDate = DateOnly.TryParseExact(cell.Value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var date) ? date.ToDateTime(TimeOnly.MinValue) : null,
+            };
+            picker.SelectedDatesChanged += (_, _) =>
+            {
+                flyout.Hide();
+                cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id,
+                    picker.SelectedDate is { } d ? DateOnly.FromDateTime(d).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : "");
+            };
+            flyout.Content = picker;
+        }
+        else
+        {
+            var box = new TextBox { Text = cell.Text, Width = 200, PlaceholderText = cell.Field.Kind == FieldKind.Number ? "A number, then Enter" : "Type, then Enter" };
+            box.KeyDown += (_, k) =>
+            {
+                if (k.Key is not (Key.Enter or Key.Escape))
+                    return;
+                k.Handled = true;
+                flyout.Hide();
+                if (k.Key == Key.Enter)
+                    cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id, box.Text ?? "");
+            };
+            flyout.Content = box;
+            flyout.Opened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                box.Focus();
+                box.SelectAll();
+            });
+        }
+        flyout.ShowAt(button);
+    }
+
+    private void FieldEditorLeft(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is FieldEditor editor)
+            editor.SaveCommand.Execute(null);
+    }
+
+    private void FieldEditorKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && (sender as Control)?.DataContext is FieldEditor editor)
+        {
+            editor.SaveCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
 }

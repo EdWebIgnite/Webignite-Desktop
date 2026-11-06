@@ -251,6 +251,30 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return (saved, []);
     }
 
+    /// <summary>Adds a custom field to a project, as Asana's; a choice field takes its options from what's typed.</summary>
+    public (Project? Saved, IReadOnlyList<string> Problems) AddField(string projectId, string name, FieldKind kind, IEnumerable<string> options)
+    {
+        if (Get(projectId) is not { } current)
+            return (null, ["The project is gone."]);
+        var (changed, problem) = CustomFields.Add(current, name, kind, options, ProjectRules.NewId);
+        return changed is null ? (null, [problem]) : Change(projectId, p => p with { CustomFields = changed.CustomFields });
+    }
+
+    /// <summary>Takes a custom field off a project; tasks keep their values, unseen, so Undo can bring it back whole.</summary>
+    public (Project? Saved, IReadOnlyList<string> Problems) RemoveField(string projectId, string fieldId) =>
+        Change(projectId, p => CustomFields.Remove(p, fieldId));
+
+    /// <summary>Sets a task's value for one of its project's fields from what's typed; empty clears it.</summary>
+    public (ProjectTask? Saved, IReadOnlyList<string> Problems) SetFieldValue(string taskId, string fieldId, string typed, IFormatProvider culture)
+    {
+        if (GetTask(taskId) is not { } task || Get(task.ProjectId) is not { } project)
+            return (null, ["The task is gone."]);
+        if (project.CustomFields.FirstOrDefault(f => f.Id == fieldId) is not { } field)
+            return (null, ["That field isn't on the project any more."]);
+        var (value, problem) = CustomFields.Read(field, typed, culture);
+        return problem.Length > 0 ? (null, [problem]) : ChangeTask(taskId, t => CustomFields.WithValue(t, fieldId, value));
+    }
+
     /// <summary>Makes a task wait on another in its project, as Asana's dependencies; says why when it can't.</summary>
     public (ProjectTask? Saved, IReadOnlyList<string> Problems) AddDependency(string id, string blockerId)
     {

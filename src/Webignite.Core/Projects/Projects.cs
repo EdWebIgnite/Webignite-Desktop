@@ -158,6 +158,9 @@ public sealed record Project : ITracked
     /// <summary>Status updates, the newest first.</summary>
     public IReadOnlyList<StatusUpdate> Updates { get; init; } = [];
 
+    /// <summary>The fields it adds to its tasks, as Asana's custom fields, in the order they show.</summary>
+    public IReadOnlyList<CustomField> CustomFields { get; init; } = [];
+
     /// <summary>Its picture in the sidebar and on Home: an icon's name from <see cref="ProjectLooks.Icons"/>.</summary>
     public string Icon { get; init; } = "";
 
@@ -246,6 +249,9 @@ public sealed record ProjectTask : ITracked
 
     /// <summary>The tasks in its project it's waiting on, by id, as Asana's dependencies.</summary>
     public IReadOnlyList<string> BlockedBy { get; init; } = [];
+
+    /// <summary>Its values for the project's custom fields, by field id (see <see cref="CustomFields"/>).</summary>
+    public IReadOnlyDictionary<string, string> Values { get; init; } = new Dictionary<string, string>();
 
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
@@ -675,7 +681,7 @@ public static class ProjectRules
         ("icon", p => p.Icon), ("colour", p => p.Colour), ("health", p => p.Health), ("favourite", p => p.Favourite),
         ("name", p => p.Name), ("shared", p => p.Shared), ("client", p => p.ClientId), ("status", p => p.Status),
         ("due", p => p.Due), ("notes", p => p.Notes), ("order", p => p.Order),
-        ("noteshtml", p => p.NotesHtml), ("links", p => p.Links), ("updates", p => p.Updates),
+        ("noteshtml", p => p.NotesHtml), ("links", p => p.Links), ("updates", p => p.Updates), ("customfields", p => p.CustomFields),
     ];
 
     private static readonly (string Name, Func<Heading, object?> Value)[] HeadingFields =
@@ -688,7 +694,7 @@ public static class ProjectRules
         ("project", t => t.ProjectId), ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes), ("noteshtml", t => t.NotesHtml),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
         ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
-        ("attachments", t => t.Attachments), ("cover", t => t.CoverId), ("milestone", t => t.Milestone), ("blockedby", t => t.BlockedBy),
+        ("attachments", t => t.Attachments), ("cover", t => t.CoverId), ("milestone", t => t.Milestone), ("blockedby", t => t.BlockedBy), ("values", t => t.Values),
     ];
 
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>
