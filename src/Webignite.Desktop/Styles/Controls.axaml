@@ -135,6 +135,41 @@
   <Style Selector="TextBlock.problem">
     <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
+  <!-- A view tab under a page's heading (a project's List and Board), as Asana's: words, the open one underlined -->
+  <Style Selector="Button.viewtab">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="2,6" />
+    <Setter Property="Margin" Value="0,0,18,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.viewtab.on">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+  </Style>
+  <Style Selector="Button.viewtab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <!-- A project's square in its header: the button around it stays out of the way -->
+  <Style Selector="Button.projecthead">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.swatch">
+    <Setter Property="Width" Value="26" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="CornerRadius" Value="13" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="c|Icon.starred">
+    <Setter Property="Foreground" Value="{DynamicResource CategoryYellow}" />
+  </Style>
   <!-- A handle to drag something taller or shorter (Calendar's month, Planner's days): a short bar, darker on hover. -->
   <Style Selector="Border.sizegrip">
     <Setter Property="Height" Value="14" />

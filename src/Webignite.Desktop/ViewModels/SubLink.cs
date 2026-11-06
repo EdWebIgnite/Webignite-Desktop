@@ -16,8 +16,18 @@ public abstract partial class SubLink(string? id, string title, string icon) : O
     /// <summary>The key of its line icon in Styles/Icons.axaml; empty for a dot.</summary>
     public string Icon { get; } = icon;
 
-    public bool HasIcon => Icon.Length > 0;
-    public bool IsDot => !HasIcon;
+    public bool HasIcon => Icon.Length > 0 && !HasTile;
+    public bool IsDot => Icon.Length == 0 && !HasTile;
+
+    /// <summary>A project's coloured square: its colour name, empty for none.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTile), nameof(HasIcon), nameof(IsDot))]
+    public partial string TileColour { get; set; } = "";
+
+    /// <summary>The small picture on the coloured square.</summary>
+    [ObservableProperty] public partial string TileIcon { get; set; } = "";
+
+    public bool HasTile => TileColour.Length > 0;
 }
 
 /// <summary>One of the person's own pages in the sidebar, or the entry that makes a new one (no id).</summary>

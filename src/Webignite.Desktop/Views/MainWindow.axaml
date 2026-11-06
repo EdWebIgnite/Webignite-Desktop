@@ -229,6 +229,12 @@
                         Margin="0,0,12,0" VerticalAlignment="Center" IsVisible="{Binding HasIcon}" />
                 <!-- A project is a small dot, set in a little under the pages, as in Asana's list of projects. -->
                 <Ellipse Classes="projectdot" Width="7" Height="7" Margin="16,0,13,0" VerticalAlignment="Center" IsVisible="{Binding IsDot}" />
+                <!-- A project: its coloured square with a small picture, as in Asana's sidebar -->
+                <Border Width="20" Height="20" CornerRadius="5" Margin="0,0,10,0" VerticalAlignment="Center" IsVisible="{Binding HasTile}"
+                        Background="{Binding TileColour, Converter={x:Static c:ProjectColours.Brush}}">
+                  <c:Icon Data="{Binding TileIcon, Converter={x:Static c:IconConverter.Instance}}" Size="12" Foreground="{DynamicResource OnPrimary}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
               </DockPanel>
             </DataTemplate>

@@ -162,6 +162,8 @@ public sealed partial class HomeTaskRow : ObservableObject
 public sealed partial class HomeProjectTile(Project project, AppServices services)
 {
     public string Name => project.Name;
+    public string Colour => ProjectLooks.ColourOf(project);
+    public string Icon => ProjectLooks.IconOf(project);
     public string Initials => string.Concat(project.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => char.ToUpperInvariant(w[0])));
 
     [RelayCommand]

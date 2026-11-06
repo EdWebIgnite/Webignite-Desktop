@@ -45,6 +45,9 @@ public interface ITracked
 
 public enum ProjectStatus { Active, OnHold, Done }
 
+/// <summary>How a project is going, as Asana's "Set status": not set, on track, at risk or off track.</summary>
+public enum ProjectHealth { None, OnTrack, AtRisk, OffTrack }
+
 /// <summary>How often a task comes back once it's done.</summary>
 public enum TaskRepeat { None, Daily, Weekly, Monthly, Yearly }
 
@@ -97,6 +100,17 @@ public sealed record Project : ITracked
     public ProjectStatus Status { get; init; }
     public DateOnly? Due { get; init; }
     public string Notes { get; init; } = "";
+
+    /// <summary>Its picture in the sidebar and on Home: an icon's name from <see cref="ProjectLooks.Icons"/>.</summary>
+    public string Icon { get; init; } = "";
+
+    /// <summary>Its colour from <see cref="ProjectLooks.Colours"/>; empty picks one from its name.</summary>
+    public string Colour { get; init; } = "";
+
+    public ProjectHealth Health { get; init; }
+
+    /// <summary>Starred: shown first in the sidebar's list of projects.</summary>
+    public bool Favourite { get; init; }
 
     /// <summary>Where it sits in the list of projects; smaller first.</summary>
     public double Order { get; init; }
@@ -546,6 +560,7 @@ public static class ProjectRules
 
     private static readonly (string Name, Func<Project, object?> Value)[] ProjectFields =
     [
+        ("icon", p => p.Icon), ("colour", p => p.Colour), ("health", p => p.Health), ("favourite", p => p.Favourite),
         ("name", p => p.Name), ("shared", p => p.Shared), ("client", p => p.ClientId), ("status", p => p.Status),
         ("due", p => p.Due), ("notes", p => p.Notes), ("order", p => p.Order),
     ];
@@ -602,4 +617,43 @@ public static class ProjectRules
         a is IEnumerable x and not string && b is IEnumerable y and not string
             ? x.Cast<object?>().SequenceEqual(y.Cast<object?>())
             : Equals(a, b);
+}
+
+/// <summary>
+/// The icons and colours a project can have, as in Asana: a coloured square with a small picture. A project with
+/// none picked gets a colour from its name, so new projects differ at a glance.
+/// </summary>
+public static class ProjectLooks
+{
+    /// <summary>Icon names, as in the app's icon set without the "Icon." in front.</summary>
+    public static IReadOnlyList<string> Icons { get; } =
+        ["Projects", "Checklist", "Tiles", "Calendar", "Star", "Flag", "Mail", "Folder", "Picture", "Clients", "Money", "Domains", "SiteCheck", "Markup", "Notes", "Bell"];
+
+    /// <summary>Colour names; each has a matching Category brush in the palette. Red and green are left out: they mean problem and done.</summary>
+    public static IReadOnlyList<string> Colours { get; } = ["Blue", "Purple", "Orange", "Yellow", "Teal", "Pink", "Grey"];
+
+    public static string IconOf(Project project) => Icons.Contains(project.Icon) ? project.Icon : Icons[0];
+
+    public static string ColourOf(Project project) => Colours.Contains(project.Colour) ? project.Colour : ColourFor(project.Name);
+
+    /// <summary>A colour from a name, always the same for the same name.</summary>
+    public static string ColourFor(string name)
+    {
+        var sum = 0;
+        foreach (var c in name.Trim().ToUpperInvariant())
+            sum = (sum * 31 + c) % 9973;
+        return Colours[sum % (Colours.Count - 1)];
+    }
+
+    public static string Label(ProjectHealth health) => health switch
+    {
+        ProjectHealth.OnTrack => "On track",
+        ProjectHealth.AtRisk => "At risk",
+        ProjectHealth.OffTrack => "Off track",
+        _ => "Set status",
+    };
+
+    /// <summary>The sidebar's projects: starred first, then in their usual order.</summary>
+    public static IReadOnlyList<Project> SidebarOrder(IEnumerable<Project> projects) =>
+        [.. projects.OrderByDescending(p => p.Favourite).ThenBy(p => p.Order)];
 }

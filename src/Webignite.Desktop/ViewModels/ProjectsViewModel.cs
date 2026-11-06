@@ -287,6 +287,57 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     public partial string EditName { get; set; } = "";
 
     [ObservableProperty] public partial bool EditShared { get; set; }
+
+    // The header, as Asana's: the project's coloured square, a star, and how it's going.
+
+    [ObservableProperty] public partial string EditColour { get; private set; } = "";
+    [ObservableProperty] public partial string EditIcon { get; private set; } = "";
+    [ObservableProperty] public partial bool EditFavourite { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HealthText), nameof(HasHealth))]
+    public partial ProjectHealth EditHealth { get; private set; }
+
+    public string HealthText => ProjectLooks.Label(EditHealth);
+    public bool HasHealth => EditHealth != ProjectHealth.None;
+
+    public static IReadOnlyList<string> IconChoices => ProjectLooks.Icons;
+    public static IReadOnlyList<string> ColourChoices => ProjectLooks.Colours;
+
+    public static IReadOnlyList<ProjectHealth> HealthChoices { get; } = [ProjectHealth.OnTrack, ProjectHealth.AtRisk, ProjectHealth.OffTrack];
+
+    /// <summary>Who's on the project, as the header's round faces: me, and my partner when it's shared.</summary>
+    public IReadOnlyList<string> Members => EditShared && services.Team().Partner is { } partner
+        ? [services.Me().Name, partner.Name]
+        : [services.Me().Name];
+
+    [RelayCommand]
+    private void PickColour(string colour)
+    {
+        EditColour = colour;
+        ChangeProject(p => p with { Colour = colour });
+    }
+
+    [RelayCommand]
+    private void PickIcon(string icon)
+    {
+        EditIcon = icon;
+        ChangeProject(p => p with { Icon = icon });
+    }
+
+    [RelayCommand]
+    private void ToggleFavourite()
+    {
+        EditFavourite = !EditFavourite;
+        ChangeProject(p => p with { Favourite = EditFavourite });
+    }
+
+    [RelayCommand]
+    private void SetHealth(ProjectHealth health)
+    {
+        EditHealth = health == EditHealth ? ProjectHealth.None : health;
+        ChangeProject(p => p with { Health = EditHealth });
+    }
     [ObservableProperty] public partial Choice<Client?>? EditClient { get; private set; }
     [ObservableProperty] public partial Choice<ProjectStatus>? EditStatus { get; private set; }
     [ObservableProperty] public partial DateTime? EditDue { get; set; }
@@ -403,6 +454,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         loading = true;
         EditName = project.Name;
         EditShared = project.Shared;
+        EditColour = ProjectLooks.ColourOf(project);
+        EditIcon = ProjectLooks.IconOf(project);
+        EditFavourite = project.Favourite;
+        EditHealth = project.Health;
         EditClient = ClientChoices.FirstOrDefault(c => c.Value?.Id == project.ClientId) ?? ClientChoices.FirstOrDefault();
         EditStatus = Statuses.First(s => s.Value == project.Status);
         EditDue = project.Due?.ToDateTime(TimeOnly.MinValue);
@@ -482,7 +537,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     }
 
     partial void OnEditNameChanged(string value) => Typed(this);
-    partial void OnEditSharedChanged(bool value) => ChangeProject(p => p with { Shared = value });
+    partial void OnEditSharedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(Members));
+        ChangeProject(p => p with { Shared = value });
+    }
     partial void OnEditDueChanged(DateTime? value) => ChangeProject(p => p with { Due = value is { } d ? DateOnly.FromDateTime(d) : null });
 
     /// <summary>The client picked in the list; the list is one-way, so only a real pick counts.</summary>
