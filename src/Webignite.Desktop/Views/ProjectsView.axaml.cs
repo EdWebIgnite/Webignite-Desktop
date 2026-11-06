@@ -6,30 +6,38 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Webignite.Core.Projects;
+using Webignite.Desktop.Controls;
 using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
 
 /// <summary>
-/// The Projects page. Tasks are dragged by their grip: the line shows where the task will land, above or below
-/// another task, or at the top of a heading.
+/// The Projects page. A task is dragged by any part of its row or card, as in Asana: the line shows where it will
+/// land, above or below another task, at the top or end of a heading, or into a board column. Dropped on another
+/// project in the sidebar, it moves there.
 /// </summary>
 public partial class ProjectsView : FullBleedView
 {
-    private TaskRow? dragging;
-    private Control dragHost = null!;
-    private object? dropOn;
-    private bool dropBelow;
-
     public ProjectsView()
     {
         InitializeComponent();
-        TaskList.AddHandler(PointerMovedEvent, Dragged, RoutingStrategies.Tunnel, handledEventsToo: true);
-        TaskList.AddHandler(PointerReleasedEvent, Dropped, RoutingStrategies.Tunnel, handledEventsToo: true);
-        TaskList.AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Bubble);
-        Board.AddHandler(PointerMovedEvent, Dragged, RoutingStrategies.Tunnel, handledEventsToo: true);
-        Board.AddHandler(PointerReleasedEvent, Dropped, RoutingStrategies.Tunnel, handledEventsToo: true);
-        Board.AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Bubble);
+        var tasks = new DragRules
+        {
+            CanDrag = item => item is TaskRow,
+            CanDrop = (item, target, below) => target switch
+            {
+                TaskRow row => row != item,
+                SectionRow => below,
+                AddTaskRow => !below,
+                BoardColumn => true,
+                _ => false,
+            },
+            Drop = (item, target, below) => Projects?.Drop((TaskRow)item, target, below),
+            IsInto = item => item is BoardColumn,
+            Label = item => (item as TaskRow)?.Title ?? "",
+        };
+        DragReorder.Attach(TaskList, tasks);
+        DragReorder.Attach(Board, tasks);
         NewProjectBox.KeyDown += (_, e) =>
         {
             if (e.Key == Key.Enter && Projects is { } projects)
@@ -241,87 +249,5 @@ public partial class ProjectsView : FullBleedView
         delete.Click += (_, _) => row.DeleteCommand.Execute(null);
         new ContextMenu { ItemsSource = new object[] { move, new Separator(), delete } }.Open(sender as Control);
         e.Handled = true;
-    }
-
-    // Dragging a task by its grip
-
-    private void GripPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if ((sender as Control)?.DataContext is not TaskRow row || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-            return;
-        dragging = row;
-        dragHost = Projects?.IsBoard == true ? Board : TaskList;
-        e.Pointer.Capture(dragHost);
-        e.Handled = true;
-    }
-
-    private void Dragged(object? sender, PointerEventArgs e)
-    {
-        if (dragging is null)
-            return;
-        Mark(null, false);
-        var point = e.GetPosition(dragHost);
-        if (dragHost.InputHitTest(point) is not Visual hit)
-            return;
-        // The nearest row or card under the pointer; on the board, a column's empty space means its end.
-        foreach (var visual in hit.GetSelfAndVisualAncestors())
-        {
-            if (visual == dragHost)
-                break;
-            if (visual is ContentPresenter { DataContext: TaskRow or SectionRow or AddTaskRow or BoardColumn } container && container.GetVisualParent() is Panel)
-            {
-                var top = container.TranslatePoint(default, dragHost)?.Y ?? 0;
-                Mark(container.DataContext, point.Y > top + container.Bounds.Height / 2);
-                return;
-            }
-        }
-    }
-
-    private void Dropped(object? sender, PointerReleasedEventArgs e)
-    {
-        if (dragging is not { } row)
-            return;
-        var (target, below) = (dropOn, dropBelow);
-        EndDrag();
-        e.Pointer.Capture(null);
-        if (target is not null && target != row && Projects is { } projects)
-            projects.Drop(row, target, below);
-    }
-
-    private void EndDrag()
-    {
-        dragging = null;
-        Mark(null, false);
-    }
-
-    private void Mark(object? target, bool below)
-    {
-        switch (dropOn)
-        {
-            case TaskRow t:
-                t.DropAbove = t.DropBelow = false;
-                break;
-            case SectionRow s:
-                s.DropHere = false;
-                break;
-            case BoardColumn c:
-                c.DropHere = false;
-                break;
-        }
-        dropOn = target;
-        dropBelow = below;
-        switch (target)
-        {
-            case TaskRow t when t != dragging:
-                t.DropAbove = !below;
-                t.DropBelow = below;
-                break;
-            case SectionRow s:
-                s.DropHere = true;
-                break;
-            case BoardColumn c:
-                c.DropHere = true;
-                break;
-        }
     }
 }

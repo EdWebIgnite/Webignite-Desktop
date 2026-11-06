@@ -16,7 +16,7 @@ public partial class MainViewModel
     /// <summary>Lists the running projects under Projects in the sidebar, keeping the entries already there.</summary>
     private void ListProjects()
     {
-        var running = ProjectLooks.SidebarOrder(ProjectRules.Listed(services.Projects.Projects(), showDone: false));
+        var running = SidebarProjects();
         var links = new List<ProjectLink>();
         foreach (var project in running)
         {
@@ -32,6 +32,39 @@ public partial class MainViewModel
         Sidebar.ShowLinks(Page.Projects, [myTasksLink], [.. links, templatesLink]);
         OnPropertyChanged(nameof(SelectedNav));
     }
+
+    /// <summary>Whether a project dragged in the sidebar would land next to another; it takes the other's star.</summary>
+    public bool CanMoveProject(object dragged, object target, bool below) =>
+        dragged is ProjectLink { Kind: ProjectLinkKind.Project, Id: { } id } && target is ProjectLink { Kind: ProjectLinkKind.Project, Id: { } on }
+        && ProjectLooks.PlaceAt(SidebarProjects(), id, on, below) is not null;
+
+    /// <summary>Drops a project dragged in the sidebar next to another, keeping the order for next time.</summary>
+    public void MoveProject(object dragged, object target, bool below)
+    {
+        if (dragged is not ProjectLink { Id: { } id } || target is not ProjectLink { Id: { } on }
+            || ProjectLooks.PlaceAt(SidebarProjects(), id, on, below) is not { } place)
+            return;
+        services.Projects.Change(id, p => p with { Order = place.Order, Favourite = place.Favourite });
+    }
+
+    /// <summary>A task dragged from a project's list can be dropped on another project in the sidebar.</summary>
+    public static bool TakesTask(object dragged, object target) =>
+        dragged is TaskRow { Task: { } task } && target is ProjectLink { Kind: ProjectLinkKind.Project, Id: { } id } && task.ProjectId != id;
+
+    /// <summary>Moves a task dropped on a project in the sidebar to that project, with a note to open it there.</summary>
+    public void DropTask(object dragged, object target)
+    {
+        if (!TakesTask(dragged, target) || dragged is not TaskRow row || target is not ProjectLink link)
+            return;
+        var (saved, problems) = services.Projects.MoveTask(row.Task.Id, link.Id!);
+        if (saved is null)
+            services.ShowNote?.Invoke("Couldn't move it", string.Join(" ", problems), null);
+        else
+            services.ShowNote?.Invoke($"Moved to {link.Title}", saved.Title, () => services.Go.ProjectTask(saved.Id));
+    }
+
+    private IReadOnlyList<Project> SidebarProjects() =>
+        ProjectLooks.SidebarOrder(ProjectRules.Listed(services.Projects.Projects(), showDone: false));
 
     /// <summary>The sidebar entry for what the Projects page on screen shows, if it is one of the links.</summary>
     private ProjectLink? ShownProjectLink()

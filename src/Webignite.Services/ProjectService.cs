@@ -167,6 +167,30 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return (saved, []);
     }
 
+    /// <summary>
+    /// Moves a task to another project, as when it's dropped on the project in the sidebar: it goes last among the
+    /// tasks under no heading there, and takes its subtasks along. A subtask moved on its own becomes a task.
+    /// </summary>
+    public (ProjectTask? Saved, IReadOnlyList<string> Problems) MoveTask(string id, string projectId)
+    {
+        if (GetTask(id) is not { } current)
+            return (null, ["The task is gone."]);
+        if (Get(projectId) is null)
+            return (null, ["The project is gone."]);
+        if (current.ProjectId == projectId)
+            return (current, []);
+        var now = Now();
+        var loose = AllTasks(projectId).Where(t => t.ParentId is null && t.HeadingId is null);
+        var moved = ProjectRules.Stamped(current, current with { ProjectId = projectId, HeadingId = null, ParentId = null, Order = ProjectRules.NextOrder(loose.Select(t => t.Order)) }, now);
+        var subtasks = current.ParentId is null
+            ? AllTasks(current.ProjectId).Where(t => t.ParentId == id).Select(t => ProjectRules.Stamped(t, t with { ProjectId = projectId, HeadingId = null }, now)).ToList()
+            : [];
+        store.SaveProjectWork([], [], [moved, .. subtasks]);
+        Changed?.Invoke(current.ProjectId);
+        Changed?.Invoke(projectId);
+        return (moved, []);
+    }
+
     // A repeating task just ticked off: the next one, straight after it, with its subtasks fresh.
     private List<ProjectTask> NextOf(ProjectTask before, ProjectTask after, Stamp now)
     {

@@ -68,6 +68,42 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void A_task_dropped_on_another_project_moves_there_with_its_subtasks()
+    {
+        var from = NewProject();
+        var to = NewProject("Karoo Coffee website");
+        var heading = projects.AddHeading(from.Id, "Build").Saved!;
+        NewTask(to.Id, "Already there");
+        var task = NewTask(from.Id, "Contact form", heading.Id);
+        var sub = NewTask(from.Id, "Spam filter", heading.Id, task.Id);
+        var lone = NewTask(from.Id, "Lone subtask", null, NewTask(from.Id, "Parent").Id);
+        clock.Now = clock.Now.AddMinutes(5);
+
+        var moved = projects.MoveTask(task.Id, to.Id).Saved!;
+
+        Assert.Equal(to.Id, moved.ProjectId);
+        Assert.Null(moved.HeadingId);
+        Assert.Equal("Contact form", projects.AllTasks(to.Id).Where(t => t.ParentId is null).OrderBy(t => t.Order).Last().Title);
+        Assert.Equal(to.Id, projects.GetTask(sub.Id)!.ProjectId);
+        Assert.Equal(task.Id, projects.GetTask(sub.Id)!.ParentId);
+        Assert.Equal(clock.GetUtcNow(), moved.Fields["project"].At);
+        Assert.Null(projects.MoveTask(lone.Id, to.Id).Saved!.ParentId);
+        Assert.NotEmpty(projects.MoveTask(task.Id, "gone").Problems);
+    }
+
+    [Fact]
+    public void A_project_dragged_among_starred_ones_is_starred_and_lands_between_its_neighbours()
+    {
+        Project P(string id, double order, bool star = false) => new() { Id = id, Name = id, Order = order, Favourite = star };
+        var shown = ProjectLooks.SidebarOrder([P("a", 1, true), P("b", 2, true), P("c", 3), P("d", 4), P("e", 5)]);
+        Assert.Equal((1.5, true), ProjectLooks.PlaceAt(shown, "e", "a", below: true));
+        Assert.Equal((3.5, false), ProjectLooks.PlaceAt(shown, "a", "c", below: true));
+        Assert.Equal((2.0, false), ProjectLooks.PlaceAt(shown, "e", "c", below: false));
+        Assert.Null(ProjectLooks.PlaceAt(shown, "c", "d", below: false));
+        Assert.Null(ProjectLooks.PlaceAt(shown, "c", "gone", below: false));
+    }
+
+    [Fact]
     public void A_change_stamps_only_the_fields_that_changed()
     {
         var project = NewProject();

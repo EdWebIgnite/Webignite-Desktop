@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia;
 using Webignite.Data;
+using Webignite.Desktop.Controls;
 using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
@@ -21,6 +22,10 @@ public partial class MainWindow : Window
         // Before the ListBox sees the press, so clicking a heading folds its group instead of selecting it.
         Nav.AddHandler(PointerPressedEvent, NavPressed, RoutingStrategies.Tunnel);
         PlannerNav.AddHandler(PointerPressedEvent, NavPressed, RoutingStrategies.Tunnel);
+        DragNav(Nav, planner: false);
+        DragNav(PlannerNav, planner: true);
+        // A task dragged out of a project's list can be dropped on another project here.
+        DropZones.Add(new DropZone(PlannerNav, MainViewModel.TakesTask, (item, target) => (DataContext as MainViewModel)?.DropTask(item, target)));
         // Made before the window's template is applied, so it can put itself in the window's top layer.
         notes = new WindowNotificationManager(this) { Position = NotificationPosition.BottomRight, MaxItems = 3 };
     }
@@ -192,11 +197,44 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
-        // A right click opens the menu instead.
-        if (!point.IsLeftButtonPressed || item is not NavGroup group)
-            return;
-        group.Toggle();
-        e.Handled = true;
+    }
+
+    // Every entry can be dragged to a new place; a click (a press without a drag) picks it, or folds a group.
+    // In Planner's sidebar, Home and Projects stay where they are; the pages under Plan and the projects move.
+    private void DragNav(ListBox list, bool planner)
+    {
+        bool Fixed(object item) => planner && item is Module { Key: Page.Home or Page.Projects };
+        DragReorder.Attach(list, new DragRules
+        {
+            CanDrag = item => DataContext is MainViewModel main && !Fixed(item) && (main.Sidebar.CanDrag(item) || item is ProjectLink { Kind: ProjectLinkKind.Project }),
+            CanDrop = (item, target, below) => DataContext is MainViewModel main && !Fixed(target)
+                && (item is ProjectLink ? main.CanMoveProject(item, target, below) : main.Sidebar.CanMoveTo(item, target, below)),
+            Drop = (item, target, below) =>
+            {
+                if (DataContext is not MainViewModel main)
+                    return;
+                if (item is ProjectLink)
+                    main.MoveProject(item, target, below);
+                else
+                    main.Sidebar.MoveTo(item, target, below);
+            },
+            Label = item => item switch
+            {
+                Module m => m.Title,
+                ProjectLink l => l.Title,
+                NavGroup g => g.Title,
+                ToolLink t => t.Title,
+                SectionLink section => section.Title,
+                _ => "",
+            },
+            Click = item =>
+            {
+                if (item is NavGroup group)
+                    group.Toggle();
+                else
+                    list.SelectedItem = item;
+            },
+        });
     }
 
     // Picking a tab shows it. While a tab's page is being swapped the strip briefly has nothing picked; that is ignored.

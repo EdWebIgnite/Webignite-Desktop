@@ -64,8 +64,44 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
 
     // Projects
 
-    /// <summary>The Projects card: a tile to create one, then the projects worked on lately.</summary>
+    /// <summary>The Projects card: a tile to create one, then the projects worked on lately, the starred ones, or all in my order.</summary>
     public ObservableCollection<object> Projects { get; } = [];
+
+    public HomeProjects ProjectsShown => services.Settings.Home.Projects;
+
+    public string ProjectsShownText => PlannerHome.Label(ProjectsShown);
+
+    /// <summary>Tiles can be dragged into order when the card shows the starred projects or all in my order.</summary>
+    public bool CanArrange => ProjectsShown != HomeProjects.Recent;
+
+    public static IReadOnlyList<HomeProjects> ProjectsShownChoices { get; } = [HomeProjects.Recent, HomeProjects.Starred, HomeProjects.Ordered];
+
+    [RelayCommand]
+    private void ShowProjects(HomeProjects which)
+    {
+        services.Settings.Home = services.Settings.Home with { Projects = which };
+        OnPropertyChanged(nameof(ProjectsShown));
+        OnPropertyChanged(nameof(ProjectsShownText));
+        OnPropertyChanged(nameof(CanArrange));
+        Refresh();
+    }
+
+    /// <summary>Whether a tile dragged onto another would land before or after it; it takes the other's star.</summary>
+    public bool CanMoveTile(object dragged, object target, bool after) =>
+        CanArrange && dragged is HomeProjectTile moving && target is HomeProjectTile on
+        && ProjectLooks.PlaceAt(Arranged(), moving.Id, on.Id, after) is not null;
+
+    /// <summary>Drops a dragged tile before or after another; the order is the sidebar's too.</summary>
+    public void MoveTile(object dragged, object target, bool after)
+    {
+        if (!CanMoveTile(dragged, target, after) || dragged is not HomeProjectTile moving || target is not HomeProjectTile on
+            || ProjectLooks.PlaceAt(Arranged(), moving.Id, on.Id, after) is not { } place)
+            return;
+        services.Projects.Change(moving.Id, p => p with { Order = place.Order, Favourite = place.Favourite });
+    }
+
+    // The projects in the order the card puts them, all of them and not only the first few shown.
+    private IReadOnlyList<Project> Arranged() => PlannerHome.Shown(services.Projects.Projects(), ProjectsShown, int.MaxValue);
 
     [RelayCommand]
     private void BrowseProjects() => services.Go.To(Page.Projects);
@@ -88,7 +124,7 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
         ShowTasks();
         Projects.Clear();
         Projects.Add(new HomeCreateTile(CreateProjectCommand));
-        foreach (var project in PlannerHome.Recent(services.Projects.Projects(), RecentCount))
+        foreach (var project in PlannerHome.Shown(services.Projects.Projects(), ProjectsShown, RecentCount))
             Projects.Add(new HomeProjectTile(project, services));
         OnPropertyChanged(nameof(Greeting));
         OnPropertyChanged(nameof(DateText));
@@ -161,6 +197,7 @@ public sealed partial class HomeTaskRow : ObservableObject
 /// <summary>A project on Home: its name and a tile to open it.</summary>
 public sealed partial class HomeProjectTile(Project project, AppServices services)
 {
+    public string Id => project.Id;
     public string Name => project.Name;
     public string Colour => ProjectLooks.ColourOf(project);
     public string Icon => ProjectLooks.IconOf(project);

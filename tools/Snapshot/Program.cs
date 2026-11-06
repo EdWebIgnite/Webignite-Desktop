@@ -2371,6 +2371,108 @@ Save("site-check");
         Dispatcher.UIThread.RunJobs();
         Save("project-header");
 
+        // Drag and drop, with the mouse as a person would: press, move, let go. A press without a move still clicks.
+        {
+            Point Centre(Avalonia.Controls.Control c, double up = 0.5) => c.TranslatePoint(new Point(c.Bounds.Width / 2, c.Bounds.Height * up), window) ?? default;
+            void Press(Point at) => window.MouseDown(at, Avalonia.Input.MouseButton.Left);
+            void MoveTo(Point from, Point to)
+            {
+                for (var step = 1; step <= 6; step++)
+                    window.MouseMove(new Point(from.X + (to.X - from.X) * step / 6, from.Y + (to.Y - from.Y) * step / 6), Avalonia.Input.RawInputModifiers.LeftMouseButton);
+                Dispatcher.UIThread.RunJobs();
+            }
+            void Let(Point at)
+            {
+                window.MouseUp(at, Avalonia.Input.MouseButton.Left);
+                Dispatcher.UIThread.RunJobs();
+            }
+            void DragOnto(Avalonia.Controls.Control from, Avalonia.Controls.Control to, double up)
+            {
+                var start = Centre(from);
+                var end = Centre(to, up);
+                Press(start);
+                MoveTo(start, end);
+                Let(end);
+            }
+            var plannerList = window.GetVisualDescendants().OfType<Avalonia.Controls.ListBox>().First(l => l.Name == "PlannerNav");
+            var mainList = window.GetVisualDescendants().OfType<Avalonia.Controls.ListBox>().First(l => l.Name == "Nav");
+            Avalonia.Controls.Control Row(Avalonia.Controls.ItemsControl list, object item) => list.ContainerFromItem(item)!;
+            List<string> ProjectTitles() => [.. vm.Sidebar.PlannerItems.OfType<ProjectLink>().Where(l => l.Kind == ProjectLinkKind.Project).Select(l => l.Title)];
+
+            var dragKaroo = vm.Sidebar.PlannerItems.OfType<ProjectLink>().First(l => l.Title == "Karoo Coffee website");
+            var first = vm.Sidebar.PlannerItems.OfType<ProjectLink>().First(l => l.Kind == ProjectLinkKind.Project);
+            var start = Centre(Row(plannerList, dragKaroo));
+            Press(start);
+            MoveTo(start, Centre(Row(plannerList, first), 0.2));
+            Save("drag-sidebar-project");
+            Let(Centre(Row(plannerList, first), 0.2));
+            Check("A project dragged to the top of Work lands there, starred like its new neighbours", ProjectTitles()[0] == "Karoo Coffee website"
+                && services.Projects.Projects().First(p => p.Name == "Karoo Coffee website").Favourite);
+
+            var time = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Time);
+            var todo = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Todo);
+            DragOnto(Row(plannerList, time), Row(plannerList, todo), 0.2);
+            var planKeys = vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Key).ToList();
+            Check("A page under Plan dragged above another moves there", planKeys.IndexOf(Page.Time) == planKeys.IndexOf(Page.Todo) - 1);
+
+            var calendar = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Calendar);
+            var at = Centre(Row(plannerList, calendar));
+            Press(at);
+            Let(at);
+            Check("A click without a drag still opens the page", vm.Selected.Key == Page.Calendar);
+
+            // A task dragged out of a project's list onto another project in the sidebar moves there.
+            var dragMe = services.Projects.AddTask(new Webignite.Core.Projects.ProjectTask { Id = "snap-drag", ProjectId = site.Id, Title = "Drag me to SEO" }).Saved!;
+            Open(Page.Projects);
+            projectsPage.OpenProject(site.Id);
+            Dispatcher.UIThread.RunJobs();
+            var taskList = window.GetVisualDescendants().OfType<Avalonia.Controls.ItemsControl>().First(c => c.Name == "TaskList");
+            var dragRow = projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == dragMe.Id);
+            var firstRow = projectsPage.Rows.OfType<TaskRow>().First();
+            DragOnto(Row(taskList, dragRow), Row(taskList, firstRow), 0.2);
+            Check("A task dragged above the first task lands first", projectsPage.Rows.OfType<TaskRow>().First().Task.Id == dragMe.Id);
+            dragRow = projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == dragMe.Id);
+            var seoLink = vm.Sidebar.PlannerItems.OfType<ProjectLink>().First(l => l.Title == "Webignite SEO month");
+            start = Centre(Row(taskList, dragRow));
+            Press(start);
+            MoveTo(start, Centre(Row(plannerList, seoLink)));
+            Save("drag-task-to-project");
+            Let(Centre(Row(plannerList, seoLink)));
+            Check("A task dropped on another project in the sidebar moves to that project", services.Projects.GetTask(dragMe.Id)?.ProjectId == "snap-seo"
+                && projectsPage.Rows.OfType<TaskRow>().All(r => r.Task.Id != dragMe.Id));
+            services.Projects.DeleteTask(dragMe.Id);
+
+            // The main sidebar: a page dragged to a new place, then put back.
+            vm.SelectedNav = vm.Sidebar.PlannerBack;
+            Dispatcher.UIThread.RunJobs();
+            var mail = vm.Sidebar.Items.OfType<Module>().First(m => m.Key == Page.Mail);
+            var overview = vm.Sidebar.Items.OfType<Module>().First(m => m.Key == Page.Overview);
+            mainList.ScrollIntoView(overview);
+            Dispatcher.UIThread.RunJobs();
+            DragOnto(Row(mainList, mail), Row(mainList, overview), 0.2);
+            Check("A page dragged in the main sidebar moves there, without opening it", vm.Sidebar.Items.OfType<Module>().First().Key == Page.Mail && vm.Selected.Key != Page.Mail);
+            vm.Sidebar.ResetCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            // Home: in my order, a project's tile drags before another, and the sidebar follows.
+            Open(Page.Home);
+            homePage.ShowProjectsCommand.Execute(Webignite.Core.Projects.HomeProjects.Ordered);
+            Dispatcher.UIThread.RunJobs();
+            var tilesHost = window.GetVisualDescendants().OfType<Avalonia.Controls.ItemsControl>().First(c => c.Name == "ProjectTiles");
+            var tiles = homePage.Projects.OfType<HomeProjectTile>().ToList();
+            var lastTile = tiles[^1];
+            start = Centre(Row(tilesHost, lastTile));
+            var firstTile = Row(tilesHost, tiles[0]);
+            var before = firstTile.TranslatePoint(new Point(4, firstTile.Bounds.Height / 2), window) ?? default;
+            Press(start);
+            MoveTo(start, before);
+            Save("drag-home-tile");
+            Let(before);
+            Check("In my order, a Home tile dragged before the first one moves there, and the sidebar follows",
+                homePage.Projects.OfType<HomeProjectTile>().First().Name == lastTile.Name && ProjectTitles()[0] == lastTile.Name);
+            homePage.ShowProjectsCommand.Execute(Webignite.Core.Projects.HomeProjects.Recent);
+        }
+
         // Asana's own looks, light and dark: Home, a project, and its colour and icon picker.
         Check("Asana's 16 colours and 32 icons each have a brush and a drawing", Webignite.Core.Projects.ProjectLooks.Colours.All(c => ProjectColours.Brush.Convert(c, typeof(object), null, System.Globalization.CultureInfo.InvariantCulture) is not null)
             && Webignite.Core.Projects.ProjectLooks.Icons.All(i => ProjectColours.Icon.Convert(i, typeof(object), null, System.Globalization.CultureInfo.InvariantCulture) is not null));

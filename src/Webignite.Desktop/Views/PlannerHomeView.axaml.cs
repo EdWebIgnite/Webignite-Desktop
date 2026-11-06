@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Webignite.Desktop.Controls;
+using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
 
@@ -14,6 +16,15 @@ public partial class PlannerHomeView : UserControl
     {
         InitializeComponent();
         Cards.SizeChanged += (_, _) => Arrange();
+        // Showing starred or all in order, a project's tile can be dragged before or after another.
+        DragReorder.Attach(ProjectTiles, new DragRules
+        {
+            CanDrag = item => item is HomeProjectTile && DataContext is PlannerHomeViewModel { CanArrange: true },
+            CanDrop = (item, target, after) => DataContext is PlannerHomeViewModel home && home.CanMoveTile(item, target, after),
+            Drop = (item, target, after) => (DataContext as PlannerHomeViewModel)?.MoveTile(item, target, after),
+            Across = _ => true,
+            Label = item => (item as HomeProjectTile)?.Name ?? "",
+        });
     }
 
     private void Arrange()

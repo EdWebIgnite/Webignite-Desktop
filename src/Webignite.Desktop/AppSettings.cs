@@ -259,7 +259,6 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("project-templates", value.ToList());
     }
 
-    /// <summary>List or board on the Projects page.</summary>
     /// <summary>How Calendar and Planner were sized by dragging.</summary>
     public CalendarSizes CalendarSizes
     {
@@ -267,6 +266,14 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("calendar-sizes", value);
     }
 
+    /// <summary>How Planner's Home was left: which projects its Projects card shows.</summary>
+    public HomeSettings Home
+    {
+        get => store.GetSetting<HomeSettings>("planner-home") ?? new HomeSettings();
+        set => store.SetSetting("planner-home", value);
+    }
+
+    /// <summary>List or board on the Projects page.</summary>
     public ProjectViewSettings ProjectView
     {
         get => store.GetSetting<ProjectViewSettings>("project-view") ?? new ProjectViewSettings();

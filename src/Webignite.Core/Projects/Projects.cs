@@ -572,7 +572,7 @@ public static class ProjectRules
 
     private static readonly (string Name, Func<ProjectTask, object?> Value)[] TaskFields =
     [
-        ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes),
+        ("project", t => t.ProjectId), ("heading", t => t.HeadingId), ("parent", t => t.ParentId), ("title", t => t.Title), ("notes", t => t.Notes),
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
         ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
     ];
@@ -712,6 +712,27 @@ public static class ProjectLooks
         ProjectHealth.OffTrack => "Off track",
         _ => "Set status",
     };
+
+    /// <summary>
+    /// Where a project dragged in a list of projects shown starred first lands: just above or below
+    /// <paramref name="targetId"/>. It takes the target's star, so dropping it among the starred ones stars it,
+    /// and its order goes between its new neighbours that share that star. Null when nothing would change.
+    /// </summary>
+    public static (double Order, bool Favourite)? PlaceAt(IReadOnlyList<Project> shown, string movingId, string targetId, bool below)
+    {
+        var moving = shown.FirstOrDefault(p => p.Id == movingId);
+        var others = shown.Where(p => p.Id != movingId).ToList();
+        var target = others.FindIndex(p => p.Id == targetId);
+        if (moving is null || target < 0)
+            return null;
+        var favourite = others[target].Favourite;
+        var index = target + (below ? 1 : 0);
+        var before = index > 0 && others[index - 1].Favourite == favourite ? others[index - 1].Order : (double?)null;
+        var after = index < others.Count && others[index].Favourite == favourite ? others[index].Order : (double?)null;
+        var order = ProjectRules.Between(before, after);
+        var same = shown.ToList().IndexOf(moving) == index && moving.Favourite == favourite;
+        return same ? null : (order, favourite);
+    }
 
     /// <summary>The sidebar's projects: starred first, then in their usual order.</summary>
     public static IReadOnlyList<Project> SidebarOrder(IEnumerable<Project> projects) =>

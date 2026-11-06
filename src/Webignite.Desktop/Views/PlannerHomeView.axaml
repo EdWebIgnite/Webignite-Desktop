@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:core="using:Webignite.Core.Projects"
              x:Class="Webignite.Desktop.Views.PlannerHomeView"
              x:DataType="vm:PlannerHomeViewModel">
   <UserControl.Styles>
@@ -109,9 +110,25 @@
         <StackPanel Spacing="12">
           <DockPanel>
             <Button DockPanel.Dock="Right" Classes="link" Content="Browse projects" Command="{Binding BrowseProjectsCommand}" VerticalAlignment="Center" />
-            <TextBlock Classes="h2" Text="Projects" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Classes="h2" Text="Projects" VerticalAlignment="Center" />
+              <!-- As Asana's: which projects the card shows. In order, the tiles can be dragged. -->
+              <Button Classes="quiet" Padding="8,4" VerticalAlignment="Center" ToolTip.Tip="Which projects to show">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Classes="muted" Text="{Binding ProjectsShownText}" FontSize="12" VerticalAlignment="Center" />
+                  <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button.Flyout>
+                  <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                    <MenuItem Header="Recent" Command="{Binding ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Recent}" />
+                    <MenuItem Header="Starred" Command="{Binding ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Starred}" />
+                    <MenuItem Header="In my order (drag to arrange)" Command="{Binding ShowProjectsCommand}" CommandParameter="{x:Static core:HomeProjects.Ordered}" />
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
+            </StackPanel>
           </DockPanel>
-          <ItemsControl ItemsSource="{Binding Projects}">
+          <ItemsControl x:Name="ProjectTiles" ItemsSource="{Binding Projects}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
