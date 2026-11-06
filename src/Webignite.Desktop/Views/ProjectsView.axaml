@@ -11,7 +11,8 @@
     <Style Selector="Border.listhead">
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="0,1,0,1" />
-      <Setter Property="Padding" Value="0,6" />
+      <!-- The same sides as a task's row (Border.taskrow), so the column lines run straight down -->
+      <Setter Property="Padding" Value="16,6,8,6" />
       <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
     <Style Selector="Border.listhead > Grid > TextBlock, Border.listhead > Grid > Border > TextBlock">
@@ -397,6 +398,22 @@
     </Style>
     <Style Selector="Border.calendartask.done">
       <Setter Property="Opacity" Value="0.5" />
+    </Style>
+    <!-- Custom fields: a column each in the list, coloured pills for choices -->
+    <Style Selector="Border.fieldcell"><Setter Property="Width" Value="130" /></Style>
+    <Style Selector="Border.fieldadd"><Setter Property="Width" Value="40" /></Style>
+    <Style Selector="Border.fieldcell > TextBlock">
+      <Setter Property="Margin" Value="8,0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="Border.fieldpill">
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="6,1" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="StackPanel.narrowlist StackPanel.fieldcolumns">
+      <Setter Property="IsVisible" Value="False" />
     </Style>
   </UserControl.Styles>
   <!-- Projects on the left, the open one on the right. The panes move, resize and hide as on Mail. -->
@@ -992,11 +1009,48 @@
           <!-- The list, as Asana's: column headings, then each heading (folding) with its tasks in cells -->
           <StackPanel x:Name="ListArea" IsVisible="{Binding IsList}">
             <Border Classes="listhead">
-              <Grid ColumnDefinitions="22,28,*,Auto,Auto,Auto,36">
+              <Grid ColumnDefinitions="22,28,*,Auto,Auto,Auto,Auto,36">
                 <TextBlock Grid.Column="2" Text="Task name" />
                 <Border Grid.Column="3" Classes="cellline whocell"><TextBlock Text="Assignee" /></Border>
                 <Border Grid.Column="4" Classes="cellline duecell"><TextBlock Text="Due date" /></Border>
                 <Border Grid.Column="5" Classes="cellline prioritycell"><TextBlock Text="Priority" /></Border>
+                <!-- Custom fields, as Asana's: a column each, and + at the end to add one -->
+                <StackPanel Grid.Column="6" Orientation="Horizontal" Classes="fieldcolumns">
+                  <ItemsControl ItemsSource="{Binding FieldHeaders}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:FieldHeader">
+                        <Border Classes="cellline fieldcell" Background="Transparent" ToolTip.Tip="{Binding KindText}">
+                          <Border.ContextMenu>
+                            <ContextMenu>
+                              <MenuItem Header="Remove the field" Command="{Binding RemoveCommand}" />
+                            </ContextMenu>
+                          </Border.ContextMenu>
+                          <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Border Classes="cellline fieldadd">
+                    <Button Classes="quiet coltool" Margin="4,0" HorizontalAlignment="Center" ToolTip.Tip="Add a field: a choice, text, a number or a date">
+                      <c:Icon Data="{StaticResource Icon.Plus}" Size="12" />
+                      <Button.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedRight">
+                          <StackPanel Spacing="8" Width="260">
+                            <TextBlock Classes="overviewhead" Text="Add a field" />
+                            <TextBox Text="{Binding NewFieldName}" PlaceholderText="Name, e.g. Stage, Hours, Sign-off" />
+                            <ComboBox ItemsSource="{x:Static vm:ProjectsViewModel.FieldKinds}" SelectedItem="{Binding NewFieldKind}" HorizontalAlignment="Stretch" />
+                            <TextBox Text="{Binding NewFieldOptions}" IsVisible="{Binding NewFieldIsChoice}" PlaceholderText="Options, split by commas: Not started, Doing, Done"
+                                     TextWrapping="Wrap" />
+                            <Button Classes="primary" Content="Add field" Command="{Binding AddFieldCommand}" HorizontalAlignment="Left" />
+                          </StackPanel>
+                        </Flyout>
+                      </Button.Flyout>
+                    </Button>
+                  </Border>
+                </StackPanel>
               </Grid>
             </Border>
           <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}">
@@ -1024,7 +1078,7 @@
               </DataTemplate>
               <DataTemplate DataType="vm:TaskRow">
                 <Border Classes="taskrow" Classes.picked="{Binding IsPicked}" Classes.subtask="{Binding IsSubtask}" Opacity="{Binding Fade}" ContextRequested="TaskMenu">
-                  <Grid ColumnDefinitions="22,28,*,Auto,Auto,Auto,36">
+                  <Grid ColumnDefinitions="22,28,*,Auto,Auto,Auto,Auto,36">
                     <Border Classes="grip" Background="Transparent" ToolTip.Tip="Drag the row to move it">
                       <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
@@ -1085,7 +1139,30 @@
                         </Border>
                       </Button>
                     </Border>
-                    <Button Grid.Column="6" Classes="quiet" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0"
+                    <StackPanel Grid.Column="6" Orientation="Horizontal" Classes="fieldcolumns">
+                    <ItemsControl ItemsSource="{Binding FieldCells}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FieldCell">
+                          <Border Classes="cellline fieldcell">
+                            <Button Classes="cell" Click="FieldCellClicked" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" ToolTip.Tip="{Binding Field.Name}">
+                              <Panel>
+                                <Border Classes="fieldpill" IsVisible="{Binding IsPill}" Background="{Binding Colour, Converter={x:Static c:ProjectColours.Brush}}">
+                                  <TextBlock Text="{Binding Text}" FontSize="11" Foreground="{DynamicResource OnProject}" TextTrimming="CharacterEllipsis" />
+                                </Border>
+                                <TextBlock Text="{Binding Text}" IsVisible="{Binding IsPlain}" TextTrimming="CharacterEllipsis" />
+                              </Panel>
+                            </Button>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <!-- Room under the heading's +, so the columns line up -->
+                    <Border Classes="cellline fieldadd" />
+                    </StackPanel>
+                    <Button Grid.Column="7" Classes="quiet" Classes.open="{Binding IsOpen}" Padding="6" Margin="4,0,0,0"
                             Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}"
                             ToolTip.Tip="Open the task: notes, subtasks and what it's about">
                       <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" />
@@ -1358,6 +1435,18 @@
                                       </DockPanel>
                                     </Grid>
                                     <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" />
+                                    <ItemsControl ItemsSource="{Binding Pills}" IsVisible="{Binding HasPills}">
+                                      <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel ItemSpacing="4" LineSpacing="4" /></ItemsPanelTemplate>
+                                      </ItemsControl.ItemsPanel>
+                                      <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:FieldCell">
+                                          <Border Classes="fieldpill" Background="{Binding Colour, Converter={x:Static c:ProjectColours.Brush}}" ToolTip.Tip="{Binding Field.Name}">
+                                            <TextBlock Text="{Binding Text}" FontSize="11" Foreground="{DynamicResource OnProject}" />
+                                          </Border>
+                                        </DataTemplate>
+                                      </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                     <DockPanel IsVisible="{Binding HasCardFoot}">
                                       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                         <StackPanel Classes="cardcount" IsVisible="{Binding HasSubtasks}" ToolTip.Tip="Subtasks done">
@@ -1535,6 +1624,19 @@
                 <TextBlock Classes="muted" FontSize="12" Text="{Binding BlockingText}" IsVisible="{Binding HasBlocking}" TextWrapping="Wrap" />
               </StackPanel>
             </Grid>
+            <!-- The project's custom fields, as Asana's -->
+            <ItemsControl ItemsSource="{Binding FieldEditors}" IsVisible="{Binding HasFieldEditors}" Margin="0,-4,0,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FieldEditor">
+                  <Grid ColumnDefinitions="100,*" Classes="fields" Margin="0,0,0,10">
+                    <TextBlock Classes="field" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding Picked}" IsVisible="{Binding IsChoice}" MinWidth="180" HorizontalAlignment="Left" />
+                    <TextBox Grid.Column="1" Text="{Binding Text}" IsVisible="{Binding IsTyped}" PlaceholderText="{Binding Hint}" LostFocus="FieldEditorLeft" KeyDown="FieldEditorKey" />
+                    <CalendarDatePicker Grid.Column="1" SelectedDate="{Binding Date}" IsVisible="{Binding IsDate}" PlaceholderText="Pick a date" HorizontalAlignment="Left" MinWidth="180" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <!-- Description, with formatting as Asana's -->
             <StackPanel Spacing="6">
