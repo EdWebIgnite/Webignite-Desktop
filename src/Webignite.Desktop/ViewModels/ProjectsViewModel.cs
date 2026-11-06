@@ -37,6 +37,29 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     public PanelsViewModel Panels { get; }
 
+    /// <summary>
+    /// The list of projects tucks away while a project, My tasks or Templates is open, as the Planner sidebar
+    /// lists them already; it can be opened again from its edge, and comes back with All projects.
+    /// </summary>
+    private void TuckList()
+    {
+        if (Panels["list"].IsShown && Panels.CanHide("list"))
+            Panels["list"].IsShown = false;
+    }
+
+    /// <summary>All projects: whatever was open closes and the list of projects shows.</summary>
+    public void ShowAll()
+    {
+        SaveTyped();
+        CloseProject();
+        IsMyTasks = false;
+        IsTemplates = false;
+        OnPropertyChanged(nameof(Showing));
+        OnPropertyChanged(nameof(TabTitle));
+        if (!Panels["list"].IsShown)
+            Panels["list"].IsShown = true;
+    }
+
     public string? TabTitle => IsMyTasks ? "My tasks" : IsTemplates ? "Templates" : open is null ? null : EditName.Trim().Length > 0 ? EditName.Trim() : "Project";
 
     public const string ShowingMine = "#mine";
@@ -145,6 +168,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         ListTemplates();
         if (!Panels["project"].IsShown)
             Panels["project"].IsShown = true;
+        TuckList();
     }
 
     private void TemplatesChanged()
@@ -239,6 +263,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         ShowMyTasks();
         if (!Panels["project"].IsShown)
             Panels["project"].IsShown = true;
+        TuckList();
     }
 
     private void ShowMyTasks()
@@ -475,6 +500,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         ShowTasks();
         if (!Panels["project"].IsShown)
             Panels["project"].IsShown = true;
+        TuckList();
         OnPropertyChanged(nameof(Showing));
     }
 
