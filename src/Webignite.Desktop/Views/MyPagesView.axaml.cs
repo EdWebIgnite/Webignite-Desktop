@@ -5,6 +5,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using Webignite.Core.Layout;
 using Webignite.Desktop.Controls;
@@ -142,6 +143,96 @@ public partial class MyPagesView : UserControl
             flyout.Items.Add(item);
             if (kind is WidgetKind.Client or WidgetKind.Note)
                 flyout.Items.Add(new Separator());
+        }
+    }
+
+    // The Files widget
+
+    private void PickFilesFolder(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is FilesBody body)
+            PickFilesFolderAsync(body).Forget("Picking a folder for the Files widget", tell: true);
+    }
+
+    private async Task PickFilesFolderAsync(FilesBody body)
+    {
+        if (await Webignite.Desktop.Files.Picker.Folder(this, "Folder for the Files widget", body.Folder) is { } folder)
+            body.Go(folder);
+    }
+
+    // A click opens a folder in the widget; a file opens on a double-click, as in Explorer.
+    private void FileLineTapped(object? sender, TappedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is FileLine { IsFolder: true } line)
+            line.OpenCommand.Execute(null);
+    }
+
+    private void FileLineDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is FileLine { IsFile: true } line)
+            line.OpenCommand.Execute(null);
+    }
+
+    private void FileLineMenu(object? sender, ContextRequestedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not FileLine line)
+            return;
+        var open = new MenuItem { Header = line.IsFolder ? "Open the folder here" : "Open" };
+        open.Click += (_, _) => line.OpenCommand.Execute(null);
+        var files = new MenuItem { Header = "Show in Files" };
+        files.Click += (_, _) => line.ShowInFilesCommand.Execute(null);
+        var copy = new MenuItem { Header = "Copy the path" };
+        copy.Click += (_, _) => CopyPathAsync(line.Path).Forget("Copying a path");
+        new ContextMenu { ItemsSource = new object[] { open, files, new Separator(), copy } }.Open(sender as Control);
+        e.Handled = true;
+    }
+
+    private async Task CopyPathAsync(string path)
+    {
+        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+            await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, path);
+    }
+
+    // Dragging a file or folder out: to mail, Explorer, a browser's upload box, or the Files page.
+    private Control? pressedLine;
+    private PointerPressedEventArgs? pressedArgs;
+    private Point pressedAt;
+
+    private void FileLinePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control line && e.GetCurrentPoint(line).Properties.IsLeftButtonPressed && Pages is { IsEditing: false })
+        {
+            pressedLine = line;
+            pressedArgs = e;
+            pressedAt = e.GetPosition(this);
+        }
+    }
+
+    private void FileLineMoved(object? sender, PointerEventArgs e) => DragFileOutAsync(e).Forget("Dragging a file out of the Files widget", tell: true);
+
+    private async Task DragFileOutAsync(PointerEventArgs e)
+    {
+        if (pressedLine is not { DataContext: FileLine line } || pressedArgs is not { } start || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
+        var moved = e.GetPosition(this) - pressedAt;
+        if (Math.Abs(moved.X) < 8 && Math.Abs(moved.Y) < 8)
+            return;
+        pressedLine = null;
+        pressedArgs = null;
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
+        IStorageItem? item = line.IsFolder ? await storage.TryGetFolderFromPathAsync(line.Path) : await storage.TryGetFileFromPathAsync(line.Path);
+        if (item is null)
+            return;
+        var data = new DataTransfer();
+        data.Add(DataTransferItem.CreateFile(item));
+        try
+        {
+            await DragDrop.DoDragDropAsync(start, data, DragDropEffects.Copy);
+        }
+        catch (InvalidOperationException problem)
+        {
+            Webignite.Data.AppLog.Write("Dragging a file out of the Files widget", problem);
         }
     }
 }

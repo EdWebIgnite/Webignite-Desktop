@@ -96,7 +96,7 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
     public string EditText => IsEditing ? "Done" : "Arrange";
 
     /// <summary>Room below the widgets while arranging, to drag one lower down.</summary>
-    public int ExtraRows => IsEditing ? 4 : 0;
+    public int ExtraRows => IsEditing ? 4 * MyPages.Fine : 0;
 
     public bool IsEmptyPage => IsPage && Widgets.Count == 0;
 
@@ -203,6 +203,13 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
     {
         if (page is not null)
             Save(MyPages.SetText(page, widgetId, text));
+    }
+
+    /// <summary>The Files widget's folder, kept with the page.</summary>
+    public void SetTarget(string widgetId, string target)
+    {
+        if (page is not null)
+            Save(MyPages.SetTarget(page, widgetId, target));
     }
 
     // Dragging and sizing: the page as it was when the drag started, each step worked out from it, saved on letting go.

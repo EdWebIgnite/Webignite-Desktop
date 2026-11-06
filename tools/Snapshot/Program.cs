@@ -2851,11 +2851,18 @@ Save("site-check");
             myPages.AddWidget(kind);
         myPages.AddWidget(WidgetKind.Project, site.Id);
         myPages.AddWidget(WidgetKind.Client, services.Clients.List().First(c => c.Name == "Bosveld Builders").Id);
+        myPages.AddWidget(WidgetKind.Files);
+        var filesBody = (FilesBody)myPages.Widgets.Single(w => w.Kind == WidgetKind.Files).Body;
+        filesBody.Go(data);
+        Check("The Files widget lists a folder's files, folders first, and keeps the folder with the page",
+            Until(() => filesBody.Lines.Count > 0) && filesBody.Folder == data
+            && services.Settings.MyPages.Single().Widgets.Single(w => w.Kind == WidgetKind.Files).Target == data
+            && filesBody.Lines.SkipWhile(l => l.IsFolder).All(l => l.IsFile));
         ((NoteBody)myPages.Widgets.First(w => w.Kind == WidgetKind.Note).Body).Text = "Call Pieter after 10 about the photos";
         myPages.Keep();
         Dispatcher.UIThread.RunJobs();
         var savedPage = services.Settings.MyPages.Single();
-        Check("A page keeps its name, its widgets and a note's words", savedPage.Name == "Monday" && savedPage.Widgets.Count == 8
+        Check("A page keeps its name, its widgets and a note's words", savedPage.Name == "Monday" && savedPage.Widgets.Count == 9
             && savedPage.Widgets.Single(w => w.Kind == WidgetKind.Note).Text == "Call Pieter after 10 about the photos"
             && vm.Sidebar.Items.OfType<MyPageLink>().Any(l => l.Title == "Monday"));
         myPages.AddWidget(WidgetKind.NeedsYou);
@@ -2871,13 +2878,30 @@ Save("site-check");
         myPages.MoveTo(noteWidget, 0, 0);
         myPages.EndArranging();
         myPages.BeginArranging();
-        myPages.ResizeTo(noteWidget, 4, 3);
+        myPages.ResizeTo(noteWidget, 16, 12);
         myPages.EndArranging();
         savedPage = services.Settings.MyPages.Single();
-        Check("Dragging a widget to the top left puts it there and moves the others out of its way", noteWidget is { Column: 0, Row: 0, Width: 4, Height: 3 }
-            && savedPage.Widgets.Single(w => w.Kind == WidgetKind.Note) is { Column: 0, Row: 0, Width: 4, Height: 3 }
+        Check("Dragging a widget to the top left puts it there and moves the others out of its way", noteWidget is { Column: 0, Row: 0, Width: 16, Height: 12 }
+            && savedPage.Widgets.Single(w => w.Kind == WidgetKind.Note) is { Column: 0, Row: 0, Width: 16, Height: 12 }
             && savedPage.Widgets.All(x => savedPage.Widgets.All(y => x.Id == y.Id || !MyPages.Overlap(x, y))));
+        var timerWidget = myPages.Widgets.Single(w => w.Kind == WidgetKind.Timer);
+        var (timerColumn, timerRow) = (timerWidget.Column, timerWidget.Row);
+        myPages.BeginArranging();
+        myPages.MoveTo(timerWidget, 37, 150);
+        myPages.EndArranging();
+        Check("A widget stays where it's dropped, gaps and all, on a fine grid", timerWidget is { Column: 36, Row: 150 }
+            && services.Settings.MyPages.Single().Widgets.Single(w => w.Kind == WidgetKind.Timer) is { Column: 36, Row: 150 });
+        myPages.BeginArranging();
+        myPages.MoveTo(timerWidget, timerColumn, timerRow);
+        myPages.EndArranging();
         Save("my-pages-arranging");
+        var filesWidget = myPages.Widgets.Single(w => w.Kind == WidgetKind.Files);
+        myPages.BeginArranging();
+        myPages.ResizeTo(filesWidget, 16, 22);
+        myPages.EndArranging();
+        myPages.BeginArranging();
+        myPages.MoveTo(filesWidget, 32, 0);
+        myPages.EndArranging();
         myPages.ToggleEditingCommand.Execute(null);
         window.Width = 1920;
         window.Height = 1080;
