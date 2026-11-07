@@ -193,7 +193,10 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return (saved, []);
     }
 
-    /// <summary>Deletes a heading; its tasks stay in the project, under no heading. Returns what changed, for Undo.</summary>
+    /// <summary>
+    /// Deletes a heading; its tasks stay in the project, under no heading. Returns what changed, for Undo: the
+    /// heading, and which tasks were moved off it.
+    /// </summary>
     public ProjectWork? DeleteHeading(string id)
     {
         if (store.GetHeading(id) is not { Deleted: null } heading)
@@ -202,7 +205,7 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         var moved = AllTasks(heading.ProjectId).Where(t => t.HeadingId == id).ToList();
         store.SaveProjectWork([], [Remove(heading, now)], moved.Select(t => ProjectRules.Stamped(t, t with { HeadingId = null }, now)));
         Changed?.Invoke(heading.ProjectId);
-        return new ProjectWork([], [heading], moved);
+        return new ProjectWork([], [heading], []) { MovedOff = [.. moved.Select(t => (t.Id, id))] };
     }
 
     // Tasks
@@ -293,6 +296,8 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
     /// <summary>
     /// Moves a task to another project, as when it's dropped on the project in the sidebar: it goes last among the
     /// tasks under no heading there, and takes its subtasks along. A subtask moved on its own becomes a task.
+    /// Waiting only works within a project, so what it waited on stays behind, and tasks left behind stop
+    /// waiting on it; each of those changes shows on the task's feed.
     /// </summary>
     public (ProjectTask? Saved, IReadOnlyList<string> Problems) MoveTask(string id, string projectId)
     {
@@ -302,6 +307,13 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             return (null, ["The project is gone."]);
         if (current.ProjectId == projectId)
             return (current, []);
+        var going = TaskDependencies.Going(current, AllTasks(current.ProjectId));
+        // Before it goes: unhook it from the tasks staying behind, both ways, as changes to each as stored now.
+        foreach (var task in AllTasks(current.ProjectId).Where(t => !ReferenceEquals(TaskDependencies.Unhooked(t, going), t)))
+            ChangeTask(task.Id, t => TaskDependencies.Unhooked(t, going));
+        if (GetTask(id) is not { } unhooked)
+            return (null, ["The task is gone."]);
+        current = unhooked;
         var now = Now();
         var loose = AllTasks(projectId).Where(t => t.ParentId is null && t.HeadingId is null);
         var moved = ProjectRules.Stamped(current, current with { ProjectId = projectId, HeadingId = null, ParentId = null, Order = ProjectRules.NextOrder(loose.Select(t => t.Order)) }, now);
@@ -377,20 +389,19 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             store.SaveActivity(new TaskActivity(ProjectRules.NewId(), parent, after.ProjectId, now, ActivityKind.SubtaskAdded, after.Title));
     }
 
-    // A repeating task just ticked off: the next one, straight after it, with its subtasks fresh.
+    // A repeating task just ticked off: the next one, straight after it, with its subtasks fresh. Ticked off,
+    // back on and off again, it makes no other while the one it made is still there.
     private List<ProjectTask> NextOf(ProjectTask before, ProjectTask after, Stamp now)
     {
-        if (before.Done || !after.Done || after.ParentId is not null)
+        if (before.Done || !after.Done || after.ParentId is not null || after.Repeat == TaskRepeat.None)
             return [];
-        var siblings = AllTasks(after.ProjectId).Where(t => t.ParentId is null && t.HeadingId == after.HeadingId && t.Order > after.Order);
-        var nextOrder = siblings.Select(t => (double?)t.Order).Min();
-        if (ProjectRules.Next(after, DateOnly.FromDateTime(clock.GetLocalNow().DateTime), ProjectRules.Between(after.Order, nextOrder)) is not { } next)
+        var all = store.ListProjectTasks();
+        if (ProjectRules.HasNext(after, all))
             return [];
-        var made = new List<ProjectTask> { ProjectRules.Stamped(null, next, now) };
-        made.AddRange(AllTasks(after.ProjectId).Where(t => t.ParentId == after.Id)
-            .Select(t => ProjectRules.Stamped(null, t with { Id = ProjectRules.NewId(), ParentId = next.Id, Done = false, Created = default, Changed = default,
-                Fields = new Dictionary<string, Stamp>() }, now)));
-        return made;
+        var tasks = all.Where(t => t.ProjectId == after.ProjectId && t.Deleted is null).ToList();
+        var nextOrder = tasks.Where(t => t.ParentId is null && t.HeadingId == after.HeadingId && t.Order > after.Order).Select(t => (double?)t.Order).Min();
+        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        return [.. ProjectRules.Next(after, tasks, today, ProjectRules.Between(after.Order, nextOrder)).Select(t => ProjectRules.Stamped(null, t, now))];
     }
 
     /// <summary>A new project from a template, starting on a day, with everything in it, at the end of the list.</summary>
@@ -422,8 +433,9 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
     }
 
     /// <summary>
-    /// Undo: puts back what a delete took away, as it was before, with the restore recorded as a change. What was
-    /// changed in the meantime by the delete (tasks moved off a deleted heading) goes back too.
+    /// Undo: puts back what a delete took away, as it was before, with the restore recorded as a change. Tasks the
+    /// delete moved off a heading go back onto it, each as it's stored now, and only while it's still under no
+    /// heading, so whatever changed on them since stays.
     /// </summary>
     public void Restore(ProjectWork work)
     {
@@ -432,6 +444,10 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             work.Projects.Select(p => Back(store.GetProject(p.Id), p, now)),
             work.Headings.Select(h => Back(store.GetHeading(h.Id), h, now)),
             work.Tasks.Select(t => Back(store.GetProjectTask(t.Id), t, now)));
+        foreach (var (taskId, headingId) in work.MovedOff)
+            if (store.GetHeading(headingId) is { Deleted: null } heading && GetTask(taskId) is { } task
+                && !ReferenceEquals(ProjectRules.BackOnHeading(task, heading), task))
+                ChangeTask(taskId, t => ProjectRules.BackOnHeading(t, heading));
         Changed?.Invoke(work.Projects.Count > 0 ? null : work.Headings.FirstOrDefault()?.ProjectId ?? work.Tasks.FirstOrDefault()?.ProjectId);
     }
 
@@ -463,4 +479,8 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
 }
 
 /// <summary>What a delete took away, or moved, so Undo can put it back.</summary>
-public sealed record ProjectWork(IReadOnlyList<Project> Projects, IReadOnlyList<Heading> Headings, IReadOnlyList<ProjectTask> Tasks);
+public sealed record ProjectWork(IReadOnlyList<Project> Projects, IReadOnlyList<Heading> Headings, IReadOnlyList<ProjectTask> Tasks)
+{
+    /// <summary>Tasks a deleted heading's delete moved to no heading, with the heading they were under.</summary>
+    public IReadOnlyList<(string TaskId, string HeadingId)> MovedOff { get; init; } = [];
+}

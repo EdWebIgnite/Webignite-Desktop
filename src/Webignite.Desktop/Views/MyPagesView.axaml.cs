@@ -208,11 +208,23 @@ public partial class MyPagesView : UserControl
         }
     }
 
-    private void FileLineMoved(object? sender, PointerEventArgs e) => DragFileOutAsync(e).Forget("Dragging a file out of the Files widget", tell: true);
+    // A press let go without dragging is forgotten, so a later move over another line drags nothing.
+    private void FileLineReleased(object? sender, PointerReleasedEventArgs e) => ForgetPress();
 
-    private async Task DragFileOutAsync(PointerEventArgs e)
+    private void FileLineCaptureLost(object? sender, PointerCaptureLostEventArgs e) => ForgetPress();
+
+    private void ForgetPress()
     {
-        if (pressedLine is not { DataContext: FileLine line } || pressedArgs is not { } start || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        pressedLine = null;
+        pressedArgs = null;
+    }
+
+    private void FileLineMoved(object? sender, PointerEventArgs e) => DragFileOutAsync(sender, e).Forget("Dragging a file out of the Files widget", tell: true);
+
+    private async Task DragFileOutAsync(object? sender, PointerEventArgs e)
+    {
+        if (sender is null || !ReferenceEquals(sender, pressedLine) || pressedLine is not { DataContext: FileLine line } || pressedArgs is not { } start
+            || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
         var moved = e.GetPosition(this) - pressedAt;
         if (Math.Abs(moved.X) < 8 && Math.Abs(moved.Y) < 8)

@@ -60,11 +60,14 @@ public static class PlannerHome
     public static IReadOnlyList<ProjectTask> Completed(IEnumerable<ProjectTask> tasks, string meId, DateTimeOffset since) =>
         [.. tasks.Where(t => t.Deleted is null && t.Done && t.AssignedTo == meId && DoneAt(t) >= since).OrderByDescending(DoneAt)];
 
-    /// <summary>The start of this week (Monday), for "tasks completed this week".</summary>
-    public static DateTimeOffset WeekStart(DateTimeOffset now)
+    /// <summary>
+    /// The start of this week, for "tasks completed this week": Monday, or <paramref name="firstDay"/> (screens
+    /// pass the PC's first day of the week).
+    /// </summary>
+    public static DateTimeOffset WeekStart(DateTimeOffset now, DayOfWeek firstDay = DayOfWeek.Monday)
     {
-        var monday = Dates.WeekStart(DateOnly.FromDateTime(now.Date));
-        return new DateTimeOffset(monday.ToDateTime(TimeOnly.MinValue), now.Offset);
+        var start = Dates.WeekStart(DateOnly.FromDateTime(now.Date), firstDay);
+        return new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), now.Offset);
     }
 
     /// <summary>The projects still going, the ones changed most lately first.</summary>
@@ -152,10 +155,13 @@ public static class PlannerHome
         return [.. ProjectOverview.Milestones(tasks.Where(t => going.Contains(t.ProjectId) && !t.Done)).Take(count)];
     }
 
-    /// <summary>What's on someone's plate: their open tasks and how many are late.</summary>
-    public static (int Open, int Late) Load(IEnumerable<ProjectTask> tasks, string personId, DateOnly today)
+    /// <summary>
+    /// What's on someone's plate: their open tasks and how many are late, counted as My tasks counts them, so
+    /// tasks in projects that are done or deleted are left out.
+    /// </summary>
+    public static (int Open, int Late) Load(IEnumerable<Project> projects, IEnumerable<ProjectTask> tasks, string personId, DateOnly today)
     {
-        var open = tasks.Where(t => t.Deleted is null && !t.Done && t.AssignedTo == personId).ToList();
+        var open = ProjectRules.Mine(tasks, projects, personId);
         return (open.Count, open.Count(t => t.Due < today));
     }
 

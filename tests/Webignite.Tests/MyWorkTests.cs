@@ -28,6 +28,20 @@ public class MyWorkTests
     }
 
     [Fact]
+    public void This_week_ends_with_the_week_the_pc_keeps()
+    {
+        // Friday 6 Nov: Sunday 8 Nov is this week for a Monday week, but next week for one that starts on Sunday.
+        var sunday = Today.AddDays(2);
+        Assert.Equal("This week", MyWork.ByWhen([Task("Backups", sunday)], [], Today).Single().Title);
+        Assert.Equal("Later", MyWork.ByWhen([Task("Backups", sunday)], [], Today, DayOfWeek.Sunday).Single().Title);
+        Assert.Equal("Later", ProjectRules.ByWhen([Task("Backups", sunday)], Today, DayOfWeek.Sunday).Single().Title);
+        Assert.Equal("This week", ProjectRules.ByWhen([Task("Backups", Today.AddDays(1))], Today, DayOfWeek.Sunday).Single().Title);
+        Assert.Equal(new DateOnly(2026, 11, 1), Webignite.Core.Dates.WeekStart(Today, DayOfWeek.Sunday));
+        Assert.Equal(new DateOnly(2026, 11, 2), Webignite.Core.Dates.WeekStart(Today, DayOfWeek.Monday));
+        Assert.Equal(new DateOnly(2026, 11, 6), Webignite.Core.Dates.WeekStart(Today, DayOfWeek.Friday));
+    }
+
+    [Fact]
     public void The_summary_counts_both()
     {
         Assert.Equal("Nothing on your plate right now.", MyWork.Summary(0, 0));

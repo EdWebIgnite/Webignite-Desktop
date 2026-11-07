@@ -354,6 +354,75 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void A_task_goes_back_on_its_heading_only_while_it_is_still_under_none_in_that_project()
+    {
+        var design = new Heading { Id = "h1", ProjectId = "p", Name = "Design" };
+        var loose = new ProjectTask { Id = "t", ProjectId = "p", Title = "Wireframes", Done = true, Notes = "Signed off" };
+        var back = ProjectRules.BackOnHeading(loose, design);
+        Assert.Equal(("h1", true, "Signed off"), (back.HeadingId, back.Done, back.Notes));
+        foreach (var since in new[] { loose with { HeadingId = "h2" }, loose with { ProjectId = "q" }, loose with { ParentId = "x" } })
+            Assert.Same(since, ProjectRules.BackOnHeading(since, design));
+    }
+
+    [Fact]
+    public void Undoing_a_heading_delete_keeps_what_changed_on_its_tasks_meanwhile()
+    {
+        var project = NewProject();
+        var design = projects.AddHeading(project.Id, "Design").Saved!;
+        var build = projects.AddHeading(project.Id, "Build").Saved!;
+        var wire = NewTask(project.Id, "Wireframes", design.Id);
+        var mobile = NewTask(project.Id, "Mobile", design.Id, wire.Id);
+        var logo = NewTask(project.Id, "Logo", design.Id);
+
+        var gone = projects.DeleteHeading(design.Id)!;
+        projects.ChangeTask(wire.Id, t => t with { Done = true, Notes = "Signed off" });
+        projects.ChangeTask(logo.Id, t => t with { HeadingId = build.Id });
+
+        projects.Restore(gone);
+
+        Assert.Equal(["Design", "Build"], projects.Headings(project.Id).Select(h => h.Name));
+        var back = projects.GetTask(wire.Id)!;
+        Assert.Equal((design.Id, true, "Signed off"), (back.HeadingId, back.Done, back.Notes));
+        Assert.Equal(design.Id, projects.GetTask(mobile.Id)!.HeadingId);
+        // Put under another heading meanwhile, it stays there.
+        Assert.Equal(build.Id, projects.GetTask(logo.Id)!.HeadingId);
+        // And one moved to another project meanwhile doesn't come back onto this project's heading.
+        var seo = NewProject("SEO");
+        var copy = NewTask(project.Id, "Copy", design.Id);
+        var again = projects.DeleteHeading(design.Id)!;
+        projects.MoveTask(copy.Id, seo.Id);
+        projects.Restore(again);
+        Assert.Null(projects.GetTask(copy.Id)!.HeadingId);
+        Assert.Equal(seo.Id, projects.GetTask(copy.Id)!.ProjectId);
+        Assert.Contains(projects.Activity(wire.Id), a => a.Kind == ActivityKind.Moved && a.Value == "Design");
+    }
+
+    [Fact]
+    public void A_task_moved_to_another_project_stops_waiting_and_being_waited_on_there()
+    {
+        var site = NewProject();
+        var seo = NewProject("SEO");
+        var brief = NewTask(site.Id, "Brief");
+        var build = NewTask(site.Id, "Build");
+        var pages = NewTask(site.Id, "Pages", parent: build.Id);
+        var launch = NewTask(site.Id, "Launch");
+        projects.AddDependency(build.Id, brief.Id);
+        projects.AddDependency(pages.Id, brief.Id);
+        projects.AddDependency(launch.Id, build.Id);
+        projects.AddDependency(launch.Id, pages.Id);
+        projects.AddDependency(brief.Id, NewTask(site.Id, "Kick-off").Id);
+
+        projects.MoveTask(build.Id, seo.Id);
+
+        Assert.Empty(projects.GetTask(build.Id)!.BlockedBy);
+        Assert.Empty(projects.GetTask(pages.Id)!.BlockedBy);
+        Assert.Empty(projects.GetTask(launch.Id)!.BlockedBy);
+        Assert.Single(projects.GetTask(brief.Id)!.BlockedBy);
+        Assert.Equal(seo.Id, projects.GetTask(pages.Id)!.ProjectId);
+        Assert.Equal(3, projects.Activity(launch.Id).Count(a => a.Kind == ActivityKind.DependencyChanged)); // two added, then one change taking both off
+    }
+
+    [Fact]
     public void Changes_reach_pages_with_the_projects_id()
     {
         var seen = new List<string?>();
@@ -629,6 +698,89 @@ public sealed class ProjectRepeatTemplateTests
     }
 
     [Fact]
+    public void The_next_one_moves_its_subtasks_dates_by_the_same_step_and_leaves_files_and_waits_behind()
+    {
+        var parent = Task("Report", TaskRepeat.Weekly, Today, Today.AddDays(-2)) with
+        {
+            Attachments = [new TaskAttachment("f1", "Shop front.jpg", 10, DateTimeOffset.UnixEpoch, "me")],
+            CoverId = "f1",
+        };
+        var subtasks = new[]
+        {
+            new ProjectTask { Id = "s1", ProjectId = "p", ParentId = "Report", HeadingId = "h", Title = "Draft", Done = true, Start = Today.AddDays(-2), Due = Today.AddDays(-1),
+                Attachments = [new TaskAttachment("f2", "Notes.pdf", 10, DateTimeOffset.UnixEpoch, "me")], CoverId = "f2", BlockedBy = ["s2"], Order = 1 },
+            new ProjectTask { Id = "s2", ProjectId = "p", ParentId = "Report", HeadingId = "h", Title = "Send", Order = 2 },
+            new ProjectTask { Id = "s3", ProjectId = "p", ParentId = "Report", Title = "Gone", Deleted = new Stamp("me", DateTimeOffset.UnixEpoch), Order = 3 },
+            new ProjectTask { Id = "o", ProjectId = "p", Title = "Someone else's" },
+        };
+
+        var made = ProjectRules.Next(parent, subtasks, Today, 2);
+
+        var next = made[0];
+        Assert.Equal(("Report", Today.AddDays(7), Today.AddDays(5)), (next.RepeatOf, next.Due!.Value, next.Start!.Value));
+        Assert.Empty(next.Attachments);
+        Assert.Null(next.CoverId);
+        Assert.Equal(["Draft", "Send"], made.Skip(1).Select(t => t.Title));
+        var draft = made[1];
+        Assert.Equal((next.Id, false, Today.AddDays(5), Today.AddDays(6)), (draft.ParentId, draft.Done, draft.Start!.Value, draft.Due!.Value));
+        Assert.Empty(draft.Attachments);
+        Assert.Null(draft.CoverId);
+        Assert.Empty(draft.BlockedBy);
+        Assert.NotEqual("s1", draft.Id);
+        Assert.Null(made[2].Due);
+        Assert.Empty(ProjectRules.Next(Task("Once"), subtasks, Today, 1));
+    }
+
+    [Fact]
+    public void Subtasks_of_a_repeating_task_with_no_date_move_on_from_today()
+    {
+        var parent = Task("Check", TaskRepeat.Daily);
+        var sub = new ProjectTask { Id = "s", ProjectId = "p", ParentId = "Check", Title = "Look at the logs", Due = Today.AddDays(3) };
+        var made = ProjectRules.Next(parent, [sub], Today, 1);
+        Assert.Equal(Today.AddDays(1), made[0].Due);
+        Assert.Equal(Today.AddDays(4), made[1].Due);
+    }
+
+    [Fact]
+    public void A_repeating_task_knows_when_its_next_one_is_already_there()
+    {
+        var done = Task("Backups", TaskRepeat.Weekly, Today);
+        var next = ProjectRules.Next(done, Today, 1)!;
+        Assert.True(ProjectRules.HasNext(done, [done, next]));
+        Assert.False(ProjectRules.HasNext(done, [done, next with { Deleted = new Stamp("me", DateTimeOffset.UnixEpoch) }]));
+        Assert.False(ProjectRules.HasNext(done, [done]));
+    }
+
+    [Fact]
+    public void Monthly_and_yearly_repeats_come_back_to_their_day_when_the_month_allows()
+    {
+        var day = new DateOnly(2027, 1, 31);
+        DateOnly Tick(ref ProjectTask task)
+        {
+            task = ProjectRules.Next(task with { Done = true }, task.Due!.Value, 1)!;
+            return task.Due!.Value;
+        }
+        var monthly = Task("Invoice run", TaskRepeat.Monthly, day);
+        Assert.Equal(new DateOnly(2027, 2, 28), Tick(ref monthly));
+        Assert.Equal(new DateOnly(2027, 3, 31), Tick(ref monthly));
+        Assert.Equal(new DateOnly(2027, 4, 30), Tick(ref monthly));
+        Assert.Equal(new DateOnly(2027, 5, 31), Tick(ref monthly));
+
+        var yearly = Task("Leap day", TaskRepeat.Yearly, new DateOnly(2028, 2, 29));
+        Assert.Equal(new DateOnly(2029, 2, 28), Tick(ref yearly));
+        Assert.Equal(new DateOnly(2030, 2, 28), Tick(ref yearly));
+        Assert.Equal(new DateOnly(2031, 2, 28), Tick(ref yearly));
+        Assert.Equal(new DateOnly(2032, 2, 29), Tick(ref yearly));
+
+        // Moved by hand to the 15th, it carries on from the 15th.
+        var moved = monthly with { Due = new DateOnly(2027, 6, 15) };
+        Assert.Equal(new DateOnly(2027, 7, 15), Tick(ref moved));
+        // Ticked off late, it skips to the next one still to come, on its day.
+        var late = ProjectRules.Next(Task("Invoice run", TaskRepeat.Monthly, day) with { RepeatFrom = null }, new DateOnly(2027, 3, 10), 1)!;
+        Assert.Equal(new DateOnly(2027, 3, 31), late.Due);
+    }
+
+    [Fact]
     public void A_template_keeps_headings_tasks_subtasks_and_dates_as_days_from_the_start()
     {
         var design = new Heading { Id = "h1", ProjectId = "p", Name = "Design", Order = 1 };
@@ -662,6 +814,72 @@ public sealed class ProjectRepeatTemplateTests
         Assert.Equal(headings[0].Id, wire.HeadingId);
         Assert.Equal(wire.Id, made.Single(t => t.Title == "Mobile").ParentId);
         Assert.All(made, t => Assert.Equal(project.Id, t.ProjectId));
+    }
+
+    [Fact]
+    public void A_template_keeps_headings_with_the_same_name_apart_and_subtasks_waiting()
+    {
+        var first = new Heading { Id = "h1", ProjectId = "p", Name = "Phase", Order = 1 };
+        var second = new Heading { Id = "h2", ProjectId = "p", Name = "Phase", Order = 2 };
+        var tasks = new[]
+        {
+            new ProjectTask { Id = "a", ProjectId = "p", HeadingId = "h1", Title = "Brief", Order = 1 },
+            new ProjectTask { Id = "a1", ProjectId = "p", HeadingId = "h1", ParentId = "a", Title = "Questions", Order = 1 },
+            new ProjectTask { Id = "a2", ProjectId = "p", HeadingId = "h1", ParentId = "a", Title = "Answers", Order = 2, BlockedBy = ["a1"] },
+            new ProjectTask { Id = "b", ProjectId = "p", HeadingId = "h2", Title = "Build", Order = 1, BlockedBy = ["a2", "a"] },
+            new ProjectTask { Id = "b1", ProjectId = "p", HeadingId = "h2", ParentId = "b", Title = "Pages", Order = 1 },
+            new ProjectTask { Id = "c", ProjectId = "p", HeadingId = "h2", Title = "Launch", Order = 2, BlockedBy = ["b1"] },
+        };
+
+        var template = ProjectRules.TemplateOf("Two phases", [first, second], tasks);
+        Assert.Equal([0, 1, 1], template.Tasks.Select(t => t.HeadingIndex ?? -1));
+        Assert.Equal([0], template.Tasks[1].WaitsOn);
+
+        var (_, headings, made) = ProjectRules.FromTemplate(template, "", new DateOnly(2027, 1, 4), 1);
+        ProjectTask Made(string title) => made.Single(t => t.Title == title);
+        Assert.Equal(headings[0].Id, Made("Brief").HeadingId);
+        Assert.Equal(headings[1].Id, Made("Build").HeadingId);
+        Assert.Equal(headings[1].Id, Made("Launch").HeadingId);
+        Assert.Equal([Made("Questions").Id], Made("Answers").BlockedBy);
+        Assert.Equal([Made("Answers").Id, Made("Brief").Id], Made("Build").BlockedBy);
+        Assert.Equal([Made("Pages").Id], Made("Launch").BlockedBy);
+    }
+
+    [Fact]
+    public void A_template_kept_in_the_old_shape_still_reads()
+    {
+        var old = new ProjectTemplate
+        {
+            Id = "t",
+            Name = "Old",
+            Headings = ["Design", "Build"],
+            Tasks =
+            [
+                new TemplateTask { Title = "Wireframes", Heading = "Design", Subtasks = ["Mobile"] },
+                new TemplateTask { Title = "Build pages", Heading = "Build", WaitsOn = [0] },
+            ],
+        };
+        var (_, headings, made) = ProjectRules.FromTemplate(old, "", new DateOnly(2027, 1, 4), 1);
+        Assert.Equal(headings[1].Id, made.Single(t => t.Title == "Build pages").HeadingId);
+        Assert.Equal([made.Single(t => t.Title == "Wireframes").Id], made.Single(t => t.Title == "Build pages").BlockedBy);
+        Assert.Empty(made.Single(t => t.Title == "Mobile").BlockedBy);
+
+        // As kept before: no heading places and no waits counting subtasks.
+        const string kept = """
+            {"id":"t","name":"Old","headings":["Design","Build"],"tasks":[{"title":"Wireframes","heading":"Design"},{"title":"Build pages","heading":"Build","waits_on":[0]}]}
+            """;
+        var read = System.Text.Json.JsonSerializer.Deserialize<ProjectTemplate>(kept, StoredJson.Options)!;
+        Assert.Empty(read.Waits);
+        Assert.Null(read.Tasks[1].HeadingIndex);
+        var (_, readHeadings, readMade) = ProjectRules.FromTemplate(read, "", new DateOnly(2027, 1, 4), 1);
+        Assert.Equal(readHeadings[1].Id, readMade.Single(t => t.Title == "Build pages").HeadingId);
+        Assert.Single(readMade.Single(t => t.Title == "Build pages").BlockedBy);
+        // And the new shape goes round as it came.
+        var kind = ProjectRules.TemplateOf("New", [new Heading { Id = "h", ProjectId = "p", Name = "Design" }],
+            [new ProjectTask { Id = "a", ProjectId = "p", HeadingId = "h", Title = "A" }, new ProjectTask { Id = "a1", ProjectId = "p", HeadingId = "h", ParentId = "a", Title = "A1", BlockedBy = ["a"] }]);
+        var again = System.Text.Json.JsonSerializer.Deserialize<ProjectTemplate>(System.Text.Json.JsonSerializer.Serialize(kind, StoredJson.Options), StoredJson.Options)!;
+        Assert.Equal([new TemplateWait(1, 0)], again.Waits);
+        Assert.Equal(0, again.Tasks[0].HeadingIndex);
     }
 }
 
@@ -702,6 +920,28 @@ public sealed class ProjectRepeatServiceTests : IDisposable
         Assert.Equal(due.AddDays(7), next.Due);
         Assert.True(next.Order > task.Order && next.Order < after.Order);
         Assert.Equal("Restore one file", Assert.Single(projects.AllTasks(project.Id), t => t.ParentId == next.Id).Title);
+    }
+
+    [Fact]
+    public void Ticking_a_repeating_task_off_on_and_off_again_makes_just_one_next()
+    {
+        var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Hosting" }).Saved!;
+        var due = DateOnly.FromDateTime(DateTime.Today);
+        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Check backups", Repeat = TaskRepeat.Weekly, Due = due }).Saved!;
+        projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, ParentId = task.Id, Title = "Restore one file", Due = due });
+
+        projects.ChangeTask(task.Id, t => t with { Done = true });
+        projects.ChangeTask(task.Id, t => t with { Done = false });
+        projects.ChangeTask(task.Id, t => t with { Done = true });
+
+        var next = Assert.Single(projects.AllTasks(project.Id), t => t.RepeatOf == task.Id);
+        Assert.Equal(due.AddDays(7), Assert.Single(projects.AllTasks(project.Id), t => t.ParentId == next.Id).Due);
+
+        // With the next one deleted, ticking it again makes another.
+        projects.DeleteTask(next.Id);
+        projects.ChangeTask(task.Id, t => t with { Done = false });
+        projects.ChangeTask(task.Id, t => t with { Done = true });
+        Assert.Single(projects.AllTasks(project.Id), t => t.RepeatOf == task.Id);
     }
 
     [Fact]

@@ -102,7 +102,7 @@ public sealed partial class ProjectsViewModel
         if (!IsTimeline)
             return;
         var today = DateOnly.FromDateTime(DateTime.Today);
-        var (from, days) = ProjectTimeline.Range(tasks, today);
+        var (from, days) = ProjectTimeline.Range(tasks, today, CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek);
         timelineFrom = from;
         TimelineWidth = days * DayWidth;
         TodayLeft = (today.DayNumber - from.DayNumber) * DayWidth + DayWidth / 2;

@@ -44,6 +44,10 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
     [ObservableProperty]
     public partial string WeekTitle { get; set; } = "";
 
+    /// <summary>Why the last day picked for a task didn't take; empty when it did.</summary>
+    [ObservableProperty]
+    public partial string Message { get; set; } = "";
+
     public bool HasUnplanned => Unplanned.Count > 0;
 
     [RelayCommand]
@@ -96,8 +100,10 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
         foreach (var task in services.Projects.Mine(services.Me().Id).Where(t => t.Due is null).OrderBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase))
             Unplanned.Add(new UnplannedTaskViewModel(task.Title, names.GetValueOrDefault(task.ProjectId) ?? "", dayChoices, day =>
             {
-                services.Projects.ChangeTask(task.Id, t => t with { Due = day });
+                var (saved, problems) = services.Projects.ChangeTask(task.Id, t => t with { Due = day });
                 Refresh();
+                // Such as a day before the task's start: say so, rather than the pick quietly not taking.
+                Message = saved is null ? $"{task.Title}: {string.Join(" ", problems)}" : "";
             }));
         OnPropertyChanged(nameof(HasUnplanned));
     }

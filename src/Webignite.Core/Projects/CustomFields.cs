@@ -56,6 +56,19 @@ public static class CustomFields
     public static Project Remove(Project project, string fieldId) => project with { CustomFields = [.. project.CustomFields.Where(f => f.Id != fieldId)] };
 
     /// <summary>
+    /// A field taken off, put back where it was, as Undo does. Only that field: fields added, changed or taken off
+    /// since stay as they are now, and nothing changes when it's already back.
+    /// </summary>
+    public static Project PutBack(Project project, CustomField field, int index)
+    {
+        if (project.CustomFields.Any(f => f.Id == field.Id))
+            return project;
+        var fields = project.CustomFields.ToList();
+        fields.Insert(Math.Clamp(index, 0, fields.Count), field);
+        return project with { CustomFields = fields };
+    }
+
+    /// <summary>
     /// What's typed for a field, as it's kept: null clears it. A number or date that can't be read, or a choice
     /// that isn't one of the field's options, comes back with what's wrong.
     /// </summary>
@@ -67,7 +80,7 @@ public static class CustomFields
         switch (field.Kind)
         {
             case FieldKind.Number:
-                return decimal.TryParse(text, NumberStyles.Number, culture, out var number) || decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out number)
+                return TryNumber(text, NumberFormatInfo.GetInstance(culture), out var number) || TryNumber(text, NumberFormatInfo.InvariantInfo, out number)
                     ? (number.ToString(CultureInfo.InvariantCulture), "")
                     : (null, $"{field.Name} takes a number.");
             case FieldKind.Date:
@@ -82,6 +95,56 @@ public static class CustomFields
                 return (text, "");
         }
     }
+
+    // A number read one culture's way, with its thousands separators only where that culture puts them.
+    private static bool TryNumber(string text, NumberFormatInfo format, out decimal number)
+    {
+        number = 0;
+        return Grouped(text, format) && decimal.TryParse(text, NumberStyles.Number, format, out number);
+    }
+
+    // Thousands separators only between whole groups of digits before the decimal point, grouped as the culture
+    // groups them, so "1.5" on a PC that groups with full stops isn't read as 15 but falls through to 1.5.
+    private static bool Grouped(string text, NumberFormatInfo format)
+    {
+        var group = format.NumberGroupSeparator;
+        if (group.Length == 0 || !text.Contains(group, StringComparison.Ordinal))
+            return true;
+        var point = text.IndexOf(format.NumberDecimalSeparator, StringComparison.Ordinal);
+        if (point >= 0 && text.IndexOf(group, point, StringComparison.Ordinal) >= 0)
+            return false;
+        var whole = (point < 0 ? text : text[..point]).Trim();
+        foreach (var sign in new[] { format.NegativeSign, format.PositiveSign }.Where(s => s.Length > 0))
+        {
+            if (whole.StartsWith(sign, StringComparison.Ordinal))
+                whole = whole[sign.Length..].TrimStart();
+            if (whole.EndsWith(sign, StringComparison.Ordinal))
+                whole = whole[..^sign.Length].TrimEnd();
+        }
+        var parts = whole.Split(group);
+        int[] sizes = format.NumberGroupSizes is { Length: > 0 } known ? known : [3];
+        // From the right: the last group takes the first size, the one before it the next, the last size repeating.
+        var at = 0;
+        for (var i = parts.Length - 1; i >= 1; i--)
+        {
+            var size = sizes[at];
+            if (size <= 0 || parts[i].Length != size || !parts[i].All(char.IsAsciiDigit))
+                return false;
+            at = Math.Min(at + 1, sizes.Length - 1);
+        }
+        return parts[0].Length > 0 && (sizes[at] <= 0 || parts[0].Length <= sizes[at]) && parts[0].All(char.IsAsciiDigit);
+    }
+
+    /// <summary>
+    /// What a box to change a value starts with: a number in full the PC's way (never rounded, so saving it
+    /// unchanged keeps it), a date as it's kept, anything else as it shows.
+    /// </summary>
+    public static string Editing(CustomField field, string? value, IFormatProvider culture) => field.Kind switch
+    {
+        FieldKind.Number when decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number) => number.ToString(culture),
+        FieldKind.Date => value ?? "",
+        _ => Show(field, value, culture),
+    };
 
     /// <summary>A kept value as it shows: a number and a date the PC's way, a choice as its option's name; empty when it's not set.</summary>
     public static string Show(CustomField field, string? value, IFormatProvider culture)

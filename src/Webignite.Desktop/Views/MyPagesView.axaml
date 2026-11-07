@@ -272,7 +272,8 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:FileLine">
                   <Border Classes="fileline" Tapped="FileLineTapped" DoubleTapped="FileLineDoubleTapped" ContextRequested="FileLineMenu"
-                          PointerPressed="FileLinePressed" PointerMoved="FileLineMoved" ToolTip.Tip="{Binding Name}">
+                          PointerPressed="FileLinePressed" PointerMoved="FileLineMoved" PointerReleased="FileLineReleased"
+                          PointerCaptureLost="FileLineCaptureLost" ToolTip.Tip="{Binding Name}">
                     <DockPanel>
                       <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="11" Text="{Binding About}" VerticalAlignment="Center" Margin="8,0,0,0" />
                       <Panel DockPanel.Dock="Left" Width="18" Margin="0,0,8,0">

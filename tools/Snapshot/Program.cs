@@ -2397,6 +2397,18 @@ Save("site-check");
         var arrows = window.GetVisualDescendants().OfType<Avalonia.Controls.Canvas>().First(c => c.Name == "TimelineArrows");
         Check("The timeline draws an arrow from a task to the one waiting on it", arrows.Children.Count == 1);
         Save("projects-timeline");
+        // Another page and back: the view is made again for bars already there, and still draws the arrow.
+        Open(Page.Invoices);
+        Dispatcher.UIThread.RunJobs();
+        Open(Page.Projects);
+        for (var tick = 0; tick < 10; tick++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Thread.Sleep(15);
+        }
+        var arrowsAgain = window.GetVisualDescendants().OfType<Avalonia.Controls.Canvas>().FirstOrDefault(c => c.Name == "TimelineArrows" && c.IsEffectivelyVisible);
+        Check("Back on the timeline from another page, the arrow is still drawn", projectsPage.IsTimeline && arrowsAgain is { Children.Count: 1 });
 
         // The Calendar tab, as Asana's: a month of weeks with each task on its due date.
         projectsPage.CalendarViewCommand.Execute(null);
@@ -2743,6 +2755,20 @@ Save("site-check");
         Check("The week planner is called Week inside Planner", vm.Selected.Title == "Week" && vm.Sidebar.IsPlanner);
         Check("Week's list without a day has project tasks given to me as well as to-dos",
             ((PlannerViewModel)vm.Current.Page).Unplanned.Any(u => u.About == "To-do") && ((PlannerViewModel)vm.Current.Page).Unplanned.Any(u => u.About != "To-do"));
+        {
+            // A day before the task's start can't be its due date: Week says so instead of the pick quietly not taking.
+            var weekPage = (PlannerViewModel)vm.Current.Page;
+            var undated = weekPage.Unplanned.First(u => u.About != "To-do");
+            var undatedTask = services.Projects.Mine(services.Me().Id).First(t => t.Due is null && t.Title == undated.Title);
+            services.Projects.ChangeTask(undatedTask.Id, t => t with { Start = DateOnly.FromDateTime(DateTime.Today).AddDays(60) });
+            weekPage.Refresh();
+            var again = weekPage.Unplanned.First(u => u.Title == undated.Title && u.About != "To-do");
+            again.PlanFor = again.Days[0];
+            Check("Week shows why a day picked for a task didn't take", weekPage.Message.Contains("before the start date", StringComparison.Ordinal)
+                && services.Projects.GetTask(undatedTask.Id)!.Due is null);
+            services.Projects.ChangeTask(undatedTask.Id, t => t with { Start = undatedTask.Start });
+            weekPage.Refresh();
+        }
         vm.SelectedNav = vm.Sidebar.PlannerBack;
         Dispatcher.UIThread.RunJobs();
         Check("The arrow at the top goes back to the main sidebar, leaving the page as it was", !vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Planner

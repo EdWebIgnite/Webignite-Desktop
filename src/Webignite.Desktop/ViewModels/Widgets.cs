@@ -132,7 +132,7 @@ public sealed partial class TasksBody : WidgetBody
     private void ShowMine(DateOnly today)
     {
         var names = services.Projects.Projects().ToDictionary(p => p.Id, p => p.Name);
-        foreach (var (group, tasks) in ProjectRules.ByWhen(services.Projects.Mine(services.Me().Id), today))
+        foreach (var (group, tasks) in ProjectRules.ByWhen(services.Projects.Mine(services.Me().Id), today, CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek))
         {
             Lines.Add(new TaskHeadingLine(group));
             foreach (var task in tasks)
@@ -481,6 +481,10 @@ public sealed partial class FilesBody : WidgetBody
     private readonly DispatcherTimer settle = new() { Interval = TimeSpan.FromMilliseconds(400) };
     private int reading;
 
+    // Set once the page lets the widget go: changes still on their way from the watcher, and reads still going,
+    // then do nothing, so the timer isn't started again after it's been stopped.
+    private bool disposed;
+
     public FilesBody(Widget widget, AppServices services, MyPagesViewModel page)
     {
         widgetId = widget.Id;
@@ -489,7 +493,8 @@ public sealed partial class FilesBody : WidgetBody
         settle.Tick += (_, _) =>
         {
             settle.Stop();
-            Refresh();
+            if (!disposed)
+                Refresh();
         };
         Folder = MyPages.StartFolder(widget.Target, Directory.Exists, Webignite.Desktop.Files.FileOps.ClientRoot(services.Settings.Files),
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
@@ -519,6 +524,8 @@ public sealed partial class FilesBody : WidgetBody
 
     private async Task ReadAsync()
     {
+        if (disposed)
+            return;
         var mine = ++reading;
         var folder = Folder;
         IReadOnlyList<Webignite.Core.Files.FileEntry>? entries = null;
@@ -534,7 +541,7 @@ public sealed partial class FilesBody : WidgetBody
                 problem = Directory.Exists(folder) ? "This folder can't be read." : "This folder isn't there any more. Pick another.";
             }
         });
-        if (mine != reading)
+        if (mine != reading || disposed)
             return;
         Lines.Clear();
         foreach (var entry in entries ?? [])
@@ -579,18 +586,20 @@ public sealed partial class FilesBody : WidgetBody
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size | NotifyFilters.LastWrite,
                 IncludeSubdirectories = false,
             };
-            FileSystemEventHandler changed = (_, _) => Dispatcher.UIThread.Post(() =>
+            var watching = watcher;
+            watcher.Created += (_, _) => Dispatcher.UIThread.Post(Settle);
+            watcher.Deleted += (_, _) => Dispatcher.UIThread.Post(Settle);
+            watcher.Changed += (_, _) => Dispatcher.UIThread.Post(Settle);
+            watcher.Renamed += (_, _) => Dispatcher.UIThread.Post(Settle);
+            // Too many changes at once, or the folder gone or unreachable for a moment: read it again and watch
+            // it afresh, unless the widget has moved on to another folder or been let go meanwhile.
+            watcher.Error += (_, e) => Dispatcher.UIThread.Post(() =>
             {
-                settle.Stop();
-                settle.Start();
-            });
-            watcher.Created += changed;
-            watcher.Deleted += changed;
-            watcher.Changed += changed;
-            watcher.Renamed += (_, _) => Dispatcher.UIThread.Post(() =>
-            {
-                settle.Stop();
-                settle.Start();
+                if (disposed || !ReferenceEquals(watcher, watching))
+                    return;
+                Webignite.Data.AppLog.Write("Watching a folder for the Files widget", e.GetException());
+                Watch();
+                Refresh();
             });
             watcher.EnableRaisingEvents = true;
         }
@@ -602,8 +611,18 @@ public sealed partial class FilesBody : WidgetBody
         }
     }
 
+    // A change seen: read the folder once things have been quiet a moment.
+    private void Settle()
+    {
+        if (disposed)
+            return;
+        settle.Stop();
+        settle.Start();
+    }
+
     public override void Dispose()
     {
+        disposed = true;
         settle.Stop();
         watcher?.Dispose();
         watcher = null;

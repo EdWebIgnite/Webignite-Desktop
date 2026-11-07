@@ -62,17 +62,19 @@ public sealed partial class ProjectsViewModel
     {
         if (open is null)
             return;
-        var before = open.CustomFields;
+        var field = header.Field;
+        var index = open.CustomFields.ToList().FindIndex(f => f.Id == field.Id);
         var projectId = open.Id;
-        var (saved, _) = Ours(() => services.Projects.RemoveField(projectId, header.Field.Id));
+        var (saved, _) = Ours(() => services.Projects.RemoveField(projectId, field.Id));
         if (saved is null)
             return;
         open = saved;
         ShowTasks();
         Detail?.Reload();
+        // Undo puts back only this field, where it was; fields added or changed since stay as they are.
         services.OfferUndo($"Removed the field {header.Name}", () =>
         {
-            services.Projects.Change(projectId, p => p with { CustomFields = before });
+            services.Projects.Change(projectId, p => CustomFields.PutBack(p, field, index));
             Refresh();
         });
     }
@@ -114,8 +116,8 @@ public sealed class FieldCell(CustomField field, string taskId, string? value, P
     public bool IsPlain => !IsPill;
     public string Colour => CustomFields.Option(Field, Value)?.Colour ?? "None";
 
-    /// <summary>What a box to change it starts with: the value as the PC shows it, a date as its own.</summary>
-    public string Typed => Field.Kind == FieldKind.Date ? Value ?? "" : Text;
+    /// <summary>What a box to change it starts with: a number in full the PC's way, a date as it's kept, else as it shows.</summary>
+    public string Typed => CustomFields.Editing(Field, Value, CultureInfo.CurrentCulture);
 }
 
 /// <summary>A custom field in the task pane: a list to pick from, or a box to type in, saved as soon as it changes.</summary>
@@ -134,7 +136,7 @@ public sealed partial class FieldEditor : ObservableObject
         loading = true;
         Options = [new Choice<string?>("None", null), .. field.Options.Select(o => new Choice<string?>(o.Name, o.Id))];
         Picked = Options.FirstOrDefault(o => o.Value == value) ?? Options[0];
-        Text = field.Kind is FieldKind.Text or FieldKind.Number ? CustomFields.Show(field, value, CultureInfo.CurrentCulture) : "";
+        Text = field.Kind is FieldKind.Text or FieldKind.Number ? CustomFields.Editing(field, value, CultureInfo.CurrentCulture) : "";
         loadedText = Text;
         Date = field.Kind == FieldKind.Date && DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
             ? date.ToDateTime(TimeOnly.MinValue) : null;

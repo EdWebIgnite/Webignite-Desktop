@@ -66,6 +66,17 @@ public sealed class ProjectListLayoutTests
     }
 
     [Fact]
+    public void Grouped_by_due_date_done_tasks_go_last_in_their_own_group()
+    {
+        ProjectTask[] tasks = [.. Tasks, T("Old brief", 3, "h1", Today.AddDays(-9)) with { Done = true }, T("Sent invite", 4, null, Today.AddDays(3)) with { Done = true }];
+        var byDue = ProjectList.Arrange([Design, Build], tasks, new ProjectLayout { Group = TaskGroup.DueDate }, Name, Today);
+        Assert.Equal(["Overdue", "Today", "This week", "No due date", "Done"], byDue.Select(g => g.Title));
+        Assert.Equal(["Colours"], byDue[0].Tasks.Select(t => t.Title));
+        Assert.Equal(["Old brief", "Sent invite"], byDue[^1].Tasks.Select(t => t.Title));
+        Assert.All(byDue.Take(byDue.Count - 1).SelectMany(g => g.Tasks), t => Assert.False(t.Done));
+    }
+
+    [Fact]
     public void A_heading_folds_up_and_opens_out_once_each()
     {
         var folded = ProjectList.Fold(new ProjectLayout(), "h1", true);

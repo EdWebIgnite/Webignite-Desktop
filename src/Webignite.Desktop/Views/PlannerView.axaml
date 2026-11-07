@@ -59,6 +59,8 @@
       <StackPanel Spacing="10">
         <TextBlock Classes="h2" Text="Tasks and to-dos without a day" />
         <TextBlock Classes="muted" FontSize="12" Text="Give each one a day this week so it shows up above and on the calendar." />
+        <TextBlock Classes="problem" FontSize="12" Text="{Binding Message}" TextWrapping="Wrap"
+                   IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <ItemsControl ItemsSource="{Binding Unplanned}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:UnplannedTaskViewModel">

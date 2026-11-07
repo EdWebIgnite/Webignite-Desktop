@@ -50,6 +50,24 @@ public static class TaskDependencies
 
     public static ProjectTask Remove(ProjectTask task, string blockerId) => task with { BlockedBy = [.. task.BlockedBy.Where(id => id != blockerId)] };
 
+    /// <summary>
+    /// The ids of what goes when a task moves to another project: the task, and its subtasks when it's a task
+    /// (a subtask moved on its own goes alone).
+    /// </summary>
+    public static IReadOnlySet<string> Going(ProjectTask moving, IEnumerable<ProjectTask> tasks) =>
+        new HashSet<string>(tasks.Where(t => t.Deleted is null && (t.Id == moving.Id || (moving.ParentId is null && t.ParentId == moving.Id))).Select(t => t.Id).Append(moving.Id));
+
+    /// <summary>
+    /// A task in a project some tasks are leaving, since waiting only works within a project: one that's going
+    /// waits on nothing, and one staying stops waiting on those going. The same task when nothing changes.
+    /// </summary>
+    public static ProjectTask Unhooked(ProjectTask task, IReadOnlySet<string> going)
+    {
+        if (going.Contains(task.Id))
+            return task.BlockedBy.Count == 0 ? task : task with { BlockedBy = [] };
+        return task.BlockedBy.Any(going.Contains) ? task with { BlockedBy = [.. task.BlockedBy.Where(id => !going.Contains(id))] } : task;
+    }
+
     private static IEnumerable<ProjectTask> Live(IEnumerable<ProjectTask> tasks, string projectId) =>
         tasks.Where(t => t.Deleted is null && t.ProjectId == projectId);
 
