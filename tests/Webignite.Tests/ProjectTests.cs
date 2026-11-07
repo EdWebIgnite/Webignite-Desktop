@@ -354,6 +354,31 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void Undoing_a_heading_delete_keeps_what_changed_on_its_tasks_meanwhile()
+    {
+        var project = NewProject();
+        var design = projects.AddHeading(project.Id, "Design").Saved!;
+        var build = projects.AddHeading(project.Id, "Build").Saved!;
+        var wire = NewTask(project.Id, "Wireframes", design.Id);
+        var mobile = NewTask(project.Id, "Mobile", design.Id, wire.Id);
+        var logo = NewTask(project.Id, "Logo", design.Id);
+
+        var gone = projects.DeleteHeading(design.Id)!;
+        projects.ChangeTask(wire.Id, t => t with { Done = true, Notes = "Signed off" });
+        projects.ChangeTask(logo.Id, t => t with { HeadingId = build.Id });
+
+        projects.Restore(gone);
+
+        Assert.Equal(["Design", "Build"], projects.Headings(project.Id).Select(h => h.Name));
+        var back = projects.GetTask(wire.Id)!;
+        Assert.Equal((design.Id, true, "Signed off"), (back.HeadingId, back.Done, back.Notes));
+        Assert.Equal(design.Id, projects.GetTask(mobile.Id)!.HeadingId);
+        // Put under another heading meanwhile, it stays there.
+        Assert.Equal(build.Id, projects.GetTask(logo.Id)!.HeadingId);
+        Assert.Contains(projects.Activity(wire.Id), a => a.Kind == ActivityKind.Moved && a.Value == "Design");
+    }
+
+    [Fact]
     public void Changes_reach_pages_with_the_projects_id()
     {
         var seen = new List<string?>();

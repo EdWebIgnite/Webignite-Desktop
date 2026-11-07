@@ -193,7 +193,10 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return (saved, []);
     }
 
-    /// <summary>Deletes a heading; its tasks stay in the project, under no heading. Returns what changed, for Undo.</summary>
+    /// <summary>
+    /// Deletes a heading; its tasks stay in the project, under no heading. Returns what changed, for Undo: the
+    /// heading, and which tasks were moved off it.
+    /// </summary>
     public ProjectWork? DeleteHeading(string id)
     {
         if (store.GetHeading(id) is not { Deleted: null } heading)
@@ -202,7 +205,7 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         var moved = AllTasks(heading.ProjectId).Where(t => t.HeadingId == id).ToList();
         store.SaveProjectWork([], [Remove(heading, now)], moved.Select(t => ProjectRules.Stamped(t, t with { HeadingId = null }, now)));
         Changed?.Invoke(heading.ProjectId);
-        return new ProjectWork([], [heading], moved);
+        return new ProjectWork([], [heading], []) { MovedOff = [.. moved.Select(t => (t.Id, id))] };
     }
 
     // Tasks
@@ -421,8 +424,9 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
     }
 
     /// <summary>
-    /// Undo: puts back what a delete took away, as it was before, with the restore recorded as a change. What was
-    /// changed in the meantime by the delete (tasks moved off a deleted heading) goes back too.
+    /// Undo: puts back what a delete took away, as it was before, with the restore recorded as a change. Tasks the
+    /// delete moved off a heading go back onto it, each as it's stored now, and only while it's still under no
+    /// heading, so whatever changed on them since stays.
     /// </summary>
     public void Restore(ProjectWork work)
     {
@@ -431,6 +435,9 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             work.Projects.Select(p => Back(store.GetProject(p.Id), p, now)),
             work.Headings.Select(h => Back(store.GetHeading(h.Id), h, now)),
             work.Tasks.Select(t => Back(store.GetProjectTask(t.Id), t, now)));
+        foreach (var (taskId, headingId) in work.MovedOff)
+            if (GetTask(taskId) is { HeadingId: null, ParentId: null })
+                ChangeTask(taskId, t => t.HeadingId is null ? t with { HeadingId = headingId } : t);
         Changed?.Invoke(work.Projects.Count > 0 ? null : work.Headings.FirstOrDefault()?.ProjectId ?? work.Tasks.FirstOrDefault()?.ProjectId);
     }
 
@@ -462,4 +469,8 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
 }
 
 /// <summary>What a delete took away, or moved, so Undo can put it back.</summary>
-public sealed record ProjectWork(IReadOnlyList<Project> Projects, IReadOnlyList<Heading> Headings, IReadOnlyList<ProjectTask> Tasks);
+public sealed record ProjectWork(IReadOnlyList<Project> Projects, IReadOnlyList<Heading> Headings, IReadOnlyList<ProjectTask> Tasks)
+{
+    /// <summary>Tasks a deleted heading's delete moved to no heading, with the heading they were under.</summary>
+    public IReadOnlyList<(string TaskId, string HeadingId)> MovedOff { get; init; } = [];
+}
