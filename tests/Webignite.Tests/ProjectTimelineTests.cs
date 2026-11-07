@@ -58,6 +58,30 @@ public class ProjectTimelineTests
     }
 
     [Fact]
+    public void Stretching_a_one_day_bar_with_no_start_later_grows_it_from_its_day()
+    {
+        var call = Task("Call", due: new DateOnly(2026, 11, 3));
+        var longer = ProjectTimeline.StretchEnd(call, 2);
+        Assert.Equal((new DateOnly(2026, 11, 3), new DateOnly(2026, 11, 5)), (longer.Start!.Value, longer.Due!.Value));
+        Assert.Equal(3, ProjectTimeline.Bar(longer, new DateOnly(2026, 11, 2))!.Length);
+        // Earlier than its one day it can't go: it stays put, with no start.
+        var same = ProjectTimeline.StretchEnd(call, -2);
+        Assert.Equal((null, new DateOnly(2026, 11, 3)), (same.Start, same.Due!.Value));
+    }
+
+    [Fact]
+    public void A_task_with_a_start_but_no_due_date_dropped_on_a_day_keeps_its_start_when_it_can()
+    {
+        var started = Task("Build", start: new DateOnly(2026, 11, 4));
+        var dropped = ProjectTimeline.DueOn(started, new DateOnly(2026, 11, 10));
+        Assert.Equal((new DateOnly(2026, 11, 4), new DateOnly(2026, 11, 10)), (dropped.Start!.Value, dropped.Due!.Value));
+        Assert.Equal(new DateOnly(2026, 11, 4), ProjectTimeline.DueOn(started, new DateOnly(2026, 11, 4)).Start);
+        // Dropped before its start, the start can't stay: it's due that day alone.
+        var early = ProjectTimeline.DueOn(started, new DateOnly(2026, 11, 2));
+        Assert.Equal((null, new DateOnly(2026, 11, 2)), (early.Start, early.Due!.Value));
+    }
+
+    [Fact]
     public void A_month_is_six_weeks_from_the_weeks_first_day_with_tasks_on_their_due_dates()
     {
         var tasks = new[] { Task("Launch", due: new DateOnly(2026, 11, 30)), Task("Brief", due: new DateOnly(2026, 11, 3), order: 2), Task("Call", due: new DateOnly(2026, 11, 3), order: 1) };

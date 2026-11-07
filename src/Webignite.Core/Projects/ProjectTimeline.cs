@@ -52,14 +52,19 @@ public static class ProjectTimeline
         Due = task.Due?.AddDays(days),
     };
 
-    /// <summary>Its due date dragged by whole days; never before its start, so the bar keeps at least a day.</summary>
+    /// <summary>
+    /// Its due date dragged by whole days; never before its start, so the bar keeps at least a day. A one-day bar
+    /// with no start stretched later starts on the day it was due, so it grows rather than moves.
+    /// </summary>
     public static ProjectTask StretchEnd(ProjectTask task, int days)
     {
         if (task.Due is not { } due)
             return task;
-        var start = task.Start ?? due;
+        var start = task.Start is { } s && s <= due ? s : due;
         var moved = due.AddDays(days);
-        return task with { Start = task.Start, Due = moved < start ? start : moved };
+        if (moved <= start)
+            return task with { Due = start };
+        return task with { Start = start, Due = moved };
     }
 
     /// <summary>Its start dragged by whole days; never after its due date. A start on the due date is dropped, as a one-day bar.</summary>
@@ -73,10 +78,13 @@ public static class ProjectTimeline
         return task with { Start = moved == due ? null : moved };
     }
 
-    /// <summary>A task dropped on a day: due then, keeping how many days it spans.</summary>
+    /// <summary>
+    /// A task dropped on a day: due then, keeping how many days it spans. One with a start but no due date keeps
+    /// its start when that's on or before the day.
+    /// </summary>
     public static ProjectTask DueOn(ProjectTask task, DateOnly day) => task.Due is { } due
         ? Shift(task, day.DayNumber - due.DayNumber)
-        : task with { Due = day, Start = null };
+        : task with { Due = day, Start = task.Start is { } start && start <= day ? start : null };
 }
 
 /// <summary>A day in the project's Calendar tab, with the tasks due on it.</summary>
