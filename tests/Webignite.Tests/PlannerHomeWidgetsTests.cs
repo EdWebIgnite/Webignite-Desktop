@@ -55,8 +55,21 @@ public class PlannerHomeWidgetsTests
             Task("Logo", "a", who: "jaco", isDone: true),
         };
         Assert.Equal(["Sign-off", "Launch"], PlannerHome.Milestones([site, seo, done], tasks, 5).Select(t => t.Title));
-        Assert.Equal((2, 1), PlannerHome.Load(tasks, "me", today));
-        Assert.Equal((0, 0), PlannerHome.Load(tasks, "jaco", today));
+        Assert.Equal((2, 1), PlannerHome.Load([site, seo, done], tasks, "me", today));
+        Assert.Equal((0, 0), PlannerHome.Load([site, seo, done], tasks, "jaco", today));
+    }
+
+    [Fact]
+    public void Peoples_load_counts_what_my_tasks_counts_leaving_out_done_and_deleted_projects()
+    {
+        var today = new DateOnly(2026, 11, 6);
+        var going = new Project { Id = "a", Name = "Site" };
+        var finished = new Project { Id = "c", Name = "Old", Status = ProjectStatus.Done };
+        var binned = new Project { Id = "d", Name = "Binned", Deleted = new Stamp("me", DateTimeOffset.UnixEpoch) };
+        ProjectTask Task(string id, string project, DateOnly? due = null) => new() { Id = id, ProjectId = project, Title = id, Due = due, AssignedTo = "me" };
+        var tasks = new[] { Task("Copy", "a", today.AddDays(-1)), Task("Old copy", "c", today.AddDays(-3)), Task("Binned copy", "d", today.AddDays(-2)), Task("Lost", "gone") };
+        Assert.Equal((1, 1), PlannerHome.Load([going, finished, binned], tasks, "me", today));
+        Assert.Equal(ProjectRules.Mine(tasks, [going, finished, binned], "me").Count, PlannerHome.Load([going, finished, binned], tasks, "me", today).Open);
     }
 }
 

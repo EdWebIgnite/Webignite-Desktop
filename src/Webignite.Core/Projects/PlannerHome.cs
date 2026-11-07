@@ -152,10 +152,13 @@ public static class PlannerHome
         return [.. ProjectOverview.Milestones(tasks.Where(t => going.Contains(t.ProjectId) && !t.Done)).Take(count)];
     }
 
-    /// <summary>What's on someone's plate: their open tasks and how many are late.</summary>
-    public static (int Open, int Late) Load(IEnumerable<ProjectTask> tasks, string personId, DateOnly today)
+    /// <summary>
+    /// What's on someone's plate: their open tasks and how many are late, counted as My tasks counts them, so
+    /// tasks in projects that are done or deleted are left out.
+    /// </summary>
+    public static (int Open, int Late) Load(IEnumerable<Project> projects, IEnumerable<ProjectTask> tasks, string personId, DateOnly today)
     {
-        var open = tasks.Where(t => t.Deleted is null && !t.Done && t.AssignedTo == personId).ToList();
+        var open = ProjectRules.Mine(tasks, projects, personId);
         return (open.Count, open.Count(t => t.Due < today));
     }
 

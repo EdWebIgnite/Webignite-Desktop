@@ -129,13 +129,13 @@ public sealed partial class PlannerHomeViewModel
     private void LoadWidgetData(IReadOnlyList<ProjectTask> all)
     {
         var team = services.Team();
+        var projects = services.Projects.Projects();
         People.Clear();
         foreach (var person in new[] { team.Me!, team.Partner! })
         {
-            var (open, late) = PlannerHome.Load(all, person.Id, Today);
+            var (open, late) = PlannerHome.Load(projects, all, person.Id, Today);
             People.Add(new HomePersonLine(person.Name, person.Id == team.Me!.Id, open, late, services));
         }
-        var projects = services.Projects.Projects();
         string NameOf(string id) => id == team.Me!.Id ? team.Me.Name : id == team.Partner!.Id ? team.Partner.Name : "Someone";
         StatusUpdates.Clear();
         foreach (var (project, update) in PlannerHome.LatestUpdates(projects, 6))
