@@ -127,7 +127,7 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
             LoadNotepad();
         var me = services.Me().Id;
         var all = services.Projects.Projects().SelectMany(p => services.Projects.AllTasks(p.Id)).ToList();
-        var done = PlannerHome.Completed(all, me, PlannerHome.WeekStart(DateTimeOffset.Now)).Count;
+        var done = PlannerHome.Completed(all, me, PlannerHome.WeekStart(DateTimeOffset.Now, System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek)).Count;
         LoadWidgetData(all);
         // Another copy of Home may have changed the widgets; only then are they built again, so typing isn't lost.
         if (!PlannerHome.Widgets(services.Settings.Home).SequenceEqual(Widgets.Select(w => new HomeWidget(w.Kind, w.Full))))

@@ -280,7 +280,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         var names = services.Projects.Projects().ToDictionary(p => p.Id, p => p.Name);
         var today = DateOnly.FromDateTime(DateTime.Today);
         // Tasks given to me and my own to-dos, together by when they're due, as Asana's My tasks.
-        foreach (var (title, items) in MyWork.ByWhen(mine, todos, today))
+        foreach (var (title, items) in MyWork.ByWhen(mine, todos, today, System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek))
         {
             MyRows.Add(new MyGroupRow(title, items.Count, title == "Overdue"));
             foreach (var item in items)
@@ -544,7 +544,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         LoadFieldHeaders();
         commentCounts = services.Projects.CommentCounts();
         // The board is always the project's headings; the list is grouped as picked, the same rows when by headings.
-        var sections = ProjectList.Arrange(headings, shown, Layout with { Group = TaskGroup.Sections }, NameOf, today);
+        var sections = ProjectList.Arrange(headings, shown, Layout with { Group = TaskGroup.Sections }, NameOf, today, System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek);
         sectionRows = [.. sections.Select(g => new SectionRow(g, this) { IsFolded = Layout.Folded.Contains(g.Key) })];
         var rowsOf = new Dictionary<SectionRow, List<TaskRow>>();
         foreach (var section in sectionRows)
@@ -560,7 +560,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             Columns.Add(new BoardColumn(section, cards, add));
         }
         var listSections = Layout.Group == TaskGroup.Sections ? sectionRows
-            : [.. ProjectList.Arrange(headings, shown, Layout, NameOf, today).Select(g => new SectionRow(g, this) { IsFolded = Layout.Folded.Contains(g.Key) })];
+            : [.. ProjectList.Arrange(headings, shown, Layout, NameOf, today, System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek).Select(g => new SectionRow(g, this) { IsFolded = Layout.Folded.Contains(g.Key) })];
         foreach (var section in listSections)
         {
             Rows.Add(section);
