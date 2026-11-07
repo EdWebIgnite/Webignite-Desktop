@@ -45,4 +45,27 @@ public class TaskDependenciesTests
         Assert.Equal(["Copy"], task.BlockedBy);
         Assert.Empty(TaskDependencies.Remove(task, "Copy").BlockedBy);
     }
+
+    [Fact]
+    public void A_task_leaving_for_another_project_is_unhooked_both_ways()
+    {
+        var brief = Task("Brief", 1);
+        var build = Task("Build", 2, blockedBy: ["Brief"]);
+        var pages = Task("Pages", 1, blockedBy: ["Brief"]) with { ParentId = "Build" };
+        var launch = Task("Launch", 3, blockedBy: ["Pages", "Brief", "Build"]);
+        var tasks = new[] { brief, build, pages, launch };
+
+        var going = TaskDependencies.Going(build, tasks);
+        Assert.Equal(["Build", "Pages"], going.Order());
+        Assert.Empty(TaskDependencies.Unhooked(build, going).BlockedBy);
+        Assert.Empty(TaskDependencies.Unhooked(pages, going).BlockedBy);
+        Assert.Equal(["Brief"], TaskDependencies.Unhooked(launch, going).BlockedBy);
+        Assert.Same(brief, TaskDependencies.Unhooked(brief, going));
+
+        // A subtask moved on its own goes alone, and its task stays as it is.
+        var alone = TaskDependencies.Going(pages, tasks);
+        Assert.Equal(["Pages"], alone.Order());
+        Assert.Same(build, TaskDependencies.Unhooked(build, alone));
+        Assert.Equal(["Brief", "Build"], TaskDependencies.Unhooked(launch, alone).BlockedBy);
+    }
 }

@@ -296,6 +296,8 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
     /// <summary>
     /// Moves a task to another project, as when it's dropped on the project in the sidebar: it goes last among the
     /// tasks under no heading there, and takes its subtasks along. A subtask moved on its own becomes a task.
+    /// Waiting only works within a project, so what it waited on stays behind, and tasks left behind stop
+    /// waiting on it; each of those changes shows on the task's feed.
     /// </summary>
     public (ProjectTask? Saved, IReadOnlyList<string> Problems) MoveTask(string id, string projectId)
     {
@@ -305,6 +307,13 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             return (null, ["The project is gone."]);
         if (current.ProjectId == projectId)
             return (current, []);
+        var going = TaskDependencies.Going(current, AllTasks(current.ProjectId));
+        // Before it goes: unhook it from the tasks staying behind, both ways, as changes to each as stored now.
+        foreach (var task in AllTasks(current.ProjectId).Where(t => !ReferenceEquals(TaskDependencies.Unhooked(t, going), t)))
+            ChangeTask(task.Id, t => TaskDependencies.Unhooked(t, going));
+        if (GetTask(id) is not { } unhooked)
+            return (null, ["The task is gone."]);
+        current = unhooked;
         var now = Now();
         var loose = AllTasks(projectId).Where(t => t.ParentId is null && t.HeadingId is null);
         var moved = ProjectRules.Stamped(current, current with { ProjectId = projectId, HeadingId = null, ParentId = null, Order = ProjectRules.NextOrder(loose.Select(t => t.Order)) }, now);

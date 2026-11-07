@@ -379,6 +379,31 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void A_task_moved_to_another_project_stops_waiting_and_being_waited_on_there()
+    {
+        var site = NewProject();
+        var seo = NewProject("SEO");
+        var brief = NewTask(site.Id, "Brief");
+        var build = NewTask(site.Id, "Build");
+        var pages = NewTask(site.Id, "Pages", parent: build.Id);
+        var launch = NewTask(site.Id, "Launch");
+        projects.AddDependency(build.Id, brief.Id);
+        projects.AddDependency(pages.Id, brief.Id);
+        projects.AddDependency(launch.Id, build.Id);
+        projects.AddDependency(launch.Id, pages.Id);
+        projects.AddDependency(brief.Id, NewTask(site.Id, "Kick-off").Id);
+
+        projects.MoveTask(build.Id, seo.Id);
+
+        Assert.Empty(projects.GetTask(build.Id)!.BlockedBy);
+        Assert.Empty(projects.GetTask(pages.Id)!.BlockedBy);
+        Assert.Empty(projects.GetTask(launch.Id)!.BlockedBy);
+        Assert.Single(projects.GetTask(brief.Id)!.BlockedBy);
+        Assert.Equal(seo.Id, projects.GetTask(pages.Id)!.ProjectId);
+        Assert.Equal(3, projects.Activity(launch.Id).Count(a => a.Kind == ActivityKind.DependencyChanged)); // two added, then one change taking both off
+    }
+
+    [Fact]
     public void Changes_reach_pages_with_the_projects_id()
     {
         var seen = new List<string?>();
