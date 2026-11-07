@@ -63,6 +63,21 @@ public class CustomFieldsTests
     }
 
     [Fact]
+    public void Undo_puts_back_only_the_field_taken_off_where_it_was()
+    {
+        var stage = new CustomField("s", "Stage", FieldKind.Choice);
+        var hours = new CustomField("h", "Hours", FieldKind.Number);
+        var notes = new CustomField("n", "Notes", FieldKind.Text);
+        var removed = CustomFields.Remove(Bosveld() with { CustomFields = [stage, hours, notes] }, "h");
+        // Meanwhile a field was added and another renamed: those stay.
+        var since = removed with { CustomFields = [stage with { Name = "Phase" }, notes, new CustomField("e", "Effort", FieldKind.Number)] };
+        var back = CustomFields.PutBack(since, hours, 1);
+        Assert.Equal(["Phase", "Hours", "Notes", "Effort"], back.CustomFields.Select(f => f.Name));
+        Assert.Same(back, CustomFields.PutBack(back, hours, 1));
+        Assert.Equal(["Hours"], CustomFields.PutBack(Bosveld(), hours, 5).CustomFields.Select(f => f.Name));
+    }
+
+    [Fact]
     public void A_task_sets_and_clears_a_value()
     {
         var task = new ProjectTask { Id = "t", ProjectId = "p", Title = "Wireframes" };

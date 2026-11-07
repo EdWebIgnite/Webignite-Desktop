@@ -62,17 +62,19 @@ public sealed partial class ProjectsViewModel
     {
         if (open is null)
             return;
-        var before = open.CustomFields;
+        var field = header.Field;
+        var index = open.CustomFields.ToList().FindIndex(f => f.Id == field.Id);
         var projectId = open.Id;
-        var (saved, _) = Ours(() => services.Projects.RemoveField(projectId, header.Field.Id));
+        var (saved, _) = Ours(() => services.Projects.RemoveField(projectId, field.Id));
         if (saved is null)
             return;
         open = saved;
         ShowTasks();
         Detail?.Reload();
+        // Undo puts back only this field, where it was; fields added or changed since stay as they are.
         services.OfferUndo($"Removed the field {header.Name}", () =>
         {
-            services.Projects.Change(projectId, p => p with { CustomFields = before });
+            services.Projects.Change(projectId, p => CustomFields.PutBack(p, field, index));
             Refresh();
         });
     }

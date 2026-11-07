@@ -56,6 +56,19 @@ public static class CustomFields
     public static Project Remove(Project project, string fieldId) => project with { CustomFields = [.. project.CustomFields.Where(f => f.Id != fieldId)] };
 
     /// <summary>
+    /// A field taken off, put back where it was, as Undo does. Only that field: fields added, changed or taken off
+    /// since stay as they are now, and nothing changes when it's already back.
+    /// </summary>
+    public static Project PutBack(Project project, CustomField field, int index)
+    {
+        if (project.CustomFields.Any(f => f.Id == field.Id))
+            return project;
+        var fields = project.CustomFields.ToList();
+        fields.Insert(Math.Clamp(index, 0, fields.Count), field);
+        return project with { CustomFields = fields };
+    }
+
+    /// <summary>
     /// What's typed for a field, as it's kept: null clears it. A number or date that can't be read, or a choice
     /// that isn't one of the field's options, comes back with what's wrong.
     /// </summary>
