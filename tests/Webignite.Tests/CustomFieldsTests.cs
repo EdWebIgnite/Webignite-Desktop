@@ -63,6 +63,39 @@ public class CustomFieldsTests
     }
 
     [Fact]
+    public void Thousands_separators_only_count_where_they_can_be()
+    {
+        var hours = new CustomField("h", "Hours", FieldKind.Number);
+        var german = CultureInfo.GetCultureInfo("de-DE");
+        Assert.Equal(("1.5", ""), CustomFields.Read(hours, "1.5", german));
+        Assert.Equal(("1.5", ""), CustomFields.Read(hours, "1,5", german));
+        Assert.Equal(("1500", ""), CustomFields.Read(hours, "1.500", german));
+        Assert.Equal(("1234567.25", ""), CustomFields.Read(hours, "1.234.567,25", german));
+        Assert.Equal(("-2.125", ""), CustomFields.Read(hours, "-2,125", german));
+        Assert.Equal(("12.5", ""), CustomFields.Read(hours, "12.5", german));
+        // On a PC grouping with commas, "1,5" could be either: it isn't read as 15.
+        var american = CultureInfo.GetCultureInfo("en-US");
+        Assert.Contains("number", CustomFields.Read(hours, "1,5", american).Problem);
+        Assert.Equal(("1250.5", ""), CustomFields.Read(hours, "1,250.5", american));
+        Assert.Equal(("1250", ""), CustomFields.Read(hours, "1 250", SouthAfrica));
+        Assert.Contains("number", CustomFields.Read(hours, "12 50", SouthAfrica).Problem);
+    }
+
+    [Fact]
+    public void A_number_opens_to_change_in_full_not_rounded()
+    {
+        var hours = new CustomField("h", "Hours", FieldKind.Number);
+        Assert.Equal("2,13", CustomFields.Show(hours, "2.125", SouthAfrica));
+        Assert.Equal("2,125", CustomFields.Editing(hours, "2.125", SouthAfrica));
+        Assert.Equal("1250", CustomFields.Editing(hours, "1250", SouthAfrica));
+        Assert.Equal(("2.125", ""), CustomFields.Read(hours, CustomFields.Editing(hours, "2.125", SouthAfrica), SouthAfrica));
+        Assert.Equal("", CustomFields.Editing(hours, null, SouthAfrica));
+        Assert.Equal("2026-11-20", CustomFields.Editing(new CustomField("d", "Sign-off", FieldKind.Date), "2026-11-20", SouthAfrica));
+        var stage = new CustomField("s", "Stage", FieldKind.Choice) { Options = [new FieldOption("o1", "Doing", "Blue")] };
+        Assert.Equal("Doing", CustomFields.Editing(stage, "o1", SouthAfrica));
+    }
+
+    [Fact]
     public void Undo_puts_back_only_the_field_taken_off_where_it_was()
     {
         var stage = new CustomField("s", "Stage", FieldKind.Choice);

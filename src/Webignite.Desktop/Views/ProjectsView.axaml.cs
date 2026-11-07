@@ -855,14 +855,16 @@ public partial class ProjectsView : FullBleedView
         }
         else
         {
-            var box = new TextBox { Text = cell.Text, Width = 200, PlaceholderText = cell.Field.Kind == FieldKind.Number ? "A number, then Enter" : "Type, then Enter" };
+            // The value in full, not rounded as the cell shows it, and saved only when changed, so 2.125 stays 2.125.
+            var typed = cell.Typed;
+            var box = new TextBox { Text = typed, Width = 200, PlaceholderText = cell.Field.Kind == FieldKind.Number ? "A number, then Enter" : "Type, then Enter" };
             box.KeyDown += (_, k) =>
             {
                 if (k.Key is not (Key.Enter or Key.Escape))
                     return;
                 k.Handled = true;
                 flyout.Hide();
-                if (k.Key == Key.Enter)
+                if (k.Key == Key.Enter && (box.Text ?? "") != typed)
                     cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id, box.Text ?? "");
             };
             flyout.Content = box;
