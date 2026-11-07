@@ -425,6 +425,16 @@ public static class ProjectRules
         return Between(index > 0 ? others[index - 1].Order : null, index < others.Count ? others[index].Order : null);
     }
 
+    /// <summary>
+    /// A task moved off a deleted heading, put back on it when the delete is undone: only while it's still a task
+    /// under no heading in the heading's project. Otherwise (moved under another heading or to another project, or
+    /// made a subtask since) the same task, as it is. Its subtasks follow it.
+    /// </summary>
+    public static ProjectTask BackOnHeading(ProjectTask task, Heading heading) =>
+        task.Deleted is null && task.ParentId is null && task.HeadingId is null && task.ProjectId == heading.ProjectId
+            ? task with { HeadingId = heading.Id }
+            : task;
+
     /// <summary>A task's description to edit: its formatted notes, or its plain notes when it has none.</summary>
     public static Webignite.Core.Writing.RichDocument Description(ProjectTask task) => RichNotes.Read(task.Notes, task.NotesHtml);
 

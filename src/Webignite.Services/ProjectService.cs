@@ -445,8 +445,9 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             work.Headings.Select(h => Back(store.GetHeading(h.Id), h, now)),
             work.Tasks.Select(t => Back(store.GetProjectTask(t.Id), t, now)));
         foreach (var (taskId, headingId) in work.MovedOff)
-            if (GetTask(taskId) is { HeadingId: null, ParentId: null })
-                ChangeTask(taskId, t => t.HeadingId is null ? t with { HeadingId = headingId } : t);
+            if (store.GetHeading(headingId) is { Deleted: null } heading && GetTask(taskId) is { } task
+                && !ReferenceEquals(ProjectRules.BackOnHeading(task, heading), task))
+                ChangeTask(taskId, t => ProjectRules.BackOnHeading(t, heading));
         Changed?.Invoke(work.Projects.Count > 0 ? null : work.Headings.FirstOrDefault()?.ProjectId ?? work.Tasks.FirstOrDefault()?.ProjectId);
     }
 

@@ -354,6 +354,17 @@ public sealed class ProjectTests : IDisposable
     }
 
     [Fact]
+    public void A_task_goes_back_on_its_heading_only_while_it_is_still_under_none_in_that_project()
+    {
+        var design = new Heading { Id = "h1", ProjectId = "p", Name = "Design" };
+        var loose = new ProjectTask { Id = "t", ProjectId = "p", Title = "Wireframes", Done = true, Notes = "Signed off" };
+        var back = ProjectRules.BackOnHeading(loose, design);
+        Assert.Equal(("h1", true, "Signed off"), (back.HeadingId, back.Done, back.Notes));
+        foreach (var since in new[] { loose with { HeadingId = "h2" }, loose with { ProjectId = "q" }, loose with { ParentId = "x" } })
+            Assert.Same(since, ProjectRules.BackOnHeading(since, design));
+    }
+
+    [Fact]
     public void Undoing_a_heading_delete_keeps_what_changed_on_its_tasks_meanwhile()
     {
         var project = NewProject();
@@ -375,6 +386,14 @@ public sealed class ProjectTests : IDisposable
         Assert.Equal(design.Id, projects.GetTask(mobile.Id)!.HeadingId);
         // Put under another heading meanwhile, it stays there.
         Assert.Equal(build.Id, projects.GetTask(logo.Id)!.HeadingId);
+        // And one moved to another project meanwhile doesn't come back onto this project's heading.
+        var seo = NewProject("SEO");
+        var copy = NewTask(project.Id, "Copy", design.Id);
+        var again = projects.DeleteHeading(design.Id)!;
+        projects.MoveTask(copy.Id, seo.Id);
+        projects.Restore(again);
+        Assert.Null(projects.GetTask(copy.Id)!.HeadingId);
+        Assert.Equal(seo.Id, projects.GetTask(copy.Id)!.ProjectId);
         Assert.Contains(projects.Activity(wire.Id), a => a.Kind == ActivityKind.Moved && a.Value == "Design");
     }
 
