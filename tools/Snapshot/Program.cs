@@ -2372,6 +2372,18 @@ Save("site-check");
         var arrows = window.GetVisualDescendants().OfType<Avalonia.Controls.Canvas>().First(c => c.Name == "TimelineArrows");
         Check("The timeline draws an arrow from a task to the one waiting on it", arrows.Children.Count == 1);
         Save("projects-timeline");
+        // Another page and back: the view is made again for bars already there, and still draws the arrow.
+        Open(Page.Invoices);
+        Dispatcher.UIThread.RunJobs();
+        Open(Page.Projects);
+        for (var tick = 0; tick < 10; tick++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Thread.Sleep(15);
+        }
+        var arrowsAgain = window.GetVisualDescendants().OfType<Avalonia.Controls.Canvas>().FirstOrDefault(c => c.Name == "TimelineArrows" && c.IsEffectivelyVisible);
+        Check("Back on the timeline from another page, the arrow is still drawn", projectsPage.IsTimeline && arrowsAgain is { Children.Count: 1 });
 
         // The Calendar tab, as Asana's: a month of weeks with each task on its due date.
         projectsPage.CalendarViewCommand.Execute(null);

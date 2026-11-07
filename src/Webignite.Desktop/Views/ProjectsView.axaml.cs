@@ -107,13 +107,18 @@ public partial class ProjectsView : FullBleedView
         DropZones.Add(new DropZone(TimelineColumns, (item, target) => item is TaskRow && target is TimelineDay,
             (item, target) => Projects?.Schedule((TaskRow)item, (TimelineDay)target)));
 
-        // The timeline's arrows are drawn once its bars are laid out, each time the bars are made again.
+        // The timeline's arrows are drawn once its bars are laid out: each time the bars are made again, when the
+        // Timeline tab opens, and when this view is made again for a page already showing it (a tab switched back
+        // to, a split, a window of its own).
         DataContextChanged += (_, _) =>
         {
             arrowsFor?.TimelineLanes.CollectionChanged -= LanesChanged;
             arrowsFor = Projects;
             arrowsFor?.TimelineLanes.CollectionChanged += LanesChanged;
+            RedrawArrows();
         };
+        AttachedToVisualTree += (_, _) => RedrawArrows();
+        Loaded += (_, _) => RedrawArrows();
         TimelineScroll.ScrollChanged += (_, _) =>
         {
             if (Projects is { } projects)
@@ -287,6 +292,8 @@ public partial class ProjectsView : FullBleedView
 
     private void Watch(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(ProjectsViewModel.IsTimeline) && Projects is { IsTimeline: true })
+            RedrawArrows();
         if (e.PropertyName != nameof(ProjectsViewModel.HasTask) || Projects is not { } projects)
             return;
         var list = projects.Panels["list"];
@@ -946,9 +953,23 @@ public partial class ProjectsView : FullBleedView
     }
 
     private ProjectsViewModel? arrowsFor;
+    private bool arrowsPending;
 
-    private void LanesChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
-        Avalonia.Threading.Dispatcher.UIThread.Post(DrawTimelineArrows, Avalonia.Threading.DispatcherPriority.Loaded);
+    private void LanesChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => RedrawArrows();
+
+    // One redraw once layout has caught up, however many asked for it meanwhile: making the bars again adds each
+    // lane in turn, and each would otherwise draw every arrow again.
+    private void RedrawArrows()
+    {
+        if (arrowsPending)
+            return;
+        arrowsPending = true;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            arrowsPending = false;
+            DrawTimelineArrows();
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
+    }
 
     // An arrow from each task's bar to the bars of the tasks waiting on it: out from the end of one, down or up,
     // and into the start of the other, with a small head, as Asana's timeline draws dependencies.
