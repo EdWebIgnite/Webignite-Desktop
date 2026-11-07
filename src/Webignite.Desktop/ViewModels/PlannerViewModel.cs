@@ -73,7 +73,7 @@ public partial class PlannerViewModel : ViewModelBase, IRefreshable
 
     public void Plan(TaskItem task, DateOnly day)
     {
-        services.Store.SaveTask(task with { Due = day });
+        services.Store.ChangeTask(task.Id, t => t with { Due = day });
         Refresh();
     }
 

@@ -44,8 +44,17 @@ public sealed record Client
 
     public DateTimeOffset Created { get; init; }
 
+    /// <summary>
+    /// Claude or ChatGPT changed the client's email or name: shown on the client's page and stopping the email and Xero
+    /// steps until Eddie says it's right, as a mail could have tricked them into it.
+    /// </summary>
+    public ClientCheck? Check { get; init; }
+
     public static string NewId() => Guid.CreateVersion7().ToString("N");
 }
+
+/// <summary>What an assistant changed on a client that Eddie should check, and when.</summary>
+public sealed record ClientCheck(string What, DateTimeOffset At, string Who);
 
 /// <summary>A piece of work for a client. Finished projects are kept for their time but no longer offered.</summary>
 public sealed record ClientProject

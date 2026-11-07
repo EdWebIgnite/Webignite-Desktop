@@ -88,8 +88,7 @@ public sealed partial class ProjectsViewModel
 
     private string NameOf(string? id)
     {
-        var team = services.Team();
-        return id == team.Me!.Id ? team.Me.Name : id == team.Partner!.Id ? team.Partner.Name : "Someone";
+        return services.Team().NameOf(id);
     }
 
     private void LoadOverview()

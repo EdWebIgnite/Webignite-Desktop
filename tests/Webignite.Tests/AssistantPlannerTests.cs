@@ -82,12 +82,13 @@ public sealed class AssistantPlannerTests : IDisposable
 
         planner.SetField("Product pages", "stage", "Busy");
         planner.SetDependency("Product pages", "Photos from the client");
-        var task = planner.AddComment("Product pages", "Asked for the photos by mail.", "Claude");
+        var task = planner.AddComment("Product pages", "Asked for the photos by mail.");
 
         Assert.Equal("Busy", task.Task.Fields["Stage"]);
         Assert.Equal(["Photos from the client"], task.Task.WaitingOn);
         Assert.Equal("Size guide", Assert.Single(task.Subtasks).Title);
-        Assert.Equal("Asked for the photos by mail.\n(Claude)", Assert.Single(task.Comments).Text);
+        var comment = Assert.Single(task.Comments);
+        Assert.Equal(("Claude", "Asked for the photos by mail."), (comment.By, comment.Text));
         Assert.Equal(["Product pages"], planner.GetTask("Photos from the client").HoldingUp);
 
         var free = planner.SetDependency("Product pages", "Photos from the client", waits: false);
@@ -144,5 +145,28 @@ public sealed class AssistantPlannerTests : IDisposable
 
         Assert.False(tasks.Update(saved.Id, done: false).Done);
         Assert.Null(Assert.Single(store.ListTasks()).DoneAt);
+    }
+
+    private sealed class MovingClock(DateTimeOffset start) : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = start;
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    [Fact]
+    public void The_app_hears_about_each_part_once_not_every_time_something_else_changes()
+    {
+        var clock = new MovingClock(new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero));
+        AssistantSignal.Touch(store, "projects", clock);
+        var seen = AssistantSignal.Read(store)!.At;
+        clock.Now = clock.Now.AddSeconds(5);
+        AssistantSignal.Touch(store, "notes", clock);
+        clock.Now = clock.Now.AddSeconds(5);
+        AssistantSignal.Touch(store, "calendar", clock);
+
+        var mark = AssistantSignal.Read(store)!;
+        Assert.Equal(["calendar", "notes"], mark.Since(seen));
+        Assert.Empty(mark.Since(mark.At));
+        Assert.Equal(["calendar", "notes", "projects"], mark.Since(DateTimeOffset.MinValue));
     }
 }

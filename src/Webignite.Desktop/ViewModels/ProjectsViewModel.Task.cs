@@ -240,6 +240,7 @@ public sealed partial class TaskDetail : ObservableObject
         if (services.Projects.GetTask(Task.Id) is { } fresh)
             Task = fresh;
         loading = true;
+        (titleTyped, descriptionTyped, tagsTyped) = (false, false, false);
         Title = Task.Title;
         Done = Task.Done;
         Description = ProjectRules.Description(Task);
@@ -284,7 +285,13 @@ public sealed partial class TaskDetail : ObservableObject
     private void ShowLinksAndHistory()
     {
         var team = services.Team();
-        var names = new Dictionary<string, string> { [team.Me!.Id] = team.Me.Name, [team.Partner!.Id] = team.Partner.Name };
+        var names = new Dictionary<string, string>
+        {
+            [team.Me!.Id] = team.Me.Name,
+            [team.Partner!.Id] = team.Partner.Name,
+            [Actors.Claude] = Actors.Name(Actors.Claude)!,
+            [Actors.ChatGpt] = Actors.Name(Actors.ChatGpt)!,
+        };
         History = ProjectRules.History(Task, names, TimeZoneInfo.Local, CultureInfo.CurrentCulture);
         LoadFeed();
         OnPropertyChanged(nameof(HasMail));
@@ -338,22 +345,35 @@ public sealed partial class TaskDetail : ObservableObject
     [RelayCommand]
     private void StartSubtask() => AddingSubtask = true;
 
+    // Which of the typed fields changed since the last save, so saving writes only those and leaves the rest as stored
+    // (a description changed meanwhile by Claude or another tab isn't put back).
+    private bool titleTyped, descriptionTyped, tagsTyped;
+
+    /// <summary>Whether something typed here isn't saved yet.</summary>
+    internal bool IsTyping => titleTyped || descriptionTyped || tagsTyped;
+
     partial void OnTitleChanged(string value)
     {
-        if (!loading)
-            page.Typed(this);
+        if (loading)
+            return;
+        titleTyped = true;
+        page.Typed(this);
     }
 
     partial void OnDescriptionRevisionChanged(int value)
     {
-        if (!loading && value > 0)
-            page.Typed(this);
+        if (loading || value <= 0)
+            return;
+        descriptionTyped = true;
+        page.Typed(this);
     }
 
     partial void OnTagsTextChanged(string value)
     {
-        if (!loading)
-            page.Typed(this);
+        if (loading)
+            return;
+        tagsTyped = true;
+        page.Typed(this);
     }
 
     partial void OnRepeatChanged(Choice<TaskRepeat>? value)
@@ -393,7 +413,13 @@ public sealed partial class TaskDetail : ObservableObject
         }
         var (title, description) = (Title, Description.Clone());
         var tags = ProjectRules.Tags(TagsText, page.ProjectTags);
-        page.ChangeOpenTask(t => ProjectRules.WithDescription(t, description) with { Title = title, Tags = tags }, typed: true);
+        var (withTitle, withDescription, withTags) = (titleTyped, descriptionTyped, tagsTyped);
+        (titleTyped, descriptionTyped, tagsTyped) = (false, false, false);
+        page.ChangeOpenTask(t =>
+        {
+            var changed = withDescription ? ProjectRules.WithDescription(t, description) : t;
+            return changed with { Title = withTitle ? title : t.Title, Tags = withTags ? tags : t.Tags };
+        }, typed: true);
     }
 
     partial void OnDoneChanged(bool value)

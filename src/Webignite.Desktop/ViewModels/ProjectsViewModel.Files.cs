@@ -178,10 +178,17 @@ public sealed partial class AttachmentRow : ObservableObject
     [RelayCommand]
     private void Open()
     {
-        if (File.Exists(Path))
-            Webignite.Desktop.Files.FileOps.Open(Path);
-        else
+        if (!File.Exists(Path))
             page.Tell($"{Name} isn't on this PC any more.");
+        // A program or script (from a mail, say) is never started from here, as with mail attachments: it's shown in
+        // its folder, where Windows asks before running it.
+        else if (Webignite.Core.Mail.AttachmentPreview.IsProgram(Name))
+        {
+            page.Tell($"{Name} is a program, so it isn't opened from here. It's shown in its folder.");
+            page.ShowFile(Path);
+        }
+        else
+            Webignite.Desktop.Files.FileOps.Open(Path);
     }
 
     [RelayCommand]
