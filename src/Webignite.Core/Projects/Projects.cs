@@ -265,6 +265,18 @@ public sealed record ProjectTask : ITracked
     /// <summary>Its values for the project's custom fields, by field id (see <see cref="CustomFields"/>).</summary>
     public IReadOnlyDictionary<string, string> Values { get; init; } = new Dictionary<string, string>();
 
+    /// <summary>
+    /// The repeating task this is the next one of, by id; null for a task made any other way. While this one is
+    /// there, ticking that one off again doesn't make another.
+    /// </summary>
+    public string? RepeatOf { get; init; }
+
+    /// <summary>
+    /// The day a monthly or yearly repeat counts from, so one due on the 31st comes back on the 31st after a short
+    /// month (31 Jan, 28 Feb, 31 Mar). Null for the first one, which counts from its own due date.
+    /// </summary>
+    public DateOnly? RepeatFrom { get; init; }
+
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
     public Stamp? Deleted { get; init; }
@@ -520,25 +532,58 @@ public static class ProjectRules
 
     /// <summary>
     /// The next one of a repeating task just ticked off: a fresh copy, due a step after it was due (or after today
-    /// when it had no date), its start moved by as much, under the same heading, straight after it.
-    /// Null when it doesn't repeat.
+    /// when it had no date), its start moved by as much, under the same heading, straight after it. It notes which
+    /// task it repeats, and has no files: those stay with the one ticked off. Null when it doesn't repeat.
     /// </summary>
-    public static ProjectTask? Next(ProjectTask done, DateOnly today, double order)
+    public static ProjectTask? Next(ProjectTask done, DateOnly today, double order) =>
+        NextDue(done, today) is { } next ? Copy(done, next.Due, next.Anchor, today, order) : null;
+
+    /// <summary>
+    /// The next one of a repeating task with its subtasks, the task first: each subtask fresh and not done, its
+    /// dates moved by the same step as the task's (from today when the task had no date), with no files and
+    /// waiting on nothing. Empty when it doesn't repeat.
+    /// </summary>
+    public static IReadOnlyList<ProjectTask> Next(ProjectTask done, IEnumerable<ProjectTask> subtasks, DateOnly today, double order)
     {
-        if (done.Repeat == TaskRepeat.None)
-            return null;
-        var from = done.Due ?? today;
-        var due = Step(from, done.Repeat);
-        // Ticked off late: skip ahead so the next one isn't already overdue.
-        while (due < today)
-            due = Step(due, done.Repeat);
-        var shift = due.DayNumber - from.DayNumber;
+        if (NextDue(done, today) is not { } due)
+            return [];
+        var next = Copy(done, due.Due, due.Anchor, today, order);
+        var shift = due.Due.DayNumber - (done.Due ?? today).DayNumber;
+        return [next, .. subtasks.Where(t => t.Deleted is null && t.ParentId == done.Id).OrderBy(t => t.Order).Select(t => t with
+        {
+            Id = NewId(),
+            ParentId = next.Id,
+            HeadingId = next.HeadingId,
+            Done = false,
+            Start = t.Start?.AddDays(shift),
+            Due = t.Due?.AddDays(shift),
+            Attachments = [],
+            CoverId = null,
+            BlockedBy = [],
+            Created = default,
+            Changed = default,
+            Deleted = null,
+            Fields = new Dictionary<string, Stamp>(),
+        })];
+    }
+
+    /// <summary>Whether a repeating task already has its next one, not deleted, so ticking it again makes no other.</summary>
+    public static bool HasNext(ProjectTask done, IEnumerable<ProjectTask> tasks) =>
+        tasks.Any(t => t.Deleted is null && t.RepeatOf == done.Id);
+
+    private static ProjectTask Copy(ProjectTask done, DateOnly due, DateOnly? anchor, DateOnly today, double order)
+    {
+        var shift = due.DayNumber - (done.Due ?? today).DayNumber;
         return done with
         {
             Id = NewId(),
+            RepeatOf = done.Id,
+            RepeatFrom = anchor,
             Done = false,
             Due = due,
             Start = done.Start?.AddDays(shift),
+            Attachments = [],
+            CoverId = null,
             Order = order,
             Created = default,
             Changed = default,
@@ -547,13 +592,53 @@ public static class ProjectRules
         };
     }
 
-    private static DateOnly Step(DateOnly day, TaskRepeat repeat) => repeat switch
+    // When the next one is due, and the day a monthly or yearly repeat counts from. The day kept on the task is
+    // used only while its due date still lands on a step from it; a due date moved by hand starts afresh.
+    private static (DateOnly Due, DateOnly? Anchor)? NextDue(ProjectTask done, DateOnly today)
     {
-        TaskRepeat.Daily => day.AddDays(1),
-        TaskRepeat.Weekly => day.AddDays(7),
-        TaskRepeat.Monthly => day.AddMonths(1),
-        _ => day.AddYears(1),
-    };
+        if (done.Repeat == TaskRepeat.None)
+            return null;
+        var from = done.Due ?? today;
+        var anchor = done.RepeatFrom is { } kept && Steps(kept, from, done.Repeat) is not null ? kept : from;
+        var due = StepAfter(anchor, from, done.Repeat);
+        // Ticked off late: skip ahead so the next one isn't already overdue.
+        while (due < today)
+            due = StepAfter(anchor, due, done.Repeat);
+        return (due, done.Repeat is TaskRepeat.Monthly or TaskRepeat.Yearly ? anchor : null);
+    }
+
+    // The first step from the anchor that's after a day: a day or a week on, or the anchor's day in a later month
+    // or year (the month's last day when it's shorter).
+    private static DateOnly StepAfter(DateOnly anchor, DateOnly after, TaskRepeat repeat)
+    {
+        switch (repeat)
+        {
+            case TaskRepeat.Daily:
+                return after.AddDays(1);
+            case TaskRepeat.Weekly:
+                return after.AddDays(7);
+            default:
+                var count = Steps(anchor, after, repeat) ?? Math.Max(-1, Distance(anchor, after, repeat) - 1);
+                DateOnly next;
+                do
+                    next = Step(anchor, ++count, repeat);
+                while (next <= after);
+                return next;
+        }
+    }
+
+    // How many whole months or years a day is from the anchor, when it lands exactly on one of its steps.
+    private static int? Steps(DateOnly anchor, DateOnly day, TaskRepeat repeat)
+    {
+        var count = Distance(anchor, day, repeat);
+        return count >= 0 && Step(anchor, count, repeat) == day ? count : null;
+    }
+
+    private static int Distance(DateOnly anchor, DateOnly day, TaskRepeat repeat) =>
+        repeat == TaskRepeat.Yearly ? day.Year - anchor.Year : (day.Year - anchor.Year) * 12 + day.Month - anchor.Month;
+
+    private static DateOnly Step(DateOnly anchor, int count, TaskRepeat repeat) =>
+        repeat == TaskRepeat.Yearly ? anchor.AddYears(count) : anchor.AddMonths(count);
 
     /// <summary>
     /// A project as a template: its headings in order, its tasks with their subtasks' titles, and dates as days
@@ -739,6 +824,7 @@ public static class ProjectRules
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
         ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
         ("attachments", t => t.Attachments), ("cover", t => t.CoverId), ("milestone", t => t.Milestone), ("blockedby", t => t.BlockedBy), ("values", t => t.Values),
+        ("repeatof", t => t.RepeatOf), ("repeatfrom", t => t.RepeatFrom),
     ];
 
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>

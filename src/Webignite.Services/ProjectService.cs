@@ -377,20 +377,19 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             store.SaveActivity(new TaskActivity(ProjectRules.NewId(), parent, after.ProjectId, now, ActivityKind.SubtaskAdded, after.Title));
     }
 
-    // A repeating task just ticked off: the next one, straight after it, with its subtasks fresh.
+    // A repeating task just ticked off: the next one, straight after it, with its subtasks fresh. Ticked off,
+    // back on and off again, it makes no other while the one it made is still there.
     private List<ProjectTask> NextOf(ProjectTask before, ProjectTask after, Stamp now)
     {
-        if (before.Done || !after.Done || after.ParentId is not null)
+        if (before.Done || !after.Done || after.ParentId is not null || after.Repeat == TaskRepeat.None)
             return [];
-        var siblings = AllTasks(after.ProjectId).Where(t => t.ParentId is null && t.HeadingId == after.HeadingId && t.Order > after.Order);
-        var nextOrder = siblings.Select(t => (double?)t.Order).Min();
-        if (ProjectRules.Next(after, DateOnly.FromDateTime(clock.GetLocalNow().DateTime), ProjectRules.Between(after.Order, nextOrder)) is not { } next)
+        var all = store.ListProjectTasks();
+        if (ProjectRules.HasNext(after, all))
             return [];
-        var made = new List<ProjectTask> { ProjectRules.Stamped(null, next, now) };
-        made.AddRange(AllTasks(after.ProjectId).Where(t => t.ParentId == after.Id)
-            .Select(t => ProjectRules.Stamped(null, t with { Id = ProjectRules.NewId(), ParentId = next.Id, Done = false, Created = default, Changed = default,
-                Fields = new Dictionary<string, Stamp>() }, now)));
-        return made;
+        var tasks = all.Where(t => t.ProjectId == after.ProjectId && t.Deleted is null).ToList();
+        var nextOrder = tasks.Where(t => t.ParentId is null && t.HeadingId == after.HeadingId && t.Order > after.Order).Select(t => (double?)t.Order).Min();
+        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        return [.. ProjectRules.Next(after, tasks, today, ProjectRules.Between(after.Order, nextOrder)).Select(t => ProjectRules.Stamped(null, t, now))];
     }
 
     /// <summary>A new project from a template, starting on a day, with everything in it, at the end of the list.</summary>
