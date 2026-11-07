@@ -136,7 +136,7 @@ public sealed partial class PlannerHomeViewModel
             People.Add(new HomePersonLine(person.Name, person.Id == team.Me!.Id, open, late, services));
         }
         var projects = services.Projects.Projects();
-        string NameOf(string id) => id == team.Me!.Id ? team.Me.Name : id == team.Partner!.Id ? team.Partner.Name : "Someone";
+        string NameOf(string id) => team.NameOf(id);
         StatusUpdates.Clear();
         foreach (var (project, update) in PlannerHome.LatestUpdates(projects, 6))
             StatusUpdates.Add(new HomeStatusLine(project, update, NameOf(update.By), services));

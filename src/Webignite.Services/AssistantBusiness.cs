@@ -39,6 +39,29 @@ public sealed class AssistantBusiness
 
     private void Changed(string area) => AssistantSignal.Touch(store, area, clock);
 
+    /// <summary>Which assistant is asking: Claude or ChatGPT.</summary>
+    public string Who
+    {
+        get;
+        set => field = value == "ChatGPT" ? "ChatGPT" : "Claude";
+    } = "Claude";
+
+    // A piece of writing (or a client's email or name) replaced, kept so Settings can put it back.
+    private void KeepOld(string area, string recordId, string what, string field, string? before, string? beforeHtml = null) =>
+        AssistantLog.Add(store, clock.GetUtcNow(), Who, area, recordId, what, field, before ?? "", beforeHtml);
+
+    /// <summary>Writes a change in the list of what Claude and ChatGPT changed.</summary>
+    public void Noted(string what) => AssistantLog.Add(store, clock.GetUtcNow(), Who, "", "", what);
+
+    private static void Check(params string[] problems)
+    {
+        if (AssistantLimits.First(problems) is { Length: > 0 } problem)
+            throw new ArgumentException(problem);
+    }
+
+    private const int Short = AssistantLimits.Title;
+    private const int Long = AssistantLimits.Text;
+
     // Clients
 
     public sealed record ClientLine(string Id, string Name, string? ContactPerson, string? Email, string? Phone, string? Website, decimal? HourlyRate);
@@ -76,6 +99,10 @@ public sealed class AssistantBusiness
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Give the client a name.");
+        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(contactPerson, "the contact person", Short),
+            AssistantLimits.TooLong(email, "the email", Short), AssistantLimits.TooLong(phone, "the phone number", Short),
+            AssistantLimits.TooLong(website, "the website", Short), AssistantLimits.TooLong(address, "the address", 2000),
+            AssistantLimits.TooLong(notes, "the notes", Long));
         if (clients.Find(name) is { } existing)
             return GetClient(existing.Id);
         var (saved, problems) = clients.SaveDetails(new Client
@@ -101,6 +128,11 @@ public sealed class AssistantBusiness
         string? website = null, string? address = null, string? notes = null, decimal? hourlyRate = null)
     {
         var found = FindClient(client);
+        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(contactPerson, "the contact person", Short),
+            AssistantLimits.TooLong(email, "the email", Short), AssistantLimits.TooLong(phone, "the phone number", Short),
+            AssistantLimits.TooLong(website, "the website", Short), AssistantLimits.TooLong(address, "the address", 2000),
+            AssistantLimits.TooLong(notes, "the notes", Long), AssistantLimits.Emptying(found.Notes, notes, "a client's notes"),
+            AssistantLimits.Emptying(found.Email, email, "a client's email"));
         var edited = found with
         {
             Name = string.IsNullOrWhiteSpace(name) ? found.Name : name.Trim(),
@@ -115,8 +147,24 @@ public sealed class AssistantBusiness
         var (saved, problems) = clients.SaveDetails(edited, found);
         if (saved is null)
             throw new ArgumentException(string.Join(" ", problems));
+        if (notes is not null && !string.IsNullOrWhiteSpace(found.Notes) && found.Notes != saved.Notes)
+            KeepOld("clients", saved.Id, $"Replaced the notes on {saved.Name}", "client-notes", found.Notes);
+        if (!string.Equals(found.Email ?? "", saved.Email ?? "", StringComparison.OrdinalIgnoreCase))
+            saved = Flag(saved, "client-email", found.Email, $"{Who} changed the email from {Shown(found.Email)} to {Shown(saved.Email)}.");
+        if (found.Name != saved.Name)
+            saved = Flag(saved, "client-name", found.Name, $"{Who} changed the name from {found.Name} to {saved.Name}.");
         Changed("clients");
         return GetClient(saved.Id);
+    }
+
+    private static string Shown(string? value) => string.IsNullOrWhiteSpace(value) ? "nothing" : value;
+
+    // An email or name changed by an assistant: kept to put back, noted in the client's history, and marked on the
+    // client so the email and Xero steps wait until Eddie says it's right.
+    private Client Flag(Client client, string field, string? before, string what)
+    {
+        KeepOld("clients", client.Id, what, field, before);
+        return clients.Change(client.Id, c => ClientRecords.AddNote(c, what, Today) with { Check = new ClientCheck(what, clock.GetUtcNow(), Who) }) ?? client;
     }
 
     /// <summary>A dated note in the client's history, e.g. what was agreed on a call.</summary>
@@ -128,6 +176,7 @@ public sealed class AssistantBusiness
             throw new ArgumentException(problem);
         if (string.IsNullOrWhiteSpace(text))
             throw new ArgumentException("Write the note first.");
+        Check(AssistantLimits.TooLong(text, "the note", 3900));
         clients.Change(found.Id, c => ClientRecords.AddNote(c, $"{text.Trim()} ({from})", given && day is { } d ? d : Today));
         Changed("clients");
         return GetClient(found.Id);
@@ -153,6 +202,9 @@ public sealed class AssistantBusiness
     public PersonLine AddContact(string name, string? email = null, string? phone = null, string? company = null, string? role = null,
         string? client = null, string? notes = null, IReadOnlyList<string>? groups = null)
     {
+        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(email, "the email", Short), AssistantLimits.TooLong(phone, "the phone number", Short),
+            AssistantLimits.TooLong(company, "the company", Short), AssistantLimits.TooLong(role, "the role", Short), AssistantLimits.TooLong(notes, "the notes", Long),
+            (groups?.Count ?? 0) > 20 ? "Give at most 20 groups." : "");
         if (email is { Length: > 0 } && contacts.List().FirstOrDefault(p => p.Emails.Any(e => string.Equals(e.Value, email.Trim(), StringComparison.OrdinalIgnoreCase))) is { } known)
             return Line(known);
         var (saved, problems) = contacts.Save(new Person
@@ -181,6 +233,9 @@ public sealed class AssistantBusiness
         string? role = null, string? client = null, string? notes = null, IReadOnlyList<string>? groups = null)
     {
         var found = FindPerson(contact);
+        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(email, "the email", Short), AssistantLimits.TooLong(phone, "the phone number", Short),
+            AssistantLimits.TooLong(company, "the company", Short), AssistantLimits.TooLong(role, "the role", Short), AssistantLimits.TooLong(notes, "the notes", Long),
+            AssistantLimits.Emptying(found.Notes, notes, "a person's notes"), (groups?.Count ?? 0) > 20 ? "Give at most 20 groups." : "");
         var clientId = found.ClientId;
         if (client is { Length: > 0 })
             clientId = client.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : FindClient(client).Id;
@@ -197,6 +252,16 @@ public sealed class AssistantBusiness
         });
         if (saved is null)
             throw new ArgumentException(string.Join(" ", problems));
+        if (notes is not null && !string.IsNullOrWhiteSpace(found.Notes) && found.Notes != saved.Notes)
+            KeepOld("contacts", saved.Id, $"Replaced the notes on {saved.Name}", "contact-notes", found.Notes);
+        // The main email of a client's contact person, or of who gets their invoices, is the client's email too.
+        if (email is { Length: > 0 } && !string.Equals(found.Email, saved.Email, StringComparison.OrdinalIgnoreCase) && saved.ClientId is { } owner
+            && clients.Get(owner) is { } theirs && (theirs.MainContactId == saved.Id || theirs.BillingContactId == saved.Id))
+        {
+            var what = $"{Who} changed {saved.Name}'s email from {Shown(found.Email)} to {Shown(saved.Email)}, which {theirs.Name}'s email follows.";
+            AssistantLog.Add(store, clock.GetUtcNow(), Who, "contacts", saved.Id, what);
+            clients.Change(theirs.Id, c => ClientRecords.AddNote(c, what, Today) with { Check = new ClientCheck(what, clock.GetUtcNow(), Who) });
+        }
         Changed("contacts");
         if (saved.ClientId is not null || found.ClientId is not null)
             Changed("clients");
@@ -236,6 +301,7 @@ public sealed class AssistantBusiness
     /// <summary>A new note, in a notebook (the first one if none is named), linked to a client if asked.</summary>
     public NoteDetail AddNote(string title, string text, string? notebook = null, string? folder = null, string? client = null, bool pinned = false)
     {
+        Check(AssistantLimits.TooLong(title, "the title", Short), AssistantLimits.TooLong(text, "the writing", Long));
         if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(text))
             throw new ArgumentException("Give the note a title or some writing.");
         var book = notebook is { Length: > 0 } ? FindNotebook(notebook) : notes.Notebooks()[0];
@@ -254,13 +320,19 @@ public sealed class AssistantBusiness
         string? client = null, string? notebook = null)
     {
         var found = FindNote(note);
+        var before = RichText.ToText(notes.Writing(found.Id));
+        Check(AssistantLimits.TooLong(title, "the title", Short), AssistantLimits.TooLong(text, "the writing", Long),
+            AssistantLimits.TooLong(append, "the writing", Long), AssistantLimits.Emptying(before, text, "a note"));
         if (title is not null || text is not null || append is not null)
         {
+            // Writing replaced is kept, formatting and all, so Settings can put it back.
+            if (text is not null && before.Trim().Length > 0)
+                KeepOld("notes", found.Id, $"Replaced the writing in {NoteRules.Name(found)}", "note", before, store.NoteBody(found.Id));
             // Added writing goes after what's there as it is, so formatting, tables and pictures in the note stay.
             var writing = text is not null ? RichText.FromText(text) : notes.Writing(found.Id);
             if (append is { Length: > 0 })
                 writing.Blocks.AddRange(RichText.FromText(append.Trim()).Blocks);
-            notes.Save(found.Id, title ?? found.Title, writing);
+            notes.Save(found.Id, string.IsNullOrWhiteSpace(title) ? found.Title : title, writing);
         }
         if (pinned is not null || client is { Length: > 0 } || notebook is { Length: > 0 })
         {
@@ -301,6 +373,7 @@ public sealed class AssistantBusiness
     public EventLine AddEvent(string title, string date, string? start = null, string? end = null, string? location = null, string? notes = null,
         string? client = null)
     {
+        Check(AssistantLimits.TooLong(title, "the title", Short), AssistantLimits.TooLong(location, "the place", 2000), AssistantLimits.TooLong(notes, "the notes", Long));
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Give the event a title.");
         var day = RequiredDate(date, "date");
@@ -325,6 +398,10 @@ public sealed class AssistantBusiness
         string? location = null, string? notes = null, string? client = null)
     {
         var found = FindEvent(calendarEvent);
+        Check(AssistantLimits.TooLong(title, "the title", Short), AssistantLimits.TooLong(location, "the place", 2000), AssistantLimits.TooLong(notes, "the notes", Long),
+            AssistantLimits.Emptying(found.Notes, notes, "an event's notes"));
+        if (notes is not null && !string.IsNullOrWhiteSpace(found.Notes) && found.Notes != notes.Trim())
+            KeepOld("calendar", found.Id, $"Replaced the notes on {found.Title}", "event-notes", found.Notes);
         var day = date is { Length: > 0 } ? RequiredDate(date, "date") : found.Date;
         var (from, until) = Times(start, end, found.Start, found.End);
         var saved = store.SaveEvent(found with
@@ -380,6 +457,7 @@ public sealed class AssistantBusiness
     /// <summary>Time spent, for a client (and one of their projects) or not, on a day.</summary>
     public TimeLine LogTime(string duration, string note, string? date = null, string? client = null, string? project = null)
     {
+        Check(AssistantLimits.TooLong(note, "the note", 2000));
         var minutes = TimeRules.ParseMinutes(duration ?? "")
             ?? throw new ArgumentException($"Give the time like 1:30, 45m or 2h (at most {TimeRules.MaxMinutes / 60} hours).");
         var (given, day, problem) = AssistantLookup.Date(date, "date");
@@ -426,6 +504,7 @@ public sealed class AssistantBusiness
     public RenewalLine AddRenewal(string name, string renewsOn, string? kind = null, string? client = null, string? provider = null, int? periodMonths = null,
         decimal? cost = null, decimal? price = null, int? remindDaysBefore = null, string? notes = null)
     {
+        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(provider, "the provider", Short), AssistantLimits.TooLong(notes, "the notes", Long));
         var renewal = new Renewal
         {
             Id = Renewal.NewId(),
@@ -449,6 +528,10 @@ public sealed class AssistantBusiness
         string? provider = null, int? periodMonths = null, decimal? cost = null, decimal? price = null, int? remindDaysBefore = null, string? notes = null)
     {
         var found = FindRenewal(renewal);
+        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(provider, "the provider", Short), AssistantLimits.TooLong(notes, "the notes", Long),
+            AssistantLimits.Emptying(found.Notes, notes, "a renewal's notes"));
+        if (notes is not null && !string.IsNullOrWhiteSpace(found.Notes) && found.Notes != notes.Trim())
+            KeepOld("renewals", found.Id, $"Replaced the notes on {found.Name}", "renewal-notes", found.Notes);
         return SaveRenewal(found with
         {
             Name = string.IsNullOrWhiteSpace(name) ? found.Name : name.Trim(),

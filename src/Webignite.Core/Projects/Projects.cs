@@ -26,6 +26,32 @@ public sealed record TeamSettings
 {
     public Teammate? Me { get; init; }
     public Teammate? Partner { get; init; }
+
+    /// <summary>Who made or changed something, by the id it was stamped with: me, my partner, or Claude or ChatGPT.</summary>
+    public string NameOf(string? id) =>
+        id is null ? "Someone"
+        : id == Me?.Id ? Me.Name
+        : id == Partner?.Id ? Partner.Name
+        : Actors.Name(id) ?? "Someone";
+}
+
+/// <summary>
+/// Claude and ChatGPT stamp what they change with their own ids, not Eddie's, so comments, status updates and the
+/// activity feed show who really did it.
+/// </summary>
+public static class Actors
+{
+    public const string Claude = "assistant-claude";
+    public const string ChatGpt = "assistant-chatgpt";
+
+    public static string? Name(string id) => id switch
+    {
+        Claude => "Claude",
+        ChatGpt => "ChatGPT",
+        _ => null,
+    };
+
+    public static bool IsAssistant(string? id) => id is Claude or ChatGpt;
 }
 
 /// <summary>

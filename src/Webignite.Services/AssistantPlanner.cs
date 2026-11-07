@@ -22,8 +22,29 @@ public sealed class AssistantPlanner
     {
         this.store = store;
         this.clock = clock ?? TimeProvider.System;
-        projects = new ProjectService(store, () => Team().Me!.Id, this.clock, attachmentsFolder);
+        // What they change is stamped as theirs, not Eddie's, so the feed and history show who did it.
+        projects = new ProjectService(store, () => Who == "ChatGPT" ? Actors.ChatGpt : Actors.Claude, this.clock, attachmentsFolder);
         projects.Changed += _ => AssistantSignal.Touch(store, "projects", this.clock);
+    }
+
+    /// <summary>Which assistant is asking: Claude or ChatGPT.</summary>
+    public string Who
+    {
+        get;
+        set => field = value == "ChatGPT" ? "ChatGPT" : "Claude";
+    } = "Claude";
+
+    // A piece of writing replaced, kept so Settings can put it back.
+    private void KeepOld(string recordId, string what, string field, string before, string beforeHtml) =>
+        AssistantLog.Add(store, clock.GetUtcNow(), Who, "projects", recordId, what, field, before, beforeHtml);
+
+    /// <summary>Writes a change in the list of what Claude and ChatGPT changed.</summary>
+    public void Noted(string what) => AssistantLog.Add(store, clock.GetUtcNow(), Who, "projects", "", what);
+
+    private static void Check(params string[] problems)
+    {
+        if (AssistantLimits.First(problems) is { Length: > 0 } problem)
+            throw new ArgumentException(problem);
     }
 
     public sealed record ProjectLine(string Id, string Name, string? Client, string Status, string Health, string? Due, bool Shared,
@@ -84,7 +105,7 @@ public sealed class AssistantPlanner
             [.. found.CustomFields.Select(f => new FieldLine(f.Id, f.Name, CustomFields.Label(f.Kind), [.. f.Options.Select(o => o.Name)]))],
             [.. found.Links.Select(l => new LinkLine(l.Title, l.Url))],
             found.Updates.FirstOrDefault() is { } update
-                ? new UpdateLine(ProjectLooks.Label(update.Health), update.Text, NameOf(update.By) ?? "Someone", update.At.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))
+                ? new UpdateLine(ProjectLooks.Label(update.Health), update.Text, Team().NameOf(update.By), update.At.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))
                 : null,
             [.. tasks.Where(t => t.ParentId is null).Select(t => Line(t, found, tasks))]);
     }
@@ -117,7 +138,7 @@ public sealed class AssistantPlanner
             found.Notes,
             [.. tasks.Where(t => t.ParentId == found.Id).Select(t => Line(t, owner, tasks))],
             [.. TaskDependencies.Blocking(found, tasks).Select(t => t.Title)],
-            [.. projects.Comments(found.Id).Select(c => new CommentLine(NameOf(c.Created.By) ?? "Someone", c.Created.At.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), c.Text))],
+            [.. projects.Comments(found.Id).Select(c => new CommentLine(Team().NameOf(c.Created.By), c.Created.At.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), c.Text))],
             [.. found.Attachments.Select(a => a.FileName)]);
     }
 
@@ -133,6 +154,7 @@ public sealed class AssistantPlanner
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Give the project a name.");
+        Check(AssistantLimits.TooLong(name, "the name", AssistantLimits.Title), AssistantLimits.TooLong(description, "the description", AssistantLimits.Text));
         var (dueGiven, dueDate, dueProblem) = AssistantLookup.Date(due, "due");
         var (_, startDate, startProblem) = AssistantLookup.Date(start, "start");
         if (dueProblem.Length > 0 || startProblem.Length > 0)
@@ -172,9 +194,13 @@ public sealed class AssistantPlanner
         bool? shared = null, string? description = null)
     {
         var found = FindProject(project);
+        Check(AssistantLimits.TooLong(name, "the name", AssistantLimits.Title), AssistantLimits.TooLong(description, "the description", AssistantLimits.Text),
+            AssistantLimits.Emptying(found.Notes, description, "a project's description"));
         var (dueGiven, dueDate, dueProblem) = AssistantLookup.Date(due, "due");
         if (dueProblem.Length > 0)
             throw new ArgumentException(dueProblem);
+        if (description is not null && (found.Notes.Length > 0 || found.NotesHtml.Length > 0))
+            KeepOld(found.Id, $"Replaced the description of {found.Name}", "project-description", found.Notes, found.NotesHtml);
         string? clientId = found.ClientId;
         if (client is { Length: > 0 })
             clientId = client.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : FindClient(client).Id;
@@ -201,6 +227,7 @@ public sealed class AssistantPlanner
 
     public ProjectDetail PostStatus(string project, string health, string text)
     {
+        Check(AssistantLimits.TooLong(text, "a status update", AssistantLimits.Text));
         var found = FindProject(project);
         var picked = health.Replace(" ", "").ToLowerInvariant() switch
         {
@@ -215,6 +242,7 @@ public sealed class AssistantPlanner
 
     public ProjectDetail AddLink(string project, string url, string? title = null)
     {
+        Check(AssistantLimits.TooLong(url, "the address", 2000), AssistantLimits.TooLong(title, "the title", AssistantLimits.Title));
         var found = FindProject(project);
         var (saved, problems) = projects.AddLink(found.Id, title ?? "", url);
         return saved is null ? throw new ArgumentException(string.Join(" ", problems)) : GetProject(saved.Id);
@@ -222,6 +250,7 @@ public sealed class AssistantPlanner
 
     public ProjectDetail AddHeading(string project, string name)
     {
+        Check(AssistantLimits.TooLong(name, "the name", AssistantLimits.Title));
         var found = FindProject(project);
         var (saved, problems) = projects.AddHeading(found.Id, name);
         return saved is null ? throw new ArgumentException(string.Join(" ", problems)) : GetProject(found.Id);
@@ -229,6 +258,7 @@ public sealed class AssistantPlanner
 
     public ProjectDetail RenameHeading(string project, string heading, string newName)
     {
+        Check(AssistantLimits.TooLong(newName, "the name", AssistantLimits.Title));
         var found = FindProject(project);
         var picked = FindHeading(found.Id, heading);
         var (saved, problems) = projects.ChangeHeading(picked.Id, h => h with { Name = newName });
@@ -238,6 +268,7 @@ public sealed class AssistantPlanner
     /// <summary>A custom field on the project: a choice (with options), text, a number or a date.</summary>
     public ProjectDetail AddField(string project, string name, string kind, IReadOnlyList<string>? options = null)
     {
+        Check(AssistantLimits.TooLong(name, "the name", AssistantLimits.Title), (options?.Count ?? 0) > 50 ? "Give at most 50 options." : "", AssistantLimits.TooLong(string.Concat(options ?? []), "the options", AssistantLimits.Text));
         var found = FindProject(project);
         var picked = kind.Trim().ToLowerInvariant() switch
         {
@@ -257,6 +288,7 @@ public sealed class AssistantPlanner
     public TaskDetail AddTask(string project, string title, string? heading = null, string? assignee = null, string? due = null, string? start = null,
         string? notes = null, string? priority = null, IReadOnlyList<string>? tags = null, string? parentTask = null, bool milestone = false)
     {
+        Check(AssistantLimits.TooLong(title, "the title", AssistantLimits.Title), AssistantLimits.TooLong(notes, "the notes", AssistantLimits.Text));
         var found = FindProject(project);
         var parent = parentTask is { Length: > 0 } ? FindTask(parentTask, found.Id) : null;
         var headingId = parent?.HeadingId ?? (heading is { Length: > 0 } ? FindHeading(found.Id, heading).Id : null);
@@ -289,10 +321,14 @@ public sealed class AssistantPlanner
         bool? done = null, bool? milestone = null, string? moveToProject = null)
     {
         var found = FindTask(task, project);
+        Check(AssistantLimits.TooLong(title, "the title", AssistantLimits.Title), AssistantLimits.TooLong(notes, "the notes", AssistantLimits.Text),
+            AssistantLimits.Emptying(found.Notes, notes, "a task's description"));
         var (dueGiven, dueDate, dueProblem) = AssistantLookup.Date(due, "due");
         var (startGiven, startDate, startProblem) = AssistantLookup.Date(start, "start");
         if (dueProblem.Length > 0 || startProblem.Length > 0)
             throw new ArgumentException(dueProblem.Length > 0 ? dueProblem : startProblem);
+        if (notes is not null && (found.Notes.Length > 0 || found.NotesHtml.Length > 0))
+            KeepOld(found.Id, $"Replaced the description of {found.Title}", "task-notes", found.Notes, found.NotesHtml);
         if (moveToProject is { Length: > 0 })
         {
             var target = FindProject(moveToProject);
@@ -327,13 +363,14 @@ public sealed class AssistantPlanner
         return saved is null ? throw new ArgumentException(string.Join(" ", problems)) : GetTask(saved.Id);
     }
 
-    /// <summary>A comment on a task, signed so Eddie can tell who wrote it.</summary>
-    public TaskDetail AddComment(string task, string text, string from, string? project = null)
+    /// <summary>A comment on a task, stamped as from the assistant so Eddie can tell who wrote it.</summary>
+    public TaskDetail AddComment(string task, string text, string? project = null)
     {
         var found = FindTask(task, project);
         if (string.IsNullOrWhiteSpace(text))
             throw new ArgumentException("Write the comment first.");
-        var (_, problem) = projects.AddComment(found.Id, $"{text.Trim()}\n({from})");
+        Check(AssistantLimits.TooLong(text, "a comment", AssistantLimits.Text));
+        var (_, problem) = projects.AddComment(found.Id, text.Trim());
         if (problem is not null)
             throw new ArgumentException(problem);
         AssistantSignal.Touch(store, "projects", clock);
@@ -342,6 +379,7 @@ public sealed class AssistantPlanner
 
     public TaskDetail SetField(string task, string field, string value, string? project = null)
     {
+        Check(AssistantLimits.TooLong(value, "the value", AssistantLimits.Text));
         var found = FindTask(task, project);
         var owner = projects.Get(found.ProjectId)!;
         var (picked, problem) = AssistantLookup.Find(owner.CustomFields, field, f => f.Id, f => f.Name, "field");

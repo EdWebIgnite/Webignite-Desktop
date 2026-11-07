@@ -109,6 +109,11 @@ public partial class DocumentEditorViewModel
     {
         if (!CanCreate || services.XeroDrafts is not { } drafts || services.Settings.Xero.AccountCode is not { } account)
             return;
+        if (createContact && ClientToCheck() is { } check)
+        {
+            ShowXero(check, problem: true);
+            return;
+        }
         Save();
         if (!IsEditable)
             return; // It went to Xero from another page meanwhile; Save said so.
@@ -248,9 +253,23 @@ public partial class DocumentEditorViewModel
     public string ApproveQuestion =>
         $"This approves {stored?.Xero.Number ?? "the invoice"} in Xero, so it counts as owed, then opens the email from your invoice mailbox with Xero's PDF attached. Nothing is sent until you press Send.";
 
+    /// <summary>
+    /// When Claude or ChatGPT changed this client's email or name and Eddie hasn't said it's right yet, what to say
+    /// instead of emailing or making the Xero contact; null when there's nothing to check.
+    /// </summary>
+    private string? ClientToCheck() =>
+        Webignite.Core.Clients.ClientDirectory.Find(services.Clients.List(), CustomerName) is { Check: { } check } client
+            ? $"{check.What} Open {client.Name}'s page and click It's right first, so nothing goes to the wrong address."
+            : null;
+
     [RelayCommand]
     private Task StartEmail()
     {
+        if (ClientToCheck() is { } check)
+        {
+            ShowXero(check, problem: true);
+            return Task.CompletedTask;
+        }
         if (Kind == DocumentKind.Invoice && stored?.Delivery.Approved is null)
         {
             ConfirmingApprove = true;

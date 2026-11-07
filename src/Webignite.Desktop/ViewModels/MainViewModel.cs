@@ -45,6 +45,8 @@ public partial class MainViewModel : ViewModelBase
     private void ShowAssistantChanges(IReadOnlyList<string> areas)
     {
         var pages = new HashSet<Page>();
+        // Settings lists what they changed.
+        pages.Add(Page.Settings);
         foreach (var area in areas)
         {
             if (area == "projects")

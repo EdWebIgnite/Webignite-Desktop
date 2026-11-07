@@ -285,7 +285,13 @@ public sealed partial class TaskDetail : ObservableObject
     private void ShowLinksAndHistory()
     {
         var team = services.Team();
-        var names = new Dictionary<string, string> { [team.Me!.Id] = team.Me.Name, [team.Partner!.Id] = team.Partner.Name };
+        var names = new Dictionary<string, string>
+        {
+            [team.Me!.Id] = team.Me.Name,
+            [team.Partner!.Id] = team.Partner.Name,
+            [Actors.Claude] = Actors.Name(Actors.Claude)!,
+            [Actors.ChatGpt] = Actors.Name(Actors.ChatGpt)!,
+        };
         History = ProjectRules.History(Task, names, TimeZoneInfo.Local, CultureInfo.CurrentCulture);
         LoadFeed();
         OnPropertyChanged(nameof(HasMail));
