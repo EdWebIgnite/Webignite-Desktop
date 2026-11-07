@@ -501,21 +501,25 @@ public static class ProjectRules
     }
 
     /// <summary>
-    /// My tasks by when they're due: overdue, today, the rest of this week, later, and no date. Within a group,
-    /// by date, then High before Normal before Low.
+    /// Tasks by when they're due: overdue, today, the rest of this week, later, and no date, then those already
+    /// done. Within a group, by date, then High before Normal before Low. The week starts on
+    /// <paramref name="firstDay"/>; screens pass the PC's.
     /// </summary>
-    public static IReadOnlyList<(string Title, IReadOnlyList<ProjectTask> Tasks)> ByWhen(IEnumerable<ProjectTask> tasks, DateOnly today)
+    public static IReadOnlyList<(string Title, IReadOnlyList<ProjectTask> Tasks)> ByWhen(IEnumerable<ProjectTask> tasks, DateOnly today,
+        DayOfWeek firstDay = DayOfWeek.Monday)
     {
-        var weekEnd = Dates.WeekStart(today).AddDays(6);
+        var weekEnd = Dates.WeekStart(today, firstDay).AddDays(6);
         static int Rank(TaskPriority p) => p switch { TaskPriority.High => 0, TaskPriority.Normal => 1, _ => 2 };
         var sorted = tasks.OrderBy(t => t.Due ?? DateOnly.MaxValue).ThenBy(t => Rank(t.Priority)).ThenBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase).ToList();
+        var open = sorted.Where(t => !t.Done).ToList();
         (string, IReadOnlyList<ProjectTask>)[] groups =
         [
-            ("Overdue", sorted.Where(t => t.Due < today).ToList()),
-            ("Today", sorted.Where(t => t.Due == today).ToList()),
-            ("This week", sorted.Where(t => t.Due > today && t.Due <= weekEnd).ToList()),
-            ("Later", sorted.Where(t => t.Due > weekEnd).ToList()),
-            ("No due date", sorted.Where(t => t.Due is null).ToList()),
+            ("Overdue", open.Where(t => t.Due < today).ToList()),
+            ("Today", open.Where(t => t.Due == today).ToList()),
+            ("This week", open.Where(t => t.Due > today && t.Due <= weekEnd).ToList()),
+            ("Later", open.Where(t => t.Due > weekEnd).ToList()),
+            ("No due date", open.Where(t => t.Due is null).ToList()),
+            ("Done", sorted.Where(t => t.Done).ToList()),
         ];
         return [.. groups.Where(g => g.Item2.Count > 0)];
     }

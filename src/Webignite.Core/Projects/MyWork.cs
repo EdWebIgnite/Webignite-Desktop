@@ -16,10 +16,14 @@ public sealed record MyItem(ProjectTask? Task, TaskItem? Todo)
 /// </summary>
 public static class MyWork
 {
-    /// <summary>Overdue, Today, This week, Later and No due date, soonest first; to-dos already done are left out.</summary>
-    public static IReadOnlyList<(string Title, IReadOnlyList<MyItem> Items)> ByWhen(IEnumerable<ProjectTask> tasks, IEnumerable<TaskItem> todos, DateOnly today)
+    /// <summary>
+    /// Overdue, Today, This week, Later and No due date, soonest first; to-dos already done are left out. The week
+    /// starts on <paramref name="firstDay"/>; screens pass the PC's.
+    /// </summary>
+    public static IReadOnlyList<(string Title, IReadOnlyList<MyItem> Items)> ByWhen(IEnumerable<ProjectTask> tasks, IEnumerable<TaskItem> todos, DateOnly today,
+        DayOfWeek firstDay = DayOfWeek.Monday)
     {
-        var weekEnd = Dates.WeekStart(today).AddDays(6);
+        var weekEnd = Dates.WeekStart(today, firstDay).AddDays(6);
         static int Rank(TaskPriority p) => p switch { TaskPriority.High => 0, TaskPriority.Normal => 1, _ => 2 };
         var sorted = tasks.Select(t => new MyItem(t, null))
             .Concat(todos.Where(t => !t.Done).Select(t => new MyItem(null, t)))

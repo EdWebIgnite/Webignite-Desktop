@@ -132,7 +132,7 @@ public sealed partial class TasksBody : WidgetBody
     private void ShowMine(DateOnly today)
     {
         var names = services.Projects.Projects().ToDictionary(p => p.Id, p => p.Name);
-        foreach (var (group, tasks) in ProjectRules.ByWhen(services.Projects.Mine(services.Me().Id), today))
+        foreach (var (group, tasks) in ProjectRules.ByWhen(services.Projects.Mine(services.Me().Id), today, CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek))
         {
             Lines.Add(new TaskHeadingLine(group));
             foreach (var task in tasks)

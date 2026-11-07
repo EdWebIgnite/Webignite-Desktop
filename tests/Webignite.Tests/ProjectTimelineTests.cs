@@ -82,6 +82,14 @@ public class ProjectTimelineTests
     }
 
     [Fact]
+    public void The_timeline_starts_on_the_first_day_of_the_week_given()
+    {
+        Assert.Equal(new DateOnly(2026, 10, 25), ProjectTimeline.Range([], Today, DayOfWeek.Sunday).From);
+        Assert.Equal(new DateOnly(2026, 10, 24), ProjectTimeline.Range([], Today, DayOfWeek.Saturday).From);
+        Assert.Equal(new DateOnly(2026, 10, 26), ProjectTimeline.Range([], Today, DayOfWeek.Monday).From);
+    }
+
+    [Fact]
     public void A_month_is_six_weeks_from_the_weeks_first_day_with_tasks_on_their_due_dates()
     {
         var tasks = new[] { Task("Launch", due: new DateOnly(2026, 11, 30)), Task("Brief", due: new DateOnly(2026, 11, 3), order: 2), Task("Call", due: new DateOnly(2026, 11, 3), order: 1) };

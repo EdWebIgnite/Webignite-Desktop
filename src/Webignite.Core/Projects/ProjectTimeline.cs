@@ -13,14 +13,14 @@ public sealed record TimelineLane(string Key, string Title, IReadOnlyList<Timeli
 public static class ProjectTimeline
 {
     /// <summary>
-    /// The days the timeline shows: from the Monday a week before the earliest date (or today), to two weeks past the
-    /// latest, and never fewer than six weeks, so there's room to drag.
+    /// The days the timeline shows: from the start of the week (Monday, or <paramref name="firstDay"/>, which screens
+    /// pass as the PC's) a week before the earliest date (or today), to two weeks past the latest, and never fewer
+    /// than six weeks, so there's room to drag.
     /// </summary>
-    public static (DateOnly From, int Days) Range(IEnumerable<ProjectTask> tasks, DateOnly today)
+    public static (DateOnly From, int Days) Range(IEnumerable<ProjectTask> tasks, DateOnly today, DayOfWeek firstDay = DayOfWeek.Monday)
     {
         var dates = tasks.Where(t => t.Deleted is null).SelectMany(t => new[] { t.Start, t.Due }).OfType<DateOnly>().Append(today).ToList();
-        var first = dates.Min().AddDays(-7);
-        var from = first.AddDays(-(((int)first.DayOfWeek + 6) % 7));
+        var from = Dates.WeekStart(dates.Min().AddDays(-7), firstDay);
         var to = dates.Max().AddDays(14);
         return (from, Math.Max(42, to.DayNumber - from.DayNumber + 1));
     }

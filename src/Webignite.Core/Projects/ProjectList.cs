@@ -73,17 +73,18 @@ public static class ProjectList
     /// <summary>
     /// The project's top-level tasks in groups: its headings (the tasks under none first, when there are some), or
     /// groups by when they're due, who they're for or their priority. Within a group, the sort picked, else the
-    /// order they were dragged into. <paramref name="nameOf"/> gives a teammate's name by id.
+    /// order they were dragged into. <paramref name="nameOf"/> gives a teammate's name by id. Grouped by when
+    /// they're due, done tasks go last in a group of their own, and the week starts on <paramref name="firstDay"/>.
     /// </summary>
     public static IReadOnlyList<ListGroup> Arrange(IEnumerable<Heading> headings, IEnumerable<ProjectTask> tasks, ProjectLayout layout,
-        Func<string?, string?> nameOf, DateOnly today)
+        Func<string?, string?> nameOf, DateOnly today, DayOfWeek firstDay = DayOfWeek.Monday)
     {
         var top = tasks.Where(t => t.Deleted is null && t.ParentId is null).ToList();
         IReadOnlyList<ProjectTask> Sorted(IEnumerable<ProjectTask> list) => Sort(list, layout.Sort, nameOf);
         switch (layout.Group)
         {
             case TaskGroup.DueDate:
-                return [.. ProjectRules.ByWhen(top, today).Select(g => new ListGroup("due:" + g.Title, g.Title, null, Sorted(g.Tasks)) { IsSection = false })];
+                return [.. ProjectRules.ByWhen(top, today, firstDay).Select(g => new ListGroup("due:" + g.Title, g.Title, null, Sorted(g.Tasks)) { IsSection = false })];
             case TaskGroup.Assignee:
                 return [.. top.GroupBy(t => nameOf(t.AssignedTo) ?? "")
                     .OrderBy(g => g.Key.Length == 0).ThenBy(g => g.Key, StringComparer.CurrentCultureIgnoreCase)

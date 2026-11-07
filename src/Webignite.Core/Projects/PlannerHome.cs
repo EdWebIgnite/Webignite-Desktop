@@ -60,11 +60,14 @@ public static class PlannerHome
     public static IReadOnlyList<ProjectTask> Completed(IEnumerable<ProjectTask> tasks, string meId, DateTimeOffset since) =>
         [.. tasks.Where(t => t.Deleted is null && t.Done && t.AssignedTo == meId && DoneAt(t) >= since).OrderByDescending(DoneAt)];
 
-    /// <summary>The start of this week (Monday), for "tasks completed this week".</summary>
-    public static DateTimeOffset WeekStart(DateTimeOffset now)
+    /// <summary>
+    /// The start of this week, for "tasks completed this week": Monday, or <paramref name="firstDay"/> (screens
+    /// pass the PC's first day of the week).
+    /// </summary>
+    public static DateTimeOffset WeekStart(DateTimeOffset now, DayOfWeek firstDay = DayOfWeek.Monday)
     {
-        var monday = Dates.WeekStart(DateOnly.FromDateTime(now.Date));
-        return new DateTimeOffset(monday.ToDateTime(TimeOnly.MinValue), now.Offset);
+        var start = Dates.WeekStart(DateOnly.FromDateTime(now.Date), firstDay);
+        return new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), now.Offset);
     }
 
     /// <summary>The projects still going, the ones changed most lately first.</summary>

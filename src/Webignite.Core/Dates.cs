@@ -6,6 +6,9 @@ public static class Dates
     /// <summary>The Monday of the week a day falls in. Weeks run Monday to Sunday.</summary>
     public static DateOnly WeekStart(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 
+    /// <summary>The first day of the week a day falls in, for weeks starting on <paramref name="firstDay"/> (on screens, the PC's).</summary>
+    public static DateOnly WeekStart(DateOnly date, DayOfWeek firstDay) => date.AddDays(-(((int)date.DayOfWeek - (int)firstDay + 7) % 7));
+
     /// <summary>The first of the month a day falls in.</summary>
     public static DateOnly MonthStart(DateOnly date) => new(date.Year, date.Month, 1);
 

@@ -71,6 +71,16 @@ public class PlannerHomeWidgetsTests
         Assert.Equal((1, 1), PlannerHome.Load([going, finished, binned], tasks, "me", today));
         Assert.Equal(ProjectRules.Mine(tasks, [going, finished, binned], "me").Count, PlannerHome.Load([going, finished, binned], tasks, "me", today).Open);
     }
+
+    [Fact]
+    public void This_week_starts_on_the_day_given_with_monday_as_before()
+    {
+        var friday = new DateTimeOffset(2026, 11, 6, 10, 0, 0, TimeSpan.FromHours(2));
+        Assert.Equal(new DateTime(2026, 11, 2), PlannerHome.WeekStart(friday).DateTime);
+        Assert.Equal(new DateTime(2026, 11, 1), PlannerHome.WeekStart(friday, DayOfWeek.Sunday).DateTime);
+        Assert.Equal(new DateTime(2026, 10, 31), PlannerHome.WeekStart(friday, DayOfWeek.Saturday).DateTime);
+        Assert.Equal(TimeSpan.FromHours(2), PlannerHome.WeekStart(friday, DayOfWeek.Sunday).Offset);
+    }
 }
 
 public class PlannerHomeTodosTests
