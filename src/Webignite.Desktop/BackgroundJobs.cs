@@ -41,7 +41,7 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
         minute.Start();
         if (AssistantChanged is not null)
         {
-            assistantsSeen = Webignite.Data.AssistantSignal.Read(services.Store)?.At ?? DateTimeOffset.MinValue;
+            assistantsSeen = ReadSignal()?.At ?? DateTimeOffset.MinValue;
             assistants.Tick += AssistantsTick;
             assistants.Start();
         }
@@ -49,19 +49,28 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
 
     private void AssistantsTick(object? sender, EventArgs e) => LookForAssistants();
 
-    /// <summary>What the timer does every few seconds: if Claude or ChatGPT changed something since, says what.</summary>
+    /// <summary>What the timer does every few seconds: if Claude or ChatGPT changed something since, says which parts.</summary>
     public void LookForAssistants()
+    {
+        if (ReadSignal() is not { } mark || mark.At <= assistantsSeen)
+            return;
+        var areas = mark.Since(assistantsSeen);
+        assistantsSeen = mark.At;
+        if (areas.Count > 0)
+            AssistantChanged?.Invoke(areas);
+    }
+
+    // The connector may be writing at the same moment; a failed read is simply tried again next time.
+    private Webignite.Data.AssistantSignal.Mark? ReadSignal()
     {
         try
         {
-            if (Webignite.Data.AssistantSignal.Read(services.Store) is not { } mark || mark.At <= assistantsSeen)
-                return;
-            assistantsSeen = mark.At;
-            AssistantChanged?.Invoke(mark.Areas);
+            return Webignite.Data.AssistantSignal.Read(services.Store);
         }
         catch (Exception problem) when (problem is Microsoft.Data.Sqlite.SqliteException or System.Text.Json.JsonException)
         {
             Webignite.Data.AppLog.Write("Looking for changes from Claude or ChatGPT", problem);
+            return null;
         }
     }
 

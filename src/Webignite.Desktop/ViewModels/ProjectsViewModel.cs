@@ -229,7 +229,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     {
         SaveTyped();
         if (services.Projects.Get(id) is { } project)
+        {
             Show(project);
+            TuckList();
+        }
     }
 
     // The open project
@@ -500,7 +503,6 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         ShowTasks();
         if (!Panels["project"].IsShown)
             Panels["project"].IsShown = true;
-        TuckList();
         OnPropertyChanged(nameof(Showing));
     }
 
@@ -1021,6 +1023,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             }
         }
         OnPropertyChanged(nameof(HoldsWork));
+        if (refreshWaiting && typed.Count == 0)
+        {
+            refreshWaiting = false;
+            Refresh();
+        }
     }
 
     // Our own changes are shown as they're made; a change from elsewhere (another copy of the page) reloads.
@@ -1037,11 +1044,21 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         }
     }
 
+    // A change from elsewhere (another copy of the page, Home, the Week page, Claude or ChatGPT) waits while something
+    // is being typed here, so the typing isn't thrown away; the page reads it again once that's saved.
+    private bool refreshWaiting;
+
     private void ElsewhereChanged(string? projectId)
     {
         if (ours)
             return;
-        if (projectId is null || projectId == open?.Id)
+        if (typed.Count > 0)
+        {
+            refreshWaiting = true;
+            return;
+        }
+        // My tasks and an open task can show tasks from any project.
+        if (projectId is null || projectId == open?.Id || IsMyTasks || Detail is not null)
             Refresh();
         else
             ShowList();

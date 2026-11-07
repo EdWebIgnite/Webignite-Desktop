@@ -31,7 +31,8 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
 
     public string? TabTitle => IsOpen ? (EditName.Length > 0 ? EditName : "New person") : null;
 
-    public bool HoldsWork => IsOpen;
+    /// <summary>Something typed and not saved yet; a person only being looked at doesn't count.</summary>
+    public bool HoldsWork => HasEdits() || (IsOpen && !IsSaved);
 
     public ObservableCollection<ContactRow> Rows { get; } = [];
     public ObservableCollection<string> Groups { get; } = [];
@@ -75,6 +76,9 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
             _ => $"{people.Count} people, {people.Count(p => p.ClientId is not null)} with clients",
         };
         OnPropertyChanged(nameof(IsEmpty));
+        // The person open, changed elsewhere (by Claude or ChatGPT, or a client page) while only being looked at, shows the change.
+        if (IsOpen && IsSaved && !HasEdits() && open is not null && services.Contacts.Get(open.Id) is { } fresh && fresh.Changed != open.Changed)
+            Show(fresh);
         Filter();
         SuggestFromMail();
     }
@@ -194,7 +198,8 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
         OnPropertyChanged(nameof(HasClient));
     }
 
-    private Person Typed() => open! with
+    // The person as typed on screen, over the copy that was shown.
+    private Person AsTyped() => open! with
     {
         Name = EditName,
         Role = EditRole,
@@ -206,6 +211,43 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
         Phones = [.. Phones.Select(p => new ContactWay(p.Label, p.Value))],
     };
 
+    /// <summary>
+    /// What to save: only the fields typed over, applied to the person as stored now, so a change made meanwhile
+    /// (by Claude or ChatGPT, or a client page) isn't undone. A new person is saved as typed.
+    /// </summary>
+    private Person Typed()
+    {
+        var shown = open!;
+        var edited = ContactRules.Tidy(AsTyped());
+        if (services.Contacts.Get(shown.Id) is not { } current)
+            return edited;
+        var before = ContactRules.Tidy(shown);
+        T Pick<T>(Func<Person, T> field) => EqualityComparer<T>.Default.Equals(field(edited), field(before)) ? field(current) : field(edited);
+        IReadOnlyList<T> PickList<T>(Func<Person, IReadOnlyList<T>> field) => field(edited).SequenceEqual(field(before)) ? field(current) : field(edited);
+        return current with
+        {
+            Name = Pick(p => p.Name),
+            Role = Pick(p => p.Role),
+            Company = Pick(p => p.Company),
+            Notes = Pick(p => p.Notes),
+            ClientId = Pick(p => p.ClientId),
+            Groups = PickList(p => p.Groups),
+            Emails = PickList(p => p.Emails),
+            Phones = PickList(p => p.Phones),
+        };
+    }
+
+    /// <summary>Whether anything on screen differs from the person as they were shown.</summary>
+    private bool HasEdits()
+    {
+        if (!IsOpen || open is null)
+            return false;
+        var (edited, before) = (ContactRules.Tidy(AsTyped()), ContactRules.Tidy(open));
+        return edited.Name != before.Name || edited.Role != before.Role || edited.Company != before.Company || edited.Notes != before.Notes
+            || edited.ClientId != before.ClientId || !edited.Groups.SequenceEqual(before.Groups)
+            || !edited.Emails.SequenceEqual(before.Emails) || !edited.Phones.SequenceEqual(before.Phones);
+    }
+
     [RelayCommand]
     private void Save() => TrySave(quietly: false);
 
@@ -216,6 +258,9 @@ public sealed partial class ContactsViewModel : ViewModelBase, IRefreshable, IHo
             return true;
         // A new person with nothing typed is simply dropped.
         if (!IsSaved && string.IsNullOrWhiteSpace(EditName) && Emails.All(e => e.Value.Trim().Length == 0) && Phones.All(p => p.Value.Trim().Length == 0))
+            return true;
+        // Someone only looked at isn't saved again, so nothing stored meanwhile is touched.
+        if (IsSaved && !HasEdits())
             return true;
         return TrySave(quietly: true);
     }

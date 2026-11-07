@@ -257,7 +257,7 @@ public partial class ClientDetailViewModel : ViewModelBase
 
     public void Finish(TaskItem task)
     {
-        services.Store.SaveTask(task with { Done = true, DoneAt = DateTimeOffset.UtcNow });
+        services.Store.ChangeTask(task.Id, t => t with { Done = true, DoneAt = DateTimeOffset.UtcNow });
         Refresh();
     }
 
