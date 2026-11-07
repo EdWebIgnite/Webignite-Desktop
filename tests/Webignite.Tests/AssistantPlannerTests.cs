@@ -82,12 +82,13 @@ public sealed class AssistantPlannerTests : IDisposable
 
         planner.SetField("Product pages", "stage", "Busy");
         planner.SetDependency("Product pages", "Photos from the client");
-        var task = planner.AddComment("Product pages", "Asked for the photos by mail.", "Claude");
+        var task = planner.AddComment("Product pages", "Asked for the photos by mail.");
 
         Assert.Equal("Busy", task.Task.Fields["Stage"]);
         Assert.Equal(["Photos from the client"], task.Task.WaitingOn);
         Assert.Equal("Size guide", Assert.Single(task.Subtasks).Title);
-        Assert.Equal("Asked for the photos by mail.\n(Claude)", Assert.Single(task.Comments).Text);
+        var comment = Assert.Single(task.Comments);
+        Assert.Equal(("Claude", "Asked for the photos by mail."), (comment.By, comment.Text));
         Assert.Equal(["Product pages"], planner.GetTask("Photos from the client").HoldingUp);
 
         var free = planner.SetDependency("Product pages", "Photos from the client", waits: false);

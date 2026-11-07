@@ -44,6 +44,14 @@
       <Grid x:Name="Columns" ColumnDefinitions="*,24,1.25*" RowDefinitions="Auto,Auto">
         <!-- Details, its own card -->
         <StackPanel Grid.Column="0" Spacing="18">
+        <!-- Claude or ChatGPT changed the email or name: check it before emailing or Xero. -->
+        <Border Classes="card pending" IsVisible="{Binding HasCheck}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Content="It's right" Command="{Binding ItsRightCommand}" VerticalAlignment="Center" Margin="12,0,0,0"
+                    ToolTip.Tip="To change it back instead, use Put back in Settings, Claude and ChatGPT" />
+            <TextBlock Text="{Binding CheckText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </DockPanel>
+        </Border>
         <Border Classes="card" VerticalAlignment="Top">
           <StackPanel Spacing="12">
             <StackPanel Orientation="Horizontal" Spacing="8">

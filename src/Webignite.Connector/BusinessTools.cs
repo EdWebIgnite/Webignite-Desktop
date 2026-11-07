@@ -42,10 +42,11 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("Their website, e.g. karoocoffee.co.za.")] string? website = null,
         [Description("Their address, for invoices.")] string? address = null,
         [Description("Anything worth knowing about them.")] string? notes = null,
-        [Description("Eddie's hourly rate for them, in Rand.")] decimal? hourly_rate = null) =>
-        Run(() => business.AddClient(name, contact_person, email, phone, website, address, notes, hourly_rate));
+        [Description("Eddie's hourly rate for them, in Rand.")] decimal? hourly_rate = null,
+        McpServer? server = null) =>
+        Write(server, $"Added the client {name}", () => business.AddClient(name, contact_person, email, phone, website, address, notes, hourly_rate));
 
-    [McpServerTool(Name = "update_client", Title = "Change a client", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "update_client", Title = "Change a client", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description("Changes a client's details. " + Changes + " An empty value clears that detail.")]
     public string UpdateClient(
         [Description(ClientHint)] string client,
@@ -56,8 +57,9 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("Their website.")] string? website = null,
         [Description("Their address.")] string? address = null,
         [Description("Notes about them, in place of the old ones.")] string? notes = null,
-        [Description("Eddie's hourly rate for them, in Rand.")] decimal? hourly_rate = null) =>
-        Run(() => business.UpdateClient(client, name, contact_person, email, phone, website, address, notes, hourly_rate));
+        [Description("Eddie's hourly rate for them, in Rand.")] decimal? hourly_rate = null,
+        McpServer? server = null) =>
+        Write(server, $"Changed the client {client}", () => business.UpdateClient(client, name, contact_person, email, phone, website, address, notes, hourly_rate));
 
     [McpServerTool(Name = "add_client_note", Title = "Add to a client's history", ReadOnly = false, Destructive = false, OpenWorld = false)]
     [Description("Adds a dated note to a client's history, e.g. what was agreed on a call. Signed as from you.")]
@@ -66,7 +68,7 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("The note.")] string text,
         [Description("The day it's about. " + DateHint + " Default today.")] string? date = null,
         McpServer? server = null) =>
-        Run(() => business.AddClientNote(client, text, Assistant.Name(server), date));
+        Write(server, $"Added to {client}'s history", () => business.AddClientNote(client, text, Assistant.Name(server), date));
 
     // Contacts
 
@@ -88,10 +90,11 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("What they do there.")] string? role = null,
         [Description("The client they belong to.")] string? client = null,
         [Description("Anything worth knowing.")] string? notes = null,
-        [Description("Groups, e.g. Suppliers.")] string[]? groups = null) =>
-        Run(() => business.AddContact(name, email, phone, company, role, client, notes, groups));
+        [Description("Groups, e.g. Suppliers.")] string[]? groups = null,
+        McpServer? server = null) =>
+        Write(server, $"Added {name} to Contacts", () => business.AddContact(name, email, phone, company, role, client, notes, groups));
 
-    [McpServerTool(Name = "update_contact", Title = "Change a person in Contacts", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "update_contact", Title = "Change a person in Contacts", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description("Changes a person. " + Changes + " A new email or number becomes their main one, keeping the others.")]
     public string UpdateContact(
         [Description("Their name, email or id.")] string contact,
@@ -102,8 +105,9 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("What they do there.")] string? role = null,
         [Description("The client they belong to, or none.")] string? client = null,
         [Description("Notes, in place of the old ones.")] string? notes = null,
-        [Description("The groups they're in, in place of the old ones.")] string[]? groups = null) =>
-        Run(() => business.UpdateContact(contact, name, email, phone, company, role, client, notes, groups));
+        [Description("The groups they're in, in place of the old ones.")] string[]? groups = null,
+        McpServer? server = null) =>
+        Write(server, $"Changed {contact} in Contacts", () => business.UpdateContact(contact, name, email, phone, company, role, client, notes, groups));
 
     // Notes
 
@@ -127,10 +131,11 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("The notebook to put it in. Default the first one.")] string? notebook = null,
         [Description("A folder in that notebook.")] string? folder = null,
         [Description("A client to link it to.")] string? client = null,
-        [Description("true to pin it to the top.")] bool pinned = false) =>
-        Run(() => business.AddNote(title, text, notebook, folder, client, pinned));
+        [Description("true to pin it to the top.")] bool pinned = false,
+        McpServer? server = null) =>
+        Write(server, $"Wrote the note {title}", () => business.AddNote(title, text, notebook, folder, client, pinned));
 
-    [McpServerTool(Name = "update_note", Title = "Change a note", ReadOnly = false, Destructive = false, OpenWorld = false)]
+    [McpServerTool(Name = "update_note", Title = "Change a note", ReadOnly = false, Destructive = true, OpenWorld = false)]
     [Description("Changes a note: a new title, new writing in place of the old, or writing added at the end; pin it, move it to "
         + "another notebook, or link a client. " + Changes)]
     public string UpdateNote(
@@ -140,8 +145,9 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("Writing to add at the end.")] string? append = null,
         [Description("true to pin, false to unpin.")] bool? pinned = null,
         [Description("A client to link, or none.")] string? client = null,
-        [Description("Move it to this notebook.")] string? notebook = null) =>
-        Run(() => business.UpdateNote(note, title, text, append, pinned, client, notebook));
+        [Description("Move it to this notebook.")] string? notebook = null,
+        McpServer? server = null) =>
+        Write(server, $"Changed the note {note}", () => business.UpdateNote(note, title, text, append, pinned, client, notebook));
 
     // Calendar
 
@@ -162,10 +168,11 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("When it ends, as HH:mm. Default an hour after it starts.")] string? end = null,
         [Description("Where, or the meeting link.")] string? location = null,
         [Description("Any detail.")] string? notes = null,
-        [Description("The client it's with.")] string? client = null) =>
-        Run(() => business.AddEvent(title, date, start, end, location, notes, client));
+        [Description("The client it's with.")] string? client = null,
+        McpServer? server = null) =>
+        Write(server, $"Put {title} on the calendar for {date}", () => business.AddEvent(title, date, start, end, location, notes, client));
 
-    [McpServerTool(Name = "update_event", Title = "Change a calendar event", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "update_event", Title = "Change a calendar event", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description("Moves or changes an event. " + Changes + " Start none makes it all day.")]
     public string UpdateEvent(
         [Description("The event's id from list_events, or its title if only one fits.")] string calendar_event,
@@ -175,8 +182,9 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("A new end, as HH:mm.")] string? end = null,
         [Description("Where, or the meeting link.")] string? location = null,
         [Description("Notes, in place of the old ones.")] string? notes = null,
-        [Description("The client it's with, or none.")] string? client = null) =>
-        Run(() => business.UpdateEvent(calendar_event, title, date, start, end, location, notes, client));
+        [Description("The client it's with, or none.")] string? client = null,
+        McpServer? server = null) =>
+        Write(server, $"Changed the event {calendar_event}", () => business.UpdateEvent(calendar_event, title, date, start, end, location, notes, client));
 
     // Time
 
@@ -195,8 +203,9 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("What it was for, e.g. Homepage layout.")] string note,
         [Description("The day. " + DateHint + " Default today.")] string? date = null,
         [Description("The client it was for.")] string? client = null,
-        [Description("One of that client's projects, as on their client page.")] string? project = null) =>
-        Run(() => business.LogTime(duration, note, date, client, project));
+        [Description("One of that client's projects, as on their client page.")] string? project = null,
+        McpServer? server = null) =>
+        Write(server, $"Logged {duration} for {note}", () => business.LogTime(duration, note, date, client, project));
 
     // Renewals and retainers
 
@@ -217,10 +226,11 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("What it costs Eddie, in Rand.")] decimal? cost = null,
         [Description("What the client pays, in Rand.")] decimal? price = null,
         [Description("How many days before to remind Eddie. Default 30.")] int? remind_days_before = null,
-        [Description("Any detail.")] string? notes = null) =>
-        Run(() => business.AddRenewal(name, renews_on, kind, client, provider, period_months, cost, price, remind_days_before, notes));
+        [Description("Any detail.")] string? notes = null,
+        McpServer? server = null) =>
+        Write(server, $"Added the renewal {name}", () => business.AddRenewal(name, renews_on, kind, client, provider, period_months, cost, price, remind_days_before, notes));
 
-    [McpServerTool(Name = "update_renewal", Title = "Change a renewal", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "update_renewal", Title = "Change a renewal", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description("Changes a renewal. " + Changes)]
     public string UpdateRenewal(
         [Description("Its name or id.")] string renewal,
@@ -233,12 +243,22 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("What it costs Eddie, in Rand.")] decimal? cost = null,
         [Description("What the client pays, in Rand.")] decimal? price = null,
         [Description("How many days before to remind Eddie.")] int? remind_days_before = null,
-        [Description("Notes, in place of the old ones.")] string? notes = null) =>
-        Run(() => business.UpdateRenewal(renewal, name, renews_on, kind, client, provider, period_months, cost, price, remind_days_before, notes));
+        [Description("Notes, in place of the old ones.")] string? notes = null,
+        McpServer? server = null) =>
+        Write(server, $"Changed the renewal {renewal}", () => business.UpdateRenewal(renewal, name, renews_on, kind, client, provider, period_months, cost, price, remind_days_before, notes));
 
     [McpServerTool(Name = "list_retainers", Title = "List retainers", ReadOnly = true, OpenWorld = false)]
     [Description("Monthly retainers: client, what it's for, the monthly amount in Rand, the day it's invoiced, and whether it's paused.")]
     public string ListRetainers() => Json(business.ListRetainers());
+
+    // A change: made as the assistant asking, and written in the list of what Claude and ChatGPT changed.
+    private string Write<T>(McpServer? server, string what, Func<T> work)
+    {
+        business.Who = Assistant.Name(server);
+        var result = Run(work);
+        business.Noted(what);
+        return result;
+    }
 
     private static string Run<T>(Func<T> work)
     {

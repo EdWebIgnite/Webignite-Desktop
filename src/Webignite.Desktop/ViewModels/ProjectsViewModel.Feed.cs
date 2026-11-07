@@ -42,13 +42,14 @@ public sealed partial class TaskDetail
     internal void LoadFeed()
     {
         var team = services.Team();
-        string NameOf(string? id) => id == team.Me!.Id ? team.Me.Name : id == team.Partner!.Id ? team.Partner.Name : "Someone";
+        string NameOf(string? id) => team.NameOf(id);
         var now = DateTimeOffset.Now;
         Feed.Clear();
         var comments = services.Projects.Comments(Task.Id);
         foreach (var line in TaskTalk.Feed(comments, services.Projects.Activity(Task.Id), ShowsAll, NameOf, CultureInfo.CurrentCulture))
         {
-            var mine = line.CommentId is { } id && comments.First(c => c.Id == id).Created.By == team.Me!.Id;
+            // My own comments, and those Claude or ChatGPT wrote for me, can be changed and deleted.
+            var mine = line.CommentId is { } id && comments.First(c => c.Id == id).Created.By is { } by && (by == team.Me!.Id || Actors.IsAssistant(by));
             Feed.Add(new FeedRow(line, TaskTalk.When(line.At, now, TimeZoneInfo.Local, CultureInfo.CurrentCulture), mine, this));
         }
         OnPropertyChanged(nameof(NoFeed));

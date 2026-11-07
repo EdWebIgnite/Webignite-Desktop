@@ -64,10 +64,11 @@ public sealed class PlannerTools(AssistantPlanner planner)
         [Description("When it's due, as yyyy-MM-dd.")] string? due = null,
         [Description("The day the template's dates count from, as yyyy-MM-dd. Default today.")] string? start = null,
         [Description("true to share it with the partner.")] bool shared = false,
-        [Description("What the project is about.")] string? description = null) =>
-        Run(() => planner.CreateProject(name, template, client, due, shared, description, start));
+        [Description("What the project is about.")] string? description = null,
+        McpServer? server = null) =>
+        Write(server, $"Started the project {name}", () => planner.CreateProject(name, template, client, due, shared, description, start));
 
-    [McpServerTool(Name = "update_project", Title = "Change a project", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "update_project", Title = "Change a project", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description("Changes a project. Only what you give changes. Set status to done to finish it (archive it); it can't be deleted.")]
     public string UpdateProject(
         [Description(ProjectHint)] string project,
@@ -76,37 +77,42 @@ public sealed class PlannerTools(AssistantPlanner planner)
         [Description("The due date. " + DateHint)] string? due = null,
         [Description("active, on hold or done.")] string? status = null,
         [Description("true to share with the partner, false to keep it to Eddie.")] bool? shared = null,
-        [Description("A new description, in place of the old one.")] string? description = null) =>
-        Run(() => planner.UpdateProject(project, name, client, due, status, shared, description));
+        [Description("A new description, in place of the old one.")] string? description = null,
+        McpServer? server = null) =>
+        Write(server, $"Changed the project {project}", () => planner.UpdateProject(project, name, client, due, status, shared, description));
 
     [McpServerTool(Name = "post_status_update", Title = "Post a status update", ReadOnly = false, Destructive = false, OpenWorld = false)]
     [Description("Posts a status update on a project, as on its Overview: how it's going and a short note.")]
     public string PostStatusUpdate(
         [Description(ProjectHint)] string project,
         [Description("on track, at risk or off track.")] string health,
-        [Description("What's happening, a few lines.")] string text) =>
-        Run(() => planner.PostStatus(project, health, text));
+        [Description("What's happening, a few lines.")] string text,
+        McpServer? server = null) =>
+        Write(server, $"Posted a status update on {project}: {health}", () => planner.PostStatus(project, health, text));
 
     [McpServerTool(Name = "add_project_link", Title = "Add a link to a project", ReadOnly = false, Destructive = false, OpenWorld = false)]
     [Description("Adds a link to a project's key resources, e.g. the staging site or a shared folder.")]
     public string AddProjectLink(
         [Description(ProjectHint)] string project,
         [Description("The address, starting https://.")] string url,
-        [Description("What to show for it.")] string? title = null) =>
-        Run(() => planner.AddLink(project, url, title));
+        [Description("What to show for it.")] string? title = null,
+        McpServer? server = null) =>
+        Write(server, $"Added a link to {project}: {url}", () => planner.AddLink(project, url, title));
 
     [McpServerTool(Name = "add_heading", Title = "Add a section", ReadOnly = false, Destructive = false, OpenWorld = false)]
     [Description("Adds a section (heading) to a project, which is also a column on its board.")]
-    public string AddHeading([Description(ProjectHint)] string project, [Description("The section's name.")] string name) =>
-        Run(() => planner.AddHeading(project, name));
+    public string AddHeading([Description(ProjectHint)] string project, [Description("The section's name.")] string name,
+        McpServer? server = null) =>
+        Write(server, $"Added the section {name} to {project}", () => planner.AddHeading(project, name));
 
     [McpServerTool(Name = "rename_heading", Title = "Rename a section", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Renames a section (heading) in a project.")]
     public string RenameHeading(
         [Description(ProjectHint)] string project,
         [Description("The section as it's called now.")] string heading,
-        [Description("Its new name.")] string new_name) =>
-        Run(() => planner.RenameHeading(project, heading, new_name));
+        [Description("Its new name.")] string new_name,
+        McpServer? server = null) =>
+        Write(server, $"Renamed the section {heading} in {project} to {new_name}", () => planner.RenameHeading(project, heading, new_name));
 
     [McpServerTool(Name = "add_custom_field", Title = "Add a custom field", ReadOnly = false, Destructive = false, OpenWorld = false)]
     [Description("Adds a custom field to a project's tasks: a choice with options, text, a number or a date.")]
@@ -114,8 +120,9 @@ public sealed class PlannerTools(AssistantPlanner planner)
         [Description(ProjectHint)] string project,
         [Description("The field's name, e.g. Stage.")] string name,
         [Description("choice, text, number or date.")] string kind,
-        [Description("For a choice: the options, in order.")] string[]? options = null) =>
-        Run(() => planner.AddField(project, name, kind, options));
+        [Description("For a choice: the options, in order.")] string[]? options = null,
+        McpServer? server = null) =>
+        Write(server, $"Added the field {name} to {project}", () => planner.AddField(project, name, kind, options));
 
     // Tasks
 
@@ -132,10 +139,11 @@ public sealed class PlannerTools(AssistantPlanner planner)
         [Description("high, normal or low.")] string? priority = null,
         [Description("Tags, e.g. design, copy.")] string[]? tags = null,
         [Description("Make it a subtask of this task.")] string? parent_task = null,
-        [Description("true for a milestone.")] bool milestone = false) =>
-        Run(() => planner.AddTask(project, title, heading, assignee, due, start, notes, priority, tags, parent_task, milestone));
+        [Description("true for a milestone.")] bool milestone = false,
+        McpServer? server = null) =>
+        Write(server, $"Added the task {title} to {project}", () => planner.AddTask(project, title, heading, assignee, due, start, notes, priority, tags, parent_task, milestone));
 
-    [McpServerTool(Name = "update_task", Title = "Change a task", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "update_task", Title = "Change a task", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description("Changes a task, ticks it off (done true) or opens it again (done false), or moves it to another project. "
         + "Only what you give changes. Tasks can't be deleted.")]
     public string UpdateTask(
@@ -151,8 +159,9 @@ public sealed class PlannerTools(AssistantPlanner planner)
         [Description("The tags it should have, in place of the old ones.")] string[]? tags = null,
         [Description("true to tick it off, false to open it again.")] bool? done = null,
         [Description("true to make it a milestone, false for an ordinary task.")] bool? milestone = null,
-        [Description("Move it to this project.")] string? move_to_project = null) =>
-        Run(() => planner.UpdateTask(task, project, title, notes, heading, assignee, due, start, priority, tags, done, milestone, move_to_project));
+        [Description("Move it to this project.")] string? move_to_project = null,
+        McpServer? server = null) =>
+        Write(server, $"Changed the task {task}", () => planner.UpdateTask(task, project, title, notes, heading, assignee, due, start, priority, tags, done, milestone, move_to_project));
 
     [McpServerTool(Name = "add_comment", Title = "Comment on a task", ReadOnly = false, Destructive = false, OpenWorld = false)]
     [Description("Adds a comment to a task, signed as from you.")]
@@ -161,26 +170,37 @@ public sealed class PlannerTools(AssistantPlanner planner)
         [Description("The comment.")] string text,
         [Description("Its project, which helps when titles repeat.")] string? project = null,
         McpServer? server = null) =>
-        Run(() => planner.AddComment(task, text, Assistant.Name(server), project));
+        Write(server, $"Commented on {task}", () => planner.AddComment(task, text, project));
 
-    [McpServerTool(Name = "set_task_field", Title = "Fill in a custom field", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "set_task_field", Title = "Fill in a custom field", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description("Sets a custom field on a task: an option's name for a choice, text, a number like 1500.50, or a date as yyyy-MM-dd. "
         + "Empty clears it.")]
     public string SetTaskField(
         [Description(TaskHint)] string task,
         [Description("The field's name.")] string field,
         [Description("The value.")] string value,
-        [Description("Its project, which helps when titles repeat.")] string? project = null) =>
-        Run(() => planner.SetField(task, field, value, project));
+        [Description("Its project, which helps when titles repeat.")] string? project = null,
+        McpServer? server = null) =>
+        Write(server, $"Set {field} on {task}", () => planner.SetField(task, field, value, project));
 
-    [McpServerTool(Name = "set_dependency", Title = "Set what a task waits on", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "set_dependency", Title = "Set what a task waits on", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
     [Description("Makes a task wait on another task in the same project (it can't start until that one is done), or stops it waiting.")]
     public string SetDependency(
         [Description("The task that waits. " + TaskHint)] string task,
         [Description("The task it waits on.")] string waits_on,
         [Description("true to make it wait, false to stop it waiting. Default true.")] bool waits = true,
-        [Description("Their project, which helps when titles repeat.")] string? project = null) =>
-        Run(() => planner.SetDependency(task, waits_on, waits, project));
+        [Description("Their project, which helps when titles repeat.")] string? project = null,
+        McpServer? server = null) =>
+        Write(server, waits ? $"Made {task} wait on {waits_on}" : $"Stopped {task} waiting on {waits_on}", () => planner.SetDependency(task, waits_on, waits, project));
+
+    // A change: made as the assistant asking, and written in the list of what Claude and ChatGPT changed.
+    private string Write<T>(McpServer? server, string what, Func<T> work)
+    {
+        planner.Who = Assistant.Name(server);
+        var result = Run(work);
+        planner.Noted(what);
+        return result;
+    }
 
     private static string Run<T>(Func<T> work)
     {

@@ -283,8 +283,36 @@ public partial class ClientDetailViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasMail));
     }
 
+    /// <summary>What Claude or ChatGPT changed on this client that should be checked: their email or name.</summary>
+    public string? CheckText => isNew ? null : services.Clients.Get(client.Id)?.Check is { } check ? $"{check.What} Check it's right before anything is emailed or sent to Xero." : null;
+
+    public bool HasCheck => CheckText is not null;
+
+    /// <summary>The change was right: the email and Xero steps carry on as normal.</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void ItsRight()
+    {
+        services.Clients.Change(client.Id, c => c with { Check = null });
+        OnPropertyChanged(nameof(CheckText));
+        OnPropertyChanged(nameof(HasCheck));
+    }
+
+    // Whether any detail on screen differs from the client as it was shown.
+    private bool DetailsTyped()
+    {
+        var edited = Edited();
+        return edited.Name != client.Name.Trim() || edited.ContactPerson != Blank(client.ContactPerson ?? "") || edited.Email != Blank(client.Email ?? "")
+            || edited.Phone != Blank(client.Phone ?? "") || edited.Website != Blank(client.Website ?? "") || edited.Address != Blank(client.Address ?? "")
+            || edited.Notes != Blank(client.Notes ?? "") || edited.HourlyRate != client.HourlyRate;
+    }
+
     public void Refresh()
     {
+        // Details changed elsewhere (by Claude or ChatGPT, or in Contacts) show here when nothing has been typed over them.
+        if (!isNew && !DetailsTyped() && services.Clients.Get(client.Id) is { } fresh)
+            ShowDetails(fresh);
+        OnPropertyChanged(nameof(CheckText));
+        OnPropertyChanged(nameof(HasCheck));
         LoadOnboarding();
         LoadRecords();
         LoadProjects();

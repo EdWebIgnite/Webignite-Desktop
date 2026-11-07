@@ -403,6 +403,26 @@
           <TextBox Text="{Binding ConnectorCommand, Mode=OneWay}" IsReadOnly="True" />
         </DockPanel>
         <TextBlock Classes="muted" FontSize="12" Text="{Binding CopyMessage}" />
+
+        <TextBlock FontWeight="SemiBold" Text="What they changed lately" Margin="0,6,0,0" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Everything Claude and ChatGPT change shows here, newest first. When they replaced writing (a description, a note, notes on a client or person) or a client's email or name, Put back brings the old version back." />
+        <TextBlock Classes="muted" FontSize="12" Text="Nothing yet." IsVisible="{Binding !HasAssistantChanges}" />
+        <ItemsControl ItemsSource="{Binding AssistantChanges}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:AssistantChangeRow">
+              <DockPanel Margin="0,0,0,6">
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="Put back" Command="{Binding PutBackCommand}" IsVisible="{Binding CanPutBack}" VerticalAlignment="Center" />
+                <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="Put back" IsVisible="{Binding WasPutBack}" VerticalAlignment="Center" Margin="8,0" />
+                <StackPanel>
+                  <TextBlock Text="{Binding What}" TextWrapping="Wrap" />
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding When}" />
+                </StackPanel>
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding AssistantChangesMessage}" />
       </StackPanel>
     </Border>
 

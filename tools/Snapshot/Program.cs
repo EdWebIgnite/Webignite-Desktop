@@ -435,6 +435,22 @@ vm.Clients.XeroMessage = "";
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Save("client");
 {
+    // Claude changes the client's email (a mail could have tricked it): the page asks for a check until It's right.
+    var shown = vm.Clients.Detail!;
+    var name = vm.Clients.Rows[0].Client.Name;
+    var connector = new Webignite.Services.AssistantBusiness(services.Store);
+    var before = services.Clients.Find(name)!.Email;
+    connector.UpdateClient(name, email: "accounts@new-address.co.za");
+    shown.Refresh();
+    Dispatcher.UIThread.RunJobs();
+    Check("A client email changed by Claude asks for a check on their page", shown.HasCheck && shown.Email == "accounts@new-address.co.za");
+    Save("client-check");
+    shown.ItsRightCommand.Execute(null);
+    Check("It's right clears the check", !shown.HasCheck && services.Clients.Find(name)!.Check is null);
+    services.Clients.Change(services.Clients.Find(name)!.Id, c => c with { Email = before });
+    shown.Refresh();
+}
+{
     // The client page: Details, and everything else as rows that fold open, in an order that's remembered.
     var detail = vm.Clients.Detail!;
     Dispatcher.UIThread.RunJobs();
