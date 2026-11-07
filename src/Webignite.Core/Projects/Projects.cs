@@ -64,13 +64,30 @@ public sealed record ProjectTemplate
 
     /// <summary>The project's custom fields, with their options; tasks keep their values by these fields' ids.</summary>
     public IReadOnlyList<CustomField> Fields { get; init; } = [];
+
+    /// <summary>
+    /// What waits on what, subtasks included, counting each task and then its subtasks in the template's order.
+    /// Templates kept before this have none and use each task's <see cref="TemplateTask.WaitsOn"/> instead.
+    /// </summary>
+    public IReadOnlyList<TemplateWait> Waits { get; init; } = [];
 }
 
-/// <summary>A task in a template; <see cref="Heading"/> is a heading's name, or null for none.</summary>
+/// <summary>
+/// A task in a template waiting on another, each by its place counting tasks and subtasks together: a task, then
+/// its subtasks, then the next task.
+/// </summary>
+public sealed record TemplateWait(int Task, int On);
+
+/// <summary>
+/// A task in a template. <see cref="HeadingIndex"/> is its heading's place in the template's headings, so two
+/// headings with the same name stay apart; templates kept before it find theirs by <see cref="Heading"/>, the
+/// heading's name, or null for none.
+/// </summary>
 public sealed record TemplateTask
 {
     public required string Title { get; init; }
     public string? Heading { get; init; }
+    public int? HeadingIndex { get; init; }
     public string Notes { get; init; } = "";
     public TaskPriority Priority { get; init; }
     public IReadOnlyList<string> Tags { get; init; } = [];
@@ -85,7 +102,10 @@ public sealed record TemplateTask
     /// <summary>Its values for the template's custom fields, by field id.</summary>
     public IReadOnlyDictionary<string, string> Values { get; init; } = new Dictionary<string, string>();
 
-    /// <summary>The tasks it waits on, by their place in the template's list of tasks.</summary>
+    /// <summary>
+    /// The tasks it waits on, by their place in the template's list of tasks, subtasks not counted. Still written
+    /// for templates read by older copies; <see cref="ProjectTemplate.Waits"/> wins when it has any.
+    /// </summary>
     public IReadOnlyList<int> WaitsOn { get; init; } = [];
 }
 
@@ -643,7 +663,8 @@ public static class ProjectRules
     /// <summary>
     /// A project as a template: its headings in order, its tasks with their subtasks' titles, and dates as days
     /// after the earliest date in it. Who tasks were given to, what's done and links to mail or invoices stay behind,
-    /// and so do repeating tasks already ticked off (the next one is there).
+    /// and so do repeating tasks already ticked off (the next one is there). Tasks keep their heading by its place,
+    /// and what waits on what by place too, subtasks included.
     /// </summary>
     public static ProjectTemplate TemplateOf(string name, IEnumerable<Heading> headings, IEnumerable<ProjectTask> tasks, IReadOnlyList<CustomField>? fields = null)
     {
@@ -651,11 +672,15 @@ public static class ProjectRules
         // A repeating task already ticked off has a next one carrying on, so only that one goes in.
         var all = tasks.Where(t => t.Deleted is null && !(t.Done && t.Repeat != TaskRepeat.None)).ToList();
         var top = Sections(live, all).SelectMany(s => s.Tasks).ToList();
+        IReadOnlyList<ProjectTask> SubtasksOf(ProjectTask t) => [.. all.Where(s => s.ParentId == t.Id).OrderBy(s => s.Order)];
         var dates = top.SelectMany(t => new[] { t.Start, t.Due }).OfType<DateOnly>().ToList();
         var first = dates.Count == 0 ? (DateOnly?)null : dates.Min();
         int? Day(DateOnly? date) => date is { } d && first is { } f ? d.DayNumber - f.DayNumber : null;
+        int? HeadingAt(string? id) => live.FindIndex(h => h.Id == id) is var at and >= 0 ? at : null;
         // Dependencies and field values come along by place, so a project made from it waits and reads the same.
         var place = top.Select((t, i) => (t.Id, i)).ToDictionary(x => x.Id, x => x.i);
+        var flat = top.SelectMany(t => SubtasksOf(t).Prepend(t)).ToList();
+        var spot = flat.Select((t, i) => (t.Id, i)).ToDictionary(x => x.Id, x => x.i);
         var known = (fields ?? []).Select(f => f.Id).ToHashSet();
         return new ProjectTemplate
         {
@@ -667,21 +692,26 @@ public static class ProjectRules
             {
                 Title = t.Title,
                 Heading = live.FirstOrDefault(h => h.Id == t.HeadingId)?.Name,
+                HeadingIndex = HeadingAt(t.HeadingId),
                 Notes = t.Notes,
                 Priority = t.Priority,
                 Tags = t.Tags,
                 Repeat = t.Repeat,
                 StartDay = Day(t.Start),
                 DueDay = Day(t.Due),
-                Subtasks = [.. all.Where(s => s.ParentId == t.Id).OrderBy(s => s.Order).Select(s => s.Title)],
+                Subtasks = [.. SubtasksOf(t).Select(s => s.Title)],
                 Milestone = t.Milestone,
                 Values = t.Values.Where(v => known.Contains(v.Key)).ToDictionary(v => v.Key, v => v.Value),
                 WaitsOn = [.. t.BlockedBy.Where(place.ContainsKey).Select(id => place[id])],
             })],
+            Waits = [.. flat.SelectMany((t, i) => t.BlockedBy.Where(spot.ContainsKey).Select(id => new TemplateWait(i, spot[id])))],
         };
     }
 
-    /// <summary>A new project from a template, starting on a day: its headings, tasks and subtasks, all new.</summary>
+    /// <summary>
+    /// A new project from a template, starting on a day: its headings, tasks and subtasks, all new, waiting on each
+    /// other as in the template.
+    /// </summary>
     public static (Project Project, IReadOnlyList<Heading> Headings, IReadOnlyList<ProjectTask> Tasks) FromTemplate(
         ProjectTemplate template, string name, DateOnly start, double order)
     {
@@ -699,8 +729,13 @@ public static class ProjectRules
             Id = NewId(), Name = string.IsNullOrWhiteSpace(name) ? template.Name : name.Trim(), Order = order, CustomFields = fields,
         };
         var headings = template.Headings.Select((h, i) => new Heading { Id = NewId(), ProjectId = project.Id, Name = h, Order = i + 1 }).ToList();
+        // By place when the template has it; templates kept before that find their heading by name.
+        string? HeadingOf(TemplateTask t) => t.HeadingIndex is { } at && at >= 0 && at < headings.Count
+            ? headings[at].Id
+            : headings.FirstOrDefault(h => h.Name == t.Heading)?.Id;
+        // Each task followed by its subtasks, the order the template counts them in for what waits on what.
         var tasks = new List<ProjectTask>();
-        var made = new List<ProjectTask>();
+        var made = new List<int>();
         var place = 0;
         foreach (var t in template.Tasks)
         {
@@ -708,7 +743,7 @@ public static class ProjectRules
             {
                 Id = NewId(),
                 ProjectId = project.Id,
-                HeadingId = headings.FirstOrDefault(h => h.Name == t.Heading)?.Id,
+                HeadingId = HeadingOf(t),
                 Title = t.Title,
                 Notes = t.Notes,
                 Priority = t.Priority,
@@ -720,22 +755,21 @@ public static class ProjectRules
                 Milestone = t.Milestone,
                 Values = t.Values.Where(v => fieldIds.ContainsKey(v.Key)).ToDictionary(v => fieldIds[v.Key], v => Value(v.Value)),
             };
-            made.Add(task);
+            made.Add(tasks.Count);
             tasks.Add(task);
             tasks.AddRange(t.Subtasks.Select((title, i) => new ProjectTask
             {
                 Id = NewId(), ProjectId = project.Id, HeadingId = task.HeadingId, ParentId = task.Id, Title = title, Order = i + 1,
             }));
         }
-        // What each task waits on, now that every task has its new id.
-        for (var i = 0; i < template.Tasks.Count; i++)
-        {
-            var waits = template.Tasks[i].WaitsOn.Where(w => w >= 0 && w < made.Count && w != i).Select(w => made[w].Id).ToList();
-            if (waits.Count == 0)
-                continue;
-            var at = tasks.IndexOf(made[i]);
-            tasks[at] = made[i] = made[i] with { BlockedBy = waits };
-        }
+        // What each waits on, now that every task has its new id: by place among tasks and subtasks, or, for a
+        // template kept before subtasks were counted, by place among the tasks alone.
+        var waits = template.Waits.Count > 0
+            ? template.Waits.Where(w => w.Task >= 0 && w.Task < tasks.Count && w.On >= 0 && w.On < tasks.Count && w.Task != w.On)
+                .Select(w => (Task: w.Task, On: w.On))
+            : template.Tasks.SelectMany((t, i) => t.WaitsOn.Where(w => w >= 0 && w < made.Count && w != i).Select(w => (Task: made[i], On: made[w])));
+        foreach (var group in waits.GroupBy(w => w.Task))
+            tasks[group.Key] = tasks[group.Key] with { BlockedBy = [.. group.Select(w => tasks[w.On].Id).Distinct()] };
         return (project, headings, tasks);
     }
 

@@ -796,6 +796,72 @@ public sealed class ProjectRepeatTemplateTests
         Assert.Equal(wire.Id, made.Single(t => t.Title == "Mobile").ParentId);
         Assert.All(made, t => Assert.Equal(project.Id, t.ProjectId));
     }
+
+    [Fact]
+    public void A_template_keeps_headings_with_the_same_name_apart_and_subtasks_waiting()
+    {
+        var first = new Heading { Id = "h1", ProjectId = "p", Name = "Phase", Order = 1 };
+        var second = new Heading { Id = "h2", ProjectId = "p", Name = "Phase", Order = 2 };
+        var tasks = new[]
+        {
+            new ProjectTask { Id = "a", ProjectId = "p", HeadingId = "h1", Title = "Brief", Order = 1 },
+            new ProjectTask { Id = "a1", ProjectId = "p", HeadingId = "h1", ParentId = "a", Title = "Questions", Order = 1 },
+            new ProjectTask { Id = "a2", ProjectId = "p", HeadingId = "h1", ParentId = "a", Title = "Answers", Order = 2, BlockedBy = ["a1"] },
+            new ProjectTask { Id = "b", ProjectId = "p", HeadingId = "h2", Title = "Build", Order = 1, BlockedBy = ["a2", "a"] },
+            new ProjectTask { Id = "b1", ProjectId = "p", HeadingId = "h2", ParentId = "b", Title = "Pages", Order = 1 },
+            new ProjectTask { Id = "c", ProjectId = "p", HeadingId = "h2", Title = "Launch", Order = 2, BlockedBy = ["b1"] },
+        };
+
+        var template = ProjectRules.TemplateOf("Two phases", [first, second], tasks);
+        Assert.Equal([0, 1, 1], template.Tasks.Select(t => t.HeadingIndex ?? -1));
+        Assert.Equal([0], template.Tasks[1].WaitsOn);
+
+        var (_, headings, made) = ProjectRules.FromTemplate(template, "", new DateOnly(2027, 1, 4), 1);
+        ProjectTask Made(string title) => made.Single(t => t.Title == title);
+        Assert.Equal(headings[0].Id, Made("Brief").HeadingId);
+        Assert.Equal(headings[1].Id, Made("Build").HeadingId);
+        Assert.Equal(headings[1].Id, Made("Launch").HeadingId);
+        Assert.Equal([Made("Questions").Id], Made("Answers").BlockedBy);
+        Assert.Equal([Made("Answers").Id, Made("Brief").Id], Made("Build").BlockedBy);
+        Assert.Equal([Made("Pages").Id], Made("Launch").BlockedBy);
+    }
+
+    [Fact]
+    public void A_template_kept_in_the_old_shape_still_reads()
+    {
+        var old = new ProjectTemplate
+        {
+            Id = "t",
+            Name = "Old",
+            Headings = ["Design", "Build"],
+            Tasks =
+            [
+                new TemplateTask { Title = "Wireframes", Heading = "Design", Subtasks = ["Mobile"] },
+                new TemplateTask { Title = "Build pages", Heading = "Build", WaitsOn = [0] },
+            ],
+        };
+        var (_, headings, made) = ProjectRules.FromTemplate(old, "", new DateOnly(2027, 1, 4), 1);
+        Assert.Equal(headings[1].Id, made.Single(t => t.Title == "Build pages").HeadingId);
+        Assert.Equal([made.Single(t => t.Title == "Wireframes").Id], made.Single(t => t.Title == "Build pages").BlockedBy);
+        Assert.Empty(made.Single(t => t.Title == "Mobile").BlockedBy);
+
+        // As kept before: no heading places and no waits counting subtasks.
+        const string kept = """
+            {"id":"t","name":"Old","headings":["Design","Build"],"tasks":[{"title":"Wireframes","heading":"Design"},{"title":"Build pages","heading":"Build","waits_on":[0]}]}
+            """;
+        var read = System.Text.Json.JsonSerializer.Deserialize<ProjectTemplate>(kept, StoredJson.Options)!;
+        Assert.Empty(read.Waits);
+        Assert.Null(read.Tasks[1].HeadingIndex);
+        var (_, readHeadings, readMade) = ProjectRules.FromTemplate(read, "", new DateOnly(2027, 1, 4), 1);
+        Assert.Equal(readHeadings[1].Id, readMade.Single(t => t.Title == "Build pages").HeadingId);
+        Assert.Single(readMade.Single(t => t.Title == "Build pages").BlockedBy);
+        // And the new shape goes round as it came.
+        var kind = ProjectRules.TemplateOf("New", [new Heading { Id = "h", ProjectId = "p", Name = "Design" }],
+            [new ProjectTask { Id = "a", ProjectId = "p", HeadingId = "h", Title = "A" }, new ProjectTask { Id = "a1", ProjectId = "p", HeadingId = "h", ParentId = "a", Title = "A1", BlockedBy = ["a"] }]);
+        var again = System.Text.Json.JsonSerializer.Deserialize<ProjectTemplate>(System.Text.Json.JsonSerializer.Serialize(kind, StoredJson.Options), StoredJson.Options)!;
+        Assert.Equal([new TemplateWait(1, 0)], again.Waits);
+        Assert.Equal(0, again.Tasks[0].HeadingIndex);
+    }
 }
 
 /// <summary>The service side of repeats and templates.</summary>
