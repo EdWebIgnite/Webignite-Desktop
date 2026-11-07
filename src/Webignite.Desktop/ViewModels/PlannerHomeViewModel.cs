@@ -122,6 +122,9 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
 
     public void Refresh()
     {
+        // The notepad as saved by another copy of Home, unless words are being typed here.
+        if (!notepadTyped && Notepad != HomeSettings.Notepad)
+            LoadNotepad();
         var me = services.Me().Id;
         var all = services.Projects.Projects().SelectMany(p => services.Projects.AllTasks(p.Id)).ToList();
         var done = PlannerHome.Completed(all, me, PlannerHome.WeekStart(DateTimeOffset.Now)).Count;
@@ -211,7 +214,7 @@ public sealed partial class HomeTaskRow : ObservableObject
             services.Projects.ChangeTask(task.Id, t => t with { Done = value });
         else if (Item.Todo is { } todo)
         {
-            services.Store.SaveTask(todo with { Done = value, DoneAt = value ? DateTimeOffset.UtcNow : null });
+            services.Store.ChangeTask(todo.Id, t => t with { Done = value, DoneAt = value ? DateTimeOffset.UtcNow : null });
             refresh();
         }
     }

@@ -35,13 +35,13 @@ public sealed partial class ProjectsViewModel
 
     internal void TickTodo(TaskItem todo, bool done)
     {
-        services.Store.SaveTask(todo with { Done = done, DoneAt = done ? DateTimeOffset.UtcNow : null });
+        services.Store.ChangeTask(todo.Id, t => t with { Done = done, DoneAt = done ? DateTimeOffset.UtcNow : null });
         Feedback.After(done ? Feedback.DoneTime(services.Settings.Appearance.Motion) : TimeSpan.Zero, ShowMyTasks);
     }
 
     internal void SetTodoDue(TaskItem todo, DateOnly? due)
     {
-        services.Store.SaveTask(todo with { Due = due });
+        services.Store.ChangeTask(todo.Id, t => t with { Due = due });
         ShowMyTasks();
     }
 
@@ -73,6 +73,7 @@ public sealed partial class ProjectsViewModel
     /// <summary>Moves a to-do into a project: a task there, given to me, and opened; the to-do goes.</summary>
     internal void MoveTodoInto(TaskItem todo, Project project)
     {
+        todo = services.Store.ListTasks().FirstOrDefault(t => t.Id == todo.Id) ?? todo;
         var task = MyWork.ToTask(todo, project.Id, services.Me().Id, services.Clients.Find(todo.Customer)?.Id, ProjectRules.NewId());
         var (saved, problems) = Ours(() => services.Projects.AddTask(task));
         if (saved is null)

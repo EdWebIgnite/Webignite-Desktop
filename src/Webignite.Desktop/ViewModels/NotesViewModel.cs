@@ -147,6 +147,9 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
     {
         LoadClients();
         Reload();
+        // The open note, changed by Claude or ChatGPT, shows the change unless something typed here is waiting to be saved.
+        if (Open is { } open)
+            OpenChangedElsewhere(open.Id);
     }
 
     // Another page (or the quick note) changed notes: show it. The note being typed in isn't reloaded under the person.

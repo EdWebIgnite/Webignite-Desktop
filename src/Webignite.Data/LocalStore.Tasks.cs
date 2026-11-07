@@ -18,6 +18,13 @@ public sealed partial class LocalStore
     }
 
     /// <summary>
+    /// Changes a to-do as stored now, so a change made meanwhile elsewhere (Claude or ChatGPT, another page) isn't put
+    /// back by saving an older copy. Null when it has gone.
+    /// </summary>
+    public TaskItem? ChangeTask(string id, Func<TaskItem, TaskItem> change) =>
+        ListTasks().FirstOrDefault(t => t.Id == id) is { } current ? SaveTask(change(current) with { Id = current.Id }) : null;
+
+    /// <summary>
     /// Removes a task from view. Automatic tasks keep a marker so the same reminder isn't raised again.
     /// </summary>
     public void DeleteTask(string id) => Run("""

@@ -2039,6 +2039,15 @@ Save("site-check");
     people.Phones[0].Value = "083 444 5555";
     people.SaveCommand.Execute(null);
     Check("The contact person's new number shows on the client", services.Clients.Get(bosveldId)!.Phone == "083 444 5555");
+    {
+        // Pieter only looked at while Claude adds him to a group: leaving him doesn't put the old copy back.
+        var connector = new Webignite.Services.AssistantBusiness(services.Store);
+        connector.UpdateContact(pieter.Id, groups: ["Builders"]);
+        vm.Jobs.LookForAssistants();
+        Dispatcher.UIThread.RunJobs();
+        people.Keep();
+        Check("A person only looked at keeps Claude's change when you move on", services.Contacts.Get(pieter.Id)!.Groups.SequenceEqual(["Builders"]));
+    }
     people.CloseCommand.Execute(null);
 
     Open(Page.Clients);
@@ -2403,6 +2412,26 @@ Save("site-check");
             var seen = Until(() => projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == "Check the contact form on a phone"));
             Check("A task Claude adds through the connector shows on the open project by itself", seen);
             services.Projects.DeleteTask(fromClaude.Task.Id);
+            projectsPage.Refresh();
+        }
+
+        // Typing in an open task while Claude changes the same task: neither is lost.
+        {
+            var connector = new Webignite.Services.AssistantPlanner(services.Store);
+            var target = services.Projects.AllTasks(site.Id).First(t => t.ParentId is null && !t.Done);
+            projectsPage.OpenTaskById(target.Id);
+            Dispatcher.UIThread.RunJobs();
+            projectsPage.Detail!.Title = target.Title + " (typed)";
+            connector.UpdateTask(target.Id, notes: "Notes from Claude", priority: "high");
+            vm.Jobs.LookForAssistants();
+            Dispatcher.UIThread.RunJobs();
+            Check("A change from Claude doesn't throw away what's being typed in the task", projectsPage.Detail?.Title == target.Title + " (typed)");
+            projectsPage.Keep();
+            var after = services.Projects.GetTask(target.Id)!;
+            Check("Saving the typing keeps Claude's change to the same task", after.Title == target.Title + " (typed)" && after.Notes == "Notes from Claude"
+                && after.Priority == Webignite.Core.Projects.TaskPriority.High);
+            services.Projects.ChangeTask(target.Id, t => t with { Title = target.Title, Notes = target.Notes, NotesHtml = target.NotesHtml, Priority = target.Priority });
+            projectsPage.CloseTaskCommand.Execute(null);
             projectsPage.Refresh();
         }
 
