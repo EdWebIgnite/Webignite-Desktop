@@ -107,17 +107,22 @@ public static class RecordMerge
         ["blockedby"] = ["BlockedBy"], ["values"] = ["Values"], ["repeatof"] = ["RepeatOf"], ["repeatfrom"] = ["RepeatFrom"],
     };
 
-    private static readonly Dictionary<string, string[]> CommentMap = new(StringComparer.Ordinal) { ["text"] = ["Text"] };
+    private static readonly Dictionary<string, string[]> CommentMap = new(StringComparer.Ordinal) { ["text"] = ["Text", "Mentions"] };
+
+    // Lists of people, merged person by person by their own stamps ("follower:{id}"), not as one field.
+    private static readonly (string Prefix, string Property)[] TaskSets = [(Sets.Follower, "Followers"), (Sets.Like, "LikedBy")];
+    private static readonly (string Prefix, string Property)[] CommentSets = [(Sets.Like, "LikedBy")];
+    private static readonly (string Prefix, string Property)[] NoSets = [];
 
     /// <summary>Whether a stamp is later than another; at the same moment, the one by the later id, so both PCs agree.</summary>
     public static bool Later(Stamp a, Stamp b) => a.At != b.At ? a.At > b.At : string.CompareOrdinal(a.By, b.By) > 0;
 
-    public static Project Merge(Project local, Project remote) => Merge(local, remote, ProjectMap);
-    public static Heading Merge(Heading local, Heading remote) => Merge(local, remote, HeadingMap);
-    public static ProjectTask Merge(ProjectTask local, ProjectTask remote) => Merge(local, remote, TaskMap);
-    public static TaskComment Merge(TaskComment local, TaskComment remote) => Merge(local, remote, CommentMap);
+    public static Project Merge(Project local, Project remote) => Merge(local, remote, ProjectMap, NoSets);
+    public static Heading Merge(Heading local, Heading remote) => Merge(local, remote, HeadingMap, NoSets);
+    public static ProjectTask Merge(ProjectTask local, ProjectTask remote) => Merge(local, remote, TaskMap, TaskSets);
+    public static TaskComment Merge(TaskComment local, TaskComment remote) => Merge(local, remote, CommentMap, CommentSets);
 
-    private static T Merge<T>(T local, T remote, Dictionary<string, string[]> map) where T : ITracked
+    private static T Merge<T>(T local, T remote, Dictionary<string, string[]> map, (string Prefix, string Property)[] sets) where T : ITracked
     {
         var mine = JsonSerializer.SerializeToNode(local, RecordLock.Json)!.AsObject();
         var theirs = JsonSerializer.SerializeToNode(remote, RecordLock.Json)!.AsObject();
@@ -140,6 +145,33 @@ public static class RecordMerge
             if (takeRemote && r is { } stamp)
                 stamps[field] = stamp;
         }
+        foreach (var (prefix, property) in sets)
+        {
+            var mineList = Members(mine[property]);
+            var theirList = Members(theirs[property]);
+            var key = prefix + ":";
+            var everyone = mineList.Concat(theirList)
+                .Concat(local.Fields.Keys.Concat(remote.Fields.Keys).Where(k => k.StartsWith(key, StringComparison.Ordinal)).Select(k => k[key.Length..]))
+                .Distinct(StringComparer.Ordinal);
+            var kept = new JsonArray();
+            foreach (var id in everyone)
+            {
+                var l = local.Fields.TryGetValue(key + id, out var ls) ? ls : (Stamp?)null;
+                var r = remote.Fields.TryGetValue(key + id, out var rs) ? rs : (Stamp?)null;
+                var takeRemote = (l, r) switch
+                {
+                    (null, null) => remoteNewer,
+                    (null, _) => true,
+                    (_, null) => false,
+                    _ => Later(r!.Value, l!.Value),
+                };
+                if ((takeRemote ? theirList : mineList).Contains(id))
+                    kept.Add(id);
+                if (takeRemote && r is { } stamp)
+                    stamps[key + id] = stamp;
+            }
+            result[property] = kept;
+        }
         // Properties no field covers go with the copy changed last (already in result); the bookkeeping is worked out here.
         result["Created"] = JsonSerializer.SerializeToNode(Later(local.Created, remote.Created) ? remote.Created : local.Created, RecordLock.Json);
         result["Changed"] = JsonSerializer.SerializeToNode(remoteNewer ? remote.Changed : local.Changed, RecordLock.Json);
@@ -147,6 +179,9 @@ public static class RecordMerge
         result["Deleted"] = JsonSerializer.SerializeToNode(Deleted(local, remote), RecordLock.Json);
         return result.Deserialize<T>(RecordLock.Json)!;
     }
+
+    private static List<string> Members(JsonNode? list) =>
+        list is JsonArray array ? [.. array.Select(n => n?.GetValue<string>()).OfType<string>()] : [];
 
     // Deleted on either side stays deleted, unless the other side changed it after the deletion (put back or edited).
     private static Stamp? Deleted(ITracked local, ITracked remote) => (local.Deleted, remote.Deleted) switch

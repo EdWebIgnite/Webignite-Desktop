@@ -228,7 +228,7 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         if (problems.Count > 0)
             return (null, problems);
         var now = Now();
-        var saved = store.SaveProjectTask(ProjectRules.Stamped(null, task, now));
+        var saved = store.SaveProjectTask(ProjectRules.Stamped(null, TaskTalk.Followed(null, task, now.By), now));
         Record(null, saved, now);
         Changed?.Invoke(task.ProjectId);
         return (saved, []);
@@ -250,7 +250,7 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         var subtasks = changed.HeadingId != current.HeadingId
             ? AllTasks(current.ProjectId).Where(t => t.ParentId == id).Select(t => ProjectRules.Stamped(t, t with { HeadingId = changed.HeadingId }, now)).ToList()
             : [];
-        var saved = ProjectRules.Stamped(current, changed, now);
+        var saved = ProjectRules.Stamped(current, TaskTalk.Followed(current, changed, now.By), now);
         store.SaveProjectWork([], [], [saved, .. subtasks, .. NextOf(current, saved, now)]);
         Record(current, saved, now);
         Changed?.Invoke(current.ProjectId);
@@ -346,18 +346,65 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             return (null, problem);
         if (GetTask(taskId) is not { } task)
             return (null, "The task is gone.");
-        var comment = new TaskComment { Id = ProjectRules.NewId(), TaskId = taskId, ProjectId = task.ProjectId, Text = text.Trim() };
-        var saved = store.SaveComment(ProjectRules.Stamped(null, comment, Now()));
+        var now = Now();
+        var comment = new TaskComment { Id = ProjectRules.NewId(), TaskId = taskId, ProjectId = task.ProjectId, Text = text.Trim(), Mentions = MentionsIn(text) };
+        var saved = store.SaveComment(ProjectRules.Stamped(null, comment, now));
+        FollowFor(task, saved, now);
         Changed?.Invoke(task.ProjectId);
         return (saved, null);
     }
 
-    /// <summary>A comment's words changed, as stored now.</summary>
+    /// <summary>A comment's words changed, as stored now. Anyone newly mentioned follows the task.</summary>
     public TaskComment? EditComment(string id, string text)
     {
         if (store.GetComment(id) is not { Deleted: null } current || TaskTalk.Check(text).Length > 0)
             return null;
-        var saved = store.SaveComment(ProjectRules.Stamped(current, current with { Text = text.Trim() }, Now()));
+        var now = Now();
+        var saved = store.SaveComment(ProjectRules.Stamped(current, current with { Text = text.Trim(), Mentions = MentionsIn(text) }, now));
+        if (GetTask(saved.TaskId) is { } task)
+            FollowFor(task, saved, now);
+        Changed?.Invoke(current.ProjectId);
+        return saved;
+    }
+
+    private IReadOnlyList<string> MentionsIn(string text) => TaskTalk.Mentions(text, store.GetSetting<TeamSettings>("team") ?? new TeamSettings());
+
+    // Commenting, and being mentioned, makes you follow the task. No activity line: nobody needs to read it.
+    private void FollowFor(ProjectTask task, TaskComment comment, Stamp now)
+    {
+        var followed = TaskTalk.FollowedFor(task, comment);
+        if (!ReferenceEquals(followed, task))
+            store.SaveProjectTask(ProjectRules.Stamped(task, followed, now));
+    }
+
+    /// <summary>I like, or stop liking, a task. Null when it's gone.</summary>
+    public ProjectTask? LikeTask(string id, bool like) => Touch(id, t => t with { LikedBy = Sets.With(t.LikedBy, me(), like) });
+
+    /// <summary>I follow, or stop following, a task: followers hear about it in Inbox. Null when it's gone.</summary>
+    public ProjectTask? FollowTask(string id, bool follow) => Touch(id, t => t with { Followers = Sets.With(t.Followers, me(), follow) });
+
+    // A change to who likes or follows a task: stamped as anything else, but not an activity line.
+    private ProjectTask? Touch(string id, Func<ProjectTask, ProjectTask> change)
+    {
+        if (GetTask(id) is not { } current)
+            return null;
+        var changed = change(current);
+        if (ReferenceEquals(changed.LikedBy, current.LikedBy) && ReferenceEquals(changed.Followers, current.Followers))
+            return current;
+        var saved = store.SaveProjectTask(ProjectRules.Stamped(current, changed, Now()));
+        Changed?.Invoke(current.ProjectId);
+        return saved;
+    }
+
+    /// <summary>I like, or stop liking, a comment. Null when it's gone.</summary>
+    public TaskComment? LikeComment(string id, bool like)
+    {
+        if (store.GetComment(id) is not { Deleted: null } current)
+            return null;
+        var likes = Sets.With(current.LikedBy, me(), like);
+        if (ReferenceEquals(likes, current.LikedBy))
+            return current;
+        var saved = store.SaveComment(ProjectRules.Stamped(current, current with { LikedBy = likes }, Now()));
         Changed?.Invoke(current.ProjectId);
         return saved;
     }
@@ -410,7 +457,7 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         var now = Now();
         var (project, headings, tasks) = ProjectRules.FromTemplate(template, name, start, ProjectRules.NextOrder(store.ListProjects().Select(p => p.Order)));
         var saved = ProjectRules.Stamped(null, project, now);
-        store.SaveProjectWork([saved], headings.Select(h => ProjectRules.Stamped(null, h, now)), tasks.Select(t => ProjectRules.Stamped(null, t, now)));
+        store.SaveProjectWork([saved], headings.Select(h => ProjectRules.Stamped(null, h, now)), tasks.Select(t => ProjectRules.Stamped(null, TaskTalk.Followed(null, t, now.By), now)));
         Changed?.Invoke(null);
         return saved;
     }

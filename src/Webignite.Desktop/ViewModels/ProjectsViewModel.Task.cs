@@ -293,6 +293,7 @@ public sealed partial class TaskDetail : ObservableObject
             [Actors.ChatGpt] = Actors.Name(Actors.ChatGpt)!,
         };
         History = ProjectRules.History(Task, names, TimeZoneInfo.Local, CultureInfo.CurrentCulture);
+        ShowLikesAndFollowers();
         LoadFeed();
         OnPropertyChanged(nameof(HasMail));
         OnPropertyChanged(nameof(NoMail));

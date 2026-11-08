@@ -2,13 +2,19 @@ using System.Globalization;
 
 namespace Webignite.Core.Projects;
 
-/// <summary>A comment on a task, as Asana's. Stamped, so in a shared project both PCs keep the latest edit.</summary>
+/// <summary>A comment on a task, as Asana's, with @mentions and likes. Stamped, so in a shared project both PCs keep the latest edit.</summary>
 public sealed record TaskComment : ITracked
 {
     public required string Id { get; init; }
     public required string TaskId { get; init; }
     public required string ProjectId { get; init; }
     public string Text { get; init; } = "";
+
+    /// <summary>The people @mentioned in it, by teammate id, worked out from the text when it's saved.</summary>
+    public IReadOnlyList<string> Mentions { get; init; } = [];
+
+    /// <summary>Who liked it, by teammate id.</summary>
+    public IReadOnlyList<string> LikedBy { get; init; } = [];
 
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
@@ -36,6 +42,71 @@ public sealed record FeedLine(DateTimeOffset At, string Who, string Text, bool I
 public static class TaskTalk
 {
     public static string Check(string text) => text.Trim().Length == 0 ? "Write something first." : "";
+
+    /// <summary>
+    /// Who a comment mentions: each teammate whose name follows an @, as "@Lize" or "@Lize Botha", any case. The
+    /// longest name is tried first, so "@Lize Botha" isn't read as someone called Lize.
+    /// </summary>
+    public static IReadOnlyList<string> Mentions(string text, TeamSettings team)
+    {
+        var people = new[] { team.Me, team.Partner }.OfType<Teammate>().Where(p => p.Name.Trim().Length > 0)
+            .OrderByDescending(p => p.Name.Length).ToList();
+        var found = new List<string>();
+        for (var at = text.IndexOf('@'); at >= 0; at = text.IndexOf('@', at + 1))
+        {
+            if (at > 0 && char.IsLetterOrDigit(text[at - 1]))
+                continue; // part of an email address
+            var rest = text.AsSpan(at + 1);
+            foreach (var person in people)
+            {
+                var name = person.Name.Trim();
+                if (!rest.StartsWith(name, StringComparison.CurrentCultureIgnoreCase))
+                    continue;
+                if (rest.Length > name.Length && char.IsLetterOrDigit(rest[name.Length]))
+                    continue;
+                if (!found.Contains(person.Id))
+                    found.Add(person.Id);
+                break;
+            }
+        }
+        return found;
+    }
+
+    /// <summary>
+    /// The name being typed after an @ at the end of a comment, for suggesting who to mention: "Li" in "thanks @Li".
+    /// Null when the comment doesn't end in one.
+    /// </summary>
+    public static string? MentionTyped(string text)
+    {
+        var at = text.LastIndexOf('@');
+        if (at < 0 || (at > 0 && char.IsLetterOrDigit(text[at - 1])))
+            return null;
+        var typed = text[(at + 1)..];
+        return typed.Length <= 30 && !typed.Contains('\n') && !typed.Contains('@') ? typed : null;
+    }
+
+    /// <summary>The comment with the name being typed after its last @ finished as the person's whole name.</summary>
+    public static string CompleteMention(string text, string name) =>
+        text.LastIndexOf('@') is var at and >= 0 ? text[..(at + 1)] + name + " " : text;
+
+    /// <summary>
+    /// A task's followers after a change, as Asana's: whoever made it and whoever it's given to follow it. Claude
+    /// and ChatGPT never follow anything; people stay followers until they stop following.
+    /// </summary>
+    public static ProjectTask Followed(ProjectTask? before, ProjectTask after, string me)
+    {
+        var followers = after.Followers;
+        if (before is null && !Actors.IsAssistant(me))
+            followers = Sets.With(followers, me, true);
+        if (after.AssignedTo is { } assigned && assigned != before?.AssignedTo && !Actors.IsAssistant(assigned))
+            followers = Sets.With(followers, assigned, true);
+        return ReferenceEquals(followers, after.Followers) ? after : after with { Followers = followers };
+    }
+
+    /// <summary>The task with the commenter and anyone mentioned following it.</summary>
+    public static ProjectTask FollowedFor(ProjectTask task, TaskComment comment) =>
+        new[] { comment.Created.By }.Concat(comment.Mentions).Where(id => !Actors.IsAssistant(id))
+            .Aggregate(task, (t, id) => t.Followers.Contains(id) ? t : t with { Followers = Sets.With(t.Followers, id, true) });
 
     /// <summary>
     /// What changed between a task as it was and as it is, as feed entries. Heading and project names are looked up

@@ -323,6 +323,15 @@ public sealed record ProjectTask : ITracked
     /// </summary>
     public DateOnly? RepeatFrom { get; init; }
 
+    /// <summary>
+    /// Who follows it, as Asana's collaborators, by teammate id: they hear about its comments and changes in
+    /// Inbox. Whoever makes it, is given it, comments on it or is mentioned on it follows it.
+    /// </summary>
+    public IReadOnlyList<string> Followers { get; init; } = [];
+
+    /// <summary>Who liked it, by teammate id.</summary>
+    public IReadOnlyList<string> LikedBy { get; init; } = [];
+
     public Stamp Created { get; init; }
     public Stamp Changed { get; init; }
     public Stamp? Deleted { get; init; }
@@ -620,6 +629,7 @@ public static class ProjectRules
             Attachments = [],
             CoverId = null,
             BlockedBy = [],
+            LikedBy = [],
             Created = default,
             Changed = default,
             Deleted = null,
@@ -644,6 +654,7 @@ public static class ProjectRules
             Start = done.Start?.AddDays(shift),
             Attachments = [],
             CoverId = null,
+            LikedBy = [],
             Order = order,
             Created = default,
             Changed = default,
@@ -901,6 +912,13 @@ public static class ProjectRules
         ("repeatof", t => t.RepeatOf), ("repeatfrom", t => t.RepeatFrom),
     ];
 
+    // Lists of people (who follows, who liked) are stamped per person, as "follower:{id}", so two people joining
+    // at once on two PCs are both kept when the copies are merged (see RecordMerge).
+    private static readonly (string Prefix, Func<ProjectTask, IReadOnlyList<string>> Members)[] TaskSets =
+        [(Sets.Follower, t => t.Followers), (Sets.Like, t => t.LikedBy)];
+
+    private static readonly (string Prefix, Func<TaskComment, IReadOnlyList<string>> Members)[] CommentSets = [(Sets.Like, c => c.LikedBy)];
+
     /// <summary>The project as saved: who made it, and who changed which field, now.</summary>
     public static Project Stamped(Project? before, Project after, Stamp now)
     {
@@ -912,7 +930,7 @@ public static class ProjectRules
 
     public static TaskComment Stamped(TaskComment? before, TaskComment after, Stamp now)
     {
-        var (created, fields, changed) = Mark(before, after, now, CommentFields);
+        var (created, fields, changed) = Mark(before, after, now, CommentFields, CommentSets);
         return after with { Created = created, Fields = fields, Changed = changed ? now : before!.Changed, Deleted = before?.Deleted };
     }
 
@@ -924,15 +942,21 @@ public static class ProjectRules
 
     public static ProjectTask Stamped(ProjectTask? before, ProjectTask after, Stamp now)
     {
-        var (created, fields, changed) = Mark(before, after, now, TaskFields);
+        var (created, fields, changed) = Mark(before, after, now, TaskFields, TaskSets);
         return after with { Created = created, Fields = fields, Changed = changed ? now : before!.Changed, Deleted = before?.Deleted };
     }
 
     private static (Stamp Created, IReadOnlyDictionary<string, Stamp> Fields, bool Changed) Mark<T>(T? before, T after, Stamp now,
-        (string Name, Func<T, object?> Value)[] fields) where T : class, ITracked
+        (string Name, Func<T, object?> Value)[] fields, (string Prefix, Func<T, IReadOnlyList<string>> Members)[]? sets = null) where T : class, ITracked
     {
         if (before is null)
-            return (now, fields.ToDictionary(f => f.Name, _ => now), true);
+        {
+            var made = fields.ToDictionary(f => f.Name, _ => now);
+            foreach (var (prefix, members) in sets ?? [])
+                foreach (var id in members(after))
+                    made[Sets.Key(prefix, id)] = now;
+            return (now, made, true);
+        }
         var stamps = new Dictionary<string, Stamp>(before.Fields);
         var changed = false;
         foreach (var (name, value) in fields)
@@ -941,6 +965,16 @@ public static class ProjectRules
                 continue;
             stamps[name] = now;
             changed = true;
+        }
+        foreach (var (prefix, members) in sets ?? [])
+        {
+            var was = members(before).ToHashSet(StringComparer.Ordinal);
+            var after_ = members(after).ToHashSet(StringComparer.Ordinal);
+            foreach (var id in was.Union(after_).Where(id => was.Contains(id) != after_.Contains(id)))
+            {
+                stamps[Sets.Key(prefix, id)] = now;
+                changed = true;
+            }
         }
         return (before.Created, stamps, changed);
     }
@@ -1069,4 +1103,17 @@ public static class ProjectLooks
     /// <summary>The sidebar's projects: starred first, then in their usual order.</summary>
     public static IReadOnlyList<Project> SidebarOrder(IEnumerable<Project> projects) =>
         [.. projects.OrderByDescending(p => p.Favourite).ThenBy(p => p.Order)];
+}
+
+/// <summary>The lists of people a record keeps (who follows it, who liked it), each person stamped on their own.</summary>
+public static class Sets
+{
+    public const string Follower = "follower";
+    public const string Like = "like";
+
+    public static string Key(string prefix, string id) => $"{prefix}:{id}";
+
+    /// <summary>The list with the person in or out, as they toggled it; the list as it was when nothing changes.</summary>
+    public static IReadOnlyList<string> With(IReadOnlyList<string> members, string id, bool include) =>
+        include == members.Contains(id) ? members : include ? [.. members, id] : [.. members.Where(m => m != id)];
 }
