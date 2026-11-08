@@ -4,7 +4,7 @@ namespace Webignite.Data;
 
 /// <summary>
 /// Projects, their headings and their tasks (subtasks too). Everything but the id is encrypted. Deleted ones stay
-/// as markers, with who deleted them and when, so the deletion can reach the other PC once projects sync.
+/// as markers, with who deleted them and when, so the deletion reaches the other PC when shared projects sync.
 /// </summary>
 public sealed partial class LocalStore
 {

@@ -1,8 +1,9 @@
 using Webignite.Core.Accounts;
+using Webignite.Core.Sync;
 
 namespace Webignite.Server;
 
-/// <summary>The account endpoints, under /api.</summary>
+/// <summary>The account and sync endpoints, under /api.</summary>
 public static class AccountEndpoints
 {
     public static void Map(WebApplication app)
@@ -29,6 +30,10 @@ public static class AccountEndpoints
             SignedIn(http, accounts, session => Reply(accounts.StopTwoFactor(session, request.Code ?? ""), noContent: true)));
         signedIn.MapPost("/workspace/invites", (HttpContext http, InviteRequest request, AccountService accounts) =>
             SignedIn(http, accounts, session => Reply(accounts.Invite(session.AccountId, request.WrappedKey))));
+        signedIn.MapPost("/sync/push", (HttpContext http, PushRequest request, AccountService accounts, SyncService sync) =>
+            SignedIn(http, accounts, session => Reply(sync.Push(session.AccountId, request))));
+        signedIn.MapPost("/sync/pull", (HttpContext http, PullRequest request, AccountService accounts, SyncService sync) =>
+            SignedIn(http, accounts, session => Reply(sync.Pull(session.AccountId, request))));
     }
 
     public sealed record EmailRequest(string? Email);

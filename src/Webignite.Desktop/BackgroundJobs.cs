@@ -4,7 +4,7 @@ namespace Webignite.Desktop;
 
 /// <summary>
 /// What runs on its own while the app is open, whichever pages are open or not: mail checks, payments from
-/// Xero, website checks and the daily backup. One timer looks once a minute at what is due. The jobs
+/// Xero, website checks, syncing shared projects and the daily backup. One timer looks once a minute at what is due. The jobs
 /// themselves are handed in, so they can tell whatever pages are open what changed.
 /// </summary>
 public sealed class BackgroundJobs(AppServices services) : IDisposable
@@ -18,6 +18,9 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
     public Func<Task>? CheckPayments { get; init; }
     public Func<Task>? CheckSites { get; init; }
     public Func<Task>? CheckXeroClients { get; init; }
+
+    /// <summary>Syncs shared projects; run every minute while signed in to a sync server.</summary>
+    public Func<Task>? SyncProjects { get; init; }
 
     /// <summary>
     /// Claude or ChatGPT changed something through the connector (another process, the same database): which
@@ -90,6 +93,9 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
         // Client websites are visited every 15 minutes.
         if (CheckSites is not null && services.SiteWatch.Due(now))
             CheckSites().Forget("Checking client websites");
+        // Shared projects sync every minute while signed in; a sync still running is left to finish.
+        if (SyncProjects is not null && services.MaySync)
+            SyncProjects().Forget("Syncing shared projects");
         // Once an hour, whether the daily backup is due, for when the app stays open for days.
         if (now - lastBackupLook >= TimeSpan.FromHours(1))
         {

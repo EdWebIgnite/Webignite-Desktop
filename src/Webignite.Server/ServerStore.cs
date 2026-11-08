@@ -9,7 +9,7 @@ namespace Webignite.Server;
 /// is kept here in readable form: sign-in keys and tokens are only ever stored hashed, and two-factor secrets are
 /// encrypted with the server's own key.
 /// </summary>
-public sealed class ServerStore
+public sealed partial class ServerStore
 {
     private readonly string connection;
 
@@ -34,6 +34,9 @@ public sealed class ServerStore
             CREATE INDEX IF NOT EXISTS sessions_previous ON sessions (previous_refresh_hash);
             CREATE TABLE IF NOT EXISTS recovery_codes (account_id TEXT NOT NULL, code_hash TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (account_id, code_hash));
+            CREATE TABLE IF NOT EXISTS records (workspace_id TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, seq INTEGER NOT NULL,
+                payload TEXT NOT NULL, PRIMARY KEY (workspace_id, kind, id));
+            CREATE INDEX IF NOT EXISTS records_order ON records (workspace_id, seq);
             """);
     }
 

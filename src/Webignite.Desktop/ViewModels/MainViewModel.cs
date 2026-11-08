@@ -39,8 +39,9 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Claude or ChatGPT changed something: the pages already built that show it read it again. Projects tell
-    /// their own listeners (sidebar, Home, widgets, the Projects pages); the rest are refreshed here.
+    /// Claude or ChatGPT changed something, or a sync brought your partner's changes in: the pages already built
+    /// that show it read it again. Projects tell their own listeners (sidebar, Home, widgets, the Projects pages);
+    /// the rest are refreshed here.
     /// </summary>
     private void ShowAssistantChanges(IReadOnlyList<string> areas)
     {
@@ -246,9 +247,11 @@ public partial class MainViewModel : ViewModelBase
             CheckPayments = () => CheckPaymentsAsync(),
             CheckSites = CheckSitesAsync,
             CheckXeroClients = CheckXeroClientsAsync,
+            SyncProjects = () => services.SyncNowAsync(),
             EveryMinute = () => ReleaseIdle(PageIdle),
             AssistantChanged = ShowAssistantChanges,
         };
+        services.AreasChanged = ShowAssistantChanges;
         Jobs.Start();
 
         // How other pages get here. Each one lands on the right page first, then opens the thing.

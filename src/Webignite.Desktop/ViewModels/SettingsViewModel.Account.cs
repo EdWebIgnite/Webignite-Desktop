@@ -72,6 +72,9 @@ public partial class SettingsViewModel
     public bool HasRecoveryCodes => RecoveryCodesText.Length > 0;
 
     [ObservableProperty] public partial string InviteText { get; private set; } = "";
+
+    /// <summary>When shared projects last synced on this PC, in the PC's own way of writing dates.</summary>
+    [ObservableProperty] public partial string LastSyncedText { get; private set; } = "";
     public bool HasInvite => InviteText.Length > 0;
 
     partial void OnRecoveryCodesTextChanged(string value) => OnPropertyChanged(nameof(HasRecoveryCodes));
@@ -86,6 +89,7 @@ public partial class SettingsViewModel
         IsSignedIn = account.IsSignedIn;
         HasWorkspaceKey = account.HasWorkspaceKey;
         ShowAccountInfo(account.Account);
+        ShowLastSynced();
         if (IsSignedIn && account.Account is null)
             RefreshAccountAsync().Forget("Reading the account from the sync server");
     }
@@ -108,6 +112,19 @@ public partial class SettingsViewModel
         IsWorkspaceOwner = account.Workspace.Role == AccountRoles.Owner;
         TwoFactorOn = account.TwoFactor;
     }
+
+    private void ShowLastSynced() =>
+        LastSyncedText = IsSignedIn && services.Sync.State.LastSynced is { } at
+            ? $"Last synced {at.ToLocalTime():g}."
+            : "Not synced on this PC yet.";
+
+    [RelayCommand]
+    private Task SyncNow() => Busy(async () =>
+    {
+        var result = await services.SyncNowAsync();
+        SaySync(result.Summary(), problem: result.Problem is not null || result.Unreadable > 0);
+        ShowLastSynced();
+    });
 
     private void SaySync(string message, bool problem = false)
     {

@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Webignite.Core.Accounts;
+using Webignite.Core.Sync;
 using Webignite.Data;
 
 namespace Webignite.Services;
@@ -22,6 +23,7 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
 
     private readonly HttpClient http = handler is null ? new HttpClient { Timeout = TimeSpan.FromSeconds(30) } : new HttpClient(handler, disposeHandler: false);
     private string? accessToken;
+    private string? lastFailure;
     private DateTimeOffset accessExpires;
 
     /// <summary>The encryption key made from the password at the last sign-in on this run; null until then.</summary>
@@ -90,6 +92,7 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
                 return await Send<T>(method, path, body, signedIn, cancel, retried: true);
             }
             var text = await response.Content.ReadAsStringAsync(cancel);
+            lastFailure = null;
             if (response.IsSuccessStatusCode)
                 return new Reply<T>(text.Length == 0 ? default : JsonSerializer.Deserialize<T>(text, Json));
             var problem = text.Length > 0 && text.TrimStart().StartsWith('{') ? JsonSerializer.Deserialize<Problem>(text, Json) : null;
@@ -97,7 +100,10 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException)
         {
-            AppLog.Write("Talking to the sync server", e);
+            // Sync tries every minute; while the internet is down the same failure is logged once, not every time.
+            if (e.Message != lastFailure)
+                AppLog.Write("Talking to the sync server", e);
+            lastFailure = e.Message;
             return new Reply<T>(default, "Couldn't reach the sync server. Check the address and your internet connection.");
         }
     }
@@ -288,6 +294,14 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
             ? new Reply<InviteInfo>(invite with { Code = WorkspaceKeys.InviteCode(invite.Code, secret) })
             : reply;
     }
+
+    /// <summary>Sends locked records to the workspace on the server.</summary>
+    public Task<Reply<PushReply>> PushAsync(IReadOnlyList<SyncRecord> records, CancellationToken cancel = default) =>
+        Send<PushReply>(HttpMethod.Post, "api/sync/push", new PushRequest(records), signedIn: true, cancel);
+
+    /// <summary>Locked records changed on the server since the cursor.</summary>
+    public Task<Reply<PullReply>> PullAsync(long since, CancellationToken cancel = default) =>
+        Send<PullReply>(HttpMethod.Post, "api/sync/pull", new PullRequest(since), signedIn: true, cancel);
 
     public void Dispose()
     {

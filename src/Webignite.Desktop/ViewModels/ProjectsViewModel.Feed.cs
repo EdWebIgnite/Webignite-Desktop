@@ -6,7 +6,7 @@ using Webignite.Core.Projects;
 
 namespace Webignite.Desktop.ViewModels;
 
-// A task's feed, as Asana's: Comments or All activity, and a box to comment. Kept on this PC until sync.
+// A task's feed, as Asana's: Comments or All activity, and a box to comment. Synced in shared projects.
 public sealed partial class TaskDetail
 {
     public ObservableCollection<FeedRow> Feed { get; } = [];

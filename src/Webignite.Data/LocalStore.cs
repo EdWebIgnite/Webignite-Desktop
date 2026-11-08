@@ -172,6 +172,12 @@ public sealed partial class LocalStore : IDisposable
                 task_id TEXT NOT NULL,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS sync_sent (
+                kind TEXT NOT NULL,
+                id TEXT NOT NULL,
+                fingerprint TEXT NOT NULL,
+                PRIMARY KEY (kind, id)
+            );
             """);
         try
         {

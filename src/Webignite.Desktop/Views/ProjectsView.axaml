@@ -878,7 +878,7 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Classes="muted" FontSize="12" Text="Tick Shared under Details to add your partner. They see it once sync is set up."
+                <TextBlock Classes="muted" FontSize="12" Text="Tick Shared under Details to add your partner. They see it once you're both signed in under Settings, Account and sync."
                            IsVisible="{Binding !EditShared}" TextWrapping="Wrap" />
               </StackPanel>
 
@@ -1023,7 +1023,7 @@
                 <StackPanel Spacing="10">
                   <TextBlock Classes="overviewhead" Text="Details" />
                   <CheckBox IsChecked="{Binding EditShared}" Content="{Binding SharedLabel}"
-                            ToolTip.Tip="Shared projects reach your partner once sync is set up. Until then they stay on this PC." />
+                            ToolTip.Tip="Shared projects sync with your partner while you're both signed in under Settings, Account and sync. Personal ones stay on this PC." />
                   <TextBlock Classes="label" Text="Client" />
                   <ComboBox x:Name="ClientBox" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding EditClient, Mode=OneWay}"
                             SelectionChanged="ClientPicked" HorizontalAlignment="Stretch" ToolTip.Tip="The client it's for" />

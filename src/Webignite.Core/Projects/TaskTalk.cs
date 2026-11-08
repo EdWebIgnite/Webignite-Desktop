@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Webignite.Core.Projects;
 
-/// <summary>A comment on a task, as Asana's. Kept on this PC for now; stamped so it can sync later.</summary>
+/// <summary>A comment on a task, as Asana's. Stamped, so in a shared project both PCs keep the latest edit.</summary>
 public sealed record TaskComment : ITracked
 {
     public required string Id { get; init; }

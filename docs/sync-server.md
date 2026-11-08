@@ -33,6 +33,28 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 - **HTTPS only:** the app refuses a server address that isn't `https://` (except one on the same PC, for testing).
   On a real server, Caddy in front of it does HTTPS; the sync server only listens on the machine itself.
 
+## How shared projects sync
+
+- **Locked before they leave.** Each record (a project, section, task, comment, activity line, or who's who) is
+  turned into JSON on the PC and locked with AES-256-GCM, using a key made from the workspace key
+  (`RecordLock` in Core). The record's kind and id are bound into the lock, so the server can't swap one record
+  for another or change one unnoticed: a record that doesn't open is left out and counted.
+- **What the server sees:** the workspace, each record's kind and id, its size, and the order records arrived in.
+  Never names, titles, notes or anything inside.
+- **Only shared projects.** Projects ticked Shared, with their sections, tasks, comments and activity. Personal
+  projects never leave the PC. Attached files don't sync yet.
+- **Merging.** When a record comes in that this PC also has, each field keeps whichever change was made later, by
+  the stamps every record carries (`RecordMerge`). You and your partner can change different things on the same
+  task at the same time and both are kept. A deletion stays deleted unless the other PC changed the record after it.
+- **Who's who.** Each PC made its own ids for "me" and "my partner" before anything was shared. The first of the
+  owner's PCs to sync sends its ids; every other PC takes them on and changes its own records over, so tasks stay
+  given to the right person (`TeamIds`). The partner's PC sends nothing until it has them.
+- **Only what changed goes.** The PC keeps a fingerprint of what it last sent per record (table `sync_sent`) and
+  sends only records whose fingerprint differs. It pulls everything after its cursor first, then pushes. It runs
+  every minute while signed in, and from Sync now in Settings (`SyncService` in Services).
+- **Limits:** at most 500 records a push and a pull, ids of up to 64 letters, digits, `-` and `_`, and 512 KB a
+  record. A record too big for the server stays on the PC and is counted.
+
 ## Settings
 
 | Environment variable | What it is |
@@ -63,4 +85,6 @@ Then in Webignite, Settings, Account and sync, use `http://localhost:5080` as th
 | `POST /api/invites/open` | The workspace's name and locked key for an invite's server half, before signing up. |
 | `POST /api/recovery/key` | The recovery-locked workspace key, for the right recovery check. |
 | `POST /api/recovery/reset` | A new password with the recovery key; every device is signed out. |
+| `POST /api/sync/push` | Locked records for the caller's workspace (`{records: [{kind, id, payload}]}`); each gets the next number. Returns the last number. |
+| `POST /api/sync/pull` | Locked records numbered after `since`, oldest first, up to 500, with the new cursor and whether there are more. |
 | `GET /health` | For the server's own monitoring. |
