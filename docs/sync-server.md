@@ -12,6 +12,16 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
   the server can't read anything synced.
 - **The server keeps only hashes.** The sign-in key is hashed again (PBKDF2, its own salt) before it's stored.
   Access and refresh tokens are stored as SHA-256 hashes, never as they are.
+- **The workspace key** (`WorkspaceKeys` in Core) is 32 random bytes made on the PC when a workspace is created.
+  Everything synced will be locked with it. The server only ever holds it locked (AES-256-GCM): once per person
+  with the encryption key from their password, once per person with their recovery key, and once per invite with
+  the invite's secret half. Each lock names what it's for, so one can't be passed off as another, and a wrong key
+  or a changed lock is noticed. The app keeps the unlocked key in Windows Credential Manager.
+- **Recovery key:** 52 letters and digits shown once when the account is made, to write down or print. With it and
+  the email, a forgotten password is replaced: the app unlocks the workspace key with it, locks it with the new
+  password, and the server signs every other PC out. The server keeps only a hash of a check made from it.
+- **Invite codes** have two halves: the server's half (it knows the invite) and a secret half that unlocks the
+  workspace key and is never sent to the server. Give the whole code to your partner privately.
 - **Two-factor** with any authenticator app (RFC 6238 codes, `Totp` in Core). Each code works once. Turning it on
   gives eight one-time recovery codes, stored hashed. The secret is kept sealed with the server's own key.
 - **Wrong tries:** ten wrong passwords lock the account for 15 minutes, and each address can try signing in at most
@@ -49,5 +59,8 @@ Then in Webignite, Settings, Account and sync, use `http://localhost:5080` as th
 | `DELETE /api/sessions/current` | Sign this PC out. |
 | `GET /api/account` | The account, its workspace and the people in it. |
 | `POST /api/two-factor`, `/api/two-factor/confirm`, `/api/two-factor/off` | Turn two-factor on (with recovery codes) or off. |
-| `POST /api/workspace/invites` | An invite code for the workspace (owner only), one use, seven days. |
+| `POST /api/workspace/invites` | An invite for the workspace (owner only), one use, seven days, carrying the workspace key locked with the invite's secret half. |
+| `POST /api/invites/open` | The workspace's name and locked key for an invite's server half, before signing up. |
+| `POST /api/recovery/key` | The recovery-locked workspace key, for the right recovery check. |
+| `POST /api/recovery/reset` | A new password with the recovery key; every device is signed out. |
 | `GET /health` | For the server's own monitoring. |

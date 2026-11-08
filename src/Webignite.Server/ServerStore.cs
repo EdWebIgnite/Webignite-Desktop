@@ -22,12 +22,12 @@ public sealed class ServerStore
             CREATE TABLE IF NOT EXISTS accounts (
                 id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, salt TEXT NOT NULL, rounds INTEGER NOT NULL,
                 key_hash BLOB NOT NULL, key_salt BLOB NOT NULL, totp TEXT, totp_pending TEXT, totp_last INTEGER NOT NULL DEFAULT -1,
-                failed INTEGER NOT NULL DEFAULT 0, locked_until TEXT, created TEXT NOT NULL);
+                failed INTEGER NOT NULL DEFAULT 0, locked_until TEXT, recovery_wrapped TEXT NOT NULL, recovery_hash TEXT NOT NULL, created TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, created TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS members (workspace_id TEXT NOT NULL, account_id TEXT NOT NULL, role TEXT NOT NULL,
+            CREATE TABLE IF NOT EXISTS members (workspace_id TEXT NOT NULL, account_id TEXT NOT NULL, role TEXT NOT NULL, wrapped_key TEXT NOT NULL,
                 PRIMARY KEY (workspace_id, account_id));
             CREATE TABLE IF NOT EXISTS invites (code_hash TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, created_by TEXT NOT NULL,
-                expires TEXT NOT NULL, used_by TEXT);
+                expires TEXT NOT NULL, used_by TEXT, wrapped_key TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, device TEXT NOT NULL,
                 access_hash TEXT NOT NULL UNIQUE, access_expires TEXT NOT NULL, refresh_hash TEXT NOT NULL UNIQUE,
                 refresh_expires TEXT NOT NULL, previous_refresh_hash TEXT, created TEXT NOT NULL);
@@ -85,12 +85,13 @@ public sealed class ServerStore
     // Accounts
 
     public sealed record Account(string Id, string Email, string Salt, int Rounds, byte[] KeyHash, byte[] KeySalt, string? Totp,
-        string? TotpPending, long TotpLast, int Failed, DateTimeOffset? LockedUntil);
+        string? TotpPending, long TotpLast, int Failed, DateTimeOffset? LockedUntil, string RecoveryWrapped, string RecoveryHash);
 
-    private const string AccountColumns = "id, email, salt, rounds, key_hash, key_salt, totp, totp_pending, totp_last, failed, locked_until";
+    private const string AccountColumns = "id, email, salt, rounds, key_hash, key_salt, totp, totp_pending, totp_last, failed, locked_until, recovery_wrapped, recovery_hash";
 
     private static Account AccountRow(SqliteDataReader r) => new(r.GetString(0), r.GetString(1), r.GetString(2), r.GetInt32(3),
-        (byte[])r[4], (byte[])r[5], Text(r, 6), Text(r, 7), r.GetInt64(8), r.GetInt32(9), Text(r, 10) is { } locked ? When(locked) : null);
+        (byte[])r[4], (byte[])r[5], Text(r, 6), Text(r, 7), r.GetInt64(8), r.GetInt32(9), Text(r, 10) is { } locked ? When(locked) : null,
+        r.GetString(11), r.GetString(12));
 
     public Account? AccountByEmail(string email) =>
         Read($"SELECT {AccountColumns} FROM accounts WHERE email = $email", AccountRow, ("$email", email)).FirstOrDefault();
@@ -99,15 +100,15 @@ public sealed class ServerStore
         Read($"SELECT {AccountColumns} FROM accounts WHERE id = $id", AccountRow, ("$id", id)).FirstOrDefault();
 
     /// <summary>A new account and, in the same go, either its new workspace (as owner) or its place in an invited one.</summary>
-    public bool AddAccount(Account account, string workspaceId, string? newWorkspaceName, string role, string? inviteHash, DateTimeOffset now)
+    public bool AddAccount(Account account, string workspaceId, string? newWorkspaceName, string role, string? inviteHash, string wrappedKey, DateTimeOffset now)
     {
         using var db = Open();
         using var transaction = db.BeginTransaction();
         try
         {
-            Run(db, $"INSERT INTO accounts ({AccountColumns}, created) VALUES ($id, $email, $salt, $rounds, $hash, $keysalt, NULL, NULL, -1, 0, NULL, $now)",
+            Run(db, $"INSERT INTO accounts ({AccountColumns}, created) VALUES ($id, $email, $salt, $rounds, $hash, $keysalt, NULL, NULL, -1, 0, NULL, $rw, $rh, $now)",
                 ("$id", account.Id), ("$email", account.Email), ("$salt", account.Salt), ("$rounds", account.Rounds),
-                ("$hash", account.KeyHash), ("$keysalt", account.KeySalt), ("$now", When(now)));
+                ("$hash", account.KeyHash), ("$keysalt", account.KeySalt), ("$rw", account.RecoveryWrapped), ("$rh", account.RecoveryHash), ("$now", When(now)));
             if (newWorkspaceName is not null)
                 Run(db, "INSERT INTO workspaces (id, name, created) VALUES ($id, $name, $now)", ("$id", workspaceId), ("$name", newWorkspaceName), ("$now", When(now)));
             if (inviteHash is not null)
@@ -120,7 +121,8 @@ public sealed class ServerStore
                     return false;
                 }
             }
-            Run(db, "INSERT INTO members (workspace_id, account_id, role) VALUES ($w, $a, $role)", ("$w", workspaceId), ("$a", account.Id), ("$role", role));
+            Run(db, "INSERT INTO members (workspace_id, account_id, role, wrapped_key) VALUES ($w, $a, $role, $key)",
+                ("$w", workspaceId), ("$a", account.Id), ("$role", role), ("$key", wrappedKey));
             transaction.Commit();
             return true;
         }
@@ -165,23 +167,37 @@ public sealed class ServerStore
 
     // Workspaces
 
-    public sealed record Membership(string WorkspaceId, string Name, string Role);
+    public sealed record Membership(string WorkspaceId, string Name, string Role, string WrappedKey);
 
     public Membership? MembershipOf(string accountId) =>
-        Read("SELECT w.id, w.name, m.role FROM members m JOIN workspaces w ON w.id = m.workspace_id WHERE m.account_id = $a ORDER BY w.created LIMIT 1",
-            r => new Membership(r.GetString(0), r.GetString(1), r.GetString(2)), ("$a", accountId)).FirstOrDefault();
+        Read("SELECT w.id, w.name, m.role, m.wrapped_key FROM members m JOIN workspaces w ON w.id = m.workspace_id WHERE m.account_id = $a ORDER BY w.created LIMIT 1",
+            r => new Membership(r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3)), ("$a", accountId)).FirstOrDefault();
 
     public IReadOnlyList<(string Email, string Role)> Members(string workspaceId) =>
         Read("SELECT a.email, m.role FROM members m JOIN accounts a ON a.id = m.account_id WHERE m.workspace_id = $w ORDER BY a.created",
             r => (r.GetString(0), r.GetString(1)), ("$w", workspaceId));
 
-    public string? WorkspaceOfInvite(string hash, DateTimeOffset now) =>
-        Read("SELECT workspace_id FROM invites WHERE code_hash = $hash AND used_by IS NULL AND expires > $now",
-            r => r.GetString(0), ("$hash", hash), ("$now", When(now))).FirstOrDefault();
+    public sealed record Invite(string WorkspaceId, string WorkspaceName, string WrappedKey);
 
-    public void AddInvite(string hash, string workspaceId, string createdBy, DateTimeOffset expires) =>
-        Run("INSERT INTO invites (code_hash, workspace_id, created_by, expires) VALUES ($hash, $w, $by, $expires)",
-            ("$hash", hash), ("$w", workspaceId), ("$by", createdBy), ("$expires", When(expires)));
+    public Invite? OpenInvite(string hash, DateTimeOffset now) =>
+        Read("SELECT i.workspace_id, w.name, i.wrapped_key FROM invites i JOIN workspaces w ON w.id = i.workspace_id WHERE i.code_hash = $hash AND i.used_by IS NULL AND i.expires > $now",
+            r => new Invite(r.GetString(0), r.GetString(1), r.GetString(2)), ("$hash", hash), ("$now", When(now))).FirstOrDefault();
+
+    public void AddInvite(string hash, string workspaceId, string createdBy, DateTimeOffset expires, string wrappedKey) =>
+        Run("INSERT INTO invites (code_hash, workspace_id, created_by, expires, wrapped_key) VALUES ($hash, $w, $by, $expires, $key)",
+            ("$hash", hash), ("$w", workspaceId), ("$by", createdBy), ("$expires", When(expires)), ("$key", wrappedKey));
+
+    /// <summary>A new password after recovery: the sign-in key's hash, the member's locked key, and every device signed out.</summary>
+    public void ResetPassword(string accountId, string salt, int rounds, byte[] keyHash, byte[] keySalt, string wrappedKey)
+    {
+        using var db = Open();
+        using var transaction = db.BeginTransaction();
+        Run(db, "UPDATE accounts SET salt = $salt, rounds = $rounds, key_hash = $hash, key_salt = $keysalt, failed = 0, locked_until = NULL WHERE id = $id",
+            ("$salt", salt), ("$rounds", rounds), ("$hash", keyHash), ("$keysalt", keySalt), ("$id", accountId));
+        Run(db, "UPDATE members SET wrapped_key = $key WHERE account_id = $id", ("$key", wrappedKey), ("$id", accountId));
+        Run(db, "DELETE FROM sessions WHERE account_id = $id", ("$id", accountId));
+        transaction.Commit();
+    }
 
     // Signed-in devices
 

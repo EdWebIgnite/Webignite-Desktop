@@ -42,6 +42,7 @@ public sealed class SyncServerAccountTests : IDisposable
     private static string Key(string seed) => Convert.ToBase64String(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(seed)));
 
     private static readonly string Salt = Convert.ToBase64String(new byte[AccountKeys.SaltBytes]);
+    private static readonly string Locked = WorkspaceKeys.Wrap(WorkspaceKeys.NewKey(), WorkspaceKeys.NewKey(), WorkspaceKeys.ForMember);
 
     private async Task<(HttpStatusCode Status, T? Body, Problem? Problem)> Post<T>(string path, object body, string? token = null)
     {
@@ -65,7 +66,7 @@ public sealed class SyncServerAccountTests : IDisposable
     }
 
     private Task<(HttpStatusCode Status, SessionInfo? Body, Problem? Problem)> SignUp(string email, string key, string? workspace = "Webignite", string? invite = null) =>
-        Post<SessionInfo>("/api/accounts", new SignUpRequest(email, Salt, AccountKeys.Rounds, key, workspace, invite, "Eddie's PC"));
+        Post<SessionInfo>("/api/accounts", new SignUpRequest(email, Salt, AccountKeys.Rounds, key, workspace, invite, "Eddie's PC", Locked, Locked, Key(email + "recovery")));
 
     private Task<(HttpStatusCode Status, SessionInfo? Body, Problem? Problem)> SignIn(string email, string key, string? code = null) =>
         Post<SessionInfo>("/api/sessions", new SignInRequest(email, key, code, "Eddie's PC"));
@@ -81,13 +82,15 @@ public sealed class SyncServerAccountTests : IDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, (await SignIn("eddie@webignite.co.za", Key("wrong"))).Status);
         var signedIn = (await SignIn("eddie@webignite.co.za", Key("eddie"))).Body!;
 
-        var invite = (await Post<InviteInfo>("/api/workspace/invites", new { }, signedIn.AccessToken)).Body!;
+        var invite = (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked), signedIn.AccessToken)).Body!;
+        Assert.Equal(("Webignite", Locked), ((await Post<InviteOpened>("/api/invites/open", new OpenInviteRequest(invite.Code))).Body!.WorkspaceName, Locked));
         Assert.Matches("^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$", invite.Code);
         var partner = await SignUp("jaco@webignite.co.za", Key("jaco"), workspace: null, invite: invite.Code.ToLowerInvariant().Replace("-", " ", StringComparison.Ordinal));
         Assert.Equal(HttpStatusCode.OK, partner.Status);
         Assert.Equal((session.Account.Workspace.Id, AccountRoles.Member), (partner.Body!.Account.Workspace.Id, partner.Body.Account.Workspace.Role));
         Assert.Equal(HttpStatusCode.BadRequest, (await SignUp("someone@else.co.za", Key("x"), invite: invite.Code)).Status);
-        Assert.Equal(HttpStatusCode.Forbidden, (await Post<InviteInfo>("/api/workspace/invites", new { }, partner.Body.AccessToken)).Status);
+        Assert.Equal(HttpStatusCode.Forbidden, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked), partner.Body.AccessToken)).Status);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Post<InviteOpened>("/api/invites/open", new OpenInviteRequest(invite.Code))).Status);
 
         var account = await Get<AccountInfo>("/api/account", signedIn.AccessToken);
         Assert.Equal(["eddie@webignite.co.za", "jaco@webignite.co.za"], account!.Workspace.Members.Select(m => m.Email));
@@ -160,7 +163,31 @@ public sealed class SyncServerAccountTests : IDisposable
             request.Headers.Authorization = new("Bearer", session.AccessToken);
             Assert.Equal(HttpStatusCode.NoContent, (await http.SendAsync(request, TestContext.Current.CancellationToken)).StatusCode);
         }
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<InviteInfo>("/api/workspace/invites", new { }, session.AccessToken)).Status);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<InviteInfo>("/api/workspace/invites", new { })).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked), session.AccessToken)).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked))).Status);
+    }
+
+    [Fact]
+    public async Task The_recovery_check_gets_the_locked_key_and_replaces_the_password_signing_everyone_out()
+    {
+        var first = (await SignUp("eddie@webignite.co.za", Key("eddie"))).Body!;
+        var check = Key("eddie@webignite.co.za" + "recovery");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<RecoveryLocked>("/api/recovery/key", new RecoveryRequest("eddie@webignite.co.za", Key("guess")))).Status);
+        Assert.Equal(Locked, (await Post<RecoveryLocked>("/api/recovery/key", new RecoveryRequest("Eddie@webignite.co.za", check))).Body!.WrappedKey);
+
+        var reset = await Post<SessionInfo>("/api/recovery/reset",
+            new ResetRequest("eddie@webignite.co.za", check, Salt, AccountKeys.Rounds, Key("new password"), Locked, "Eddie's laptop"));
+        Assert.Equal(HttpStatusCode.OK, reset.Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await SignIn("eddie@webignite.co.za", Key("eddie"))).Status);
+        Assert.Equal(HttpStatusCode.OK, (await SignIn("eddie@webignite.co.za", Key("new password"))).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<SessionInfo>("/api/sessions/refresh", new RefreshRequest(first.RefreshToken))).Status);
+    }
+
+    [Fact]
+    public async Task Sign_up_without_the_locked_keys_is_refused()
+    {
+        var (status, _, _) = await Post<SessionInfo>("/api/accounts",
+            new SignUpRequest("eddie@webignite.co.za", Salt, AccountKeys.Rounds, Key("eddie"), "Webignite", null, "PC", "", Locked, Key("r")));
+        Assert.Equal(HttpStatusCode.BadRequest, status);
     }
 }

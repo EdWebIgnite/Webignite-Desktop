@@ -320,6 +320,11 @@ settingsPage.AccountEmail = "eddie@webignite.co.za";
 settingsPage.NewWorkspaceName = "Webignite";
 Dispatcher.UIThread.RunJobs();
 Save("settings-account");
+settingsPage.ShowAccountFormCommand.Execute("recover");
+Dispatcher.UIThread.RunJobs();
+Check("Forgot your password asks for the recovery key and a new password twice", settingsPage.IsRecoverForm && settingsPage.NeedsNewPassword);
+Save("settings-account-recover");
+settingsPage.ShowAccountFormCommand.Execute("sign-in");
 settingsPage.Open("xero");
 
 var today = DateOnly.FromDateTime(DateTime.Today);

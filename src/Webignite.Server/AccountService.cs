@@ -96,7 +96,7 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
         if (AccountRules.EmailProblem(request.Email) is { } emailProblem)
             return Outcome.Fail<SessionInfo>(400, emailProblem);
         if (!Usable(request.SignInKey) || request.Rounds < AccountKeys.FewestRounds || request.Rounds > 10_000_000
-            || !IsSalt(request.Salt))
+            || !IsSalt(request.Salt) || !Locked(request.WrappedKey) || !Locked(request.RecoveryWrappedKey) || !Usable(request.RecoveryCheck))
             return Outcome.Fail<SessionInfo>(400, "Something was missing from the sign-up. Update Webignite and try again.");
         var email = AccountRules.Normal(request.Email);
         string workspaceId, role;
@@ -104,9 +104,9 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
         if (request.InviteCode is { Length: > 0 } code)
         {
             inviteHash = Hash(InviteCodes.Normal(code));
-            if (store.WorkspaceOfInvite(inviteHash, Now) is not { } invited)
+            if (store.OpenInvite(inviteHash, Now) is not { } invited)
                 return Outcome.Fail<SessionInfo>(400, "That invite code isn't right, or it has expired or been used. Ask for a new one.");
-            (workspaceId, role) = (invited, AccountRoles.Member);
+            (workspaceId, role) = (invited.WorkspaceId, AccountRoles.Member);
         }
         else
         {
@@ -115,12 +115,25 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
         }
         var keySalt = RandomNumberGenerator.GetBytes(16);
         var account = new ServerStore.Account(NewId(), email, request.Salt, request.Rounds, KeyHash(request.SignInKey, keySalt), keySalt,
-            null, null, -1, 0, null);
-        if (!store.AddAccount(account, workspaceId, newName, role, inviteHash, Now))
+            null, null, -1, 0, null, request.RecoveryWrappedKey, Hash(request.RecoveryCheck));
+        if (!store.AddAccount(account, workspaceId, newName, role, inviteHash, request.WrappedKey, Now))
             return Outcome.Fail<SessionInfo>(409, inviteHash is null
                 ? "There's already an account for that email. Sign in instead."
                 : "There's already an account for that email, or the invite was used meanwhile.");
         return new Result<SessionInfo>(StartSession(account.Id, request.DeviceName));
+    }
+
+    // A locked key as the app sends it: Base64 of 12 + 16 + 32 bytes (a little room either way).
+    private static bool Locked(string? text)
+    {
+        try
+        {
+            return text is { Length: < 200 } && Convert.FromBase64String(text).Length is >= 60 and <= 80;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 
     private static bool IsSalt(string text)
@@ -168,7 +181,7 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
         var (access, refresh) = (NewToken(), NewToken());
         var session = new ServerStore.Session(NewId(), accountId, Device(device), Now + AccessLife, Now + RefreshLife);
         store.AddSession(session, Hash(access), Hash(refresh), Now);
-        return new SessionInfo(access, refresh, session.AccessExpires, Info(accountId));
+        return new SessionInfo(access, refresh, session.AccessExpires, Info(accountId), store.MembershipOf(accountId)!.WrappedKey);
     }
 
     public Result<SessionInfo> Refresh(RefreshRequest request)
@@ -189,7 +202,7 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
         var (access, refresh) = (NewToken(), NewToken());
         if (!store.RotateSession(session.Id, hash, Hash(access), Now + AccessLife, Hash(refresh), Now + RefreshLife))
             return Outcome.Fail<SessionInfo>(401, "Sign in again.");
-        return new Result<SessionInfo>(new SessionInfo(access, refresh, Now + AccessLife, Info(session.AccountId)));
+        return new Result<SessionInfo>(new SessionInfo(access, refresh, Now + AccessLife, Info(session.AccountId), store.MembershipOf(session.AccountId)!.WrappedKey));
     }
 
     /// <summary>The device behind an access token, while it's still good.</summary>
@@ -246,14 +259,49 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
 
     // Invites
 
-    public Result<InviteInfo> Invite(string accountId)
+    /// <summary>An invite carrying the workspace key locked with the invite's secret half, which only the app knows.</summary>
+    public Result<InviteInfo> Invite(string accountId, string? wrappedKey)
     {
         if (store.MembershipOf(accountId) is not { Role: AccountRoles.Owner } membership)
             return Outcome.Fail<InviteInfo>(403, "Only the workspace's owner can invite people.");
+        if (!Locked(wrappedKey))
+            return Outcome.Fail<InviteInfo>(400, "Something was missing from the invite. Update Webignite and try again.");
         var code = InviteCodes.New();
         var expires = Now + InviteLife;
-        store.AddInvite(Hash(InviteCodes.Normal(code)), membership.WorkspaceId, accountId, expires);
+        store.AddInvite(Hash(InviteCodes.Normal(code)), membership.WorkspaceId, accountId, expires, wrappedKey!);
         return new Result<InviteInfo>(new InviteInfo(code, expires));
+    }
+
+    /// <summary>What an invite brings before signing up: the workspace's name and its key, still locked.</summary>
+    public Result<InviteOpened> OpenInvite(string? code) =>
+        store.OpenInvite(Hash(InviteCodes.Normal(code ?? "")), Now) is { } invite
+            ? new Result<InviteOpened>(new InviteOpened(invite.WorkspaceName, invite.WrappedKey))
+            : Outcome.Fail<InviteOpened>(400, "That invite code isn't right, or it has expired or been used. Ask for a new one.");
+
+    // Recovery: a forgotten password replaced with the recovery key, without losing anything synced.
+
+    private const string WrongRecovery = "That email and recovery key don't match an account.";
+
+    private ServerStore.Account? Recovering(string? email, string? check) =>
+        Usable(check) && store.AccountByEmail(AccountRules.Normal(email ?? "")) is { } account
+            && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(Hash(check!)), Encoding.UTF8.GetBytes(account.RecoveryHash))
+            ? account : null;
+
+    public Result<RecoveryLocked> RecoveryKey(RecoveryRequest request) =>
+        Recovering(request.Email, request.Check) is { } account
+            ? new Result<RecoveryLocked>(new RecoveryLocked(account.RecoveryWrapped))
+            : Outcome.Fail<RecoveryLocked>(401, WrongRecovery);
+
+    /// <summary>A new password: every device is signed out, and this one signed in. Two-factor stays as it was.</summary>
+    public Result<SessionInfo> Reset(ResetRequest request)
+    {
+        if (Recovering(request.Email, request.Check) is not { } account)
+            return Outcome.Fail<SessionInfo>(401, WrongRecovery);
+        if (!Usable(request.SignInKey) || request.Rounds < AccountKeys.FewestRounds || request.Rounds > 10_000_000 || !IsSalt(request.Salt) || !Locked(request.WrappedKey))
+            return Outcome.Fail<SessionInfo>(400, "Something was missing. Update Webignite and try again.");
+        var keySalt = RandomNumberGenerator.GetBytes(16);
+        store.ResetPassword(account.Id, request.Salt, request.Rounds, KeyHash(request.SignInKey, keySalt), keySalt, request.WrappedKey);
+        return new Result<SessionInfo>(StartSession(account.Id, request.DeviceName));
     }
 }
 

@@ -12,6 +12,9 @@ public static class AccountEndpoints
         open.MapPost("/accounts", (SignUpRequest request, AccountService accounts) => Reply(accounts.SignUp(request)));
         open.MapPost("/sessions", (SignInRequest request, AccountService accounts) => Reply(accounts.SignIn(request)));
         open.MapPost("/sessions/refresh", (RefreshRequest request, AccountService accounts) => Reply(accounts.Refresh(request)));
+        open.MapPost("/invites/open", (OpenInviteRequest request, AccountService accounts) => Reply(accounts.OpenInvite(request.Code)));
+        open.MapPost("/recovery/key", (RecoveryRequest request, AccountService accounts) => Reply(accounts.RecoveryKey(request)));
+        open.MapPost("/recovery/reset", (ResetRequest request, AccountService accounts) => Reply(accounts.Reset(request)));
 
         var signedIn = app.MapGroup("/api").RequireRateLimiting("signed-in");
         signedIn.MapDelete("/sessions/current", (HttpContext http, AccountService accounts) =>
@@ -24,8 +27,8 @@ public static class AccountEndpoints
             SignedIn(http, accounts, session => Reply(accounts.ConfirmTwoFactor(session.AccountId, request.Code ?? ""))));
         signedIn.MapPost("/two-factor/off", (HttpContext http, CodeRequest request, AccountService accounts) =>
             SignedIn(http, accounts, session => Reply(accounts.StopTwoFactor(session, request.Code ?? ""), noContent: true)));
-        signedIn.MapPost("/workspace/invites", (HttpContext http, AccountService accounts) =>
-            SignedIn(http, accounts, session => Reply(accounts.Invite(session.AccountId))));
+        signedIn.MapPost("/workspace/invites", (HttpContext http, InviteRequest request, AccountService accounts) =>
+            SignedIn(http, accounts, session => Reply(accounts.Invite(session.AccountId, request.WrappedKey))));
     }
 
     public sealed record EmailRequest(string? Email);

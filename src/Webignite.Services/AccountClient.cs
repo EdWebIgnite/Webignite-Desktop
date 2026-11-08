@@ -17,6 +17,7 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
 {
     private const string SettingName = "account";
     private const string RefreshName = "webignite-sync-refresh";
+    private const string WorkspaceKeyName = "webignite-workspace-key";
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
     private readonly HttpClient http = handler is null ? new HttpClient { Timeout = TimeSpan.FromSeconds(30) } : new HttpClient(handler, disposeHandler: false);
@@ -27,6 +28,19 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
     public byte[]? EncryptionKey { get; private set; }
 
     public AccountInfo? Account { get; private set; }
+
+    /// <summary>
+    /// The workspace key, which locks everything synced, once this PC has it (from signing in, signing up or joining).
+    /// Kept in Windows Credential Manager so it survives a restart, never sent anywhere unlocked.
+    /// </summary>
+    public byte[]? WorkspaceKey => secrets.Read(WorkspaceKeyName) is { Length: > 0 } text ? Convert.FromBase64String(text) : null;
+
+    public bool HasWorkspaceKey => secrets.Read(WorkspaceKeyName) is { Length: > 0 };
+
+    /// <summary>A new account: who it is, and the recovery key to show once (to print or write down).</summary>
+    public sealed record SignedUp(AccountInfo Account, string RecoveryKey);
+
+    private void KeepWorkspaceKey(byte[] key) => secrets.Write(WorkspaceKeyName, Convert.ToBase64String(key));
 
     public sealed record Reply<T>(T? Value, string? Problem = null, string? Need = null)
     {
@@ -121,22 +135,51 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         Account = null;
         EncryptionKey = null;
         secrets.Delete(RefreshName);
+        secrets.Delete(WorkspaceKeyName);
     }
 
-    /// <summary>A new account, with its own workspace or joining one with an invite code.</summary>
-    public async Task<Reply<AccountInfo>> SignUpAsync(string email, string password, string? workspaceName, string? inviteCode, CancellationToken cancel = default)
+    /// <summary>
+    /// A new account, with its own new workspace (and a new workspace key) or joining one with an invite code (whose
+    /// secret half unlocks the workspace's key). Either way the key is locked with the new password and with a new
+    /// recovery key, which comes back to be shown once.
+    /// </summary>
+    public async Task<Reply<SignedUp>> SignUpAsync(string email, string password, string? workspaceName, string? inviteCode, CancellationToken cancel = default)
     {
         if (AccountRules.EmailProblem(email) is { } emailProblem)
-            return new Reply<AccountInfo>(default, emailProblem);
+            return new Reply<SignedUp>(default, emailProblem);
         if (AccountRules.PasswordProblem(password, email) is { } passwordProblem)
-            return new Reply<AccountInfo>(default, passwordProblem);
+            return new Reply<SignedUp>(default, passwordProblem);
+        byte[] workspaceKey;
+        string? serverPart = null;
+        if (!string.IsNullOrWhiteSpace(inviteCode))
+        {
+            if (WorkspaceKeys.ReadInviteCode(inviteCode) is not { } code)
+                return new Reply<SignedUp>(default, "That invite code isn't complete. Copy the whole code you were given.");
+            var opened = await Send<InviteOpened>(HttpMethod.Post, "api/invites/open", new OpenInviteRequest(code.ServerPart), signedIn: false, cancel);
+            if (opened.Value is not { } invite)
+                return new Reply<SignedUp>(default, opened.Problem);
+            if (WorkspaceKeys.Unwrap(invite.WrappedKey, WorkspaceKeys.FromInviteSecret(code.Secret), WorkspaceKeys.ForInvite) is not { } key)
+                return new Reply<SignedUp>(default, "That invite code isn't right. Copy the whole code you were given.");
+            (workspaceKey, serverPart) = (key, code.ServerPart);
+        }
+        else
+            workspaceKey = WorkspaceKeys.NewKey();
         var salt = AccountKeys.NewSalt();
         var keys = await Task.Run(() => AccountKeys.Derive(password, salt, AccountKeys.Rounds), cancel);
+        var recoveryKey = WorkspaceKeys.NewRecoveryKey();
+        var (recoveryLock, recoveryCheck) = WorkspaceKeys.FromRecoveryKey(WorkspaceKeys.ReadRecoveryKey(recoveryKey)!);
         var reply = await Send<SessionInfo>(HttpMethod.Post, "api/accounts",
             new SignUpRequest(AccountRules.Normal(email), Convert.ToBase64String(salt), AccountKeys.Rounds, keys.SignInKey,
-                string.IsNullOrWhiteSpace(inviteCode) ? workspaceName : null, string.IsNullOrWhiteSpace(inviteCode) ? null : inviteCode, DeviceName),
+                serverPart is null ? workspaceName : null, serverPart, DeviceName,
+                WorkspaceKeys.Wrap(workspaceKey, keys.EncryptionKey, WorkspaceKeys.ForMember),
+                WorkspaceKeys.Wrap(workspaceKey, recoveryLock, WorkspaceKeys.ForRecovery), recoveryCheck),
             signedIn: false, cancel);
-        return Finish(reply, keys);
+        if (reply.Value is not { } session)
+            return new Reply<SignedUp>(default, reply.Problem, reply.Need);
+        Keep(session);
+        EncryptionKey = keys.EncryptionKey;
+        KeepWorkspaceKey(workspaceKey);
+        return new Reply<SignedUp>(new SignedUp(session.Account, recoveryKey));
     }
 
     /// <summary>Signs this PC in; with two-factor on, the first try answers that it needs a code.</summary>
@@ -152,15 +195,46 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         var keys = await Task.Run(() => AccountKeys.Derive(password, Convert.FromBase64String(info.Salt), info.Rounds), cancel);
         var reply = await Send<SessionInfo>(HttpMethod.Post, "api/sessions",
             new SignInRequest(AccountRules.Normal(email), keys.SignInKey, string.IsNullOrWhiteSpace(code) ? null : code, DeviceName), signedIn: false, cancel);
-        return Finish(reply, keys);
+        if (reply.Value is not { } session)
+            return new Reply<AccountInfo>(default, reply.Problem, reply.Need);
+        // The workspace key, unlocked with this password. If it doesn't open, the server handed over something else.
+        if (WorkspaceKeys.Unwrap(session.WrappedKey, keys.EncryptionKey, WorkspaceKeys.ForMember) is not { } workspaceKey)
+            return new Reply<AccountInfo>(default, "Signed in, but the workspace key wouldn't open with this password. Nothing was changed.");
+        Keep(session);
+        EncryptionKey = keys.EncryptionKey;
+        KeepWorkspaceKey(workspaceKey);
+        return new Reply<AccountInfo>(session.Account);
     }
 
-    private Reply<AccountInfo> Finish(Reply<SessionInfo> reply, AccountKeys.Keys keys)
+    /// <summary>
+    /// A forgotten password replaced with the recovery key: the workspace key is unlocked with it here, locked again
+    /// with the new password, and every other PC is signed out. Nothing synced is lost.
+    /// </summary>
+    public async Task<Reply<AccountInfo>> RecoverAsync(string email, string recoveryKey, string newPassword, CancellationToken cancel = default)
     {
+        if (AccountRules.EmailProblem(email) is { } emailProblem)
+            return new Reply<AccountInfo>(default, emailProblem);
+        if (WorkspaceKeys.ReadRecoveryKey(recoveryKey) is not { } recovery)
+            return new Reply<AccountInfo>(default, "That isn't a whole recovery key. It's 52 letters and digits in groups of four.");
+        if (AccountRules.PasswordProblem(newPassword, email) is { } passwordProblem)
+            return new Reply<AccountInfo>(default, passwordProblem);
+        var (recoveryLock, check) = WorkspaceKeys.FromRecoveryKey(recovery);
+        var locked = await Send<RecoveryLocked>(HttpMethod.Post, "api/recovery/key", new RecoveryRequest(AccountRules.Normal(email), check), signedIn: false, cancel);
+        if (locked.Value is not { } wrapped)
+            return new Reply<AccountInfo>(default, locked.Problem);
+        if (WorkspaceKeys.Unwrap(wrapped.WrappedKey, recoveryLock, WorkspaceKeys.ForRecovery) is not { } workspaceKey)
+            return new Reply<AccountInfo>(default, "That recovery key doesn't open this account's workspace key.");
+        var salt = AccountKeys.NewSalt();
+        var keys = await Task.Run(() => AccountKeys.Derive(newPassword, salt, AccountKeys.Rounds), cancel);
+        var reply = await Send<SessionInfo>(HttpMethod.Post, "api/recovery/reset",
+            new ResetRequest(AccountRules.Normal(email), check, Convert.ToBase64String(salt), AccountKeys.Rounds, keys.SignInKey,
+                WorkspaceKeys.Wrap(workspaceKey, keys.EncryptionKey, WorkspaceKeys.ForMember), DeviceName),
+            signedIn: false, cancel);
         if (reply.Value is not { } session)
             return new Reply<AccountInfo>(default, reply.Problem, reply.Need);
         Keep(session);
         EncryptionKey = keys.EncryptionKey;
+        KeepWorkspaceKey(workspaceKey);
         return new Reply<AccountInfo>(session.Account);
     }
 
@@ -199,8 +273,21 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         return reply;
     }
 
-    public Task<Reply<InviteInfo>> InviteAsync(CancellationToken cancel = default) =>
-        Send<InviteInfo>(HttpMethod.Post, "api/workspace/invites", new { }, signedIn: true, cancel);
+    /// <summary>
+    /// An invite code for your partner: the server's half, then a secret half that unlocks the workspace key and is
+    /// never sent to the server. Give the whole code to your partner.
+    /// </summary>
+    public async Task<Reply<InviteInfo>> InviteAsync(CancellationToken cancel = default)
+    {
+        if (WorkspaceKey is not { } workspaceKey)
+            return new Reply<InviteInfo>(default, "Sign in again on this PC first, so it has the workspace key to share.");
+        var secret = WorkspaceKeys.NewInviteSecret();
+        var reply = await Send<InviteInfo>(HttpMethod.Post, "api/workspace/invites",
+            new InviteRequest(WorkspaceKeys.Wrap(workspaceKey, WorkspaceKeys.FromInviteSecret(secret), WorkspaceKeys.ForInvite)), signedIn: true, cancel);
+        return reply.Value is { } invite
+            ? new Reply<InviteInfo>(invite with { Code = WorkspaceKeys.InviteCode(invite.Code, secret) })
+            : reply;
+    }
 
     public void Dispose()
     {
