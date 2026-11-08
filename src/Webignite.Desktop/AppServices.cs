@@ -67,6 +67,10 @@ public sealed class AppServices : IDisposable
     private AccountClient? account;
     private ProjectService? projects;
 
+    /// <summary>Inbox: what your partner did on tasks you follow, mentions and likes.</summary>
+    public InboxService Inbox => inbox ??= new InboxService(Store, () => Me().Id, Team);
+    private InboxService? inbox;
+
     /// <summary>Shared projects going to and from the workspace on the sync server.</summary>
     public SyncService Sync => sync ??= new SyncService(Store, Account);
     private SyncService? sync;
@@ -85,7 +89,10 @@ public sealed class AppServices : IDisposable
     {
         var result = await Task.Run(() => Sync.SyncAsync());
         if (result.Changed > 0)
+        {
             AreasChanged?.Invoke(["projects"]);
+            AnnounceInbox(await Task.Run(Inbox.NewlyArrived));
+        }
         // Logged once when it starts going wrong, not every minute while the internet is down.
         if (result.Problem != lastSyncProblem && result.Problem is { } problem)
             Webignite.Data.AppLog.Write($"Syncing shared projects: {problem}");
@@ -95,6 +102,15 @@ public sealed class AppServices : IDisposable
     }
 
     private string? lastSyncProblem;
+
+    // A note for each new thing in Inbox (two at most, then one saying how many more), opening the task.
+    private void AnnounceInbox(IReadOnlyList<Webignite.Core.Projects.InboxItem> fresh)
+    {
+        foreach (var item in fresh.Take(2))
+            ShowNote?.Invoke(Webignite.Core.Projects.InboxRules.Headline(item), item.Snippet, () => Go.ProjectTask(item.TaskId));
+        if (fresh.Count > 2)
+            ShowNote?.Invoke($"{fresh.Count - 2} more in Inbox", "Open Inbox in Planner to see them.", () => Go.To(Page.Inbox));
+    }
 
     /// <summary>
     /// You and your partner, made the first time they're needed: "Me" and "Partner" until named in Settings.

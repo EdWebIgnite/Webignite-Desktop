@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.InboxView"
+             x:DataType="vm:InboxViewModel">
+  <UserControl.Styles>
+    <!-- Unread, as Asana's: a dot on the left and the words in full strength. -->
+    <Style Selector="Ellipse.unread">
+      <Setter Property="Width" Value="8" />
+      <Setter Property="Height" Value="8" />
+      <Setter Property="Fill" Value="{DynamicResource Primary}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="16" MaxWidth="900" HorizontalAlignment="Left">
+    <DockPanel>
+      <Button DockPanel.Dock="Right" Classes="quiet" Content="Mark all as read" Command="{Binding MarkAllReadCommand}"
+              IsVisible="{Binding HasUnread}" VerticalAlignment="Center" />
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="Inbox" />
+        <TextBlock Classes="muted" Text="{Binding Summary}" />
+      </StackPanel>
+    </DockPanel>
+    <StackPanel Orientation="Horizontal" Spacing="4">
+      <Button Classes="feedtab" Classes.on="{Binding ShowsActivity}" Content="Activity" Command="{Binding ShowActivityCommand}" />
+      <Button Classes="feedtab" Classes.on="{Binding ShowsArchive}" Content="Archive" Command="{Binding ShowArchiveCommand}" />
+    </StackPanel>
+
+    <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Inbox}" Title="Nothing here"
+                  Text="When your partner gives you a task, mentions you, comments on or changes a task you follow, or likes something of yours, it shows here." />
+
+    <ItemsControl ItemsSource="{Binding Rows}">
+      <ItemsControl.DataTemplates>
+        <DataTemplate DataType="vm:InboxHeading">
+          <TextBlock Classes="label" Text="{Binding Title}" Margin="0,10,0,4" />
+        </DataTemplate>
+        <DataTemplate DataType="vm:InboxRow">
+          <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Command="{Binding OpenCommand}" Padding="10,10">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top" Margin="12,0,0,0">
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" />
+                <Button Classes="quiet" Padding="5" Command="{Binding ArchiveCommand}" IsVisible="{Binding CanArchive}" ToolTip.Tip="Archive">
+                  <c:Icon Data="{StaticResource Icon.Archive}" Size="14" />
+                </Button>
+                <Button Classes="quiet" Padding="5" Command="{Binding MoveBackCommand}" IsVisible="{Binding IsArchived}" ToolTip.Tip="Move back to Activity">
+                  <c:Icon Data="{StaticResource Icon.Undo}" Size="14" />
+                </Button>
+              </StackPanel>
+              <Panel DockPanel.Dock="Left" Width="14" VerticalAlignment="Top" Margin="0,9,4,0">
+                <Ellipse Classes="unread" IsVisible="{Binding IsUnread}" ToolTip.Tip="Unread" />
+              </Panel>
+              <c:Monogram DockPanel.Dock="Left" Text="{Binding Who}" Size="30" VerticalAlignment="Top" Margin="0,0,12,0" />
+              <StackPanel Spacing="3">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding TaskTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="460" />
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding ProjectName}" IsVisible="{Binding HasProject}" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Text="{Binding Line}" FontSize="13" Classes.muted="{Binding !IsUnread}" TextWrapping="Wrap" />
+                <Border Classes="pill" IsVisible="{Binding HasSnippet}" HorizontalAlignment="Left" Padding="10,6" Margin="0,4,0,0">
+                  <TextBlock Text="{Binding Snippet}" TextWrapping="Wrap" FontSize="13" />
+                </Border>
+              </StackPanel>
+            </DockPanel>
+          </Button>
+        </DataTemplate>
+      </ItemsControl.DataTemplates>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>

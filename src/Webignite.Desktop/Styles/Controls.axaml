@@ -170,6 +170,23 @@
   <Style Selector="c|Icon.starred">
     <Setter Property="Foreground" Value="{DynamicResource CategoryYellow}" />
   </Style>
+  <!-- Small tabs as Asana's (Comments / All activity, Activity / Archive): the one showing is filled in. -->
+  <Style Selector="Button.feedtab">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.feedtab.on">
+    <Setter Property="Background" Value="{DynamicResource Picked}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPicked}" />
+  </Style>
+  <Style Selector="Button.feedtab.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Picked}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnPicked}" />
+  </Style>
   <!-- A like I gave, as Asana's: the thumbs-up in the primary colour. -->
   <Style Selector="c|Icon.liked">
     <Setter Property="Foreground" Value="{DynamicResource Primary}" />
