@@ -570,6 +570,13 @@ public partial class ProjectsView : FullBleedView
         }
     }
 
+    // After picking who to mention, typing carries on at the end of the comment.
+    private void MentionClicked(object? sender, RoutedEventArgs e)
+    {
+        CommentBox.Focus();
+        CommentBox.CaretIndex = CommentBox.Text?.Length ?? 0;
+    }
+
     // A comment's right-click menu: copy it, and change or delete my own.
     private void FeedMenu(object? sender, ContextRequestedEventArgs e)
     {

@@ -170,6 +170,10 @@
   <Style Selector="c|Icon.starred">
     <Setter Property="Foreground" Value="{DynamicResource CategoryYellow}" />
   </Style>
+  <!-- A like I gave, as Asana's: the thumbs-up in the primary colour. -->
+  <Style Selector="c|Icon.liked">
+    <Setter Property="Foreground" Value="{DynamicResource Primary}" />
+  </Style>
   <!-- A handle to drag something taller or shorter (Calendar's month, Planner's days): a short bar, darker on hover. -->
   <Style Selector="Border.sizegrip">
     <Setter Property="Height" Value="14" />

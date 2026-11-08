@@ -1557,6 +1557,12 @@
             <!-- As Asana's: Mark complete on the left; the timer, add a subtask, delete and close on the right -->
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <Button Classes="quiet panetool" Command="{Binding ToggleLikeCommand}" ToolTip.Tip="{Binding LikeTip}">
+                  <StackPanel Orientation="Horizontal" Spacing="3">
+                    <c:Icon Data="{StaticResource Icon.Like}" Size="15" Classes.liked="{Binding ILikeIt}" />
+                    <TextBlock Text="{Binding LikeCount}" FontSize="12" VerticalAlignment="Center" IsVisible="{Binding LikeCount, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                </Button>
                 <Button Classes="quiet panetool" Command="{Binding StartTimerCommand}" ToolTip.Tip="Start the timer on this task (Time page)">
                   <c:Icon Data="{StaticResource Icon.Time}" Size="15" />
                 </Button>
@@ -1831,6 +1837,13 @@
                         <TextBlock Text="{Binding When}" Classes="muted" FontSize="12" />
                       </StackPanel>
                       <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding IsComment}" />
+                      <Button Classes="quiet" Padding="4,2" HorizontalAlignment="Left" IsVisible="{Binding IsComment}"
+                              Command="{Binding ToggleLikeCommand}" ToolTip.Tip="{Binding LikeTip}">
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                          <c:Icon Data="{StaticResource Icon.Like}" Size="13" Classes.liked="{Binding ILikeIt}" />
+                          <TextBlock Text="{Binding LikeCount}" FontSize="11" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
                     </StackPanel>
                   </DockPanel>
                 </DataTemplate>
@@ -1840,11 +1853,34 @@
               <c:Monogram DockPanel.Dock="Left" Text="{Binding MyName}" Size="28" VerticalAlignment="Top" Margin="0,2,10,0" />
               <StackPanel Spacing="6">
                 <TextBox x:Name="CommentBox" Text="{Binding NewComment}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64"
-                         PlaceholderText="Add a comment (Ctrl+Enter to post)" KeyDown="CommentKey" />
+                         PlaceholderText="Add a comment (Ctrl+Enter to post, @ to mention)" KeyDown="CommentKey" />
+                <ItemsControl ItemsSource="{Binding MentionSuggestions}" IsVisible="{Binding HasMentionSuggestions}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="6" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Button Classes="quiet" Padding="6,3" Click="MentionClicked" CommandParameter="{Binding}"
+                              Command="{Binding $parent[ItemsControl].((vm:TaskDetail)DataContext).MentionCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <c:Monogram Text="{Binding}" Size="20" />
+                          <TextBlock Text="{Binding StringFormat='Mention {0}'}" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
                   <Button Classes="link" Content="Cancel" Command="{Binding CancelEditCommand}" IsVisible="{Binding EditingCommentId, Converter={x:Static ObjectConverters.IsNotNull}}" />
                   <Button Classes="primary" Content="{Binding CommentButton}" Command="{Binding PostCommentCommand}" />
                 </StackPanel>
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="link" Content="{Binding FollowButton}" Command="{Binding ToggleFollowCommand}"
+                          ToolTip.Tip="Followers hear about comments and changes to this task in Inbox" />
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding FollowersText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </DockPanel>
               </StackPanel>
             </DockPanel>
           </StackPanel>

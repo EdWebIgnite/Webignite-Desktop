@@ -6,7 +6,8 @@ using Webignite.Core.Projects;
 
 namespace Webignite.Desktop.ViewModels;
 
-// A task's feed, as Asana's: Comments or All activity, and a box to comment. Synced in shared projects.
+// A task's feed, as Asana's: Comments or All activity, and a box to comment with @mentions; likes and followers.
+// Synced in shared projects.
 public sealed partial class TaskDetail
 {
     public ObservableCollection<FeedRow> Feed { get; } = [];
@@ -33,6 +34,74 @@ public sealed partial class TaskDetail
 
     partial void OnShowsAllChanged(bool value) => LoadFeed();
 
+    // Likes and followers, as Asana's: a thumbs-up by Mark complete, and who follows it above the comment box.
+
+    [ObservableProperty] public partial bool ILikeIt { get; private set; }
+    [ObservableProperty] public partial string LikeCount { get; private set; } = "";
+    [ObservableProperty] public partial string LikeTip { get; private set; } = "Like this task";
+    [ObservableProperty] public partial bool IFollow { get; private set; }
+    [ObservableProperty] public partial string FollowersText { get; private set; } = "";
+
+    public string FollowButton => IFollow ? "Stop following" : "Follow";
+
+    partial void OnIFollowChanged(bool value) => OnPropertyChanged(nameof(FollowButton));
+
+    private void ShowLikesAndFollowers()
+    {
+        var team = services.Team();
+        ILikeIt = Task.LikedBy.Contains(team.Me!.Id);
+        LikeCount = Task.LikedBy.Count > 0 ? Task.LikedBy.Count.ToString(CultureInfo.CurrentCulture) : "";
+        LikeTip = Task.LikedBy.Count == 0 ? "Like this task" : "Liked by " + Names(Task.LikedBy, team);
+        IFollow = Task.Followers.Contains(team.Me.Id);
+        FollowersText = Task.Followers.Count == 0 ? "Nobody follows this task yet." : "Followers: " + Names(Task.Followers, team);
+    }
+
+    private static string Names(IEnumerable<string> ids, TeamSettings team)
+    {
+        var names = ids.Select(team.NameOf).ToList();
+        return names.Count <= 1 ? string.Concat(names) : string.Join(", ", names[..^1]) + " and " + names[^1];
+    }
+
+    [RelayCommand]
+    private void ToggleLike()
+    {
+        if (page.Ours(() => services.Projects.LikeTask(Task.Id, !ILikeIt)) is { } saved)
+            Saved(saved, typed: true);
+    }
+
+    [RelayCommand]
+    private void ToggleFollow()
+    {
+        if (page.Ours(() => services.Projects.FollowTask(Task.Id, !IFollow)) is { } saved)
+            Saved(saved, typed: true);
+    }
+
+    internal void LikeComment(FeedRow row)
+    {
+        if (row.Line.CommentId is { } id && page.Ours(() => services.Projects.LikeComment(id, !row.ILikeIt)) is not null)
+            LoadFeed();
+    }
+
+    /// <summary>People whose name matches what's typed after an @ at the end of the comment, to mention with a click.</summary>
+    public ObservableCollection<string> MentionSuggestions { get; } = [];
+
+    public bool HasMentionSuggestions => MentionSuggestions.Count > 0;
+
+    partial void OnNewCommentChanged(string value)
+    {
+        MentionSuggestions.Clear();
+        if (TaskTalk.MentionTyped(value) is { } typed)
+        {
+            var team = services.Team();
+            foreach (var name in new[] { team.Partner!.Name, team.Me!.Name }.Where(n => n.StartsWith(typed, StringComparison.CurrentCultureIgnoreCase) && n != typed))
+                MentionSuggestions.Add(name);
+        }
+        OnPropertyChanged(nameof(HasMentionSuggestions));
+    }
+
+    [RelayCommand]
+    private void Mention(string name) => NewComment = TaskTalk.CompleteMention(NewComment, name);
+
     [RelayCommand]
     private void ShowComments() => ShowsAll = false;
 
@@ -49,8 +118,14 @@ public sealed partial class TaskDetail
         foreach (var line in TaskTalk.Feed(comments, services.Projects.Activity(Task.Id), ShowsAll, NameOf, CultureInfo.CurrentCulture))
         {
             // My own comments, and those Claude or ChatGPT wrote for me, can be changed and deleted.
-            var mine = line.CommentId is { } id && comments.First(c => c.Id == id).Created.By is { } by && (by == team.Me!.Id || Actors.IsAssistant(by));
-            Feed.Add(new FeedRow(line, TaskTalk.When(line.At, now, TimeZoneInfo.Local, CultureInfo.CurrentCulture), mine, this));
+            var comment = line.CommentId is { } id ? comments.First(c => c.Id == id) : null;
+            var mine = comment?.Created.By is { } by && (by == team.Me!.Id || Actors.IsAssistant(by));
+            Feed.Add(new FeedRow(line, TaskTalk.When(line.At, now, TimeZoneInfo.Local, CultureInfo.CurrentCulture), mine, this)
+            {
+                ILikeIt = comment?.LikedBy.Contains(team.Me!.Id) == true,
+                Likes = comment?.LikedBy.Count ?? 0,
+                LikeTip = comment is { LikedBy.Count: > 0 } ? "Liked by " + Names(comment.LikedBy, team) : "Like this comment",
+            });
         }
         OnPropertyChanged(nameof(NoFeed));
     }
@@ -113,6 +188,14 @@ public sealed partial class FeedRow(FeedLine line, string when, bool mine, TaskD
 
     /// <summary>My own comments can be changed and deleted.</summary>
     public bool IsMine { get; } = mine;
+
+    public bool ILikeIt { get; init; }
+    public int Likes { get; init; }
+    public string LikeTip { get; init; } = "";
+    public string LikeCount => Likes > 0 ? Likes.ToString(CultureInfo.CurrentCulture) : "";
+
+    [RelayCommand]
+    private void ToggleLike() => task.LikeComment(this);
 
     [RelayCommand]
     private void Edit() => task.EditComment(this);

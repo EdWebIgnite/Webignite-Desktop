@@ -46,6 +46,7 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 - **Merging.** When a record comes in that this PC also has, each field keeps whichever change was made later, by
   the stamps every record carries (`RecordMerge`). You and your partner can change different things on the same
   task at the same time and both are kept. A deletion stays deleted unless the other PC changed the record after it.
+  Who follows and who liked something are stamped person by person, so you both liking a task at once keeps both.
 - **Who's who.** Each PC made its own ids for "me" and "my partner" before anything was shared. The first of the
   owner's PCs to sync sends its ids; every other PC takes them on and changes its own records over, so tasks stay
   given to the right person (`TeamIds`). The partner's PC sends nothing until it has them.

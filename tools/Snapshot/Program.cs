@@ -3070,6 +3070,22 @@ Save("site-check");
             paneScroll.Offset = new Vector(0, 10_000);
             Dispatcher.UIThread.RunJobs();
             Save("task-activity");
+            // Likes, followers and @mentions, as Asana's.
+            talk.ShowCommentsCommand.Execute(null);
+            talk.ToggleLikeCommand.Execute(null);
+            talk.Feed[0].ToggleLikeCommand.Execute(null);
+            var partnerName = services.Team().Partner!.Name;
+            talk.NewComment = "Thanks @" + partnerName[..2];
+            Dispatcher.UIThread.RunJobs();
+            Check("Typing @ and the start of a name suggests who to mention", talk.MentionSuggestions.Contains(partnerName));
+            Check("A liked task and comment show the thumbs-up with a count, and I follow the task I made",
+                talk.ILikeIt && talk.LikeCount == "1" && talk.Feed[0].ILikeIt && talk.Feed[0].LikeCount == "1" && talk.IFollow);
+            paneScroll.Offset = new Vector(0, 10_000);
+            Dispatcher.UIThread.RunJobs();
+            Save("task-likes");
+            talk.MentionCommand.Execute(partnerName);
+            Check("Picking who to mention finishes their name", talk.NewComment == $"Thanks @{partnerName} " && !talk.HasMentionSuggestions);
+            talk.NewComment = "";
             paneScroll.Offset = default;
             window.Height = 1080;
             talk.ShowCommentsCommand.Execute(null);
