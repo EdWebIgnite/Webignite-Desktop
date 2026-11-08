@@ -31,6 +31,7 @@ builder.Services.AddSingleton(sp => new ServerStore(sp.GetRequiredService<IConfi
 builder.Services.AddSingleton(new ServerKeys(secret));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<AccountService>();
+builder.Services.AddSingleton<SyncService>();
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower);
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {

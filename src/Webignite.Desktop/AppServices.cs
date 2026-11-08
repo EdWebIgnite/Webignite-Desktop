@@ -67,9 +67,39 @@ public sealed class AppServices : IDisposable
     private AccountClient? account;
     private ProjectService? projects;
 
+    /// <summary>Shared projects going to and from the workspace on the sync server.</summary>
+    public SyncService Sync => sync ??= new SyncService(Store, Account);
+    private SyncService? sync;
+
+    /// <summary>Signed in to a sync server on this PC; looked at without making the account client when there's none set up.</summary>
+    public bool MaySync => (account is not null || Store.GetSetting<AccountSettings>("account") is { ServerAddress.Length: > 0 }) && Account.IsSignedIn;
+
+    /// <summary>Set by the main window: tells the pages that are open which parts changed, e.g. projects after a sync.</summary>
+    public Action<IReadOnlyList<string>>? AreasChanged { get; set; }
+
+    /// <summary>
+    /// Syncs shared projects now, off the screen's thread, and has the open pages read again when something came in.
+    /// Problems are logged; the result says what happened for whoever asked.
+    /// </summary>
+    public async Task<SyncResult> SyncNowAsync()
+    {
+        var result = await Task.Run(() => Sync.SyncAsync());
+        if (result.Changed > 0)
+            AreasChanged?.Invoke(["projects"]);
+        // Logged once when it starts going wrong, not every minute while the internet is down.
+        if (result.Problem != lastSyncProblem && result.Problem is { } problem)
+            Webignite.Data.AppLog.Write($"Syncing shared projects: {problem}");
+        if (!result.Skipped)
+            lastSyncProblem = result.Problem;
+        return result;
+    }
+
+    private string? lastSyncProblem;
+
     /// <summary>
     /// You and your partner, made the first time they're needed: "Me" and "Partner" until named in Settings.
-    /// Ids never change, so names can.
+    /// Ids stay the same, so names can change; the one exception is the partner's PC taking on the workspace
+    /// owner's ids the first time it syncs.
     /// </summary>
     public Webignite.Core.Projects.TeamSettings Team()
     {
@@ -388,6 +418,7 @@ public sealed class AppServices : IDisposable
         if (mail is { } open)
             Task.Run(() => open.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(3));
         xero?.Dispose();
+        sync?.Dispose();
         account?.Dispose();
         Store.Dispose();
     }

@@ -327,7 +327,7 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return (moved, []);
     }
 
-    // Comments and the feed, as Asana's. Kept on this PC; comments are stamped so they can sync later.
+    // Comments and the feed, as Asana's. In shared projects they sync with the rest (see SyncService).
 
     /// <summary>A task's comments, not deleted, oldest first.</summary>
     public IReadOnlyList<TaskComment> Comments(string taskId) =>

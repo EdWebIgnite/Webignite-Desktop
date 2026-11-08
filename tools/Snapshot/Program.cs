@@ -325,6 +325,19 @@ Dispatcher.UIThread.RunJobs();
 Check("Forgot your password asks for the recovery key and a new password twice", settingsPage.IsRecoverForm && settingsPage.NeedsNewPassword);
 Save("settings-account-recover");
 settingsPage.ShowAccountFormCommand.Execute("sign-in");
+// Signed in needs a running sync server, which the snapshot doesn't have: the screen is shown as it would be.
+void SetShown(string property, object value) =>
+    typeof(SettingsViewModel).GetProperty(property)!.SetValue(settingsPage, value);
+SetShown(nameof(SettingsViewModel.IsSignedIn), true);
+SetShown(nameof(SettingsViewModel.HasWorkspaceKey), true);
+SetShown(nameof(SettingsViewModel.IsWorkspaceOwner), true);
+SetShown(nameof(SettingsViewModel.SignedInAs), "Signed in as eddie@webignite.co.za, in the workspace Webignite.");
+SetShown(nameof(SettingsViewModel.WorkspaceMembers), "eddie@webignite.co.za (owner), lize@webignite.co.za");
+SetShown(nameof(SettingsViewModel.LastSyncedText), $"Last synced {new DateTime(2026, 11, 8, 14, 32, 0):g}.");
+Dispatcher.UIThread.RunJobs();
+Check("Signed in shows Sync now and when it last synced", settingsPage.SyncNowCommand is not null && settingsPage.LastSyncedText.StartsWith("Last synced", StringComparison.Ordinal));
+Save("settings-account-signed-in");
+SetShown(nameof(SettingsViewModel.IsSignedIn), false);
 settingsPage.Open("xero");
 
 var today = DateOnly.FromDateTime(DateTime.Today);
