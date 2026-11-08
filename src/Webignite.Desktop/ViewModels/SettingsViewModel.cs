@@ -185,6 +185,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         LoadPrices();
         UpdateAssistantStatus();
         LoadAssistantChanges();
+        LoadAccount();
         UpdateBackupStatus();
     }
 
