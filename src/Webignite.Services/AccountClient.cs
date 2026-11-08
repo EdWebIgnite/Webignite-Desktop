@@ -14,7 +14,7 @@ public sealed record AccountSettings(string ServerAddress = "", string Email = "
 /// into a sign-in key (sent) and an encryption key (kept, for the workspace key in the next step). The refresh
 /// token is kept in Windows Credential Manager, so the PC stays signed in; the access token only in memory.
 /// </summary>
-public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMessageHandler? handler = null) : IDisposable
+public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMessageHandler? handler = null, string? licencePublicKey = null) : IDisposable
 {
     private const string SettingName = "account";
     private const string RefreshName = "webignite-sync-refresh";
@@ -293,6 +293,34 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         return reply.Value is { } invite
             ? new Reply<InviteInfo>(invite with { Code = WorkspaceKeys.InviteCode(invite.Code, secret) })
             : reply;
+    }
+
+    private const string LicenceName = "licence";
+    private readonly string licenceKey = licencePublicKey ?? LicenceKey.Public;
+
+    /// <summary>Whether this copy of the app can check licences: it has the server's public key built in.</summary>
+    public bool ChecksLicences => licenceKey.Length > 0;
+
+    /// <summary>The licence kept on this PC, checked again each time it's read; null when there's none or it doesn't check out.</summary>
+    public Licence? Licence => store.GetSetting<KeptLicence>(LicenceName) is { } kept ? Licences.Read(kept.Token, licenceKey) : null;
+
+    /// <summary>
+    /// Fetches the workspace's licence when the one kept is older than <paramref name="every"/> (or there's none),
+    /// and keeps it only if it's signed by the server's key and for this workspace.
+    /// </summary>
+    public async Task<Reply<Licence>> RefreshLicenceAsync(TimeSpan every, DateTimeOffset now, CancellationToken cancel = default)
+    {
+        if (!ChecksLicences)
+            return new Reply<Licence>(default, "Licences aren't set up in this copy of Webignite yet.");
+        if (store.GetSetting<KeptLicence>(LicenceName) is { } kept && now - kept.Fetched < every && Licence is { } fresh)
+            return new Reply<Licence>(fresh);
+        var reply = await Send<LicenceReply>(HttpMethod.Get, "api/licence", null, signedIn: true, cancel);
+        if (reply.Value is not { } signed)
+            return new Reply<Licence>(Licence, reply.Problem);
+        if (Licences.Read(signed.Token, licenceKey) is not { } licence || (Account is { } account && licence.WorkspaceId != account.Workspace.Id))
+            return new Reply<Licence>(Licence, "The licence from the server didn't check out.");
+        store.SetSetting(LicenceName, new KeptLicence(signed.Token, now));
+        return new Reply<Licence>(licence);
     }
 
     /// <summary>Sends locked records to the workspace on the server.</summary>

@@ -73,6 +73,23 @@ public partial class SettingsViewModel
 
     [ObservableProperty] public partial string InviteText { get; private set; } = "";
 
+    /// <summary>Where this workspace's licence stands: the trial's days left, paid until, or run out.</summary>
+    [ObservableProperty] public partial string LicenceText { get; private set; } = "";
+    [ObservableProperty] public partial bool LicenceProblem { get; private set; }
+
+    private void ShowLicence()
+    {
+        if (!services.Account.ChecksLicences)
+        {
+            LicenceText = "Licences aren't set up in this copy of Webignite yet.";
+            LicenceProblem = false;
+            return;
+        }
+        var standing = Licences.Standing(services.Account.Licence, DateTimeOffset.UtcNow);
+        LicenceText = standing.Text;
+        LicenceProblem = standing.State is LicenceState.Grace or LicenceState.Locked;
+    }
+
     /// <summary>When shared projects last synced on this PC, in the PC's own way of writing dates.</summary>
     [ObservableProperty] public partial string LastSyncedText { get; private set; } = "";
     public bool HasInvite => InviteText.Length > 0;
@@ -90,6 +107,7 @@ public partial class SettingsViewModel
         HasWorkspaceKey = account.HasWorkspaceKey;
         ShowAccountInfo(account.Account);
         ShowLastSynced();
+        ShowLicence();
         if (IsSignedIn && account.Account is null)
             RefreshAccountAsync().Forget("Reading the account from the sync server");
     }
@@ -124,6 +142,7 @@ public partial class SettingsViewModel
         var result = await services.SyncNowAsync();
         SaySync(result.Summary(), problem: result.Problem is not null || result.Unreadable > 0);
         ShowLastSynced();
+        ShowLicence();
     });
 
     private void SaySync(string message, bool problem = false)

@@ -684,6 +684,9 @@
           <TextBlock Classes="problem" FontSize="12" TextWrapping="Wrap" Text="This PC doesn't have the workspace key yet. Sign out and sign in again with your password." IsVisible="{Binding !HasWorkspaceKey}" />
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding WorkspaceMembers, StringFormat='People in it: {0}'}" />
 
+          <TextBlock FontWeight="SemiBold" Text="Licence" Margin="0,6,0,0" />
+          <TextBlock Text="{Binding LicenceText}" TextWrapping="Wrap" Classes.problem="{Binding LicenceProblem}" />
+
           <TextBlock FontWeight="SemiBold" Text="Shared projects" Margin="0,6,0,0" />
           <TextBlock Classes="muted" TextWrapping="Wrap"
                      Text="Projects ticked Shared, with their sections, tasks, comments and activity, sync every minute while you're signed in. When you both change the same task, each field keeps whoever changed it last. Personal projects stay on this PC. Attached files don't sync yet." />

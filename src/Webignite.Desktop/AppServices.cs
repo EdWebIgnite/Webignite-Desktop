@@ -88,6 +88,9 @@ public sealed class AppServices : IDisposable
     public async Task<SyncResult> SyncNowAsync()
     {
         var result = await Task.Run(() => Sync.SyncAsync());
+        // The licence is fetched again twice a day while signed in, so a renewal or a lapse reaches this PC.
+        if (!result.Skipped && result.Problem is null)
+            await Task.Run(() => Account.RefreshLicenceAsync(TimeSpan.FromHours(12), DateTimeOffset.UtcNow));
         if (result.Changed > 0)
         {
             AreasChanged?.Invoke(["projects"]);

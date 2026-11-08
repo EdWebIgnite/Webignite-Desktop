@@ -56,12 +56,21 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 - **Limits:** at most 500 records a push and a pull, ids of up to 64 letters, digits, `-` and `_`, and 512 KB a
   record. A record too big for the server stays on the PC and is counted.
 
+## Licences
+
+A workspace's plan is on the server (`trial`, `active` with a paid-until day, or `complimentary`); `set-plan`
+changes it. The server signs the licence with ECDSA P-256 (`Licences` in Core); the app checks it with the public
+key built in (`LicenceKey.Public`), keeps it in the setting `licence` and fetches it again twice a day while
+signed in. The trial is 30 days; after the licence runs out there are 14 days' grace, then the app locks
+(`Licences.Locks`, not switched on until payments are set up).
+
 ## Settings
 
 | Environment variable | What it is |
 | --- | --- |
 | `WEBIGNITE_SERVER_SECRET` | 32 or more random bytes, Base64 (`openssl rand -base64 32`). Required outside Development. It seals two-factor secrets and makes the stand-in salts. **Never put it in the repository**; losing it means everyone sets up two-factor again. |
 | `WEBIGNITE_SERVER_DATA` | The folder for `webignite-server.db` (default `./data`). Back this folder up. |
+| `WEBIGNITE_LICENCE_KEY` | The key licences are signed with (Base64 PKCS#8), from `make-licence-key`. Without it, licences aren't offered. |
 
 ## Trying it on this PC
 
@@ -92,4 +101,5 @@ Step by step on an xneelo Cloud server, with Docker, Caddy for HTTPS, a firewall
 | `POST /api/recovery/reset` | A new password with the recovery key; every device is signed out. |
 | `POST /api/sync/push` | Locked records for the caller's workspace (`{records: [{kind, id, payload}]}`); each gets the next number. Returns the last number. |
 | `POST /api/sync/pull` | Locked records numbered after `since`, oldest first, up to 500, with the new cursor and whether there are more. |
+| `GET /api/licence` | The workspace's licence, signed: a 30-day trial from when it was made, paid until a day, or free. |
 | `GET /health` | For the server's own monitoring. |
