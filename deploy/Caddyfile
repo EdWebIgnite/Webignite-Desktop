@@ -1,0 +1,14 @@
+# HTTPS for the sync server. Caddy gets and renews the certificate from Let's Encrypt by itself, as long as the
+# domain in .env (SYNC_DOMAIN) points at this server and ports 80 and 443 are open.
+{$SYNC_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:5080
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	request_body {
+		max_size 32MB
+	}
+}

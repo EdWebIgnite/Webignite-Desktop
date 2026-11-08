@@ -10,3 +10,10 @@ publish/
 Releases/
 *.db
 *.db-*
+
+# The sync server's own files on the server it runs on
+deploy/.env
+deploy/data/
+deploy/backups/
+deploy/caddy-data/
+deploy/caddy-config/
