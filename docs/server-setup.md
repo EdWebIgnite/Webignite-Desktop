@@ -199,6 +199,34 @@ scp "ubuntu@sync.webignite.co.za:/opt/webignite/deploy/backups/*.gz" "$env:USERP
 
 (Make that folder first.) If xneelo offers snapshots of the server, a weekly one is a good extra.
 
+## Licences
+
+Each workspace gets a 30-day free trial when it's made. The server signs every licence with its own licence key,
+and the app checks it with the public half built into the app, so it works offline and can't be made up. After
+a licence runs out there are 14 days' grace, then Webignite will lock until it's renewed (the lock is switched
+off until payments are set up). Payments through PayFast come later.
+
+To set it up, once, on the server:
+
+```
+cd /opt/webignite/deploy
+docker compose run --rm server make-licence-key
+```
+
+Put the **private key** it prints after `WEBIGNITE_LICENCE_KEY=` in `.env` (and in your password manager), then
+`docker compose up -d`. Send me the **public key**: it goes into the app (`LicenceKey.Public`), and from that
+build on Settings, Account and sync shows each workspace's licence.
+
+To set a workspace's plan by hand, by the owner's email:
+
+```
+docker compose run --rm server set-plan eddie@webignite.co.za complimentary
+docker compose run --rm server set-plan client@example.co.za active 2026-12-31
+docker compose run --rm server set-plan client@example.co.za trial
+```
+
+`complimentary` is free for good (Webignite's own workspace), `active` is paid until the day given.
+
 ## Keeping it up to date
 
 - **Security updates** for Ubuntu install by themselves. When `ls /var/run/reboot-required` finds the file,

@@ -38,6 +38,16 @@ public sealed partial class ServerStore
                 payload TEXT NOT NULL, PRIMARY KEY (workspace_id, kind, id));
             CREATE INDEX IF NOT EXISTS records_order ON records (workspace_id, seq);
             """);
+        // Columns added after the first version: each added once, to a database made before it.
+        AddColumn(db, "workspaces", "plan", "TEXT NOT NULL DEFAULT 'trial'");
+        AddColumn(db, "workspaces", "paid_until", "TEXT");
+    }
+
+    private static void AddColumn(SqliteConnection db, string table, string column, string definition)
+    {
+        using var look = Command(db, $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = $name", [("$name", column)]);
+        if ((long)look.ExecuteScalar()! == 0)
+            Run(db, $"ALTER TABLE {table} ADD COLUMN {column} {definition}");
     }
 
     private SqliteConnection Open()
