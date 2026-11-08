@@ -19,13 +19,28 @@ public partial class SettingsViewModel
 
     /// <summary>What the form is for: signing in, a new account with its own workspace, or joining with an invite.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSignInForm), nameof(IsNewAccountForm), nameof(IsJoinForm), nameof(IsCreating))]
+    [NotifyPropertyChangedFor(nameof(IsSignInForm), nameof(IsNewAccountForm), nameof(IsJoinForm), nameof(IsCreating), nameof(IsRecoverForm), nameof(NeedsNewPassword))]
     public partial string AccountForm { get; set; } = "sign-in";
 
     public bool IsSignInForm => AccountForm == "sign-in";
     public bool IsNewAccountForm => AccountForm == "new";
     public bool IsJoinForm => AccountForm == "join";
-    public bool IsCreating => !IsSignInForm;
+    public bool IsRecoverForm => AccountForm == "recover";
+    public bool IsCreating => IsNewAccountForm || IsJoinForm;
+
+    /// <summary>The second password box: for a new account, joining, or a new password after recovery.</summary>
+    public bool NeedsNewPassword => !IsSignInForm;
+
+    [ObservableProperty] public partial string RecoveryKeyTyped { get; set; } = "";
+
+    /// <summary>The recovery key of a new account, shown once until it's been kept.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNewRecoveryKey))]
+    public partial string NewRecoveryKey { get; private set; } = "";
+
+    public bool HasNewRecoveryKey => NewRecoveryKey.Length > 0;
+
+    [ObservableProperty] public partial bool HasWorkspaceKey { get; private set; }
 
     [ObservableProperty] public partial bool NeedsSignInCode { get; private set; }
     [ObservableProperty] public partial bool AccountBusy { get; private set; }
@@ -69,6 +84,7 @@ public partial class SettingsViewModel
         if (AccountEmail.Length == 0)
             AccountEmail = account.Settings.Email;
         IsSignedIn = account.IsSignedIn;
+        HasWorkspaceKey = account.HasWorkspaceKey;
         ShowAccountInfo(account.Account);
         if (IsSignedIn && account.Account is null)
             RefreshAccountAsync().Forget("Reading the account from the sync server");
@@ -151,8 +167,34 @@ public partial class SettingsViewModel
             return;
         }
         var reply = await services.Account.SignUpAsync(AccountEmail, AccountPassword, IsNewAccountForm ? NewWorkspaceName : null, IsJoinForm ? JoinCode : null);
-        Signed(reply.Value, reply.Problem);
+        Signed(reply.Value?.Account, reply.Problem);
+        if (reply.Value is { } signedUp)
+        {
+            NewRecoveryKey = signedUp.RecoveryKey;
+            SaySync("Your account is ready. Write down or print your recovery key below and keep it somewhere safe: it's the only way back in if you forget your password. It won't be shown again.");
+        }
     });
+
+    [RelayCommand]
+    private Task Recover() => Busy(async () =>
+    {
+        if (AccountPassword != AccountPasswordAgain)
+        {
+            SaySync("The two passwords aren't the same.", problem: true);
+            return;
+        }
+        var reply = await services.Account.RecoverAsync(AccountEmail, RecoveryKeyTyped, AccountPassword);
+        Signed(reply.Value, reply.Problem);
+        if (reply.Worked)
+        {
+            RecoveryKeyTyped = "";
+            SaySync("Your new password is set and you're signed in. Your other PCs were signed out; sign in there with the new password.");
+        }
+    });
+
+    /// <summary>The recovery key has been written down: it goes from the screen.</summary>
+    [RelayCommand]
+    private void RecoveryKeyKept() => NewRecoveryKey = "";
 
     private void Signed(AccountInfo? account, string? problem)
     {
@@ -164,6 +206,7 @@ public partial class SettingsViewModel
         AccountPassword = AccountPasswordAgain = SignInCode = JoinCode = "";
         NeedsSignInCode = false;
         IsSignedIn = true;
+        HasWorkspaceKey = services.Account.HasWorkspaceKey;
         ShowAccountInfo(account);
         SaySync(account.TwoFactor ? "Signed in." : "Signed in. Turn on two-factor below, so your password alone isn't enough to get in.");
     }
@@ -173,6 +216,8 @@ public partial class SettingsViewModel
     {
         await services.Account.SignOutAsync();
         IsSignedIn = false;
+        HasWorkspaceKey = false;
+        NewRecoveryKey = "";
         SignedInAs = WorkspaceMembers = InviteText = RecoveryCodesText = "";
         ClearTwoFactorSetup();
         SaySync("Signed out on this PC.");
@@ -243,6 +288,6 @@ public partial class SettingsViewModel
             return;
         }
         InviteText = invite.Code;
-        SaySync($"Give this code to your partner. In Webignite they choose Join with an invite. It works once, until {invite.Expires.ToLocalTime():d MMMM}.");
+        SaySync($"Give this whole code to your partner, in a message only they can see: it also unlocks your shared projects. In Webignite they choose Join with an invite. It works once, until {invite.Expires.ToLocalTime():d MMMM}.");
     });
 }

@@ -68,4 +68,35 @@ public sealed class AccountRulesTests
         Assert.NotNull(AccountRules.PasswordProblem("eddie-loves-coffee", "eddie@webignite.co.za"));
         Assert.Null(AccountRules.PasswordProblem("karoo rooibos sunrise", "eddie@webignite.co.za"));
     }
+
+    [Fact]
+    public void A_locked_key_opens_only_with_its_own_key_and_purpose()
+    {
+        var workspace = WorkspaceKeys.NewKey();
+        var password = WorkspaceKeys.NewKey();
+        var locked = WorkspaceKeys.Wrap(workspace, password, WorkspaceKeys.ForMember);
+        Assert.Equal(workspace, WorkspaceKeys.Unwrap(locked, password, WorkspaceKeys.ForMember));
+        Assert.Null(WorkspaceKeys.Unwrap(locked, WorkspaceKeys.NewKey(), WorkspaceKeys.ForMember));
+        Assert.Null(WorkspaceKeys.Unwrap(locked, password, WorkspaceKeys.ForInvite));
+        var bytes = Convert.FromBase64String(locked);
+        bytes[^1] ^= 1;
+        Assert.Null(WorkspaceKeys.Unwrap(Convert.ToBase64String(bytes), password, WorkspaceKeys.ForMember));
+        Assert.Null(WorkspaceKeys.Unwrap("not base64!", password, WorkspaceKeys.ForMember));
+    }
+
+    [Fact]
+    public void Recovery_keys_and_invite_codes_read_back_however_they_are_typed()
+    {
+        var recovery = WorkspaceKeys.NewRecoveryKey();
+        Assert.Equal(52, recovery.Count(char.IsLetterOrDigit));
+        Assert.NotNull(WorkspaceKeys.ReadRecoveryKey(recovery.ToLowerInvariant().Replace('-', ' ')));
+        Assert.Null(WorkspaceKeys.ReadRecoveryKey(recovery[..^5]));
+        var (lockKey, check) = WorkspaceKeys.FromRecoveryKey(WorkspaceKeys.ReadRecoveryKey(recovery)!);
+        Assert.NotEqual(Convert.ToBase64String(lockKey), check);
+
+        var secret = WorkspaceKeys.NewInviteSecret();
+        var code = WorkspaceKeys.InviteCode("ABCD-EFGH-JKLM", secret);
+        Assert.Equal(("ABCDEFGHJKLM", secret), WorkspaceKeys.ReadInviteCode(code.ToLowerInvariant()));
+        Assert.Null(WorkspaceKeys.ReadInviteCode("ABCD-EFGH-JKLM"));
+    }
 }

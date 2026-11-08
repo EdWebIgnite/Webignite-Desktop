@@ -630,16 +630,22 @@
             <Button Classes="segment" Classes.on="{Binding IsSignInForm}" Content="Sign in" Command="{Binding ShowAccountFormCommand}" CommandParameter="sign-in" />
             <Button Classes="segment" Classes.on="{Binding IsNewAccountForm}" Content="New account" Command="{Binding ShowAccountFormCommand}" CommandParameter="new" />
             <Button Classes="segment" Classes.on="{Binding IsJoinForm}" Content="Join with an invite" Command="{Binding ShowAccountFormCommand}" CommandParameter="join" />
+            <Button Classes="segment" Classes.on="{Binding IsRecoverForm}" Content="Forgot your password?" Command="{Binding ShowAccountFormCommand}" CommandParameter="recover" />
           </StackPanel>
           <StackPanel>
             <TextBlock Classes="label" Text="Email" />
             <TextBox Text="{Binding AccountEmail}" />
           </StackPanel>
+          <StackPanel IsVisible="{Binding IsRecoverForm}">
+            <TextBlock Classes="label" Text="Recovery key" />
+            <TextBox Text="{Binding RecoveryKeyTyped}" PlaceholderText="The 52 letters and digits you kept when you made the account" />
+          </StackPanel>
           <StackPanel>
-            <TextBlock Classes="label" Text="Password" />
+            <TextBlock Classes="label" Text="Password" IsVisible="{Binding !IsRecoverForm}" />
+            <TextBlock Classes="label" Text="New password" IsVisible="{Binding IsRecoverForm}" />
             <TextBox PasswordChar="•" Text="{Binding AccountPassword}" PlaceholderText="At least 12 characters; a few words together works well" />
           </StackPanel>
-          <StackPanel IsVisible="{Binding IsCreating}">
+          <StackPanel IsVisible="{Binding NeedsNewPassword}">
             <TextBlock Classes="label" Text="Password again" />
             <TextBox PasswordChar="•" Text="{Binding AccountPasswordAgain}" />
           </StackPanel>
@@ -658,12 +664,24 @@
           <StackPanel Orientation="Horizontal" Spacing="12">
             <Button Classes="primary" Content="Sign in" Command="{Binding SignInCommand}" IsVisible="{Binding IsSignInForm}" IsEnabled="{Binding !AccountBusy}" />
             <Button Classes="primary" Content="Create the account" Command="{Binding CreateAccountCommand}" IsVisible="{Binding IsCreating}" IsEnabled="{Binding !AccountBusy}" />
+            <Button Classes="primary" Content="Set the new password" Command="{Binding RecoverCommand}" IsVisible="{Binding IsRecoverForm}" IsEnabled="{Binding !AccountBusy}" />
           </StackPanel>
         </StackPanel>
 
         <!-- Signed in: who, the workspace, two-factor and inviting your partner. -->
         <StackPanel Spacing="12" IsVisible="{Binding IsSignedIn}">
           <TextBlock Text="{Binding SignedInAs}" TextWrapping="Wrap" />
+          <Border Classes="pending" IsVisible="{Binding HasNewRecoveryKey}" Padding="14">
+            <StackPanel Spacing="8">
+              <TextBlock FontWeight="SemiBold" Text="Your recovery key" />
+              <SelectableTextBlock Text="{Binding NewRecoveryKey}" FontSize="16" FontFamily="Consolas, Menlo, monospace" TextWrapping="Wrap" />
+              <TextBlock Classes="muted" TextWrapping="Wrap"
+                         Text="If you forget your password, this key and your email get you back in without losing anything synced. Nobody else has it, not even the server. Write it down or print it, and keep it away from this PC." />
+              <Button Content="I've kept it safe" Command="{Binding RecoveryKeyKeptCommand}" HorizontalAlignment="Left" />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="muted" FontSize="12" Text="This PC has the workspace key, so it can unlock what's shared." IsVisible="{Binding HasWorkspaceKey}" />
+          <TextBlock Classes="problem" FontSize="12" TextWrapping="Wrap" Text="This PC doesn't have the workspace key yet. Sign out and sign in again with your password." IsVisible="{Binding !HasWorkspaceKey}" />
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding WorkspaceMembers, StringFormat='People in it: {0}'}" />
 
           <TextBlock FontWeight="SemiBold" Text="Two-factor" Margin="0,6,0,0" />

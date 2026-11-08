@@ -52,6 +52,9 @@ public sealed class AccountClientTests : IDisposable
         var signedUp = await client.SignUpAsync("eddie@webignite.co.za", "karoo rooibos sunrise", "Webignite", null, TestContext.Current.CancellationToken);
         Assert.True(signedUp.Worked, signedUp.Problem);
         Assert.NotNull(client.EncryptionKey);
+        Assert.True(client.HasWorkspaceKey);
+        var workspaceKey = client.WorkspaceKey;
+        Assert.Matches("^([A-Z2-7]{4}-){12}[A-Z2-7]{4}$", signedUp.Value!.RecoveryKey);
         Assert.True(client.IsSignedIn);
         Assert.Equal("eddie@webignite.co.za", client.Settings.Email);
 
@@ -66,6 +69,7 @@ public sealed class AccountClientTests : IDisposable
         Assert.True(client.Account!.TwoFactor);
         await client.SignOutAsync(TestContext.Current.CancellationToken);
         Assert.False(client.IsSignedIn);
+        Assert.False(client.HasWorkspaceKey);
 
         using var fresh = Client(new MemorySecretStore());
         var first = await fresh.SignInAsync("eddie@webignite.co.za", "karoo rooibos sunrise", cancel: TestContext.Current.CancellationToken);
@@ -73,7 +77,8 @@ public sealed class AccountClientTests : IDisposable
         Assert.False((await fresh.SignInAsync("eddie@webignite.co.za", "wrong password here", codes.Value.Codes[0], TestContext.Current.CancellationToken)).Worked);
         var second = await fresh.SignInAsync("eddie@webignite.co.za", "karoo rooibos sunrise", codes.Value.Codes[1], TestContext.Current.CancellationToken);
         Assert.True(second.Worked, second.Problem);
-        Assert.Equal(signedUp.Value!.Id, second.Value!.Id);
+        Assert.Equal(signedUp.Value!.Account.Id, second.Value!.Id);
+        Assert.Equal(workspaceKey, fresh.WorkspaceKey);
     }
 
     [Fact]
@@ -86,7 +91,9 @@ public sealed class AccountClientTests : IDisposable
         using var jaco = Client(new MemorySecretStore());
         var joined = await jaco.SignUpAsync("jaco@webignite.co.za", "bosveld thunder storm", null, invite.Code, TestContext.Current.CancellationToken);
         Assert.True(joined.Worked, joined.Problem);
-        Assert.Equal(eddie.Account!.Workspace.Id, joined.Value!.Workspace.Id);
+        Assert.Equal(eddie.Account!.Workspace.Id, joined.Value!.Account.Workspace.Id);
+        // The partner has the same workspace key; the server never had it unlocked.
+        Assert.Equal(eddie.WorkspaceKey, jaco.WorkspaceKey);
     }
 
     [Fact]
@@ -99,5 +106,39 @@ public sealed class AccountClientTests : IDisposable
         Assert.NotNull(client.UseServer("https://user:pass@sync.webignite.co.za"));
         Assert.Null(client.UseServer("http://127.0.0.1:5080"));
         Assert.NotNull(AccountRules.PasswordProblem("short"));
+    }
+
+    [Fact]
+    public async Task A_forgotten_password_is_replaced_with_the_recovery_key_and_the_workspace_key_survives()
+    {
+        using var client = Client();
+        var signedUp = (await client.SignUpAsync("eddie@webignite.co.za", "karoo rooibos sunrise", "Webignite", null, TestContext.Current.CancellationToken)).Value!;
+        var workspaceKey = client.WorkspaceKey;
+
+        using var lostPc = Client(new MemorySecretStore());
+        Assert.False((await lostPc.RecoverAsync("eddie@webignite.co.za", WorkspaceKeys.NewRecoveryKey(), "new password for karoo", TestContext.Current.CancellationToken)).Worked);
+        var recovered = await lostPc.RecoverAsync("eddie@webignite.co.za", signedUp.RecoveryKey.ToLowerInvariant().Replace("-", " ", StringComparison.Ordinal),
+            "new password for karoo", TestContext.Current.CancellationToken);
+        Assert.True(recovered.Worked, recovered.Problem);
+        Assert.Equal(workspaceKey, lostPc.WorkspaceKey);
+
+        using var later = Client(new MemorySecretStore());
+        Assert.False((await later.SignInAsync("eddie@webignite.co.za", "karoo rooibos sunrise", cancel: TestContext.Current.CancellationToken)).Worked);
+        Assert.True((await later.SignInAsync("eddie@webignite.co.za", "new password for karoo", cancel: TestContext.Current.CancellationToken)).Worked);
+        Assert.Equal(workspaceKey, later.WorkspaceKey);
+    }
+
+    [Fact]
+    public async Task An_invite_code_missing_its_secret_half_is_refused_before_anything_is_sent()
+    {
+        using var eddie = Client();
+        await eddie.SignUpAsync("eddie@webignite.co.za", "karoo rooibos sunrise", "Webignite", null, TestContext.Current.CancellationToken);
+        var invite = (await eddie.InviteAsync(TestContext.Current.CancellationToken)).Value!;
+        using var jaco = Client(new MemorySecretStore());
+        var serverHalfOnly = string.Join('-', invite.Code.Split('-').Take(3));
+        Assert.False((await jaco.SignUpAsync("jaco@webignite.co.za", "bosveld thunder storm", null, serverHalfOnly, TestContext.Current.CancellationToken)).Worked);
+        var tampered = invite.Code[..^1] + (invite.Code[^1] == 'A' ? 'B' : 'A');
+        Assert.False((await jaco.SignUpAsync("jaco@webignite.co.za", "bosveld thunder storm", null, tampered, TestContext.Current.CancellationToken)).Worked);
+        Assert.True((await jaco.SignUpAsync("jaco@webignite.co.za", "bosveld thunder storm", null, invite.Code, TestContext.Current.CancellationToken)).Worked);
     }
 }
