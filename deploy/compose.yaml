@@ -1,0 +1,35 @@
+# The sync server and Caddy, which does HTTPS in front of it. Both use the server's own network, so the sync
+# server listens only on 127.0.0.1:5080 and can't be reached from outside except through Caddy, and Caddy is
+# the one trusted to pass on who's calling (for the sign-in limits).
+#
+# Start or update:  docker compose up -d --build     (from this folder)
+# Logs:             docker compose logs -f
+
+services:
+  server:
+    image: webignite-server
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    network_mode: host
+    restart: unless-stopped
+    env_file: .env
+    logging: &logs
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+    volumes:
+      # Owned by the container's own user (id 1654): sudo mkdir -p data && sudo chown 1654:1654 data
+      - ./data:/data
+
+  caddy:
+    image: caddy:2
+    network_mode: host
+    restart: unless-stopped
+    env_file: .env
+    logging: *logs
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-data:/data
+      - ./caddy-config:/config

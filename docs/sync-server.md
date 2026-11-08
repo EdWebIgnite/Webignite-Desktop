@@ -71,6 +71,10 @@ ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/Webignite.Server --u
 
 Then in Webignite, Settings, Account and sync, use `http://localhost:5080` as the sync server.
 
+## On a real server
+
+Step by step on an xneelo Cloud server, with Docker, Caddy for HTTPS, a firewall, nightly backups and updates: [server-setup.md](server-setup.md). The files for it are in `deploy/`.
+
 ## Endpoints
 
 | Method and path | What it does |

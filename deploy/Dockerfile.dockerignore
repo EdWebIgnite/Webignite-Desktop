@@ -1,0 +1,10 @@
+# Only what the server's image is built from goes to Docker; the desktop app, tests and build output stay out.
+*
+!global.json
+!.editorconfig
+!Directory.Build.props
+!Directory.Packages.props
+!src/Webignite.Core/
+!src/Webignite.Server/
+**/bin/
+**/obj/
