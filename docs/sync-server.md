@@ -35,13 +35,13 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 
 ## How shared projects sync
 
-- **Locked before they leave.** Each record (a project, section, task, comment, activity line, or who's who) is
+- **Locked before they leave.** Each record (a project, section, task, comment, activity line, message, or who's who) is
   turned into JSON on the PC and locked with AES-256-GCM, using a key made from the workspace key
   (`RecordLock` in Core). The record's kind and id are bound into the lock, so the server can't swap one record
   for another or change one unnoticed: a record that doesn't open is left out and counted.
 - **What the server sees:** the workspace, each record's kind and id, its size, and the order records arrived in.
   Never names, titles, notes or anything inside.
-- **Only shared projects.** Projects ticked Shared, with their sections, tasks, comments and activity. Personal
+- **Only shared projects.** Projects ticked Shared, with their sections, tasks, comments, activity and messages. Personal
   projects never leave the PC. Attached files don't sync yet.
 - **Merging.** When a record comes in that this PC also has, each field keeps whichever change was made later, by
   the stamps every record carries (`RecordMerge`). You and your partner can change different things on the same

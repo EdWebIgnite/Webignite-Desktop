@@ -172,6 +172,11 @@ public sealed partial class LocalStore : IDisposable
                 task_id TEXT NOT NULL,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS project_messages (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                payload BLOB NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS sync_sent (
                 kind TEXT NOT NULL,
                 id TEXT NOT NULL,

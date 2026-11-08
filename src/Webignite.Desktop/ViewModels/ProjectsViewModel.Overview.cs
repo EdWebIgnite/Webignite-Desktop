@@ -17,8 +17,8 @@ public sealed partial class ProjectsViewModel
     [NotifyPropertyChangedFor(nameof(IsList), nameof(ShowsTaskTools))]
     public partial bool IsOverview { get; set; }
 
-    /// <summary>Add task, filter, sort and group belong to the list and the board.</summary>
-    public bool ShowsTaskTools => !IsOverview;
+    /// <summary>Add task, filter, sort and group belong to the tabs that show tasks.</summary>
+    public bool ShowsTaskTools => !IsOverview && !IsMessages;
 
     partial void OnIsOverviewChanged(bool value)
     {

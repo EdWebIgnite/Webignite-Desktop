@@ -928,6 +928,16 @@ public static class ProjectRules
 
     private static readonly (string Name, Func<TaskComment, object?> Value)[] CommentFields = [("text", c => c.Text)];
 
+    private static readonly (string Name, Func<ProjectMessage, object?> Value)[] MessageFields = [("subject", m => m.Subject), ("text", m => m.Text)];
+
+    private static readonly (string Prefix, Func<ProjectMessage, IReadOnlyList<string>> Members)[] MessageSets = [(Sets.Like, m => m.LikedBy)];
+
+    public static ProjectMessage Stamped(ProjectMessage? before, ProjectMessage after, Stamp now)
+    {
+        var (created, fields, changed) = Mark(before, after, now, MessageFields, MessageSets);
+        return after with { Created = created, Fields = fields, Changed = changed ? now : before!.Changed, Deleted = before?.Deleted };
+    }
+
     public static TaskComment Stamped(TaskComment? before, TaskComment after, Stamp now)
     {
         var (created, fields, changed) = Mark(before, after, now, CommentFields, CommentSets);

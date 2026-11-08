@@ -15,8 +15,9 @@ public static class SyncKinds
     public const string Comment = "comment";
     public const string Activity = "activity";
     public const string Team = "team";
+    public const string Message = "message";
 
-    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { Project, Heading, Task, Comment, Activity, Team };
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { Project, Heading, Task, Comment, Activity, Team, Message };
 }
 
 /// <summary>
@@ -114,6 +115,8 @@ public static class RecordMerge
     private static readonly (string Prefix, string Property)[] CommentSets = [(Sets.Like, "LikedBy")];
     private static readonly (string Prefix, string Property)[] NoSets = [];
 
+    private static readonly Dictionary<string, string[]> MessageMap = new(StringComparer.Ordinal) { ["subject"] = ["Subject"], ["text"] = ["Text", "Mentions"] };
+
     /// <summary>Whether a stamp is later than another; at the same moment, the one by the later id, so both PCs agree.</summary>
     public static bool Later(Stamp a, Stamp b) => a.At != b.At ? a.At > b.At : string.CompareOrdinal(a.By, b.By) > 0;
 
@@ -121,6 +124,7 @@ public static class RecordMerge
     public static Heading Merge(Heading local, Heading remote) => Merge(local, remote, HeadingMap, NoSets);
     public static ProjectTask Merge(ProjectTask local, ProjectTask remote) => Merge(local, remote, TaskMap, TaskSets);
     public static TaskComment Merge(TaskComment local, TaskComment remote) => Merge(local, remote, CommentMap, CommentSets);
+    public static ProjectMessage Merge(ProjectMessage local, ProjectMessage remote) => Merge(local, remote, MessageMap, CommentSets);
 
     private static T Merge<T>(T local, T remote, Dictionary<string, string[]> map, (string Prefix, string Property)[] sets) where T : ITracked
     {

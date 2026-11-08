@@ -396,6 +396,70 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return saved;
     }
 
+    // Messages, as Asana's: a project's conversations, with replies, @mentions and likes. Synced in shared projects.
+
+    /// <summary>A project's conversations, the liveliest first, each with its replies.</summary>
+    public IReadOnlyList<MessageThread> Messages(string projectId) => MessageRules.Threads(store.ListMessages(projectId));
+
+    /// <summary>A new conversation on a project, or a reply to one (<paramref name="replyTo"/>), by me, now.</summary>
+    public (ProjectMessage? Saved, string? Problem) PostMessage(string projectId, string subject, string text, string? replyTo = null)
+    {
+        if (MessageRules.Check(subject, text, replyTo is not null) is { Length: > 0 } problem)
+            return (null, problem);
+        if (Get(projectId) is null)
+            return (null, "The project is gone.");
+        if (replyTo is not null && store.GetMessage(replyTo) is not { Deleted: null })
+            return (null, "That message is gone.");
+        var message = new ProjectMessage
+        {
+            Id = ProjectRules.NewId(), ProjectId = projectId, ReplyTo = replyTo, Subject = replyTo is null ? subject.Trim() : "",
+            Text = text.Trim(), Mentions = MentionsIn(text),
+        };
+        var saved = store.SaveMessage(ProjectRules.Stamped(null, message, Now()));
+        Changed?.Invoke(projectId);
+        return (saved, null);
+    }
+
+    /// <summary>A message's words changed, as stored now.</summary>
+    public ProjectMessage? EditMessage(string id, string subject, string text)
+    {
+        if (store.GetMessage(id) is not { Deleted: null } current || MessageRules.Check(subject, text, current.ReplyTo is not null).Length > 0)
+            return null;
+        var changed = current with { Subject = current.ReplyTo is null ? subject.Trim() : "", Text = text.Trim(), Mentions = MentionsIn(text) };
+        var saved = store.SaveMessage(ProjectRules.Stamped(current, changed, Now()));
+        Changed?.Invoke(current.ProjectId);
+        return saved;
+    }
+
+    /// <summary>Deletes a message (and so, on screen, its replies), leaving a marker to sync; returns it, for Undo.</summary>
+    public ProjectMessage? DeleteMessage(string id)
+    {
+        if (store.GetMessage(id) is not { Deleted: null } current)
+            return null;
+        store.SaveMessage(current with { Deleted = Now() });
+        Changed?.Invoke(current.ProjectId);
+        return current;
+    }
+
+    public void RestoreMessage(ProjectMessage message)
+    {
+        store.SaveMessage(message with { Deleted = null });
+        Changed?.Invoke(message.ProjectId);
+    }
+
+    /// <summary>I like, or stop liking, a message. Null when it's gone.</summary>
+    public ProjectMessage? LikeMessage(string id, bool like)
+    {
+        if (store.GetMessage(id) is not { Deleted: null } current)
+            return null;
+        var likes = Sets.With(current.LikedBy, me(), like);
+        if (ReferenceEquals(likes, current.LikedBy))
+            return current;
+        var saved = store.SaveMessage(ProjectRules.Stamped(current, current with { LikedBy = likes }, Now()));
+        Changed?.Invoke(current.ProjectId);
+        return saved;
+    }
+
     /// <summary>I like, or stop liking, a comment. Null when it's gone.</summary>
     public TaskComment? LikeComment(string id, bool like)
     {

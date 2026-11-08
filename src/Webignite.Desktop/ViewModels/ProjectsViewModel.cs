@@ -110,6 +110,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             else
                 detail.Reload();
         }
+        if (IsMessages)
+            ListMessages();
     }
 
     private void ShowList()
@@ -438,7 +440,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     [NotifyPropertyChangedFor(nameof(IsList))]
     public partial bool IsBoard { get; set; }
 
-    public bool IsList => !IsBoard && !IsFiles && !IsOverview && !IsTimeline && !IsCalendar;
+    public bool IsList => !IsBoard && !IsFiles && !IsOverview && !IsTimeline && !IsCalendar && !IsMessages;
 
     // Kept with the open project only: another project opens the way it was left, a new one as a list.
     partial void OnIsBoardChanged(bool value)

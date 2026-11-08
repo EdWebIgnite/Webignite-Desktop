@@ -52,7 +52,7 @@ public sealed record SyncResult(int Changed = 0, int Sent = 0, string? Problem =
 }
 
 /// <summary>
-/// Syncs shared projects (their sections, tasks, comments and activity) with the workspace on the sync server.
+/// Syncs shared projects (their sections, tasks, comments, activity and messages) with the workspace on the sync server.
 /// Every record is locked on this PC with the workspace key before it goes, so the server only ever holds what it
 /// can't read. What comes in is merged field by field with this PC's copy (see <see cref="RecordMerge"/>), and only
 /// records that changed since they were last sent go out. Personal projects never leave the PC.
@@ -196,6 +196,8 @@ public sealed class SyncService(LocalStore store, AccountClient account, TimePro
                     return Merge(json, record.Id, fingerprint, sent, SyncKinds.Task, store.GetProjectTask, RecordMerge.Merge, t => store.SaveProjectTask(t));
                 case SyncKinds.Comment:
                     return Merge(json, record.Id, fingerprint, sent, SyncKinds.Comment, store.GetComment, RecordMerge.Merge, c => store.SaveComment(c));
+                case SyncKinds.Message:
+                    return Merge(json, record.Id, fingerprint, sent, SyncKinds.Message, store.GetMessage, RecordMerge.Merge, m => store.SaveMessage(m));
                 case SyncKinds.Activity:
                     var activity = JsonSerializer.Deserialize<TaskActivity>(json, RecordLock.Json);
                     if (activity?.Id != record.Id)
@@ -272,6 +274,8 @@ public sealed class SyncService(LocalStore store, AccountClient account, TimePro
             Remapped(task, map, t => store.SaveProjectTask(t));
         foreach (var comment in store.ListAllComments())
             Remapped(comment, map, c => store.SaveComment(c));
+        foreach (var message in store.ListAllMessages())
+            Remapped(message, map, m => store.SaveMessage(m));
         foreach (var activity in store.ListAllActivity())
             Remapped(activity, map, store.ReplaceActivity);
         return true;
@@ -316,6 +320,7 @@ public sealed class SyncService(LocalStore store, AccountClient account, TimePro
         all.AddRange(store.ListHeadings().Where(h => shared.Contains(h.ProjectId)).Select(h => Make(SyncKinds.Heading, h.Id, h)));
         all.AddRange(store.ListProjectTasks().Where(t => shared.Contains(t.ProjectId)).Select(t => Make(SyncKinds.Task, t.Id, t)));
         all.AddRange(store.ListAllComments().Where(c => shared.Contains(c.ProjectId)).Select(c => Make(SyncKinds.Comment, c.Id, c)));
+        all.AddRange(store.ListAllMessages().Where(m => shared.Contains(m.ProjectId)).Select(m => Make(SyncKinds.Message, m.Id, m)));
         all.AddRange(store.ListAllActivity().Where(a => shared.Contains(a.ProjectId)).Select(a => Make(SyncKinds.Activity, a.Id, a)));
         return [.. all.Where(r => SyncLimits.IdIsFine(r.Id))];
     }
