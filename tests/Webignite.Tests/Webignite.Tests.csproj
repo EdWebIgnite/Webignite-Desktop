@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
@@ -17,5 +18,6 @@
     <ProjectReference Include="..\..\src\Webignite.Mail\Webignite.Mail.csproj" />
     <ProjectReference Include="..\..\src\Webignite.Services\Webignite.Services.csproj" />
     <ProjectReference Include="..\..\src\Webignite.Tools\Webignite.Tools.csproj" />
+    <ProjectReference Include="..\..\src\Webignite.Server\Webignite.Server.csproj" />
   </ItemGroup>
 </Project>

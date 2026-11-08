@@ -17,6 +17,7 @@ public partial class SettingsViewModel
         new("screenshots", "Screenshots"),
         new("notes", "Notes"),
         new("projects", "Projects"),
+        new("account", "Account and sync"),
         new("assistants", "Claude and ChatGPT"),
         new("emails", "Email wording"),
         new("documents", "Quotes and invoices"),
@@ -24,7 +25,7 @@ public partial class SettingsViewModel
     ];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowXero), nameof(ShowBackups), nameof(ShowLook), nameof(ShowMail), nameof(ShowFiles), nameof(ShowScreenshots), nameof(ShowNotes), nameof(ShowProjects),
+    [NotifyPropertyChangedFor(nameof(ShowXero), nameof(ShowBackups), nameof(ShowLook), nameof(ShowMail), nameof(ShowFiles), nameof(ShowScreenshots), nameof(ShowNotes), nameof(ShowProjects), nameof(ShowAccount),
         nameof(ShowAssistants), nameof(ShowEmails), nameof(ShowDocuments), nameof(ShowHelp))]
     public partial Section Current { get; set; } = Sections[0];
 
@@ -39,6 +40,7 @@ public partial class SettingsViewModel
     public bool ShowScreenshots => Current.Key == "screenshots";
     public bool ShowNotes => Current.Key == "notes";
     public bool ShowProjects => Current.Key == "projects";
+    public bool ShowAccount => Current.Key == "account";
     public bool ShowAssistants => Current.Key == "assistants";
     public bool ShowEmails => Current.Key == "emails";
     public bool ShowDocuments => Current.Key == "documents";

@@ -310,6 +310,16 @@ Check("Your partner can't have your name", settingsPage.TeamProblem && services.
 settingsPage.PartnerName = "Jaco";
 settingsPage.SaveTeamCommand.Execute(null);
 Save("settings-projects");
+settingsPage.Open("account");
+settingsPage.ShowAccountFormCommand.Execute("new");
+settingsPage.SyncServer = "http://sync.webignite.co.za";
+Wait(settingsPage.CreateAccountCommand.ExecuteAsync(null), "Creating an account against a plain-http server");
+Check("The sync server must be https", settingsPage.SyncProblem && settingsPage.SyncMessage.Contains("https://", StringComparison.Ordinal));
+settingsPage.SyncServer = "https://sync.webignite.co.za";
+settingsPage.AccountEmail = "eddie@webignite.co.za";
+settingsPage.NewWorkspaceName = "Webignite";
+Dispatcher.UIThread.RunJobs();
+Save("settings-account");
 settingsPage.Open("xero");
 
 var today = DateOnly.FromDateTime(DateTime.Today);

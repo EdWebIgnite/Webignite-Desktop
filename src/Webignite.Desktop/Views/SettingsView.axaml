@@ -613,6 +613,99 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="card" IsVisible="{Binding ShowAccount}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Account and sync" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="An account on your Webignite sync server lets you and your partner share projects. Your password never leaves this PC, and what's synced is locked here first, so the server can't read it." />
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="Sync server" />
+          <TextBox Text="{Binding SyncServer}" PlaceholderText="https://sync.webignite.co.za" IsEnabled="{Binding IsSignedOut}" />
+        </StackPanel>
+
+        <!-- Signed out: sign in, create an account, or join a workspace with an invite. -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsSignedOut}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Classes="segment" Classes.on="{Binding IsSignInForm}" Content="Sign in" Command="{Binding ShowAccountFormCommand}" CommandParameter="sign-in" />
+            <Button Classes="segment" Classes.on="{Binding IsNewAccountForm}" Content="New account" Command="{Binding ShowAccountFormCommand}" CommandParameter="new" />
+            <Button Classes="segment" Classes.on="{Binding IsJoinForm}" Content="Join with an invite" Command="{Binding ShowAccountFormCommand}" CommandParameter="join" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Email" />
+            <TextBox Text="{Binding AccountEmail}" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Password" />
+            <TextBox PasswordChar="•" Text="{Binding AccountPassword}" PlaceholderText="At least 12 characters; a few words together works well" />
+          </StackPanel>
+          <StackPanel IsVisible="{Binding IsCreating}">
+            <TextBlock Classes="label" Text="Password again" />
+            <TextBox PasswordChar="•" Text="{Binding AccountPasswordAgain}" />
+          </StackPanel>
+          <StackPanel IsVisible="{Binding IsNewAccountForm}">
+            <TextBlock Classes="label" Text="Workspace name" />
+            <TextBox Text="{Binding NewWorkspaceName}" PlaceholderText="Webignite" />
+          </StackPanel>
+          <StackPanel IsVisible="{Binding IsJoinForm}">
+            <TextBlock Classes="label" Text="Invite code" />
+            <TextBox Text="{Binding JoinCode}" PlaceholderText="ABCD-EFGH-JKLM" />
+          </StackPanel>
+          <StackPanel IsVisible="{Binding NeedsSignInCode}">
+            <TextBlock Classes="label" Text="Code from your authenticator app, or a recovery code" />
+            <TextBox Text="{Binding SignInCode}" Width="200" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Classes="primary" Content="Sign in" Command="{Binding SignInCommand}" IsVisible="{Binding IsSignInForm}" IsEnabled="{Binding !AccountBusy}" />
+            <Button Classes="primary" Content="Create the account" Command="{Binding CreateAccountCommand}" IsVisible="{Binding IsCreating}" IsEnabled="{Binding !AccountBusy}" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Signed in: who, the workspace, two-factor and inviting your partner. -->
+        <StackPanel Spacing="12" IsVisible="{Binding IsSignedIn}">
+          <TextBlock Text="{Binding SignedInAs}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding WorkspaceMembers, StringFormat='People in it: {0}'}" />
+
+          <TextBlock FontWeight="SemiBold" Text="Two-factor" Margin="0,6,0,0" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding TwoFactorOff}"
+                     Text="With two-factor on, signing in also needs a code from an authenticator app on your phone, so a stolen password isn't enough." />
+          <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding TwoFactorOn}"
+                     Text="Two-factor is on. To turn it off, type a code from your authenticator app." />
+          <Button Content="Turn on two-factor" Command="{Binding StartTwoFactorCommand}" IsVisible="{Binding TwoFactorOff}" IsEnabled="{Binding !AccountBusy}" HorizontalAlignment="Left" />
+          <StackPanel Orientation="Horizontal" Spacing="16" IsVisible="{Binding SettingUpTwoFactor}">
+            <Image Source="{Binding TwoFactorQr}" Width="180" Height="180" />
+            <StackPanel Spacing="8" VerticalAlignment="Center">
+              <TextBlock Classes="label" Text="Or type this key into the app" />
+              <SelectableTextBlock Text="{Binding TwoFactorSecret}" FontFamily="Consolas, Menlo, monospace" />
+              <TextBlock Classes="label" Text="The six digits it shows" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBox Text="{Binding TwoFactorCode}" Width="120" />
+                <Button Classes="primary" Content="Turn it on" Command="{Binding ConfirmTwoFactorCommand}" IsEnabled="{Binding !AccountBusy}" />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding TwoFactorOn}">
+            <TextBox Text="{Binding TwoFactorCode}" Width="120" PlaceholderText="Code" />
+            <Button Classes="quiet" Content="Turn off two-factor" Command="{Binding StopTwoFactorCommand}" IsEnabled="{Binding !AccountBusy}" />
+          </StackPanel>
+          <StackPanel IsVisible="{Binding HasRecoveryCodes}">
+            <TextBlock Classes="label" Text="Recovery codes" />
+            <SelectableTextBlock Text="{Binding RecoveryCodesText}" FontFamily="Consolas, Menlo, monospace" />
+          </StackPanel>
+
+          <StackPanel Spacing="8" IsVisible="{Binding IsWorkspaceOwner}">
+            <TextBlock FontWeight="SemiBold" Text="Your partner" Margin="0,6,0,0" />
+            <Button Content="Make an invite code" Command="{Binding InvitePartnerCommand}" IsEnabled="{Binding !AccountBusy}" HorizontalAlignment="Left" />
+            <SelectableTextBlock Text="{Binding InviteText}" FontSize="18" FontFamily="Consolas, Menlo, monospace" IsVisible="{Binding HasInvite}" />
+          </StackPanel>
+
+          <Button Classes="quiet" Content="Sign out on this PC" Command="{Binding SignOutCommand}" IsEnabled="{Binding !AccountBusy}" HorizontalAlignment="Left" Margin="0,6,0,0" />
+        </StackPanel>
+
+        <TextBlock Text="{Binding SyncMessage}" TextWrapping="Wrap" Classes.problem="{Binding SyncProblem}" />
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding ShowProjects}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="You and your partner" />

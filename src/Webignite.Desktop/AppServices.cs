@@ -61,6 +61,10 @@ public sealed class AppServices : IDisposable
 
     /// <summary>Projects, headings and tasks, stamped with who changed them (<see cref="Me"/>) and when.</summary>
     public ProjectService Projects => projects ??= new ProjectService(Store, () => Me().Id);
+
+    /// <summary>Signing in to the Webignite sync server; made the first time Settings, Account and sync needs it.</summary>
+    public AccountClient Account => account ??= new AccountClient(Store, Secrets);
+    private AccountClient? account;
     private ProjectService? projects;
 
     /// <summary>
@@ -384,6 +388,7 @@ public sealed class AppServices : IDisposable
         if (mail is { } open)
             Task.Run(() => open.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(3));
         xero?.Dispose();
+        account?.Dispose();
         Store.Dispose();
     }
 }
