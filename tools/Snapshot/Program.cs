@@ -3563,6 +3563,31 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Open(Page.Overview);
 }
 
+// A project's Messages tab, as Asana's: a conversation with a reply from my partner, and the Share button.
+{
+    var project = services.Projects.Projects().First(p => p.Shared);
+    var partner = services.Team().Partner!;
+    var asPartner = new Webignite.Services.ProjectService(services.Store, () => partner.Id);
+    services.Go.ProjectMessages(project.Id);
+    Dispatcher.UIThread.RunJobs();
+    var projectsPage = (ProjectsViewModel)vm[Page.Projects].Main.Page;
+    Check("Messages opens on its own tab with no task tools", projectsPage.IsMessages && !projectsPage.ShowsTaskTools && projectsPage.NoMessages);
+    projectsPage.NewMessageSubject = "Kick-off";
+    projectsPage.NewMessageText = "Site map and the first wireframes are in the shared folder. Launch is planned for the 20th.";
+    projectsPage.PostMessageCommand.Execute(null);
+    var kickOff = services.Projects.Messages(project.Id)[0].Start;
+    asPartner.PostMessage(project.Id, "", $"@{services.Me().Name} the 20th works for me. I'll have the copy done by the 14th.", kickOff.Id);
+    asPartner.LikeMessage(kickOff.Id, true);
+    projectsPage.Refresh();
+    Dispatcher.UIThread.RunJobs();
+    Check("A message posted shows with my partner's reply and like", projectsPage.MessageThreads.Count == 1
+        && projectsPage.MessageThreads[0].Replies.Count == 1 && projectsPage.MessageThreads[0].Start.LikeCount == "1"
+        && projectsPage.NewMessageSubject.Length == 0);
+    Save("project-messages");
+    projectsPage.ListViewCommand.Execute(null);
+    Open(Page.Overview);
+}
+
 // An error on the screen's thread is logged and shown as a note; the app keeps going. Exits with an error if not.
 {
     Webignite.Data.AppLog.UseRoot(data);

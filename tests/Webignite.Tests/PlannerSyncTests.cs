@@ -119,6 +119,23 @@ public sealed class PlannerSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task Messages_on_a_shared_project_reach_the_other_pc_with_their_replies()
+    {
+        var (owner, member) = await TwoPcs();
+        var project = Shared(owner, "Kloof Street Dental site");
+        var kickOff = owner.Projects.PostMessage(project.Id, "Kick-off", "Here's the plan").Saved!;
+        await Sync(owner);
+        await Sync(member);
+        Assert.Equal("Kick-off", Assert.Single(member.Projects.Messages(project.Id)).Start.Subject);
+
+        clock.Now = clock.Now.AddMinutes(1);
+        member.Projects.PostMessage(project.Id, "", "Looks good", kickOff.Id);
+        await Sync(member);
+        await Sync(owner);
+        Assert.Equal("Looks good", Assert.Single(owner.Projects.Messages(project.Id)[0].Replies).Text);
+    }
+
+    [Fact]
     public async Task Different_fields_changed_on_each_pc_are_both_kept_and_the_same_field_goes_to_the_later_change()
     {
         var (owner, member) = await TwoPcs();

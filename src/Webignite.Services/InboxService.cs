@@ -42,7 +42,7 @@ public sealed class InboxService(LocalStore store, Func<string> me, Func<TeamSet
         var live = store.ListProjects().Where(p => p.Deleted is null).Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
         var people = team();
         return InboxRules.Build(me(), store.ListProjectTasks().Where(t => live.Contains(t.ProjectId)), store.ListAllComments(), store.ListAllActivity(),
-            State.Since!.Value, people.NameOf, CultureInfo.CurrentCulture);
+            State.Since!.Value, people.NameOf, CultureInfo.CurrentCulture, store.ListAllMessages().Where(m => live.Contains(m.ProjectId)));
     }
 
     public int Unread() => InboxRules.Unread(Items(), State);

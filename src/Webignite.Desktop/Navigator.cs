@@ -46,6 +46,7 @@ public sealed class Navigator
     internal Action<string?, string?>? OpenPersonAction { get; set; }
     internal Action<string>? OpenProjectTaskAction { get; set; }
     internal Action<string>? OpenProjectAction { get; set; }
+    internal Action<string>? OpenProjectMessagesAction { get; set; }
     internal Action? MyTasksAction { get; set; }
     internal Action? NewProjectAction { get; set; }
     internal Action<string, string>? ClientNotesAction { get; set; }
@@ -135,6 +136,9 @@ public sealed class Navigator
 
     /// <summary>Opens a project on the Projects page.</summary>
     public void Project(string id) => OpenProjectAction?.Invoke(id);
+
+    /// <summary>Opens a project's Messages tab on the Projects page.</summary>
+    public void ProjectMessages(string id) => OpenProjectMessagesAction?.Invoke(id);
 
     /// <summary>Shows My tasks on the Projects page.</summary>
     public void MyTasks() => MyTasksAction?.Invoke();

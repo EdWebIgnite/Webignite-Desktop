@@ -26,6 +26,9 @@ public sealed record ProjectLayout
     /// <summary>The Calendar tab: a month with each task on its due date.</summary>
     public bool Calendar { get; init; }
 
+    /// <summary>The Messages tab: conversations about the whole project.</summary>
+    public bool Messages { get; init; }
+
     public TaskSort Sort { get; init; }
     public TaskGroup Group { get; init; }
 

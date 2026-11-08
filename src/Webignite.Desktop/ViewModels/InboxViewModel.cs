@@ -96,7 +96,10 @@ public sealed partial class InboxViewModel : ViewModelBase, IRefreshable, IDispo
     {
         services.Inbox.MarkRead([row.Item.Key]);
         Refresh();
-        services.Go.ProjectTask(row.Item.TaskId);
+        if (row.Item.MessageId is not null)
+            services.Go.ProjectMessages(row.Item.ProjectId);
+        else
+            services.Go.ProjectTask(row.Item.TaskId);
     }
 
     internal void Archive(InboxRow row)

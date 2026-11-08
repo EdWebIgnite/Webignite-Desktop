@@ -107,7 +107,8 @@ public sealed class AppServices : IDisposable
     private void AnnounceInbox(IReadOnlyList<Webignite.Core.Projects.InboxItem> fresh)
     {
         foreach (var item in fresh.Take(2))
-            ShowNote?.Invoke(Webignite.Core.Projects.InboxRules.Headline(item), item.Snippet, () => Go.ProjectTask(item.TaskId));
+            ShowNote?.Invoke(Webignite.Core.Projects.InboxRules.Headline(item), item.Snippet,
+                () => { if (item.MessageId is null) Go.ProjectTask(item.TaskId); else Go.ProjectMessages(item.ProjectId); });
         if (fresh.Count > 2)
             ShowNote?.Invoke($"{fresh.Count - 2} more in Inbox", "Open Inbox in Planner to see them.", () => Go.To(Page.Inbox));
     }

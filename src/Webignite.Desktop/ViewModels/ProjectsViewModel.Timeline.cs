@@ -47,7 +47,7 @@ public sealed partial class ProjectsViewModel
     [RelayCommand]
     private void CalendarView() => IsCalendar = true;
 
-    private enum ProjectTab { List, Board, Files, Overview, Timeline, Calendar }
+    private enum ProjectTab { List, Board, Files, Overview, Timeline, Calendar, Messages }
 
     /// <summary>Shows one tab and hides the rest; switching to one that lays tasks out rebuilds it.</summary>
     private void ShowOnly(ProjectTab tab)
@@ -57,12 +57,13 @@ public sealed partial class ProjectsViewModel
         IsOverview = tab == ProjectTab.Overview;
         IsTimeline = tab == ProjectTab.Timeline;
         IsCalendar = tab == ProjectTab.Calendar;
+        IsMessages = tab == ProjectTab.Messages;
         if (tab is ProjectTab.Timeline or ProjectTab.Calendar && open is not null)
             ShowTasks();
     }
 
     private static ProjectTab TabOf(ProjectLayout layout) =>
-        layout.Overview ? ProjectTab.Overview : layout.Timeline ? ProjectTab.Timeline : layout.Calendar ? ProjectTab.Calendar
+        layout.Overview ? ProjectTab.Overview : layout.Messages ? ProjectTab.Messages : layout.Timeline ? ProjectTab.Timeline : layout.Calendar ? ProjectTab.Calendar
         : layout.Files ? ProjectTab.Files : layout.Board ? ProjectTab.Board : ProjectTab.List;
 
     // Timeline

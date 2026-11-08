@@ -1,6 +1,6 @@
 namespace Webignite.Core.Projects;
 
-public enum InboxKind { Assigned, Mentioned, Commented, Completed, Changed, Liked }
+public enum InboxKind { Assigned, Mentioned, Commented, Completed, Changed, Liked, Message }
 
 /// <summary>
 /// Something your partner did that you'd want to know about, as Asana's Inbox: a task given to you, a comment
@@ -9,8 +9,9 @@ public enum InboxKind { Assigned, Mentioned, Commented, Completed, Changed, Like
 /// <param name="Key">Stays the same every time it's worked out, so read and archived can be remembered.</param>
 /// <param name="Line">What happened, after the person's name: "commented", "assigned this task to you".</param>
 /// <param name="Snippet">The comment's words, when it's about one.</param>
+/// <param name="MessageId">The message it's about, when it's from a project's Messages tab rather than a task (TaskId is then empty).</param>
 public sealed record InboxItem(string Key, InboxKind Kind, string TaskId, string ProjectId, string TaskTitle, string WhoId, string Who,
-    DateTimeOffset At, string Line, string Snippet = "");
+    DateTimeOffset At, string Line, string Snippet = "", string? MessageId = null);
 
 /// <summary>What's been read and archived in Inbox on this PC (setting <c>inbox</c>), and from when it starts.</summary>
 public sealed record InboxState
@@ -33,11 +34,13 @@ public static class InboxRules
 
     /// <summary>
     /// What's in my Inbox, newest first: things others did since <paramref name="since"/> on live tasks I follow or
-    /// am given, comments mentioning me, and likes on my comments and tasks. Never what I did myself, nor what
-    /// Claude or ChatGPT did (they work for one of us, who already knows).
+    /// am given, comments mentioning me, likes on my comments and tasks, and messages on projects' Messages tabs
+    /// (with likes on mine). Never what I did myself, nor what Claude or ChatGPT did (they work for one of us, who
+    /// already knows).
     /// </summary>
     public static IReadOnlyList<InboxItem> Build(string me, IEnumerable<ProjectTask> tasks, IEnumerable<TaskComment> comments,
-        IEnumerable<TaskActivity> activity, DateTimeOffset since, Func<string?, string> nameOf, IFormatProvider culture)
+        IEnumerable<TaskActivity> activity, DateTimeOffset since, Func<string?, string> nameOf, IFormatProvider culture,
+        IEnumerable<ProjectMessage>? messages = null)
     {
         var live = tasks.Where(t => t.Deleted is null).ToDictionary(t => t.Id, StringComparer.Ordinal);
         bool Mine(ProjectTask t) => t.Followers.Contains(me) || t.AssignedTo == me;
@@ -72,6 +75,21 @@ public static class InboxRules
         }
         foreach (var task in live.Values.Where(t => t.Created.By == me))
             items.AddRange(Likes(task.Id, task.LikedBy, task.Fields, since, Others).Select(l => Item(l.Key, InboxKind.Liked, task, l.By, l.At, "liked your task")));
+        var allMessages = (messages ?? []).Where(m => m.Deleted is null).ToList();
+        var subjects = allMessages.Where(m => m.ReplyTo is null).ToDictionary(m => m.Id, m => m.Subject, StringComparer.Ordinal);
+        foreach (var m in allMessages)
+        {
+            // A reply whose conversation was deleted goes with it.
+            if (subjects.GetValueOrDefault(m.ReplyTo ?? m.Id) is not { } subject)
+                continue;
+            InboxItem Said(string key, InboxKind kind, string by, DateTimeOffset at, string line) =>
+                new(key, kind, "", m.ProjectId, subject, by, nameOf(by), at, line, Snip(m.Text), m.ReplyTo ?? m.Id);
+            if (m.Created.At >= since && Others(m.Created.By))
+                items.Add(Said("message:" + m.Id, m.Mentions.Contains(me) ? InboxKind.Mentioned : InboxKind.Message, m.Created.By, m.Created.At,
+                    m.Mentions.Contains(me) ? "mentioned you in a message" : m.ReplyTo is null ? "posted a message" : "replied to a message"));
+            if (m.Created.By == me)
+                items.AddRange(Likes(m.Id, m.LikedBy, m.Fields, since, Others).Select(l => Said(l.Key, InboxKind.Liked, l.By, l.At, "liked your message")));
+        }
         return [.. items.OrderByDescending(i => i.At).ThenBy(i => i.Key, StringComparer.Ordinal)];
     }
 
@@ -132,6 +150,7 @@ public static class InboxRules
         InboxKind.Commented => $"{item.Who} commented on {item.TaskTitle}",
         InboxKind.Completed => $"{item.Who} completed {item.TaskTitle}",
         InboxKind.Liked => $"{item.Who} {item.Line}",
+        InboxKind.Message => $"{item.Who} {item.Line}: {item.TaskTitle}",
         _ => $"{item.Who} changed {item.TaskTitle}",
     };
 

@@ -350,6 +350,13 @@ public partial class MainViewModel : ViewModelBase
             Selected = this[Page.Projects];
             PageOf<ProjectsViewModel>(Page.Projects).OpenProject(id);
         };
+        go.OpenProjectMessagesAction = id =>
+        {
+            Selected = this[Page.Projects];
+            var projects = PageOf<ProjectsViewModel>(Page.Projects);
+            projects.OpenProject(id);
+            projects.MessagesViewCommand.Execute(null);
+        };
         go.MyTasksAction = () =>
         {
             Selected = this[Page.Projects];
