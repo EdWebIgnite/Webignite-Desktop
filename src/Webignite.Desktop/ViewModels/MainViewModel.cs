@@ -51,10 +51,13 @@ public partial class MainViewModel : ViewModelBase
         foreach (var area in areas)
         {
             if (area == "projects")
+            {
                 services.Projects.ChangedElsewhere();
+                UpdateInboxBadgeAsync().Forget("Counting what's new in Inbox");
+            }
             pages.UnionWith(area switch
             {
-                "projects" => [Page.Calendar, Page.Planner, Page.Overview, Page.MyPages],
+                "projects" => [Page.Calendar, Page.Planner, Page.Overview, Page.MyPages, Page.Inbox],
                 "todos" => [Page.Calendar, Page.Planner, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
                 "clients" => [Page.Clients, Page.Overview, Page.Retainers],
                 "contacts" => [Page.Contacts],
@@ -101,6 +104,10 @@ public partial class MainViewModel : ViewModelBase
     }
     private bool checkingMail;
     private readonly Module mailModule;
+    private readonly Module inboxModule;
+
+    /// <summary>Unread in Inbox, beside it in the Planner sidebar. Worked out off the screen's thread.</summary>
+    private async Task UpdateInboxBadgeAsync() => inboxModule.Badge = await Task.Run(services.Inbox.Unread);
 
     /// <summary>Set by the main window: whether it's the window in front, so a note isn't shown for mail already on screen.</summary>
     public Func<bool>? WindowIsActive { get; set; }
@@ -184,6 +191,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
             plannerSection,
             new Module(Page.Home, "Home", () => new PlannerHomeViewModel(services), "Home") { InPlanner = true },
+            new Module(Page.Inbox, "Inbox", () => new InboxViewModel(services), "Inbox") { InPlanner = true },
             new NavGroup("my-pages", "MY PAGES"),
             new Module(Page.MyPages, "All my pages", () => new MyPagesViewModel(services), "Tiles"),
             new NavGroup("client-work", "CLIENT WORK"),
@@ -230,6 +238,8 @@ public partial class MainViewModel : ViewModelBase
         Current = Modules[0].Main;
         Selected = Modules[0];
         mailModule = this[Page.Mail];
+        inboxModule = this[Page.Inbox];
+        services.Inbox.Changed += () => UpdateInboxBadgeAsync().Forget("Counting what's new in Inbox");
         Sidebar.WorkHeading.AddCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => services.Go.NewProject());
         // When the sidebar swaps lists, the list now on screen marks the page.
         Sidebar.PropertyChanged += (_, e) =>
@@ -253,6 +263,7 @@ public partial class MainViewModel : ViewModelBase
         };
         services.AreasChanged = ShowAssistantChanges;
         Jobs.Start();
+        UpdateInboxBadgeAsync().Forget("Counting what's new in Inbox");
 
         // How other pages get here. Each one lands on the right page first, then opens the thing.
         var go = services.Go;

@@ -2725,7 +2725,7 @@ Save("site-check");
         var homePage = (PlannerHomeViewModel)vm.Current.Page;
         Check("Clicking Planner opens Home and swaps the sidebar for Planner's", vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Home
             && vm.Sidebar.PlannerItems.First() is SidebarBack
-            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Projects", "Calendar", "Week", "Time"])
+            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Inbox", "Projects", "Calendar", "Week", "Time"])
             && vm.Sidebar.PlannerItems.OfType<ProjectLink>().Any(l => l.Kind == ProjectLinkKind.MyTasks));
         Check("Home greets, counts the week and lists my tasks and recent projects", homePage.Greeting.Contains(services.Me().Name, StringComparison.Ordinal)
             && homePage.CompletedText.EndsWith("completed", StringComparison.Ordinal)
@@ -3527,6 +3527,39 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
         && services.Settings.CalendarSizes.PlannerDayHeight is null);
     window.Width = 1280;
     window.Height = 860;
+    Open(Page.Overview);
+}
+
+// Inbox, as Asana's: what my partner did on a task of mine, a mention, a like and a task given to me.
+{
+    var project = services.Projects.Projects().First(p => p.Shared);
+    var me = services.Me().Id;
+    var partner = services.Team().Partner!;
+    var asPartner = new Webignite.Services.ProjectService(services.Store, () => partner.Id);
+    var mine = services.Projects.AddTask(new Webignite.Core.Projects.ProjectTask { Id = Webignite.Core.Projects.ProjectRules.NewId(), ProjectId = project.Id, Title = "Ask the client for their logo files" }).Saved!;
+    asPartner.AddComment(mine.Id, $"@{services.Me().Name} they sent them through. They're in the shared folder now.");
+    asPartner.LikeTask(mine.Id, true);
+    asPartner.ChangeTask(mine.Id, t => t with { Done = true });
+    var given = asPartner.AddTask(new Webignite.Core.Projects.ProjectTask { Id = Webignite.Core.Projects.ProjectRules.NewId(), ProjectId = project.Id, Title = "Send the client the colour options" }).Saved!;
+    asPartner.ChangeTask(given.Id, t => t with { AssignedTo = me });
+    Open(Page.Inbox);
+    Dispatcher.UIThread.RunJobs();
+    var inboxPage = (InboxViewModel)vm[Page.Inbox].Main.Page;
+    var rows = inboxPage.Rows.OfType<InboxRow>().ToList();
+    Check("Inbox lists what my partner did: given to me, completed, liked and mentioned, newest first, all unread",
+        rows.Count == 4 && rows.All(r => r.IsUnread) && rows[0].Line.EndsWith("assigned this task to you", StringComparison.Ordinal)
+        && rows.Any(r => r.Line.EndsWith("mentioned you", StringComparison.Ordinal) && r.HasSnippet)
+        && rows.Any(r => r.Line.EndsWith("liked your task", StringComparison.Ordinal)));
+    Check("Inbox groups them under Today", inboxPage.Rows.OfType<InboxHeading>().Single().Title == "Today");
+    Wait(Task.Run(services.Inbox.Unread), "Counting Inbox");
+    Save("inbox");
+    rows[1].ArchiveCommand.Execute(null);
+    Check("Archiving takes one out of Activity and reads it", inboxPage.Rows.OfType<InboxRow>().Count() == 3 && services.Inbox.Unread() == 3);
+    inboxPage.ShowArchiveCommand.Execute(null);
+    Check("Archive shows it, ready to move back", inboxPage.Rows.OfType<InboxRow>().Single().IsArchived);
+    inboxPage.ShowActivityCommand.Execute(null);
+    inboxPage.MarkAllReadCommand.Execute(null);
+    Check("Mark all as read reads them all", services.Inbox.Unread() == 0 && inboxPage.Rows.OfType<InboxRow>().All(r => !r.IsUnread) && !inboxPage.HasUnread);
     Open(Page.Overview);
 }
 

@@ -14,6 +14,7 @@ public enum Page
     Home, Projects, Notes, Calendar, Planner, Time, MyPages,
     SiteCheck, Markup, Pdf,
     Settings,
+    Inbox,
 }
 
 /// <summary>

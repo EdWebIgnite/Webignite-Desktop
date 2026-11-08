@@ -244,11 +244,15 @@ public sealed partial class SidebarViewModel : ObservableObject
     {
         var pages = order.Select(k => byKey[k]).OfType<Module>().Where(m => m.InPlanner).ToList();
         var home = pages.FirstOrDefault(m => m.Key == Page.Home);
+        var inbox = pages.FirstOrDefault(m => m.Key == Page.Inbox);
         var projects = pages.FirstOrDefault(m => m.Key == Page.Projects);
         var (above, below) = links.GetValueOrDefault(Page.Projects, ([], []));
         var wanted = new List<object> { PlannerBack };
         if (home is not null)
             wanted.Add(home);
+        // Inbox sits with Home at the top, as Asana's.
+        if (inbox is not null)
+            wanted.Add(inbox);
         wanted.Add(plannerGap);
         wanted.AddRange(above);
         if (projects is not null)
@@ -256,7 +260,7 @@ public sealed partial class SidebarViewModel : ObservableObject
         wanted.Add(WorkHeading);
         wanted.AddRange(below);
         wanted.Add(planHeading);
-        wanted.AddRange(pages.Where(m => m != home && m != projects));
+        wanted.AddRange(pages.Where(m => m != home && m != inbox && m != projects));
         Rebuild(PlannerItems, wanted);
         plannerIcons = [PlannerBack, .. pages];
     }
