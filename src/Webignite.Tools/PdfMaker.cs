@@ -1,5 +1,3 @@
-using Docnet.Core;
-using Docnet.Core.Editors;
 using SkiaSharp;
 
 namespace Webignite.Tools;
@@ -15,30 +13,33 @@ public static class PdfMaker
         byte[] combined;
         lock (PdfPages.Gate)
         {
+            Pdfium.Start();
+            // The pages go into a new PDF that PDFium made itself: it can always add pages to one of its own, even
+            // when it can't to some it opens (ones made by hand or by older programs).
+            var target = Pdfium.FPDF_CreateNewDocument();
             try
             {
-                // PDFium can't add pages to some PDFs it opens (ones made by hand or by older programs), but it can
-                // always add them to one it made itself. So the pages go after a blank page, which is then cut off.
-                var seed = Blank();
-                var merged = DocLib.Instance.Merge([seed, .. parts]);
-                using var reader = DocLib.Instance.GetDocReader(merged, new Docnet.Core.Models.PageDimensions(1, 1));
-                combined = DocLib.Instance.Split(merged, 1, reader.GetPageCount() - 1);
+                foreach (var part in parts)
+                {
+                    try
+                    {
+                        using var source = Pdfium.Open(part);
+                        if (!Pdfium.FPDF_ImportPages(target, source.Handle, null, Pdfium.FPDF_GetPageCount(target)))
+                            throw new IOException("One of the PDFs couldn't be copied in.");
+                    }
+                    catch (InvalidDataException e)
+                    {
+                        throw new IOException("One of the PDFs couldn't be read. It may be locked with a password.", e);
+                    }
+                }
+                combined = Pdfium.Save(target);
             }
-            catch (Docnet.Core.Exceptions.DocnetException e)
+            finally
             {
-                throw new IOException("One of the PDFs couldn't be read. It may be locked with a password.", e);
+                Pdfium.FPDF_CloseDocument(target);
             }
         }
         File.WriteAllBytes(output, combined);
-    }
-
-    private static byte[] Blank()
-    {
-        using var white = new SKBitmap(8, 8);
-        white.Erase(SKColors.White);
-        using var image = SKImage.FromBitmap(white);
-        using var jpeg = image.Encode(SKEncodedImageFormat.Jpeg, 80);
-        return DocLib.Instance.JpegToPdf([new JpegImage { Bytes = jpeg.ToArray(), Width = 8, Height = 8 }]);
     }
 
     /// <summary>A picture as a one-page PDF: turned the right way up and saved as a JPEG inside it.</summary>
@@ -50,13 +51,29 @@ public static class PdfMaker
             ?? throw new IOException($"Couldn't read the picture in {Path.GetFileName(path)}.");
         lock (PdfPages.Gate)
         {
+            Pdfium.Start();
+            var target = Pdfium.FPDF_CreateNewDocument();
             try
             {
-                return DocLib.Instance.JpegToPdf([new JpegImage { Bytes = jpeg.ToArray(), Width = upright.Width, Height = upright.Height }]);
+                // A point for each pixel, as before: the page is the picture's size.
+                var page = Pdfium.FPDFPage_New(target, 0, upright.Width, upright.Height);
+                try
+                {
+                    Pdfium.PutJpeg(target, page, jpeg.ToArray(), upright.Width, upright.Height);
+                }
+                finally
+                {
+                    Pdfium.FPDF_ClosePage(page);
+                }
+                return Pdfium.Save(target);
             }
-            catch (Docnet.Core.Exceptions.DocnetException e)
+            catch (IOException e)
             {
                 throw new IOException($"Couldn't put {Path.GetFileName(path)} into the PDF.", e);
+            }
+            finally
+            {
+                Pdfium.FPDF_CloseDocument(target);
             }
         }
     }

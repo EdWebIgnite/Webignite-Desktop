@@ -1,5 +1,4 @@
-using Docnet.Core;
-using Docnet.Core.Models;
+using SkiaSharp;
 using Webignite.Core.Tools;
 using Webignite.Tools;
 
@@ -35,15 +34,13 @@ public sealed class PdfEditTests
         return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
     }
 
-    // The colour of a point on a page, as shares of the page shown, drawn at 300 pixels wide.
+    // The colour of a point on a page, as shares of the page shown, drawn about 300 pixels wide.
     private static (byte R, byte G, byte B) ColourAt(byte[] pdf, int page, double x, double y)
     {
-        using var reader = DocLib.Instance.GetDocReader(pdf, new PageDimensions(300, 1200));
-        using var drawn = reader.GetPageReader(page);
-        var pixels = drawn.GetImage();
-        var (w, h) = (drawn.GetPageWidth(), drawn.GetPageHeight());
-        var at = ((int)(y * h) * w + (int)(x * w)) * 4;
-        return (pixels[at + 2], pixels[at + 1], pixels[at]);
+        var dotsPerInch = (int)(300 / PdfEdit.PageSizes(pdf)[page].Width * 72);
+        using var drawn = SKBitmap.Decode(PdfEdit.Pictures(pdf, dotsPerInch)[page]);
+        var colour = drawn.GetPixel((int)(x * drawn.Width), (int)(y * drawn.Height));
+        return (colour.Red, colour.Green, colour.Blue);
     }
 
     private static PdfStamp RedBox(int page) => new(page, 0.1, 0.1, 0.3, 0.2)
@@ -66,9 +63,8 @@ public sealed class PdfEditTests
     public void A_turned_page_lies_on_its_side()
     {
         var built = PdfEdit.Build([Sample("Quote")], [new(0, 0, Turns: 1)], []);
-        using var reader = DocLib.Instance.GetDocReader(built, new PageDimensions(300, 1200));
-        using var page = reader.GetPageReader(0);
-        Assert.True(page.GetPageWidth() > page.GetPageHeight());
+        var (width, height) = PdfEdit.PageSizes(built)[0];
+        Assert.True(width > height);
     }
 
     [Theory]
@@ -102,5 +98,44 @@ public sealed class PdfEditTests
         Assert.Equal(2, PdfText.Pages(smaller));
         Assert.Equal((600d, 800d), PdfEdit.PageSizes(smaller)[0]);
         Assert.Equal(2, PdfEdit.Pictures(two).Count);
+    }
+
+    [Fact]
+    public void A_PDF_and_a_picture_go_into_one_PDF_in_order()
+    {
+        var folder = Directory.CreateTempSubdirectory("webignite-pdf-");
+        try
+        {
+            var pdf = Path.Combine(folder.FullName, "quote.pdf");
+            File.WriteAllBytes(pdf, Sample("Quote page"));
+            var picture = Path.Combine(folder.FullName, "slip.png");
+            using (var bitmap = new SKBitmap(40, 20))
+            {
+                bitmap.Erase(SKColors.Blue);
+                using var image = SKImage.FromBitmap(bitmap);
+                using var png = image.Encode(SKEncodedImageFormat.Png, 100);
+                File.WriteAllBytes(picture, png.ToArray());
+            }
+            var output = Path.Combine(folder.FullName, "together.pdf");
+            PdfMaker.Combine([pdf, picture], output);
+            var built = File.ReadAllBytes(output);
+            Assert.Equal(2, PdfText.Pages(built));
+            Assert.Contains("Quote page", PdfText.Read(built), StringComparison.Ordinal);
+            Assert.Equal((40d, 20d), PdfEdit.PageSizes(built)[1]);
+            var blue = ColourAt(built, 1, 0.5, 0.5);
+            Assert.True(blue.B > 200 && blue.R < 60, $"The picture page should be blue, was {blue}");
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_file_that_isnt_a_PDF_says_so()
+    {
+        byte[] notPdf = [.. "Not a PDF at all"u8];
+        Assert.Throws<InvalidDataException>(() => PdfText.Pages(notPdf));
+        Assert.Throws<IOException>(() => PdfEdit.PageSizes(notPdf));
     }
 }

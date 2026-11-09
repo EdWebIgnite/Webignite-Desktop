@@ -1,6 +1,4 @@
 using System.Text;
-using Docnet.Core;
-using Docnet.Core.Models;
 
 namespace Webignite.Tools;
 
@@ -16,21 +14,11 @@ public static class PdfText
     {
         lock (PdfPages.Gate)
         {
-            try
-            {
-                using var reader = DocLib.Instance.GetDocReader(pdf, new PageDimensions(1, 1));
-                var text = new StringBuilder();
-                for (var i = 0; i < Math.Min(reader.GetPageCount(), maxPages); i++)
-                {
-                    using var page = reader.GetPageReader(i);
-                    text.AppendLine(page.GetText());
-                }
-                return text.ToString();
-            }
-            catch (Docnet.Core.Exceptions.DocnetException e)
-            {
-                throw new InvalidDataException("It isn't a PDF that can be read.", e);
-            }
+            using var document = Pdfium.Open(pdf);
+            var text = new StringBuilder();
+            for (var i = 0; i < Math.Min(document.PageCount, maxPages); i++)
+                text.AppendLine(Pdfium.Text(document, i));
+            return text.ToString();
         }
     }
 
@@ -38,15 +26,8 @@ public static class PdfText
     {
         lock (PdfPages.Gate)
         {
-            try
-            {
-                using var reader = DocLib.Instance.GetDocReader(pdf, new PageDimensions(1, 1));
-                return reader.GetPageCount();
-            }
-            catch (Docnet.Core.Exceptions.DocnetException e)
-            {
-                throw new InvalidDataException("It isn't a PDF that can be read.", e);
-            }
+            using var document = Pdfium.Open(pdf);
+            return document.PageCount;
         }
     }
 }

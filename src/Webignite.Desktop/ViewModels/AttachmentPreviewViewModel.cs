@@ -74,7 +74,7 @@ public partial class AttachmentPreviewViewModel : ViewModelBase
                     Note = "This PDF has no pages.";
             }
         }
-        catch (Exception e) when (e is IOException or ArgumentException or InvalidOperationException or Docnet.Core.Exceptions.DocnetException or DllNotFoundException)
+        catch (Exception e) when (e is IOException or ArgumentException or InvalidOperationException or InvalidDataException or DllNotFoundException)
         {
             Note = $"Couldn't show {Name} here ({e.Message}). Open it in another program instead.";
         }
