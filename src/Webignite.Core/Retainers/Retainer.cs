@@ -25,6 +25,9 @@ public sealed record Retainer
     public bool Paused { get; init; }
     public DateTimeOffset Created { get; init; }
 
+    /// <summary>The Xero repeating invoice it was made from, so it isn't brought over twice.</summary>
+    public string? FromXeroRepeating { get; init; }
+
     public decimal MonthlyAmount => Money.Cents(Lines.Sum(l => l.Amount()));
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");

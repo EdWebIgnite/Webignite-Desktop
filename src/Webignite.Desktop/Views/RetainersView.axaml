@@ -15,11 +15,44 @@
             <TextBlock Text="New retainer" />
           </StackPanel>
         </Button>
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="From Xero's repeating invoices" Command="{Binding ShowXeroRepeatingCommand}"
+                VerticalAlignment="Center" Margin="0,0,8,0" IsEnabled="{Binding !ReadingRepeating}"
+                ToolTip.Tip="Brings repeating invoices set up in Xero over as retainers, so Webignite drafts them instead." />
         <StackPanel Spacing="4">
           <TextBlock Classes="h1" Text="Retainers" />
           <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" />
         </StackPanel>
       </DockPanel>
+
+      <Border Classes="card" IsVisible="{Binding ShowingRepeating}">
+        <StackPanel Spacing="10">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="link" Content="Close" Command="{Binding HideXeroRepeatingCommand}" VerticalAlignment="Top" />
+            <StackPanel Spacing="4">
+              <TextBlock Classes="label" Text="REPEATING INVOICES IN XERO" />
+              <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding RepeatingNote}" />
+            </StackPanel>
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding Repeating}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:RepeatingRowViewModel">
+                <DockPanel Margin="0,6">
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" />
+                    <Button Classes="quiet" Content="Make it a retainer" Command="{Binding MakeCommand}" IsVisible="{Binding CanMake}" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding WhyNot}" IsVisible="{Binding !CanMake}" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <StackPanel Spacing="2">
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Client}" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Title}" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Schedule}" />
+                  </StackPanel>
+                </DockPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
 
       <Border Classes="ready" IsVisible="{Binding HasMessage}">
         <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
