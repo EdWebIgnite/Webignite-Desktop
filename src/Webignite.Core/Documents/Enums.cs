@@ -13,5 +13,8 @@ public enum DocumentOrigin
 
     /// <summary>Read from an old QuickBooks PDF during migration.</summary>
     PdfImport,
+
+    /// <summary>Made in Xero itself (not from Webignite) and brought in to be seen here. Changed in Xero only.</summary>
+    Xero,
 }
 

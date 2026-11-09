@@ -85,6 +85,27 @@ public partial class MainViewModel : ViewModelBase
             services.ShowNote?.Invoke("Clients from Xero", news.Summary + ".", () => Selected = this[Page.Clients]);
     }
 
+    /// <summary>Brings in quotes and invoices made in Xero itself and has the pages that show money read again.</summary>
+    private async Task CheckXeroDocumentsAsync()
+    {
+        var news = await services.Work.Run("Bringing in quotes and invoices from Xero", () => services.XeroDocuments.RunAsync());
+        if (news.Problem is { } problem)
+            Webignite.Data.AppLog.Write(problem);
+        if (news.Added + news.Refreshed == 0)
+            return;
+        RefreshMoneyPages();
+        if (news.Added > 0)
+            services.ShowNote?.Invoke("From Xero", news.Summary, () => Selected = this[Page.Invoices]);
+    }
+
+    /// <summary>The pages that list or count quotes and invoices, read again.</summary>
+    internal void RefreshMoneyPages()
+    {
+        foreach (var page in Built<IRefreshable>([Page.Quotes, Page.Invoices, Page.Overview, Page.Money, Page.Reports, Page.Approvals, Page.Clients])
+                     .Where(p => p is not IHoldsWork { HoldsWork: true }))
+            page.Refresh();
+    }
+
     /// <summary>Shows a note for each site that went down, came back, or has a certificate about to run out.</summary>
     private async Task CheckSitesAsync()
     {
@@ -257,6 +278,7 @@ public partial class MainViewModel : ViewModelBase
             CheckPayments = () => CheckPaymentsAsync(),
             CheckSites = CheckSitesAsync,
             CheckXeroClients = CheckXeroClientsAsync,
+            CheckXeroDocuments = CheckXeroDocumentsAsync,
             SyncProjects = () => services.SyncNowAsync(),
             EveryMinute = () => ReleaseIdle(PageIdle),
             AssistantChanged = ShowAssistantChanges,
