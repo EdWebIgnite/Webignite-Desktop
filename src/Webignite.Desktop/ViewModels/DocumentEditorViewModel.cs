@@ -34,7 +34,12 @@ public partial class DocumentEditorViewModel : ViewModelBase
         : this(stored.Document.Kind, services, close)
     {
         this.stored = stored;
-        var doc = stored.Document;
+        Load(stored.Document);
+    }
+
+    /// <summary>Fills the boxes from a document, e.g. when it opens or a change is put aside.</summary>
+    private void Load(Document doc)
+    {
         loading = true;
         CustomerName = doc.Customer.Name;
         Reference = doc.Reference ?? "";
@@ -193,7 +198,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         // Saved onto the document as it is now, and only while it still hasn't gone to Xero. An editor left open
         // on another page mustn't wipe a Xero link made from here meanwhile, or the next Create makes a second one.
         var latest = services.Documents.SaveDraft(stored?.Id ?? StoredDocument.NewId(), Build());
-        if (latest is { Xero.State: not XeroWriteState.None })
+        if (latest is { Xero.State: not (XeroWriteState.None or XeroWriteState.Editing) })
         {
             stored = latest;
             RefreshXero();

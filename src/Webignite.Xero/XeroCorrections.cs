@@ -61,7 +61,7 @@ public sealed class XeroCorrections(XeroApi api, Func<StoredDocument, Func<Store
         try
         {
             var reply = await api.PutAsync("CreditNotes", new JsonObject { ["CreditNotes"] = new JsonArray(payload) },
-                $"{stored.Id}-credit-{stored.CreditNotes.Count + 1}", cancel);
+                CreditKey(stored, amount, reason), cancel);
             made = reply["CreditNotes"]?[0] as JsonObject ?? throw new XeroUncertainException("Xero's reply had no credit note in it.");
         }
         catch (XeroUncertainException e)
@@ -139,6 +139,17 @@ public sealed class XeroCorrections(XeroApi api, Func<StoredDocument, Func<Store
             includeOnline: online && !quote, cancel);
         var attached = new XeroAttachment { Name = name, Bytes = content.LongLength, Online = online && !quote, Added = DateTimeOffset.UtcNow };
         return update(stored, s => s with { Attachments = [.. s.Attachments.Where(a => !string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase)), attached] });
+    }
+
+    /// <summary>
+    /// The same for a second try of the same credit note (so Xero won't make it twice) and different for another one:
+    /// what's been credited already, the amount and the reason.
+    /// </summary>
+    private static string CreditKey(StoredDocument stored, decimal? amount, string? reason)
+    {
+        var text = string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"{stored.CreditNotes.Count}|{stored.CreditNotes.Sum(c => c.Amount):0.00}|{amount:0.00}|{reason?.Trim()}");
+        return $"{stored.Id}-credit-{stored.CreditNotes.Count + 1}-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)))[..12];
     }
 
     private StoredDocument Settle(StoredDocument stored, string status) =>

@@ -6,9 +6,10 @@ public static class DocumentAttachments
     /// <summary>Xero's limit for one attached file.</summary>
     public const long MaxBytes = 25L * 1024 * 1024;
 
-    /// <summary>Once it's in Xero (checked, or being changed).</summary>
+    /// <summary>An invoice once it's in Xero (checked, or being changed). Xero takes attachments on invoices, not quotes.</summary>
     public static bool CanAttach(StoredDocument s) =>
-        s.Xero.Id is not null && s.Xero.State is Xero.XeroWriteState.Verified or Xero.XeroWriteState.Mismatch or Xero.XeroWriteState.Editing;
+        s.Document.Kind == DocumentKind.Invoice
+        && s.Xero.Id is not null && s.Xero.State is Xero.XeroWriteState.Verified or Xero.XeroWriteState.Mismatch or Xero.XeroWriteState.Editing;
 
     /// <summary>Why the file can't be attached, or null when it can.</summary>
     public static string? Check(string name, long bytes) =>

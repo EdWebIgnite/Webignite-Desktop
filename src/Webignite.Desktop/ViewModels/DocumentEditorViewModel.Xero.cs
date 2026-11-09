@@ -18,7 +18,7 @@ public partial class DocumentEditorViewModel
     public ObservableCollection<XeroContact> ContactChoices { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(CanVoid), nameof(CanCredit), nameof(CanRecordPayment), nameof(CanAttach))]
+    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(CanVoid), nameof(CanCredit), nameof(CanRecordPayment), nameof(CanAttach), nameof(CanType))]
     public partial bool XeroBusy { get; set; }
 
     [ObservableProperty]
@@ -43,6 +43,9 @@ public partial class DocumentEditorViewModel
 
     /// <summary>A draft already in Xero being changed here.</summary>
     public bool IsChangingInXero => XeroState == XeroWriteState.Editing;
+
+    /// <summary>Typing is open while it can be changed and nothing is being sent to Xero, so a change can't be lost mid-send.</summary>
+    public bool CanType => IsEditable && !XeroBusy;
     public bool IsVerified => XeroState == XeroWriteState.Verified;
     public bool HasXeroMessage => XeroMessage.Length > 0;
     public bool HasContactQuestion => ContactQuestion is not null;
@@ -103,6 +106,20 @@ public partial class DocumentEditorViewModel
             if (string.IsNullOrWhiteSpace(NumberText) && changed.Xero.Number is { } number)
                 NumberText = number; // so the update keeps Xero's number
         }
+        RefreshXero();
+        OnPropertyChanged(nameof(NumberNote));
+    }
+
+    /// <summary>Puts the change aside: the document goes back to how Xero has it.</summary>
+    [RelayCommand]
+    private void DiscardChange()
+    {
+        if (stored is null)
+            return;
+        stored = services.Documents.Change(stored.Id, d => XeroEdits.StopChanging(d)) ?? stored;
+        Load(stored.Document);
+        changed = false;
+        ShowXero("", problem: false);
         RefreshXero();
         OnPropertyChanged(nameof(NumberNote));
     }
@@ -172,6 +189,7 @@ public partial class DocumentEditorViewModel
         {
             var result = await step();
             stored = result.Stored;
+            services.Documents.DropImportedCopies(stored);
             ClearContactQuestion();
             switch (result)
             {
@@ -269,7 +287,7 @@ public partial class DocumentEditorViewModel
         foreach (var name in new[]
         {
             nameof(XeroState), nameof(IsEditable), nameof(IsVerified), nameof(XeroHint), nameof(CanCreate), nameof(ShowCreate), nameof(ShowCheck),
-            nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(Links), nameof(HasLinks),
+            nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanType), nameof(CanDecideQuote), nameof(Links), nameof(HasLinks),
             nameof(CanVoid), nameof(VoidLabel), nameof(VoidQuestion), nameof(CanCredit), nameof(CreditHint), nameof(CreditNotesText), nameof(HasCreditNotes),
             nameof(CanRecordPayment), nameof(PaymentHint), nameof(CanAttach), nameof(AttachmentsText), nameof(HasAttachments),
             nameof(ShowStartOver), nameof(HasXeroLink), nameof(XeroStatus), nameof(HasXeroStatus), nameof(XeroStatusIsProblem),

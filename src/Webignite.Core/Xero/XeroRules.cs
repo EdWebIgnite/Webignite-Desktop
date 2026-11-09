@@ -67,7 +67,20 @@ public static class XeroEdits
 
     /// <summary>Starts changing it here, or null when it can't be changed (it moved on meanwhile).</summary>
     public static StoredDocument? StartChanging(StoredDocument stored) =>
-        CanChange(stored) ? stored with { Xero = stored.Xero with { State = XeroWriteState.Editing, Problems = [] } } : null;
+        CanChange(stored) ? stored with { Xero = stored.Xero with { State = XeroWriteState.Editing, Problems = [] }, BeforeChange = stored.Document } : null;
+
+    /// <summary>
+    /// Stops changing: the document goes back to how it was (as Xero has it) and is checked again. Used for Discard
+    /// changes, and when Xero no longer has it as a draft. Null when it isn't being changed.
+    /// </summary>
+    public static StoredDocument? StopChanging(StoredDocument stored, string? xeroStatus = null) =>
+        stored.Xero.State != XeroWriteState.Editing ? null
+        : stored with
+        {
+            Document = stored.BeforeChange ?? stored.Document,
+            BeforeChange = null,
+            Xero = stored.Xero with { State = XeroWriteState.Verified, Problems = [], Status = xeroStatus ?? stored.Xero.Status },
+        };
 }
 
 /// <summary>

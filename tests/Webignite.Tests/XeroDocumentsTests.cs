@@ -108,6 +108,20 @@ public sealed class XeroDocumentsTests : IDisposable
     }
 
     [Fact]
+    public void A_refresh_from_xero_keeps_credit_notes_attachments_and_the_quote_link()
+    {
+        var first = XeroDocuments.ToStored(Invoice("x1"), Now, null) with
+        {
+            CreditNotes = [new CreditNoteLink { Id = "cn1", Amount = 200m }],
+            Attachments = [new XeroAttachment { Name = "Timesheet.pdf" }],
+            FromQuote = "q1",
+        };
+        var fresh = Assert.Single(XeroDocuments.Plan([first], [Invoice("x1", "AUTHORISED", 1300m)], Now.AddHours(4)).ToRefresh);
+        Assert.Equal((1, 1, "q1"), (fresh.CreditNotes.Count, fresh.Attachments.Count, fresh.FromQuote));
+        Assert.Equal(1300m, InvoiceCorrections.Creditable(fresh));
+    }
+
+    [Fact]
     public void Xeros_json_is_read_into_a_document()
     {
         var row = JsonNode.Parse("""

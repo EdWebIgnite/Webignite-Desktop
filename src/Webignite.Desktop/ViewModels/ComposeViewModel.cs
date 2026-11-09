@@ -59,7 +59,8 @@ public partial class ComposeViewModel : ViewModelBase
     }
 
     public IReadOnlyList<MailAccount> Accounts { get; }
-    public bool ManyAccounts => Accounts.Count > 1;
+    /// <summary>A quote or invoice mail always goes from the invoice mailbox, so there's no picking another.</summary>
+    public bool ManyAccounts => Accounts.Count > 1 && afterSent is null;
     public string Heading { get; }
     public ObservableCollection<ComposeAttachmentViewModel> Attachments { get; } = [];
     public bool HasAttachments => Attachments.Count > 0;

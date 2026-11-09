@@ -141,6 +141,10 @@ public static class XeroDocuments
             },
             Settled = settled is null ? null : before?.Settled is { } was ? was with { As = settled } : new SettledState { On = now, As = settled },
             Created = before?.Created ?? dated,
+            // What was done here stays: credit notes drafted, files attached, the quote it came from.
+            CreditNotes = before?.CreditNotes ?? [],
+            Attachments = before?.Attachments ?? [],
+            FromQuote = before?.FromQuote,
             Updated = now,
         };
     }

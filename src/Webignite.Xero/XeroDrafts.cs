@@ -140,8 +140,9 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
         var status = XeroApi.Str(current["Status"]);
         if (!XeroStatuses.IsDraft(status))
         {
-            stored = save(stored with { Xero = stored.Xero with { Status = status } });
-            return new Result.Stopped(stored, $"It isn't a draft in Xero any more ({status.ToLowerInvariant()}), so it can't be changed from here. Change it in Xero.");
+            // Approved or deleted in Xero meanwhile: the change here is put aside and it goes back to how Xero has it.
+            stored = save(XeroEdits.StopChanging(stored, status) ?? stored);
+            return new Result.Stopped(stored, $"It isn't a draft in Xero any more ({status.ToLowerInvariant()}), so the change wasn't sent. Change it in Xero.");
         }
 
         // The same contact, unless the customer was changed here and Xero has exactly one contact for the new name.
@@ -184,6 +185,7 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
                     State = XeroWriteState.CreatedUnverified,
                     Number = XeroApi.Str(record[NumberKey(doc)]) is { Length: > 0 } n ? n : stored.Xero.Number,
                 },
+                BeforeChange = null,
             });
         }
         catch (XeroUncertainException e)
