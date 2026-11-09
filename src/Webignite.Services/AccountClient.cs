@@ -264,6 +264,55 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         Forget();
     }
 
+    /// <summary>Signs out every other PC on this account; this one stays signed in.</summary>
+    public async Task<Reply<bool>> SignOutOtherPcsAsync(CancellationToken cancel = default)
+    {
+        var reply = await Send<object>(HttpMethod.Post, "api/sessions/others/sign-out", new { }, signedIn: true, cancel);
+        return new Reply<bool>(reply.Worked, reply.Problem);
+    }
+
+    /// <summary>
+    /// A new password while signed in: the current one proves it's you, the workspace key is locked again with the
+    /// new one here (the server never sees either), and every other PC is signed out. The recovery key stays.
+    /// </summary>
+    public async Task<Reply<bool>> ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken cancel = default)
+    {
+        if (Account is not { } account)
+            return new Reply<bool>(false, "Sign in first.");
+        if (WorkspaceKey is not { } workspaceKey)
+            return new Reply<bool>(false, "This PC doesn't have the workspace key. Sign out and sign in again with your password first.");
+        if (AccountRules.PasswordProblem(newPassword, account.Email) is { } problem)
+            return new Reply<bool>(false, problem);
+        var kdf = await Send<KdfInfo>(HttpMethod.Post, "api/kdf", new { email = account.Email }, signedIn: false, cancel);
+        if (kdf.Value is not { } info)
+            return new Reply<bool>(false, kdf.Problem);
+        if (info.Rounds < AccountKeys.FewestRounds)
+            return new Reply<bool>(false, "The sync server asked for weaker password protection than Webignite allows, so it wasn't trusted.");
+        var current = await Task.Run(() => AccountKeys.Derive(currentPassword, Convert.FromBase64String(info.Salt), info.Rounds), cancel);
+        var salt = AccountKeys.NewSalt();
+        var keys = await Task.Run(() => AccountKeys.Derive(newPassword, salt, AccountKeys.Rounds), cancel);
+        var reply = await Send<object>(HttpMethod.Post, "api/account/password",
+            new ChangePasswordRequest(current.SignInKey, Convert.ToBase64String(salt), AccountKeys.Rounds, keys.SignInKey,
+                WorkspaceKeys.Wrap(workspaceKey, keys.EncryptionKey, WorkspaceKeys.ForMember)),
+            signedIn: true, cancel);
+        if (!reply.Worked)
+            return new Reply<bool>(false, reply.Problem);
+        EncryptionKey = keys.EncryptionKey;
+        return new Reply<bool>(true);
+    }
+
+    /// <summary>
+    /// The owner takes someone out of the workspace: they can't sign in or sync any more, and any invite still open
+    /// is cancelled. What they synced before stays on their PC.
+    /// </summary>
+    public async Task<Reply<AccountInfo>> RemoveMemberAsync(string email, CancellationToken cancel = default)
+    {
+        var reply = await Send<AccountInfo>(HttpMethod.Post, "api/workspace/members/remove", new RemoveMemberRequest(email), signedIn: true, cancel);
+        if (reply.Value is { } account)
+            Account = account;
+        return reply;
+    }
+
     public Task<Reply<TwoFactorSetup>> StartTwoFactorAsync(CancellationToken cancel = default) =>
         Send<TwoFactorSetup>(HttpMethod.Post, "api/two-factor", new { }, signedIn: true, cancel);
 

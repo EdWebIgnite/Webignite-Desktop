@@ -64,6 +64,15 @@ public sealed record RecoveryLocked(string WrappedKey);
 public sealed record ResetRequest(string Email, string Check, string Salt, int Rounds, string SignInKey, string WrappedKey, string DeviceName,
     string? NewRecoveryWrappedKey = null, string? NewRecoveryCheck = null, string? Code = null);
 
+/// <summary>The workspace's owner taking someone out of it: they can't sign in or sync any more.</summary>
+public sealed record RemoveMemberRequest(string Email);
+
+/// <summary>
+/// A new password while signed in: the current password's sign-in key proves it's you, and the workspace key comes
+/// locked with the new password. Every other device is signed out.
+/// </summary>
+public sealed record ChangePasswordRequest(string CurrentSignInKey, string Salt, int Rounds, string SignInKey, string WrappedKey);
+
 /// <summary>A problem the server explains in plain words.</summary>
 public sealed record Problem(string Message, string? Need = null);
 

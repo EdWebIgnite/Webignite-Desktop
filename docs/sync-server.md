@@ -28,8 +28,10 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
   code to your partner privately.
 - **Two-factor** with any authenticator app (RFC 6238 codes, `Totp` in Core). Each code works once. Turning it on
   gives eight one-time recovery codes, stored hashed. The secret is kept sealed with the server's own key.
-- **Wrong tries:** ten wrong passwords lock the account for 15 minutes (counted in the database, so tries sent at
-  once all count), and each address can try signing in at most 20 times a minute. Turning two-factor off signs out
+- **Wrong tries:** ten wrong passwords from one address keep that address out of the account for 15 minutes, so
+  someone guessing from elsewhere can't lock the owner out; a hundred from everywhere together lock the whole
+  account for 15 minutes. They're counted in the database, so tries sent at once all count, and each address can
+  try signing in at most 20 times a minute. Turning two-factor off signs out
   every other device.
 - **Devices:** each signed-in PC has a 15-minute access token and a 30-day refresh token. A refresh token works
   once; using any earlier one again, however long ago, signs that PC out, as someone may have copied it. After 90
@@ -109,6 +111,9 @@ Step by step on an xneelo Cloud server, with Docker, Caddy for HTTPS, a firewall
 | `POST /api/invites/open` | The workspace's name and locked key for an invite's server half, before signing up. |
 | `POST /api/recovery/key` | The recovery-locked workspace key, for the right recovery check. |
 | `POST /api/recovery/reset` | A new password with the recovery key; every device is signed out. |
+| `POST /api/account/password` | A new password while signed in, proved with the current one; every other device is signed out. |
+| `POST /api/sessions/others/sign-out` | Signs out every other device of the account. |
+| `POST /api/workspace/members/remove` | The owner takes someone out: their account and devices go, and open invites are cancelled. What they synced before stays on their PC; the workspace key isn't changed. |
 | `POST /api/sync/push` | Locked records for the caller's workspace (`{records: [{kind, id, payload}]}`); each gets the next number. Returns the last number. |
 | `POST /api/sync/pull` | Locked records numbered after `since`, oldest first, up to 500, with the new cursor and whether there are more. |
 | `GET /api/licence` | The workspace's licence, signed: a 30-day trial from when it was made, paid until a day, or free. |

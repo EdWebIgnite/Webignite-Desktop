@@ -11,15 +11,21 @@ public static class AccountEndpoints
         var open = app.MapGroup("/api").RequireRateLimiting("sign-in");
         open.MapPost("/kdf", (EmailRequest request, AccountService accounts) => Results.Ok(accounts.Kdf(request.Email ?? "")));
         open.MapPost("/accounts", (SignUpRequest request, AccountService accounts) => Reply(accounts.SignUp(request)));
-        open.MapPost("/sessions", (SignInRequest request, AccountService accounts) => Reply(accounts.SignIn(request)));
+        open.MapPost("/sessions", (HttpContext http, SignInRequest request, AccountService accounts) => Reply(accounts.SignIn(request, Address(http))));
         open.MapPost("/sessions/refresh", (RefreshRequest request, AccountService accounts) => Reply(accounts.Refresh(request)));
         open.MapPost("/invites/open", (OpenInviteRequest request, AccountService accounts) => Reply(accounts.OpenInvite(request.Code)));
         open.MapPost("/recovery/key", (RecoveryRequest request, AccountService accounts) => Reply(accounts.RecoveryKey(request)));
-        open.MapPost("/recovery/reset", (ResetRequest request, AccountService accounts) => Reply(accounts.Reset(request)));
+        open.MapPost("/recovery/reset", (HttpContext http, ResetRequest request, AccountService accounts) => Reply(accounts.Reset(request, Address(http))));
 
         var signedIn = app.MapGroup("/api").RequireRateLimiting("signed-in");
         signedIn.MapDelete("/sessions/current", (HttpContext http, AccountService accounts) =>
             SignedIn(http, accounts, session => { accounts.SignOut(session); return Results.NoContent(); }));
+        signedIn.MapPost("/sessions/others/sign-out", (HttpContext http, AccountService accounts) =>
+            SignedIn(http, accounts, session => { accounts.SignOutOthers(session); return Results.NoContent(); }));
+        signedIn.MapPost("/account/password", (HttpContext http, ChangePasswordRequest request, AccountService accounts) =>
+            SignedIn(http, accounts, session => Reply(accounts.ChangePassword(session, request, Address(http)), noContent: true)));
+        signedIn.MapPost("/workspace/members/remove", (HttpContext http, RemoveMemberRequest request, AccountService accounts) =>
+            SignedIn(http, accounts, session => Reply(accounts.RemoveMember(session.AccountId, request.Email))));
         signedIn.MapGet("/account", (HttpContext http, AccountService accounts) =>
             SignedIn(http, accounts, session => Results.Ok(accounts.Info(session.AccountId))));
         signedIn.MapPost("/two-factor", (HttpContext http, AccountService accounts) =>
@@ -39,6 +45,9 @@ public static class AccountEndpoints
     }
 
     public sealed record EmailRequest(string? Email);
+
+    // Who's calling, as Caddy passed it on, for counting wrong tries per address.
+    private static string Address(HttpContext http) => http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
     private static IResult Reply<T>(Result<T> result, bool noContent = false) =>
         result.Problem is { } problem ? Results.Json(problem, statusCode: result.Status)
