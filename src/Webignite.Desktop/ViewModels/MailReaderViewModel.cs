@@ -100,6 +100,9 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     [ObservableProperty] public partial bool IsLoading { get; set; } = true;
     [ObservableProperty] public partial string Problem { get; set; } = "";
     [ObservableProperty] public partial bool CanShowImages { get; set; }
+
+    /// <summary>Whether pictures from the internet were asked for on the mail shown now.</summary>
+    public bool ImagesAllowed { get; private set; }
     [ObservableProperty] public partial string DraftedBy { get; set; } = "";
 
     public bool HasDraftedBy => DraftedBy.Length > 0;
@@ -136,9 +139,12 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
         if (mime is null)
             return;
         var body = MailReader.Read(mime, allowImages);
+        ImagesAllowed = allowImages;
         Html = MailStyle.Wrap(body.Html ?? "");
         CanShowImages = body.HasRemoteImages && !allowImages;
-        DraftedBy = body.DraftedBy is { Length: > 0 } who ? $"{who} drafted this. Read it through before you send it." : "";
+        DraftedBy = body.DraftedBy is { Length: > 0 } who ? $"{who} drafted this. Read it through before you send it."
+            : body.RepliesElsewhere is { } elsewhere ? $"Replies to this mail go to {elsewhere}, not the sender's own address. Check it's right before you answer."
+            : "";
         Attachments.Clear();
         foreach (var attachment in body.Attachments)
             Attachments.Add(new AttachmentViewModel(attachment, this));
@@ -232,6 +238,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
         var path = name is null ? UniquePath(folder, attachment.FileName) : Path.Combine(folder, name);
         using (var file = File.Create(path))
             MailReader.SaveAttachment(mime, attachment.Index, file);
+        Webignite.Desktop.Files.InternetMark.Add(path);
         return path;
     }
 

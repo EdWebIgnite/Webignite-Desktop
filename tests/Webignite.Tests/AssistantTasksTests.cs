@@ -17,6 +17,16 @@ public sealed class AssistantTasksTests : IDisposable
         public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
     }
 
+    [Fact]
+    public void Notes_on_a_to_do_cant_be_emptied_or_made_huge_and_what_was_there_is_kept()
+    {
+        var added = tasks.Add("Send the sitemap", TaskSource.Claude, notes: "They asked by mail on Monday");
+        Assert.Contains("can't clear", Assert.Throws<ArgumentException>(() => tasks.Update(added.Id, notes: " ")).Message, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => tasks.Update(added.Id, notes: new string('x', 20_001)));
+        tasks.Update(added.Id, notes: ".");
+        Assert.Contains(AssistantLog.List(store), e => e.Before == "They asked by mail on Monday");
+    }
+
     public AssistantTasksTests()
     {
         store = new LocalStore(Path.Combine(folder, "test.db"), new Vault(RandomNumberGenerator.GetBytes(32)));

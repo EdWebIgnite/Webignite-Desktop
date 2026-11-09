@@ -26,9 +26,22 @@ public static class AssistantLog
         string? field = null, string? before = null, string? beforeHtml = null)
     {
         var entry = new Entry(Guid.CreateVersion7().ToString("N"), at, who, area, recordId, what, field, before, beforeHtml);
-        store.SetSetting(Name, new List<Entry> { entry }.Concat(List(store)).Take(Keep).ToList());
+        store.SetSetting(Name, Kept([entry, .. List(store)], at));
         return entry;
     }
+
+    /// <summary>How long writing that can still be put back is kept, however many changes come after it.</summary>
+    public static readonly TimeSpan KeepPutBackFor = TimeSpan.FromDays(90);
+
+    /// <summary>The most kept at all, so a runaway can't grow the setting without end.</summary>
+    public const int KeepAtMost = 2000;
+
+    /// <summary>
+    /// The newest <see cref="Keep"/>, plus anything older that can still be put back and is under 90 days old. So a
+    /// flood of small changes can't push out the old text of something replaced, which would amount to deleting it.
+    /// </summary>
+    public static List<Entry> Kept(IReadOnlyList<Entry> newestFirst, DateTimeOffset now) =>
+        newestFirst.Where((e, i) => i < Keep || (e.CanPutBack && now - e.At < KeepPutBackFor)).Take(KeepAtMost).ToList();
 
     /// <summary>Marks a change as put back, so it isn't offered again.</summary>
     public static void MarkPutBack(LocalStore store, string id) =>

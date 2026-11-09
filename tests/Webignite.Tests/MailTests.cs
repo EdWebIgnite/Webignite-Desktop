@@ -53,6 +53,42 @@ public sealed class MailTests : IDisposable
     }
 
     [Fact]
+    public void A_reply_to_on_another_domain_is_pointed_out()
+    {
+        static byte[] Mail(string replyTo)
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Karoo Coffee", "accounts@karoocoffee.co.za"));
+            if (replyTo.Length > 0)
+                message.ReplyTo.Add(MailboxAddress.Parse(replyTo));
+            message.Subject = "Invoice query";
+            message.Body = new TextPart("plain") { Text = "Please reply" };
+            using var raw = new MemoryStream();
+            message.WriteTo(raw);
+            return raw.ToArray();
+        }
+        Assert.Equal("payments@karoo-coffee.example", MailReader.Read(Mail("payments@karoo-coffee.example"), false).RepliesElsewhere);
+        Assert.Null(MailReader.Read(Mail("thandi@karoocoffee.co.za"), false).RepliesElsewhere);
+        Assert.Null(MailReader.Read(Mail(""), false).RepliesElsewhere);
+    }
+
+    [Fact]
+    public void Remote_pictures_hidden_in_a_cell_background_or_an_odd_address_are_taken_out_too()
+    {
+        const string html = """<table><tr><td background="https://t.example/p.gif">x</td></tr></table><img src=" https://t.example/q.gif">""";
+        Assert.True(MailHtml.HasRemoteImages(html));
+        Assert.DoesNotContain("t.example", MailHtml.Sanitise(html, allowRemoteImages: false));
+
+        // The viewer's own last check: only what travels inside the mail, unless pictures were asked for.
+        Assert.True(MailImages.Allowed("data:image/png;base64,AAAA", remoteAllowed: false));
+        Assert.True(MailImages.Allowed("cid:logo@x", remoteAllowed: false));
+        Assert.False(MailImages.Allowed(" https://t.example/p.gif", remoteAllowed: false));
+        Assert.False(MailImages.Allowed("//t.example/p.gif", remoteAllowed: false));
+        Assert.True(MailImages.Allowed("https://t.example/p.gif", remoteAllowed: true));
+        Assert.False(MailImages.Allowed("file:///c:/windows/x.png", remoteAllowed: true));
+    }
+
+    [Fact]
     public void Html_turns_into_readable_text()
     {
         var text = MailHtml.ToText("<html><head><style>p{}</style></head><p>Hi Eddie,</p><p>Invoice&nbsp;attached.<br>Thanks &amp; regards</p></html>");

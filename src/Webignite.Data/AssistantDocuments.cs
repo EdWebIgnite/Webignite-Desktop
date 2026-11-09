@@ -43,7 +43,9 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
 
         var name = customer.Trim();
         var client = Webignite.Core.Clients.ClientDirectory.Find(store.ListClients(), name);
-        var email = string.IsNullOrWhiteSpace(customerEmail)
+        // A client already in Webignite keeps the address saved on them: an assistant (perhaps tricked by a mail)
+        // can't send the invoice somewhere else. An address it gives is only used for someone not saved yet.
+        var email = client is not null || string.IsNullOrWhiteSpace(customerEmail)
             ? Webignite.Core.Mail.ClientMail.First(client?.Email)
             : customerEmail.Trim();
 

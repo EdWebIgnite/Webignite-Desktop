@@ -20,6 +20,7 @@ public static class MailReader
         var html = message.HtmlBody;
 
         var draftedBy = message.Headers[MailComposer.DraftedByHeader];
+        var repliesElsewhere = RepliesElsewhere(message);
         if (html is null)
             return new MailBody
             {
@@ -27,6 +28,7 @@ public static class MailReader
                 Text = text ?? "",
                 Attachments = attachments,
                 DraftedBy = draftedBy,
+                RepliesElsewhere = repliesElsewhere,
             };
 
         html = InlineImages(message, html);
@@ -37,7 +39,17 @@ public static class MailReader
             Attachments = attachments,
             HasRemoteImages = MailHtml.HasRemoteImages(html),
             DraftedBy = draftedBy,
+            RepliesElsewhere = repliesElsewhere,
         };
+    }
+
+    // The Reply-To addresses whose domain isn't the sender's, or null when replies go back where the mail came from.
+    private static string? RepliesElsewhere(MimeMessage message)
+    {
+        static string Domain(string address) => address[(address.LastIndexOf('@') + 1)..].Trim().ToLowerInvariant();
+        var from = message.From.Mailboxes.Select(m => Domain(m.Address)).ToHashSet();
+        var elsewhere = message.ReplyTo.Mailboxes.Where(m => !from.Contains(Domain(m.Address))).Select(m => m.Address).ToList();
+        return elsewhere.Count == 0 ? null : string.Join(", ", elsewhere);
     }
 
     /// <summary>Plain text of a message, for previews and for Claude and ChatGPT to read.</summary>

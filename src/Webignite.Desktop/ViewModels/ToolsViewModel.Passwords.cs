@@ -45,7 +45,8 @@ public sealed partial class ToolsViewModel
     {
         if (Password.Length == 0 || top?.Clipboard is not { } clipboard)
             return;
-        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, Password);
-        PasswordMessage = "Copied. Paste it where it's needed; Webignite doesn't keep it.";
+        // Kept out of Windows' clipboard history, the cloud clipboard and Webignite's own, and cleared after a while.
+        await SecretClipboard.CopyAsync(clipboard, Password);
+        PasswordMessage = "Copied. Paste it where it's needed; Webignite doesn't keep it, and it's cleared from the clipboard shortly.";
     }
 }

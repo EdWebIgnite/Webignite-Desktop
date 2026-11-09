@@ -21,6 +21,17 @@ public partial class ComposeView : UserControl
     public ComposeView()
     {
         InitializeComponent();
+        // The quoted mail never fetches anything from the internet.
+        QuotePanel.ImageLoad += (_, e) =>
+        {
+            if (!Webignite.Core.Mail.MailImages.Allowed(e.Event.Src, remoteAllowed: false))
+                e.Event.Handled = true;
+        };
+        QuotePanel.StylesheetLoad += (_, e) =>
+        {
+            if (!Webignite.Core.Mail.MailImages.Allowed(e.Event.Src, remoteAllowed: false))
+                e.Event.SetStyleSheet = "/* not loaded */";
+        };
         Watch(ToBox, AddressField.To);
         Watch(CcBox, AddressField.Cc);
         Watch(BccBox, AddressField.Bcc);

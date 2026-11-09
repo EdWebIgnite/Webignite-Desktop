@@ -19,8 +19,12 @@ public static partial class MailHtml
     [GeneratedRegex(@"(href|src)\s*=\s*([""']?)\s*(javascript|vbscript):[^""'\s>]*\2", RegexOptions.IgnoreCase)]
     private static partial Regex ScriptLinks();
 
-    [GeneratedRegex(@"<img\b[^>]*?\bsrc\s*=\s*([""']?)(https?:)?//[^""'\s>]+\1[^>]*>", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"<img\b[^>]*?\bsrc\s*=\s*([""']?)\s*(https?:)?//[^""'\s>]+\s*\1[^>]*>", RegexOptions.IgnoreCase)]
     private static partial Regex RemoteImages();
+
+    // background="https://..." on a table or cell, which the viewer draws as a picture.
+    [GeneratedRegex(@"\sbackground\s*=\s*([""']?)\s*(https?:)?//[^""'\s>]*\s*\1", RegexOptions.IgnoreCase)]
+    private static partial Regex RemoteBackgrounds();
 
     [GeneratedRegex(@"url\(\s*([""']?)(https?:)?//[^)]*\)", RegexOptions.IgnoreCase)]
     private static partial Regex RemoteCssUrls();
@@ -40,7 +44,7 @@ public static partial class MailHtml
     [GeneratedRegex(@"\n\s*\n\s*\n+")]
     private static partial Regex BlankLines();
 
-    public static bool HasRemoteImages(string html) => RemoteImages().IsMatch(html) || RemoteCssUrls().IsMatch(html);
+    public static bool HasRemoteImages(string html) => RemoteImages().IsMatch(html) || RemoteCssUrls().IsMatch(html) || RemoteBackgrounds().IsMatch(html);
 
     public static string Sanitise(string html, bool allowRemoteImages)
     {
@@ -51,6 +55,7 @@ public static partial class MailHtml
         {
             safe = RemoteImages().Replace(safe, "");
             safe = RemoteCssUrls().Replace(safe, "none");
+            safe = RemoteBackgrounds().Replace(safe, "");
         }
         return safe;
     }
@@ -74,6 +79,21 @@ public static partial class MailHtml
         sb.Append(WebUtility.HtmlEncode(text).Replace("\r\n", "\n").Replace("\n", "<br>"));
         sb.Append("</div>");
         return sb.ToString();
+    }
+}
+
+/// <summary>
+/// The last check on a picture or stylesheet the mail viewer is about to fetch: only what travels inside the mail
+/// (data: and cid:) unless pictures from the internet were asked for.
+/// </summary>
+public static class MailImages
+{
+    public static bool Allowed(string? source, bool remoteAllowed)
+    {
+        var src = (source ?? "").Trim();
+        if (src.StartsWith("data:", StringComparison.OrdinalIgnoreCase) || src.StartsWith("cid:", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return remoteAllowed && (src.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || src.StartsWith("http://", StringComparison.OrdinalIgnoreCase));
     }
 }
 

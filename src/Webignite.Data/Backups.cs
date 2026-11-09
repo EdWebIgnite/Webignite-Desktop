@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Globalization;
 using System.IO.Compression;
 using System.IO.Pipes;
@@ -113,14 +114,15 @@ public static class Backups
         Directory.CreateDirectory(staging);
         try
         {
-            var zipPath = Path.Combine(staging, "backup.zip");
+            // Unlocked in memory, never as a file: the zip holds the raw key, which mustn't touch the disk.
+            using var plain = new MemoryStream();
             using (var input = File.OpenRead(backupPath))
-            using (var plain = File.Create(zipPath))
                 BackupCrypto.Decrypt(input, plain, password);
+            plain.Position = 0;
 
             Info info;
             byte[] key;
-            using (var zip = ZipFile.OpenRead(zipPath))
+            using (var zip = new ZipArchive(plain, ZipArchiveMode.Read, leaveOpen: true))
             {
                 var database = zip.GetEntry(DatabaseEntry) ?? throw new InvalidDataException("The backup has no database in it.");
                 var keyEntry = zip.GetEntry(KeyEntry) ?? throw new InvalidDataException("The backup has no key in it.");
@@ -132,7 +134,7 @@ public static class Backups
                 using var infoStream = zip.GetEntry(InfoEntry)?.Open() ?? throw new InvalidDataException("The backup is incomplete.");
                 info = JsonSerializer.Deserialize<Info>(infoStream) ?? throw new InvalidDataException("The backup is incomplete.");
             }
-            File.Delete(zipPath); // it holds the raw key
+            CryptographicOperations.ZeroMemory(plain.GetBuffer());
 
             // Prove the key opens the database before anything is replaced.
             using (var store = new LocalStore(Path.Combine(staging, DatabaseEntry), new Vault(key)))

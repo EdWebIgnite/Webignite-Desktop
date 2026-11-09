@@ -111,6 +111,9 @@ public sealed class MovedRulesTests
     [InlineData("invoice.exe", true)]
     [InlineData("Setup.MSI", true)]
     [InlineData("statement.pdf.js", true)]
+    [InlineData("help.chm", true)]
+    [InlineData("Invoice.url", true)]
+    [InlineData("setup.appref-ms", true)]
     [InlineData("statement.pdf", false)]
     [InlineData("photo.jpg", false)]
     public void Programs_are_never_opened_from_mail(string name, bool program) => Assert.Equal(program, AttachmentPreview.IsProgram(name));

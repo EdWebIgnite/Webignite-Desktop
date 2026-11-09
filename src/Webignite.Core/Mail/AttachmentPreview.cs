@@ -15,6 +15,8 @@ public static class AttachmentPreview
     {
         ".exe", ".com", ".bat", ".cmd", ".scr", ".pif", ".msi", ".msp", ".js", ".jse", ".vbs", ".vbe", ".wsf", ".wsh",
         ".ps1", ".psm1", ".hta", ".jar", ".lnk", ".reg", ".cpl", ".dll", ".iso", ".img", ".vhd", ".vhdx", ".appx", ".msix",
+        ".url", ".chm", ".msc", ".application", ".appref-ms", ".xll", ".settingcontent-ms", ".diagcab", ".wsc", ".sct", ".scf",
+        ".inf", ".gadget", ".mht", ".mhtml", ".vb", ".ws", ".psd1", ".ps1xml", ".msh", ".appinstaller", ".library-ms", ".search-ms",
     };
 
     /// <summary>Whether an attachment would run as a program if opened. A security rule: such files are only saved.</summary>
