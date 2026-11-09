@@ -130,6 +130,13 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
             .Select(a => new XeroSalesAccount(Str(a["Code"]), Str(a["Name"])))
             .ToList();
 
+    /// <summary>The items in Xero's Products and Services, for linking quote and invoice lines to them.</summary>
+    public async Task<IReadOnlyList<XeroItem>> ItemsAsync(CancellationToken cancel = default) =>
+        ((await GetAsync("Items", cancel))["Items"] as JsonArray ?? []).OfType<JsonObject>()
+            .Select(i => new XeroItem(Str(i["Code"]), Str(i["Name"])))
+            .Where(i => i.Code.Length > 0)
+            .ToList();
+
     /// <summary>The organisation's branding themes, in Xero's own order.</summary>
     public async Task<IReadOnlyList<XeroBrandingTheme>> BrandingThemesAsync(CancellationToken cancel = default) =>
         ((await GetAsync("BrandingThemes", cancel))["BrandingThemes"] as JsonArray ?? []).OfType<JsonObject>()

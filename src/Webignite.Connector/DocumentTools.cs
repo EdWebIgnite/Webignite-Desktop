@@ -41,17 +41,19 @@ public sealed class DocumentTools(AssistantDocuments documents)
     public string PrepareDocument(
         [Description("quote or invoice.")] string kind,
         [Description("The customer's name as it is in Xero, e.g. Karoo Coffee Roasters.")] string customer,
-        [Description("The lines. Each has a description, and for priced lines a quantity and unit_price in Rand. A line with no price is a heading or note.")] DraftLineInput[] lines,
+        [Description("The lines. Each has a short item name (Xero's Item column, e.g. WordPress setup), a description of what's included, and for priced lines a quantity and unit_price in Rand. A line with no price is a heading or note.")] DraftLineInput[] lines,
         [Description("The customer's email address, if known. Leave out to use the one saved on the client in Webignite.")] string? customer_email = null,
         [Description("Reference shown on the document, e.g. Website November.")] string? reference = null,
         [Description("Notes for the client printed on the document.")] string? notes = null,
+        [Description("A discount on the whole document as a percentage, e.g. 10. Shown as a discount line before the total. Leave out for none.")] decimal? discount_percent = null,
+        [Description("A discount on the whole document in Rand, e.g. 1000, instead of a percentage. Leave out for none.")] decimal? discount_amount = null,
         McpServer? server = null)
     {
         try
         {
             return Json(documents.Draft(kind, customer,
-                lines.Select(l => new AssistantDocuments.DraftLine(l.Description, l.Quantity, l.UnitPrice)).ToList(),
-                Source(server), customer_email, reference, notes));
+                lines.Select(l => new AssistantDocuments.DraftLine(l.Description, l.Quantity, l.UnitPrice, l.Item)).ToList(),
+                Source(server), customer_email, reference, notes, discount_percent, discount_amount));
         }
         catch (ArgumentException e)
         {
@@ -60,9 +62,10 @@ public sealed class DocumentTools(AssistantDocuments documents)
     }
 
     public sealed record DraftLineInput(
-        [property: Description("What was done or sold.")] string Description,
+        [property: Description("What's included, e.g. WordPress installation, theme setup and essential settings. Don't repeat the item name here.")] string Description,
         [property: Description("How many, e.g. 1 or 3.5 hours. Leave out for a text-only line.")] decimal? Quantity = null,
-        [property: Description("Price per unit in Rand, without VAT. Leave out for a text-only line.")] decimal? UnitPrice = null);
+        [property: Description("Price per unit in Rand, without VAT. Leave out for a text-only line.")] decimal? UnitPrice = null,
+        [property: Description("The short item name shown in Xero's Item column, e.g. WordPress setup or Content population. Up to 30 letters reads best.")] string? Item = null);
 
     private static DocumentSource Source(McpServer? server)
     {
