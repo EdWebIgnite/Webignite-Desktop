@@ -801,6 +801,20 @@ Open(Page.Money);
 Dispatcher.UIThread.RunJobs();
 Save("money");
 Check("Money shows the bills to pay from Xero", window.GetVisualDescendants().OfType<MoneyView>().FirstOrDefault()?.DataContext is MoneyViewModel billsPage && billsPage.BillRows.Count == 3 && billsPage.BillRows[0].IsOverdue);
+{
+    // A supplier's PDF read into the bill boxes, to check before it goes to Xero as a draft.
+    var billPage = window.GetVisualDescendants().OfType<MoneyView>().First().DataContext as MoneyViewModel;
+    var billFile = Path.Combine(data, "xneelo November.pdf");
+    File.WriteAllBytes(billFile, SamplePdf("xneelo (Pty) Ltd", "Tax Invoice", "Invoice Number: INV-7781", "Invoice Date: 01/11/2026",
+        "Due Date: 08/11/2026", "Dedicated server, November   1 899.00", "Amount Due   R 1 899.00"));
+    Wait(billPage!.StartBillAsync(billFile), "Reading a supplier's PDF bill");
+    Check("A supplier's PDF is read into the bill boxes", billPage.BillSupplier == "xneelo (Pty) Ltd" && billPage.BillNumber == "INV-7781"
+        && billPage.BillTotal.StartsWith("1899", StringComparison.Ordinal) && billPage.BillDue == new DateTime(2026, 11, 8));
+    billPage.ExpenseAccounts.Add(new Webignite.Core.Xero.XeroSalesAccount("441", "Hosting and servers"));
+    billPage.BillAccount = billPage.ExpenseAccounts[0];
+    Save("money-bill-from-pdf");
+    billPage.CancelBillCommand.Execute(null);
+}
 
 Webignite.Core.Documents.Line Priced(string description, decimal price) => new() { Description = description, Quantity = 1, UnitPrice = price };
 var seo = store.SaveRetainer(new Webignite.Core.Retainers.Retainer

@@ -258,6 +258,35 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
             Str(r["Status"]))).ToList();
     }
 
+    /// <summary>
+    /// Attaches a file to a record, e.g. "Invoices/{id}" with a supplier's PDF. One attempt; Xero keeps one file per
+    /// name, so trying again with the same name replaces rather than doubles it.
+    /// </summary>
+    public async Task AttachAsync(string recordPath, string fileName, byte[] content, string mediaType, CancellationToken cancel = default)
+    {
+        using var request = await Request(HttpMethod.Put, $"{recordPath}/Attachments/{Uri.EscapeDataString(fileName)}", cancel);
+        request.Content = new ByteArrayContent(content);
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue(mediaType);
+        HttpResponseMessage response;
+        try
+        {
+            response = await http.SendAsync(request, cancel);
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            throw new XeroUncertainException("The connection to Xero broke while attaching the file. Look in Xero whether it's there.", e);
+        }
+        using (response)
+            await Check(response, cancel);
+    }
+
+    /// <summary>The active expense accounts that have a code, for coding a bill.</summary>
+    public async Task<IReadOnlyList<XeroSalesAccount>> ExpenseAccountsAsync(CancellationToken cancel = default) =>
+        ((await GetAsync("Accounts", cancel))["Accounts"] as JsonArray ?? []).OfType<JsonObject>()
+            .Where(a => Str(a["Class"]) == "EXPENSE" && Str(a["Status"]) is "" or "ACTIVE" && Str(a["Code"]).Length > 0)
+            .Select(a => new XeroSalesAccount(Str(a["Code"]), Str(a["Name"])))
+            .ToList();
+
     private async Task<HttpRequestMessage> Request(HttpMethod method, string path, CancellationToken cancel)
     {
         var request = new HttpRequestMessage(method, new Uri(Base, path));
