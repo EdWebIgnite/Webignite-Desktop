@@ -319,6 +319,28 @@ vm.Invoices.Editor = null;
     store.DeleteDocument(fromQuote.Id);
     store.DeleteDocument(sentQuote.Id);
 }
+{
+    // An approved invoice put right: a credit note drafted in Xero, or voiding it, each asked first.
+    var approved = store.Save(store.Get(verified.Id)! with
+    {
+        Xero = verified.Xero with { Status = "AUTHORISED" },
+        Delivery = new() { Approved = DateTimeOffset.UtcNow.AddDays(-2), Emailed = DateTimeOffset.UtcNow.AddDays(-2), EmailedTo = "Thandi Mokoena" },
+        CreditNotes = [new CreditNoteLink { Id = "cn1", Number = "CN-0004", Amount = 450m, Reason = "Hosting cancelled", Drafted = DateTimeOffset.UtcNow.AddDays(-1) }],
+    });
+    var fixer = new DocumentEditorViewModel(approved, services, () => vm.Invoices.Editor = null);
+    vm.Invoices.Editor = fixer;
+    Check("An approved invoice offers a credit note and voiding", fixer.CanCredit && fixer.CanVoid && fixer.VoidLabel == "Void in Xero");
+    fixer.StartCreditCommand.Execute(null);
+    fixer.CreditAmountText = "500";
+    fixer.CreditReason = "Two hours not used in November";
+    Save("invoice-credit-note");
+    fixer.CancelCreditCommand.Execute(null);
+    fixer.StartVoidCommand.Execute(null);
+    Check("Voiding asks first", fixer.ConfirmingVoid);
+    Save("invoice-void-confirm");
+    vm.Invoices.Editor = null;
+    store.Save(store.Get(verified.Id)! with { Xero = verified.Xero, Delivery = verified.Delivery, CreditNotes = [] });
+}
 
 Open(Page.Settings);
 Save("settings");

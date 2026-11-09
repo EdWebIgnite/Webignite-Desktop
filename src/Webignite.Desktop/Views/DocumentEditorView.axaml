@@ -145,6 +145,37 @@
             </StackPanel>
           </StackPanel>
         </Border>
+        <Border Classes="pending" IsVisible="{Binding ConfirmingVoid}">
+          <StackPanel Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="{Binding VoidLabel}" />
+            <TextBlock TextWrapping="Wrap" Text="{Binding VoidQuestion}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="quiet" Content="{Binding VoidLabel}" Command="{Binding ConfirmVoidCommand}" />
+              <Button Classes="quiet" Content="Keep it" Command="{Binding CancelVoidCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <Border Classes="pending" IsVisible="{Binding Crediting}">
+          <StackPanel Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="Draft a credit note in Xero" />
+            <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="12" Text="{Binding CreditHint}" />
+            <Grid ColumnDefinitions="140,12,*">
+              <TextBox Text="{Binding CreditAmountText}" Watermark="Amount (R)" />
+              <TextBox Grid.Column="2" Text="{Binding CreditReason}" Watermark="Reason, e.g. Hosting cancelled for December" />
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="primary" Content="Draft credit note in Xero" Command="{Binding DraftCreditCommand}" />
+              <Button Classes="quiet" Content="Cancel" Command="{Binding CancelCreditCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <ItemsControl ItemsSource="{Binding CreditNotesText}" IsVisible="{Binding HasCreditNotes}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding}" Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
         <Border Classes="pending" IsVisible="{Binding HasXeroMessage}">
           <DockPanel>
             <c:Spinner DockPanel.Dock="Left" IsVisible="{Binding XeroBusy}" Foreground="{DynamicResource Text}" VerticalAlignment="Center" Margin="0,0,10,0" />
@@ -225,6 +256,11 @@
                     Content="Client declined" Command="{Binding DeclineQuoteCommand}"
                     ToolTip.Tip="Marks the quote declined in Xero, so it isn't followed up." />
           </Grid>
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Draft a credit note" Command="{Binding StartCreditCommand}" IsVisible="{Binding CanCredit}"
+                  ToolTip.Tip="A credit note against this invoice, as a draft in Xero for you to approve and allocate there." />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="{Binding VoidLabel}" Command="{Binding StartVoidCommand}" IsVisible="{Binding CanVoid}" />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Change this draft" Command="{Binding ChangeDraftCommand}" IsVisible="{Binding CanChangeDraft}"
                   ToolTip.Tip="Unlocks it to change here. Update draft in Xero then puts the change in Xero." />
