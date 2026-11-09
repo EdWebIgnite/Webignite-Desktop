@@ -231,6 +231,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
 
         ClientNames = ClientPicker.Names(services.Clients.List());
         OnPropertyChanged(nameof(ClientNames));
+        RefreshBills();
 
         var defaultDate = (IsThisMonth ? Today : Month).ToDateTime(TimeOnly.MinValue);
         InDate = defaultDate;

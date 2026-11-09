@@ -19,6 +19,7 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
     public Func<Task>? CheckSites { get; init; }
     public Func<Task>? CheckXeroClients { get; init; }
     public Func<Task>? CheckXeroDocuments { get; init; }
+    public Func<Task>? CheckXeroBills { get; init; }
 
     /// <summary>Syncs shared projects; run every minute while signed in to a sync server.</summary>
     public Func<Task>? SyncProjects { get; init; }
@@ -94,6 +95,9 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
         // Quotes and invoices made in Xero itself come in every few hours, and on the first minute after start.
         if (CheckXeroDocuments is not null && services.XeroApi is not null && services.XeroDocuments.Due(now))
             CheckXeroDocuments().Forget("Bringing in quotes and invoices from Xero");
+        // Bills still to pay are read from Xero every few hours too.
+        if (CheckXeroBills is not null && services.XeroApi is not null && services.XeroBills.Due(now))
+            CheckXeroBills().Forget("Reading bills from Xero");
         // Client websites are visited every 15 minutes.
         if (CheckSites is not null && services.SiteWatch.Due(now))
             CheckSites().Forget("Checking client websites");

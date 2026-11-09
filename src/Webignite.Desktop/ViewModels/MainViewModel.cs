@@ -98,6 +98,17 @@ public partial class MainViewModel : ViewModelBase
             services.ShowNote?.Invoke("From Xero", news.Summary, () => Selected = this[Page.Invoices]);
     }
 
+    private async Task CheckXeroBillsAsync()
+    {
+        if (await services.Work.Run("Reading bills from Xero", () => services.XeroBills.RunAsync()) is { } problem)
+        {
+            Webignite.Data.AppLog.Write(problem);
+            return;
+        }
+        foreach (var page in Built<IRefreshable>([Page.Overview, Page.Money]).Where(p => p is not IHoldsWork { HoldsWork: true }))
+            page.Refresh();
+    }
+
     /// <summary>The pages that list or count quotes and invoices, read again.</summary>
     internal void RefreshMoneyPages()
     {
@@ -279,6 +290,7 @@ public partial class MainViewModel : ViewModelBase
             CheckSites = CheckSitesAsync,
             CheckXeroClients = CheckXeroClientsAsync,
             CheckXeroDocuments = CheckXeroDocumentsAsync,
+            CheckXeroBills = CheckXeroBillsAsync,
             SyncProjects = () => services.SyncNowAsync(),
             EveryMinute = () => ReleaseIdle(PageIdle),
             AssistantChanged = ShowAssistantChanges,
