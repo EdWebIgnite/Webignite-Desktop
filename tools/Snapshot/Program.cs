@@ -338,6 +338,19 @@ Dispatcher.UIThread.RunJobs();
 Check("Signed in shows Sync now and when it last synced", settingsPage.SyncNowCommand is not null && settingsPage.LastSyncedText.StartsWith("Last synced", StringComparison.Ordinal));
 Save("settings-account-signed-in");
 SetShown(nameof(SettingsViewModel.IsSignedIn), false);
+// The welcome screen: off while testing, so the app opens straight in; on, it asks to sign in when nobody has.
+Check("While testing, the app opens without asking to sign in", !vm.ShowingWelcome);
+MainViewModel.AskToSignInAtStart = true;
+vm.Welcome();
+Dispatcher.UIThread.RunJobs();
+Check("Switched on, the welcome screen shows when nobody is signed in", vm.ShowingWelcome);
+Save("welcome");
+vm.WelcomeCreateCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("Create an account carries on in Settings, Account and sync, on the new account form",
+    !vm.ShowingWelcome && vm.Selected.Key == Page.Settings && settingsPage.IsNewAccountForm);
+settingsPage.ShowAccountFormCommand.Execute("sign-in");
+MainViewModel.AskToSignInAtStart = false;
 settingsPage.Open("xero");
 
 var today = DateOnly.FromDateTime(DateTime.Today);

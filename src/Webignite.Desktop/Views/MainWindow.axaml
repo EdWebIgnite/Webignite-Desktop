@@ -427,6 +427,21 @@
         </DockPanel>
       </Border>
     </Grid>
+    <!-- The welcome screen: sign in, a new account or an invite, when nobody is signed in (switched off while testing). -->
+    <Grid Grid.ColumnSpan="2" IsVisible="{Binding ShowingWelcome}" Background="{DynamicResource Scrim}">
+      <Border Classes="card" Width="460" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="32" BoxShadow="{DynamicResource OverlayShadow}">
+        <StackPanel Spacing="14">
+          <Image Source="/Assets/icon.png" Height="48" HorizontalAlignment="Left" />
+          <TextBlock Classes="h1" Text="Welcome to Webignite" />
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="Sign in to share projects with your partner and keep both PCs in step. Your password never leaves this PC, and what's shared is locked here first." />
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Sign in" Command="{Binding WelcomeSignInCommand}" />
+          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Create an account" Command="{Binding WelcomeCreateCommand}" />
+          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Join with an invite" Command="{Binding WelcomeJoinCommand}" />
+          <Button Classes="link" HorizontalAlignment="Center" Content="Not now: use it on this PC only" Command="{Binding WelcomeNotNowCommand}" />
+        </StackPanel>
+      </Border>
+    </Grid>
     <!-- F1: the keyboard shortcuts. Click anywhere or press Esc to close. -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding ShowingShortcuts}" Background="{DynamicResource Scrim}" PointerPressed="CloseShortcuts">
       <Border Classes="card searchbox" Width="520" VerticalAlignment="Top" Margin="0,90,0,0" BoxShadow="{DynamicResource OverlayShadow}">
