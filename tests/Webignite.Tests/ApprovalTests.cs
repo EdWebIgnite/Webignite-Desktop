@@ -45,6 +45,19 @@ public sealed class ApprovalTests : IDisposable
     }
 
     [Fact]
+    public void A_draft_being_changed_waits_and_drafts_made_in_xero_stay_there()
+    {
+        var draft = Doc().WithXero(x => x with { State = XeroWriteState.Verified, Id = "x1" }) with { Status = DocumentStatus.InXero };
+        var changing = XeroEdits.StartChanging(draft)!;
+        Assert.Contains("Update draft in Xero", Approvals.Why(changing)!.Reason, StringComparison.Ordinal);
+
+        var madeInXero = draft with { Document = draft.Document with { Origin = DocumentOrigin.Xero } };
+        Assert.Null(Approvals.Why(madeInXero));
+        Assert.Null(Approvals.Why(madeInXero with { Delivery = madeInXero.Delivery with { Approved = DateTimeOffset.UtcNow } }));
+        Assert.Null(XeroEdits.StartChanging(madeInXero));
+    }
+
+    [Fact]
     public void An_assistant_prepares_a_document_that_waits_for_Eddie()
     {
         store.SaveClient(new Client { Id = "c", Name = "Karoo Coffee Roasters", Email = "accounts@karoocoffee.co.za; thandi@karoocoffee.co.za" });

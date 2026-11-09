@@ -45,6 +45,10 @@ public static class Approvals
                 new(s, WaitingKind.XeroProblem, "It isn't clear whether Xero got it. Open it and use Check Xero."),
             { Xero.State: XeroWriteState.Mismatch } =>
                 new(s, WaitingKind.XeroProblem, "Xero's copy differs from this one. Open it to see how."),
+            { Xero.State: XeroWriteState.Editing } =>
+                new(s, WaitingKind.XeroDraft, "Being changed here; Xero still has the old copy. Open it and use Update draft in Xero."),
+            // Drafts made in Xero itself are dealt with in Xero.
+            { Document.Origin: DocumentOrigin.Xero, Delivery.Emailed: null } => null,
             { Xero.State: XeroWriteState.None, Status: DocumentStatus.AwaitingApproval } =>
                 new(s, WaitingKind.FromAssistant, $"{by} prepared this {what}. Check it, then create it in Xero or reject it."),
             { Xero.State: XeroWriteState.Verified, Delivery: { Emailed: null, Approved: null } } =>

@@ -18,7 +18,7 @@ public partial class DocumentEditorViewModel
     public ObservableCollection<XeroContact> ContactChoices { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanCreate))]
+    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft))]
     public partial bool XeroBusy { get; set; }
 
     [ObservableProperty]
@@ -39,7 +39,10 @@ public partial class DocumentEditorViewModel
     public partial string ContactSearch { get; set; } = "";
 
     public XeroWriteState XeroState => stored?.Xero.State ?? XeroWriteState.None;
-    public bool IsEditable => XeroState == XeroWriteState.None;
+    public bool IsEditable => XeroState is XeroWriteState.None or XeroWriteState.Editing;
+
+    /// <summary>A draft already in Xero being changed here.</summary>
+    public bool IsChangingInXero => XeroState == XeroWriteState.Editing;
     public bool IsVerified => XeroState == XeroWriteState.Verified;
     public bool HasXeroMessage => XeroMessage.Length > 0;
     public bool HasContactQuestion => ContactQuestion is not null;
@@ -51,8 +54,12 @@ public partial class DocumentEditorViewModel
         : !IsReady ? "Finish the document first."
         : "";
 
-    public bool CanCreate => IsEditable && !XeroBusy && XeroHint.Length == 0;
-    public bool ShowCreate => IsEditable;
+    public bool CanCreate => XeroState == XeroWriteState.None && !XeroBusy && XeroHint.Length == 0;
+    public bool ShowCreate => XeroState == XeroWriteState.None;
+    public bool CanUpdate => IsChangingInXero && !XeroBusy && XeroHint.Length == 0;
+
+    /// <summary>A draft Webignite put in Xero that nobody has approved or emailed: Change this draft unlocks it.</summary>
+    public bool CanChangeDraft => stored is not null && XeroEdits.CanChange(stored) && !XeroBusy;
     public bool ShowCheck => XeroState is XeroWriteState.Writing or XeroWriteState.Uncertain or XeroWriteState.CreatedUnverified or XeroWriteState.Mismatch;
     public bool ShowStartOver => XeroState is XeroWriteState.Writing or XeroWriteState.Uncertain && stored?.Xero.Id is null;
     public bool HasXeroLink => Kind == DocumentKind.Invoice && stored?.Xero.Id is not null;
@@ -76,6 +83,41 @@ public partial class DocumentEditorViewModel
 
     [RelayCommand]
     private Task AddNewContact() => Create(null, createContact: true);
+
+    /// <summary>Unlocks a draft that's in Xero, so it can be changed here and then updated in Xero.</summary>
+    [RelayCommand]
+    private void ChangeDraft()
+    {
+        if (stored is null)
+            return;
+        var changed = services.Documents.Change(stored.Id, XeroEdits.StartChanging);
+        if (changed is null || changed.Xero.State != XeroWriteState.Editing)
+        {
+            stored = changed ?? stored;
+            ShowXero("It can't be changed here any more: it was approved, emailed or paid meanwhile.", problem: true);
+        }
+        else
+        {
+            stored = changed;
+            ShowXero("", problem: false);
+            if (string.IsNullOrWhiteSpace(NumberText) && changed.Xero.Number is { } number)
+                NumberText = number; // so the update keeps Xero's number
+        }
+        RefreshXero();
+        OnPropertyChanged(nameof(NumberNote));
+    }
+
+    [RelayCommand]
+    private async Task UpdateInXero()
+    {
+        if (!CanUpdate || services.XeroDrafts is not { } drafts || services.Settings.Xero.AccountCode is not { } account)
+            return;
+        Save();
+        if (!IsChangingInXero)
+            return;
+        var target = new XeroTarget(account, BrandingThemeId: services.Settings.Xero.BrandingThemeId);
+        await Run(() => drafts.UpdateAsync(stored!, target, ClientEmail(CustomerName)));
+    }
 
     [RelayCommand]
     private async Task CheckXero()
@@ -200,6 +242,8 @@ public partial class DocumentEditorViewModel
     /// <summary>What to say about the document's place in Xero, from what was saved on this PC.</summary>
     public string XeroStatus => stored is null ? "" : XeroState switch
     {
+        XeroWriteState.Editing => $"Changing draft {stored.Xero.Number} here. Xero still has the old copy until Update draft in Xero."
+            + (stored.Xero.Problems.Count > 0 ? " Xero turned the last change down: " + string.Join(" ", stored.Xero.Problems) : ""),
         XeroWriteState.Writing => "Sending to Xero was cut off. Use Check Xero before anything else.",
         XeroWriteState.Uncertain => "It isn't clear whether Xero got it. " + string.Join(" ", stored.Xero.Problems),
         XeroWriteState.CreatedUnverified => $"In Xero as {stored.Xero.Number ?? "a draft"}, not compared yet. Use Check Xero.",
@@ -212,13 +256,15 @@ public partial class DocumentEditorViewModel
     };
 
     public bool HasXeroStatus => XeroStatus.Length > 0;
-    public bool XeroStatusIsProblem => XeroState is not (XeroWriteState.Verified or XeroWriteState.CreatedUnverified);
+    public bool XeroStatusIsProblem => XeroState is not (XeroWriteState.Verified or XeroWriteState.CreatedUnverified)
+        && !(XeroState == XeroWriteState.Editing && stored?.Xero.Problems.Count == 0);
 
     private void RefreshXero()
     {
         foreach (var name in new[]
         {
             nameof(XeroState), nameof(IsEditable), nameof(IsVerified), nameof(XeroHint), nameof(CanCreate), nameof(ShowCreate), nameof(ShowCheck),
+            nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft),
             nameof(ShowStartOver), nameof(HasXeroLink), nameof(XeroStatus), nameof(HasXeroStatus), nameof(XeroStatusIsProblem),
         })
             OnPropertyChanged(name);
