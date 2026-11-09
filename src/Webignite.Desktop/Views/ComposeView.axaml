@@ -227,7 +227,7 @@
       <!-- Mail is shown on paper white in every look, as it was written to be read. -->
       <Border Classes="card" Padding="12" MaxHeight="260" Background="{DynamicResource Paper}" IsVisible="{Binding ShowQuote}">
         <ScrollViewer>
-          <html:HtmlPanel Text="{Binding QuoteHtml}" Background="{DynamicResource Paper}" />
+          <html:HtmlPanel x:Name="QuotePanel" Text="{Binding QuoteHtml}" Background="{DynamicResource Paper}" />
         </ScrollViewer>
       </Border>
     </StackPanel>

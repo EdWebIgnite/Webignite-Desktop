@@ -30,6 +30,20 @@ public partial class MailView : FullBleedView
             if (Uri.TryCreate(e.Event.Link, UriKind.Absolute, out var url) && url.Scheme is "http" or "https" or "mailto")
                 AppServices.OpenInBrowser(url).Forget("Opening a link");
         };
+        // Pictures only come from inside the mail unless remote ones were asked for: whatever slips past the
+        // filter (a table background, an odd address) is refused here, where the viewer actually fetches it.
+        Body.ImageLoad += (_, e) =>
+        {
+            if (!MailImages.Allowed(e.Event.Src, Mail?.Reader?.ImagesAllowed == true))
+                e.Event.Handled = true;
+        };
+        Body.StylesheetLoad += (_, e) =>
+        {
+            if (!MailImages.Allowed(e.Event.Src, Mail?.Reader?.ImagesAllowed == true))
+            {
+                e.Event.SetStyleSheet = "/* not loaded */";
+            }
+        };
         // Watched before the list handles the press, so a drag carries everything that was picked.
         MessageList.AddHandler(PointerPressedEvent, MessagePressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         MessageList.AddHandler(PointerMovedEvent, MessageMoved, RoutingStrategies.Tunnel, handledEventsToo: true);

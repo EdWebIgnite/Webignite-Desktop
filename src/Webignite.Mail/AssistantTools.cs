@@ -20,8 +20,9 @@ public sealed class AssistantTools(LocalStore store, MailService mail, TimeProvi
         string Preview, bool Unread, bool Flagged, bool Answered, bool HasAttachments);
     public sealed record SearchResult(IReadOnlyList<MailListItem> Mail, string? Note);
     public sealed record AttachmentInfo(string FileName, string ContentType, long Size);
+    /// <remarks><paramref name="RepliesGoTo"/> is set when replies would go to another domain than the sender's: be wary.</remarks>
     public sealed record MailContent(string Warning, string Id, string Mailbox, string Folder, DateTimeOffset Date, string? From,
-        string To, string Cc, string Subject, string? InReplyTo, string Text, IReadOnlyList<AttachmentInfo> Attachments);
+        string To, string Cc, string Subject, string? InReplyTo, string Text, IReadOnlyList<AttachmentInfo> Attachments, string? RepliesGoTo = null);
     public sealed record DraftSaved(string Mailbox, string Subject, string To, string Message);
 
     private IReadOnlyList<MailAccount> Visible() => AssistantMail.Visible(store.ListMailAccounts());
@@ -102,7 +103,8 @@ public sealed class AssistantTools(LocalStore store, MailService mail, TimeProvi
             summary.Subject,
             summary.InReplyTo,
             AssistantMail.Trim(body.Text),
-            body.Attachments.Select(a => new AttachmentInfo(a.FileName, a.ContentType, a.Size)).ToList());
+            body.Attachments.Select(a => new AttachmentInfo(a.FileName, a.ContentType, a.Size)).ToList(),
+            body.RepliesElsewhere);
     }
 
     /// <summary>

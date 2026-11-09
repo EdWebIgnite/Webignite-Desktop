@@ -99,6 +99,14 @@ public sealed class AssistantTasks(LocalStore store, TimeProvider? clock = null)
         var newTitle = string.IsNullOrWhiteSpace(title) ? task.Title : title.Trim();
         if (newTitle.Length > MaxTitle)
             throw new ArgumentException($"Keep the title under {MaxTitle} characters and put the detail in notes.");
+        // As for every other piece of writing: notes can't be emptied (that would be a delete) or made huge, and
+        // what's replaced is kept in the change log.
+        if (Webignite.Core.Assistants.AssistantLimits.First(
+                Webignite.Core.Assistants.AssistantLimits.Emptying(task.Notes, notes, "the notes"),
+                Webignite.Core.Assistants.AssistantLimits.TooLong(notes, "the notes", Webignite.Core.Assistants.AssistantLimits.Text)) is { Length: > 0 } notesProblem)
+            throw new ArgumentException(notesProblem);
+        if (notes is not null && !string.IsNullOrWhiteSpace(task.Notes) && notes.Trim() != task.Notes)
+            AssistantLog.Add(store, clock.GetUtcNow(), "Claude or ChatGPT", "todos", task.Id, $"Changed the notes on {task.Title}", before: task.Notes);
         var nowDone = done ?? task.Done;
         var saved = Saved(task with
         {

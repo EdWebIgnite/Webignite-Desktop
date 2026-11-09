@@ -34,6 +34,31 @@ public sealed class AssistantSafetyTests : IDisposable
         Directory.Delete(folder, recursive: true);
     }
 
+    [Fact]
+    public void A_flood_of_small_changes_cant_push_out_writing_that_can_still_be_put_back()
+    {
+        var at = new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero);
+        AssistantLog.Add(store, at, "Claude", "notes", "n1", "Replaced a note", "text", "The long note");
+        for (var i = 0; i < AssistantLog.Keep + 50; i++)
+            AssistantLog.Add(store, at.AddSeconds(i + 1), "Claude", "", "", "Noted");
+        Assert.Contains(AssistantLog.List(store), e => e.Before == "The long note" && e.CanPutBack);
+        Assert.Equal(AssistantLog.Keep + 1, AssistantLog.List(store).Count);
+    }
+
+    [Fact]
+    public void An_address_an_assistant_gives_doesnt_replace_a_saved_clients()
+    {
+        store.SaveClient(new Webignite.Core.Clients.Client { Id = "c", Name = "Karoo Coffee Roasters", Email = "accounts@karoocoffee.co.za" });
+        var documents = new AssistantDocuments(store);
+        var prepared = documents.Draft("invoice", "Karoo Coffee Roasters", [new("Hosting", 1, 450m)], Webignite.Core.Documents.DocumentSource.Claude,
+            customerEmail: "attacker@evil.example");
+        Assert.Equal("accounts@karoocoffee.co.za", store.Get(prepared.Id)!.Document.Customer.Email);
+
+        var newcomer = documents.Draft("invoice", "Someone New", [new("Hosting", 1, 450m)], Webignite.Core.Documents.DocumentSource.Claude,
+            customerEmail: "hello@someone.example");
+        Assert.Equal("hello@someone.example", store.Get(newcomer.Id)!.Document.Customer.Email);
+    }
+
     private AssistantPutBack PutBack() => new(store, new ProjectService(store, () => "me", new FixedClock(), Path.Combine(folder, "attachments")),
         new ClientService(store), new ContactService(store), new NoteService(store));
 

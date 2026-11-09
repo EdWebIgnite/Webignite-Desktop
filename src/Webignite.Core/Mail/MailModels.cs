@@ -76,4 +76,10 @@ public sealed record MailBody
 
     /// <summary>Set on drafts saved by Claude or ChatGPT: who drafted it.</summary>
     public string? DraftedBy { get; init; }
+
+    /// <summary>
+    /// Where replies go, when that's somewhere other than the sender's own domain: a sign a mail pretending to be
+    /// from a client could send answers elsewhere. Null when replies go back to the sender.
+    /// </summary>
+    public string? RepliesElsewhere { get; init; }
 }
