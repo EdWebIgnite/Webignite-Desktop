@@ -68,7 +68,9 @@ public sealed class XeroBillDrafts(XeroApi api)
         if (bill.Due is { } due)
             payload["DueDate"] = Day(due);
 
-        var key = "bill-" + Key($"{contactId}|{bill.Number}|{bill.Date:yyyyMMdd}|{bill.Total:0.00}");
+        // Two bills alike in supplier, date and amount (two subscriptions, say) differ in their PDF or description.
+        var pdfPrint = pdf is { Length: > 0 } ? Convert.ToHexString(SHA256.HashData(pdf))[..16] : "";
+        var key = "bill-" + Key($"{contactId}|{bill.Number}|{bill.Date:yyyyMMdd}|{bill.Total:0.00}|{bill.Description}|{pdfPrint}");
         var reply = await api.PutAsync("Invoices", new JsonObject { ["Invoices"] = new JsonArray(payload) }, key, cancel);
         var id = XeroApi.Str(reply["Invoices"]?[0]?["InvoiceID"]);
         if (id.Length == 0)

@@ -9,7 +9,7 @@ public sealed record XeroOptions
     public int RedirectPort { get; init; } = 47310;
 
     public string Scopes { get; init; } =
-        "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings";
+        "openid profile email offline_access accounting.invoices accounting.payments accounting.attachments accounting.contacts accounting.settings";
 
     public Uri AuthorizeEndpoint { get; init; } = new("https://login.xero.com/identity/connect/authorize");
     public Uri TokenEndpoint { get; init; } = new("https://identity.xero.com/connect/token");

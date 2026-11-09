@@ -7,6 +7,8 @@ using Webignite.Mail;
 using Webignite.Services;
 using Webignite.Xero.Auth;
 
+using Webignite.Core.Documents;
+
 namespace Webignite.Desktop;
 
 /// <summary>
@@ -350,7 +352,9 @@ public sealed class AppServices : IDisposable
     /// <summary>Creates Xero drafts, saving each step to this PC as it goes.</summary>
     public Webignite.Xero.XeroDrafts? XeroDrafts =>
         XeroApi is { } api
-            ? new Webignite.Xero.XeroDrafts(api, Documents.Put, () => Documents.List().Select(d => d.Xero.Id).OfType<string>().ToHashSet())
+            ? new Webignite.Xero.XeroDrafts(api, Documents.Put,
+                // Only Webignite's own count as already linked; one brought in from Xero is still a duplicate to warn about.
+                () => Documents.List().Where(d => d.Document.Origin != DocumentOrigin.Xero).Select(d => d.Xero.Id).OfType<string>().ToHashSet())
             : null;
 
     /// <summary>Approves, fetches Xero's PDF and marks documents sent, for emailing from Webignite's own mailbox.</summary>

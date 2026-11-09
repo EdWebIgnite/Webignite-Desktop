@@ -125,14 +125,14 @@ public partial class MoneyViewModel
         }
 
         var current = months.First(m => m.IsCurrent);
-        var name = current.Month.ToString("MMMM", CultureInfo.InvariantCulture);
+        var name = current.Month.ToString("MMMM", CultureInfo.CurrentCulture);
         IncomeSummary = current.Expected is { } expected
             ? $"{name}: {Money.Rand(current.CameIn)} of {Money.Rand(expected)} in so far."
             : $"{name}: {Money.Rand(current.CameIn)} in so far. Nothing typed in as expected yet.";
 
         // What makes up the auto figure for the month shown at the top of the page.
         ExpectedItems.Clear();
-        ExpectedTitle = $"Expected in {Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)}";
+        ExpectedTitle = $"Expected in {Month.ToString("MMMM yyyy", CultureInfo.CurrentCulture)}";
         if (IsAuto)
         {
             foreach (var item in Projection.ExpectedIn(Month, documents, retainers, renewals, drafted))
@@ -174,7 +174,7 @@ public partial class IncomeMonthRow : ViewModelBase
     }
 
     public DateOnly Month { get; }
-    public string Title => Month.ToString("MMM yyyy", CultureInfo.InvariantCulture);
+    public string Title => Month.ToString("MMM yyyy", CultureInfo.CurrentCulture);
     public bool IsManual => owner.IsManual;
     public bool IsAuto => owner.IsAuto;
 
@@ -209,7 +209,7 @@ public partial class IncomeMonthRow : ViewModelBase
 
 public sealed class ExpectedItemRow(ExpectedItem item)
 {
-    public string Date => item.Date.ToString("d MMM", CultureInfo.InvariantCulture);
+    public string Date => item.Date.ToString("d MMM", CultureInfo.CurrentCulture);
     public string What => item.What;
     public string Amount => Money.Rand(item.Amount);
 }

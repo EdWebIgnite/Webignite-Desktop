@@ -226,6 +226,34 @@ public sealed class XeroDraftTests
         Assert.False(XeroEdits.CanChange(stopped.Stored with { Xero = stopped.Stored.Xero with { State = XeroWriteState.Verified } }));
     }
 
+    [Fact]
+    public async Task A_draft_approved_in_xero_while_being_changed_goes_back_to_how_xero_has_it()
+    {
+        var xero = new FakeXero();
+        var (drafts, _) = Make(xero);
+        var made = Assert.IsType<XeroDrafts.Result.Done>(await drafts.CreateAsync(Stored(), new XeroTarget("200"), cancel: TestContext.Current.CancellationToken)).Stored;
+        var editing = XeroEdits.StartChanging(made)!;
+        Assert.Equal(made.Document, editing.BeforeChange);
+        editing = editing with { Document = editing.Document with { Reference = "Changed here" } };
+        xero.SetStatus("inv1", "AUTHORISED");
+
+        var stopped = Assert.IsType<XeroDrafts.Result.Stopped>(await drafts.UpdateAsync(editing, new XeroTarget("200"), cancel: TestContext.Current.CancellationToken));
+        Assert.Equal(XeroWriteState.Verified, stopped.Stored.Xero.State);
+        Assert.Equal(made.Document.Reference, stopped.Stored.Document.Reference);
+        Assert.Null(stopped.Stored.BeforeChange);
+
+        // Discard changes does the same by hand.
+        var discarded = XeroEdits.StopChanging(XeroEdits.StartChanging(made)! with { Document = made.Document with { Reference = "x" } })!;
+        Assert.Equal((XeroWriteState.Verified, made.Document.Reference), (discarded.Xero.State, discarded.Document.Reference));
+        Assert.Null(XeroEdits.StopChanging(made));
+    }
+
+    [Fact]
+    public void An_expired_xero_sign_in_is_a_xero_problem_screens_already_catch()
+    {
+        Assert.IsAssignableFrom<XeroException>(new XeroSignInException("Sign in to Xero again."));
+    }
+
     private static Webignite.Core.Documents.StoredDocument Stored(string customer = "Karoo Coffee Roasters") => new()
     {
         Id = Webignite.Core.Documents.StoredDocument.NewId(),

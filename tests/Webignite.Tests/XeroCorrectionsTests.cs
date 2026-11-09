@@ -89,7 +89,7 @@ public sealed class XeroCorrectionsTests
         Assert.Equal("DRAFT", sent["Status"]!.GetValue<string>());
         Assert.Equal("INV-0111: Hosting cancelled for December", sent["Reference"]!.GetValue<string>());
         Assert.Equal(200m, Assert.Single(sent["LineItems"]!.AsArray())!["UnitAmount"]!.GetValue<decimal>());
-        Assert.Equal(stored.Id + "-credit-1", xero.Puts[^1].Key);
+        Assert.StartsWith(stored.Id + "-credit-1-", xero.Puts[^1].Key, StringComparison.Ordinal);
         var note = Assert.Single(part.CreditNotes);
         Assert.Equal(("CN-0001", 200m), (note.Number, note.Amount));
 
@@ -97,7 +97,8 @@ public sealed class XeroCorrectionsTests
         var rest = await corrections.DraftCreditNoteAsync(part, null, null, new XeroTarget("200"), Cancel);
         var second = xero.Puts[^1].Body["CreditNotes"]![0]!;
         Assert.Equal(part.Document.Total - 200m, Assert.Single(second["LineItems"]!.AsArray())!["UnitAmount"]!.GetValue<decimal>());
-        Assert.Equal(stored.Id + "-credit-2", xero.Puts[^1].Key);
+        Assert.StartsWith(stored.Id + "-credit-2-", xero.Puts[^1].Key, StringComparison.Ordinal);
+        Assert.NotEqual(xero.Puts[0].Key, xero.Puts[1].Key);
         Assert.Equal(2, rest.CreditNotes.Count);
         Assert.False(InvoiceCorrections.CanCredit(rest));
         Assert.Empty(xero.Posts); // nothing approved or allocated
@@ -182,11 +183,11 @@ public sealed class XeroCorrectionsTests
         Assert.Equal(4, Assert.Single(stored.Attachments).Bytes);
         Assert.Equal("Invoices/inv1/Attachments/timesheet%20october.pdf", xero.Attached[^1].Path);
 
+        // Xero takes attachments on invoices, not quotes.
         var quote = Approved() with { Document = Approved().Document with { Kind = DocumentKind.Quote } };
-        var onQuote = await corrections.AttachAsync(quote, "Proposal.docx", [1], online: true, Cancel);
-        Assert.StartsWith("Quotes/inv1/Attachments/Proposal.docx", xero.Attached[^1].Path, StringComparison.Ordinal);
-        Assert.DoesNotContain("IncludeOnline", xero.Attached[^1].Path, StringComparison.Ordinal);
-        Assert.False(onQuote.Attachments[0].Online);
+        Assert.False(DocumentAttachments.CanAttach(quote));
+        await Assert.ThrowsAsync<XeroException>(() => corrections.AttachAsync(quote, "Proposal.docx", [1], online: true, Cancel));
+        Assert.Equal(2, xero.Attached.Count);
     }
 
     [Fact]
