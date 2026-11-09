@@ -10,7 +10,8 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Skia" />
-    <PackageReference Include="Docnet.Core" />
+    <PackageReference Include="bblanchon.PDFium.Win32" />
+    <PackageReference Include="bblanchon.PDFium.Linux" />
     <PackageReference Include="QRCoder" />
   </ItemGroup>
   <ItemGroup>

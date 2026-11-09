@@ -1,13 +1,12 @@
 using System.Runtime.InteropServices;
 using System.Text;
-using Docnet.Core;
 using SkiaSharp;
 using Webignite.Core.Tools;
 
 namespace Webignite.Tools;
 
 /// <summary>
-/// Putting PDFs together page by page with PDFium, the PDF library Docnet already brings: pages in a new order,
+/// Putting PDFs together page by page with PDFium: pages in a new order,
 /// from several files, turned, with words and a signature put on. The files given are never changed; a new PDF
 /// is made each time. One at a time, as PDFium isn't safe to use from two threads at once.
 /// </summary>
@@ -18,8 +17,8 @@ public static class PdfEdit
     {
         lock (PdfPages.Gate)
         {
-            _ = DocLib.Instance; // starts PDFium
-            var opened = new List<(IntPtr Document, IntPtr Memory)>();
+            Pdfium.Start();
+            var opened = new List<Pdfium.Document>();
             var target = Pdfium.FPDF_CreateNewDocument();
             try
             {
@@ -28,7 +27,7 @@ public static class PdfEdit
                 for (var i = 0; i < pages.Count; i++)
                 {
                     var page = pages[i];
-                    if (!Pdfium.FPDF_ImportPages(target, opened[page.Source].Document, (page.Page + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), i))
+                    if (!Pdfium.FPDF_ImportPages(target, opened[page.Source].Handle, (page.Page + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), i))
                         throw new IOException($"Page {page.Page + 1} couldn't be copied.");
                     var loaded = Pdfium.FPDF_LoadPage(target, i);
                     try
@@ -44,16 +43,13 @@ public static class PdfEdit
                         Pdfium.FPDF_ClosePage(loaded);
                     }
                 }
-                return Save(target);
+                return Pdfium.Save(target);
             }
             finally
             {
                 Pdfium.FPDF_CloseDocument(target);
-                foreach (var (document, memory) in opened)
-                {
-                    Pdfium.FPDF_CloseDocument(document);
-                    Marshal.FreeHGlobal(memory);
-                }
+                foreach (var document in opened)
+                    document.Dispose();
             }
         }
     }
@@ -63,24 +59,15 @@ public static class PdfEdit
     {
         lock (PdfPages.Gate)
         {
-            _ = DocLib.Instance;
-            var (document, memory) = Open(pdf);
-            try
+            using var document = Open(pdf);
+            var sizes = new List<(double, double)>();
+            for (var i = 0; i < document.PageCount; i++)
             {
-                var sizes = new List<(double, double)>();
-                for (var i = 0; i < Pdfium.FPDF_GetPageCount(document); i++)
-                {
-                    if (Pdfium.FPDF_GetPageSizeByIndex(document, i, out var width, out var height) == 0)
-                        throw new IOException($"Page {i + 1} couldn't be read.");
-                    sizes.Add((width, height));
-                }
-                return sizes;
+                if (Pdfium.FPDF_GetPageSizeByIndex(document.Handle, i, out var width, out var height) == 0)
+                    throw new IOException($"Page {i + 1} couldn't be read.");
+                sizes.Add((width, height));
             }
-            finally
-            {
-                Pdfium.FPDF_CloseDocument(document);
-                Marshal.FreeHGlobal(memory);
-            }
+            return sizes;
         }
     }
 
@@ -123,20 +110,12 @@ public static class PdfEdit
     {
         lock (PdfPages.Gate)
         {
-            using var reader = DocLib.Instance.GetDocReader(pdf, new Docnet.Core.Models.PageDimensions(width, width * 4));
-            using var page = reader.GetPageReader(index);
-            var raw = page.GetImage();
-            var (w, h) = (page.GetPageWidth(), page.GetPageHeight());
-            var bitmap = new SKBitmap(w, h, SKColorType.Bgra8888, SKAlphaType.Premul);
+            using var document = Open(pdf);
+            // Drawn on white already, so the picture can be taken as it is.
+            var (raw, w, h) = Pdfium.Draw(document, index, width, width * 4);
+            var bitmap = new SKBitmap(w, h, SKColorType.Bgra8888, SKAlphaType.Opaque);
             Marshal.Copy(raw, 0, bitmap.GetPixels(), raw.Length);
-            using var white = new SKBitmap(w, h, SKColorType.Bgra8888, SKAlphaType.Opaque);
-            using (var canvas = new SKCanvas(white))
-            {
-                canvas.Clear(SKColors.White);
-                canvas.DrawBitmap(bitmap, 0, 0);
-            }
-            bitmap.Dispose();
-            return white.Copy();
+            return bitmap;
         }
     }
 
@@ -145,7 +124,7 @@ public static class PdfEdit
     {
         lock (PdfPages.Gate)
         {
-            _ = DocLib.Instance;
+            Pdfium.Start();
             var target = Pdfium.FPDF_CreateNewDocument();
             try
             {
@@ -155,18 +134,15 @@ public static class PdfEdit
                     var page = Pdfium.FPDFPage_New(target, i, pageWidth, pageHeight);
                     try
                     {
-                        using var decoded = SKBitmap.Decode(jpeg);
-                        var image = Picture(target, page, decoded.Copy(SKColorType.Bgra8888));
-                        Pdfium.FPDFImageObj_SetMatrix(image, pageWidth, 0, 0, pageHeight, 0, 0);
-                        Pdfium.FPDFPage_InsertObject(page, image);
-                        Pdfium.FPDFPage_GenerateContent(page);
+                        // The JPEG goes in as it is, so the copy really is smaller.
+                        Pdfium.PutJpeg(target, page, jpeg, pageWidth, pageHeight);
                     }
                     finally
                     {
                         Pdfium.FPDF_ClosePage(page);
                     }
                 }
-                return Save(target);
+                return Pdfium.Save(target);
             }
             finally
             {
@@ -175,18 +151,16 @@ public static class PdfEdit
         }
     }
 
-    private static (IntPtr Document, IntPtr Memory) Open(byte[] file)
+    private static Pdfium.Document Open(byte[] file)
     {
-        // PDFium reads from this memory for as long as the document is open.
-        var memory = Marshal.AllocHGlobal(file.Length);
-        Marshal.Copy(file, 0, memory, file.Length);
-        var document = Pdfium.FPDF_LoadMemDocument(memory, file.Length, null);
-        if (document == IntPtr.Zero)
+        try
         {
-            Marshal.FreeHGlobal(memory);
-            throw new IOException("One of the PDFs couldn't be read. It may be locked with a password or damaged.");
+            return Pdfium.Open(file);
         }
-        return (document, memory);
+        catch (InvalidDataException e)
+        {
+            throw new IOException("One of the PDFs couldn't be read. It may be locked with a password or damaged.", e);
+        }
     }
 
     // Words and pictures on a page, placed where they show on the page as it sits (turned or not).
@@ -299,72 +273,5 @@ public static class PdfEdit
             _ => (1d, 0d, 0d, 1d),
         };
         Pdfium.FPDFPageObj_Transform(words, a, b, c, d, x, y);
-    }
-
-    // Saving: PDFium hands the file over in pieces to a callback, which keeps them.
-    private static MemoryStream? saving;
-    private static readonly Pdfium.WriteBlock Writer = (_, data, size) =>
-    {
-        var piece = new byte[size];
-        Marshal.Copy(data, piece, 0, (int)size);
-        saving!.Write(piece);
-        return 1;
-    };
-
-    private static byte[] Save(IntPtr document)
-    {
-        saving = new MemoryStream();
-        try
-        {
-            var write = new Pdfium.FileWrite { Version = 1, WriteBlock = Marshal.GetFunctionPointerForDelegate(Writer) };
-            if (!Pdfium.FPDF_SaveAsCopy(document, ref write, 0))
-                throw new IOException("The PDF couldn't be saved.");
-            return saving.ToArray();
-        }
-        finally
-        {
-            saving = null;
-        }
-    }
-
-    private static class Pdfium
-    {
-        private const string Library = "pdfium";
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int WriteBlock(IntPtr self, IntPtr data, uint size);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct FileWrite
-        {
-            public int Version;
-            public IntPtr WriteBlock;
-        }
-
-        [DllImport(Library)] public static extern IntPtr FPDF_CreateNewDocument();
-        [DllImport(Library, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)] public static extern IntPtr FPDF_LoadMemDocument(IntPtr data, int size, [MarshalAs(UnmanagedType.LPStr)] string? password);
-        [DllImport(Library)] public static extern void FPDF_CloseDocument(IntPtr document);
-        [DllImport(Library)] public static extern int FPDF_GetPageCount(IntPtr document);
-        [DllImport(Library)] public static extern int FPDF_GetPageSizeByIndex(IntPtr document, int index, out double width, out double height);
-        [DllImport(Library, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool FPDF_ImportPages(IntPtr target, IntPtr source, [MarshalAs(UnmanagedType.LPStr)] string pages, int index);
-        [DllImport(Library)] public static extern IntPtr FPDF_LoadPage(IntPtr document, int index);
-        [DllImport(Library)] public static extern void FPDF_ClosePage(IntPtr page);
-        [DllImport(Library)] public static extern IntPtr FPDFPage_New(IntPtr document, int index, double width, double height);
-        [DllImport(Library)] public static extern int FPDFPage_GetRotation(IntPtr page);
-        [DllImport(Library)] public static extern void FPDFPage_SetRotation(IntPtr page, int rotation);
-        [DllImport(Library)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool FPDFPage_GetMediaBox(IntPtr page, out float left, out float bottom, out float right, out float top);
-        [DllImport(Library)] public static extern void FPDFPage_InsertObject(IntPtr page, IntPtr item);
-        [DllImport(Library)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool FPDFPage_GenerateContent(IntPtr page);
-        [DllImport(Library)] public static extern IntPtr FPDFPageObj_NewImageObj(IntPtr document);
-        [DllImport(Library)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool FPDFImageObj_SetBitmap(IntPtr[] pages, int count, IntPtr image, IntPtr bitmap);
-        [DllImport(Library)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool FPDFImageObj_SetMatrix(IntPtr image, double a, double b, double c, double d, double e, double f);
-        [DllImport(Library)] public static extern IntPtr FPDFBitmap_CreateEx(int width, int height, int format, IntPtr firstScan, int stride);
-        [DllImport(Library)] public static extern void FPDFBitmap_Destroy(IntPtr bitmap);
-        [DllImport(Library, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)] public static extern IntPtr FPDFText_LoadStandardFont(IntPtr document, [MarshalAs(UnmanagedType.LPStr)] string font);
-        [DllImport(Library)] public static extern IntPtr FPDFPageObj_CreateTextObj(IntPtr document, IntPtr font, float size);
-        [DllImport(Library)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool FPDFText_SetText(IntPtr text, IntPtr wideText);
-        [DllImport(Library)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool FPDFPageObj_SetFillColor(IntPtr item, uint r, uint g, uint b, uint a);
-        [DllImport(Library)] public static extern void FPDFPageObj_Transform(IntPtr item, double a, double b, double c, double d, double e, double f);
-        [DllImport(Library)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool FPDF_SaveAsCopy(IntPtr document, ref FileWrite write, uint flags);
     }
 }

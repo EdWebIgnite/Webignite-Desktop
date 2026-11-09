@@ -126,7 +126,7 @@ static void ShrinkPhotos(string photos, ToolsViewModel tools)
 Dispatcher.UIThread.RunJobs();
 Check("Opening the app builds Overview and no other page", vm.Open.Where(h => h.IsBuilt).Select(h => h.Key).SequenceEqual([Page.Overview]));
 {
-    string[] heavy = ["Webignite.Tools", "Docnet.Core", "QRCoder", "HtmlRenderer", "Avalonia.HtmlRenderer"];
+    string[] heavy = ["Webignite.Tools", "QRCoder", "HtmlRenderer", "Avalonia.HtmlRenderer"];
     var loaded = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name ?? "").Where(heavy.Contains).ToList();
     Check("Opening the app loads no heavy tool" + (loaded.Count > 0 ? " (loaded: " + string.Join(", ", loaded) + ")" : ""), loaded.Count == 0);
 }

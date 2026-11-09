@@ -1,8 +1,6 @@
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Docnet.Core;
-using Docnet.Core.Models;
 
 namespace Webignite.Tools;
 
@@ -19,14 +17,12 @@ public static class PdfPages
     {
         lock (Gate)
         {
-            using var reader = DocLib.Instance.GetDocReader(pdf, new PageDimensions(width, width * 3));
-            var count = reader.GetPageCount();
+            using var document = Pdfium.Open(pdf);
+            var count = document.PageCount;
             var pages = new List<Bitmap>();
             for (var i = 0; i < Math.Min(count, maxPages); i++)
             {
-                using var page = reader.GetPageReader(i);
-                var raw = page.GetImage();
-                var (w, h) = (page.GetPageWidth(), page.GetPageHeight());
+                var (raw, w, h) = Pdfium.Draw(document, i, width, width * 3);
                 var bitmap = new WriteableBitmap(new PixelSize(w, h), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Unpremul);
                 using (var buffer = bitmap.Lock())
                 {
