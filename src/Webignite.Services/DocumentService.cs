@@ -32,6 +32,22 @@ public sealed class DocumentService(LocalStore store)
         store.Update(id, current => current.Xero.State is XeroWriteState.None or XeroWriteState.Editing ? current with { Document = document } : null)
         ?? store.Save(new StoredDocument { Id = id, Document = document });
 
+    /// <summary>
+    /// Once one of Webignite's own is linked to its Xero copy, a copy of that same Xero document brought in from Xero
+    /// meanwhile (before the link was known) is removed, so it isn't listed and counted twice. Returns how many went.
+    /// </summary>
+    public int DropImportedCopies(StoredDocument ours)
+    {
+        if (ours.Xero.Id is not { } xeroId || ours.Document.Origin == DocumentOrigin.Xero)
+            return 0;
+        var copies = store.List(ours.Document.Kind)
+            .Where(d => d.Id != ours.Id && d.Document.Origin == DocumentOrigin.Xero && string.Equals(d.Xero.Id, xeroId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        foreach (var copy in copies)
+            store.DeleteDocument(copy.Id);
+        return copies.Count;
+    }
+
     /// <summary>A new draft copied from another: the same customer, lines and notes, with fresh dates.</summary>
     public StoredDocument Copy(StoredDocument source, DocumentKind kind, DocumentSettings settings, DateOnly today) =>
         store.Save(DocumentCopies.Copy(source, kind, settings, today));

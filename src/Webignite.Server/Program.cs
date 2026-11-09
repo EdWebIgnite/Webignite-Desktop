@@ -47,7 +47,10 @@ Directory.CreateDirectory(dataFolder);
 builder.Services.AddSingleton(sp => new ServerStore(sp.GetRequiredService<IConfiguration>()["Webignite:Database"] ?? Path.Combine(dataFolder, "webignite-server.db")));
 builder.Services.AddSingleton(new ServerKeys(secret));
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<AccountService>();
+builder.Services.AddSingleton(sp => new AccountService(sp.GetRequiredService<ServerStore>(), sp.GetRequiredService<ServerKeys>(),
+    sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<IConfiguration>().GetValue("Webignite:SignUpsPerDay", 20)));
+// Requests are small: the largest is a push of locked records, held to SyncLimits.
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = Webignite.Core.Sync.SyncLimits.LargestRequest);
 builder.Services.AddSingleton<SyncService>();
 builder.Services.AddSingleton(sp => new LicenceService(sp.GetRequiredService<ServerStore>(), sp.GetRequiredService<TimeProvider>(),
     LicenceService.KeyFrom(sp.GetRequiredService<IConfiguration>()["Webignite:LicenceKey"] ?? Environment.GetEnvironmentVariable("WEBIGNITE_LICENCE_KEY"))));

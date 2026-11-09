@@ -74,7 +74,12 @@ public sealed class XeroDocumentWatch(LocalStore store, Func<CancellationToken, 
             {
                 // Applied to the record as stored now; anything chased or emailed meanwhile is kept.
                 if (store.Update(fresh.Id, current => current.Document.Origin == DocumentOrigin.Xero
-                        ? fresh with { Delivery = current.Delivery, Settled = fresh.Settled ?? current.Settled, Created = current.Created } : null) is not null)
+                        ? fresh with
+                        {
+                            Delivery = current.Delivery, Settled = fresh.Settled ?? current.Settled, Created = current.Created,
+                            CreditNotes = current.CreditNotes, Attachments = current.Attachments, FromQuote = current.FromQuote,
+                        }
+                        : null) is not null)
                     refreshed++;
             }
             store.SetSetting(StateName, new XeroDocumentsState(started));

@@ -4,7 +4,8 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 cd "$here/.."
 git pull --ff-only
-sudo "$here/backup.sh"
+# The backup that runs as root is the installed copy, never the one just pulled; refresh it after a look.
+sudo WEBIGNITE_DEPLOY="$here" /usr/local/sbin/webignite-backup
 cd "$here"
 docker compose up -d --build
 docker image prune -f > /dev/null

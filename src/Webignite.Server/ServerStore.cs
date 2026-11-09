@@ -41,6 +41,9 @@ public sealed partial class ServerStore
         // Columns added after the first version: each added once, to a database made before it.
         AddColumn(db, "workspaces", "plan", "TEXT NOT NULL DEFAULT 'trial'");
         AddColumn(db, "workspaces", "paid_until", "TEXT");
+        AddColumn(db, "invites", "secret_check", "TEXT");
+        // Every refresh token a device has used, so any old one used again signs that device out.
+        Run(db, "CREATE TABLE IF NOT EXISTS used_refresh (hash TEXT PRIMARY KEY, session_id TEXT NOT NULL)");
     }
 
     private static void AddColumn(SqliteConnection db, string table, string column, string definition)
@@ -146,13 +149,35 @@ public sealed partial class ServerStore
         }
     }
 
-    public void SignInFailed(string id, int failed, DateTimeOffset? lockedUntil) =>
-        Run("UPDATE accounts SET failed = $failed, locked_until = $locked WHERE id = $id",
-            ("$failed", failed), ("$locked", lockedUntil is { } at ? When(at) : null), ("$id", id));
+    /// <summary>
+    /// One more wrong try, counted in the database itself so tries sent at the same moment all count; the account is
+    /// locked until <paramref name="lockedUntil"/> on the <paramref name="limit"/>th.
+    /// </summary>
+    public void SignInFailed(string id, int limit, DateTimeOffset lockedUntil) =>
+        Run("""
+            UPDATE accounts SET
+                locked_until = CASE WHEN failed + 1 >= $limit THEN $locked ELSE locked_until END,
+                failed = CASE WHEN failed + 1 >= $limit THEN 0 ELSE failed + 1 END
+            WHERE id = $id
+            """, ("$limit", limit), ("$locked", When(lockedUntil)), ("$id", id));
 
-    public void SignInWorked(string id, long? totpStep) =>
-        Run("UPDATE accounts SET failed = 0, locked_until = NULL, totp_last = CASE WHEN $step IS NULL THEN totp_last ELSE $step END WHERE id = $id",
-            ("$step", totpStep), ("$id", id));
+    /// <summary>
+    /// A sign-in that worked. With a two-factor code's time step, false when that step (or a later one) was used
+    /// already, by a sign-in at the same moment, so one code can't be used twice.
+    /// </summary>
+    public bool SignInWorked(string id, long? totpStep)
+    {
+        using var db = Open();
+        using var command = Command(db, """
+            UPDATE accounts SET failed = 0, locked_until = NULL, totp_last = CASE WHEN $step IS NULL THEN totp_last ELSE $step END
+            WHERE id = $id AND ($step IS NULL OR totp_last < $step)
+            """, [("$step", totpStep), ("$id", id)]);
+        return command.ExecuteNonQuery() == 1;
+    }
+
+    /// <summary>New workspaces made since a time, for the daily limit on sign-ups.</summary>
+    public int WorkspacesSince(DateTimeOffset since) =>
+        Read("SELECT COUNT(*) FROM workspaces WHERE created > $since", r => r.GetInt32(0), ("$since", When(since))).First();
 
     public void SetTotpPending(string id, string? sealedSecret) =>
         Run("UPDATE accounts SET totp_pending = $secret WHERE id = $id", ("$secret", sealedSecret), ("$id", id));
@@ -190,33 +215,45 @@ public sealed partial class ServerStore
         Read("SELECT a.email, m.role FROM members m JOIN accounts a ON a.id = m.account_id WHERE m.workspace_id = $w ORDER BY a.created",
             r => (r.GetString(0), r.GetString(1)), ("$w", workspaceId));
 
-    public sealed record Invite(string WorkspaceId, string WorkspaceName, string WrappedKey);
+    /// <summary>An open invite; <see cref="SecretCheck"/> is the hash of the check made from its secret half.</summary>
+    public sealed record Invite(string WorkspaceId, string WorkspaceName, string WrappedKey, string? SecretCheck);
 
     public Invite? OpenInvite(string hash, DateTimeOffset now) =>
-        Read("SELECT i.workspace_id, w.name, i.wrapped_key FROM invites i JOIN workspaces w ON w.id = i.workspace_id WHERE i.code_hash = $hash AND i.used_by IS NULL AND i.expires > $now",
-            r => new Invite(r.GetString(0), r.GetString(1), r.GetString(2)), ("$hash", hash), ("$now", When(now))).FirstOrDefault();
+        Read("SELECT i.workspace_id, w.name, i.wrapped_key, i.secret_check FROM invites i JOIN workspaces w ON w.id = i.workspace_id WHERE i.code_hash = $hash AND i.used_by IS NULL AND i.expires > $now",
+            r => new Invite(r.GetString(0), r.GetString(1), r.GetString(2), Text(r, 3)), ("$hash", hash), ("$now", When(now))).FirstOrDefault();
 
-    public void AddInvite(string hash, string workspaceId, string createdBy, DateTimeOffset expires, string wrappedKey) =>
-        Run("INSERT INTO invites (code_hash, workspace_id, created_by, expires, wrapped_key) VALUES ($hash, $w, $by, $expires, $key)",
-            ("$hash", hash), ("$w", workspaceId), ("$by", createdBy), ("$expires", When(expires)), ("$key", wrappedKey));
+    public void AddInvite(string hash, string workspaceId, string createdBy, DateTimeOffset expires, string wrappedKey, string secretCheckHash) =>
+        Run("INSERT INTO invites (code_hash, workspace_id, created_by, expires, wrapped_key, secret_check) VALUES ($hash, $w, $by, $expires, $key, $check)",
+            ("$hash", hash), ("$w", workspaceId), ("$by", createdBy), ("$expires", When(expires)), ("$key", wrappedKey), ("$check", secretCheckHash));
 
-    /// <summary>A new password after recovery: the sign-in key's hash, the member's locked key, and every device signed out.</summary>
-    public void ResetPassword(string accountId, string salt, int rounds, byte[] keyHash, byte[] keySalt, string wrappedKey)
+    /// <summary>
+    /// A new password after recovery: the sign-in key's hash, the member's locked key, a new recovery key (the old one
+    /// stops working), and every device signed out.
+    /// </summary>
+    public void ResetPassword(string accountId, string salt, int rounds, byte[] keyHash, byte[] keySalt, string wrappedKey, string recoveryWrapped, string recoveryHash)
     {
         using var db = Open();
         using var transaction = db.BeginTransaction();
-        Run(db, "UPDATE accounts SET salt = $salt, rounds = $rounds, key_hash = $hash, key_salt = $keysalt, failed = 0, locked_until = NULL WHERE id = $id",
-            ("$salt", salt), ("$rounds", rounds), ("$hash", keyHash), ("$keysalt", keySalt), ("$id", accountId));
+        Run(db, """
+            UPDATE accounts SET salt = $salt, rounds = $rounds, key_hash = $hash, key_salt = $keysalt, failed = 0, locked_until = NULL,
+                recovery_wrapped = $rw, recovery_hash = $rh
+            WHERE id = $id
+            """,
+            ("$salt", salt), ("$rounds", rounds), ("$hash", keyHash), ("$keysalt", keySalt), ("$rw", recoveryWrapped), ("$rh", recoveryHash), ("$id", accountId));
         Run(db, "UPDATE members SET wrapped_key = $key WHERE account_id = $id", ("$key", wrappedKey), ("$id", accountId));
+        Run(db, "DELETE FROM used_refresh WHERE session_id IN (SELECT id FROM sessions WHERE account_id = $id)", ("$id", accountId));
         Run(db, "DELETE FROM sessions WHERE account_id = $id", ("$id", accountId));
         transaction.Commit();
     }
 
     // Signed-in devices
 
-    public sealed record Session(string Id, string AccountId, string Device, DateTimeOffset AccessExpires, DateTimeOffset RefreshExpires);
+    /// <summary>A signed-in device; <see cref="Created"/> is when it signed in, which limits how long refreshing can keep it going.</summary>
+    public sealed record Session(string Id, string AccountId, string Device, DateTimeOffset AccessExpires, DateTimeOffset RefreshExpires,
+        DateTimeOffset Created = default);
 
-    private static Session SessionRow(SqliteDataReader r) => new(r.GetString(0), r.GetString(1), r.GetString(2), When(r.GetString(3)), When(r.GetString(4)));
+    private static Session SessionRow(SqliteDataReader r) =>
+        new(r.GetString(0), r.GetString(1), r.GetString(2), When(r.GetString(3)), When(r.GetString(4)), When(r.GetString(5)));
 
     public void AddSession(Session session, string accessHash, string refreshHash, DateTimeOffset now) =>
         Run("""
@@ -227,14 +264,17 @@ public sealed partial class ServerStore
             ("$accessExpires", When(session.AccessExpires)), ("$refresh", refreshHash), ("$refreshExpires", When(session.RefreshExpires)), ("$now", When(now)));
 
     public Session? SessionByAccess(string accessHash) =>
-        Read("SELECT id, account_id, device, access_expires, refresh_expires FROM sessions WHERE access_hash = $h", SessionRow, ("$h", accessHash)).FirstOrDefault();
+        Read("SELECT id, account_id, device, access_expires, refresh_expires, created FROM sessions WHERE access_hash = $h", SessionRow, ("$h", accessHash)).FirstOrDefault();
 
     public Session? SessionByRefresh(string refreshHash) =>
-        Read("SELECT id, account_id, device, access_expires, refresh_expires FROM sessions WHERE refresh_hash = $h", SessionRow, ("$h", refreshHash)).FirstOrDefault();
+        Read("SELECT id, account_id, device, access_expires, refresh_expires, created FROM sessions WHERE refresh_hash = $h", SessionRow, ("$h", refreshHash)).FirstOrDefault();
 
-    /// <summary>The device whose refresh token before this one is the given one: a sign that an old token was taken.</summary>
+    /// <summary>The device that used this refresh token before, however long ago: a sign that a token was taken.</summary>
     public Session? SessionByOldRefresh(string refreshHash) =>
-        Read("SELECT id, account_id, device, access_expires, refresh_expires FROM sessions WHERE previous_refresh_hash = $h", SessionRow, ("$h", refreshHash)).FirstOrDefault();
+        Read("""
+            SELECT s.id, s.account_id, s.device, s.access_expires, s.refresh_expires, s.created
+            FROM used_refresh u JOIN sessions s ON s.id = u.session_id WHERE u.hash = $h
+            """, SessionRow, ("$h", refreshHash)).FirstOrDefault();
 
     /// <summary>New tokens for a device; false when the refresh token was used meanwhile (by another request).</summary>
     public bool RotateSession(string id, string oldRefreshHash, string accessHash, DateTimeOffset accessExpires, string refreshHash, DateTimeOffset refreshExpires)
@@ -247,10 +287,22 @@ public sealed partial class ServerStore
             """,
             [("$access", accessHash), ("$accessExpires", When(accessExpires)), ("$refresh", refreshHash), ("$refreshExpires", When(refreshExpires)),
                 ("$old", oldRefreshHash), ("$id", id)]);
-        return command.ExecuteNonQuery() == 1;
+        if (command.ExecuteNonQuery() != 1)
+            return false;
+        Run(db, "INSERT OR IGNORE INTO used_refresh (hash, session_id) VALUES ($h, $id)", ("$h", oldRefreshHash), ("$id", id));
+        return true;
     }
 
-    public void RemoveSession(string id) => Run("DELETE FROM sessions WHERE id = $id", ("$id", id));
+    public void RemoveSession(string id)
+    {
+        Run("DELETE FROM used_refresh WHERE session_id = $id", ("$id", id));
+        Run("DELETE FROM sessions WHERE id = $id", ("$id", id));
+    }
 
-    public void RemoveSessionsOf(string accountId) => Run("DELETE FROM sessions WHERE account_id = $a", ("$a", accountId));
+    /// <summary>Signs out every device of an account, except <paramref name="keep"/> when given.</summary>
+    public void RemoveSessionsOf(string accountId, string? keep = null)
+    {
+        Run("DELETE FROM used_refresh WHERE session_id IN (SELECT id FROM sessions WHERE account_id = $a AND id IS NOT $keep)", ("$a", accountId), ("$keep", keep));
+        Run("DELETE FROM sessions WHERE account_id = $a AND id IS NOT $keep", ("$a", accountId), ("$keep", keep));
+    }
 }

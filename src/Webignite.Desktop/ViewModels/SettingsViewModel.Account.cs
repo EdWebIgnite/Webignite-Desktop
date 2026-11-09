@@ -219,12 +219,20 @@ public partial class SettingsViewModel
             SaySync("The two passwords aren't the same.", problem: true);
             return;
         }
-        var reply = await services.Account.RecoverAsync(AccountEmail, RecoveryKeyTyped, AccountPassword);
-        Signed(reply.Value, reply.Problem);
-        if (reply.Worked)
+        var reply = await services.Account.RecoverAsync(AccountEmail, RecoveryKeyTyped, AccountPassword, SignInCode);
+        if (reply.Need == Needs.Code)
+        {
+            NeedsSignInCode = true;
+            SaySync(reply.Problem ?? "Type the code from your authenticator app.", problem: true);
+            return;
+        }
+        Signed(reply.Value?.Account, reply.Problem);
+        if (reply.Value is { } recovered)
         {
             RecoveryKeyTyped = "";
-            SaySync("Your new password is set and you're signed in. Your other PCs were signed out; sign in there with the new password.");
+            NewRecoveryKey = recovered.RecoveryKey;
+            SaySync("Your new password is set and you're signed in. Your other PCs were signed out; sign in there with the new password. "
+                + "Your old recovery key no longer works: write down or print the new one below.");
         }
     });
 

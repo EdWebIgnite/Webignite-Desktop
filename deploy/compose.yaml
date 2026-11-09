@@ -27,7 +27,9 @@ services:
     image: caddy:2
     network_mode: host
     restart: unless-stopped
-    env_file: .env
+    # Caddy only needs the name; the server's secret and licence key stay with the server.
+    environment:
+      SYNC_DOMAIN: ${SYNC_DOMAIN}
     logging: *logs
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

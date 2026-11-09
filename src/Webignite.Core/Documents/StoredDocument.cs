@@ -90,6 +90,9 @@ public sealed record StoredDocument
     /// <summary>Credit notes drafted in Xero against this invoice from here.</summary>
     public IReadOnlyList<CreditNoteLink> CreditNotes { get; init; } = [];
 
+    /// <summary>While a draft in Xero is being changed here: the document as it was, for Discard changes.</summary>
+    public Document? BeforeChange { get; init; }
+
     /// <summary>For an invoice made from a quote here: that quote's id, so each can show the other.</summary>
     public string? FromQuote { get; init; }
 

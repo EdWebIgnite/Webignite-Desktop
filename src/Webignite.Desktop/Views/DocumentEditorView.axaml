@@ -40,7 +40,7 @@
     </DockPanel>
 
     <!-- Customer and dates -->
-    <Border Classes="card" IsEnabled="{Binding IsEditable}">
+    <Border Classes="card" IsEnabled="{Binding CanType}">
       <Grid ColumnDefinitions="2*,16,*,16,*,16,*,16,*" RowDefinitions="Auto,Auto">
         <StackPanel Grid.Column="0">
           <TextBlock Classes="label" Text="Customer" />
@@ -67,7 +67,7 @@
     </Border>
 
     <!-- Lines -->
-    <Border Classes="card" Padding="0" IsEnabled="{Binding IsEditable}">
+    <Border Classes="card" Padding="0" IsEnabled="{Binding CanType}">
       <StackPanel>
         <v:LinesEditor Lines="{Binding Lines}" RemoveCommand="{Binding RemoveLineCommand}" Placeholder="What was done or sold" />
 
@@ -93,7 +93,7 @@
       <StackPanel Grid.Column="0" Spacing="14">
         <StackPanel>
           <TextBlock Classes="label" Text="Notes for the client" />
-          <TextBox Text="{Binding Notes}" IsReadOnly="{Binding !IsEditable}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
+          <TextBox Text="{Binding Notes}" IsReadOnly="{Binding !CanType}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
                    PlaceholderText="Banking details, thank you note, anything else" />
         </StackPanel>
 
@@ -241,7 +241,7 @@
             <TextBlock Classes="muted" Text="Subtotal" />
             <TextBlock Classes="amount" Text="{Binding Subtotal}" />
           </DockPanel>
-          <DockPanel IsEnabled="{Binding IsEditable}">
+          <DockPanel IsEnabled="{Binding CanType}">
             <TextBlock Classes="muted" Text="Discount" VerticalAlignment="Center" />
             <TextBox Text="{Binding DiscountText}" PlaceholderText="10% or R" Width="110" HorizontalAlignment="Right" HorizontalContentAlignment="Right"
                      ToolTip.Tip="A discount on the whole quote or invoice: type 10% or an amount in Rand. It shows as a discount line before the total." />
@@ -271,6 +271,9 @@
                      IsVisible="{Binding IsChangingInXero}" />
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding IsChangingInXero}"
                      Text="It stays a draft. Approving and sending stay with you." />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Discard changes" Command="{Binding DiscardChangeCommand}" IsVisible="{Binding IsChangingInXero}" IsEnabled="{Binding !XeroBusy}"
+                  ToolTip.Tip="Puts the change aside: it goes back to how Xero has it." />
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Check Xero" Command="{Binding CheckXeroCommand}" IsVisible="{Binding ShowCheck}" IsEnabled="{Binding !XeroBusy}" />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"

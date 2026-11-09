@@ -60,4 +60,4 @@ public sealed class LoopbackReceiver : IDisposable
     }
 }
 
-public sealed class XeroSignInException(string message) : Exception(message);
+public sealed class XeroSignInException(string message) : Webignite.Xero.XeroException(message);
