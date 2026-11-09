@@ -84,6 +84,9 @@ public sealed record StoredDocument
     /// <summary>Set when Xero says there's nothing left to chase: the invoice is paid, or the quote accepted or declined.</summary>
     public SettledState? Settled { get; init; }
 
+    /// <summary>Credit notes drafted in Xero against this invoice from here.</summary>
+    public IReadOnlyList<CreditNoteLink> CreditNotes { get; init; } = [];
+
     /// <summary>For an invoice made from a quote here: that quote's id, so each can show the other.</summary>
     public string? FromQuote { get; init; }
 
@@ -91,6 +94,16 @@ public sealed record StoredDocument
     public DateTimeOffset Updated { get; init; }
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");
+}
+
+/// <summary>A credit note drafted in Xero against an invoice. Approving and allocating it is done in Xero.</summary>
+public sealed record CreditNoteLink
+{
+    public required string Id { get; init; }
+    public string? Number { get; init; }
+    public decimal Amount { get; init; }
+    public string? Reason { get; init; }
+    public DateTimeOffset Drafted { get; init; }
 }
 
 /// <summary>A document's copy in Xero: how the write went, and what Xero last said.</summary>

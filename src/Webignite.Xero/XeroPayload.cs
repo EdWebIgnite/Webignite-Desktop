@@ -49,6 +49,72 @@ public static class XeroPayload
     /// </summary>
     public static JsonObject Build(Document doc, string contactId, string accountCode, string taxType, string? number = null, string? brandingThemeId = null)
     {
+        var quote = doc.Kind == DocumentKind.Quote;
+        var lines = Lines(doc, accountCode, taxType);
+        var payload = Payload(doc, contactId, lines, quote);
+        if (!string.IsNullOrEmpty(number))
+            payload[quote ? "QuoteNumber" : "InvoiceNumber"] = number;
+        if (!string.IsNullOrEmpty(brandingThemeId))
+            payload["BrandingThemeID"] = brandingThemeId;
+        if (doc.DueOrExpiryDate is { } due)
+            payload[quote ? "ExpiryDate" : "DueDate"] = Iso(due);
+
+        if (quote)
+        {
+            payload["Summary"] = doc.Notes ?? "";
+            payload["Terms"] = doc.Terms ?? "";
+        }
+        else
+        {
+            payload["Type"] = "ACCREC";
+            // Invoices have no notes or terms fields in the API, so they go in as text-only lines.
+            foreach (var (label, value) in new[] { ("Notes", doc.Notes), ("Terms and conditions", doc.Terms) })
+                if (!string.IsNullOrEmpty(value))
+                    lines.Add(new JsonObject { ["Description"] = label + ":\n" + value });
+        }
+        return payload;
+    }
+
+    private static JsonObject Payload(Document doc, string contactId, JsonArray lines, bool quote) => new()
+    {
+        ["Contact"] = new JsonObject { ["ContactID"] = contactId },
+        ["Date"] = Iso(doc.Date ?? throw new InvalidOperationException("Document has no date.")),
+        ["Status"] = XeroStatuses.Draft,
+        ["CurrencyCode"] = doc.Currency,
+        ["LineItems"] = lines,
+        // Xero spells this differently for quotes and invoices.
+        ["LineAmountTypes"] = quote ? "NOTAX" : "NoTax",
+        ["Reference"] = doc.Reference ?? "",
+    };
+
+    /// <summary>
+    /// A DRAFT credit note against an invoice: its lines when the whole invoice is credited, else one line for the
+    /// amount and reason. Approving it and allocating it to the invoice are left to Eddie in Xero.
+    /// </summary>
+    public static JsonObject CreditNote(Document invoice, string invoiceNumber, string contactId, string accountCode, string taxType,
+        DateOnly date, decimal? amount, string? reason, string? brandingThemeId = null)
+    {
+        var lines = amount is null
+            ? Lines(invoice, accountCode, taxType)
+            : new JsonArray(new JsonObject
+            {
+                ["Description"] = string.IsNullOrWhiteSpace(reason) ? "Credit against " + invoiceNumber : reason.Trim(),
+                ["Quantity"] = 1m,
+                ["UnitAmount"] = amount.Value,
+                ["AccountCode"] = accountCode,
+                ["TaxType"] = taxType,
+            });
+        var payload = Payload(invoice with { Date = date }, contactId, lines, quote: false);
+        payload["Type"] = "ACCRECCREDIT";
+        payload["Reference"] = string.IsNullOrWhiteSpace(reason) ? invoiceNumber : invoiceNumber + ": " + reason.Trim();
+        if (!string.IsNullOrEmpty(brandingThemeId))
+            payload["BrandingThemeID"] = brandingThemeId;
+        return payload;
+    }
+
+    // Each priced or text line, then the whole-document discount as a line of its own.
+    private static JsonArray Lines(Document doc, string accountCode, string taxType)
+    {
         var lines = new JsonArray();
         foreach (var line in doc.Lines)
         {
@@ -87,41 +153,9 @@ public static class XeroPayload
                 ["TaxType"] = taxType,
             });
         }
-
-        var quote = doc.Kind == DocumentKind.Quote;
-        var payload = new JsonObject
-        {
-            ["Contact"] = new JsonObject { ["ContactID"] = contactId },
-            ["Date"] = Iso(doc.Date ?? throw new InvalidOperationException("Document has no date.")),
-            ["Status"] = XeroStatuses.Draft,
-            ["CurrencyCode"] = doc.Currency,
-            ["LineItems"] = lines,
-            // Xero spells this differently for quotes and invoices.
-            ["LineAmountTypes"] = quote ? "NOTAX" : "NoTax",
-            ["Reference"] = doc.Reference ?? "",
-        };
-        if (!string.IsNullOrEmpty(number))
-            payload[quote ? "QuoteNumber" : "InvoiceNumber"] = number;
-        if (!string.IsNullOrEmpty(brandingThemeId))
-            payload["BrandingThemeID"] = brandingThemeId;
-        if (doc.DueOrExpiryDate is { } due)
-            payload[quote ? "ExpiryDate" : "DueDate"] = Iso(due);
-
-        if (quote)
-        {
-            payload["Summary"] = doc.Notes ?? "";
-            payload["Terms"] = doc.Terms ?? "";
-        }
-        else
-        {
-            payload["Type"] = "ACCREC";
-            // Invoices have no notes or terms fields in the API, so they go in as text-only lines.
-            foreach (var (label, value) in new[] { ("Notes", doc.Notes), ("Terms and conditions", doc.Terms) })
-                if (!string.IsNullOrEmpty(value))
-                    lines.Add(new JsonObject { ["Description"] = label + ":\n" + value });
-        }
-        return payload;
+        return lines;
     }
+
 
     /// <summary>Compares what Xero saved with what was sent. An empty list means they match.</summary>
     /// <summary>
