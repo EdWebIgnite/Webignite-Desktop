@@ -116,15 +116,20 @@ public sealed class AccountClientTests : IDisposable
         var workspaceKey = client.WorkspaceKey;
 
         using var lostPc = Client(new MemorySecretStore());
-        Assert.False((await lostPc.RecoverAsync("eddie@webignite.co.za", WorkspaceKeys.NewRecoveryKey(), "new password for karoo", TestContext.Current.CancellationToken)).Worked);
+        Assert.False((await lostPc.RecoverAsync("eddie@webignite.co.za", WorkspaceKeys.NewRecoveryKey(), "new password for karoo", cancel: TestContext.Current.CancellationToken)).Worked);
         var recovered = await lostPc.RecoverAsync("eddie@webignite.co.za", signedUp.RecoveryKey.ToLowerInvariant().Replace("-", " ", StringComparison.Ordinal),
-            "new password for karoo", TestContext.Current.CancellationToken);
+            "new password for karoo", cancel: TestContext.Current.CancellationToken);
         Assert.True(recovered.Worked, recovered.Problem);
         Assert.Equal(workspaceKey, lostPc.WorkspaceKey);
+        // A new recovery key comes back; the old one no longer works.
+        Assert.NotEqual(signedUp.RecoveryKey, recovered.Value!.RecoveryKey);
+        using var another = Client(new MemorySecretStore());
+        Assert.False((await another.RecoverAsync("eddie@webignite.co.za", signedUp.RecoveryKey, "third password for karoo", cancel: TestContext.Current.CancellationToken)).Worked);
+        Assert.True((await another.RecoverAsync("eddie@webignite.co.za", recovered.Value.RecoveryKey, "third password for karoo", cancel: TestContext.Current.CancellationToken)).Worked);
 
         using var later = Client(new MemorySecretStore());
         Assert.False((await later.SignInAsync("eddie@webignite.co.za", "karoo rooibos sunrise", cancel: TestContext.Current.CancellationToken)).Worked);
-        Assert.True((await later.SignInAsync("eddie@webignite.co.za", "new password for karoo", cancel: TestContext.Current.CancellationToken)).Worked);
+        Assert.True((await later.SignInAsync("eddie@webignite.co.za", "third password for karoo", cancel: TestContext.Current.CancellationToken)).Worked);
         Assert.Equal(workspaceKey, later.WorkspaceKey);
     }
 

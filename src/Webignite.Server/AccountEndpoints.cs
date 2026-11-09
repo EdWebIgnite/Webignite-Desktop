@@ -29,7 +29,7 @@ public static class AccountEndpoints
         signedIn.MapPost("/two-factor/off", (HttpContext http, CodeRequest request, AccountService accounts) =>
             SignedIn(http, accounts, session => Reply(accounts.StopTwoFactor(session, request.Code ?? ""), noContent: true)));
         signedIn.MapPost("/workspace/invites", (HttpContext http, InviteRequest request, AccountService accounts) =>
-            SignedIn(http, accounts, session => Reply(accounts.Invite(session.AccountId, request.WrappedKey))));
+            SignedIn(http, accounts, session => Reply(accounts.Invite(session.AccountId, request.WrappedKey, request.SecretCheck))));
         signedIn.MapGet("/licence", (HttpContext http, AccountService accounts, LicenceService licences) =>
             SignedIn(http, accounts, session => Reply(licences.For(session.AccountId))));
         signedIn.MapPost("/sync/push", (HttpContext http, PushRequest request, AccountService accounts, SyncService sync) =>

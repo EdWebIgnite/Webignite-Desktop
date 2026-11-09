@@ -156,7 +156,7 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         if (AccountRules.PasswordProblem(password, email) is { } passwordProblem)
             return new Reply<SignedUp>(default, passwordProblem);
         byte[] workspaceKey;
-        string? serverPart = null;
+        string? serverPart = null, inviteCheck = null;
         if (!string.IsNullOrWhiteSpace(inviteCode))
         {
             if (WorkspaceKeys.ReadInviteCode(inviteCode) is not { } code)
@@ -166,7 +166,7 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
                 return new Reply<SignedUp>(default, opened.Problem);
             if (WorkspaceKeys.Unwrap(invite.WrappedKey, WorkspaceKeys.FromInviteSecret(code.Secret), WorkspaceKeys.ForInvite) is not { } key)
                 return new Reply<SignedUp>(default, "That invite code isn't right. Copy the whole code you were given.");
-            (workspaceKey, serverPart) = (key, code.ServerPart);
+            (workspaceKey, serverPart, inviteCheck) = (key, code.ServerPart, WorkspaceKeys.InviteCheck(code.Secret));
         }
         else
             workspaceKey = WorkspaceKeys.NewKey();
@@ -178,7 +178,7 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
             new SignUpRequest(AccountRules.Normal(email), Convert.ToBase64String(salt), AccountKeys.Rounds, keys.SignInKey,
                 serverPart is null ? workspaceName : null, serverPart, DeviceName,
                 WorkspaceKeys.Wrap(workspaceKey, keys.EncryptionKey, WorkspaceKeys.ForMember),
-                WorkspaceKeys.Wrap(workspaceKey, recoveryLock, WorkspaceKeys.ForRecovery), recoveryCheck),
+                WorkspaceKeys.Wrap(workspaceKey, recoveryLock, WorkspaceKeys.ForRecovery), recoveryCheck, inviteCheck),
             signedIn: false, cancel);
         if (reply.Value is not { } session)
             return new Reply<SignedUp>(default, reply.Problem, reply.Need);
@@ -214,34 +214,38 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
 
     /// <summary>
     /// A forgotten password replaced with the recovery key: the workspace key is unlocked with it here, locked again
-    /// with the new password, and every other PC is signed out. Nothing synced is lost.
+    /// with the new password, and every other PC is signed out. Nothing synced is lost. With two-factor on, the
+    /// server answers that it needs a code first. A new recovery key replaces the old one and comes back to be shown once.
     /// </summary>
-    public async Task<Reply<AccountInfo>> RecoverAsync(string email, string recoveryKey, string newPassword, CancellationToken cancel = default)
+    public async Task<Reply<SignedUp>> RecoverAsync(string email, string recoveryKey, string newPassword, string? code = null, CancellationToken cancel = default)
     {
         if (AccountRules.EmailProblem(email) is { } emailProblem)
-            return new Reply<AccountInfo>(default, emailProblem);
+            return new Reply<SignedUp>(default, emailProblem);
         if (WorkspaceKeys.ReadRecoveryKey(recoveryKey) is not { } recovery)
-            return new Reply<AccountInfo>(default, "That isn't a whole recovery key. It's 52 letters and digits in groups of four.");
+            return new Reply<SignedUp>(default, "That isn't a whole recovery key. It's 52 letters and digits in groups of four.");
         if (AccountRules.PasswordProblem(newPassword, email) is { } passwordProblem)
-            return new Reply<AccountInfo>(default, passwordProblem);
+            return new Reply<SignedUp>(default, passwordProblem);
         var (recoveryLock, check) = WorkspaceKeys.FromRecoveryKey(recovery);
         var locked = await Send<RecoveryLocked>(HttpMethod.Post, "api/recovery/key", new RecoveryRequest(AccountRules.Normal(email), check), signedIn: false, cancel);
         if (locked.Value is not { } wrapped)
-            return new Reply<AccountInfo>(default, locked.Problem);
+            return new Reply<SignedUp>(default, locked.Problem);
         if (WorkspaceKeys.Unwrap(wrapped.WrappedKey, recoveryLock, WorkspaceKeys.ForRecovery) is not { } workspaceKey)
-            return new Reply<AccountInfo>(default, "That recovery key doesn't open this account's workspace key.");
+            return new Reply<SignedUp>(default, "That recovery key doesn't open this account's workspace key.");
         var salt = AccountKeys.NewSalt();
         var keys = await Task.Run(() => AccountKeys.Derive(newPassword, salt, AccountKeys.Rounds), cancel);
+        var newRecoveryKey = WorkspaceKeys.NewRecoveryKey();
+        var (newLock, newCheck) = WorkspaceKeys.FromRecoveryKey(WorkspaceKeys.ReadRecoveryKey(newRecoveryKey)!);
         var reply = await Send<SessionInfo>(HttpMethod.Post, "api/recovery/reset",
             new ResetRequest(AccountRules.Normal(email), check, Convert.ToBase64String(salt), AccountKeys.Rounds, keys.SignInKey,
-                WorkspaceKeys.Wrap(workspaceKey, keys.EncryptionKey, WorkspaceKeys.ForMember), DeviceName),
+                WorkspaceKeys.Wrap(workspaceKey, keys.EncryptionKey, WorkspaceKeys.ForMember), DeviceName,
+                WorkspaceKeys.Wrap(workspaceKey, newLock, WorkspaceKeys.ForRecovery), newCheck, string.IsNullOrWhiteSpace(code) ? null : code.Trim()),
             signedIn: false, cancel);
         if (reply.Value is not { } session)
-            return new Reply<AccountInfo>(default, reply.Problem, reply.Need);
+            return new Reply<SignedUp>(default, reply.Problem, reply.Need);
         Keep(session);
         EncryptionKey = keys.EncryptionKey;
         KeepWorkspaceKey(workspaceKey);
-        return new Reply<AccountInfo>(session.Account);
+        return new Reply<SignedUp>(new SignedUp(session.Account, newRecoveryKey));
     }
 
     /// <summary>The account as the server has it now (workspace, members, two-factor).</summary>
@@ -289,7 +293,8 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
             return new Reply<InviteInfo>(default, "Sign in again on this PC first, so it has the workspace key to share.");
         var secret = WorkspaceKeys.NewInviteSecret();
         var reply = await Send<InviteInfo>(HttpMethod.Post, "api/workspace/invites",
-            new InviteRequest(WorkspaceKeys.Wrap(workspaceKey, WorkspaceKeys.FromInviteSecret(secret), WorkspaceKeys.ForInvite)), signedIn: true, cancel);
+            new InviteRequest(WorkspaceKeys.Wrap(workspaceKey, WorkspaceKeys.FromInviteSecret(secret), WorkspaceKeys.ForInvite), WorkspaceKeys.InviteCheck(secret)),
+            signedIn: true, cancel);
         return reply.Value is { } invite
             ? new Reply<InviteInfo>(invite with { Code = WorkspaceKeys.InviteCode(invite.Code, secret) })
             : reply;
@@ -301,8 +306,30 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
     /// <summary>Whether this copy of the app can check licences: it has the server's public key built in.</summary>
     public bool ChecksLicences => licenceKey.Length > 0;
 
-    /// <summary>The licence kept on this PC, checked again each time it's read; null when there's none or it doesn't check out.</summary>
-    public Licence? Licence => store.GetSetting<KeptLicence>(LicenceName) is { } kept ? Licences.Read(kept.Token, licenceKey) : null;
+    /// <summary>
+    /// The licence kept on this PC, checked again each time it's read: signed by the server, for this workspace, and
+    /// not from the future (a PC clock wound back doesn't stretch it). Null when there's none or it doesn't check out.
+    /// </summary>
+    public Licence? Licence => store.GetSetting<KeptLicence>(LicenceName) is { } kept && Licences.Read(kept.Token, licenceKey) is { } licence
+        && Account is { } account && licence.WorkspaceId == account.Workspace.Id && !ClockWoundBack(licence)
+            ? licence : null;
+
+    private const string LatestSeenName = "licence-latest-seen";
+
+    /// <summary>
+    /// Whether this PC's clock is behind a time it has already seen: when the licence was issued, or the latest time
+    /// it was read. Remembers the latest time each read, so winding the clock back doesn't bring back an older day.
+    /// </summary>
+    private bool ClockWoundBack(Licence licence)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var seen = store.GetSetting<DateTimeOffset?>(LatestSeenName) ?? DateTimeOffset.MinValue;
+        if (now + TimeSpan.FromHours(1) < (licence.Issued > seen ? licence.Issued : seen))
+            return true;
+        if (now > seen)
+            store.SetSetting<DateTimeOffset?>(LatestSeenName, now);
+        return false;
+    }
 
     /// <summary>
     /// Fetches the workspace's licence when the one kept is older than <paramref name="every"/> (or there's none),
@@ -317,7 +344,7 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         var reply = await Send<LicenceReply>(HttpMethod.Get, "api/licence", null, signedIn: true, cancel);
         if (reply.Value is not { } signed)
             return new Reply<Licence>(Licence, reply.Problem);
-        if (Licences.Read(signed.Token, licenceKey) is not { } licence || (Account is { } account && licence.WorkspaceId != account.Workspace.Id))
+        if (Licences.Read(signed.Token, licenceKey) is not { } licence || Account is not { } account || licence.WorkspaceId != account.Workspace.Id)
             return new Reply<Licence>(Licence, "The licence from the server didn't check out.");
         store.SetSetting(LicenceName, new KeptLicence(signed.Token, now));
         return new Reply<Licence>(licence);

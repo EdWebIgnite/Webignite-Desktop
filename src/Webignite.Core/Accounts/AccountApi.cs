@@ -10,8 +10,9 @@ public sealed record KdfInfo(string Salt, int Rounds);
 /// locked twice: with the password's encryption key, and with the recovery key (plus a check that proves the
 /// recovery key later). The server can open neither.
 /// </summary>
+/// <remarks>Joining also proves the invite's secret half with <paramref name="InviteCheck"/>, so the server's half alone isn't enough.</remarks>
 public sealed record SignUpRequest(string Email, string Salt, int Rounds, string SignInKey, string? WorkspaceName, string? InviteCode, string DeviceName,
-    string WrappedKey, string RecoveryWrappedKey, string RecoveryCheck);
+    string WrappedKey, string RecoveryWrappedKey, string RecoveryCheck, string? InviteCheck = null);
 
 public sealed record SignInRequest(string Email, string SignInKey, string? Code, string DeviceName);
 
@@ -37,8 +38,11 @@ public sealed record CodeRequest(string Code);
 /// <summary>Two-factor turned on: one-time recovery codes, shown once, for when the phone is lost.</summary>
 public sealed record RecoveryCodes(IReadOnlyList<string> Codes);
 
-/// <summary>An invite: the workspace key locked with the invite's secret half, which the server never sees.</summary>
-public sealed record InviteRequest(string WrappedKey);
+/// <summary>
+/// An invite: the workspace key locked with the invite's secret half, which the server never sees, and a check made
+/// from that secret half, which joining must match.
+/// </summary>
+public sealed record InviteRequest(string WrappedKey, string? SecretCheck = null);
 
 /// <summary>The server's half of an invite code, and when it runs out.</summary>
 public sealed record InviteInfo(string Code, DateTimeOffset Expires);
@@ -53,8 +57,12 @@ public sealed record RecoveryRequest(string Email, string Check);
 
 public sealed record RecoveryLocked(string WrappedKey);
 
-/// <summary>A new password with the recovery key: new sign-in key and the workspace key locked with the new password.</summary>
-public sealed record ResetRequest(string Email, string Check, string Salt, int Rounds, string SignInKey, string WrappedKey, string DeviceName);
+/// <summary>
+/// A new password with the recovery key: new sign-in key and the workspace key locked with the new password. The
+/// recovery key is replaced too (the old one stops working), and with two-factor on, a code is needed as well.
+/// </summary>
+public sealed record ResetRequest(string Email, string Check, string Salt, int Rounds, string SignInKey, string WrappedKey, string DeviceName,
+    string? NewRecoveryWrappedKey = null, string? NewRecoveryCheck = null, string? Code = null);
 
 /// <summary>A problem the server explains in plain words.</summary>
 public sealed record Problem(string Message, string? Need = null);

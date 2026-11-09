@@ -19,17 +19,26 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
   or a changed lock is noticed. The app keeps the unlocked key in Windows Credential Manager.
 - **Recovery key:** 52 letters and digits shown once when the account is made, to write down or print. With it and
   the email, a forgotten password is replaced: the app unlocks the workspace key with it, locks it with the new
-  password, and the server signs every other PC out. The server keeps only a hash of a check made from it.
+  password, and the server signs every other PC out. The server keeps only a hash of a check made from it. With
+  two-factor on, a code from the phone (or a recovery code) is needed as well, so the recovery key alone isn't
+  enough. Each reset makes a new recovery key, shown once; the old one stops working.
 - **Invite codes** have two halves: the server's half (it knows the invite) and a secret half that unlocks the
-  workspace key and is never sent to the server. Give the whole code to your partner privately.
+  workspace key and is never sent to the server. Joining also brings a check made from the secret half, which must
+  match the one kept (hashed) with the invite, so the server's half alone doesn't let anyone in. Give the whole
+  code to your partner privately.
 - **Two-factor** with any authenticator app (RFC 6238 codes, `Totp` in Core). Each code works once. Turning it on
   gives eight one-time recovery codes, stored hashed. The secret is kept sealed with the server's own key.
-- **Wrong tries:** ten wrong passwords lock the account for 15 minutes, and each address can try signing in at most
-  20 times a minute.
+- **Wrong tries:** ten wrong passwords lock the account for 15 minutes (counted in the database, so tries sent at
+  once all count), and each address can try signing in at most 20 times a minute. Turning two-factor off signs out
+  every other device.
 - **Devices:** each signed-in PC has a 15-minute access token and a 30-day refresh token. A refresh token works
-  once; using an old one again signs that PC out, as someone may have copied it.
+  once; using any earlier one again, however long ago, signs that PC out, as someone may have copied it. After 90
+  days a PC signs in again with the password, however often it refreshed.
 - **No giveaways:** asking for the salt of an email with no account gives a made-up one that's the same every
-  time, so the server doesn't reveal who has an account.
+  time, and signing in to one takes as long as a real check. Signing up with an email that's taken does say so.
+- **Room:** each request is at most 8 MB, each workspace keeps at most 500 MB and 200 000 records, a pull hands back
+  at most 8 MB, and at most 20 new workspaces a day are made (`Webignite:SignUpsPerDay`), so nobody can fill the
+  server.
 - **HTTPS only:** the app refuses a server address that isn't `https://` (except one on the same PC, for testing).
   On a real server, Caddy in front of it does HTTPS; the sync server only listens on the machine itself.
 
@@ -61,7 +70,8 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 A workspace's plan is on the server (`trial`, `active` with a paid-until day, or `complimentary`); `set-plan`
 changes it. The server signs the licence with ECDSA P-256 (`Licences` in Core); the app checks it with the public
 key built in (`LicenceKey.Public`), keeps it in the setting `licence` and fetches it again twice a day while
-signed in. The trial is 30 days; after the licence runs out there are 14 days' grace, then the app locks
+signed in. Each time it's read, the licence must be for the workspace signed in, and the PC's clock mustn't be
+behind the latest time already seen (setting `licence-latest-seen`), so winding the clock back doesn't help. The trial is 30 days; after the licence runs out there are 14 days' grace, then the app locks
 (`Licences.Locks`, not switched on until payments are set up).
 
 ## Settings

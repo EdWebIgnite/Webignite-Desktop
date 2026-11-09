@@ -86,6 +86,13 @@ public static class WorkspaceKeys
     public static byte[] FromInviteSecret(string secret) =>
         HKDF.DeriveKey(HashAlgorithmName.SHA256, Base32.Decode(secret) ?? [], KeyBytes, [], Encoding.UTF8.GetBytes("webignite invite lock"));
 
+    /// <summary>
+    /// A check made from an invite's secret half: the server keeps it (hashed) and joining must bring the same, so the
+    /// server's half of a code alone doesn't let anyone in. It can't be turned back into the secret or its lock.
+    /// </summary>
+    public static string InviteCheck(string secret) =>
+        Convert.ToBase64String(HKDF.DeriveKey(HashAlgorithmName.SHA256, Base32.Decode(secret) ?? [], KeyBytes, [], Encoding.UTF8.GetBytes("webignite invite check")));
+
     /// <summary>The code to give your partner: the server's part, then the secret part.</summary>
     public static string InviteCode(string serverPart, string secret) => $"{serverPart}-{Group(secret)}";
 
