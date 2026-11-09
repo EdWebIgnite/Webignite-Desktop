@@ -108,6 +108,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         { Delivery.Emailed: not null } => "emailed to the customer",
         { Delivery.Approved: not null } => "approved in Xero, not emailed",
         { Xero.State: XeroWriteState.Verified } => "draft in Xero",
+        { Xero.State: XeroWriteState.Editing } => "draft in Xero, being changed by Eddie",
         { Status: DocumentStatus.AwaitingApproval } => "waiting for Eddie under To approve",
         { Xero.Id: not null } => "in Xero",
         _ => "draft on Eddie's PC",

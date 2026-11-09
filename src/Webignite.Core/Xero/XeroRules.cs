@@ -44,6 +44,30 @@ public enum XeroWriteState
 
     /// <summary>In Xero as a draft and checked line by line.</summary>
     Verified,
+
+    /// <summary>A draft in Xero being changed here. Xero still has the old copy until Update draft in Xero.</summary>
+    Editing,
+}
+
+/// <summary>Changing a draft that Webignite already put in Xero.</summary>
+public static class XeroEdits
+{
+    /// <summary>
+    /// A draft Webignite made in Xero that nobody has approved, emailed or settled yet, so it can be changed here
+    /// and the change put into Xero. Ones made in Xero itself are changed in Xero.
+    /// </summary>
+    public static bool CanChange(StoredDocument stored) =>
+        stored.Document.Origin != DocumentOrigin.Xero
+        && stored.Xero.Id is not null
+        && stored.Xero.State is XeroWriteState.Verified or XeroWriteState.Mismatch
+        && stored.Delivery.Approved is null
+        && stored.Delivery.Emailed is null
+        && stored.Settled is null
+        && (stored.Xero.Status is null || XeroStatuses.IsDraft(stored.Xero.Status));
+
+    /// <summary>Starts changing it here, or null when it can't be changed (it moved on meanwhile).</summary>
+    public static StoredDocument? StartChanging(StoredDocument stored) =>
+        CanChange(stored) ? stored with { Xero = stored.Xero with { State = XeroWriteState.Editing, Problems = [] } } : null;
 }
 
 /// <summary>
@@ -162,7 +186,7 @@ public static class XeroRules
     /// </summary>
     public static XeroExisting? FindOurs(Document doc, string contactId, IEnumerable<XeroExisting> existing, IReadOnlyCollection<string> claimed)
     {
-        var found = existing.Where(r => !claimed.Contains(r.Id) && r.ContactId == contactId && r.Status == Documents.XeroStatuses.Draft
+        var found = existing.Where(r => !claimed.Contains(r.Id) && r.ContactId == contactId && r.Status == XeroStatuses.Draft
             && r.Date == doc.Date && r.Total is { } t && doc.Total is { } mine && Money.Cents(t) == Money.Cents(mine)).ToList();
         return found.Count == 1 ? found[0] : null;
     }

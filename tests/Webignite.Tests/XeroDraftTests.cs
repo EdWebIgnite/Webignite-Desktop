@@ -178,6 +178,54 @@ public sealed class XeroDraftTests
         Assert.Single(xero.Puts);
     }
 
+    [Fact]
+    public async Task A_draft_in_xero_is_changed_here_and_updated_there_still_as_a_draft()
+    {
+        var xero = new FakeXero();
+        var (drafts, _) = Make(xero);
+        var made = Assert.IsType<XeroDrafts.Result.Done>(await drafts.CreateAsync(Stored(), new XeroTarget("200"), cancel: TestContext.Current.CancellationToken)).Stored;
+        Assert.True(XeroEdits.CanChange(made));
+        Assert.False(XeroEdits.CanChange(made with { Delivery = made.Delivery with { Approved = DateTimeOffset.UtcNow } }));
+        Assert.False(XeroEdits.CanChange(made with { Document = made.Document with { Origin = Webignite.Core.Documents.DocumentOrigin.Xero } }));
+
+        // Not unlocked yet: nothing is written.
+        Assert.IsType<XeroDrafts.Result.Stopped>(await drafts.UpdateAsync(made, new XeroTarget("200"), cancel: TestContext.Current.CancellationToken));
+        Assert.Empty(xero.Posts);
+
+        var editing = XeroEdits.StartChanging(made)!;
+        var lines = editing.Document.Lines.ToList();
+        lines.Add(lines[0] with { Description = "Extra page", Quantity = 1, UnitPrice = 300m });
+        editing = editing with { Document = Samples.Completed(editing.Document with { Lines = lines, Subtotal = null, Total = null }) };
+
+        var result = await drafts.UpdateAsync(editing, new XeroTarget("200"), cancel: TestContext.Current.CancellationToken);
+
+        var done = Assert.IsType<XeroDrafts.Result.Done>(result is XeroDrafts.Result.Stopped s ? throw new Xunit.Sdk.XunitException(s.Reason) : result);
+        Assert.Equal(XeroWriteState.Verified, done.Stored.Xero.State);
+        Assert.Equal("INV-0111", done.Stored.Xero.Number);
+        var post = Assert.Single(xero.Posts);
+        var sent = post.Body["Invoices"]![0]!;
+        Assert.Equal("inv1", sent["InvoiceID"]!.GetValue<string>());
+        Assert.Equal("DRAFT", sent["Status"]!.GetValue<string>());
+        Assert.Equal(lines.Count, sent["LineItems"]!.AsArray().Count);
+        Assert.Single(xero.Puts); // updated, not made again
+    }
+
+    [Fact]
+    public async Task A_draft_approved_in_xero_meanwhile_is_not_changed()
+    {
+        var xero = new FakeXero();
+        var (drafts, _) = Make(xero);
+        var made = Assert.IsType<XeroDrafts.Result.Done>(await drafts.CreateAsync(Stored(), new XeroTarget("200"), cancel: TestContext.Current.CancellationToken)).Stored;
+        var editing = XeroEdits.StartChanging(made)!;
+        xero.SetStatus("inv1", "AUTHORISED");
+
+        var stopped = Assert.IsType<XeroDrafts.Result.Stopped>(await drafts.UpdateAsync(editing, new XeroTarget("200"), cancel: TestContext.Current.CancellationToken));
+        Assert.Contains("isn't a draft in Xero any more", stopped.Reason, StringComparison.Ordinal);
+        Assert.Equal("AUTHORISED", stopped.Stored.Xero.Status);
+        Assert.Empty(xero.Posts);
+        Assert.False(XeroEdits.CanChange(stopped.Stored with { Xero = stopped.Stored.Xero with { State = XeroWriteState.Verified } }));
+    }
+
     private static Webignite.Core.Documents.StoredDocument Stored(string customer = "Karoo Coffee Roasters") => new()
     {
         Id = Webignite.Core.Documents.StoredDocument.NewId(),
@@ -198,6 +246,7 @@ public sealed class XeroDraftTests
     private sealed class FakeXero : HttpMessageHandler
     {
         public List<(string Path, string Key, JsonObject Body)> Puts { get; } = [];
+        public List<(string Path, string Key, JsonObject Body)> Posts { get; } = [];
         public bool DropFirstWrite { get; init; }
         public bool RefuseItems { get; init; }
         public List<JsonObject> SavedItems { get; } = [JsonNode.Parse("""{"Code":"HOSTING","Name":"Hosting"}""")!.AsObject()];
@@ -234,20 +283,22 @@ public sealed class XeroDraftTests
                 var inv = body["Invoices"]![0]!.AsObject().DeepClone().AsObject();
                 inv["InvoiceID"] = "inv" + (invoices.Count + 1);
                 inv["InvoiceNumber"] ??= "INV-" + (111 + invoices.Count).ToString("0000", System.Globalization.CultureInfo.InvariantCulture);
-                inv["DateString"] = inv["Date"]!.GetValue<string>() + "T00:00:00";
-                decimal total = 0;
-                foreach (var line in inv["LineItems"]!.AsArray().OfType<JsonObject>())
-                    if (line["Quantity"] is { } q)
-                    {
-                        line["LineAmount"] = q.GetValue<decimal>() * line["UnitAmount"]!.GetValue<decimal>();
-                        total += line["LineAmount"]!.GetValue<decimal>();
-                    }
-                inv["SubTotal"] = total;
-                inv["TotalTax"] = 0m;
-                inv["Total"] = total;
+                Price(inv);
                 invoices.Add(inv);
                 if (DropFirstWrite && invoices.Count == 1)
                     throw new HttpRequestException("connection reset");
+                return Json(new JsonObject { ["Invoices"] = new JsonArray(inv.DeepClone()) }.ToJsonString());
+            }
+
+            if (request.Method == HttpMethod.Post)
+            {
+                var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancel))!.AsObject();
+                Posts.Add((path, request.Headers.GetValues("Idempotency-Key").Single(), body));
+                var inv = body["Invoices"]![0]!.AsObject().DeepClone().AsObject();
+                var index = invoices.FindIndex(i => i["InvoiceID"]!.GetValue<string>() == inv["InvoiceID"]!.GetValue<string>());
+                inv["InvoiceNumber"] ??= invoices[index]["InvoiceNumber"]!.DeepClone();
+                Price(inv);
+                invoices[index] = inv;
                 return Json(new JsonObject { ["Invoices"] = new JsonArray(inv.DeepClone()) }.ToJsonString());
             }
 
@@ -267,6 +318,24 @@ public sealed class XeroDraftTests
                 return Json(new JsonObject { ["Invoices"] = new JsonArray(invoices.Single(i => i["InvoiceID"]!.GetValue<string>() == id).DeepClone()) }.ToJsonString());
             }
             return new HttpResponseMessage(HttpStatusCode.NotFound);
+        }
+
+        /// <summary>Approves it in "Xero", as if someone did there.</summary>
+        public void SetStatus(string id, string status) => invoices.Single(i => i["InvoiceID"]!.GetValue<string>() == id)["Status"] = status;
+
+        private static void Price(JsonObject inv)
+        {
+            inv["DateString"] = inv["Date"]!.GetValue<string>() + "T00:00:00";
+            decimal total = 0;
+            foreach (var line in inv["LineItems"]!.AsArray().OfType<JsonObject>())
+                if (line["Quantity"] is { } q)
+                {
+                    line["LineAmount"] = q.GetValue<decimal>() * line["UnitAmount"]!.GetValue<decimal>();
+                    total += line["LineAmount"]!.GetValue<decimal>();
+                }
+            inv["SubTotal"] = total;
+            inv["TotalTax"] = 0m;
+            inv["Total"] = total;
         }
 
         private static HttpResponseMessage Json(string json) =>

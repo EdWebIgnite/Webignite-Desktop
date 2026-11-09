@@ -24,12 +24,12 @@ public sealed class DocumentService(LocalStore store)
         store.Save(new StoredDocument { Id = StoredDocument.NewId(), Document = document });
 
     /// <summary>
-    /// Saves what was typed in the editor, but only while the document is still just on this PC. Once it has gone
-    /// to Xero, Xero holds the real copy: the stored document is returned unchanged, and the caller says so.
+    /// Saves what was typed in the editor, but only while the document is still just on this PC, or is a Xero draft
+    /// being changed here. Otherwise Xero holds the real copy: the stored document is returned unchanged, and the caller says so.
     /// A document that was deleted meanwhile is saved again, so the typing isn't lost.
     /// </summary>
     public StoredDocument SaveDraft(string id, Document document) =>
-        store.Update(id, current => current.Xero.State == XeroWriteState.None ? current with { Document = document } : null)
+        store.Update(id, current => current.Xero.State is XeroWriteState.None or XeroWriteState.Editing ? current with { Document = document } : null)
         ?? store.Save(new StoredDocument { Id = id, Document = document });
 
     /// <summary>A new draft copied from another: the same customer, lines and notes, with fresh dates.</summary>

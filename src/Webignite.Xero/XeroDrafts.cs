@@ -11,7 +11,7 @@ public sealed record XeroTarget(string AccountCode, string TaxType = "NONE", str
 /// <summary>
 /// Puts quotes and invoices into Xero as drafts, one careful step at a time. What is about to be sent
 /// is saved first, every write is tried once, and what Xero saved is read back and compared. Nothing
-/// here approves, sends or emails anything in Xero.
+/// here approves, sends or emails anything in Xero. A draft already in Xero can be changed and updated the same way.
 /// </summary>
 public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument> save, Func<IReadOnlyCollection<string>> linkedXeroIds)
 {
@@ -118,6 +118,83 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
         {
             // Xero turned the document down, so nothing was made (a new contact may have been).
             stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.None, Sent = null, Problems = [e.Message] } });
+            return new Result.Stopped(stored, e.Message);
+        }
+        return await VerifyAsync(stored, cancel);
+    }
+
+    /// <summary>
+    /// Puts a change made here into the draft already in Xero, then reads it back and compares it, as for a new one.
+    /// Stops without writing when Xero no longer has it as a draft (approved there meanwhile). Never approves anything.
+    /// </summary>
+    public async Task<Result> UpdateAsync(StoredDocument stored, XeroTarget target, string? customerEmail = null, CancellationToken cancel = default)
+    {
+        if (stored.Xero.State != XeroWriteState.Editing || stored.Xero.Id is not { } id)
+            return new Result.Stopped(stored, "Only a draft being changed here can be updated in Xero.");
+        var doc = stored.Document;
+        if (DocumentValidator.Validate(doc) is { Count: > 0 } problems)
+            return new Result.Stopped(stored, string.Join(" ", problems));
+
+        var reply = await api.GetAsync($"{Resource(doc)}/{id}?unitdp=4", cancel);
+        var current = reply[Resource(doc)]?[0] as JsonObject ?? throw new XeroException("Xero didn't send the document back.");
+        var status = XeroApi.Str(current["Status"]);
+        if (!XeroStatuses.IsDraft(status))
+        {
+            stored = save(stored with { Xero = stored.Xero with { Status = status } });
+            return new Result.Stopped(stored, $"It isn't a draft in Xero any more ({status.ToLowerInvariant()}), so it can't be changed from here. Change it in Xero.");
+        }
+
+        // The same contact, unless the customer was changed here and Xero has exactly one contact for the new name.
+        var contactId = XeroApi.Str(current["Contact"]?["ContactID"]);
+        var contactName = XeroApi.Str(current["Contact"]?["Name"]);
+        if (XeroRules.MatchContact(doc.Customer.Name, null, [new XeroContact(contactId, contactName, null, true)]) is not ContactMatch.Use)
+        {
+            if (XeroRules.MatchContact(doc.Customer.Name, customerEmail ?? doc.Customer.Email, await api.ContactsAsync(cancel)) is not ContactMatch.Use use)
+                return new Result.Stopped(stored, $"Xero has no single contact Webignite can be sure is {doc.Customer.Name}. Put the customer back to {contactName}, or change the customer in Xero.");
+            contactId = use.Contact.Id;
+        }
+
+        if (doc.Lines.Any(l => !string.IsNullOrWhiteSpace(l.Product) && string.IsNullOrEmpty(l.ItemCode)))
+        {
+            try
+            {
+                doc = await WithItemsAsync(doc, stored.Id, cancel);
+            }
+            catch (XeroException e)
+            {
+                return new Result.Stopped(stored, "Xero didn't let Webignite add the items to Products and Services. Disconnect and connect Xero again in Settings, then try again. (" + e.Message + ")");
+            }
+            stored = save(stored with { Document = doc });
+        }
+
+        // Every line is sent, so Xero swaps the old lines for these.
+        var payload = XeroPayload.Build(doc, contactId, target.AccountCode, target.TaxType, doc.Number ?? stored.Xero.Number, target.BrandingThemeId);
+        payload[IdKey(doc)] = id;
+        var body = payload.ToJsonString();
+        stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.Writing, ContactId = contactId, Sent = body, Problems = [] } });
+        var key = stored.Id + "-update-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(body)))[..16];
+        try
+        {
+            var updated = await api.PostAsync(Resource(doc) + "?unitdp=4", new JsonObject { [Resource(doc)] = new JsonArray(JsonNode.Parse(body)) }, key, cancel);
+            var record = updated[Resource(doc)]?[0] as JsonObject ?? throw new XeroUncertainException("Xero's reply had no document in it. Use Check Xero.");
+            stored = save(stored with
+            {
+                Xero = stored.Xero with
+                {
+                    State = XeroWriteState.CreatedUnverified,
+                    Number = XeroApi.Str(record[NumberKey(doc)]) is { Length: > 0 } n ? n : stored.Xero.Number,
+                },
+            });
+        }
+        catch (XeroUncertainException e)
+        {
+            stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.Uncertain, Problems = [e.Message] } });
+            return new Result.Stopped(stored, e.Message);
+        }
+        catch (XeroException e)
+        {
+            // Xero turned the change down, so its copy is as it was. Still being changed here.
+            stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.Editing, Problems = [e.Message] } });
             return new Result.Stopped(stored, e.Message);
         }
         return await VerifyAsync(stored, cancel);

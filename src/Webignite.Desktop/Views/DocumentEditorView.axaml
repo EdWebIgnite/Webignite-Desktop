@@ -190,6 +190,13 @@
                      IsVisible="{Binding ShowCreate}" />
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding ShowCreate}"
                      Text="It goes in as a draft. Approving and sending stay with you." />
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
+                  Content="Update draft in Xero" Command="{Binding UpdateInXeroCommand}"
+                  IsVisible="{Binding IsChangingInXero}" IsEnabled="{Binding CanUpdate}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding XeroHint}"
+                     IsVisible="{Binding IsChangingInXero}" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding IsChangingInXero}"
+                     Text="It stays a draft. Approving and sending stay with you." />
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Check Xero" Command="{Binding CheckXeroCommand}" IsVisible="{Binding ShowCheck}" IsEnabled="{Binding !XeroBusy}" />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -197,6 +204,9 @@
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="{Binding EmailButtonText}" Command="{Binding StartEmailCommand}" IsVisible="{Binding ShowEmail}" IsEnabled="{Binding !XeroBusy}" />
           <TextBlock Classes="muted" FontSize="12" Text="{Binding EmailedText}" IsVisible="{Binding HasEmailedText}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Change this draft" Command="{Binding ChangeDraftCommand}" IsVisible="{Binding CanChangeDraft}"
+                  ToolTip.Tip="Unlocks it to change here. Update draft in Xero then puts the change in Xero." />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Open in Xero" Command="{Binding OpenInXeroCommand}" IsVisible="{Binding HasXeroLink}" />
         </StackPanel>

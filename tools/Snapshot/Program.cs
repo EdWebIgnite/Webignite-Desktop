@@ -286,6 +286,17 @@ Save("invoice-in-xero");
 vm.Invoices.Editor.StartEmailCommand.Execute(null);
 Save("invoice-approve");
 vm.Invoices.Editor = null;
+{
+    // A draft already in Xero, changed here and then updated in Xero.
+    var editor = new DocumentEditorViewModel(verified, services, () => vm.Invoices.Editor = null);
+    vm.Invoices.Editor = editor;
+    Check("A draft Webignite put in Xero can be changed", editor.CanChangeDraft && !editor.IsEditable);
+    editor.ChangeDraftCommand.Execute(null);
+    Check("Change this draft unlocks it and offers Update draft in Xero", editor.IsEditable && editor.IsChangingInXero && !editor.ShowCreate);
+    Save("invoice-changing-in-xero");
+    vm.Invoices.Editor = null;
+    store.Save(store.Get(verified.Id)! with { Xero = verified.Xero });
+}
 
 Open(Page.Settings);
 Save("settings");
