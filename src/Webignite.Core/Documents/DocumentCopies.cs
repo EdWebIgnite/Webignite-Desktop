@@ -38,6 +38,7 @@ public static class DocumentCopies
             Source = DocumentSource.App,
             // Same customer, so the same Xero contact: no need to ask again.
             Xero = new() { ContactId = source.Xero.ContactId },
+            FromQuote = kind == DocumentKind.Invoice && from.Kind == DocumentKind.Quote ? source.Id : null,
         };
     }
 }

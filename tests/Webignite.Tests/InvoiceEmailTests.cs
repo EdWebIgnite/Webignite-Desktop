@@ -123,6 +123,55 @@ public sealed class InvoiceEmailTests
     }
 
     [Fact]
+    public async Task A_sent_quote_is_marked_accepted_or_declined_in_xero_only_once_sent()
+    {
+        var xero = new FakeXero();
+        var sending = Make(xero, []);
+        var draft = Stored(DocumentKind.Quote);
+        Assert.False(QuoteOutcomes.CanDecide(draft)); // not emailed yet
+        await Assert.ThrowsAsync<XeroException>(() => sending.DecideQuoteAsync(draft, accepted: true, TestContext.Current.CancellationToken));
+
+        var ready = await sending.PrepareAsync(draft, "Webignite", cancel: TestContext.Current.CancellationToken);
+        var sent = await sending.MarkSentAsync(ready.Stored, cancel: TestContext.Current.CancellationToken);
+        Assert.True(QuoteOutcomes.CanDecide(sent));
+
+        var accepted = await sending.DecideQuoteAsync(sent, accepted: true, TestContext.Current.CancellationToken);
+        Assert.Equal("ACCEPTED", xero.Posts[^1].Body["Status"]!.GetValue<string>());
+        Assert.Equal("k1", xero.Posts[^1].Body["Contact"]!["ContactID"]!.GetValue<string>());
+        Assert.Equal(Settlement.Accepted, accepted.Settled?.As);
+        Assert.Equal("ACCEPTED", accepted.Xero.Status);
+        Assert.False(QuoteOutcomes.CanDecide(accepted));
+    }
+
+    [Fact]
+    public async Task An_answer_already_given_in_xero_is_kept_and_nothing_written()
+    {
+        var xero = new FakeXero();
+        var sending = Make(xero, []);
+        var ready = await sending.PrepareAsync(Stored(DocumentKind.Quote), "Webignite", cancel: TestContext.Current.CancellationToken);
+        var sent = await sending.MarkSentAsync(ready.Stored, cancel: TestContext.Current.CancellationToken);
+        xero.QuoteStatus = "DECLINED";
+        var posts = xero.Posts.Count;
+
+        var kept = await sending.DecideQuoteAsync(sent, accepted: true, TestContext.Current.CancellationToken);
+        Assert.Equal(Settlement.Declined, kept.Settled?.As);
+        Assert.Equal(posts, xero.Posts.Count);
+    }
+
+    [Fact]
+    public void An_invoice_made_from_a_quote_remembers_it_and_the_quote_lists_it()
+    {
+        var quote = Stored(DocumentKind.Quote);
+        var invoice = DocumentCopies.Copy(quote, DocumentKind.Invoice, new DocumentSettings(), new DateOnly(2026, 11, 9));
+        var copy = DocumentCopies.Copy(quote, DocumentKind.Quote, new DocumentSettings(), new DateOnly(2026, 11, 9));
+        Assert.Equal(quote.Id, invoice.FromQuote);
+        Assert.Null(copy.FromQuote);
+        Assert.Equal("QU-0042", invoice.Document.Reference);
+        Assert.Equal([invoice], QuoteOutcomes.InvoicesFrom(quote, [invoice, Stored(DocumentKind.Invoice), copy]));
+        Assert.Equal("QU-0042", QuoteOutcomes.Name(quote));
+    }
+
+    [Fact]
     public async Task Only_checked_Xero_drafts_can_be_emailed()
     {
         var sending = Make(new FakeXero(), []);
@@ -185,7 +234,7 @@ public sealed class InvoiceEmailTests
     {
         public List<(string Path, JsonObject Body)> Posts { get; } = [];
         private string invoiceStatus = "DRAFT";
-        private string quoteStatus = "DRAFT";
+        public string QuoteStatus { get; set; } = "DRAFT";
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancel)
         {
@@ -200,7 +249,7 @@ public sealed class InvoiceEmailTests
                 if (body["Status"]?.GetValue<string>() is { } status)
                 {
                     if (path.StartsWith("Quotes", StringComparison.Ordinal))
-                        quoteStatus = status;
+                        QuoteStatus = status;
                     else
                         invoiceStatus = status;
                 }
@@ -212,7 +261,7 @@ public sealed class InvoiceEmailTests
             {
                 "Invoices/inv1/OnlineInvoice" => Json("""{"OnlineInvoices":[{"OnlineInvoiceUrl":"https://in.xero.com/abc"}]}"""),
                 "Invoices/inv1" => Json($$$"""{"Invoices":[{"InvoiceID":"inv1","InvoiceNumber":"INV-0111","Status":"{{{invoiceStatus}}}","Total":450,"AmountDue":450,"DueDateString":"2026-11-07T00:00:00","Contact":{"ContactID":"k1","Name":"Karoo Coffee Roasters"}}]}"""),
-                "Quotes/q1" => Json($$$"""{"Quotes":[{"QuoteID":"q1","QuoteNumber":"QU-0042","Status":"{{{quoteStatus}}}","Total":450,"DateString":"2026-10-31T00:00:00","Contact":{"ContactID":"k1","Name":"Karoo Coffee Roasters"}}]}"""),
+                "Quotes/q1" => Json($$$"""{"Quotes":[{"QuoteID":"q1","QuoteNumber":"QU-0042","Status":"{{{QuoteStatus}}}","Total":450,"DateString":"2026-10-31T00:00:00","Contact":{"ContactID":"k1","Name":"Karoo Coffee Roasters"}}]}"""),
                 "Contacts/k1" => Json("""{"Contacts":[{"ContactID":"k1","Name":"Karoo Coffee Roasters","FirstName":"Thandi","EmailAddress":"accounts@karoocoffee.co.za"}]}"""),
                 _ => new HttpResponseMessage(HttpStatusCode.NotFound),
             };

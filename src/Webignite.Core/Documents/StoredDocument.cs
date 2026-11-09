@@ -84,6 +84,9 @@ public sealed record StoredDocument
     /// <summary>Set when Xero says there's nothing left to chase: the invoice is paid, or the quote accepted or declined.</summary>
     public SettledState? Settled { get; init; }
 
+    /// <summary>For an invoice made from a quote here: that quote's id, so each can show the other.</summary>
+    public string? FromQuote { get; init; }
+
     public DateTimeOffset Created { get; init; }
     public DateTimeOffset Updated { get; init; }
 

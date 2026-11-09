@@ -297,6 +297,28 @@ vm.Invoices.Editor = null;
     vm.Invoices.Editor = null;
     store.Save(store.Get(verified.Id)! with { Xero = verified.Xero });
 }
+{
+    // A sent quote: the client's answer, and the invoice made from it linked both ways. Both go again after.
+    var sentQuote = store.Save(DocumentCopies.Copy(verified, DocumentKind.Quote, services.Settings.Documents, DateOnly.FromDateTime(DateTime.Today)) with
+    {
+        Status = DocumentStatus.InXero,
+        Xero = new() { Id = "q77", Number = "QU-0077", State = Webignite.Core.Xero.XeroWriteState.Verified, Status = "SENT", ContactId = "k1" },
+        Delivery = new() { Emailed = DateTimeOffset.UtcNow.AddDays(-3), EmailedTo = "Thandi Mokoena" },
+    });
+    var fromQuote = store.Save(DocumentCopies.Copy(sentQuote, DocumentKind.Invoice, services.Settings.Documents, DateOnly.FromDateTime(DateTime.Today)));
+    var quoteEditor = new DocumentEditorViewModel(sentQuote, services, () => vm.Invoices.Editor = null);
+    vm.Invoices.Editor = quoteEditor;
+    Check("A sent quote offers Client accepted and declined", quoteEditor.CanDecideQuote);
+    Check("The quote links to the invoice made from it", quoteEditor.Links.Count == 1 && quoteEditor.Links[0].Text == "Draft invoice made from it");
+    Save("quote-sent-answer");
+    var invoiceEditor = new DocumentEditorViewModel(fromQuote, services, () => vm.Invoices.Editor = null);
+    vm.Invoices.Editor = invoiceEditor;
+    Check("The invoice links back to its quote", invoiceEditor.Links.Count == 1 && invoiceEditor.Links[0].Text == "Made from quote QU-0077");
+    Save("invoice-from-quote-link");
+    vm.Invoices.Editor = null;
+    store.DeleteDocument(fromQuote.Id);
+    store.DeleteDocument(sentQuote.Id);
+}
 
 Open(Page.Settings);
 Save("settings");
