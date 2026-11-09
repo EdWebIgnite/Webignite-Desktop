@@ -418,11 +418,22 @@ SetShown(nameof(SettingsViewModel.IsSignedIn), true);
 SetShown(nameof(SettingsViewModel.HasWorkspaceKey), true);
 SetShown(nameof(SettingsViewModel.IsWorkspaceOwner), true);
 SetShown(nameof(SettingsViewModel.SignedInAs), "Signed in as eddie@webignite.co.za, in the workspace Webignite.");
-SetShown(nameof(SettingsViewModel.WorkspaceMembers), "eddie@webignite.co.za (owner), lize@webignite.co.za");
 SetShown(nameof(SettingsViewModel.LastSyncedText), $"Last synced {new DateTime(2026, 11, 8, 14, 32, 0):g}.");
 Dispatcher.UIThread.RunJobs();
 Check("Signed in shows Sync now and when it last synced", settingsPage.SyncNowCommand is not null && settingsPage.LastSyncedText.StartsWith("Last synced", StringComparison.Ordinal));
 Save("settings-account-signed-in");
+// Who's in the workspace: the owner can take a partner out, after a yes; and a new password, or other PCs signed out.
+settingsPage.Members.Add(new MemberRowViewModel("eddie@webignite.co.za", true, false, settingsPage));
+settingsPage.Members.Add(new MemberRowViewModel("lize@webignite.co.za", false, true, settingsPage));
+settingsPage.Members[1].RemoveCommand.Execute(null);
+settingsPage.StartChangeAccountPasswordCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("Taking a partner out asks first", settingsPage.ConfirmingRemove && settingsPage.RemoveQuestion.Contains("lize@webignite.co.za", StringComparison.Ordinal));
+Check("Change password asks for the current one and the new one twice", settingsPage.ChangingAccountPassword);
+Save("settings-account-people-and-password");
+settingsPage.KeepMemberCommand.Execute(null);
+settingsPage.CancelChangeAccountPasswordCommand.Execute(null);
+settingsPage.Members.Clear();
 SetShown(nameof(SettingsViewModel.IsSignedIn), false);
 // The welcome screen: off while testing, so the app opens straight in; on, it asks to sign in when nobody has.
 Check("While testing, the app opens without asking to sign in", !vm.ShowingWelcome);

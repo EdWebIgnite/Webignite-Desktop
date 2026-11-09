@@ -63,7 +63,15 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
     public static readonly TimeSpan RefreshLife = TimeSpan.FromDays(30);
     public static readonly TimeSpan InviteLife = TimeSpan.FromDays(7);
     public static readonly TimeSpan LockFor = TimeSpan.FromMinutes(15);
+
+    /// <summary>Wrong tries from one address before that address is kept out of the account for <see cref="LockFor"/>.</summary>
     public const int TriesBeforeLock = 10;
+
+    /// <summary>
+    /// Wrong tries from everywhere together before the whole account is locked for a while: high, so someone guessing
+    /// from one place can't lock the owner out, but a guess spread over many addresses still stops.
+    /// </summary>
+    public const int TriesBeforeLockEverywhere = 100;
     private const int KeyHashRounds = 100_000;
 
     private const string WrongDetails = "That email and password don't match an account.";
@@ -155,7 +163,7 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
         }
     }
 
-    public Result<SessionInfo> SignIn(SignInRequest request)
+    public Result<SessionInfo> SignIn(SignInRequest request, string address = "unknown")
     {
         if (!Usable(request.SignInKey))
             return Outcome.Fail<SessionInfo>(401, WrongDetails);
@@ -165,10 +173,10 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
             _ = KeyHash(request.SignInKey!, Encoding.UTF8.GetBytes(keys.FakeSalt(AccountRules.Normal(request.Email ?? ""))));
             return Outcome.Fail<SessionInfo>(401, WrongDetails);
         }
-        if (account.LockedUntil is { } locked && locked > Now)
+        if ((account.LockedUntil is { } locked && locked > Now) || (store.LockedFrom(account.Id, address) is { } here && here > Now))
             return Outcome.Fail<SessionInfo>(429, "Too many wrong tries. Wait a quarter of an hour and try again.");
         if (!CryptographicOperations.FixedTimeEquals(KeyHash(request.SignInKey, account.KeySalt), account.KeyHash))
-            return Failed(account);
+            return Failed(account, address);
         long? step = null;
         if (account.Totp is { } sealedSecret)
         {
@@ -176,16 +184,18 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
                 return Outcome.Fail<SessionInfo>(401, "Type the code from your authenticator app.", Needs.Code);
             step = Totp.Verify(keys.Open(sealedSecret), request.Code, Now, account.TotpLast);
             if (step is null && !store.UseRecoveryCode(account.Id, Hash(RecoveryCodeText.Normal(request.Code))))
-                return Failed(account, "That code isn't right. Use the newest code from your authenticator app, or one of your recovery codes.", Needs.Code);
+                return Failed(account, address, "That code isn't right. Use the newest code from your authenticator app, or one of your recovery codes.", Needs.Code);
         }
         if (!store.SignInWorked(account.Id, step))
-            return Failed(account, "That code was used already. Wait for the next one from your authenticator app.", Needs.Code);
+            return Failed(account, address, "That code was used already. Wait for the next one from your authenticator app.", Needs.Code);
+        store.ClearFailuresFrom(account.Id, address);
         return new Result<SessionInfo>(StartSession(account.Id, request.DeviceName));
     }
 
-    private Result<SessionInfo> Failed(ServerStore.Account account, string message = WrongDetails, string? need = null)
+    private Result<SessionInfo> Failed(ServerStore.Account account, string address, string message = WrongDetails, string? need = null)
     {
-        store.SignInFailed(account.Id, TriesBeforeLock, Now + LockFor);
+        store.FailedFrom(account.Id, address, TriesBeforeLock, Now + LockFor);
+        store.SignInFailed(account.Id, TriesBeforeLockEverywhere, Now + LockFor);
         return Outcome.Fail<SessionInfo>(401, message, need);
     }
 
@@ -273,6 +283,47 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
         return new Result<bool>(true);
     }
 
+    /// <summary>Signs out every other device of this account; this one stays signed in.</summary>
+    public void SignOutOthers(ServerStore.Session session) => store.RemoveSessionsOf(session.AccountId, keep: session.Id);
+
+    /// <summary>
+    /// A new password while signed in, proved with the current one. Every other device is signed out; the recovery
+    /// key and two-factor stay as they are.
+    /// </summary>
+    public Result<bool> ChangePassword(ServerStore.Session session, ChangePasswordRequest request, string address = "unknown")
+    {
+        var account = store.AccountById(session.AccountId)!;
+        if (!Usable(request.CurrentSignInKey) || !Usable(request.SignInKey) || request.Rounds < AccountKeys.FewestRounds || request.Rounds > 10_000_000
+            || !IsSalt(request.Salt) || !Locked(request.WrappedKey))
+            return Outcome.Fail<bool>(400, "Something was missing. Update Webignite and try again.");
+        if (store.LockedFrom(account.Id, address) is { } here && here > Now)
+            return Outcome.Fail<bool>(429, "Too many wrong tries. Wait a quarter of an hour and try again.");
+        if (!CryptographicOperations.FixedTimeEquals(KeyHash(request.CurrentSignInKey, account.KeySalt), account.KeyHash))
+        {
+            store.FailedFrom(account.Id, address, TriesBeforeLock, Now + LockFor);
+            return Outcome.Fail<bool>(401, "That isn't your current password.");
+        }
+        var keySalt = RandomNumberGenerator.GetBytes(16);
+        store.ChangePassword(account.Id, request.Salt, request.Rounds, KeyHash(request.SignInKey, keySalt), keySalt, request.WrappedKey, session.Id);
+        return new Result<bool>(true);
+    }
+
+    /// <summary>
+    /// The owner takes someone out of the workspace: their account and devices go, so they can't sign in or sync any
+    /// more, and any invite still open is cancelled.
+    /// </summary>
+    public Result<AccountInfo> RemoveMember(string accountId, string? email)
+    {
+        if (store.MembershipOf(accountId) is not { Role: AccountRoles.Owner } membership)
+            return Outcome.Fail<AccountInfo>(403, "Only the workspace's owner can take people out of it.");
+        var normal = AccountRules.Normal(email ?? "");
+        if (store.AccountById(accountId)!.Email == normal)
+            return Outcome.Fail<AccountInfo>(400, "You can't take yourself out of your own workspace.");
+        if (!store.RemoveMember(membership.WorkspaceId, normal, Now))
+            return Outcome.Fail<AccountInfo>(404, "There's nobody with that email in the workspace.");
+        return new Result<AccountInfo>(Info(accountId));
+    }
+
     // Invites
 
     /// <summary>An invite carrying the workspace key locked with the invite's secret half, which only the app knows.</summary>
@@ -313,7 +364,7 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
     /// (or a recovery code) is needed too, so the recovery key alone isn't enough. The recovery key is replaced, so an
     /// old copy of it stops working. Two-factor stays as it was.
     /// </summary>
-    public Result<SessionInfo> Reset(ResetRequest request)
+    public Result<SessionInfo> Reset(ResetRequest request, string address = "unknown")
     {
         if (Recovering(request.Email, request.Check) is not { } account)
             return Outcome.Fail<SessionInfo>(401, WrongRecovery);
@@ -326,9 +377,9 @@ public sealed class AccountService(ServerStore store, ServerKeys keys, TimeProvi
                 return Outcome.Fail<SessionInfo>(401, "Two-factor is on: type the code from your authenticator app, or one of your recovery codes.", Needs.Code);
             var step = Totp.Verify(keys.Open(sealedSecret), request.Code, Now, account.TotpLast);
             if (step is null && !store.UseRecoveryCode(account.Id, Hash(RecoveryCodeText.Normal(request.Code))))
-                return Failed(account, "That code isn't right. Use the newest code from your authenticator app, or one of your recovery codes.", Needs.Code);
+                return Failed(account, address, "That code isn't right. Use the newest code from your authenticator app, or one of your recovery codes.", Needs.Code);
             if (step is not null && !store.SignInWorked(account.Id, step))
-                return Failed(account, "That code was used already. Wait for the next one from your authenticator app.", Needs.Code);
+                return Failed(account, address, "That code was used already. Wait for the next one from your authenticator app.", Needs.Code);
         }
         var keySalt = RandomNumberGenerator.GetBytes(16);
         store.ResetPassword(account.Id, request.Salt, request.Rounds, KeyHash(request.SignInKey, keySalt), keySalt, request.WrappedKey,

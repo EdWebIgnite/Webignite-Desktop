@@ -690,7 +690,27 @@
           </Border>
           <TextBlock Classes="muted" FontSize="12" Text="This PC has the workspace key, so it can unlock what's shared." IsVisible="{Binding HasWorkspaceKey}" />
           <TextBlock Classes="problem" FontSize="12" TextWrapping="Wrap" Text="This PC doesn't have the workspace key yet. Sign out and sign in again with your password." IsVisible="{Binding !HasWorkspaceKey}" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding WorkspaceMembers, StringFormat='People in it: {0}'}" />
+          <TextBlock FontWeight="SemiBold" Text="People in the workspace" Margin="0,6,0,0" />
+          <ItemsControl ItemsSource="{Binding Members}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:MemberRowViewModel">
+                <DockPanel Margin="0,2">
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Take out" Command="{Binding RemoveCommand}" IsVisible="{Binding CanRemove}"
+                          ToolTip.Tip="They can't sign in or sync any more." />
+                  <TextBlock VerticalAlignment="Center"><Run Text="{Binding Email}" /><Run Text="  " /><Run Classes="muted" Text="{Binding Role}" FontSize="12" /></TextBlock>
+                </DockPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border Classes="pending" IsVisible="{Binding ConfirmingRemove}">
+            <StackPanel Spacing="8">
+              <TextBlock TextWrapping="Wrap" Text="{Binding RemoveQuestion}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="quiet" Content="Take them out" Command="{Binding RemoveMemberCommand}" IsEnabled="{Binding !AccountBusy}" />
+                <Button Classes="quiet" Content="Keep them" Command="{Binding KeepMemberCommand}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
 
           <TextBlock FontWeight="SemiBold" Text="Licence" Margin="0,6,0,0" />
           <TextBlock Text="{Binding LicenceText}" TextWrapping="Wrap" Classes.problem="{Binding LicenceProblem}" />
@@ -736,7 +756,25 @@
             <SelectableTextBlock Text="{Binding InviteText}" FontSize="18" FontFamily="Consolas, Menlo, monospace" IsVisible="{Binding HasInvite}" />
           </StackPanel>
 
-          <Button Classes="quiet" Content="Sign out on this PC" Command="{Binding SignOutCommand}" IsEnabled="{Binding !AccountBusy}" HorizontalAlignment="Left" Margin="0,6,0,0" />
+          <TextBlock FontWeight="SemiBold" Text="Password and PCs" Margin="0,6,0,0" />
+          <Button Content="Change password" Command="{Binding StartChangeAccountPasswordCommand}" IsVisible="{Binding !ChangingAccountPassword}" HorizontalAlignment="Left" />
+          <StackPanel Spacing="8" IsVisible="{Binding ChangingAccountPassword}" MaxWidth="360" HorizontalAlignment="Left">
+            <TextBlock Classes="label" Text="Current password" />
+            <TextBox Text="{Binding PasswordNow}" PasswordChar="•" />
+            <TextBlock Classes="label" Text="New password" />
+            <TextBox Text="{Binding PasswordNew}" PasswordChar="•" />
+            <TextBlock Classes="label" Text="New password again" />
+            <TextBox Text="{Binding PasswordNewAgain}" PasswordChar="•" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="primary" Content="Change it" Command="{Binding ChangeAccountPasswordCommand}" IsEnabled="{Binding !AccountBusy}" />
+              <Button Classes="quiet" Content="Cancel" Command="{Binding CancelChangeAccountPasswordCommand}" />
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+            <Button Classes="quiet" Content="Sign out on this PC" Command="{Binding SignOutCommand}" IsEnabled="{Binding !AccountBusy}" />
+            <Button Classes="quiet" Content="Sign out other PCs" Command="{Binding SignOutOtherPcsCommand}" IsEnabled="{Binding !AccountBusy}"
+                    ToolTip.Tip="Signs out every other PC on your account, for example one that was lost or sold." />
+          </StackPanel>
         </StackPanel>
 
         <TextBlock Text="{Binding SyncMessage}" TextWrapping="Wrap" Classes.problem="{Binding SyncProblem}" />

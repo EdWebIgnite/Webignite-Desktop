@@ -44,6 +44,12 @@ public sealed partial class ServerStore
         AddColumn(db, "invites", "secret_check", "TEXT");
         // Every refresh token a device has used, so any old one used again signs that device out.
         Run(db, "CREATE TABLE IF NOT EXISTS used_refresh (hash TEXT PRIMARY KEY, session_id TEXT NOT NULL)");
+        // Wrong tries counted per account and address, so someone guessing from one place can't lock the owner out
+        // everywhere else.
+        Run(db, """
+            CREATE TABLE IF NOT EXISTS sign_in_failures (account_id TEXT NOT NULL, address TEXT NOT NULL, failed INTEGER NOT NULL DEFAULT 0,
+                locked_until TEXT, PRIMARY KEY (account_id, address))
+            """);
     }
 
     private static void AddColumn(SqliteConnection db, string table, string column, string definition)
@@ -162,6 +168,27 @@ public sealed partial class ServerStore
             """, ("$limit", limit), ("$locked", When(lockedUntil)), ("$id", id));
 
     /// <summary>
+    /// One more wrong try from an address, counted in the database itself. That address is locked out of this
+    /// account until <paramref name="lockedUntil"/> on the <paramref name="limit"/>th.
+    /// </summary>
+    public void FailedFrom(string id, string address, int limit, DateTimeOffset lockedUntil) =>
+        Run("""
+            INSERT INTO sign_in_failures (account_id, address, failed, locked_until) VALUES ($id, $address, 1, NULL)
+            ON CONFLICT (account_id, address) DO UPDATE SET
+                locked_until = CASE WHEN failed + 1 >= $limit THEN $locked ELSE locked_until END,
+                failed = CASE WHEN failed + 1 >= $limit THEN 0 ELSE failed + 1 END
+            """, ("$id", id), ("$address", address), ("$limit", limit), ("$locked", When(lockedUntil)));
+
+    /// <summary>Until when an address is locked out of an account, if it is.</summary>
+    public DateTimeOffset? LockedFrom(string id, string address) =>
+        Read("SELECT locked_until FROM sign_in_failures WHERE account_id = $id AND address = $address",
+            r => Text(r, 0) is { } at ? When(at) : (DateTimeOffset?)null, ("$id", id), ("$address", address)).FirstOrDefault();
+
+    /// <summary>A sign-in from an address worked: its wrong tries are forgotten.</summary>
+    public void ClearFailuresFrom(string id, string address) =>
+        Run("DELETE FROM sign_in_failures WHERE account_id = $id AND address = $address", ("$id", id), ("$address", address));
+
+    /// <summary>
     /// A sign-in that worked. With a two-factor code's time step, false when that step (or a later one) was used
     /// already, by a sign-in at the same moment, so one code can't be used twice.
     /// </summary>
@@ -244,6 +271,49 @@ public sealed partial class ServerStore
         Run(db, "DELETE FROM used_refresh WHERE session_id IN (SELECT id FROM sessions WHERE account_id = $id)", ("$id", accountId));
         Run(db, "DELETE FROM sessions WHERE account_id = $id", ("$id", accountId));
         transaction.Commit();
+    }
+
+    /// <summary>
+    /// A new password while signed in: the sign-in key's hash and the member's locked key; every other device is
+    /// signed out. The recovery key stays as it is.
+    /// </summary>
+    public void ChangePassword(string accountId, string salt, int rounds, byte[] keyHash, byte[] keySalt, string wrappedKey, string keepSession)
+    {
+        using var db = Open();
+        using var transaction = db.BeginTransaction();
+        Run(db, "UPDATE accounts SET salt = $salt, rounds = $rounds, key_hash = $hash, key_salt = $keysalt, failed = 0, locked_until = NULL WHERE id = $id",
+            ("$salt", salt), ("$rounds", rounds), ("$hash", keyHash), ("$keysalt", keySalt), ("$id", accountId));
+        Run(db, "UPDATE members SET wrapped_key = $key WHERE account_id = $id", ("$key", wrappedKey), ("$id", accountId));
+        Run(db, "DELETE FROM used_refresh WHERE session_id IN (SELECT id FROM sessions WHERE account_id = $id AND id <> $keep)", ("$id", accountId), ("$keep", keepSession));
+        Run(db, "DELETE FROM sessions WHERE account_id = $id AND id <> $keep", ("$id", accountId), ("$keep", keepSession));
+        transaction.Commit();
+    }
+
+    /// <summary>
+    /// Takes a member out of a workspace for good: their account, devices and recovery codes go, and any invite
+    /// still open is cancelled. False when there's no such member (the owner can't be removed this way).
+    /// </summary>
+    public bool RemoveMember(string workspaceId, string email, DateTimeOffset now)
+    {
+        using var db = Open();
+        using var transaction = db.BeginTransaction();
+        string? accountId;
+        using (var find = Command(db, """
+            SELECT a.id FROM members m JOIN accounts a ON a.id = m.account_id
+            WHERE m.workspace_id = $w AND a.email = $email AND m.role <> 'owner'
+            """, [("$w", workspaceId), ("$email", email)]))
+            accountId = find.ExecuteScalar() as string;
+        if (accountId is null)
+            return false;
+        Run(db, "DELETE FROM used_refresh WHERE session_id IN (SELECT id FROM sessions WHERE account_id = $a)", ("$a", accountId));
+        Run(db, "DELETE FROM sessions WHERE account_id = $a", ("$a", accountId));
+        Run(db, "DELETE FROM recovery_codes WHERE account_id = $a", ("$a", accountId));
+        Run(db, "DELETE FROM sign_in_failures WHERE account_id = $a", ("$a", accountId));
+        Run(db, "DELETE FROM members WHERE account_id = $a", ("$a", accountId));
+        Run(db, "DELETE FROM accounts WHERE id = $a", ("$a", accountId));
+        Run(db, "UPDATE invites SET expires = $now WHERE workspace_id = $w AND used_by IS NULL AND expires > $now", ("$now", When(now)), ("$w", workspaceId));
+        transaction.Commit();
+        return true;
     }
 
     // Signed-in devices

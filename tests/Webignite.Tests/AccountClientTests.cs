@@ -134,6 +134,22 @@ public sealed class AccountClientTests : IDisposable
     }
 
     [Fact]
+    public async Task A_new_password_keeps_the_workspace_key_and_the_old_one_stops_working()
+    {
+        using var client = Client();
+        Assert.True((await client.SignUpAsync("eddie@webignite.co.za", "karoo rooibos sunrise", "Webignite", null, TestContext.Current.CancellationToken)).Worked);
+        var workspaceKey = client.WorkspaceKey;
+        Assert.False((await client.ChangePasswordAsync("not my password", "a fresh password for karoo", TestContext.Current.CancellationToken)).Worked);
+        var changed = await client.ChangePasswordAsync("karoo rooibos sunrise", "a fresh password for karoo", TestContext.Current.CancellationToken);
+        Assert.True(changed.Worked, changed.Problem);
+
+        using var later = Client(new MemorySecretStore());
+        Assert.False((await later.SignInAsync("eddie@webignite.co.za", "karoo rooibos sunrise", cancel: TestContext.Current.CancellationToken)).Worked);
+        Assert.True((await later.SignInAsync("eddie@webignite.co.za", "a fresh password for karoo", cancel: TestContext.Current.CancellationToken)).Worked);
+        Assert.Equal(workspaceKey, later.WorkspaceKey);
+    }
+
+    [Fact]
     public async Task An_invite_code_missing_its_secret_half_is_refused_before_anything_is_sent()
     {
         using var eddie = Client();

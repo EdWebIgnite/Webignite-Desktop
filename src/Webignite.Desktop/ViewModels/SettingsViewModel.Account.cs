@@ -54,7 +54,6 @@ public partial class SettingsViewModel
     public bool IsSignedOut => !IsSignedIn;
 
     [ObservableProperty] public partial string SignedInAs { get; private set; } = "";
-    [ObservableProperty] public partial string WorkspaceMembers { get; private set; } = "";
     [ObservableProperty] public partial bool IsWorkspaceOwner { get; private set; }
 
     [ObservableProperty]
@@ -126,9 +125,9 @@ public partial class SettingsViewModel
         if (account is null)
             return;
         SignedInAs = $"Signed in as {account.Email}, in the workspace {account.Workspace.Name}.";
-        WorkspaceMembers = string.Join(", ", account.Workspace.Members.Select(m => m.Role == AccountRoles.Owner ? $"{m.Email} (owner)" : m.Email));
         IsWorkspaceOwner = account.Workspace.Role == AccountRoles.Owner;
         TwoFactorOn = account.TwoFactor;
+        ShowMembers(account);
     }
 
     private void ShowLastSynced() =>
@@ -262,7 +261,10 @@ public partial class SettingsViewModel
         IsSignedIn = false;
         HasWorkspaceKey = false;
         NewRecoveryKey = "";
-        SignedInAs = WorkspaceMembers = InviteText = RecoveryCodesText = "";
+        SignedInAs = InviteText = RecoveryCodesText = "";
+        Members.Clear();
+        MemberToRemove = null;
+        ChangingAccountPassword = false;
         ClearTwoFactorSetup();
         SaySync("Signed out on this PC.");
     });
