@@ -130,6 +130,27 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
             .Select(a => new XeroSalesAccount(Str(a["Code"]), Str(a["Name"])))
             .ToList();
 
+    /// <summary>Repeating sales invoices set up in Xero, for bringing over as retainers. Read only.</summary>
+    public async Task<IReadOnlyList<Webignite.Core.Retainers.XeroRepeatingInvoice>> RepeatingInvoicesAsync(CancellationToken cancel = default) =>
+        ((await GetAsync("RepeatingInvoices", cancel))["RepeatingInvoices"] as JsonArray ?? []).OfType<JsonObject>()
+            .Where(r => Str(r["Type"]) == "ACCREC")
+            .Select(ToRepeating)
+            .ToList();
+
+    public static Webignite.Core.Retainers.XeroRepeatingInvoice ToRepeating(JsonObject r) => new()
+    {
+        Id = Str(r["RepeatingInvoiceID"]),
+        ContactName = Str(r["Contact"]?["Name"]),
+        Reference = Str(r["Reference"]) is { Length: > 0 } reference ? reference : null,
+        Lines = (r["LineItems"] as JsonArray ?? []).OfType<JsonObject>().Select(XeroDocumentReader.ToLine).ToList(),
+        Total = r["Total"] is JsonValue t && t.TryGetValue<decimal>(out var total) ? total : 0,
+        Period = r["Schedule"]?["Period"] is JsonValue p && p.TryGetValue<int>(out var period) ? period : 1,
+        Unit = Str(r["Schedule"]?["Unit"]),
+        NextDate = Day(r["Schedule"]?["NextScheduledDateString"]) ?? Day(r["Schedule"]?["NextScheduledDate"]),
+        EndDate = Day(r["Schedule"]?["EndDateString"]) ?? Day(r["Schedule"]?["EndDate"]),
+        Status = Str(r["Status"]),
+    };
+
     /// <summary>Bills from suppliers still to approve or pay. Read only.</summary>
     public async Task<IReadOnlyList<Webignite.Core.Finance.XeroBill>> OpenBillsAsync(CancellationToken cancel = default) =>
         (await AllAsync("Invoices", "&Statuses=DRAFT,SUBMITTED,AUTHORISED&where=" + Uri.EscapeDataString("Type==\"ACCPAY\""), cancel))

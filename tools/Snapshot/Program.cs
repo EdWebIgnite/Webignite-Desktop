@@ -838,6 +838,26 @@ var retainersPage = (RetainersViewModel)vm.Current.Page;
 retainersPage.Edit(seo);
 Save("retainer-editor");
 retainersPage.Editor!.CancelCommand.Execute(null);
+{
+    // Xero's repeating invoices, each able to become a retainer, made paused so nobody is billed twice.
+    Webignite.Core.Retainers.XeroRepeatingInvoice Repeating(string id, string client, string reference, decimal amount, string unit = "MONTHLY") => new()
+    {
+        Id = id, ContactName = client, Reference = reference, Total = amount, Unit = unit, Status = "AUTHORISED", NextDate = today.AddDays(22),
+        Lines = [Priced(reference, amount)],
+    };
+    retainersPage.ShowRepeating([Repeating("x1", "Bosveld Builders", "Website care plan", 1250m), Repeating("x2", "Fynbos Physio", "Weekly social post", 600m, "WEEKLY")]);
+    Check("Only monthly repeating invoices can become retainers", retainersPage.Repeating[0].CanMake && !retainersPage.Repeating[1].CanMake);
+    Save("retainers-from-xero");
+    retainersPage.Repeating[0].MakeCommand.Execute(null);
+    var fromXero = store.ListRetainers().Single(r => r.FromXeroRepeating == "x1");
+    Check("A repeating invoice becomes a paused retainer and says to stop Xero's", fromXero.Paused && retainersPage.Message.Contains("Stop the repeating invoice in Xero", StringComparison.Ordinal)
+        && !retainersPage.Repeating[0].CanMake);
+    Save("retainers-from-xero-made");
+    store.DeleteRetainer(fromXero.Id);
+    retainersPage.HideXeroRepeatingCommand.Execute(null);
+    retainersPage.Message = "";
+    retainersPage.Refresh();
+}
 
 Webignite.Core.Renewals.Renewal Renewal(string id, string name, Webignite.Core.Renewals.RenewalKind kind, string? client, string provider, DateOnly on, decimal? cost, decimal? price) =>
     store.SaveRenewal(new Webignite.Core.Renewals.Renewal { Id = id, Name = name, Kind = kind, ClientName = client, Provider = provider, RenewsOn = on, Cost = cost, Price = price });

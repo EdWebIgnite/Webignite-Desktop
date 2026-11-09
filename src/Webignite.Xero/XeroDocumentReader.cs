@@ -73,7 +73,7 @@ public sealed class XeroDocumentReader(XeroApi api)
         };
     }
 
-    private static Line ToLine(JsonObject l)
+    public static Line ToLine(JsonObject l)
     {
         var quantity = Amount(l["Quantity"]);
         var price = Amount(l["UnitAmount"]);
