@@ -122,6 +122,9 @@ public static class XeroItems
 }
 
 /// <summary>A Xero account sales can be coded to, e.g. 200 Sales.</summary>
+/// <summary>A bank account in Xero that payments can be recorded into.</summary>
+public sealed record XeroBankAccount(string Id, string Name);
+
 public sealed record XeroSalesAccount(string Code, string Name)
 {
     public override string ToString() => $"{Code}  {Name}";

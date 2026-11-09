@@ -18,7 +18,7 @@ public partial class DocumentEditorViewModel
     public ObservableCollection<XeroContact> ContactChoices { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(CanVoid), nameof(CanCredit))]
+    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(CanVoid), nameof(CanCredit), nameof(CanRecordPayment))]
     public partial bool XeroBusy { get; set; }
 
     [ObservableProperty]
@@ -271,6 +271,7 @@ public partial class DocumentEditorViewModel
             nameof(XeroState), nameof(IsEditable), nameof(IsVerified), nameof(XeroHint), nameof(CanCreate), nameof(ShowCreate), nameof(ShowCheck),
             nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(Links), nameof(HasLinks),
             nameof(CanVoid), nameof(VoidLabel), nameof(VoidQuestion), nameof(CanCredit), nameof(CreditHint), nameof(CreditNotesText), nameof(HasCreditNotes),
+            nameof(CanRecordPayment), nameof(PaymentHint),
             nameof(ShowStartOver), nameof(HasXeroLink), nameof(XeroStatus), nameof(HasXeroStatus), nameof(XeroStatusIsProblem),
         })
             OnPropertyChanged(name);
