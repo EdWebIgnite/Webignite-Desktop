@@ -125,6 +125,22 @@ public static class XeroPayload
     }
 
     /// <summary>Compares what Xero saved with what was sent. An empty list means they match.</summary>
+    /// <summary>
+    /// Whether Xero kept the amounts the way they were sent. Xero doesn't always say "no tax" back the way it was
+    /// sent on a quote (it can leave it out or give its own default), so a draft sent without tax counts as the same
+    /// when Xero has no tax on it at all: a tax total of nothing and no line with a tax rate.
+    /// </summary>
+    private static bool SameAmountTypes(string sent, string received, JsonObject saved)
+    {
+        if (string.Equals(sent, received, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (!string.Equals(sent, "NoTax", StringComparison.OrdinalIgnoreCase))
+            return false;
+        var noTax = (Dec(saved["TotalTax"]) ?? 0m) == 0m;
+        var lines = saved["LineItems"] as JsonArray ?? [];
+        return noTax && lines.OfType<JsonObject>().All(l => Str(l["TaxType"]) is "" or "NONE" && (Dec(l["TaxAmount"]) ?? 0m) == 0m);
+    }
+
     public static IReadOnlyList<string> Verify(Document doc, JsonObject sent, JsonObject received)
     {
         var errors = new List<string>();
@@ -137,8 +153,8 @@ public static class XeroPayload
             if (sent.ContainsKey(key) && Str(received[key]) != Str(sent[key]))
                 errors.Add($"{key} differs from the approved document.");
 
-        if (!string.Equals(Str(received["LineAmountTypes"]), Str(sent["LineAmountTypes"]), StringComparison.OrdinalIgnoreCase))
-            errors.Add("LineAmountTypes differs.");
+        if (!SameAmountTypes(Str(sent["LineAmountTypes"]), Str(received["LineAmountTypes"]), received))
+            errors.Add($"LineAmountTypes differs (Xero has {(Str(received["LineAmountTypes"]) is { Length: > 0 } got ? got : "none")}).");
         if (Str(received["Contact"]?["ContactID"]) != Str(sent["Contact"]?["ContactID"]))
             errors.Add("Customer differs.");
 
