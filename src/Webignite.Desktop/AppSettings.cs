@@ -26,6 +26,9 @@ public sealed record XeroSettings
     public string? BrandingThemeId { get; init; }
     public string? BrandingThemeName { get; init; }
 
+    /// <summary>The expense account bills were last coded to, picked again next time.</summary>
+    public string? BillAccountCode { get; init; }
+
     /// <summary>The bank account payments were last recorded into, picked again next time.</summary>
     public string? PaymentAccountId { get; init; }
 }
