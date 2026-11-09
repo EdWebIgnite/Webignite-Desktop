@@ -44,6 +44,14 @@
             <Button Classes="primary" Content="Use this account" Command="{Binding SaveAccountCommand}" IsVisible="{Binding HasAccounts}" />
           </StackPanel>
           <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding AccountProblem}" Text="{Binding AccountMessage}" />
+          <TextBlock FontWeight="SemiBold" Text="Branding theme" Margin="0,6,0,0" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding ThemeText}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="quiet" Content="Choose from Xero" Command="{Binding LoadThemesCommand}" IsVisible="{Binding !HasThemes}" />
+            <ComboBox ItemsSource="{Binding BrandingThemes}" SelectedItem="{Binding ChosenTheme}" MinWidth="280" IsVisible="{Binding HasThemes}" />
+            <Button Classes="primary" Content="Use this theme" Command="{Binding SaveThemeCommand}" IsVisible="{Binding HasThemes}" />
+          </StackPanel>
+          <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding ThemeProblem}" Text="{Binding ThemeMessage}" />
         </StackPanel>
         <Button Classes="quiet" Content="Disconnect Xero" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsConnected}" />
       </StackPanel>

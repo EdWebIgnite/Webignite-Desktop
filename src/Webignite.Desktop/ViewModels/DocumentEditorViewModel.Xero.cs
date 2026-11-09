@@ -117,7 +117,7 @@ public partial class DocumentEditorViewModel
         Save();
         if (!IsEditable)
             return; // It went to Xero from another page meanwhile; Save said so.
-        var target = new XeroTarget(account);
+        var target = new XeroTarget(account, BrandingThemeId: services.Settings.Xero.BrandingThemeId);
         var email = ClientEmail(CustomerName);
         await Run(() => drafts.CreateAsync(stored!, target, contactId, createContact, email));
     }
@@ -307,7 +307,7 @@ public partial class DocumentEditorViewModel
         ShowXero(Kind == DocumentKind.Invoice && stored.Delivery.Approved is null ? "Approving in Xero and fetching the PDF…" : "Fetching the PDF from Xero…", problem: false);
         try
         {
-            var ready = await sending.PrepareAsync(stored, services.Settings.Xero.TenantName ?? "Webignite");
+            var ready = await sending.PrepareAsync(stored, services.Settings.Xero.TenantName ?? "Webignite", brandingThemeId: services.Settings.Xero.BrandingThemeId);
             stored = ready.Stored;
             var pdf = await services.Drafts.AttachAsync(ready.PdfName, ready.Pdf);
             var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.For(Kind), ready.Values);

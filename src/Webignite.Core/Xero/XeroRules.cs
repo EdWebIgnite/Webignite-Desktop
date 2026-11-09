@@ -46,6 +46,15 @@ public enum XeroWriteState
     Verified,
 }
 
+/// <summary>
+/// One of the organisation's branding themes in Xero: the look of the PDF and the online invoice, and the payment
+/// services offered on it (such as Payfast's Pay now button).
+/// </summary>
+public sealed record XeroBrandingTheme(string Id, string Name)
+{
+    public override string ToString() => Name;
+}
+
 /// <summary>A Xero account sales can be coded to, e.g. 200 Sales.</summary>
 public sealed record XeroSalesAccount(string Code, string Name)
 {

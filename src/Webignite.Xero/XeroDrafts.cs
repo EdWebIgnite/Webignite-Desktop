@@ -5,7 +5,8 @@ using Webignite.Core.Xero;
 namespace Webignite.Xero;
 
 /// <summary>Which Xero account sales go to, and the tax type (NONE, as Webignite is not VAT registered).</summary>
-public sealed record XeroTarget(string AccountCode, string TaxType = "NONE");
+/// <summary>Where a draft goes in Xero: its sales account, tax rate and, when one is chosen, its branding theme.</summary>
+public sealed record XeroTarget(string AccountCode, string TaxType = "NONE", string? BrandingThemeId = null);
 
 /// <summary>
 /// Puts quotes and invoices into Xero as drafts, one careful step at a time. What is about to be sent
@@ -63,7 +64,7 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
         }
 
         // From here on, every step is saved before the next, so a crash or a dropped line leaves a clear trail.
-        var payload = XeroPayload.Build(doc, contact?.Id ?? "", target.AccountCode, target.TaxType);
+        var payload = XeroPayload.Build(doc, contact?.Id ?? "", target.AccountCode, target.TaxType, brandingThemeId: target.BrandingThemeId);
         stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.Writing, ContactId = contact?.Id, Sent = payload.ToJsonString(), Problems = [] } });
 
         try
