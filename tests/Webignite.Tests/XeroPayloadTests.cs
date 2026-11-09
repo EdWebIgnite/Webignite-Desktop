@@ -63,6 +63,33 @@ public class XeroPayloadTests
     }
 
     [Theory]
+    [InlineData(null)]
+    [InlineData("Exclusive")]
+    [InlineData("NoTax")]
+    public void A_no_tax_quote_xero_reports_differently_still_checks_out(string? xeroSays)
+    {
+        var doc = Invoice() with { Kind = DocumentKind.Quote };
+        var sent = XeroPayload.Build(doc, "contact-1", "200", "NONE", "QU-0003");
+        var received = SavedBy(doc, sent);
+        if (xeroSays is null)
+            received.Remove("LineAmountTypes");
+        else
+            received["LineAmountTypes"] = xeroSays;
+        Assert.Empty(XeroPayload.Verify(doc, sent, received));
+    }
+
+    [Fact]
+    public void Tax_that_xero_added_is_still_caught()
+    {
+        var doc = Invoice() with { Kind = DocumentKind.Quote };
+        var sent = XeroPayload.Build(doc, "contact-1", "200", "NONE", "QU-0003");
+        var received = SavedBy(doc, sent);
+        received["LineAmountTypes"] = "Exclusive";
+        received["LineItems"]![0]!["TaxType"] = "OUTPUT";
+        Assert.Contains("LineAmountTypes differs (Xero has Exclusive).", XeroPayload.Verify(doc, sent, received));
+    }
+
+    [Theory]
     [InlineData("/Date(1793404800000+0000)/", "2026-10-31")]
     [InlineData("2026-10-31T00:00:00", "2026-10-31")]
     public void Normalizes_xero_dates(string input, string expected) =>
