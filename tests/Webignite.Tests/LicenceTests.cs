@@ -104,6 +104,25 @@ public sealed class LicenceTests : IDisposable
     }
 
     [Fact]
+    public async Task A_licence_for_another_workspace_pasted_in_is_not_taken()
+    {
+        using var server = Server(keys.PrivateKey);
+        using var store = new LocalStore(Path.Combine(folder, "app.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
+        using var client = new AccountClient(store, new MemorySecretStore(), server.Server.CreateHandler(), keys.PublicKey);
+        Assert.Null(client.UseServer("http://localhost"));
+        Assert.True((await client.SignUpAsync("eddie@webignite.co.za", "karoo rooibos sunrise", "Webignite", null, Cancel)).Worked);
+        using var key = LicenceService.KeyFrom(keys.PrivateKey)!;
+        var someoneElses = Licences.Sign(new Licence("another-workspace", LicencePlans.Complimentary, DateTimeOffset.UtcNow.AddYears(10), DateTimeOffset.UtcNow), key);
+        store.SetSetting("licence", new KeptLicence(someoneElses, DateTimeOffset.UtcNow));
+        Assert.Null(client.Licence);
+
+        // From the future: a PC clock wound back doesn't make an old licence good again.
+        var ours = Licences.Sign(new Licence(client.Account!.Workspace.Id, LicencePlans.Active, DateTimeOffset.UtcNow.AddDays(30), DateTimeOffset.UtcNow.AddDays(5)), key);
+        store.SetSetting("licence", new KeptLicence(ours, DateTimeOffset.UtcNow));
+        Assert.Null(client.Licence);
+    }
+
+    [Fact]
     public async Task Without_keys_licences_are_simply_not_offered()
     {
         using var server = Server(null);

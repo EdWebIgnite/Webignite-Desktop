@@ -65,8 +65,12 @@ public sealed class SyncServerAccountTests : IDisposable
         return JsonSerializer.Deserialize<T>(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), Json);
     }
 
-    private Task<(HttpStatusCode Status, SessionInfo? Body, Problem? Problem)> SignUp(string email, string key, string? workspace = "Webignite", string? invite = null) =>
-        Post<SessionInfo>("/api/accounts", new SignUpRequest(email, Salt, AccountKeys.Rounds, key, workspace, invite, "Eddie's PC", Locked, Locked, Key(email + "recovery")));
+    private static readonly string InviteSecretCheck = Key("the invite's secret half");
+
+    private Task<(HttpStatusCode Status, SessionInfo? Body, Problem? Problem)> SignUp(string email, string key, string? workspace = "Webignite", string? invite = null,
+        string? inviteCheck = null) =>
+        Post<SessionInfo>("/api/accounts", new SignUpRequest(email, Salt, AccountKeys.Rounds, key, workspace, invite, "Eddie's PC", Locked, Locked, Key(email + "recovery"),
+            invite is null ? null : inviteCheck ?? InviteSecretCheck));
 
     private Task<(HttpStatusCode Status, SessionInfo? Body, Problem? Problem)> SignIn(string email, string key, string? code = null) =>
         Post<SessionInfo>("/api/sessions", new SignInRequest(email, key, code, "Eddie's PC"));
@@ -82,14 +86,16 @@ public sealed class SyncServerAccountTests : IDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, (await SignIn("eddie@webignite.co.za", Key("wrong"))).Status);
         var signedIn = (await SignIn("eddie@webignite.co.za", Key("eddie"))).Body!;
 
-        var invite = (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked), signedIn.AccessToken)).Body!;
+        var invite = (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked, InviteSecretCheck), signedIn.AccessToken)).Body!;
         Assert.Equal(("Webignite", Locked), ((await Post<InviteOpened>("/api/invites/open", new OpenInviteRequest(invite.Code))).Body!.WorkspaceName, Locked));
         Assert.Matches("^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$", invite.Code);
+        // The server's half alone isn't enough: without the check from the secret half, nobody gets in.
+        Assert.Equal(HttpStatusCode.BadRequest, (await SignUp("guesser@else.co.za", Key("g"), workspace: null, invite: invite.Code, inviteCheck: Key("a guess"))).Status);
         var partner = await SignUp("jaco@webignite.co.za", Key("jaco"), workspace: null, invite: invite.Code.ToLowerInvariant().Replace("-", " ", StringComparison.Ordinal));
         Assert.Equal(HttpStatusCode.OK, partner.Status);
         Assert.Equal((session.Account.Workspace.Id, AccountRoles.Member), (partner.Body!.Account.Workspace.Id, partner.Body.Account.Workspace.Role));
         Assert.Equal(HttpStatusCode.BadRequest, (await SignUp("someone@else.co.za", Key("x"), invite: invite.Code)).Status);
-        Assert.Equal(HttpStatusCode.Forbidden, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked), partner.Body.AccessToken)).Status);
+        Assert.Equal(HttpStatusCode.Forbidden, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked, InviteSecretCheck), partner.Body.AccessToken)).Status);
         Assert.Equal(HttpStatusCode.BadRequest, (await Post<InviteOpened>("/api/invites/open", new OpenInviteRequest(invite.Code))).Status);
 
         var account = await Get<AccountInfo>("/api/account", signedIn.AccessToken);
@@ -163,8 +169,8 @@ public sealed class SyncServerAccountTests : IDisposable
             request.Headers.Authorization = new("Bearer", session.AccessToken);
             Assert.Equal(HttpStatusCode.NoContent, (await http.SendAsync(request, TestContext.Current.CancellationToken)).StatusCode);
         }
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked), session.AccessToken)).Status);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked))).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked, InviteSecretCheck), session.AccessToken)).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<InviteInfo>("/api/workspace/invites", new InviteRequest(Locked, InviteSecretCheck))).Status);
     }
 
     [Fact]
@@ -175,12 +181,78 @@ public sealed class SyncServerAccountTests : IDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, (await Post<RecoveryLocked>("/api/recovery/key", new RecoveryRequest("eddie@webignite.co.za", Key("guess")))).Status);
         Assert.Equal(Locked, (await Post<RecoveryLocked>("/api/recovery/key", new RecoveryRequest("Eddie@webignite.co.za", check))).Body!.WrappedKey);
 
+        // An app that doesn't bring a new recovery key is refused, so the key always changes.
+        Assert.Equal(HttpStatusCode.BadRequest, (await Post<SessionInfo>("/api/recovery/reset",
+            new ResetRequest("eddie@webignite.co.za", check, Salt, AccountKeys.Rounds, Key("new password"), Locked, "Eddie's laptop"))).Status);
+        var newCheck = Key("the new recovery key");
         var reset = await Post<SessionInfo>("/api/recovery/reset",
-            new ResetRequest("eddie@webignite.co.za", check, Salt, AccountKeys.Rounds, Key("new password"), Locked, "Eddie's laptop"));
+            new ResetRequest("eddie@webignite.co.za", check, Salt, AccountKeys.Rounds, Key("new password"), Locked, "Eddie's laptop", Locked, newCheck));
         Assert.Equal(HttpStatusCode.OK, reset.Status);
+        // The old recovery key stops working; the new one works.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<RecoveryLocked>("/api/recovery/key", new RecoveryRequest("eddie@webignite.co.za", check))).Status);
+        Assert.Equal(HttpStatusCode.OK, (await Post<RecoveryLocked>("/api/recovery/key", new RecoveryRequest("eddie@webignite.co.za", newCheck))).Status);
         Assert.Equal(HttpStatusCode.Unauthorized, (await SignIn("eddie@webignite.co.za", Key("eddie"))).Status);
         Assert.Equal(HttpStatusCode.OK, (await SignIn("eddie@webignite.co.za", Key("new password"))).Status);
         Assert.Equal(HttpStatusCode.Unauthorized, (await Post<SessionInfo>("/api/sessions/refresh", new RefreshRequest(first.RefreshToken))).Status);
+    }
+
+    [Fact]
+    public async Task With_two_factor_on_the_recovery_key_alone_doesnt_reset_the_password()
+    {
+        var session = (await SignUp("eddie@webignite.co.za", Key("eddie"))).Body!;
+        var setup = (await Post<TwoFactorSetup>("/api/two-factor", new { }, session.AccessToken)).Body!;
+        var key = Base32.Decode(setup.Secret)!;
+        var codes = (await Post<RecoveryCodes>("/api/two-factor/confirm", new CodeRequest(Totp.Code(key, Totp.StepOf(DateTimeOffset.UtcNow))), session.AccessToken)).Body!;
+        var check = Key("eddie@webignite.co.za" + "recovery");
+        ResetRequest Reset(string? code) => new("eddie@webignite.co.za", check, Salt, AccountKeys.Rounds, Key("new password"), Locked, "Laptop", Locked, Key("new"), code);
+
+        var needs = await Post<SessionInfo>("/api/recovery/reset", Reset(null));
+        Assert.Equal((HttpStatusCode.Unauthorized, Needs.Code), (needs.Status, needs.Problem!.Need));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<SessionInfo>("/api/recovery/reset", Reset("123456"))).Status);
+        Assert.Equal(HttpStatusCode.OK, (await Post<SessionInfo>("/api/recovery/reset", Reset(codes.Codes[0]))).Status);
+    }
+
+    [Fact]
+    public async Task A_refresh_token_from_any_time_before_signs_the_device_out()
+    {
+        var first = (await SignUp("eddie@webignite.co.za", Key("eddie"))).Body!;
+        var second = (await Post<SessionInfo>("/api/sessions/refresh", new RefreshRequest(first.RefreshToken))).Body!;
+        var third = (await Post<SessionInfo>("/api/sessions/refresh", new RefreshRequest(second.RefreshToken))).Body!;
+        // Two refreshes on, the very first token turns up again: the device is signed out all the same.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<SessionInfo>("/api/sessions/refresh", new RefreshRequest(first.RefreshToken))).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<SessionInfo>("/api/sessions/refresh", new RefreshRequest(third.RefreshToken))).Status);
+    }
+
+    [Fact]
+    public async Task Turning_two_factor_off_signs_out_the_other_devices()
+    {
+        var here = (await SignUp("eddie@webignite.co.za", Key("eddie"))).Body!;
+        var setup = (await Post<TwoFactorSetup>("/api/two-factor", new { }, here.AccessToken)).Body!;
+        var key = Base32.Decode(setup.Secret)!;
+        var codes = (await Post<RecoveryCodes>("/api/two-factor/confirm", new CodeRequest(Totp.Code(key, Totp.StepOf(DateTimeOffset.UtcNow))), here.AccessToken)).Body!;
+        var other = (await SignIn("eddie@webignite.co.za", Key("eddie"), codes.Codes[0])).Body!;
+        Assert.Equal(HttpStatusCode.NoContent, (await Post<object>("/api/two-factor/off", new CodeRequest(codes.Codes[1]), here.AccessToken)).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post<SessionInfo>("/api/sessions/refresh", new RefreshRequest(other.RefreshToken))).Status);
+        Assert.NotNull(await Get<AccountInfo>("/api/account", here.AccessToken));
+    }
+
+    [Fact]
+    public async Task A_pull_hands_back_at_most_its_byte_limit_and_says_there_is_more()
+    {
+        var session = (await SignUp("eddie@webignite.co.za", Key("eddie"))).Body!;
+        var big = new string('x', 500 * 1024);
+        var kind = Webignite.Core.Sync.SyncKinds.All.First();
+        for (var push = 0; push < 3; push++)
+        {
+            var records = Enumerable.Range(0, 6).Select(i => new Webignite.Core.Sync.SyncRecord(kind, $"r{push}-{i}", big, 0)).ToList();
+            Assert.Equal(HttpStatusCode.OK, (await Post<Webignite.Core.Sync.PushReply>("/api/sync/push", new Webignite.Core.Sync.PushRequest(records), session.AccessToken)).Status);
+        }
+        var first = (await Post<Webignite.Core.Sync.PullReply>("/api/sync/pull", new Webignite.Core.Sync.PullRequest(0), session.AccessToken)).Body!;
+        Assert.True(first.More);
+        Assert.InRange(first.Records.Sum(r => (long)r.Payload.Length), 1, Webignite.Core.Sync.SyncLimits.PullBytes);
+        var rest = (await Post<Webignite.Core.Sync.PullReply>("/api/sync/pull", new Webignite.Core.Sync.PullRequest(first.Cursor), session.AccessToken)).Body!;
+        Assert.Equal(18, first.Records.Count + rest.Records.Count);
+        Assert.False(rest.More);
     }
 
     [Fact]

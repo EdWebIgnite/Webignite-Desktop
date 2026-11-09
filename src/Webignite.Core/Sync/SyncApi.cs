@@ -20,6 +20,16 @@ public static class SyncLimits
     public const int LongestId = 64;
     public const int LargestPayload = 512 * 1024;
 
+    /// <summary>The largest request the server reads: the app sends at most 4 MB of records at a time, locked a third bigger.</summary>
+    public const int LargestRequest = 8 * 1024 * 1024;
+
+    /// <summary>What a pull hands back at most, so a few pulls at once can't run the server out of memory.</summary>
+    public const int PullBytes = 8 * 1024 * 1024;
+
+    /// <summary>What one workspace can keep on the server: far more than a small agency's projects need.</summary>
+    public const long WorkspaceBytes = 500L * 1024 * 1024;
+    public const long WorkspaceRecords = 200_000;
+
     public static bool IdIsFine(string? id) =>
         !string.IsNullOrEmpty(id) && id.Length <= LongestId && id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 }

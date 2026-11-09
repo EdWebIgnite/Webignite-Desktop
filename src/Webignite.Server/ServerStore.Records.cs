@@ -34,6 +34,10 @@ public sealed partial class ServerStore
             r => new SyncRecord(r.GetString(0), r.GetString(1), r.GetString(2), r.GetInt64(3)),
             ("$w", workspaceId), ("$since", since), ("$limit", limit));
 
+    /// <summary>How much a workspace keeps: its records and their bytes, for the workspace's limit.</summary>
+    public (long Records, long Bytes) Usage(string workspaceId) =>
+        Read("SELECT COUNT(*), COALESCE(SUM(LENGTH(payload)), 0) FROM records WHERE workspace_id = $w", r => (r.GetInt64(0), r.GetInt64(1)), ("$w", workspaceId)).First();
+
     public long LastRecord(string workspaceId) =>
         Read("SELECT COALESCE(MAX(seq), 0) FROM records WHERE workspace_id = $w", r => r.GetInt64(0), ("$w", workspaceId)).First();
 }

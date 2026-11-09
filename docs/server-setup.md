@@ -178,23 +178,29 @@ Projects ticked **Shared** then sync every minute while you're both signed in.
 
 ## 10. Nightly backups
 
-Have the server back up its database every night at 02:30:
+Have the server back up its database every night at 02:30. First install a copy of the backup script that only
+root can change, so nothing in the repository's folder can change what runs as root:
 
 ```
+sudo install -m 700 -o root -g root /opt/webignite/deploy/backup.sh /usr/local/sbin/webignite-backup
 sudo crontab -e
 ```
 
 Pick nano if it asks, and add this line at the end:
 
 ```
-30 2 * * * /opt/webignite/deploy/backup.sh >> /var/log/webignite-backup.log 2>&1
+30 2 * * * WEBIGNITE_DEPLOY=/opt/webignite/deploy /usr/local/sbin/webignite-backup >> /var/log/webignite-backup.log 2>&1
 ```
 
-Backups go to `/opt/webignite/deploy/backups` and are kept for 30 days. A backup on the same server doesn't help
-if the server is lost, so copy them off now and then. From PowerShell on your PC:
+When `backup.sh` changes in a later version, look at what changed and run the `install` line again.
+
+Backups go to `/opt/webignite/deploy/backups`, readable by root only, and are kept for 30 days. A backup on the
+same server doesn't help if the server is lost, so copy them off now and then. From PowerShell on your PC:
 
 ```
-scp "ubuntu@sync.webignite.co.za:/opt/webignite/deploy/backups/*.gz" "$env:USERPROFILE\Documents\Webignite server backups\"
+ssh ubuntu@sync.webignite.co.za "sudo install -d -o ubuntu -m 700 ~/backup-copies && sudo install -o ubuntu -m 600 /opt/webignite/deploy/backups/*.gz ~/backup-copies/"
+scp "ubuntu@sync.webignite.co.za:backup-copies/*.gz" "$env:USERPROFILE\Documents\Webignite server backups\"
+ssh ubuntu@sync.webignite.co.za "rm -rf ~/backup-copies"
 ```
 
 (Make that folder first.) If xneelo offers snapshots of the server, a weekly one is a good extra.
@@ -237,7 +243,8 @@ docker compose run --rm server set-plan client@example.co.za trial
   /opt/webignite/deploy/update.sh
   ```
 
-  It takes a backup first, rebuilds, restarts and checks that the server answers.
+  It takes a backup first (with the installed copy of the backup script), rebuilds, restarts and checks that the
+  server answers.
 
 ## Putting a backup back
 
