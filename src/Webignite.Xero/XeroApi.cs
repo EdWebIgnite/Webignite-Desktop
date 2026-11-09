@@ -130,6 +130,27 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
             .Select(a => new XeroSalesAccount(Str(a["Code"]), Str(a["Name"])))
             .ToList();
 
+    /// <summary>Bills from suppliers still to approve or pay. Read only.</summary>
+    public async Task<IReadOnlyList<Webignite.Core.Finance.XeroBill>> OpenBillsAsync(CancellationToken cancel = default) =>
+        (await AllAsync("Invoices", "&Statuses=DRAFT,SUBMITTED,AUTHORISED&where=" + Uri.EscapeDataString("Type==\"ACCPAY\""), cancel))
+            .Select(ToBill).ToList();
+
+    public static Webignite.Core.Finance.XeroBill ToBill(JsonObject row) => new()
+    {
+        Id = Str(row["InvoiceID"]),
+        Number = Str(row["InvoiceNumber"]) is { Length: > 0 } n ? n : null,
+        Supplier = Str(row["Contact"]?["Name"]) is { Length: > 0 } name ? name : "A supplier",
+        Reference = Str(row["Reference"]) is { Length: > 0 } r ? r : null,
+        Date = Day(row["DateString"]),
+        Due = Day(row["DueDateString"]),
+        Total = row["Total"] is JsonValue t && t.TryGetValue<decimal>(out var total) ? total : 0,
+        AmountDue = row["AmountDue"] is JsonValue d && d.TryGetValue<decimal>(out var due) ? due : 0,
+        Status = Str(row["Status"]),
+    };
+
+    private static DateOnly? Day(JsonNode? node) =>
+        XeroPayload.NormalizeDate(Str(node)) is { } iso ? DateOnly.ParseExact(iso, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : null;
+
     /// <summary>The active bank accounts, for recording payments into.</summary>
     public async Task<IReadOnlyList<XeroBankAccount>> BankAccountsAsync(CancellationToken cancel = default) =>
         ((await GetAsync("Accounts?where=" + Uri.EscapeDataString("Type==\"BANK\""), cancel))["Accounts"] as JsonArray ?? []).OfType<JsonObject>()

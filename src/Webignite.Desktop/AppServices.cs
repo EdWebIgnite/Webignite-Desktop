@@ -30,6 +30,7 @@ public sealed class AppServices : IDisposable
         Payments = new PaymentWatch(store, () => XeroApi);
         XeroClients = new XeroClientWatch(store, () => XeroApi);
         XeroDocuments = new XeroDocumentWatch(store, () => XeroApi);
+        XeroBills = new XeroBillWatch(store, () => XeroApi);
         SiteWatch = new UptimeWatch(store.ListClients, () => Settings.Uptime, s => Settings.Uptime = s);
     }
 
@@ -41,6 +42,9 @@ public sealed class AppServices : IDisposable
 
     /// <summary>Brings in quotes and invoices made in Xero itself, on start and every few hours.</summary>
     public XeroDocumentWatch XeroDocuments { get; }
+
+    /// <summary>The bills in Xero still to approve or pay, read every few hours.</summary>
+    public XeroBillWatch XeroBills { get; }
 
     /// <summary>Visits watched websites every 15 minutes.</summary>
     public UptimeWatch SiteWatch { get; }

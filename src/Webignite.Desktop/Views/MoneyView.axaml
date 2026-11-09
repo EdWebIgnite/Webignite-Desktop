@@ -15,7 +15,7 @@
       </StackPanel>
       <StackPanel Spacing="4">
         <TextBlock Classes="h1" Text="Money" />
-        <TextBlock Classes="muted" Text="What came in and what went out. Kept on this PC, nothing goes to Xero." />
+        <TextBlock Classes="muted" Text="What came in and what went out, kept on this PC, and the bills you owe, read from Xero." />
       </StackPanel>
     </DockPanel>
 
@@ -42,6 +42,40 @@
         </StackPanel>
       </Border>
     </UniformGrid>
+
+    <!-- Bills to pay, from Xero -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" IsVisible="{Binding XeroConnected}" VerticalAlignment="Top">
+            <c:Spinner IsVisible="{Binding ReadingBills}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
+            <Button Classes="quiet" Content="Read Xero now" Command="{Binding ReadBillsNowCommand}" IsEnabled="{Binding !ReadingBills}" />
+          </StackPanel>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="label" Text="BILLS TO PAY" />
+            <TextBlock Text="{Binding BillsSummary}" TextWrapping="Wrap" />
+          </StackPanel>
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding BillRows}" IsVisible="{Binding HasBills}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:BillRowViewModel">
+              <Button Classes="cell" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Command="{Binding OpenCommand}"
+                      ToolTip.Tip="Open the bill in Xero">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center"
+                             Classes.problem="{Binding IsOverdue}" />
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Supplier}" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Details}" Classes.problem="{Binding IsOverdue}" />
+                  </StackPanel>
+                </DockPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="muted" FontSize="12" Text="{Binding BillsRead}" IsVisible="{Binding XeroConnected}" />
+      </StackPanel>
+    </Border>
 
     <!-- Income projection -->
     <Border Classes="card">

@@ -80,6 +80,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
     public string OverdueLine { get; private set; } = "";
     public string QuotesLine { get; private set; } = "";
 
+    /// <summary>What Webignite owes suppliers, from the bills in Xero, under the figure owed to you.</summary>
+    public string BillsLine { get; private set; } = "";
+    public bool HasBillsLine => BillsLine.Length > 0;
+
     /// <summary>Money received this month so far, from the Money page.</summary>
     public string CameIn { get; private set; } = "";
 
@@ -131,6 +135,10 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
         OwedLine = OverviewCards.Owed(documents);
         OverdueLine = OverviewCards.Overdue(documents, today);
         QuotesLine = OverviewCards.QuotesOut(documents, today);
+        var bills = services.XeroBills.State;
+        BillsLine = bills.Read is null ? ""
+            : Bills.DueWithin(bills.Open, today, 7) is > 0 and var soon ? $"You owe {Money.Rand(soon)} in bills due this week. " + Bills.Summary(bills.Open, today)
+            : Bills.Summary(bills.Open, today);
 
         var entries = services.Store.ListEntries(Dates.MonthStart(today).AddMonths(-5), today);
         CameIn = Money.Rand(Trends.ReceivedThisMonth(entries, today));

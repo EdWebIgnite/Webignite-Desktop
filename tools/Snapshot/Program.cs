@@ -785,8 +785,22 @@ Entry(expense, month.AddDays(6), 349.99m, "Takealot", "Equipment", "USB-C hub");
 store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r1", Name = "xneelo dedicated server", Amount = 1899m, DayOfMonth = 1, Category = "Hosting and servers", Starts = month.AddMonths(-11) });
 store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r2", Name = "Adobe Creative Cloud", Amount = 1150m, DayOfMonth = 15, Category = "Software and subscriptions", Starts = month.AddMonths(-11) });
 store.SaveRecurring(new Webignite.Core.Finance.RecurringExpense { Id = "r3", Name = "Fibre", Amount = 899m, DayOfMonth = 31, Category = "Internet and phone", Starts = month.AddMonths(-11) });
+// Bills to pay, as read from Xero.
+store.SetSetting("xero-bills", new Webignite.Core.Finance.BillsState
+{
+    Read = DateTimeOffset.UtcNow,
+    Open =
+    [
+        new() { Id = "b1", Number = "INV-7781", Supplier = "xneelo", Status = "AUTHORISED", Total = 1899m, AmountDue = 1899m, Due = today.AddDays(-3) },
+        new() { Id = "b2", Number = "ADB-20931", Supplier = "Adobe", Status = "AUTHORISED", Total = 1150m, AmountDue = 1150m, Due = today.AddDays(5) },
+        new() { Id = "b3", Reference = "Banner print", Supplier = "Printing.co.za", Status = "DRAFT", Total = 640m, AmountDue = 640m, Due = today.AddDays(14) },
+    ],
+});
 Open(Page.Money);
+(window.GetVisualDescendants().OfType<MoneyView>().FirstOrDefault()?.DataContext as MoneyViewModel)?.Refresh();
+Dispatcher.UIThread.RunJobs();
 Save("money");
+Check("Money shows the bills to pay from Xero", window.GetVisualDescendants().OfType<MoneyView>().FirstOrDefault()?.DataContext is MoneyViewModel billsPage && billsPage.BillRows.Count == 3 && billsPage.BillRows[0].IsOverdue);
 
 Webignite.Core.Documents.Line Priced(string description, decimal price) => new() { Description = description, Quantity = 1, UnitPrice = price };
 var seo = store.SaveRetainer(new Webignite.Core.Retainers.Retainer
