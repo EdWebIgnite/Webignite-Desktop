@@ -22,6 +22,19 @@
         <Button Classes="link" Content="← Back to the list" Command="{Binding BackCommand}" Padding="0,2" Margin="0,0,0,6" />
         <TextBlock Classes="h1" Text="{Binding Title}" />
         <TextBlock Classes="muted" Text="{Binding NumberNote}" />
+        <ItemsControl ItemsSource="{Binding Links}" IsVisible="{Binding HasLinks}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="12" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DocumentEditorViewModel+DocumentLink">
+              <Button Classes="link" Padding="0,2" Content="{Binding Text}"
+                      Command="{Binding #Root.((vm:DocumentEditorViewModel)DataContext).OpenLinkedCommand}" CommandParameter="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </DockPanel>
 
@@ -204,6 +217,14 @@
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="{Binding EmailButtonText}" Command="{Binding StartEmailCommand}" IsVisible="{Binding ShowEmail}" IsEnabled="{Binding !XeroBusy}" />
           <TextBlock Classes="muted" FontSize="12" Text="{Binding EmailedText}" IsVisible="{Binding HasEmailedText}" />
+          <Grid ColumnDefinitions="*,8,*" IsVisible="{Binding CanDecideQuote}">
+            <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Content="Client accepted" Command="{Binding AcceptQuoteCommand}"
+                    ToolTip.Tip="Marks the quote accepted in Xero. Make invoice then starts the invoice." />
+            <Button Grid.Column="2" Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Content="Client declined" Command="{Binding DeclineQuoteCommand}"
+                    ToolTip.Tip="Marks the quote declined in Xero, so it isn't followed up." />
+          </Grid>
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Change this draft" Command="{Binding ChangeDraftCommand}" IsVisible="{Binding CanChangeDraft}"
                   ToolTip.Tip="Unlocks it to change here. Update draft in Xero then puts the change in Xero." />

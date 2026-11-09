@@ -195,6 +195,41 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
         return stored;
     }
 
+    /// <summary>
+    /// Tells Xero the client accepted or declined a sent quote, only when Eddie clicked to. When Xero already has an
+    /// answer (set in Xero meanwhile), that one is kept here instead and nothing is written.
+    /// </summary>
+    public async Task<StoredDocument> DecideQuoteAsync(StoredDocument stored, bool accepted, CancellationToken cancel = default)
+    {
+        if (!QuoteOutcomes.CanDecide(stored))
+            throw new XeroException("Only a quote that went to the client can be marked accepted or declined.");
+        var record = await ReadAsync(stored, cancel);
+        var status = XeroApi.Str(record["Status"]);
+        if (Chasers.SettledBy(DocumentKind.Quote, status, null) is { } already)
+            return update(stored, s => s with { Xero = s.Xero with { Status = status }, Settled = new SettledState { On = DateTimeOffset.UtcNow, As = already } });
+        if (status != XeroStatuses.Sent)
+            throw new XeroException("Xero only takes the client's answer on a sent quote. Email it first.");
+
+        var wanted = accepted ? XeroStatuses.Accepted : XeroStatuses.Declined;
+        try
+        {
+            await api.PostAsync($"Quotes/{stored.Xero.Id}", new JsonObject
+            {
+                ["QuoteID"] = stored.Xero.Id,
+                ["Status"] = wanted,
+                ["Contact"] = new JsonObject { ["ContactID"] = XeroApi.Str(record["Contact"]?["ContactID"]) },
+                ["Date"] = XeroPayload.NormalizeDate(XeroApi.Str(record["DateString"])),
+            }, stored.Id + "-" + wanted.ToLowerInvariant(), cancel);
+        }
+        catch (XeroUncertainException)
+        {
+            // Reading it back says whether it landed.
+        }
+        if (XeroApi.Str((await ReadAsync(stored, cancel))["Status"]) != wanted)
+            throw new XeroException("Couldn't tell whether Xero took it. Look at the quote in Xero, then try again.");
+        return update(stored, s => QuoteOutcomes.Decided(s, accepted, DateTimeOffset.UtcNow));
+    }
+
     private async Task<JsonObject> ReadAsync(StoredDocument stored, CancellationToken cancel) =>
         (await api.GetAsync($"{Resource(stored)}/{stored.Xero.Id}", cancel))[Resource(stored)]?[0] as JsonObject
         ?? throw new XeroException("Xero didn't send it back. It may have been deleted in Xero.");

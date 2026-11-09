@@ -18,7 +18,7 @@ public partial class DocumentEditorViewModel
     public ObservableCollection<XeroContact> ContactChoices { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft))]
+    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote))]
     public partial bool XeroBusy { get; set; }
 
     [ObservableProperty]
@@ -248,6 +248,11 @@ public partial class DocumentEditorViewModel
         XeroWriteState.Uncertain => "It isn't clear whether Xero got it. " + string.Join(" ", stored.Xero.Problems),
         XeroWriteState.CreatedUnverified => $"In Xero as {stored.Xero.Number ?? "a draft"}, not compared yet. Use Check Xero.",
         XeroWriteState.Mismatch => $"In Xero as {stored.Xero.Number ?? "a draft"}, but it differs: " + string.Join(" ", stored.Xero.Problems),
+        XeroWriteState.Verified when Kind == DocumentKind.Quote && stored.Settled?.As == Settlement.Accepted => $"The client accepted {stored.Xero.Number}.",
+        XeroWriteState.Verified when Kind == DocumentKind.Quote && stored.Settled?.As == Settlement.Declined => $"The client declined {stored.Xero.Number}.",
+        XeroWriteState.Verified when Kind == DocumentKind.Quote && stored.Settled?.As == Settlement.Invoiced => $"{stored.Xero.Number} has been invoiced.",
+        XeroWriteState.Verified when Kind == DocumentKind.Quote && stored.Delivery.Emailed is not null =>
+            $"{stored.Xero.Number} went to the client. Say whether they accepted or declined it when you hear.",
         XeroWriteState.Verified when stored.Delivery.Approved is not null => $"{stored.Xero.Number} is approved in Xero.",
         XeroWriteState.Verified => Kind == DocumentKind.Quote
             ? $"Draft {stored.Xero.Number} is in Xero and matches this document. Email it when it's right."
@@ -264,7 +269,7 @@ public partial class DocumentEditorViewModel
         foreach (var name in new[]
         {
             nameof(XeroState), nameof(IsEditable), nameof(IsVerified), nameof(XeroHint), nameof(CanCreate), nameof(ShowCreate), nameof(ShowCheck),
-            nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft),
+            nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(Links), nameof(HasLinks),
             nameof(ShowStartOver), nameof(HasXeroLink), nameof(XeroStatus), nameof(HasXeroStatus), nameof(XeroStatusIsProblem),
         })
             OnPropertyChanged(name);
@@ -390,5 +395,79 @@ public partial class DocumentEditorViewModel
     {
         foreach (var name in new[] { nameof(ShowEmail), nameof(XeroStatus), nameof(EmailButtonText), nameof(EmailedText), nameof(HasEmailedText), nameof(ApproveQuestion) })
             OnPropertyChanged(name);
+    }
+}
+
+/// <summary>The client's answer to a quote, and the quote and invoices linked to this one.</summary>
+public partial class DocumentEditorViewModel
+{
+    /// <summary>A link to the quote this invoice was made from, or an invoice made from this quote.</summary>
+    public sealed record DocumentLink(string Text, StoredDocument Target);
+
+    /// <summary>A sent quote with no answer yet: Client accepted and Client declined can be clicked.</summary>
+    public bool CanDecideQuote => stored is not null && QuoteOutcomes.CanDecide(stored) && !XeroBusy;
+
+    public IReadOnlyList<DocumentLink> Links
+    {
+        get
+        {
+            if (stored is null)
+                return [];
+            if (Kind == DocumentKind.Quote)
+                return QuoteOutcomes.InvoicesFrom(stored, services.Documents.List(DocumentKind.Invoice))
+                    .Select(i => new DocumentLink(i.Xero.Number is { } n ? "Invoiced as " + n : "Draft invoice made from it", i)).ToList();
+            return stored.FromQuote is { } id && services.Documents.Get(id) is { } quote
+                ? [new DocumentLink("Made from quote " + QuoteOutcomes.Name(quote), quote)]
+                : [];
+        }
+    }
+
+    public bool HasLinks => Links.Count > 0;
+
+    [RelayCommand]
+    private void OpenLinked(DocumentLink link) => services.Go.Document(services.Documents.Get(link.Target.Id) ?? link.Target);
+
+    [RelayCommand]
+    private Task AcceptQuote() => DecideQuote(accepted: true);
+
+    [RelayCommand]
+    private Task DeclineQuote() => DecideQuote(accepted: false);
+
+    private async Task DecideQuote(bool accepted)
+    {
+        if (stored is null || services.XeroSending is not { } sending)
+        {
+            ShowXero("Connect Xero in Settings first.", problem: true);
+            return;
+        }
+        stored = services.Documents.Get(stored.Id) ?? stored;
+        if (!QuoteOutcomes.CanDecide(stored))
+        {
+            RefreshXero();
+            return;
+        }
+        XeroBusy = true;
+        ShowXero("Talking to Xero…", problem: false);
+        try
+        {
+            stored = await sending.DecideQuoteAsync(stored, accepted);
+            ShowXero(stored.Settled?.As switch
+            {
+                Settlement.Accepted => "Marked accepted in Xero. Use Make invoice when it's time to bill it.",
+                Settlement.Declined => "Marked declined in Xero.",
+                Settlement.Invoiced => "Xero already has it as invoiced.",
+                _ => "Xero already had an answer for it.",
+            }, problem: false);
+        }
+        catch (Exception e) when (e is XeroException or HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+            stored = services.Documents.Get(stored.Id) ?? stored;
+            ShowXero("Couldn't tell Xero: " + e.Message, problem: true);
+        }
+        finally
+        {
+            XeroBusy = false;
+            RefreshXero();
+        }
     }
 }
