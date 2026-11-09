@@ -43,7 +43,11 @@ public static class XeroPayload
         return contact;
     }
 
-    public static JsonObject Build(Document doc, string contactId, string accountCode, string taxType, string? number = null)
+    /// <summary>
+    /// The draft for Xero. With <paramref name="brandingThemeId"/> it uses that theme (and so its payment services,
+    /// such as Payfast's Pay now); without one, Xero uses the organisation's default theme.
+    /// </summary>
+    public static JsonObject Build(Document doc, string contactId, string accountCode, string taxType, string? number = null, string? brandingThemeId = null)
     {
         var lines = new JsonArray();
         foreach (var line in doc.Lines)
@@ -99,6 +103,8 @@ public static class XeroPayload
         };
         if (!string.IsNullOrEmpty(number))
             payload[quote ? "QuoteNumber" : "InvoiceNumber"] = number;
+        if (!string.IsNullOrEmpty(brandingThemeId))
+            payload["BrandingThemeID"] = brandingThemeId;
         if (doc.DueOrExpiryDate is { } due)
             payload[quote ? "ExpiryDate" : "DueDate"] = Iso(due);
 

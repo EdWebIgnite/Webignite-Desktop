@@ -70,6 +70,17 @@ public sealed class InvoiceEmailTests
     }
 
     [Fact]
+    public async Task Approving_puts_the_chosen_branding_theme_on_an_older_draft()
+    {
+        var xero = new FakeXero();
+        var sending = Make(xero, []);
+        await sending.PrepareAsync(Stored(DocumentKind.Invoice), "Webignite", "theme-payfast", TestContext.Current.CancellationToken);
+        var approve = Assert.Single(xero.Posts).Body;
+        Assert.Equal("AUTHORISED", approve["Status"]!.GetValue<string>());
+        Assert.Equal("theme-payfast", approve["BrandingThemeID"]!.GetValue<string>());
+    }
+
+    [Fact]
     public async Task Approve_and_email_approves_once_and_marks_sent_after()
     {
         var xero = new FakeXero();
@@ -77,7 +88,7 @@ public sealed class InvoiceEmailTests
         var sending = Make(xero, saves);
         var stored = Stored(DocumentKind.Invoice);
 
-        var ready = await sending.PrepareAsync(stored, "Webignite", TestContext.Current.CancellationToken);
+        var ready = await sending.PrepareAsync(stored, "Webignite", cancel: TestContext.Current.CancellationToken);
 
         Assert.Equal(["Invoices/inv1"], xero.Posts.Select(p => p.Path));
         Assert.Equal("AUTHORISED", xero.Posts[0].Body["Status"]!.GetValue<string>());
@@ -89,7 +100,7 @@ public sealed class InvoiceEmailTests
         Assert.Equal((byte)'%', ready.Pdf[0]);
 
         // Preparing again (say the mail was closed unsent) doesn't approve twice.
-        await sending.PrepareAsync(ready.Stored, "Webignite", TestContext.Current.CancellationToken);
+        await sending.PrepareAsync(ready.Stored, "Webignite", cancel: TestContext.Current.CancellationToken);
         Assert.Single(xero.Posts);
 
         var sent = await sending.MarkSentAsync(ready.Stored, [new Webignite.Core.Mail.MailPerson("Thandi Mokoena", "thandi@karoocoffee.co.za")],
@@ -104,7 +115,7 @@ public sealed class InvoiceEmailTests
     {
         var xero = new FakeXero();
         var sending = Make(xero, []);
-        var ready = await sending.PrepareAsync(Stored(DocumentKind.Quote), "Webignite", TestContext.Current.CancellationToken);
+        var ready = await sending.PrepareAsync(Stored(DocumentKind.Quote), "Webignite", cancel: TestContext.Current.CancellationToken);
         Assert.Empty(xero.Posts);
         Assert.Null(ready.Values.OnlineLink);
         await sending.MarkSentAsync(ready.Stored, cancel: TestContext.Current.CancellationToken);
@@ -117,7 +128,7 @@ public sealed class InvoiceEmailTests
         var sending = Make(new FakeXero(), []);
         var stored = Stored(DocumentKind.Invoice).WithXero(x => x with { State = XeroWriteState.Uncertain });
         Assert.NotNull(XeroSending.CannotSend(stored));
-        await Assert.ThrowsAsync<XeroException>(() => sending.PrepareAsync(stored, "Webignite", TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<XeroException>(() => sending.PrepareAsync(stored, "Webignite", cancel: TestContext.Current.CancellationToken));
     }
 
     [Fact]

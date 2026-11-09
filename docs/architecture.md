@@ -28,7 +28,7 @@ flowchart LR
 
 | Outside service | What for | Where in the code |
 | --- | --- | --- |
-| Xero | Quotes and invoices go in as DRAFT; payments and statuses are read; PDFs fetched for emailing. Sign-in is OAuth with PKCE in the browser. | `Webignite.Xero` |
+| Xero | Quotes and invoices go in as DRAFT, with the branding theme chosen in Settings, Xero (`XeroSettings.BrandingThemeId`; approving an invoice puts it on too), so the online invoice carries that theme's payment services such as Payfast's Pay now; payments and statuses are read; PDFs and the online invoice link are fetched for emailing. Sign-in is OAuth with PKCE in the browser. | `Webignite.Xero` |
 | Mail server | Mail is read over IMAP into a copy on this PC and sent over SMTP. | `Webignite.Mail` (MailKit) |
 | Claude Desktop, ChatGPT | They start `Webignite.Connector`, which offers tools over MCP. | `Webignite.Connector` |
 | Websites, Google PageSpeed, rdap.org, dns.google, Cloudflare DNS | Site check, uptime watch, domain and hosting reports. | `Webignite.Services`, `Core/Web` |

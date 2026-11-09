@@ -84,4 +84,12 @@ public class XeroPayloadTests
         }
         return received;
     }
+
+    [Fact]
+    public void A_chosen_branding_theme_goes_on_the_draft_and_none_leaves_xeros_default()
+    {
+        var themed = XeroPayload.Build(Invoice(), "contact-1", "200", "NONE", brandingThemeId: "theme-payfast");
+        Assert.Equal("theme-payfast", themed["BrandingThemeID"]!.GetValue<string>());
+        Assert.False(XeroPayload.Build(Invoice(), "contact-1", "200", "NONE").ContainsKey("BrandingThemeID"));
+    }
 }

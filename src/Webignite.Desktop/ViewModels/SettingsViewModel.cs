@@ -575,6 +575,56 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         OnPropertyChanged(nameof(AccountText));
     }
 
+    // Which branding theme quotes and invoices use in Xero: its look, and its payment services (Payfast's Pay now).
+
+    public System.Collections.ObjectModel.ObservableCollection<Webignite.Core.Xero.XeroBrandingTheme> BrandingThemes { get; } = [];
+
+    [ObservableProperty] public partial Webignite.Core.Xero.XeroBrandingTheme? ChosenTheme { get; set; }
+    [ObservableProperty] public partial string ThemeMessage { get; set; } = "";
+    [ObservableProperty] public partial bool ThemeProblem { get; set; }
+
+    public string ThemeText => services.Settings.Xero.BrandingThemeName is { } name
+        ? $"Quotes and invoices use the {name} theme in Xero, with its payment options (such as Payfast's Pay now) on the online invoice."
+        : "Quotes and invoices use Xero's default theme. Choose one to be sure clients get its Pay now button.";
+
+    public bool HasThemes => BrandingThemes.Count > 0;
+
+    [RelayCommand]
+    private async Task LoadThemes()
+    {
+        if (services.XeroApi is not { } api)
+            return;
+        ThemeMessage = "Loading branding themes from Xero…";
+        ThemeProblem = false;
+        try
+        {
+            var themes = await api.BrandingThemesAsync();
+            BrandingThemes.Clear();
+            foreach (var theme in themes)
+                BrandingThemes.Add(theme);
+            OnPropertyChanged(nameof(HasThemes));
+            ChosenTheme = BrandingThemes.FirstOrDefault(t => t.Id == services.Settings.Xero.BrandingThemeId) ?? BrandingThemes.FirstOrDefault();
+            ThemeMessage = BrandingThemes.Count == 0 ? "Xero has no branding themes." : "";
+            ThemeProblem = BrandingThemes.Count == 0;
+        }
+        catch (Exception e) when (e is Webignite.Xero.XeroException or XeroSignInException)
+        {
+            ThemeMessage = e.Message;
+            ThemeProblem = true;
+        }
+    }
+
+    [RelayCommand]
+    private void SaveTheme()
+    {
+        if (ChosenTheme is not { } theme)
+            return;
+        services.Settings.Xero = services.Settings.Xero with { BrandingThemeId = theme.Id, BrandingThemeName = theme.Name };
+        ThemeMessage = "Saved. New drafts use it, and so does any invoice approved from now on.";
+        ThemeProblem = false;
+        OnPropertyChanged(nameof(ThemeText));
+    }
+
     [RelayCommand]
     private void Disconnect()
     {

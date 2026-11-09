@@ -29,7 +29,11 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
     /// Approves an invoice in Xero (a quote stays as it is until it's sent) and gathers the PDF, online link
     /// and amounts. Approving is one try only; if the line drops, Xero is read again to see where it stands.
     /// </summary>
-    public async Task<Ready> PrepareAsync(StoredDocument stored, string tradingName, CancellationToken cancel = default)
+    /// <remarks>
+    /// With <paramref name="brandingThemeId"/>, an invoice approved here takes that theme too, so one drafted before
+    /// a theme was chosen still gets its payment services (Payfast's Pay now) on the online invoice.
+    /// </remarks>
+    public async Task<Ready> PrepareAsync(StoredDocument stored, string tradingName, string? brandingThemeId = null, CancellationToken cancel = default)
     {
         if (CannotSend(stored) is { } reason)
             throw new XeroException(reason);
@@ -42,8 +46,10 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
         {
             try
             {
-                await api.PostAsync($"Invoices/{stored.Xero.Id}", new JsonObject { ["InvoiceID"] = stored.Xero.Id, ["Status"] = XeroStatuses.Authorised },
-                    stored.Id + "-approve", cancel);
+                var approve = new JsonObject { ["InvoiceID"] = stored.Xero.Id, ["Status"] = XeroStatuses.Authorised };
+                if (!string.IsNullOrEmpty(brandingThemeId))
+                    approve["BrandingThemeID"] = brandingThemeId;
+                await api.PostAsync($"Invoices/{stored.Xero.Id}", approve, stored.Id + "-approve", cancel);
             }
             catch (XeroUncertainException)
             {

@@ -130,6 +130,14 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
             .Select(a => new XeroSalesAccount(Str(a["Code"]), Str(a["Name"])))
             .ToList();
 
+    /// <summary>The organisation's branding themes, in Xero's own order.</summary>
+    public async Task<IReadOnlyList<XeroBrandingTheme>> BrandingThemesAsync(CancellationToken cancel = default) =>
+        ((await GetAsync("BrandingThemes", cancel))["BrandingThemes"] as JsonArray ?? []).OfType<JsonObject>()
+            .OrderBy(t => t["SortOrder"]?.GetValue<int>() ?? 0)
+            .Select(t => new XeroBrandingTheme(Str(t["BrandingThemeID"]), Str(t["Name"])))
+            .Where(t => t.Id.Length > 0)
+            .ToList();
+
     /// <summary>Whether the organisation has the "No VAT" tax rate drafts are written with.</summary>
     public async Task<bool> HasNoVatRateAsync(CancellationToken cancel = default) =>
         XeroRules.HasNoVatRate(((await GetAsync("TaxRates", cancel))["TaxRates"] as JsonArray ?? []).Select(t => Str(t?["TaxType"])));
