@@ -263,6 +263,7 @@ public partial class MainViewModel : ViewModelBase
         };
         services.AreasChanged = ShowAssistantChanges;
         Jobs.Start();
+        Welcome();
         UpdateInboxBadgeAsync().Forget("Counting what's new in Inbox");
 
         // How other pages get here. Each one lands on the right page first, then opens the thing.

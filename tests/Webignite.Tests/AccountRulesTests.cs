@@ -99,4 +99,12 @@ public sealed class AccountRulesTests
         Assert.Equal(("ABCDEFGHJKLM", secret), WorkspaceKeys.ReadInviteCode(code.ToLowerInvariant()));
         Assert.Null(WorkspaceKeys.ReadInviteCode("ABCD-EFGH-JKLM"));
     }
+
+    [Fact]
+    public void The_app_asks_to_sign_in_only_when_switched_on_and_nobody_is_signed_in()
+    {
+        Assert.True(StartRules.AskToSignIn(switchedOn: true, signedIn: false));
+        Assert.False(StartRules.AskToSignIn(switchedOn: true, signedIn: true));
+        Assert.False(StartRules.AskToSignIn(switchedOn: false, signedIn: false));
+    }
 }

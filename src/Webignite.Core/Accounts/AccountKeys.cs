@@ -94,3 +94,10 @@ public static class SyncAddress
         return uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback ? null : "The sync server's address must start with https://, so nothing is sent unprotected.";
     }
 }
+
+/// <summary>When Webignite asks to sign in as it opens.</summary>
+public static class StartRules
+{
+    /// <summary>Only when the welcome screen is switched on and nobody is signed in on this PC.</summary>
+    public static bool AskToSignIn(bool switchedOn, bool signedIn) => switchedOn && !signedIn;
+}
