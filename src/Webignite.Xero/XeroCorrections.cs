@@ -124,6 +124,23 @@ public sealed class XeroCorrections(XeroApi api, Func<StoredDocument, Func<Store
         return stored;
     }
 
+    /// <summary>
+    /// Attaches a file to the quote or invoice in Xero. With <paramref name="online"/> (invoices only), the client sees
+    /// it on the online invoice too.
+    /// </summary>
+    public async Task<StoredDocument> AttachAsync(StoredDocument stored, string name, byte[] content, bool online, CancellationToken cancel = default)
+    {
+        if (!DocumentAttachments.CanAttach(stored))
+            throw new XeroException("Create it in Xero first, then attach files to it.");
+        if (DocumentAttachments.Check(name, content.LongLength) is { } problem)
+            throw new XeroException(problem);
+        var quote = stored.Document.Kind == DocumentKind.Quote;
+        await api.AttachAsync($"{(quote ? "Quotes" : "Invoices")}/{stored.Xero.Id}", name, content, DocumentAttachments.MediaType(name),
+            includeOnline: online && !quote, cancel);
+        var attached = new XeroAttachment { Name = name, Bytes = content.LongLength, Online = online && !quote, Added = DateTimeOffset.UtcNow };
+        return update(stored, s => s with { Attachments = [.. s.Attachments.Where(a => !string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase)), attached] });
+    }
+
     private StoredDocument Settle(StoredDocument stored, string status) =>
         update(stored, s => s with
         {

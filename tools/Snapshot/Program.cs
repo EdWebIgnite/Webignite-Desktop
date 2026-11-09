@@ -326,10 +326,13 @@ vm.Invoices.Editor = null;
         Xero = verified.Xero with { Status = "AUTHORISED" },
         Delivery = new() { Approved = DateTimeOffset.UtcNow.AddDays(-2), Emailed = DateTimeOffset.UtcNow.AddDays(-2), EmailedTo = "Thandi Mokoena" },
         CreditNotes = [new CreditNoteLink { Id = "cn1", Number = "CN-0004", Amount = 450m, Reason = "Hosting cancelled", Drafted = DateTimeOffset.UtcNow.AddDays(-1) }],
+        Attachments = [new XeroAttachment { Name = "Timesheet October.pdf", Bytes = 48_211, Online = true, Added = DateTimeOffset.UtcNow.AddDays(-2) }],
     });
     var fixer = new DocumentEditorViewModel(approved, services, () => vm.Invoices.Editor = null);
     vm.Invoices.Editor = fixer;
     Check("An approved invoice offers a credit note and voiding", fixer.CanCredit && fixer.CanVoid && fixer.VoidLabel == "Void in Xero");
+    Check("A file can be attached in Xero, and the ones attached are listed", fixer.CanAttach && fixer.AttachmentsText.Count == 1);
+    Save("invoice-attachments");
     fixer.StartCreditCommand.Execute(null);
     fixer.CreditAmountText = "500";
     fixer.CreditReason = "Two hours not used in November";
@@ -346,7 +349,7 @@ vm.Invoices.Editor = null;
     fixer.PaymentAmountText = "1500.00";
     Save("invoice-record-payment");
     vm.Invoices.Editor = null;
-    store.Save(store.Get(verified.Id)! with { Xero = verified.Xero, Delivery = verified.Delivery, CreditNotes = [] });
+    store.Save(store.Get(verified.Id)! with { Xero = verified.Xero, Delivery = verified.Delivery, CreditNotes = [], Attachments = [] });
 }
 
 Open(Page.Settings);

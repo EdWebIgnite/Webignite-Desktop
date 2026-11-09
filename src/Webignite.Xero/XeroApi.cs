@@ -283,9 +283,9 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
     /// Attaches a file to a record, e.g. "Invoices/{id}" with a supplier's PDF. One attempt; Xero keeps one file per
     /// name, so trying again with the same name replaces rather than doubles it.
     /// </summary>
-    public async Task AttachAsync(string recordPath, string fileName, byte[] content, string mediaType, CancellationToken cancel = default)
+    public async Task AttachAsync(string recordPath, string fileName, byte[] content, string mediaType, bool includeOnline = false, CancellationToken cancel = default)
     {
-        using var request = await Request(HttpMethod.Put, $"{recordPath}/Attachments/{Uri.EscapeDataString(fileName)}", cancel);
+        using var request = await Request(HttpMethod.Put, $"{recordPath}/Attachments/{Uri.EscapeDataString(fileName)}" + (includeOnline ? "?IncludeOnline=true" : ""), cancel);
         request.Content = new ByteArrayContent(content);
         request.Content.Headers.ContentType = new MediaTypeHeaderValue(mediaType);
         HttpResponseMessage response;

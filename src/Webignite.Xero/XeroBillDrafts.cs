@@ -79,7 +79,7 @@ public sealed class XeroBillDrafts(XeroApi api)
         {
             try
             {
-                await api.AttachAsync($"Invoices/{id}", string.IsNullOrWhiteSpace(pdfName) ? "Bill.pdf" : pdfName, pdf, "application/pdf", cancel);
+                await api.AttachAsync($"Invoices/{id}", string.IsNullOrWhiteSpace(pdfName) ? "Bill.pdf" : pdfName, pdf, "application/pdf", cancel: cancel);
             }
             catch (XeroException e)
             {

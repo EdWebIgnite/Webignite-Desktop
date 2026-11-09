@@ -97,6 +97,28 @@ public partial class DocumentEditorViewModel
         });
     }
 
+    /// <summary>A file was picked to attach: show it on the online invoice too when this is ticked.</summary>
+    [ObservableProperty]
+    public partial bool AttachOnline { get; set; }
+
+    public bool CanAttach => stored is not null && DocumentAttachments.CanAttach(stored) && !XeroBusy;
+    public IReadOnlyList<string> AttachmentsText => stored is null ? [] : DocumentAttachments.Describe(stored);
+    public bool HasAttachments => AttachmentsText.Count > 0;
+
+    /// <summary>Attaches the file picked on the page to the quote or invoice in Xero.</summary>
+    public Task AttachAsync(string path) => Correct(async corrections =>
+    {
+        var name = Path.GetFileName(path);
+        var info = new FileInfo(path);
+        if (DocumentAttachments.Check(name, info.Length) is { } problem)
+            throw new XeroException(problem);
+        var content = await File.ReadAllBytesAsync(path);
+        stored = await corrections.AttachAsync(stored!, name, content, AttachOnline);
+        return Kind == DocumentKind.Invoice && AttachOnline
+            ? $"{name} is attached in Xero and shown on the online invoice."
+            : $"{name} is attached in Xero.";
+    });
+
     private async Task Correct(Func<XeroCorrections, Task<string>> step)
     {
         if (stored is null || services.XeroCorrections is not { } corrections)
@@ -111,7 +133,7 @@ public partial class DocumentEditorViewModel
         {
             ShowXero(await step(corrections), problem: false);
         }
-        catch (Exception e) when (e is XeroException or HttpRequestException or TaskCanceledException or InvalidOperationException)
+        catch (Exception e) when (e is XeroException or HttpRequestException or TaskCanceledException or InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             stored = services.Documents.Get(stored.Id) ?? stored;
             ShowXero("Couldn't do it in Xero: " + e.Message, problem: true);

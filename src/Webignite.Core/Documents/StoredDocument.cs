@@ -84,6 +84,9 @@ public sealed record StoredDocument
     /// <summary>Set when Xero says there's nothing left to chase: the invoice is paid, or the quote accepted or declined.</summary>
     public SettledState? Settled { get; init; }
 
+    /// <summary>Files attached to its copy in Xero from here.</summary>
+    public IReadOnlyList<XeroAttachment> Attachments { get; init; } = [];
+
     /// <summary>Credit notes drafted in Xero against this invoice from here.</summary>
     public IReadOnlyList<CreditNoteLink> CreditNotes { get; init; } = [];
 
@@ -94,6 +97,17 @@ public sealed record StoredDocument
     public DateTimeOffset Updated { get; init; }
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");
+}
+
+/// <summary>A file attached to a quote or invoice in Xero.</summary>
+public sealed record XeroAttachment
+{
+    public required string Name { get; init; }
+    public long Bytes { get; init; }
+
+    /// <summary>Shown to the client on the online invoice.</summary>
+    public bool Online { get; init; }
+    public DateTimeOffset Added { get; init; }
 }
 
 /// <summary>A credit note drafted in Xero against an invoice. Approving and allocating it is done in Xero.</summary>

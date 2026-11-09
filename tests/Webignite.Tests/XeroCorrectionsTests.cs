@@ -168,6 +168,40 @@ public sealed class XeroCorrectionsTests
         Assert.Empty(xero.Puts);
     }
 
+    [Fact]
+    public async Task A_file_is_attached_in_xero_and_shown_online_only_when_asked()
+    {
+        var xero = new FakeXero();
+        var corrections = Make(xero);
+        var stored = await corrections.AttachAsync(Approved(), "Timesheet October.pdf", [1, 2, 3], online: true, Cancel);
+        Assert.Equal(("Invoices/inv1/Attachments/Timesheet%20October.pdf?IncludeOnline=true", "application/pdf"), xero.Attached[^1]);
+        Assert.True(Assert.Single(stored.Attachments).Online);
+
+        // The same name again replaces it here, as Xero does.
+        stored = await corrections.AttachAsync(stored, "timesheet october.pdf", [1, 2, 3, 4], online: false, Cancel);
+        Assert.Equal(4, Assert.Single(stored.Attachments).Bytes);
+        Assert.Equal("Invoices/inv1/Attachments/timesheet%20october.pdf", xero.Attached[^1].Path);
+
+        var quote = Approved() with { Document = Approved().Document with { Kind = DocumentKind.Quote } };
+        var onQuote = await corrections.AttachAsync(quote, "Proposal.docx", [1], online: true, Cancel);
+        Assert.StartsWith("Quotes/inv1/Attachments/Proposal.docx", xero.Attached[^1].Path, StringComparison.Ordinal);
+        Assert.DoesNotContain("IncludeOnline", xero.Attached[^1].Path, StringComparison.Ordinal);
+        Assert.False(onQuote.Attachments[0].Online);
+    }
+
+    [Fact]
+    public async Task Only_files_xero_takes_are_attached_and_only_once_its_in_xero()
+    {
+        Assert.Contains("empty", DocumentAttachments.Check("a.pdf", 0), StringComparison.Ordinal);
+        Assert.Contains("25 MB", DocumentAttachments.Check("a.pdf", DocumentAttachments.MaxBytes + 1), StringComparison.Ordinal);
+        Assert.Null(DocumentAttachments.Check("a.pdf", 10));
+        Assert.Equal("image/jpeg", DocumentAttachments.MediaType("photo.JPG"));
+        Assert.False(DocumentAttachments.CanAttach(Approved() with { Xero = new() }));
+        var xero = new FakeXero();
+        await Assert.ThrowsAsync<XeroException>(() => Make(xero).AttachAsync(Approved() with { Xero = new() }, "a.pdf", [1], false, Cancel));
+        Assert.Empty(xero.Attached);
+    }
+
     private static XeroCorrections Make(FakeXero xero)
     {
         var tokens = new MemoryTokenStore();
@@ -185,18 +219,24 @@ public sealed class XeroCorrectionsTests
         public bool DropPayment { get; init; }
         public List<(string Path, JsonObject Body)> Posts { get; } = [];
         public List<(string Path, string Key, JsonObject Body)> Puts { get; } = [];
+        public List<(string Path, string MediaType)> Attached { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancel)
         {
             var uri = request.RequestUri!;
             if (uri.Host == "identity.xero.com")
                 return Json("""{"access_token":"a","refresh_token":"r","expires_in":1800}""");
-            var path = uri.PathAndQuery["/api.xro/2.0/".Length..];
+            var path = uri.AbsolutePath["/api.xro/2.0/".Length..];
             if (request.Method == HttpMethod.Post)
             {
                 var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancel))!.AsObject();
                 Posts.Add((path, body));
                 Status = body[nameof(Status)]!.GetValue<string>();
+                return Json("{}");
+            }
+            if (request.Method == HttpMethod.Put && path.Contains("/Attachments/", StringComparison.Ordinal))
+            {
+                Attached.Add((uri.PathAndQuery["/api.xro/2.0/".Length..], request.Content!.Headers.ContentType!.MediaType!));
                 return Json("{}");
             }
             if (request.Method == HttpMethod.Put)

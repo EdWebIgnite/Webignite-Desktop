@@ -192,6 +192,13 @@
             </StackPanel>
           </StackPanel>
         </Border>
+        <ItemsControl ItemsSource="{Binding AttachmentsText}" IsVisible="{Binding HasAttachments}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding}" Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
         <ItemsControl ItemsSource="{Binding CreditNotesText}" IsVisible="{Binding HasCreditNotes}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="x:String">
@@ -290,6 +297,12 @@
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Change this draft" Command="{Binding ChangeDraftCommand}" IsVisible="{Binding CanChangeDraft}"
                   ToolTip.Tip="Unlocks it to change here. Update draft in Xero then puts the change in Xero." />
+          <StackPanel Spacing="4" IsVisible="{Binding CanAttach}">
+            <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Content="Attach a file in Xero" Click="PickAttachment"
+                    ToolTip.Tip="Attaches a file, such as a timesheet or signed proposal, to this one in Xero." />
+            <CheckBox Content="Show it on the online invoice" IsChecked="{Binding AttachOnline}" IsVisible="{Binding !IsQuote}" FontSize="12" />
+          </StackPanel>
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Open in Xero" Command="{Binding OpenInXeroCommand}" IsVisible="{Binding HasXeroLink}" />
         </StackPanel>
