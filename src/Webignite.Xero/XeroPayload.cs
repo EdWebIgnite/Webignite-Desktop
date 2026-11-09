@@ -52,8 +52,9 @@ public static class XeroPayload
         var lines = new JsonArray();
         foreach (var line in doc.Lines)
         {
+            // A line linked to a Xero item shows the item in Xero's Item column; otherwise its name heads the description.
             var description = line.Description;
-            if (!string.IsNullOrEmpty(line.Product) && !description.StartsWith(line.Product, StringComparison.Ordinal))
+            if (string.IsNullOrEmpty(line.ItemCode) && !string.IsNullOrEmpty(line.Product) && !description.StartsWith(line.Product, StringComparison.Ordinal))
                 description = line.Product + "\n" + description;
 
             var item = new JsonObject { ["Description"] = description };
@@ -76,9 +77,7 @@ public static class XeroPayload
         var discount = doc.Discount();
         if (discount != 0)
         {
-            var label = "Document discount";
-            if (doc.DocumentDiscountPercent is { } percent)
-                label += $" ({percent.ToString(CultureInfo.InvariantCulture)}%)";
+            var label = DocumentDiscount.Label(doc);
             lines.Add(new JsonObject
             {
                 ["Description"] = label,

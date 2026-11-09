@@ -12,7 +12,8 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
 {
     private readonly TimeProvider clock = clock ?? TimeProvider.System;
 
-    public sealed record DraftLine(string Description, decimal? Quantity = null, decimal? UnitPrice = null);
+    /// <param name="Item">The short item name, shown in Xero's Item column, e.g. WordPress setup.</param>
+    public sealed record DraftLine(string Description, decimal? Quantity = null, decimal? UnitPrice = null, string? Item = null);
 
     public sealed record Prepared(string Id, string Kind, string Customer, string Date, string DueOrExpiry, string Total,
         IReadOnlyList<string> StillNeeded, string Message);
@@ -21,8 +22,12 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         string Status, IReadOnlyList<string> Lines);
 
     public Prepared Draft(string kind, string customer, IReadOnlyList<DraftLine> lines, DocumentSource source,
-        string? customerEmail = null, string? reference = null, string? notes = null)
+        string? customerEmail = null, string? reference = null, string? notes = null, decimal? discountPercent = null, decimal? discountAmount = null)
     {
+        if (discountPercent is not null && discountAmount is not null)
+            throw new ArgumentException("Give the discount as a percentage or an amount, not both.");
+        if (discountPercent is <= 0 or > 100 || discountAmount is <= 0)
+            throw new ArgumentException("A discount is a percentage up to 100 or an amount in Rand above nothing.");
         var parsed = kind.Trim().ToLowerInvariant() switch
         {
             "quote" => DocumentKind.Quote,
@@ -50,9 +55,12 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             Customer = new Customer { Name = client?.Name ?? name, Email = email },
             Reference = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim(),
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+            DocumentDiscountPercent = discountPercent,
+            DocumentDiscountAmount = discountAmount is { } off ? Money.Cents(off) : null,
             Lines = lines.Where(l => !string.IsNullOrWhiteSpace(l.Description))
                 .Select(l => new Line
                 {
+                    Product = string.IsNullOrWhiteSpace(l.Item) ? null : l.Item.Trim(),
                     Description = l.Description.Trim(),
                     Quantity = l.UnitPrice is null && l.Quantity is null ? null : l.Quantity ?? 1,
                     UnitPrice = l.UnitPrice,

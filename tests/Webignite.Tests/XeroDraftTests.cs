@@ -89,6 +89,49 @@ public sealed class XeroDraftTests
     }
 
     [Fact]
+    public async Task Lines_with_an_item_are_linked_to_xero_items_added_when_missing()
+    {
+        var xero = new FakeXero();
+        var (drafts, _) = Make(xero);
+        var stored = Stored();
+        var lines = stored.Document.Lines.ToList();
+        lines[0] = lines[0] with { Product = "hosting" };
+        lines.Add(lines[0] with { Product = "WordPress Setup & Configuration for the new site", Description = "Installation and theme setup" });
+        stored = stored with { Document = Samples.Completed(stored.Document with { Lines = lines, Number = "WEB-2026-014", Subtotal = null, Total = null }) };
+
+        var result = await drafts.CreateAsync(stored, new XeroTarget("200"), cancel: TestContext.Current.CancellationToken);
+
+        var done = Assert.IsType<XeroDrafts.Result.Done>(result is XeroDrafts.Result.Stopped s ? throw new Xunit.Sdk.XunitException(s.Reason) : result);
+        var item = Assert.Single(xero.Puts, p => p.Path == "Items");
+        Assert.Equal("WordPress Setup", item.Body["Items"]![0]!["Code"]!.GetValue<string>());
+        Assert.Equal("WordPress Setup & Configuration for the new site", item.Body["Items"]![0]!["Name"]!.GetValue<string>());
+        var sent = xero.Puts.Single(p => p.Path.StartsWith("Invoices", StringComparison.Ordinal)).Body["Invoices"]![0]!;
+        Assert.Equal("HOSTING", sent["LineItems"]![0]!["ItemCode"]!.GetValue<string>());
+        Assert.Equal(item.Body["Items"]![0]!["Code"]!.GetValue<string>(), sent["LineItems"]![1]!["ItemCode"]!.GetValue<string>());
+        Assert.Equal("Website hosting, November", sent["LineItems"]![0]!["Description"]!.GetValue<string>()); // no item name stuck on top
+        Assert.Equal("WEB-2026-014", sent["InvoiceNumber"]!.GetValue<string>());
+        Assert.Equal("HOSTING", done.Stored.Document.Lines[0].ItemCode); // kept, so it isn't looked up again
+        Assert.Equal("WEB-2026-014", done.Stored.Xero.Number);
+    }
+
+    [Fact]
+    public async Task When_xero_wont_add_items_it_says_to_connect_again()
+    {
+        var xero = new FakeXero { RefuseItems = true };
+        var (drafts, _) = Make(xero);
+        var stored = Stored();
+        var lines = stored.Document.Lines.ToList();
+        lines[0] = lines[0] with { Product = "Brand new item" };
+        stored = stored with { Document = stored.Document with { Lines = lines } };
+
+        var result = await drafts.CreateAsync(stored, new XeroTarget("200"), cancel: TestContext.Current.CancellationToken);
+
+        var stopped = Assert.IsType<XeroDrafts.Result.Stopped>(result);
+        Assert.Contains("connect Xero again", stopped.Reason, StringComparison.Ordinal);
+        Assert.DoesNotContain(xero.Puts, p => p.Path.StartsWith("Invoices", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_new_customer_needs_a_yes_before_a_contact_is_made()
     {
         var xero = new FakeXero();
@@ -156,6 +199,8 @@ public sealed class XeroDraftTests
     {
         public List<(string Path, string Key, JsonObject Body)> Puts { get; } = [];
         public bool DropFirstWrite { get; init; }
+        public bool RefuseItems { get; init; }
+        public List<JsonObject> SavedItems { get; } = [JsonNode.Parse("""{"Code":"HOSTING","Name":"Hosting"}""")!.AsObject()];
         private readonly List<JsonObject> invoices = [];
         private readonly List<JsonObject> contacts = [JsonNode.Parse("""{"ContactID":"k1","Name":"Karoo Coffee Roasters","EmailAddress":"accounts@karoocoffee.co.za","ContactStatus":"ACTIVE"}""")!.AsObject()];
 
@@ -171,6 +216,13 @@ public sealed class XeroDraftTests
             {
                 var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancel))!.AsObject();
                 Puts.Add((path, request.Headers.GetValues("Idempotency-Key").Single(), body));
+                if (path == "Items")
+                {
+                    if (RefuseItems)
+                        return new HttpResponseMessage(HttpStatusCode.Forbidden) { Content = new StringContent("""{"Title":"Forbidden","Detail":"AuthorizationUnsuccessful"}""") };
+                    SavedItems.Add(body["Items"]![0]!.AsObject().DeepClone().AsObject());
+                    return Json(body.ToJsonString());
+                }
                 if (path == "Contacts")
                 {
                     var c = body["Contacts"]![0]!.AsObject().DeepClone().AsObject();
@@ -181,7 +233,7 @@ public sealed class XeroDraftTests
                 }
                 var inv = body["Invoices"]![0]!.AsObject().DeepClone().AsObject();
                 inv["InvoiceID"] = "inv" + (invoices.Count + 1);
-                inv["InvoiceNumber"] = "INV-" + (111 + invoices.Count).ToString("0000", System.Globalization.CultureInfo.InvariantCulture);
+                inv["InvoiceNumber"] ??= "INV-" + (111 + invoices.Count).ToString("0000", System.Globalization.CultureInfo.InvariantCulture);
                 inv["DateString"] = inv["Date"]!.GetValue<string>() + "T00:00:00";
                 decimal total = 0;
                 foreach (var line in inv["LineItems"]!.AsArray().OfType<JsonObject>())
@@ -199,6 +251,8 @@ public sealed class XeroDraftTests
                 return Json(new JsonObject { ["Invoices"] = new JsonArray(inv.DeepClone()) }.ToJsonString());
             }
 
+            if (path == "Items")
+                return Json(new JsonObject { ["Items"] = new JsonArray([.. SavedItems.Select(i => i.DeepClone())]) }.ToJsonString());
             if (path.StartsWith("Contacts?page=1", StringComparison.Ordinal))
                 return Json(new JsonObject { ["Contacts"] = new JsonArray([.. contacts.Select(c => c.DeepClone())]) }.ToJsonString());
             if (path.StartsWith("Invoices?page=1", StringComparison.Ordinal))

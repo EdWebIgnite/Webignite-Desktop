@@ -234,6 +234,23 @@ invoice.Lines[1].Price = "R650";
 invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
 invoice.SaveCommand.Execute(null);
 Save("invoice-editor");
+// Items for Xero's Item column, a number of our own and a discount on the whole invoice.
+invoice.Lines[0].Item = "Hosting";
+invoice.Lines[1].Item = "Content updates";
+invoice.NumberText = "WEB-2026-014";
+invoice.DiscountText = "10%";
+Dispatcher.UIThread.RunJobs();
+Check("Items, a number and a 10% discount go on the document, and the total takes the discount off",
+    invoice.Build() is { Number: "WEB-2026-014", DocumentDiscountPercent: 10m } built && built.Lines[0].Product == "Hosting"
+    && invoice.HasDiscount && invoice.DiscountLabel == "Discount (10%)" && built.Total == Money.Cents((450m + 3.5m * 650m) * 0.9m));
+invoice.DiscountText = "lots";
+Dispatcher.UIThread.RunJobs();
+Check("A discount that makes no sense says so", invoice.Problems.Any(p => p.Contains("10%", StringComparison.Ordinal)));
+invoice.DiscountText = "R 200";
+Dispatcher.UIThread.RunJobs();
+Save("invoice-items-discount");
+invoice.Lines[0].Item = invoice.Lines[1].Item = invoice.NumberText = invoice.DiscountText = "";
+invoice.SaveCommand.Execute(null);
 
 // The Xero part of the editor: a customer Xero doesn't know, a broken write, and a checked draft.
 invoice.ContactQuestion = "Karoo Coffee Roasters isn't in Xero yet. Add them as a new contact, or search in case they are there under another name.";

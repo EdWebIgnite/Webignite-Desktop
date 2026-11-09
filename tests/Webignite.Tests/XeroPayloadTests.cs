@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Webignite.Core.Xero;
 using Webignite.Xero;
 
 namespace Webignite.Tests;
@@ -118,5 +119,56 @@ public class XeroPayloadTests
         var themed = XeroPayload.Build(Invoice(), "contact-1", "200", "NONE", brandingThemeId: "theme-payfast");
         Assert.Equal("theme-payfast", themed["BrandingThemeID"]!.GetValue<string>());
         Assert.False(XeroPayload.Build(Invoice(), "contact-1", "200", "NONE").ContainsKey("BrandingThemeID"));
+    }
+
+    [Fact]
+    public void A_line_linked_to_an_item_keeps_its_description_and_the_discount_line_says_what_it_is()
+    {
+        var doc = Invoice() with { DocumentDiscountAmount = null, DocumentDiscountPercent = 10m };
+        var lines = doc.Lines.ToList();
+        lines[0] = lines[0] with { Product = "Hosting", ItemCode = "HOSTING" };
+        lines[1] = lines[1] with { Product = "Extra" };
+        var p = XeroPayload.Build(doc with { Lines = lines }, "contact-1", "200", "NONE", "WEB-001");
+        var items = p["LineItems"]!.AsArray();
+        Assert.Equal(lines[0].Description, (string?)items[0]!["Description"]);
+        Assert.StartsWith("Extra\n", (string?)items[1]!["Description"], StringComparison.Ordinal);
+        Assert.Contains(items, l => (string?)l!["Description"] == "Discount (10%)");
+        Assert.Equal("WEB-001", (string?)p["InvoiceNumber"]);
+    }
+
+    [Theory]
+    [InlineData("10%", 10.0, null)]
+    [InlineData("12.5 %", 12.5, null)]
+    [InlineData("R 1 000", null, 1000.0)]
+    [InlineData("1500.50", null, 1500.5)]
+    [InlineData("", null, null)]
+    public void A_typed_discount_is_read_as_a_percentage_or_rand(string typed, double? percent, double? amount)
+    {
+        var read = DocumentDiscount.Read(typed);
+        Assert.Null(read.Problem);
+        Assert.Equal(percent is null ? null : (decimal)percent, read.Percent);
+        Assert.Equal(amount is null ? null : (decimal)amount, read.Amount);
+    }
+
+    [Theory]
+    [InlineData("150%")]
+    [InlineData("0%")]
+    [InlineData("lots")]
+    [InlineData("-50")]
+    public void A_discount_that_makes_no_sense_says_so(string typed) => Assert.NotNull(DocumentDiscount.Read(typed).Problem);
+
+    [Fact]
+    public void Items_match_by_name_or_code_and_new_ones_get_a_short_unique_code()
+    {
+        XeroItem[] items = [new("HOSTING", "Hosting"), new("WordPress Setup", "Something else")];
+        Assert.Equal("HOSTING", XeroItems.Match(" hosting ", items)!.Code);
+        Assert.Equal("WordPress Setup", XeroItems.Match("wordpress setup", items)!.Code);
+        Assert.Null(XeroItems.Match("Content population", items));
+
+        Assert.Equal(new XeroItem("Content population", "Content population"), XeroItems.New("Content population", items));
+        var clash = XeroItems.New("WordPress Setup & Configuration", items);
+        Assert.Equal("WordPress Setup 2", clash.Code);
+        Assert.True(clash.Code.Length <= XeroItems.LongestCode);
+        Assert.True(XeroItems.New(new string('x', 80), items).Name.Length <= XeroItems.LongestName);
     }
 }

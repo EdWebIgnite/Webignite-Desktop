@@ -39,6 +39,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
         CustomerName = doc.Customer.Name;
         Reference = doc.Reference ?? "";
         Notes = doc.Notes ?? "";
+        NumberText = doc.Number ?? "";
+        DiscountText = DocumentDiscount.Show(doc);
         Lines.Clear();
         foreach (var line in doc.Lines)
             Lines.Add(LineRowViewModel.From(line, Recalculate));
@@ -55,6 +57,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     public string NumberNote =>
         stored?.Xero.Number is not null ? "Created in Xero. Changes are made in Xero from here on."
         : stored is { Status: DocumentStatus.AwaitingApproval } ? $"{(stored.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude")} prepared this. Check it, change anything, then create it in Xero."
+        : NumberText.Trim().Length > 0 ? $"It goes into Xero as {NumberText.Trim()}."
         : "Xero gives it the next number when it is created.";
 
     public ObservableCollection<LineRowViewModel> Lines { get; } = [];
@@ -68,6 +71,33 @@ public partial class DocumentEditorViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string Notes { get; set; } = "";
+
+    /// <summary>The number it goes into Xero with; empty lets Xero give the next one.</summary>
+    [ObservableProperty]
+    public partial string NumberText { get; set; } = "";
+
+    /// <summary>The discount on the whole document as typed: "10%" or an amount in Rand.</summary>
+    [ObservableProperty]
+    public partial string DiscountText { get; set; } = "";
+
+    /// <summary>The discount taken off, as Rand, for the totals; empty when there's none.</summary>
+    [ObservableProperty]
+    public partial string DiscountShown { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string DiscountLabel { get; set; } = "Discount";
+
+    public bool HasDiscount => DiscountShown.Length > 0;
+
+    partial void OnDiscountShownChanged(string value) => OnPropertyChanged(nameof(HasDiscount));
+
+    partial void OnNumberTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(NumberNote));
+        Recalculate();
+    }
+
+    partial void OnDiscountTextChanged(string value) => Recalculate();
 
     [ObservableProperty]
     public partial string Subtotal { get; set; } = "";
@@ -200,18 +230,25 @@ public partial class DocumentEditorViewModel : ViewModelBase
 
     private bool HasContent => !string.IsNullOrWhiteSpace(CustomerName) || Lines.Any(row => !row.IsBlank) || stored is not null;
 
-    public Document Build() => DocumentDefaults.Complete(new Document
+    public Document Build()
     {
-        Kind = Kind,
-        Origin = stored?.Document.Origin ?? DocumentOrigin.New,
-        // Keep the email and address an assistant or import supplied; only the name is edited here.
-        Customer = (stored?.Document.Customer ?? new Customer { Name = "" }) with { Name = CustomerName.Trim() },
-        Reference = string.IsNullOrWhiteSpace(Reference) ? null : Reference.Trim(),
-        Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
-        Date = stored?.Document.Date,
-        DueOrExpiryDate = stored?.Document.DueOrExpiryDate,
-        Lines = Lines.Select(row => row.ToLine()).OfType<Line>().ToList(),
-    }, documentSettings, DateOnly.FromDateTime(DateTime.Today));
+        var discount = DocumentDiscount.Read(DiscountText);
+        return DocumentDefaults.Complete(new Document
+        {
+            Kind = Kind,
+            Number = string.IsNullOrWhiteSpace(NumberText) ? null : NumberText.Trim(),
+            DocumentDiscountPercent = discount.Percent,
+            DocumentDiscountAmount = discount.Amount,
+            Origin = stored?.Document.Origin ?? DocumentOrigin.New,
+            // Keep the email and address an assistant or import supplied; only the name is edited here.
+            Customer = (stored?.Document.Customer ?? new Customer { Name = "" }) with { Name = CustomerName.Trim() },
+            Reference = string.IsNullOrWhiteSpace(Reference) ? null : Reference.Trim(),
+            Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
+            Date = stored?.Document.Date,
+            DueOrExpiryDate = stored?.Document.DueOrExpiryDate,
+            Lines = Lines.Select(row => row.ToLine()).OfType<Line>().ToList(),
+        }, documentSettings, DateOnly.FromDateTime(DateTime.Today));
+    }
 
     private LineRowViewModel NewRow() => new(Recalculate);
 
@@ -222,6 +259,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
         changed = true;
         var doc = Build();
         Subtotal = Money.Rand(doc.Subtotal ?? 0);
+        DiscountShown = doc.Discount() is > 0 and var off ? "− " + Money.Rand(off) : "";
+        DiscountLabel = DocumentDiscount.Label(doc);
         Total = Money.Rand(doc.Total ?? 0);
         DateText = doc.Date?.ToString("d MMM yyyy") ?? "";
         DueText = doc.DueOrExpiryDate?.ToString("d MMM yyyy") ?? "";
@@ -229,6 +268,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(CanCopy));
         Problems.Clear();
+        if (DocumentDiscount.Read(DiscountText).Problem is { } discountProblem)
+            Problems.Add(discountProblem);
         foreach (var problem in DocumentValidator.Validate(doc))
             Problems.Add(problem);
         IsReady = Problems.Count == 0;

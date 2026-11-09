@@ -63,8 +63,24 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
                 return new Result.Stopped(stored, duplicate);
         }
 
+        // Lines with an item name are linked to that item in Xero's Products and Services (added there by name
+        // when it isn't yet), so Xero's Item column shows it. Kept on the document, so it isn't looked up again.
+        if (doc.Lines.Any(l => !string.IsNullOrWhiteSpace(l.Product) && string.IsNullOrEmpty(l.ItemCode)))
+        {
+            try
+            {
+                doc = await WithItemsAsync(doc, stored.Id, cancel);
+            }
+            catch (XeroException e)
+            {
+                return new Result.Stopped(stored, "Xero didn't let Webignite add the items to Products and Services. If Xero was connected "
+                    + "before items were added, disconnect and connect Xero again in Settings, so it may manage items, then try again. (" + e.Message + ")");
+            }
+            stored = save(stored with { Document = doc });
+        }
+
         // From here on, every step is saved before the next, so a crash or a dropped line leaves a clear trail.
-        var payload = XeroPayload.Build(doc, contact?.Id ?? "", target.AccountCode, target.TaxType, brandingThemeId: target.BrandingThemeId);
+        var payload = XeroPayload.Build(doc, contact?.Id ?? "", target.AccountCode, target.TaxType, doc.Number, target.BrandingThemeId);
         stored = save(stored with { Xero = stored.Xero with { State = XeroWriteState.Writing, ContactId = contact?.Id, Sent = payload.ToJsonString(), Problems = [] } });
 
         try
@@ -124,6 +140,31 @@ public sealed class XeroDrafts(XeroApi api, Func<StoredDocument, StoredDocument>
             stored = save(stored with { Xero = stored.Xero with { Id = ours.Id, Number = ours.Number, State = XeroWriteState.CreatedUnverified } });
         }
         return await VerifyAsync(stored, cancel);
+    }
+
+    private async Task<Document> WithItemsAsync(Document doc, string documentId, CancellationToken cancel)
+    {
+        var items = (await api.ItemsAsync(cancel)).ToList();
+        var lines = new List<Line>();
+        foreach (var line in doc.Lines)
+        {
+            if (string.IsNullOrWhiteSpace(line.Product) || !string.IsNullOrEmpty(line.ItemCode))
+            {
+                lines.Add(line);
+                continue;
+            }
+            if (XeroItems.Match(line.Product, items) is not { } item)
+            {
+                item = XeroItems.New(line.Product, items);
+                await api.PutAsync("Items", new JsonObject
+                {
+                    ["Items"] = new JsonArray(new JsonObject { ["Code"] = item.Code, ["Name"] = item.Name, ["IsSold"] = true, ["IsPurchased"] = false }),
+                }, $"{documentId}-item-{item.Code}", cancel);
+                items.Add(item);
+            }
+            lines.Add(line with { ItemCode = item.Code });
+        }
+        return doc with { Lines = lines };
     }
 
     /// <summary>After a person has checked Xero and found nothing, the document can be sent again.</summary>

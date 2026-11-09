@@ -27,20 +27,25 @@
 
     <!-- Customer and dates -->
     <Border Classes="card" IsEnabled="{Binding IsEditable}">
-      <Grid ColumnDefinitions="2*,16,*,16,*,16,*" RowDefinitions="Auto,Auto">
+      <Grid ColumnDefinitions="2*,16,*,16,*,16,*,16,*" RowDefinitions="Auto,Auto">
         <StackPanel Grid.Column="0">
           <TextBlock Classes="label" Text="Customer" />
           <TextBox Text="{Binding CustomerName}" PlaceholderText="Who is this for?" />
         </StackPanel>
         <StackPanel Grid.Column="2">
+          <TextBlock Classes="label" Text="Number" />
+          <TextBox Text="{Binding NumberText}" PlaceholderText="Xero's next" MaxLength="255"
+                   ToolTip.Tip="Leave empty and Xero gives it the next number, or type your own, e.g. WEB-2026-014" />
+        </StackPanel>
+        <StackPanel Grid.Column="4">
           <TextBlock Classes="label" Text="Reference" />
           <TextBox Text="{Binding Reference}" PlaceholderText="Optional" />
         </StackPanel>
-        <StackPanel Grid.Column="4">
+        <StackPanel Grid.Column="6">
           <TextBlock Classes="label" Text="Date" />
           <TextBlock Text="{Binding DateText}" Margin="0,7,0,0" />
         </StackPanel>
-        <StackPanel Grid.Column="6">
+        <StackPanel Grid.Column="8">
           <TextBlock Classes="label" Text="{Binding DueLabel}" />
           <TextBlock Text="{Binding DueText}" Margin="0,7,0,0" />
         </StackPanel>
@@ -162,6 +167,13 @@
             <TextBlock Classes="muted" Text="Subtotal" />
             <TextBlock Classes="amount" Text="{Binding Subtotal}" />
           </DockPanel>
+          <DockPanel IsEnabled="{Binding IsEditable}">
+            <TextBlock Classes="muted" Text="Discount" VerticalAlignment="Center" />
+            <TextBox Text="{Binding DiscountText}" PlaceholderText="10% or R" Width="110" HorizontalAlignment="Right" HorizontalContentAlignment="Right"
+                     ToolTip.Tip="A discount on the whole quote or invoice: type 10% or an amount in Rand. It shows as a discount line before the total." />
+          </DockPanel>
+          <TextBlock Classes="amount muted" Text="{Binding DiscountShown}" IsVisible="{Binding HasDiscount}" HorizontalAlignment="Right" Margin="0,-6,0,0"
+                     ToolTip.Tip="{Binding DiscountLabel}" />
           <DockPanel>
             <TextBlock Classes="muted" Text="VAT" />
             <TextBlock Classes="amount muted" Text="Not registered" />

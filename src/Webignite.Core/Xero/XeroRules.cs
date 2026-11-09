@@ -55,6 +55,48 @@ public sealed record XeroBrandingTheme(string Id, string Name)
     public override string ToString() => Name;
 }
 
+/// <summary>An item in Xero's Products and Services: what fills the Item column on quotes and invoices.</summary>
+public sealed record XeroItem(string Code, string Name);
+
+/// <summary>Matching a line's item name to Xero's Products and Services, and naming new ones.</summary>
+public static class XeroItems
+{
+    public const int LongestCode = 30;
+    public const int LongestName = 50;
+
+    /// <summary>The Xero item a line's item name means: one with that name or that code, any case.</summary>
+    public static XeroItem? Match(string itemName, IEnumerable<XeroItem> items)
+    {
+        var name = itemName.Trim();
+        return items.FirstOrDefault(i => string.Equals(i.Name.Trim(), name, StringComparison.OrdinalIgnoreCase))
+            ?? items.FirstOrDefault(i => string.Equals(i.Code.Trim(), name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// A new item for a line's item name: the name itself as its code when it fits Xero's 30 letters, else cut at a
+    /// word, and a number after it when another item already has that code.
+    /// </summary>
+    public static XeroItem New(string itemName, IEnumerable<XeroItem> existing)
+    {
+        var name = itemName.Trim();
+        var code = name.Length <= LongestCode ? name : Cut(name, LongestCode);
+        var taken = existing.Select(i => i.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var unique = code;
+        for (var n = 2; taken.Contains(unique); n++)
+            unique = Cut(code, LongestCode - n.ToString(System.Globalization.CultureInfo.InvariantCulture).Length - 1) + " " + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return new XeroItem(unique, name.Length <= LongestName ? name : Cut(name, LongestName));
+    }
+
+    private static string Cut(string text, int most)
+    {
+        if (text.Length <= most)
+            return text;
+        var cut = text[..most];
+        var space = cut.LastIndexOf(' ');
+        return (space > most / 2 ? cut[..space] : cut).TrimEnd(' ', '&', '-', ',');
+    }
+}
+
 /// <summary>A Xero account sales can be coded to, e.g. 200 Sales.</summary>
 public sealed record XeroSalesAccount(string Code, string Name)
 {
