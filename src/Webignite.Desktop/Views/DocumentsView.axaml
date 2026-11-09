@@ -17,9 +17,13 @@
             <TextBlock Text="{Binding NewLabel}" />
           </StackPanel>
         </Button>
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="Bring in from Xero" Command="{Binding BringInFromXeroCommand}"
+                IsEnabled="{Binding !BringingIn}" VerticalAlignment="Center" Margin="0,0,8,0"
+                ToolTip.Tip="Quotes and invoices made in Xero itself come in every few hours. This reads Xero now." />
         <StackPanel Spacing="4">
           <TextBlock Classes="h1" Text="{Binding Title}" />
           <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding HasAny}" />
+          <TextBlock Classes="muted" FontSize="12" Text="{Binding XeroMessage}" IsVisible="{Binding HasXeroMessage}" />
         </StackPanel>
       </DockPanel>
 

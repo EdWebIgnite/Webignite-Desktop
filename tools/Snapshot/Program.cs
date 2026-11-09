@@ -188,6 +188,10 @@ Save("empty-domains");
 
 Open(Page.Invoices);
 Save("invoices");
+Wait(vm.Invoices.BringInFromXeroCommand.ExecuteAsync(null), "Bringing quotes and invoices in from Xero by hand");
+Check("Bringing invoices in without Xero says to connect it", vm.Invoices.XeroMessage == "Connect Xero in Settings first.");
+Save("invoices-bring-in-from-xero");
+vm.Invoices.XeroMessage = "";
 vm.Invoices.Search = "karoo";
 vm.Invoices.Show = DocumentShow.NotInXero;
 Save("invoices-filtered");

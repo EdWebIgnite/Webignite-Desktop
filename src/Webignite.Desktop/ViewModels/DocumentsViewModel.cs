@@ -141,6 +141,35 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
     [RelayCommand]
     private void New() => Editor = new DocumentEditorViewModel(Kind, services, Close);
 
+    /// <summary>What bringing in from Xero by hand found, under the heading.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasXeroMessage))]
+    public partial string XeroMessage { get; set; } = "";
+
+    public bool HasXeroMessage => XeroMessage.Length > 0;
+
+    [ObservableProperty] public partial bool BringingIn { get; private set; }
+
+    /// <summary>Reads Xero now for quotes and invoices made there, rather than waiting for the next look.</summary>
+    [RelayCommand]
+    private async Task BringInFromXero()
+    {
+        if (BringingIn)
+            return;
+        BringingIn = true;
+        XeroMessage = "Reading Xero…";
+        try
+        {
+            var news = await services.Work.Run("Bringing in quotes and invoices from Xero", () => services.XeroDocuments.RunAsync());
+            XeroMessage = news.Problem ?? news.Summary;
+            Refresh();
+        }
+        finally
+        {
+            BringingIn = false;
+        }
+    }
+
     [RelayCommand]
     private void Open(DocumentRow row) => Editor = new DocumentEditorViewModel(row.Stored, services, Close);
 

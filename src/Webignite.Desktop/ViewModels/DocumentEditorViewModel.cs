@@ -55,7 +55,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
     public string Title => stored?.Xero.Number ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
     public string DueLabel => Kind == DocumentKind.Quote ? "Expires" : "Due";
     public string NumberNote =>
-        stored?.Xero.Number is not null ? "Created in Xero. Changes are made in Xero from here on."
+        stored?.Document.Origin == DocumentOrigin.Xero ? "Made in Xero and brought in here. Change it in Xero; it updates here every few hours."
+        : stored?.Xero.Number is not null ? "Created in Xero. Changes are made in Xero from here on."
         : stored is { Status: DocumentStatus.AwaitingApproval } ? $"{(stored.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude")} prepared this. Check it, change anything, then create it in Xero."
         : NumberText.Trim().Length > 0 ? $"It goes into Xero as {NumberText.Trim()}."
         : "Xero gives it the next number when it is created.";
