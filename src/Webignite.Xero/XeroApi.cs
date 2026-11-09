@@ -130,6 +130,14 @@ public sealed class XeroApi(XeroSession session, HttpClient http, string tenantI
             .Select(a => new XeroSalesAccount(Str(a["Code"]), Str(a["Name"])))
             .ToList();
 
+    /// <summary>The active bank accounts, for recording payments into.</summary>
+    public async Task<IReadOnlyList<XeroBankAccount>> BankAccountsAsync(CancellationToken cancel = default) =>
+        ((await GetAsync("Accounts?where=" + Uri.EscapeDataString("Type==\"BANK\""), cancel))["Accounts"] as JsonArray ?? []).OfType<JsonObject>()
+            .Where(a => Str(a["Type"]) == "BANK" && Str(a["Status"]) is "" or "ACTIVE")
+            .Select(a => new XeroBankAccount(Str(a["AccountID"]), Str(a["Name"])))
+            .Where(a => a.Id.Length > 0)
+            .ToList();
+
     /// <summary>The items in Xero's Products and Services, for linking quote and invoice lines to them.</summary>
     public async Task<IReadOnlyList<XeroItem>> ItemsAsync(CancellationToken cancel = default) =>
         ((await GetAsync("Items", cancel))["Items"] as JsonArray ?? []).OfType<JsonObject>()

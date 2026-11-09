@@ -4,6 +4,7 @@
              xmlns:v="using:Webignite.Desktop.Views"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:xero="using:Webignite.Core.Xero"
+             xmlns:sys="using:System"
              x:Class="Webignite.Desktop.Views.DocumentEditorView"
              x:DataType="vm:DocumentEditorViewModel"
              x:Name="Root">
@@ -155,6 +156,28 @@
             </StackPanel>
           </StackPanel>
         </Border>
+        <Border Classes="pending" IsVisible="{Binding RecordingPayment}">
+          <StackPanel Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="Record a payment in Xero" />
+            <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="12" Text="{Binding PaymentHint}" />
+            <Grid ColumnDefinitions="140,12,170,12,*">
+              <TextBox Text="{Binding PaymentAmountText}" Watermark="Amount (R)" />
+              <CalendarDatePicker Grid.Column="2" SelectedDate="{Binding PaymentDay}" DisplayDateEnd="{x:Static sys:DateTime.Today}" HorizontalAlignment="Stretch" />
+              <ComboBox Grid.Column="4" ItemsSource="{Binding BankAccounts}" SelectedItem="{Binding PaymentAccount}"
+                        PlaceholderText="Bank account it went into" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="xero:XeroBankAccount">
+                    <TextBlock Text="{Binding Name}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="primary" Content="Record payment" Command="{Binding RecordPaymentCommand}" />
+              <Button Classes="quiet" Content="Cancel" Command="{Binding CancelPaymentCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
         <Border Classes="pending" IsVisible="{Binding Crediting}">
           <StackPanel Spacing="8">
             <TextBlock FontWeight="SemiBold" Text="Draft a credit note in Xero" />
@@ -256,6 +279,9 @@
                     Content="Client declined" Command="{Binding DeclineQuoteCommand}"
                     ToolTip.Tip="Marks the quote declined in Xero, so it isn't followed up." />
           </Grid>
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Record a payment" Command="{Binding StartPaymentCommand}" IsVisible="{Binding CanRecordPayment}"
+                  ToolTip.Tip="Records money the client paid against this invoice in Xero." />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Draft a credit note" Command="{Binding StartCreditCommand}" IsVisible="{Binding CanCredit}"
                   ToolTip.Tip="A credit note against this invoice, as a draft in Xero for you to approve and allocate there." />

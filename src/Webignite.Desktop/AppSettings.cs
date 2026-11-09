@@ -25,6 +25,9 @@ public sealed record XeroSettings
     /// <summary>The branding theme quotes and invoices use (its look and payment services, e.g. Payfast); null for Xero's default.</summary>
     public string? BrandingThemeId { get; init; }
     public string? BrandingThemeName { get; init; }
+
+    /// <summary>The bank account payments were last recorded into, picked again next time.</summary>
+    public string? PaymentAccountId { get; init; }
 }
 
 /// <summary>

@@ -338,6 +338,13 @@ vm.Invoices.Editor = null;
     fixer.StartVoidCommand.Execute(null);
     Check("Voiding asks first", fixer.ConfirmingVoid);
     Save("invoice-void-confirm");
+    fixer.CancelVoidCommand.Execute(null);
+    Check("An approved invoice with money owed offers Record a payment", fixer.CanRecordPayment);
+    Wait(fixer.StartPaymentCommand.ExecuteAsync(null), "Opening Record a payment");
+    fixer.BankAccounts.Add(new Webignite.Core.Xero.XeroBankAccount("b1", "FNB Business Cheque"));
+    fixer.PaymentAccount = fixer.BankAccounts[0];
+    fixer.PaymentAmountText = "1500.00";
+    Save("invoice-record-payment");
     vm.Invoices.Editor = null;
     store.Save(store.Get(verified.Id)! with { Xero = verified.Xero, Delivery = verified.Delivery, CreditNotes = [] });
 }

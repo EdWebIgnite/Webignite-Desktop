@@ -114,6 +114,60 @@ public sealed class XeroCorrectionsTests
         Assert.Equal("INV-0111", sent["Reference"]!.GetValue<string>());
     }
 
+    [Fact]
+    public void A_payment_is_checked_before_it_goes_to_xero()
+    {
+        var today = new DateOnly(2026, 11, 9);
+        var stored = Approved();
+        Assert.True(InvoicePayments.CanRecord(stored));
+        Assert.Equal(450m, InvoicePayments.Due(stored));
+        Assert.Null(InvoicePayments.Check(stored, 450m, today, "bank1", today));
+        Assert.NotNull(InvoicePayments.Check(stored, null, today, "bank1", today));
+        Assert.Contains("more than", InvoicePayments.Check(stored, 451m, today, "bank1", today), StringComparison.Ordinal);
+        Assert.Contains("future", InvoicePayments.Check(stored, 100m, today.AddDays(1), "bank1", today), StringComparison.Ordinal);
+        Assert.Contains("bank account", InvoicePayments.Check(stored, 100m, today, null, today), StringComparison.Ordinal);
+        Assert.False(InvoicePayments.CanRecord(stored with { Delivery = new(), Xero = stored.Xero with { Status = "DRAFT" } }));
+        Assert.False(InvoicePayments.CanRecord(stored with { Settled = new SettledState { On = DateTimeOffset.UtcNow, As = Settlement.Paid } }));
+    }
+
+    [Fact]
+    public async Task A_part_payment_and_then_the_rest_are_recorded_and_it_ends_paid()
+    {
+        var xero = new FakeXero();
+        var corrections = Make(xero);
+        var day = new DateOnly(2026, 11, 5);
+
+        var part = await corrections.RecordPaymentAsync(Approved(), 150m, day, "bank1", Cancel);
+        var sent = xero.Puts[^1].Body["Payments"]![0]!;
+        Assert.Equal(("inv1", "bank1", "2026-11-05", 150m),
+            (sent["Invoice"]!["InvoiceID"]!.GetValue<string>(), sent["Account"]!["AccountID"]!.GetValue<string>(), sent["Date"]!.GetValue<string>(), sent["Amount"]!.GetValue<decimal>()));
+        Assert.Equal(300m, part.Xero.AmountDue);
+        Assert.Null(part.Settled);
+
+        var paid = await corrections.RecordPaymentAsync(part, 300m, day, "bank1", Cancel);
+        Assert.Equal(Settlement.Paid, paid.Settled?.As);
+        Assert.NotEqual(xero.Puts[0].Key, xero.Puts[1].Key);
+        Assert.False(InvoicePayments.CanRecord(paid));
+    }
+
+    [Fact]
+    public async Task A_payment_xero_got_although_the_line_dropped_counts_once()
+    {
+        var xero = new FakeXero { DropPayment = true };
+        var done = await Make(xero).RecordPaymentAsync(Approved(), 450m, new DateOnly(2026, 11, 5), "bank1", Cancel);
+        Assert.Equal(Settlement.Paid, done.Settled?.As);
+        Assert.Single(xero.Puts);
+    }
+
+    [Fact]
+    public async Task More_than_xero_says_is_owed_is_not_recorded()
+    {
+        var xero = new FakeXero { AmountPaid = 400m };
+        var e = await Assert.ThrowsAsync<XeroException>(() => Make(xero).RecordPaymentAsync(Approved(), 450m, new DateOnly(2026, 11, 5), "bank1", Cancel));
+        Assert.Contains("only " + Money.Rand(50m), e.Message, StringComparison.Ordinal);
+        Assert.Empty(xero.Puts);
+    }
+
     private static XeroCorrections Make(FakeXero xero)
     {
         var tokens = new MemoryTokenStore();
@@ -126,7 +180,9 @@ public sealed class XeroCorrectionsTests
     private sealed class FakeXero : HttpMessageHandler
     {
         public string Status { get; set; } = "AUTHORISED";
-        public decimal AmountPaid { get; init; }
+        public decimal AmountPaid { get; set; }
+        public decimal Total { get; init; } = 450m;
+        public bool DropPayment { get; init; }
         public List<(string Path, JsonObject Body)> Posts { get; } = [];
         public List<(string Path, string Key, JsonObject Body)> Puts { get; } = [];
 
@@ -147,15 +203,24 @@ public sealed class XeroCorrectionsTests
             {
                 var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancel))!.AsObject();
                 Puts.Add((path, request.Headers.GetValues("Idempotency-Key").Single(), body));
+                if (path == "Payments")
+                {
+                    AmountPaid += body["Payments"]![0]!["Amount"]!.GetValue<decimal>();
+                    if (AmountPaid >= Total)
+                        Status = "PAID";
+                    if (DropPayment)
+                        throw new HttpRequestException("connection reset");
+                    return Json(body.ToJsonString());
+                }
                 var note = body["CreditNotes"]![0]!.AsObject().DeepClone().AsObject();
                 note["CreditNoteID"] = "cn" + Puts.Count;
                 note["CreditNoteNumber"] = "CN-000" + Puts.Count;
-                note["Total"] = note["LineItems"]!.AsArray().OfType<JsonObject>()
+                note[nameof(Total)] = note["LineItems"]!.AsArray().OfType<JsonObject>()
                     .Where(l => l["Quantity"] is not null).Sum(l => l["Quantity"]!.GetValue<decimal>() * l["UnitAmount"]!.GetValue<decimal>());
                 return Json(new JsonObject { ["CreditNotes"] = new JsonArray(note) }.ToJsonString());
             }
             return path.StartsWith("Invoices/inv1", StringComparison.Ordinal)
-                ? Json($$$"""{"Invoices":[{"InvoiceID":"inv1","InvoiceNumber":"INV-0111","Status":"{{{Status}}}","AmountPaid":{{{AmountPaid.ToString(System.Globalization.CultureInfo.InvariantCulture)}}},"Contact":{"ContactID":"k1"}}]}""")
+                ? Json($$$"""{"Invoices":[{"InvoiceID":"inv1","InvoiceNumber":"INV-0111","Status":"{{{Status}}}","AmountPaid":{{{AmountPaid.ToString(System.Globalization.CultureInfo.InvariantCulture)}}},"AmountDue":{{{(Total - AmountPaid).ToString(System.Globalization.CultureInfo.InvariantCulture)}}},"Contact":{"ContactID":"k1"}}]}""")
                 : new HttpResponseMessage(HttpStatusCode.NotFound);
         }
 

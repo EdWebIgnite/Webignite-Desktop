@@ -5,8 +5,8 @@ using Webignite.Core.Xero;
 namespace Webignite.Xero;
 
 /// <summary>
-/// Puts an invoice right in Xero: voids it (or deletes it while it's still a draft) and drafts credit notes against
-/// it. Voiding happens only when Eddie clicked and said yes; credit notes go in as DRAFT for him to approve and
+/// Puts an invoice right in Xero: voids it (or deletes it while it's still a draft), drafts credit notes against
+/// it and records payments. Voiding and payments happen only when Eddie clicked; credit notes go in as DRAFT for him to approve and
 /// allocate in Xero. Each change goes through <c>update</c>, applied to the document as it is stored now.
 /// </summary>
 public sealed class XeroCorrections(XeroApi api, Func<StoredDocument, Func<StoredDocument, StoredDocument>, StoredDocument> update)
@@ -77,6 +77,51 @@ public sealed class XeroCorrections(XeroApi api, Func<StoredDocument, Func<Store
             Drafted = DateTimeOffset.UtcNow,
         };
         return update(stored, s => s with { CreditNotes = [.. s.CreditNotes, link] });
+    }
+
+    /// <summary>
+    /// Records a payment against an approved invoice, only when Eddie clicked to. Xero is read first so an invoice
+    /// paid or changed meanwhile isn't paid twice, and again after, so what's owed here is what Xero now says.
+    /// </summary>
+    public async Task<StoredDocument> RecordPaymentAsync(StoredDocument stored, decimal amount, DateOnly date, string bankAccountId, CancellationToken cancel = default)
+    {
+        if (!InvoicePayments.CanRecord(stored))
+            throw new XeroException("Only an approved invoice with something still owed can have a payment recorded.");
+        var before = XeroStandings.ToStanding(await ReadAsync(stored, cancel));
+        if (before.Status != XeroStatuses.Authorised)
+        {
+            stored = update(stored, s => Receivables.Apply(s, before, DateTimeOffset.UtcNow).Changed ?? s);
+            throw new XeroException($"It's {before.Status.ToLowerInvariant()} in Xero now, so no payment was recorded.");
+        }
+        if (before.AmountDue is { } due && amount > due)
+        {
+            stored = update(stored, s => Receivables.Apply(s, before, DateTimeOffset.UtcNow).Changed ?? s);
+            throw new XeroException($"Xero says only {Money.Rand(due)} is still owed now, so nothing was recorded. Check the amount.");
+        }
+
+        var key = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{stored.Id}-payment-{date:yyyyMMdd}-{amount:0.00}-{before.AmountPaid ?? 0:0.00}");
+        try
+        {
+            await api.PutAsync("Payments", new JsonObject
+            {
+                ["Payments"] = new JsonArray(new JsonObject
+                {
+                    ["Invoice"] = new JsonObject { ["InvoiceID"] = stored.Xero.Id },
+                    ["Account"] = new JsonObject { ["AccountID"] = bankAccountId },
+                    ["Date"] = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                    ["Amount"] = amount,
+                }),
+            }, key, cancel);
+        }
+        catch (XeroUncertainException)
+        {
+            // Reading it back says whether it landed.
+        }
+        var after = XeroStandings.ToStanding(await ReadAsync(stored, cancel));
+        stored = update(stored, s => Receivables.Apply(s, after, DateTimeOffset.UtcNow).Changed ?? s);
+        if ((after.AmountPaid ?? 0) <= (before.AmountPaid ?? 0))
+            throw new XeroException("Couldn't tell whether Xero recorded it. Look at the invoice in Xero before trying again.");
+        return stored;
     }
 
     private StoredDocument Settle(StoredDocument stored, string status) =>
