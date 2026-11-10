@@ -97,6 +97,15 @@ public sealed partial class NavGroup(string key, string title) : ObservableObjec
     public string Title { get; } = title;
     public bool CanFold => Title.Length > 0;
 
+    /// <summary>Its icon on the folded sidebar, where the group is one icon and its pages open beside it on hover.</summary>
+    public string Icon { get; init; } = "Tiles";
+
+    /// <summary>The group's pages, tools and links, for the folded sidebar's list beside its icon.</summary>
+    public System.Collections.ObjectModel.ObservableCollection<GroupEntry> Entries { get; } = [];
+
+    /// <summary>The heading in sentence case, as the list beside the icon shows it.</summary>
+    public string Name => Title.Length == 0 ? "" : Title[..1] + Title[1..].ToLowerInvariant();
+
     internal SidebarViewModel? Owner { get; set; }
 
     [ObservableProperty]
@@ -137,3 +146,6 @@ public sealed partial class NavGroup(string key, string title) : ObservableObjec
         MoveDownCommand.NotifyCanExecuteChanged();
     }
 }
+
+/// <summary>One line in a group's list beside the folded sidebar: what it's called, its icon, and what it opens.</summary>
+public sealed record GroupEntry(string Title, string Icon, object Target);
