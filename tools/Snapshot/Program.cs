@@ -1020,6 +1020,20 @@ Save("mail");
 // The same mail in a dark look: it stays on white paper so it can be read.
 services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Dark, DarkPalette = DarkPalette.Graphite };
 Save("dark-mail");
+// Asana's dark look, as Eddie uses it: calm rows, and a mailbox folded up to its name and Inbox.
+services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Dark, DarkPalette = DarkPalette.Asana };
+{
+    var foldedBox = vm.Mail.Mailboxes.First(m => m.HasTitle);
+    foldedBox.ToggleFoldCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("A folded mailbox shows only its name, Inbox and the folder open, and stays folded",
+        foldedBox.IsFolded && foldedBox.Folders.Any(f => f.IsHidden)
+        && foldedBox.Folders.Where(f => !f.IsHidden).All(f => f.Role == Webignite.Core.Mail.FolderRole.Inbox || f.IsCurrent)
+        && services.Settings.FoldedMailboxes.Contains(foldedBox.Account!.Id));
+    Save("dark-mail-asana");
+    foldedBox.ToggleFoldCommand.Execute(null);
+    Check("Opened again, every folder shows", !foldedBox.IsFolded && foldedBox.Folders.All(f => !f.IsHidden) && services.Settings.FoldedMailboxes.Count == 0);
+}
 services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme.Light };
 
 // The PDF attachment shown in the reading pane. The drawing runs off the screen's thread, so wait for it here.

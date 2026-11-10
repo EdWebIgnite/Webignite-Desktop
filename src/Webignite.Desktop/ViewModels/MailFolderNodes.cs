@@ -47,6 +47,32 @@ public partial class MailboxNodeViewModel : ViewModelBase
     public bool HasTitle => Account is not null;
     public IReadOnlyList<FolderNodeViewModel> Folders { get; private set; } = [];
 
+    /// <summary>Folded up: only the name and Inbox show, and the folder open now. Kept in the setting <c>mail-folded</c>.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOpen), nameof(ShowsNewFolder))]
+    public partial bool IsFolded { get; set; }
+
+    public bool IsOpen => !IsFolded;
+
+    /// <summary>New folder shows on an open mailbox only.</summary>
+    public bool ShowsNewFolder => HasTitle && !IsFolded;
+
+    partial void OnIsFoldedChanged(bool value) => ShowFolders();
+
+    /// <summary>Hides or shows the folders for the fold, keeping Inbox and the folder open now in sight.</summary>
+    public void ShowFolders()
+    {
+        foreach (var folder in Folders)
+            folder.IsHidden = !MailboxFolding.Shows(IsFolded, folder.Role, folder.IsCurrent);
+    }
+
+    [RelayCommand]
+    private void ToggleFold()
+    {
+        if (Account is not null)
+            owner.FoldMailbox(this);
+    }
+
     [RelayCommand]
     private void Edit()
     {
@@ -147,6 +173,9 @@ public partial class FolderNodeViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UnreadText))]
     public partial int Unread { get; set; }
+
+    /// <summary>Out of sight while its mailbox is folded up.</summary>
+    [ObservableProperty] public partial bool IsHidden { get; set; }
 
     [ObservableProperty] public partial bool IsCurrent { get; set; }
 

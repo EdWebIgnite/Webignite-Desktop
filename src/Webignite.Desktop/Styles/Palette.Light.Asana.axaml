@@ -21,6 +21,8 @@
   <SolidColorBrush x:Key="Line" Color="#EAEAEA" />
   <SolidColorBrush x:Key="Line2" Color="#C6C6C6" />
   <SolidColorBrush x:Key="Text" Color="#1E1E1E" />
+  <!-- Text a step softer than Text, for long lists such as the mail list; the same as Text in the light looks. -->
+  <SolidColorBrush x:Key="SoftText" Color="#1E1E1E" />
   <!-- Selected text in boxes: a soft highlight the text stays readable on. -->
   <SolidColorBrush x:Key="Selection" Color="#D1E3FF" />
   <SolidColorBrush x:Key="OnSelection" Color="#050505" />

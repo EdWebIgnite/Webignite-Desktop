@@ -212,8 +212,9 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
         Mailboxes.Add(MailboxNodeViewModel.Smart(this, accounts.Count > 1
             ? accounts.Sum(a => services.Store.ListMailFolders(a.Id).FirstOrDefault(f => f.Role == FolderRole.Inbox)?.Unread ?? 0)
             : (int?)null));
+        var folded = services.Settings.FoldedMailboxes;
         foreach (var account in accounts)
-            Mailboxes.Add(new MailboxNodeViewModel(account, services.Store.ListMailFolders(account.Id), this));
+            Mailboxes.Add(new MailboxNodeViewModel(account, services.Store.ListMailFolders(account.Id), this) { IsFolded = folded.Contains(account.Id) });
         LoadCategories();
         LoadClientChoices();
 
@@ -245,6 +246,15 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
             f.IsCurrent = CurrentCategory is null && f == CurrentFolder;
         foreach (var c in Categories)
             c.IsCurrent = c == CurrentCategory;
+        foreach (var mailbox in Mailboxes)
+            mailbox.ShowFolders();
+    }
+
+    /// <summary>Folds a mailbox up to its name and Inbox in the folder list, or opens it again, and keeps that.</summary>
+    internal void FoldMailbox(MailboxNodeViewModel mailbox)
+    {
+        services.Settings.FoldedMailboxes = MailboxFolding.Toggle(services.Settings.FoldedMailboxes, mailbox.Account!.Id);
+        mailbox.IsFolded = !mailbox.IsFolded;
     }
 
     public void Open(FolderNodeViewModel folder)

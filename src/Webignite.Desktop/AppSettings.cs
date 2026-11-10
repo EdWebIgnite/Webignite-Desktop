@@ -277,6 +277,13 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>How Planner's Home was left: which projects its Projects card shows.</summary>
+    /// <summary>The mailboxes folded up to their name and Inbox in Mail's folder list, by id.</summary>
+    public IReadOnlyList<string> FoldedMailboxes
+    {
+        get => store.GetSetting<List<string>>("mail-folded") ?? [];
+        set => store.SetSetting("mail-folded", value.ToList());
+    }
+
     public HomeSettings Home
     {
         get => store.GetSetting<HomeSettings>("planner-home") ?? new HomeSettings();

@@ -108,3 +108,21 @@ public static class MailSearch
 
     private static bool Has(string? text, string word) => text?.Contains(word, StringComparison.OrdinalIgnoreCase) == true;
 }
+
+/// <summary>
+/// A mailbox folded up in the folder list: only its name and Inbox show (and the folder open now, so it's never
+/// hidden from under you). Which mailboxes are folded is kept by their ids.
+/// </summary>
+public static class MailboxFolding
+{
+    public static bool Shows(bool folded, FolderRole role, bool isCurrent) => !folded || role == FolderRole.Inbox || isCurrent;
+
+    /// <summary>The folded mailboxes after one is folded or opened again.</summary>
+    public static IReadOnlyList<string> Toggle(IReadOnlyList<string>? folded, string mailboxId)
+    {
+        var now = folded ?? [];
+        return now.Contains(mailboxId, StringComparer.Ordinal)
+            ? [.. now.Where(id => !string.Equals(id, mailboxId, StringComparison.Ordinal))]
+            : [.. now, mailboxId];
+    }
+}
