@@ -292,11 +292,19 @@ public partial class MainViewModel : ViewModelBase
             CheckXeroDocuments = CheckXeroDocumentsAsync,
             CheckXeroBills = CheckXeroBillsAsync,
             SyncProjects = () => services.SyncNowAsync(),
-            EveryMinute = () => ReleaseIdle(PageIdle),
+            EveryMinute = () =>
+            {
+                ReleaseIdle(PageIdle);
+                // ChatGPT's tunnel, when it's connected, runs while Webignite is open and starts again if it stops.
+                if (OperatingSystem.IsWindows())
+                    services.ChatGpt.KeepRunning();
+            },
             AssistantChanged = ShowAssistantChanges,
         };
         services.AreasChanged = ShowAssistantChanges;
         Jobs.Start();
+        if (OperatingSystem.IsWindows() && services.Settings.ChatGptTunnel.On)
+            services.ChatGpt.KeepRunning();
         Welcome();
         UpdateInboxBadgeAsync().Forget("Counting what's new in Inbox");
 

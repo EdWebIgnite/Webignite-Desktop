@@ -277,6 +277,13 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>How Planner's Home was left: which projects its Projects card shows.</summary>
+    /// <summary>ChatGPT's tunnel on this PC: its id and whether it runs. The key is in Windows Credential Manager.</summary>
+    public ChatGptTunnelSettings ChatGptTunnel
+    {
+        get => store.GetSetting<ChatGptTunnelSettings>("chatgpt-tunnel") ?? new ChatGptTunnelSettings();
+        set => store.SetSetting("chatgpt-tunnel", value);
+    }
+
     /// <summary>The mailboxes folded up to their name and Inbox in Mail's folder list, by id.</summary>
     public IReadOnlyList<string> FoldedMailboxes
     {

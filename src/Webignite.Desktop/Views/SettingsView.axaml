@@ -402,15 +402,57 @@
 
         <TextBlock FontWeight="SemiBold" Text="ChatGPT" Margin="0,6,0,0" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
-                   Text="ChatGPT reaches this PC through OpenAI's Secure MCP Tunnel, which runs on your PC and connects out to OpenAI. Set up the tunnel with this as the MCP command, then add a connector in ChatGPT with Connection: Tunnel." />
-        <DockPanel>
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" Margin="8,0,0,0">
-            <Button Classes="quiet" Content="Copy" Command="{Binding CopyCommandCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
-            <Button Classes="link" Content="OpenAI's guide" Command="{Binding OpenTunnelGuideCommand}" />
-          </StackPanel>
-          <TextBox Text="{Binding ConnectorCommand, Mode=OneWay}" IsReadOnly="True" />
-        </DockPanel>
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding CopyMessage}" />
+                   Text="ChatGPT reaches Webignite on this PC through OpenAI's tunnel. Webignite runs the tunnel in the background while it's open; you make a tunnel and a key on OpenAI's site once, then add it in ChatGPT. Each PC has its own tunnel." />
+        <StackPanel Spacing="10">
+          <!-- 1. A tunnel on OpenAI's site -->
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Text="1" Width="22" FontWeight="SemiBold" VerticalAlignment="Top" />
+            <StackPanel Spacing="6">
+              <TextBlock TextWrapping="Wrap" Text="Make a tunnel on OpenAI's Tunnels page (sign in with the OpenAI account your ChatGPT uses), then copy its ID here." />
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="link" Margin="8,0,0,0" Content="Open the Tunnels page" Command="{Binding OpenTunnelsPageCommand}" />
+                <TextBox Text="{Binding ChatGptTunnelId}" PlaceholderText="tunnel_…" />
+              </DockPanel>
+            </StackPanel>
+          </DockPanel>
+          <!-- 2. A key -->
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Text="2" Width="22" FontWeight="SemiBold" VerticalAlignment="Top" />
+            <StackPanel Spacing="6">
+              <TextBlock TextWrapping="Wrap" Text="Make a key on OpenAI's API keys page with permission to use tunnels, and paste it here. It's kept in Windows Credential Manager." />
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="link" Margin="8,0,0,0" Content="Open the API keys page" Command="{Binding OpenKeysPageCommand}" />
+                <TextBox Text="{Binding ChatGptKey}" PasswordChar="•" PlaceholderText="{Binding ChatGptKeyHint}" />
+              </DockPanel>
+            </StackPanel>
+          </DockPanel>
+          <!-- 3. Connect: download and run the tunnel -->
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Text="3" Width="22" FontWeight="SemiBold" VerticalAlignment="Top" />
+            <StackPanel Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Classes="primary" Content="Connect ChatGPT" Command="{Binding ConnectChatGptCommand}" IsEnabled="{Binding !ChatGptBusy}" IsVisible="{Binding !ChatGptConnected}" />
+                <Button Classes="quiet" Content="Connect again" Command="{Binding ConnectChatGptCommand}" IsEnabled="{Binding !ChatGptBusy}" IsVisible="{Binding ChatGptConnected}" />
+                <Button Classes="link" Content="Stop" Command="{Binding DisconnectChatGptCommand}" IsVisible="{Binding ChatGptConnected}" />
+              </StackPanel>
+              <Border Classes.ready="{Binding ChatGptConnected}" Classes.pending="{Binding !ChatGptConnected}">
+                <TextBlock Text="{Binding ChatGptStatus}" TextWrapping="Wrap" Classes.problem="{Binding ChatGptProblem}" />
+              </Border>
+            </StackPanel>
+          </DockPanel>
+          <!-- 4. Add it in ChatGPT -->
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Text="4" Width="22" FontWeight="SemiBold" VerticalAlignment="Top" />
+            <StackPanel Spacing="6">
+              <TextBlock TextWrapping="Wrap"
+                         Text="In ChatGPT, open Plugins, click +, then Add custom MCP server. Name it Webignite, set Connection to Tunnel, pick this tunnel, set Authentication to None, accept the warning and create it." />
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Classes="link" Content="Open ChatGPT's settings" Command="{Binding OpenChatGptPluginsCommand}" />
+                <Button Classes="link" Content="OpenAI's guide" Command="{Binding OpenTunnelGuideCommand}" />
+              </StackPanel>
+            </StackPanel>
+          </DockPanel>
+        </StackPanel>
 
         <TextBlock FontWeight="SemiBold" Text="What they changed lately" Margin="0,6,0,0" />
         <TextBlock Classes="muted" TextWrapping="Wrap"

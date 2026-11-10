@@ -25,6 +25,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         ClientId = xero.ClientId ?? "";
         UpdateXeroStatus();
         UpdateAssistantStatus();
+        LoadChatGpt();
         LoadTemplates(services.Settings.EmailTemplates);
         UpdateBackupStatus();
         LoadPrices();
@@ -184,6 +185,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     {
         LoadPrices();
         UpdateAssistantStatus();
+        LoadChatGpt();
         LoadAssistantChanges();
         LoadAccount();
         UpdateBackupStatus();
@@ -386,12 +388,9 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
 
     // Claude and ChatGPT
 
-    public string ConnectorCommand => "\"" + AssistantSetup.ConnectorPath() + "\"";
-
     [ObservableProperty] public partial string ClaudeStatus { get; set; } = "";
     [ObservableProperty] public partial bool ClaudeConnected { get; set; }
     [ObservableProperty] public partial bool ClaudeProblem { get; set; }
-    [ObservableProperty] public partial string CopyMessage { get; set; } = "";
 
     public void UpdateAssistantStatus()
     {
@@ -411,6 +410,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
             if (!AssistantSetup.ConnectorInstalled())
             {
                 UpdateAssistantStatus();
+        LoadChatGpt();
                 return;
             }
             var count = AssistantSetup.ConnectClaude();
@@ -432,17 +432,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     }
 
     [RelayCommand]
-    private async Task CopyCommand(Avalonia.Controls.TopLevel? top)
-    {
-        if (top?.Clipboard is { } clipboard)
-        {
-            await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, ConnectorCommand);
-            CopyMessage = "Copied.";
-        }
-    }
-
-    [RelayCommand]
-    private static Task OpenTunnelGuide() => AppServices.OpenInBrowser(new Uri("https://developers.openai.com/api/docs/guides/secure-mcp-tunnels"));
+    private static Task OpenTunnelGuide() => AppServices.OpenInBrowser(new Uri(ChatGptTunnel.Guide));
 
     [ObservableProperty]
     public partial string InvoiceDueDays { get; set; }

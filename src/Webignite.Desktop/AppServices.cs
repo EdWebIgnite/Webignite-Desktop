@@ -75,6 +75,10 @@ public sealed class AppServices : IDisposable
     /// <summary>Signing in to the Webignite sync server; made the first time Settings, Account and sync needs it.</summary>
     public AccountClient Account => account ??= new AccountClient(Store, Secrets);
     private AccountClient? account;
+    private ChatGptTunnelRunner? chatGpt;
+
+    /// <summary>OpenAI's tunnel, run in the background so ChatGPT can reach the connector on this PC.</summary>
+    public ChatGptTunnelRunner ChatGpt => chatGpt ??= new ChatGptTunnelRunner(Settings, Secrets);
     private ProjectService? projects;
 
     /// <summary>Inbox: what your partner did on tasks you follow, mentions and likes.</summary>
@@ -451,6 +455,7 @@ public sealed class AppServices : IDisposable
         if (mail is { } open)
             Task.Run(() => open.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(3));
         xero?.Dispose();
+        chatGpt?.Dispose();
         sync?.Dispose();
         account?.Dispose();
         Store.Dispose();
