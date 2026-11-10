@@ -156,6 +156,11 @@ public sealed class Navigator
     /// <summary>Opens a small tool (the calculator, the QR codes) in a window of its own.</summary>
     public void Tool(ViewModels.ToolKind kind) => OpenToolAction?.Invoke(kind);
 
+    internal Action? OpenChatAction { get; set; }
+
+    /// <summary>Opens the chat with your partner, or brings it forward.</summary>
+    public void Chat() => OpenChatAction?.Invoke();
+
     /// <summary>The small quick-note box, as from the shortcut.</summary>
     public void QuickNote() => QuickNoteAction?.Invoke();
 

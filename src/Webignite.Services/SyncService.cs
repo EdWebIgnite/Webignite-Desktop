@@ -206,6 +206,8 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
                     store.SaveActivity(activity); // written once: a copy already here is the same line
                     sent.Add((SyncKinds.Activity, record.Id, fingerprint));
                     return Taken.Same;
+                case SyncKinds.Chat or SyncKinds.ChatPart:
+                    return TakeInChat(record.Kind, record.Id, json, fingerprint, sent);
                 case SyncKinds.Document or SyncKinds.Client or SyncKinds.Contact:
                     return TakeInShared(record.Kind, record.Id, json, fingerprint, sent);
                 case SyncKinds.Team:
@@ -326,6 +328,7 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
         all.AddRange(store.ListAllMessages().Where(m => shared.Contains(m.ProjectId)).Select(m => Make(SyncKinds.Message, m.Id, m)));
         all.AddRange(store.ListAllActivity().Where(a => shared.Contains(a.ProjectId)).Select(a => Make(SyncKinds.Activity, a.Id, a)));
         all.AddRange(OutgoingShared());
+        all.AddRange(OutgoingChat());
         return [.. all.Where(r => SyncLimits.IdIsFine(r.Id))];
     }
 

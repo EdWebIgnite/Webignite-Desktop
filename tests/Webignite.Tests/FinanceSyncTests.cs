@@ -11,7 +11,7 @@ using Webignite.Services;
 
 namespace Webignite.Tests;
 
-/// <summary>Quotes, invoices, clients and contacts going between the two PCs through the real sync server, in memory.</summary>
+/// <summary>Quotes, invoices, clients, contacts and chat going between the two PCs through the real sync server, in memory.</summary>
 public sealed class FinanceSyncTests : IDisposable
 {
     private readonly string folder = Directory.CreateTempSubdirectory("webignite-finance-sync-").FullName;
@@ -146,5 +146,28 @@ public sealed class FinanceSyncTests : IDisposable
         await Sync(member);
         await Sync(owner);
         Assert.Equal("012 345 6789", owner.Store.GetClient(client.Id)!.Phone);
+    }
+
+    [Fact]
+    public async Task A_chat_message_with_a_screenshot_reaches_the_other_pc_whole_and_counts_as_unread_there()
+    {
+        var (owner, member) = await TwoPcs();
+        var eddie = new ChatService(owner.Store);
+        var jaco = new ChatService(member.Store);
+        var picture = Enumerable.Range(0, Webignite.Core.Chat.ChatRules.PartBytes + 5000).Select(i => (byte)(i % 199)).ToArray();
+        var sent = eddie.Send("Here's the homepage", [("Screenshot.png", picture)])!;
+        await Sync(owner);
+        await Sync(member);
+
+        var arrived = Assert.Single(jaco.Messages());
+        Assert.Equal("Here's the homepage", arrived.Text);
+        Assert.Equal(picture, jaco.FileBytes(arrived.Files[0]));
+        Assert.Equal("You", eddie.NameOf(sent.From));
+        Assert.Equal(1, jaco.Unread);
+        Assert.Single(jaco.NewlyArrived());
+        Assert.Empty(jaco.NewlyArrived()); // told once
+        jaco.MarkRead();
+        Assert.Equal(0, jaco.Unread);
+        Assert.Equal(0, eddie.Unread); // his own message isn't unread for him
     }
 }

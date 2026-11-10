@@ -177,6 +177,16 @@ public sealed partial class LocalStore : IDisposable
                 project_id TEXT NOT NULL,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id TEXT PRIMARY KEY,
+                sent TEXT NOT NULL,
+                payload BLOB NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS chat_parts (
+                id TEXT PRIMARY KEY,
+                file_id TEXT NOT NULL,
+                payload BLOB NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS sync_gone (
                 kind TEXT NOT NULL,
                 id TEXT NOT NULL,

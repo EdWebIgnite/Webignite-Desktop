@@ -22,8 +22,12 @@ public static class SyncKinds
     public const string Client = "client";
     public const string Contact = "contact";
 
+    /// <summary>Chat between the two of you: messages, and the parts of files sent with them. Written once.</summary>
+    public const string Chat = "chat";
+    public const string ChatPart = "chatpart";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
-        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact };
+        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact, Chat, ChatPart };
 }
 
 /// <summary>
