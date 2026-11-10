@@ -12,8 +12,16 @@ public partial class SettingsViewModel
     [ObservableProperty] public partial string ChatGptTunnelId { get; set; } = "";
     [ObservableProperty] public partial string ChatGptKey { get; set; } = "";
     [ObservableProperty] public partial string ChatGptStatus { get; set; } = "";
-    [ObservableProperty] public partial bool ChatGptProblem { get; set; }
-    [ObservableProperty] public partial bool ChatGptConnected { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ChatGptWorking))]
+    public partial bool ChatGptProblem { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ChatGptWorking))]
+    public partial bool ChatGptConnected { get; set; }
+
+    /// <summary>On and without a problem: the status shows as done (green) only then.</summary>
+    public bool ChatGptWorking => ChatGptConnected && !ChatGptProblem;
     [ObservableProperty] public partial bool ChatGptBusy { get; set; }
 
     /// <summary>Whether a key is kept already, so the box can be left empty when connecting again.</summary>
