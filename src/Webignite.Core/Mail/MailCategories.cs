@@ -14,10 +14,15 @@ public sealed record MailCategory(string Keyword, string Name, string Colour);
 public static class MailCategories
 {
     /// <summary>
-    /// The colours a category can have. Red and green are left out on purpose: in this app they only ever mean
-    /// "needs attention" and "done".
+    /// The colours a category or tag can have, as macOS offers them, red and green included: these are colours the
+    /// person picks for their own labels, so they don't carry the app's meaning of problem and done.
     /// </summary>
-    public static IReadOnlyList<string> Colours { get; } = ["blue", "purple", "orange", "yellow", "teal", "pink", "grey"];
+    public static IReadOnlyList<string> Colours { get; } =
+        ["red", "orange", "yellow", "lime", "green", "mint", "teal", "cyan", "blue", "indigo", "purple", "magenta", "pink", "brown", "grey", "graphite"];
+
+    /// <summary>The order new categories and tags take colours in, calm ones first, so a new one isn't red by itself.</summary>
+    public static IReadOnlyList<string> SuggestedOrder { get; } =
+        ["blue", "purple", "orange", "yellow", "teal", "pink", "green", "indigo", "mint", "magenta", "cyan", "lime", "brown", "red", "grey", "graphite"];
 
     public const int LongestName = 30;
 
@@ -59,7 +64,7 @@ public static class MailCategories
         existing.Where(c => c.Keyword != keyword).ToList();
 
     public static string NextColour(IReadOnlyList<MailCategory> existing) =>
-        Colours.FirstOrDefault(colour => existing.All(c => c.Colour != colour)) ?? Colours[existing.Count % Colours.Count];
+        SuggestedOrder.FirstOrDefault(colour => existing.All(c => c.Colour != colour)) ?? SuggestedOrder[existing.Count % SuggestedOrder.Count];
 
     /// <summary>The categories this mail is in, in the order of the list.</summary>
     public static IReadOnlyList<MailCategory> Of(IReadOnlyList<MailCategory> all, MailSummary mail) =>

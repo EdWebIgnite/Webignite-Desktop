@@ -44,11 +44,15 @@ public sealed class MailCategoryTests
     }
 
     [Fact]
-    public void Red_and_green_are_not_category_colours()
+    public void There_are_sixteen_colours_red_and_green_too_but_a_new_category_starts_calm()
     {
-        Assert.DoesNotContain("red", MailCategories.Colours);
-        Assert.DoesNotContain("green", MailCategories.Colours);
-        Assert.Equal("blue", MailCategories.Add([], "Later", "red")[0].Colour);
+        Assert.Equal(16, MailCategories.Colours.Count);
+        Assert.Contains("red", MailCategories.Colours);
+        Assert.Contains("green", MailCategories.Colours);
+        Assert.Equal("red", MailCategories.Add([], "Urgent", "red")[0].Colour);
+        Assert.Equal("blue", MailCategories.Add([], "Later")[0].Colour);
+        Assert.Equal("blue", MailCategories.Add([], "Later", "no such colour")[0].Colour);
+        Assert.Equal(MailCategories.Colours.Order(), MailCategories.SuggestedOrder.Order());
     }
 
     [Fact]
