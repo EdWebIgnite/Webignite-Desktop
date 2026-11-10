@@ -22,7 +22,7 @@ public static class SetupGuide
     public static readonly IReadOnlyList<SetupStep> Steps =
     [
         new("join", "Join the workspace",
-            "Type the invite code you were sent, your email and a password of your own, then click Join. Your password never leaves this PC. Keep the recovery key it shows you somewhere safe: it's the only way back in if you forget the password.",
+            "Type the invite code you were sent, your email and a password of your own, then click Create the account. Your password never leaves this PC. Keep the recovery key it shows you somewhere safe: it's the only way back in if you forget the password.",
             "Settings", "account", SetupCheck.SignedIn,
             "You're in. Quotes, invoices, clients, projects and the business's settings come over from the sync server."),
         new("xero", "Connect Xero",
@@ -37,7 +37,7 @@ public static class SetupGuide
             "Your day at a glance: what needs you, money coming in, quotes waiting and today's tasks. Webignite opens here.",
             "Overview"),
         new("approvals", "To approve",
-            "Quotes and invoices waiting for a yes. You both see the same list: once one of you approves and emails one, it's done on both PCs. Right-click one to take it off the list.",
+            "Quotes and invoices waiting for a yes. You both see the same list: once one of you approves and emails one, it's done on both PCs. Remove takes one off the list, such as a quote deleted in Xero.",
             "Approvals"),
         new("quotes", "Quotes",
             "Every quote and where it stands in Xero. Open one to change it, then email it from Webignite, never from Xero. Client accepted or Client declined marks it in Xero.",
