@@ -364,6 +364,19 @@ vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "billing").Toggle();
 vm.Sidebar.Items.OfType<NavGroup>().First(g => g.Key == "web-tools").Toggle();
 vm.Sidebar.Toggle();
 Save("sidebar-icons");
+// Folded, each group is one icon; its pages open in a list beside it, as on a hover.
+Check("The folded sidebar shows each group as one icon, not every page",
+    vm.Sidebar.IconPages.OfType<NavGroup>().Select(g => g.Key).SequenceEqual(["my-pages", "client-work", "billing", "computer", "web-tools"])
+    && vm.Sidebar.IconPages.OfType<Module>().Select(m => m.Key).SequenceEqual([Page.Overview, Page.Approvals, Page.Mail, Page.Settings]));
+var clientWork = vm.Sidebar.IconPages.OfType<NavGroup>().First(g => g.Key == "client-work");
+Check("A group's list has its pages", clientWork.Entries.Select(e => e.Title).SequenceEqual(["Clients", "Contacts", "Retainers", "Domains and hosting"]));
+var groupIcon = window.GetVisualDescendants().OfType<Avalonia.Controls.Panel>()
+    .First(p => p.DataContext == clientWork && Avalonia.Controls.Primitives.FlyoutBase.GetAttachedFlyout(p) is not null);
+Avalonia.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(groupIcon);
+Dispatcher.UIThread.RunJobs();
+Save("sidebar-icons-group");
+Avalonia.Controls.Primitives.FlyoutBase.GetAttachedFlyout(groupIcon)!.Hide();
+Check("A page outside a group is picked on the strip as itself", vm.SelectedIcon == vm.Selected);
 vm.Sidebar.Toggle();
 Save("sidebar-hidden");
 vm.Sidebar.Toggle();
@@ -543,6 +556,7 @@ void OpenSection(string key)
         shown.Sections.Toggle(key);
 }
 Open(Page.Clients);
+Check("A page in a group shows as picked on the folded strip by its group's icon", vm.SelectedIcon is NavGroup { Key: "client-work" });
 Save("clients");
 {
     // Minimising a pane: the handle on the divider, the strip it leaves, the chip in the sidebar, and the button on the list.
@@ -2904,6 +2918,25 @@ Save("site-check");
         window.Height = 1080;
         Dispatcher.UIThread.RunJobs();
         Save("planner-home");
+        // The same with the sidebar folded to icons, wide and narrow: the cards share the width and never overlap.
+        vm.Sidebar.Toggle();
+        Dispatcher.UIThread.RunJobs();
+        Save("planner-home-icons");
+        {
+            // Each card starts where its box does and the second starts after the first: no card hangs over another.
+            var cards = window.GetVisualDescendants().OfType<PlannerHomeView>().First().GetVisualDescendants()
+                .OfType<Avalonia.Controls.Border>().Where(b => b.Classes.Contains("card")).ToList();
+            var lefts = cards.Select(c => c.TranslatePoint(default, window)!.Value.X).ToList();
+            Check("Home's cards sit side by side with the sidebar folded, none cut off or over another",
+                cards.Count == 2 && cards.All(c => c.Bounds.X == 0) && lefts[1] >= lefts[0] + cards[0].Bounds.Width);
+        }
+        window.Width = 1280;
+        Dispatcher.UIThread.RunJobs();
+        Save("planner-home-icons-narrow");
+        window.Width = 1920;
+        vm.Sidebar.Toggle();
+        vm.Sidebar.Toggle();
+        Dispatcher.UIThread.RunJobs();
 
         // Home's widgets, as Asana's Customise: add a notepad, people, status updates and milestones; resize and move them.
         Check("Home starts with My tasks and Projects", homePage.Widgets.Select(w => w.Kind).SequenceEqual([Webignite.Core.Projects.HomeWidgetKind.MyTasks, Webignite.Core.Projects.HomeWidgetKind.Projects]));

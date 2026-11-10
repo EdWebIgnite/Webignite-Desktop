@@ -224,14 +224,14 @@ public partial class MainViewModel : ViewModelBase
             plannerSection,
             new Module(Page.Home, "Home", () => new PlannerHomeViewModel(services), "Home") { InPlanner = true },
             new Module(Page.Inbox, "Inbox", () => new InboxViewModel(services), "Inbox") { InPlanner = true },
-            new NavGroup("my-pages", "MY PAGES"),
+            new NavGroup("my-pages", "MY PAGES") { Icon = "Panels" },
             new Module(Page.MyPages, "All my pages", () => new MyPagesViewModel(services), "Tiles"),
-            new NavGroup("client-work", "CLIENT WORK"),
+            new NavGroup("client-work", "CLIENT WORK") { Icon = "Clients" },
             new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
             new Module(Page.Contacts, "Contacts", () => new ContactsViewModel(services), "Contacts", fullBleed: true),
             new Module(Page.Retainers, "Retainers", () => new RetainersViewModel(services), "Retainers"),
             new Module(Page.Renewals, "Domains and hosting", () => new RenewalsViewModel(services), "Domains"),
-            new NavGroup("billing", "BILLING"),
+            new NavGroup("billing", "BILLING") { Icon = "Invoices" },
             new Module(Page.Quotes, "Quotes", () => new DocumentsViewModel(DocumentKind.Quote, services), "Quotes"),
             new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
@@ -240,7 +240,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
             new Module(Page.Planner, "Week", () => new PlannerViewModel(services), "Planner") { InPlanner = true },
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time") { InPlanner = true },
-            new NavGroup("computer", "COMPUTER"),
+            new NavGroup("computer", "COMPUTER") { Icon = "Tools" },
             new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
             new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
             new Module(Page.Notes, "Notes", () => new NotesViewModel(services), "Notes", fullBleed: true),
@@ -248,7 +248,7 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Passwords, "Password generator", "Key"),
             new ToolLink(ToolKind.Colours, "Colours", "Palette"),
             new ToolLink(ToolKind.Clipboard, "Clipboard history", "Clipboard"),
-            new NavGroup("web-tools", "WEB TOOLS"),
+            new NavGroup("web-tools", "WEB TOOLS") { Icon = "SiteCheck" },
             new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
             new ToolLink(ToolKind.Images, "Website images", "Picture"),
@@ -597,13 +597,17 @@ public partial class MainViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(SelectedNav), nameof(SelectedIcon))]
     public partial Module Selected { get; set; }
 
-    /// <summary>The icon strip's selection: always the page, as the strip has no entries for single projects.</summary>
+    /// <summary>
+    /// The icon strip's selection: the page, or the icon of the group it's in, as a group is one icon there. Picking a
+    /// group's icon opens nothing by itself (its pages open beside it), so the pick goes back to the page on screen.
+    /// </summary>
     public object? SelectedIcon
     {
-        get => Selected;
+        get => !Sidebar.IsPlanner && Selected.Group is { CanFold: true } group && Sidebar.IconPages.Contains(group) ? group : Selected;
         set
         {
-            SelectedNav = value;
+            if (value is not NavGroup)
+                SelectedNav = value;
             OnPropertyChanged();
         }
     }

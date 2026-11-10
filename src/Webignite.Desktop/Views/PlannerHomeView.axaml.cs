@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Webignite.Desktop.Controls;
 using Webignite.Desktop.ViewModels;
 
@@ -13,17 +14,11 @@ public partial class PlannerHomeView : UserControl
     public PlannerHomeView()
     {
         InitializeComponent();
-        // Half-width widgets share the width two by two; a narrow window puts them one above the other.
-        WidgetList.SizeChanged += (_, e) =>
-        {
-            if (DataContext is PlannerHomeViewModel home)
-                home.LayoutWidth = e.NewSize.Width;
-        };
-        DataContextChanged += (_, _) =>
-        {
-            if (DataContext is PlannerHomeViewModel home)
-                home.LayoutWidth = WidgetList.Bounds.Width;
-        };
+        // Half-width widgets share the width two by two; a narrow window puts them one above the other. The new
+        // width is given once this layout pass is over, and the widgets laid out again, or the boxes holding them
+        // keep the old width and a wider card hangs over its neighbour (folding the sidebar did that).
+        WidgetList.SizeChanged += (_, _) => Dispatcher.UIThread.Post(FitWidgets, DispatcherPriority.Render);
+        DataContextChanged += (_, _) => FitWidgets();
         // A widget is dragged by its heading, before or after another, as on Asana's Home.
         DragReorder.Attach(WidgetList, new DragRules
         {
@@ -34,6 +29,18 @@ public partial class PlannerHomeView : UserControl
             Across = _ => true,
             Label = item => (item as HomeWidgetRow)?.Title ?? "",
         });
+    }
+
+    private void FitWidgets()
+    {
+        if (DataContext is not PlannerHomeViewModel home)
+            return;
+        home.LayoutWidth = WidgetList.Bounds.Width;
+        if (WidgetList.ItemsPanelRoot is not { } panel)
+            return;
+        foreach (var box in panel.Children)
+            box.InvalidateMeasure();
+        panel.InvalidateMeasure();
     }
 
     // The Projects widget's tiles: showing starred or all in order, a tile can be dragged before or after another.

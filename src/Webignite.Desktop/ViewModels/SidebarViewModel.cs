@@ -64,7 +64,10 @@ public sealed partial class SidebarViewModel : ObservableObject
     /// <summary>What the button at the top does next, for its tip.</summary>
     public string ToggleTip => IsFull ? "Fold the sidebar to icons (Ctrl+B)" : IsIcons ? "Tuck the sidebar away (Ctrl+B)" : "Show the sidebar (Ctrl+B)";
 
-    /// <summary>Every page and tool for the icon strip, folded groups or not.</summary>
+    /// <summary>
+    /// The icon strip: pages outside a group as their own icons, and each group as one icon whose pages open beside
+    /// it on hover, so the strip stays short. A group with only one page shows that page instead.
+    /// </summary>
     public ObservableCollection<object> IconPages { get; } = [];
 
     private void ShowMode(SidebarMode mode)
@@ -178,6 +181,7 @@ public sealed partial class SidebarViewModel : ObservableObject
         var order = Sidebar.Resolve(layout, defaults);
         var wanted = new List<object>();
         var icons = new List<object>();
+        var entries = new Dictionary<NavGroup, List<GroupEntry>>();
         Pages.Clear();
         NavGroup? group = null;
         foreach (var key in order)
@@ -197,7 +201,7 @@ public sealed partial class SidebarViewModel : ObservableObject
             else if (item is SectionLink section)
             {
                 section.Group = group;
-                icons.Add(section);
+                Strip(icons, entries, group, section, new GroupEntry(section.Title, section.Icon, section));
                 if (group is null || !group.CanFold || group.IsOpen)
                     wanted.Add(section);
             }
@@ -205,7 +209,9 @@ public sealed partial class SidebarViewModel : ObservableObject
             {
                 module.Group = group;
                 Pages.Add(module);
-                icons.Add(module);
+                var (aboveLinks, belowLinks) = links.GetValueOrDefault(module.Key, ([], []));
+                Strip(icons, entries, group, module, new GroupEntry(module.Title, module.Icon, module),
+                    [.. aboveLinks.Concat(belowLinks).Select(l => new GroupEntry(l.Title, l.Icon, l))]);
                 if (group is null || !group.CanFold || group.IsOpen)
                 {
                     var (above, below) = links.GetValueOrDefault(module.Key, ([], []));
@@ -217,13 +223,13 @@ public sealed partial class SidebarViewModel : ObservableObject
             else if (item is ToolLink tool)
             {
                 tool.Group = group;
-                icons.Add(tool);
+                Strip(icons, entries, group, tool, new GroupEntry(tool.Title, tool.Icon, tool));
                 if (group is null || !group.CanFold || group.IsOpen)
                     wanted.Add(tool);
             }
         }
         Rebuild(Items, wanted);
-        mainIcons = icons;
+        mainIcons = FoldGroups(icons, entries);
         BuildPlanner(order);
         ShowIcons();
         foreach (var item in byKey.Values)
@@ -237,6 +243,52 @@ public sealed partial class SidebarViewModel : ObservableObject
             else if (item is NavGroup heading)
                 heading.Changed();
         }
+    }
+
+    // An entry for the icon strip: in a group, it goes in the group's list and the group's icon holds its place.
+    private static void Strip(List<object> icons, Dictionary<NavGroup, List<GroupEntry>> entries, NavGroup? group, object item,
+        GroupEntry entry, IReadOnlyList<GroupEntry>? extra = null)
+    {
+        if (group is not { CanFold: true })
+        {
+            icons.Add(item);
+            return;
+        }
+        if (!entries.TryGetValue(group, out var list))
+        {
+            entries[group] = list = [];
+            icons.Add(group);
+        }
+        list.Add(entry);
+        list.AddRange(extra ?? []);
+    }
+
+    // Each group's list filled in; a group holding a single page shows that page's own icon instead.
+    private static List<object> FoldGroups(List<object> icons, Dictionary<NavGroup, List<GroupEntry>> entries)
+    {
+        var strip = new List<object>();
+        foreach (var icon in icons)
+        {
+            if (icon is not NavGroup group)
+            {
+                strip.Add(icon);
+                continue;
+            }
+            var list = entries[group];
+            if (list.Count == 1)
+            {
+                strip.Add(list[0].Target);
+                continue;
+            }
+            if (!group.Entries.SequenceEqual(list))
+            {
+                group.Entries.Clear();
+                foreach (var entry in list)
+                    group.Entries.Add(entry);
+            }
+            strip.Add(group);
+        }
+        return strip;
     }
 
     // The Planner sidebar, built from the Planner pages in the app's order and the links that go with Projects.
