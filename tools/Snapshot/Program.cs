@@ -410,6 +410,17 @@ Check("Your partner can't have your name", settingsPage.TeamProblem && services.
 settingsPage.PartnerName = "Jaco";
 settingsPage.SaveTeamCommand.Execute(null);
 Save("settings-projects");
+// ChatGPT, step by step: a tunnel and a key from OpenAI, then Connect ChatGPT runs OpenAI's tunnel in the background.
+settingsPage.Open("assistants");
+settingsPage.ChatGptTunnelId = "tunnel_ABC";
+Wait(settingsPage.ConnectChatGptCommand.ExecuteAsync(null), "Connecting ChatGPT with a wrong tunnel id");
+Check("A wrong tunnel id is explained before anything is downloaded", settingsPage.ChatGptProblem && settingsPage.ChatGptStatus.Contains("tunnel_", StringComparison.Ordinal)
+    && !settingsPage.ChatGptConnected);
+settingsPage.ChatGptTunnelId = "tunnel_0123456789abcdef0123456789abcdef";
+settingsPage.ChatGptStatus = "Not connected yet.";
+settingsPage.ChatGptProblem = false;
+Dispatcher.UIThread.RunJobs();
+Save("settings-chatgpt");
 settingsPage.Open("account");
 // Joining needs nothing but the invite: our own sync server is filled in, shown as a line with Change.
 settingsPage.ShowAccountFormCommand.Execute("join");
