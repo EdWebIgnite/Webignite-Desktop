@@ -58,14 +58,23 @@
   <SolidColorBrush x:Key="OkSoft" Color="#0B3315" />
   <SolidColorBrush x:Key="OkLine" Color="#135D28" />
 
-  <!-- Mail categories and the Important mark: dots and flags only, never backgrounds. No red or green here. -->
-  <SolidColorBrush x:Key="CategoryBlue" Color="#6CA0F8" />
-  <SolidColorBrush x:Key="CategoryPurple" Color="#9E8FFC" />
-  <SolidColorBrush x:Key="CategoryOrange" Color="#FF7A00" />
-  <SolidColorBrush x:Key="CategoryYellow" Color="#E9C300" />
-  <SolidColorBrush x:Key="CategoryTeal" Color="#3AB191" />
-  <SolidColorBrush x:Key="CategoryPink" Color="#FD6CA7" />
-  <SolidColorBrush x:Key="CategoryGrey" Color="#A0A0A0" />
+  <!-- Mail categories and the Important mark: dots and flags only, never backgrounds. The person picks these, red and green too, as macOS offers them. -->
+  <SolidColorBrush x:Key="CategoryRed" Color="#FF453A" />
+  <SolidColorBrush x:Key="CategoryOrange" Color="#FF9F0A" />
+  <SolidColorBrush x:Key="CategoryYellow" Color="#FFD60A" />
+  <SolidColorBrush x:Key="CategoryLime" Color="#B5D334" />
+  <SolidColorBrush x:Key="CategoryGreen" Color="#30D158" />
+  <SolidColorBrush x:Key="CategoryMint" Color="#63E6E2" />
+  <SolidColorBrush x:Key="CategoryTeal" Color="#40C8E0" />
+  <SolidColorBrush x:Key="CategoryCyan" Color="#64D2FF" />
+  <SolidColorBrush x:Key="CategoryBlue" Color="#0A84FF" />
+  <SolidColorBrush x:Key="CategoryIndigo" Color="#5E5CE6" />
+  <SolidColorBrush x:Key="CategoryPurple" Color="#BF5AF2" />
+  <SolidColorBrush x:Key="CategoryMagenta" Color="#E25BC4" />
+  <SolidColorBrush x:Key="CategoryPink" Color="#FF375F" />
+  <SolidColorBrush x:Key="CategoryBrown" Color="#AC8E68" />
+  <SolidColorBrush x:Key="CategoryGrey" Color="#98989D" />
+  <SolidColorBrush x:Key="CategoryGraphite" Color="#7C7C80" />
   <SolidColorBrush x:Key="Important" Color="#FF7A00" />
 
   <!-- Project squares: Asana's 16 project colours, the same in light and dark, with a near-black picture on top.

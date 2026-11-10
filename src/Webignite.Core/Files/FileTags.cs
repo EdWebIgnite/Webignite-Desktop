@@ -63,7 +63,7 @@ public static class FileTags
             id = $"{stem}-{n}";
         var used = existing.Select(t => t.Colour).ToHashSet();
         var pick = colour is not null && MailCategories.Colours.Contains(colour) ? colour
-            : MailCategories.Colours.FirstOrDefault(c => !used.Contains(c)) ?? MailCategories.Colours[existing.Count % MailCategories.Colours.Count];
+            : MailCategories.SuggestedOrder.FirstOrDefault(c => !used.Contains(c)) ?? MailCategories.SuggestedOrder[existing.Count % MailCategories.SuggestedOrder.Count];
         return [.. existing, new FileTag(id, trimmed, pick)];
     }
 
