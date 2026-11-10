@@ -83,6 +83,15 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
   from Xero get ids made from Xero's (`xc-…`, `xd-…`), so both PCs bringing in the same one keep it as one; and a PC
   signed in but not synced yet waits before bringing anything in from Xero (`AppServices.WaitsForFirstSync`).
 
+## How the chat travels
+
+- **Messages** (`ChatMessage` in Core, kind `chat`) are written once and never changed, so they're sent once and kept
+  as they come; nothing to merge. Locked with the workspace key like everything else.
+- **Files and screenshots** (at most 10 MB each, `ChatRules`) travel in parts of 256 KB (kind `chatpart`), so each
+  locked record stays well under the server's limit. A file shows as "On its way…" until all its parts are in.
+- **Unread.** Each PC notes when the chat was last read (setting `chat-read`) and which messages it has already
+  announced (setting `chat-announced`), so a note pops up once per new message.
+
 ## Licences
 
 A workspace's plan is on the server (`trial`, `active` with a paid-until day, or `complimentary`); `set-plan`

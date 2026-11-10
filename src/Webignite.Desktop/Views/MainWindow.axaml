@@ -57,6 +57,14 @@
           </Button>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,8,0,0">
+          <Button Classes="navtoggle" HorizontalAlignment="Center" Command="{Binding OpenChatCommand}" ToolTip.Tip="Chat with your partner">
+            <Panel>
+              <c:Icon Data="{StaticResource Icon.Chat}" Size="18" Foreground="{DynamicResource NavText}" />
+              <Border Classes="badge" IsVisible="{Binding HasChatUnread}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-10,0">
+                <TextBlock Text="{Binding ChatUnread}" FontSize="10" FontWeight="SemiBold" />
+              </Border>
+            </Panel>
+          </Button>
           <Button Classes="navtoggle" HorizontalAlignment="Center" IsVisible="{Binding Timer.IsRunning}" Command="{Binding OpenTimeCommand}"
                   ToolTip.Tip="{Binding Timer.Clock, StringFormat='Timer running, {0}. Click to open Time.'}">
             <c:Icon Data="{StaticResource Icon.Time}" Size="18" Foreground="{DynamicResource NavText}" />
@@ -142,6 +150,16 @@
         </StackPanel>
 
         <StackPanel DockPanel.Dock="Bottom" Margin="6,8,6,0" Spacing="6">
+          <!-- Chat with your partner, in a small window; the count is messages not read yet. -->
+          <Button Classes="navsearch" HorizontalAlignment="Stretch" Command="{Binding OpenChatCommand}" ToolTip.Tip="Chat with your partner">
+            <DockPanel>
+              <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasChatUnread}" VerticalAlignment="Center">
+                <TextBlock Text="{Binding ChatUnread}" FontSize="10" FontWeight="SemiBold" />
+              </Border>
+              <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Chat}" Size="16" Foreground="{DynamicResource NavText}" Margin="0,0,10,0" VerticalAlignment="Center" />
+              <TextBlock Text="Chat" Foreground="{DynamicResource NavText}" VerticalAlignment="Center" />
+            </DockPanel>
+          </Button>
           <!-- The running timer, from any page. Clicking it opens Time. -->
           <Button Classes="navsearch" HorizontalAlignment="Stretch" IsVisible="{Binding Timer.IsRunning}" Command="{Binding OpenTimeCommand}"
                   ToolTip.Tip="Timer running. Click to open Time.">

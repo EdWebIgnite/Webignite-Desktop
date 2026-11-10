@@ -1839,6 +1839,38 @@ clipWindow.Tools.Clips[1].ForgetCommand.Execute(null);
 Check("Forget takes one off", clipWindow.Tools.Clips.Count == 3 && services.Clipboard.Items.Count == 3);
 clipWindow.Close();
 Check("Closing the window stops it following the history and lets the pictures go", clipWindow.Tools.Clips.Count == 0);
+// Chat with your partner: words, a screenshot and a file, in a small window. Signed in only for the shot.
+{
+    var me = services.Team().Me!.Id;
+    var partnerId = services.Team().Partner!.Id;
+    var chatStart = DateTimeOffset.Now.AddMinutes(-40);
+    byte[] chatShot;
+    using (var shot = window.CaptureRenderedFrame()!)
+    using (var shotStream = new MemoryStream())
+    {
+        shot.Save(shotStream, new PngBitmapEncoderOptions());
+        chatShot = shotStream.ToArray();
+    }
+    var (shotFile, shotParts) = Webignite.Core.Chat.ChatRules.Split("Karoo Coffee menu page.png", chatShot);
+    foreach (var part in shotParts)
+        services.Store.SaveChatPart(part);
+    var pdf = System.Text.Encoding.UTF8.GetBytes("%PDF-1.4 sample");
+    var (pdfFile, pdfParts) = Webignite.Core.Chat.ChatRules.Split("Karoo Coffee quote QU-0042.pdf", pdf);
+    foreach (var part in pdfParts)
+        services.Store.SaveChatPart(part);
+    services.Store.SaveChatMessage(new Webignite.Core.Chat.ChatMessage { Id = "snap-chat-1", From = partnerId, Text = "Morning! Did Pieter come back on the menu page?", Sent = chatStart });
+    services.Store.SaveChatMessage(new Webignite.Core.Chat.ChatMessage { Id = "snap-chat-2", From = me, Text = "Yes, he likes it. Just wants the prices bigger. This is how it looks now:", Files = [shotFile], Sent = chatStart.AddMinutes(4) });
+    services.Store.SaveChatMessage(new Webignite.Core.Chat.ChatMessage { Id = "snap-chat-3", From = partnerId, Text = "Looks good. Here's the quote for the extra pages, can you approve it when you're happy?", Files = [pdfFile], Sent = chatStart.AddMinutes(9) });
+    services.Secrets.Write("webignite-sync-refresh", "snapshot");
+    var chatWindow = window.ShowChat(services);
+    Check("The chat shows both of you, the screenshot as a picture and the file to open",
+        chatWindow.Chat.Messages.Count == 3 && chatWindow.Chat.CanChat && chatWindow.Chat.Messages[1].Files.Single().Picture is not null
+        && chatWindow.Chat.Messages[2].Files.Single().Picture is null && chatWindow.Chat.Title == "Chat with Jaco");
+    chatWindow.Chat.Draft = "Will do, give me ten minutes";
+    SaveWindow(chatWindow, "chat");
+    chatWindow.Close();
+    services.Secrets.Delete("webignite-sync-refresh");
+}
 // Website images: two made-up photos, shrunk for real so the sizes are true.
 var photos = Path.Combine(data, "photos");
 Directory.CreateDirectory(photos);

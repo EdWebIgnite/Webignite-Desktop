@@ -76,6 +76,16 @@ public sealed class AppServices : IDisposable
     public AccountClient Account => account ??= new AccountClient(Store, Secrets);
     private AccountClient? account;
     private ChatGptTunnelRunner? chatGpt;
+    private ChatService? chat;
+
+    /// <summary>Chat between the two of you; messages go with the sync.</summary>
+    public ChatService Chat => chat ??= new ChatService(Store);
+
+    /// <summary>The chat was read on this PC, so the sidebar's unread count can be updated.</summary>
+    public Action? ChatRead { get; set; }
+
+    /// <summary>A sync brought changes, perhaps new messages: the open chat and the unread count are brought up to date.</summary>
+    public Action? ChatArrived { get; set; }
 
     /// <summary>OpenAI's tunnel, run in the background so ChatGPT can reach the connector on this PC.</summary>
     public ChatGptTunnelRunner ChatGpt => chatGpt ??= new ChatGptTunnelRunner(Settings, Secrets);
@@ -113,7 +123,9 @@ public sealed class AppServices : IDisposable
             await Task.Run(() => Account.RefreshLicenceAsync(TimeSpan.FromHours(12), DateTimeOffset.UtcNow));
         if (result.Changed > 0)
         {
-            AreasChanged?.Invoke(["projects", "documents", "clients", "contacts"]);
+            AreasChanged?.Invoke(["projects", "documents", "clients", "contacts", "chat"]);
+            ChatArrived?.Invoke();
+            AnnounceChat(await Task.Run(Chat.NewlyArrived));
             AnnounceInbox(await Task.Run(Inbox.NewlyArrived));
         }
         // Logged once when it starts going wrong, not every minute while the internet is down.
@@ -125,6 +137,15 @@ public sealed class AppServices : IDisposable
     }
 
     private string? lastSyncProblem;
+
+    // A note for each new message from the partner (the newest two, then a count), opening the chat when clicked.
+    private void AnnounceChat(IReadOnlyList<Webignite.Core.Chat.ChatMessage> fresh)
+    {
+        foreach (var message in fresh.TakeLast(2))
+            ShowNote?.Invoke($"Message from {Chat.NameOf(message.From)}", Webignite.Core.Chat.ChatRules.Preview(message), () => Go.Chat());
+        if (fresh.Count > 2)
+            ShowNote?.Invoke($"{fresh.Count - 2} more messages", "Open the chat to see them.", () => Go.Chat());
+    }
 
     // A note for each new thing in Inbox (two at most, then one saying how many more), opening the task.
     private void AnnounceInbox(IReadOnlyList<Webignite.Core.Projects.InboxItem> fresh)

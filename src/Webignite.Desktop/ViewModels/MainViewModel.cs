@@ -603,6 +603,18 @@ public partial class MainViewModel : ViewModelBase
     public TimeViewModel Time => PageOf<TimeViewModel>(Page.Time);
     public IReadOnlyList<Module> Modules { get; }
 
+    /// <summary>Messages from your partner not read yet, for the Chat button.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasChatUnread))]
+    public partial int ChatUnread { get; private set; }
+
+    public bool HasChatUnread => ChatUnread > 0;
+
+    public void UpdateChatUnread() => ChatUnread = services.Chat.Unread;
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void OpenChat() => services.Go.Chat();
+
     /// <summary>The sidebar itself: hidden or showing, and which groups are folded.</summary>
     public SidebarViewModel Sidebar { get; }
 
