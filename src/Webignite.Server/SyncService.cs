@@ -15,7 +15,7 @@ public sealed class SyncService(ServerStore store)
             return Outcome.Fail<PushReply>(StatusCodes.Status400BadRequest, $"Send at most {SyncLimits.RecordsPerPush} records at a time.");
         foreach (var record in records)
         {
-            if (record is null || !SyncKinds.All.Contains(record.Kind ?? "") || !SyncLimits.IdIsFine(record.Id))
+            if (record is null || !SyncLimits.KindIsFine(record.Kind) || !SyncLimits.IdIsFine(record.Id))
                 return Outcome.Fail<PushReply>(StatusCodes.Status400BadRequest, "A record isn't one the server knows.");
             if (string.IsNullOrEmpty(record.Payload) || record.Payload.Length > SyncLimits.LargestPayload)
                 return Outcome.Fail<PushReply>(StatusCodes.Status400BadRequest, "A record is empty or too big.");

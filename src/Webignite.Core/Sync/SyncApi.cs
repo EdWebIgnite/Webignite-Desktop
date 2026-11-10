@@ -30,6 +30,15 @@ public static class SyncLimits
     public const long WorkspaceBytes = 500L * 1024 * 1024;
     public const long WorkspaceRecords = 200_000;
 
+    public const int LongestKind = 20;
+
+    /// <summary>
+    /// A kind the server takes: small letters only. The server can't see inside records, so it doesn't need to know
+    /// each kind; a newer app's kinds go through an older server.
+    /// </summary>
+    public static bool KindIsFine(string? kind) =>
+        !string.IsNullOrEmpty(kind) && kind.Length <= LongestKind && kind.All(char.IsAsciiLetterLower);
+
     public static bool IdIsFine(string? id) =>
         !string.IsNullOrEmpty(id) && id.Length <= LongestId && id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 }

@@ -50,6 +50,8 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
   turned into JSON on the PC and locked with AES-256-GCM, using a key made from the workspace key
   (`RecordLock` in Core). The record's kind and id are bound into the lock, so the server can't swap one record
   for another or change one unnoticed: a record that doesn't open is left out and counted.
+- **Kinds.** The server takes any kind of small letters (`SyncLimits.KindIsFine`), as it can't see inside records
+  anyway, so a newer app's kinds go through an older server without updating the NAS.
 - **What the server sees:** the workspace, each record's kind and id, its size, and the order records arrived in.
   Never names, titles, notes or anything inside.
 - **Only shared projects.** Projects ticked Shared, with their sections, tasks, comments, activity and messages. Personal
@@ -82,6 +84,16 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 - **Xero.** Each of you connects Xero on your own PC (the same organisation). Clients, quotes and invoices brought in
   from Xero get ids made from Xero's (`xc-…`, `xd-…`), so both PCs bringing in the same one keep it as one; and a PC
   signed in but not synced yet waits before bringing anything in from Xero (`AppServices.WaitsForFirstSync`).
+
+## Settings both PCs share
+
+- **Which.** The business's own setup (`SharedSettings` in Core): how long quotes and invoices run, the email
+  wording, the price list, project templates, the income plan, and the Xero app with its sales account and branding
+  theme. So a partner joining finds them filled in, and only signs in to Xero. Looks, layout, mail, the ChatGPT tunnel
+  and each Xero sign-in stay on each PC.
+- **Merging.** Each travels whole (kind `setting`, id its name) with when it was last changed on a PC (setting
+  `shared-settings-changed`); the later change wins. Settings set before they ever synced carry no time: then the
+  workspace owner's copy wins, so a partner gets the owner's setup.
 
 ## How the chat travels
 

@@ -117,13 +117,17 @@ public sealed class AppServices : IDisposable
 
     public async Task<SyncResult> SyncNowAsync()
     {
+        var xeroApp = Settings.Xero.ClientId;
         var result = await Task.Run(() => Sync.SyncAsync());
+        // The Xero app can arrive from the other PC: a sign-in for another app is started afresh.
+        if (Settings.Xero.ClientId != xeroApp)
+            xero = null;
         // The licence is fetched again twice a day while signed in, so a renewal or a lapse reaches this PC.
         if (!result.Skipped && result.Problem is null)
             await Task.Run(() => Account.RefreshLicenceAsync(TimeSpan.FromHours(12), DateTimeOffset.UtcNow));
         if (result.Changed > 0)
         {
-            AreasChanged?.Invoke(["projects", "documents", "clients", "contacts", "chat"]);
+            AreasChanged?.Invoke(["projects", "documents", "clients", "contacts", "chat", "settings"]);
             ChatArrived?.Invoke();
             AnnounceChat(await Task.Run(Chat.NewlyArrived));
             AnnounceInbox(await Task.Run(Inbox.NewlyArrived));
