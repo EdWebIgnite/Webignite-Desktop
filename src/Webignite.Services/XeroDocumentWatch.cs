@@ -82,6 +82,14 @@ public sealed class XeroDocumentWatch(LocalStore store, Func<CancellationToken, 
                         : null) is not null)
                     refreshed++;
             }
+            // Webignite's own deleted or voided in Xero: settled here, so they leave To approve and the lists show why.
+            foreach (var (id, how) in plan.Gone)
+            {
+                if (store.Update(id, current => current.Settled is null
+                        ? current with { Settled = new SettledState { On = started, As = how }, Xero = current.Xero with { Status = how == Settlement.Voided ? XeroStatuses.Voided : XeroStatuses.Deleted } }
+                        : null) is not null)
+                    refreshed++;
+            }
             store.SetSetting(StateName, new XeroDocumentsState(started));
             return new XeroDocumentNews(added, refreshed);
         }

@@ -1735,6 +1735,20 @@ Save("to-approve");
 vm.Approvals.Rows[1].OpenCommand.Execute(null);
 Save("to-approve-open");
 vm.Approvals.Editor!.BackCommand.Execute(null);
+// A draft in Xero can be taken off the list by hand (one deleted in Xero, say), after a yes; Undo puts it back.
+{
+    var inXero = vm.Approvals.Rows.First(r => r.CanRemove);
+    var countBefore = vm.Approvals.Rows.Count;
+    inXero.AskRemoveCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Save("to-approve-remove");
+    inXero.RemoveCommand.Execute(null);
+    Check("Take it off takes it off To approve, and leaves it in its list", vm.Approvals.Rows.Count == countBefore - 1
+        && store.Get(inXero.Item.Stored.Id) is { OffApprovals: not null });
+    store.Update(inXero.Item.Stored.Id, d => d with { OffApprovals = null });
+    vm.Approvals.Refresh();
+    Check("Put back, it's on To approve again", vm.Approvals.Rows.Count == countBefore);
+}
 
 Open(Page.Overview);
 Save("overview");
