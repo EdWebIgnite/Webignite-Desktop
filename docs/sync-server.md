@@ -88,7 +88,7 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 ## Settings both PCs share
 
 - **Which.** The business's own setup (`SharedSettings` in Core): how long quotes and invoices run, the email
-  wording, the price list, project templates, the income plan, and the Xero app with its sales account and branding
+  wording, the look of quote and invoice mails (logo, details, banking details), the price list, project templates, the income plan, and the Xero app with its sales account and branding
   theme. So a partner joining finds them filled in, and only signs in to Xero. Looks, layout, mail, the ChatGPT tunnel
   and each Xero sign-in stay on each PC.
 - **Merging.** Each travels whole (kind `setting`, id its name) with when it was last changed on a PC (setting

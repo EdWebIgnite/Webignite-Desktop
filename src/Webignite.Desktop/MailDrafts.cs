@@ -26,6 +26,12 @@ public sealed record MailDraft(MailAccount From, string? To, string Subject, str
     /// QUOTE. When it fails, nothing is sent and the mail comes back.
     /// </summary>
     public Func<OutgoingMail, Task<OutgoingMail>>? BeforeSend { get; init; }
+
+    /// <summary>
+    /// The designed layout put around the words as the mail goes (quote and invoice mails), made then, after
+    /// <see cref="BeforeSend"/>, so it shows what's true at that moment, such as a quote's new expiry date.
+    /// </summary>
+    public Func<MailLayout>? Layout { get; init; }
 }
 
 /// <summary>
@@ -67,6 +73,11 @@ public sealed class MailDrafts(AppServices services)
             Body = draft.Body,
             Attachments = draft.Attachments,
         };
-        return services.Go.ComposeMail(mail, DraftNotes.For(to.People.Count, draft.NoAddress, draft.Unfilled, draft.Note), draft.AfterSent, draft.BeforeSend);
+        var beforeSend = draft.Layout is not { } layout ? draft.BeforeSend : async m =>
+        {
+            var ready = draft.BeforeSend is { } before ? await before(m) : m;
+            return ready with { Layout = layout() };
+        };
+        return services.Go.ComposeMail(mail, DraftNotes.For(to.People.Count, draft.NoAddress, draft.Unfilled, draft.Note), draft.AfterSent, beforeSend);
     }
 }

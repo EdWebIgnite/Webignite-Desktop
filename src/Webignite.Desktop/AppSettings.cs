@@ -263,6 +263,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("my-pages", value.ToList());
     }
 
+    /// <summary>How quote and invoice mails look: logo, footer details, banking details and terms. Shared with the other PC.</summary>
+    public MailBrand MailBrand
+    {
+        get => store.GetSetting<MailBrand>("mail-brand") ?? new MailBrand();
+        set => store.SetSetting("mail-brand", value);
+    }
+
     /// <summary>Where this PC is in the setup guide; null when it was never started here.</summary>
     public Webignite.Core.Accounts.SetupProgress? SetupGuide
     {

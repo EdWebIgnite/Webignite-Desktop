@@ -397,6 +397,22 @@ settingsPage.Open("backups");
 Save("settings-backups");
 settingsPage.Open("emails");
 Save("settings-emails");
+// How quote and invoice mails look: the details for the branded layout, below the wording.
+settingsPage.BrandCompany = "Webignite (Pty) Ltd";
+settingsPage.BrandPhone = "021 555 0100";
+settingsPage.BrandEmail = "accounts@webignite.co.za";
+settingsPage.BrandWebsite = "www.webignite.co.za";
+settingsPage.BrandAddress = "1 Sample Street, Cape Town, 8001";
+settingsPage.BrandBank = "Sample Bank\nCheque account\nAccount number: 0000000000";
+settingsPage.BrandTerms = "https://webignite.co.za/terms/";
+settingsPage.SaveBrandCommand.Execute(null);
+Check("The mail layout's details are kept and shared", services.Settings.MailBrand.CompanyName == "Webignite (Pty) Ltd"
+    && Webignite.Core.Sync.SharedSettings.IsShared("mail-brand") && !settingsPage.BrandProblem);
+window.Height = 2900;
+Dispatcher.UIThread.RunJobs();
+Save("settings-mail-brand");
+window.Height = 860;
+Dispatcher.UIThread.RunJobs();
 settingsPage.Open("mail");
 Check("Settings, Mail shows the spelling choices", settingsPage.SpellCheckOn && settingsPage.SpellLanguages.Count > 0 && settingsPage.SpellNote.Length > 0);
 Save("settings-mail");

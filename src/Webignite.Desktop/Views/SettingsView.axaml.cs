@@ -139,6 +139,16 @@ public partial class SettingsView : UserControl
             settings.SetClientRoot(path);
     }
 
+    private void ChooseBrandLogo(object? sender, RoutedEventArgs e) => ChooseBrandLogoAsync().Forget("Choosing the logo for mails", tell: true);
+
+    private async Task ChooseBrandLogoAsync()
+    {
+        if (DataContext is not SettingsViewModel settings)
+            return;
+        if (await Picker.Files(this, "Pick your logo (PNG or JPEG)", ["*.png", "*.jpg", "*.jpeg"], kindName: "Pictures") is [var path, ..])
+            settings.SetBrandLogo(path);
+    }
+
     private void ChooseRestoreFile(object? sender, RoutedEventArgs e) => ChooseRestoreFileAsync(sender, e).Forget("Choosing a backup to restore", tell: true);
 
     private async Task ChooseRestoreFileAsync(object? sender, RoutedEventArgs e)

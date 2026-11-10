@@ -31,6 +31,9 @@ public static class Chasing
                 Attachments = [pdf],
                 NoAddress = $"Xero has no email address for {ready.Values.ContactName}. Type it in To.",
                 Unfilled = filled.Unfilled,
+                Note = ViewModels.DocumentEditorViewModel.BrandedNote,
+                Layout = () => DocumentMailLayout.Build(ready.Values, services.Settings.MailBrand,
+                    services.Settings.MailBrand.Email is { Length: > 0 } email && email.Contains('@', StringComparison.Ordinal) ? email.Trim() : mailbox.Address),
                 AfterSent = _ =>
                 {
                     sending.MarkChased(services.Documents.Get(stored.Id) ?? ready.Stored);

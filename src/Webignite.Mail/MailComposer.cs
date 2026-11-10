@@ -33,7 +33,7 @@ public static class MailComposer
 
         var builder = new BodyBuilder { TextBody = Replies.TextPart(mail) };
         string? imageId = null;
-        foreach (var picture in mail.Images)
+        foreach (var picture in mail.Layout is { } layout ? [.. mail.Images, .. layout.Images] : mail.Images)
         {
             var part = builder.LinkedResources.Add(picture.ContentId + Extension(picture.ContentType), picture.Data, ContentType.Parse(picture.ContentType));
             part.ContentId = picture.ContentId;

@@ -284,10 +284,14 @@ sequenceDiagram
     Editor->>Mail: open the filled-in mail with the PDF (through MailDrafts)
     Eddie->>Mail: Send
     Mail->>Mail: wait 10 seconds (Undo)
+    Mail->>Sending: a quote is marked SENT (number and the rest kept, valid 30 days from today)
+    Mail->>Mail: the words put inside the branded layout (DocumentMailLayout)
     Mail->>Service: SendAsync (SMTP, copy to Sent)
     Mail->>Sending: MarkSentAsync(who it went to)
     Sending->>Xero: invoice marked sent, quote marked SENT
 ```
+
+Quote, invoice and reminder mails go out in a branded layout (`DocumentMailLayout` in Core, put on through `MailDraft.Layout` as the mail goes, as `OutgoingMail.Layout`): the logo, a soft purple panel with the due or valid-until date, the amount and a button (View and pay online opens Xero's online invoice; Accept this quote opens a reply saying so, as Xero gives apps no online quote link), the person's own words, the banking details (invoices), the terms link and a footer. The logo and details are typed in Settings, Email wording (`MailBrand`, setting `mail-brand`, shared with the other PC), never in the code, as they include the bank account; Send a test to myself shows it.
 
 Approving the invoice and marking it sent are the only Xero writes that aren't drafts, besides marking a sent quote accepted or declined, voiding an invoice and recording a payment, and they happen only from the person's own click: the email button (Approve and email, Email the invoice or quote, or Email it on the list's right-click menu), Client accepted and Client declined on a sent quote, Void in Xero followed by a yes, or Record payment. Credit notes go in as drafts. Claude and ChatGPT never get this far.
 
