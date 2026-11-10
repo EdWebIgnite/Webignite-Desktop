@@ -223,6 +223,32 @@ public static class XeroPayload
         return errors;
     }
 
+    /// <summary>
+    /// A quote's status change (SENT, ACCEPTED, DECLINED) with everything Xero would otherwise clear or change: an
+    /// update that leaves out the number makes Xero give the quote its next number, and one without an expiry date
+    /// empties it. So the number, reference, title, summary, terms, currency, theme and dates go along as Xero has
+    /// them, the expiry date replaced by <paramref name="expiry"/> when given. The lines are left as they are.
+    /// </summary>
+    public static JsonObject QuoteStatus(JsonObject record, string status, DateOnly? expiry = null)
+    {
+        var payload = new JsonObject
+        {
+            ["QuoteID"] = Str(record["QuoteID"]),
+            ["Status"] = status,
+            ["Contact"] = new JsonObject { ["ContactID"] = Str(record["Contact"]?["ContactID"]) },
+            ["Date"] = NormalizeDate(Str(record["DateString"]) is { Length: > 0 } d ? d : Str(record["Date"])),
+        };
+        foreach (var key in new[] { "QuoteNumber", "Reference", "Title", "Summary", "Terms", "CurrencyCode", "BrandingThemeID", "LineAmountTypes" })
+        {
+            if (Str(record[key]) is { Length: > 0 } value)
+                payload[key] = value;
+        }
+        var keptExpiry = NormalizeDate(Str(record["ExpiryDateString"]) is { Length: > 0 } e ? e : Str(record["ExpiryDate"]));
+        if ((expiry is { } newExpiry ? Iso(newExpiry) : keptExpiry) is { } expires)
+            payload["ExpiryDate"] = expires;
+        return payload;
+    }
+
     /// <summary>Xero returns dates as /Date(1735689600000+0000)/ or as ISO text.</summary>
     public static string? NormalizeDate(string? value)
     {

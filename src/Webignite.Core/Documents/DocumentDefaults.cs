@@ -8,6 +8,13 @@ public static class DocumentDefaults
         && days is >= 0 and <= 365 ? days : null;
 
     /// <summary>
+    /// When a quote stays valid until, as it goes to the client: <paramref name="days"/> from the day it's sent, unless
+    /// someone picked another date by hand (one that isn't the default worked out from the quote's own date).
+    /// </summary>
+    public static DateOnly QuoteExpiryOnSending(DateOnly? expiry, DateOnly? quoteDate, DateOnly sent, int days) =>
+        expiry is { } picked && quoteDate is { } made && picked != made.AddDays(days) && picked > sent ? picked : sent.AddDays(days);
+
+    /// <summary>
     /// Fills in what nobody should have to type on a new quote or invoice: today's date, the currency,
     /// the due or expiry date from settings, and the totals from the lines. Imported documents are
     /// returned unchanged, because their figures must match the source exactly.
