@@ -39,6 +39,7 @@ public sealed class Navigator
     internal Action<string>? OpenFolderInNewWindowAction { get; set; }
     internal Action<string>? MarkupPictureAction { get; set; }
     internal Action<string>? OpenSettingsAction { get; set; }
+    internal Action? SetupGuideAction { get; set; }
     internal Action<bool>? ScreenshotAction { get; set; }
     internal Action<bool>? RecordAction { get; set; }
     internal Action<IReadOnlyList<string>>? OpenPdfAction { get; set; }
@@ -163,6 +164,9 @@ public sealed class Navigator
 
     /// <summary>The small quick-note box, as from the shortcut.</summary>
     public void QuickNote() => QuickNoteAction?.Invoke();
+
+    /// <summary>Starts the setup guide again.</summary>
+    public void SetupGuide() => SetupGuideAction?.Invoke();
 
     /// <summary>Opens Settings at a section, by its key (e.g. "files").</summary>
     public void Settings(string section) => OpenSettingsAction?.Invoke(section);
