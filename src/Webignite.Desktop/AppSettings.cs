@@ -263,6 +263,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("my-pages", value.ToList());
     }
 
+    /// <summary>Where this PC is in the setup guide; null when it was never started here.</summary>
+    public Webignite.Core.Accounts.SetupProgress? SetupGuide
+    {
+        get => store.GetSetting<Webignite.Core.Accounts.SetupProgress>("setup-guide");
+        set => store.SetSetting("setup-guide", value);
+    }
+
     public IReadOnlyList<ProjectTemplate> ProjectTemplates
     {
         get => store.GetSetting<List<ProjectTemplate>>("project-templates") ?? [];
