@@ -142,9 +142,38 @@
     <Style Selector="ListBox.messages ListBoxItem:selected:focus-within Border.mailcard">
       <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
     </Style>
-    <Style Selector="Grid.mailrow.unread TextBlock.who, Grid.mailrow.unread TextBlock.subject">
+    <!-- Calm rows: the sender a touch larger than the subject, both in the palette's softer text colour, not pure
+         white on the dark looks; unread shows by the dot, the left edge and a bolder sender. -->
+    <Style Selector="Grid.mailrow TextBlock.subject">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource SoftText}" />
+    </Style>
+    <Style Selector="Grid.mailrow TextBlock.who">
+      <Setter Property="Foreground" Value="{DynamicResource SoftText}" />
+    </Style>
+    <Style Selector="Grid.mailrow.unread TextBlock.who">
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="Grid.mailrow.unread TextBlock.subject">
+      <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+    <!-- The open mail's subject: smaller and softer than a page heading -->
+    <Style Selector="TextBlock.readersubject">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource SoftText}" />
+    </Style>
+    <!-- A mailbox's name: a click folds it up to its Inbox -->
+    <Style Selector="Button.mailboxhead">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="4,4" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.mailboxhead:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
     </Style>
     <!-- Quick filters above the list -->
     <Style Selector="Button.filterchip">
@@ -284,18 +313,28 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MailboxNodeViewModel">
                     <StackPanel Classes="mailbox" Margin="0,0,0,14" Background="Transparent">
-                      <DockPanel Margin="10,0,4,4" IsVisible="{Binding HasTitle}">
+                      <DockPanel Margin="4,0,4,4" IsVisible="{Binding HasTitle}">
                         <Button DockPanel.Dock="Right" Classes="link onhover" FontSize="12" Content="Edit" Command="{Binding EditCommand}" />
-                        <StackPanel>
-                          <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Address}" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
+                        <!-- A click on the name folds the mailbox up to its name and Inbox, or opens it again -->
+                        <Button Classes="mailboxhead" Command="{Binding ToggleFoldCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                ToolTip.Tip="Fold up to the inbox, or show every folder">
+                          <DockPanel>
+                            <Panel DockPanel.Dock="Left" Width="16" Margin="0,2,4,0" VerticalAlignment="Top">
+                              <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" Foreground="{DynamicResource Muted}" IsVisible="{Binding IsOpen}" />
+                              <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="12" Foreground="{DynamicResource Muted}" IsVisible="{Binding IsFolded}" />
+                            </Panel>
+                            <StackPanel>
+                              <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Classes="muted" FontSize="12" Text="{Binding Address}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </DockPanel>
+                        </Button>
                       </DockPanel>
                       <ItemsControl ItemsSource="{Binding Folders}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:FolderNodeViewModel">
                             <Button Classes="folder" Classes.current="{Binding IsCurrent}" Classes.drop="{Binding IsDropTarget}" Classes.important="{Binding IsImportant}"
-                                    Padding="{Binding Indent}" Command="{Binding OpenCommand}"
+                                    Padding="{Binding Indent}" Command="{Binding OpenCommand}" IsVisible="{Binding !IsHidden}"
                                     DragDrop.AllowDrop="True" DragDrop.DragOver="FolderDragOver" DragDrop.DragLeave="FolderDragLeave" DragDrop.Drop="FolderDrop">
                               <Button.ContextMenu>
                                 <ContextMenu IsVisible="{Binding IsRealFolder}">
@@ -315,7 +354,7 @@
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
-                      <Button Classes="folder newfolder onhover" Padding="10,5" Command="{Binding NewFolderCommand}" IsVisible="{Binding HasTitle}">
+                      <Button Classes="folder newfolder onhover" Padding="10,5" Command="{Binding NewFolderCommand}" IsVisible="{Binding ShowsNewFolder}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                           <c:Icon Data="{StaticResource Icon.FolderPlus}" Size="15" />
                           <TextBlock Text="New folder" />
@@ -560,7 +599,7 @@
               <DockPanel>
                 <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Flag}" Size="18" Margin="10,4,0,0" VerticalAlignment="Top"
                         Foreground="{DynamicResource Important}" IsVisible="{Binding IsImportant}" ToolTip.Tip="Important" />
-                <TextBlock Classes="h2" Text="{Binding Subject}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="readersubject" Text="{Binding Subject}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
               </DockPanel>
               <DockPanel>
                 <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="12,0,0,0" Text="{Binding Date}" VerticalAlignment="Center" />

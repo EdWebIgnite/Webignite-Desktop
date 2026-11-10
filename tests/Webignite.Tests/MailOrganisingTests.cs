@@ -198,4 +198,18 @@ public sealed class MailKeywordStoreTests : IDisposable
         SqliteConnection.ClearAllPools();
         Directory.Delete(folder, recursive: true);
     }
+
+    [Fact]
+    public void A_folded_mailbox_keeps_its_inbox_and_the_open_folder_in_sight()
+    {
+        Assert.True(MailboxFolding.Shows(folded: true, FolderRole.Inbox, isCurrent: false));
+        Assert.False(MailboxFolding.Shows(folded: true, FolderRole.Sent, isCurrent: false));
+        Assert.True(MailboxFolding.Shows(folded: true, FolderRole.Other, isCurrent: true));
+        Assert.True(MailboxFolding.Shows(folded: false, FolderRole.Trash, isCurrent: false));
+
+        var folded = MailboxFolding.Toggle(null, "eddie");
+        Assert.Equal(["eddie"], folded);
+        Assert.Equal(["eddie", "accounts"], MailboxFolding.Toggle(folded, "accounts"));
+        Assert.Empty(MailboxFolding.Toggle(folded, "eddie"));
+    }
 }

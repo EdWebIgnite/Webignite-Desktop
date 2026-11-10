@@ -6,9 +6,9 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <SolidColorBrush x:Key="Canvas" Color="#0F1520" />
   <SolidColorBrush x:Key="Surface" Color="#172030" />
-  <!-- Behind a page of a PDF or a picture: white, as on paper, in every look. -->
-  <SolidColorBrush x:Key="Paper" Color="#FFFFFF" />
-  <!-- Writing on paper (the mail editor): the paper stays white in every palette, so its ink does too. -->
+  <!-- Mail and documents sit on paper; off-white in the dark looks so it doesn't glare. -->
+  <SolidColorBrush x:Key="Paper" Color="#E2E6EC" />
+  <!-- Writing on paper (the mail editor): the paper stays light in every palette, so its ink does too. -->
   <SolidColorBrush x:Key="PaperText" Color="#1F2A26" />
   <SolidColorBrush x:Key="PaperLine" Color="#C8CDD0" />
   <SolidColorBrush x:Key="PaperMuted" Color="#7A8580" />
@@ -20,6 +20,8 @@
   <SolidColorBrush x:Key="Line" Color="#26344A" />
   <SolidColorBrush x:Key="Line2" Color="#36475F" />
   <SolidColorBrush x:Key="Text" Color="#DCE4F0" />
+  <!-- Text a step softer than Text, for long lists such as the mail list; the same as Text in the light looks. -->
+  <SolidColorBrush x:Key="SoftText" Color="#C3CDDC" />
   <!-- Selected text in boxes: a soft highlight the text stays readable on. -->
   <SolidColorBrush x:Key="Selection" Color="#2F4A7A" />
   <SolidColorBrush x:Key="OnSelection" Color="#DCE4F0" />
