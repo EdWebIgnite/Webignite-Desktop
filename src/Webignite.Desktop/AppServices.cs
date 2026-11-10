@@ -115,16 +115,18 @@ public sealed class AppServices : IDisposable
     /// </summary>
     public bool WaitsForFirstSync => Account.IsSignedIn && Sync.State.LastSynced is null;
 
-    public async Task<SyncResult> SyncNowAsync()
+    /// <summary>Syncs now; by hand (Sync now), the licence is fetched again too, so a change to the plan shows at once.</summary>
+    public async Task<SyncResult> SyncNowAsync(bool byHand = false)
     {
         var xeroApp = Settings.Xero.ClientId;
         var result = await Task.Run(() => Sync.SyncAsync());
         // The Xero app can arrive from the other PC: a sign-in for another app is started afresh.
         if (Settings.Xero.ClientId != xeroApp)
             xero = null;
-        // The licence is fetched again twice a day while signed in, so a renewal or a lapse reaches this PC.
+        // The licence is fetched again twice a day while signed in, and at once from Sync now, so a renewal, a lapse or a
+        // change of plan reaches this PC.
         if (!result.Skipped && result.Problem is null)
-            await Task.Run(() => Account.RefreshLicenceAsync(TimeSpan.FromHours(12), DateTimeOffset.UtcNow));
+            await Task.Run(() => Account.RefreshLicenceAsync(byHand ? TimeSpan.Zero : TimeSpan.FromHours(12), DateTimeOffset.UtcNow));
         if (result.Changed > 0)
         {
             AreasChanged?.Invoke(["projects", "documents", "clients", "contacts", "chat", "settings"]);

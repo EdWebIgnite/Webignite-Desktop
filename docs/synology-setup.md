@@ -187,6 +187,18 @@ When the sync server changes, I'll tell you. Then:
 
 It downloads the new version and restarts the server. Sync pauses for a minute and carries on.
 
+## Your own workspace free for good
+
+A new workspace starts on a 30-day trial. To make yours free with no end date (for you and your partner):
+
+1. In **Container Manager**, click **Container**, then the **system_sync-server-1** row.
+2. Click **Action**, then **Open terminal**.
+3. Click **Create**, then pick **bash**.
+4. Type this, with your own email, and press Enter:
+   `dotnet Webignite.Server.dll set-plan eddie@webignite.co.za complimentary`
+5. It answers that the workspace is now on complimentary. Close the terminal.
+6. In Webignite, click **Sync now** in Settings, Account and sync. Licence shows "Licensed, free of charge".
+
 ## Power cuts and the NAS being off
 
 If the NAS is off or the internet is down, sync just waits. Nothing is lost: every PC keeps its own full copy
