@@ -96,6 +96,9 @@ public sealed record StoredDocument
     /// <summary>For an invoice made from a quote here: that quote's id, so each can show the other.</summary>
     public string? FromQuote { get; init; }
 
+    /// <summary>When it was taken off To approve by hand. It stays in its list, and nothing changes in Xero.</summary>
+    public DateTimeOffset? OffApprovals { get; init; }
+
     public DateTimeOffset Created { get; init; }
     public DateTimeOffset Updated { get; init; }
 

@@ -44,9 +44,19 @@
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Spacing="8" VerticalAlignment="Center" Margin="16,0,0,0">
                   <TextBlock Classes="amount" FontSize="16" FontWeight="SemiBold" Text="{Binding Total}" />
-                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" IsVisible="{Binding !ConfirmingReject}">
+                  <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" IsVisible="{Binding ShowsButtons}">
                     <Button Classes="link" Content="Reject" Command="{Binding AskRejectCommand}" IsVisible="{Binding CanReject}" />
+                    <Button Classes="link" Content="Remove" Command="{Binding AskRemoveCommand}" IsVisible="{Binding CanRemove}"
+                            ToolTip.Tip="Take it off this list, for one deleted or dealt with in Xero" />
                     <Button Classes="primary" Content="Open" Command="{Binding OpenCommand}" />
+                  </StackPanel>
+                  <StackPanel Spacing="6" HorizontalAlignment="Right" MaxWidth="260" IsVisible="{Binding ConfirmingRemove}">
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" TextAlignment="Right"
+                               Text="Take it off this list? It stays in its list here, and nothing changes in Xero." />
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                      <Button Classes="quiet" Content="Take it off" Command="{Binding RemoveCommand}" />
+                      <Button Classes="link" Content="Keep" Command="{Binding KeepOnCommand}" />
+                    </StackPanel>
                   </StackPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" IsVisible="{Binding ConfirmingReject}">
                     <Button Classes="quiet" Content="Throw it away" Command="{Binding RejectCommand}" />

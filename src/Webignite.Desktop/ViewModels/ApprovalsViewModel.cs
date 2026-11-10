@@ -50,6 +50,19 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
             });
     }
 
+    internal void Remove(ApprovalRowViewModel row)
+    {
+        if (services.Documents.TakeOffApprovals(row.Item, DateTimeOffset.UtcNow) is not { } off)
+            return;
+        Refresh();
+        var name = off.Xero.Number ?? (off.Document.Kind == DocumentKind.Quote ? "the quote" : "the invoice");
+        services.OfferUndo($"Took {name} off To approve", () =>
+        {
+            services.Documents.PutBackOnApprovals(off.Id);
+            Refresh();
+        });
+    }
+
     internal void Reject(ApprovalRowViewModel row)
     {
         // Only documents that never reached Xero can be thrown away here.
@@ -75,11 +88,28 @@ public partial class ApprovalRowViewModel(WaitingItem item, ApprovalsViewModel o
     public string Reason => item.Reason;
     public bool IsProblem => item.Kind == WaitingKind.XeroProblem;
     public bool CanReject => Approvals.CanReject(item);
+    public bool CanRemove => Approvals.CanRemove(item);
+    public bool ShowsButtons => !ConfirmingReject && !ConfirmingRemove;
     public string Lines => string.Join(", ", item.Stored.Document.Lines.Take(3).Select(l => l.Description))
         + (item.Stored.Document.Lines.Count > 3 ? $" and {item.Stored.Document.Lines.Count - 3} more" : "");
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsButtons))]
     public partial bool ConfirmingReject { get; set; }
+
+    /// <summary>Asking whether to take it off the list.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsButtons))]
+    public partial bool ConfirmingRemove { get; set; }
+
+    [RelayCommand]
+    private void AskRemove() => ConfirmingRemove = true;
+
+    [RelayCommand]
+    private void KeepOn() => ConfirmingRemove = false;
+
+    [RelayCommand]
+    private void Remove() => owner.Remove(this);
 
     [RelayCommand]
     private void Open() => owner.Open(this);

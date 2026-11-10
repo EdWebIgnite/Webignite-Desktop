@@ -25,6 +25,21 @@ public sealed class ApprovalTests : IDisposable
     };
 
     [Fact]
+    public void Something_settled_or_taken_off_by_hand_leaves_the_list_and_only_what_is_in_Xero_can_be_taken_off()
+    {
+        var draft = Doc(DocumentKind.Quote).WithXero(x => x with { State = XeroWriteState.Mismatch, Id = "q9" }) with { Status = DocumentStatus.InXero };
+        var item = Assert.Single(Approvals.Waiting([draft]));
+        Assert.True(Approvals.CanRemove(item));
+
+        var deleted = draft with { Settled = new SettledState { On = DateTimeOffset.UtcNow, As = Settlement.Deleted } };
+        var off = draft with { OffApprovals = DateTimeOffset.UtcNow };
+        Assert.Empty(Approvals.Waiting([deleted, off]));
+
+        var fromClaude = Doc() with { Status = DocumentStatus.AwaitingApproval, Source = DocumentSource.Claude };
+        Assert.False(Approvals.CanRemove(Assert.Single(Approvals.Waiting([fromClaude]))));
+    }
+
+    [Fact]
     public void The_list_holds_what_needs_Eddie_most_urgent_first()
     {
         var mine = Doc();

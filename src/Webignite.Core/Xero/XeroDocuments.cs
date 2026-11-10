@@ -33,7 +33,11 @@ public sealed record XeroSalesDocument
 }
 
 /// <summary>What bringing in Xero's quotes and invoices found.</summary>
-public sealed record XeroDocumentsPlan(IReadOnlyList<StoredDocument> ToAdd, IReadOnlyList<StoredDocument> ToRefresh);
+public sealed record XeroDocumentsPlan(IReadOnlyList<StoredDocument> ToAdd, IReadOnlyList<StoredDocument> ToRefresh)
+{
+    /// <summary>Webignite's own documents deleted or voided in Xero since, by id, with how: they're settled here so they drop off To approve.</summary>
+    public IReadOnlyList<(string Id, Settlement As)> Gone { get; init; } = [];
+}
 
 /// <summary>
 /// Quotes and invoices made in Xero itself, brought in so lists, Money, Reports and reminders see everything, not
@@ -60,19 +64,22 @@ public static class XeroDocuments
         var unsure = existing.Where(d => d.Xero.Id is null && d.Xero.State is XeroWriteState.Writing or XeroWriteState.Uncertain).ToList();
         var add = new List<StoredDocument>();
         var refresh = new List<StoredDocument>();
+        var gone = new List<(string, Settlement)>();
         foreach (var row in fromXero.DistinctBy(r => r.Id, StringComparer.OrdinalIgnoreCase))
         {
             if (byXeroId.TryGetValue(row.Id, out var known))
             {
                 if (known.Document.Origin == DocumentOrigin.Xero && ToStored(row, now, known) is var fresh && !Same(fresh, known))
                     refresh.Add(fresh);
+                else if (known.Document.Origin != DocumentOrigin.Xero && known.Settled is null && row.Status is XeroStatuses.Deleted or XeroStatuses.Voided)
+                    gone.Add((known.Id, row.Status == XeroStatuses.Voided ? Settlement.Voided : Settlement.Deleted));
                 continue;
             }
             if (row.Status is XeroStatuses.Deleted or XeroStatuses.Voided || unsure.Any(d => MaybeSame(d, row)))
                 continue;
             add.Add(ToStored(row, now, null));
         }
-        return new XeroDocumentsPlan(add, refresh);
+        return new XeroDocumentsPlan(add, refresh) { Gone = gone };
     }
 
     private static bool MaybeSame(StoredDocument ours, XeroSalesDocument row) =>
