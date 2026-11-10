@@ -79,6 +79,20 @@ public sealed class LicenceTests : IDisposable
     });
 
     [Fact]
+    public async Task The_public_licence_key_can_be_read_from_the_server_to_put_in_the_app()
+    {
+        using (var server = Server(keys.PrivateKey))
+        {
+            using var http = server.CreateClient();
+            Assert.Equal(keys.PublicKey, await http.GetStringAsync(new Uri("/licence-public-key", UriKind.Relative), Cancel));
+        }
+        using var without = Server(null);
+        using var none = without.CreateClient();
+        using var response = await none.GetAsync(new Uri("/licence-public-key", UriKind.Relative), Cancel);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task The_server_gives_a_new_workspace_a_trial_and_a_plan_set_by_hand_reaches_the_app()
     {
         using var server = Server(keys.PrivateKey);

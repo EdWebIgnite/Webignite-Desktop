@@ -1,0 +1,80 @@
+name: Sync server image
+
+# The sync server as a ready-made image, so the Synology NAS only downloads it (docs/synology-setup.md):
+# ghcr.io/edwebignite/webignite-server:latest. Built after "Build and test" passes for a merge to main, and only
+# pushed when the server's own files changed, so the NAS doesn't offer an update for every app change. A pull
+# request only checks that the image still builds. It can also be started by hand from the Actions tab.
+on:
+  workflow_run:
+    workflows: ["Build and test"]
+    types: [completed]
+    branches: [main]
+  pull_request:
+    paths:
+      - "src/Webignite.Server/**"
+      - "src/Webignite.Core/**"
+      - "deploy/Dockerfile"
+      - "Directory.Build.props"
+      - "Directory.Packages.props"
+      - "global.json"
+      - ".github/workflows/server-image.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: server-image-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/edwebignite/webignite-server
+
+jobs:
+  image:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Fingerprint the server's own files
+        id: source
+        run: |
+          hash=$(git ls-files -s src/Webignite.Server src/Webignite.Core deploy/Dockerfile Directory.Build.props Directory.Packages.props global.json .editorconfig | sha256sum | cut -c1-16)
+          echo "tag=src-$hash" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to GitHub's registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Already built from these files?
+        id: known
+        if: github.event_name == 'workflow_run'
+        run: |
+          if docker manifest inspect "$IMAGE:${{ steps.source.outputs.tag }}" > /dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "The server's files haven't changed since the last image; nothing to push."
+          fi
+
+      - uses: docker/build-push-action@v6
+        if: steps.known.outputs.skip != 'true'
+        with:
+          context: .
+          file: deploy/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.source.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/EdWebIgnite/Webignite-Desktop
+            org.opencontainers.image.description=The Webignite sync server

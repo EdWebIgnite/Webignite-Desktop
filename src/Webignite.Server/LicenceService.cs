@@ -11,6 +11,9 @@ public sealed class LicenceService(ServerStore store, TimeProvider clock, ECDsa?
 {
     public bool IsSetUp => key is not null;
 
+    /// <summary>The public half of the licence key, for the app (safe to share), or null when there's none.</summary>
+    public string? PublicKey => key is null ? null : Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
+
     public Result<LicenceReply> For(string accountId)
     {
         if (key is null)

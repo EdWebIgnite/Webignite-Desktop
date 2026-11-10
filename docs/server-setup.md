@@ -1,5 +1,9 @@
 # Setting up the sync server on xneelo
 
+> Setting it up on the Synology NAS at home instead? Use [synology-setup.md](synology-setup.md). This guide needs
+> a server you fully control (xneelo Cloud or a Self-Managed Server). A xneelo **Managed** Server can't run it,
+> as it doesn't allow installing Docker.
+
 This walks you through putting the Webignite sync server on a small xneelo Cloud server in Johannesburg, from
 nothing to both PCs syncing. Plan on an hour or two the first time. You'll type commands into PowerShell on your
 PC and into the server once you're logged in to it; copy them as they are.

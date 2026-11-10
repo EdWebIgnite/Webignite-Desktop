@@ -94,7 +94,9 @@ Then in Webignite, Settings, Account and sync, use `http://localhost:5080` as th
 
 ## On a real server
 
-Step by step on an xneelo Cloud server, with Docker, Caddy for HTTPS, a firewall, nightly backups and updates: [server-setup.md](server-setup.md). The files for it are in `deploy/`.
+On the Synology NAS at home, all in DSM with no commands: [synology-setup.md](synology-setup.md) (`deploy/synology/compose.yaml`, with the ready-made image `ghcr.io/edwebignite/webignite-server`). There the server keeps its own secret and licence key as files in its data folder (`ServerFiles`, readable by the server alone; settings, when given, win) and copies its database every night at 02:30 into `data/backups`, keeping 30 days (`NightlyBackup`).
+
+Step by step on a hosted server you fully control (xneelo Cloud, not a managed server), with Docker, Caddy for HTTPS, a firewall, nightly backups and updates: [server-setup.md](server-setup.md). The files for it are in `deploy/`.
 
 ## Endpoints
 
