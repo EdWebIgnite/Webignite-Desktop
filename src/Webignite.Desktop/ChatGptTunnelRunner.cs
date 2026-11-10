@@ -81,9 +81,17 @@ public sealed class ChatGptTunnelRunner(AppSettings settings, ISecretStore secre
     /// <summary>The last lines tunnel-client wrote, for when it stopped.</summary>
     public string LastLines => lastLines;
 
+    /// <summary>
+    /// Stops tunnel-client copies left running by an earlier Webignite (an update's restart closes Webignite without
+    /// tidying up), so only one runs for the tunnel and an update isn't held up.
+    /// </summary>
+    public static int StopStrays() => AssistantSetup.StopProgramsIn("tunnel-client", Folder);
+
     private string? Start()
     {
         lastStart = DateTimeOffset.UtcNow;
+        if (process is null)
+            StopStrays();
         var program = InstalledProgram;
         var tunnel = settings.ChatGptTunnel;
         if (program is null)
