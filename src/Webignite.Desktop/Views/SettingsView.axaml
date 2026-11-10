@@ -800,8 +800,22 @@
 
           <StackPanel Spacing="8" IsVisible="{Binding IsWorkspaceOwner}">
             <TextBlock FontWeight="SemiBold" Text="Your partner" Margin="0,6,0,0" />
-            <Button Content="Make an invite code" Command="{Binding InvitePartnerCommand}" IsEnabled="{Binding !AccountBusy}" HorizontalAlignment="Left" />
-            <SelectableTextBlock Text="{Binding InviteText}" FontSize="18" FontFamily="Consolas, Menlo, monospace" IsVisible="{Binding HasInvite}" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Makes one message with everything your partner needs: the link to install Webignite, an invite code and the few steps. Send it only to them." />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Make an invite" Command="{Binding InvitePartnerCommand}" IsEnabled="{Binding !AccountBusy}" />
+              <Button Classes="link" Content="Copy the install link" Command="{Binding CopyInstallLinkCommand}" CommandParameter="{Binding $parent[TopLevel]}"
+                      ToolTip.Tip="Always the newest Webignite for Windows" VerticalAlignment="Center" />
+            </StackPanel>
+            <Border Classes="pending" Padding="14" IsVisible="{Binding HasInvite}">
+              <StackPanel Spacing="10">
+                <SelectableTextBlock Text="{Binding InviteMessage}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="primary" Content="Copy the message" Command="{Binding CopyInviteCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
+                  <Button Content="Send it by mail" Command="{Binding MailInviteCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
           </StackPanel>
 
           <TextBlock FontWeight="SemiBold" Text="Password and PCs" Margin="0,6,0,0" />

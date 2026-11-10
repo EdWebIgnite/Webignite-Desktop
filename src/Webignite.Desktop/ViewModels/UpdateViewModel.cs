@@ -11,7 +11,7 @@ namespace Webignite.Desktop.ViewModels;
 /// </summary>
 public partial class UpdateViewModel : ViewModelBase
 {
-    public const string Repository = "https://github.com/EdWebIgnite/Webignite-Desktop";
+    public const string Repository = Webignite.Core.Accounts.InvitePackage.Releases;
 
     private UpdateManager? manager;
     private UpdateInfo? ready;

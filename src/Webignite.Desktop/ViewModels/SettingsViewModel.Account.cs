@@ -281,7 +281,7 @@ public partial class SettingsViewModel
         IsSignedIn = false;
         HasWorkspaceKey = false;
         NewRecoveryKey = "";
-        SignedInAs = InviteText = RecoveryCodesText = "";
+        SignedInAs = InviteText = InviteMessage = RecoveryCodesText = "";
         Members.Clear();
         MemberToRemove = null;
         ChangingAccountPassword = false;
@@ -354,6 +354,42 @@ public partial class SettingsViewModel
             return;
         }
         InviteText = invite.Code;
-        SaySync($"Give this whole code to your partner, in a message only they can see: it also unlocks your shared projects. In Webignite they choose Join with an invite. It works once, until {invite.Expires.ToLocalTime():d MMMM}.");
+        InviteMessage = InvitePackage.Message(invite.Code, invite.Expires, services.Team().Me?.Name, System.Globalization.CultureInfo.CurrentCulture);
+        SaySync($"Send your partner the message below, by mail or WhatsApp, only to them: the code also unlocks your shared work. It works once, until {invite.Expires.ToLocalTime():d MMMM}.");
     });
+
+    /// <summary>The whole invite: install link, code and steps, to copy or send.</summary>
+    [ObservableProperty] public partial string InviteMessage { get; private set; } = "";
+
+    [RelayCommand]
+    private async Task CopyInvite(Avalonia.Controls.TopLevel? top)
+    {
+        if (InviteMessage.Length == 0 || top?.Clipboard is not { } clipboard)
+            return;
+        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, InviteMessage);
+        SaySync("Copied. Paste it into a mail or WhatsApp to your partner.");
+    }
+
+    [RelayCommand]
+    private async Task CopyInstallLink(Avalonia.Controls.TopLevel? top)
+    {
+        if (top?.Clipboard is not { } clipboard)
+            return;
+        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, InvitePackage.InstallLink);
+        SaySync("The install link is copied. It always gives the newest Webignite.");
+    }
+
+    /// <summary>Opens the invite as a new mail in Mail, from your first mailbox; you add your partner's address.</summary>
+    [RelayCommand]
+    private void MailInvite()
+    {
+        if (services.Store.ListMailAccounts() is not [var from, ..])
+        {
+            SaySync("Add a mailbox in Mail first, or copy the message and send it another way.", problem: true);
+            return;
+        }
+        var mail = new Webignite.Core.Mail.OutgoingMail { AccountId = from.Id, Subject = InvitePackage.Subject, Body = InviteMessage };
+        if (!services.Go.ComposeMail(mail, "Add your partner's address, then send. Only they should get this.", null))
+            SaySync("Close the mail you're writing first, then try again.", problem: true);
+    }
 }
