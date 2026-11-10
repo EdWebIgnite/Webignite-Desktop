@@ -26,8 +26,11 @@ public static class SyncKinds
     public const string Chat = "chat";
     public const string ChatPart = "chatpart";
 
+    /// <summary>Settings that belong to the business rather than the PC (<see cref="SharedSettings"/>).</summary>
+    public const string Setting = "setting";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
-        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact, Chat, ChatPart };
+        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact, Chat, ChatPart, Setting };
 }
 
 /// <summary>

@@ -311,7 +311,9 @@ public sealed class PlannerSyncTests : IDisposable
         var theirs = await stranger.Account.PullAsync(0, Cancel);
         Assert.Empty(theirs.Value!.Records);
 
-        Assert.False((await owner.Account.PushAsync([new SyncRecord("invoice", "p1", "bG9ja2Vk")], Cancel)).Worked);
+        // A kind from a newer app goes through; one that isn't small letters doesn't.
+        Assert.True((await owner.Account.PushAsync([new SyncRecord("somethingnew", "p1", "bG9ja2Vk")], Cancel)).Worked);
+        Assert.False((await owner.Account.PushAsync([new SyncRecord("../invoice", "p1", "bG9ja2Vk")], Cancel)).Worked);
         Assert.False((await owner.Account.PushAsync([new SyncRecord(SyncKinds.Project, "../p1", "bG9ja2Vk")], Cancel)).Worked);
         Assert.False((await owner.Account.PushAsync([new SyncRecord(SyncKinds.Project, "p2", "")], Cancel)).Worked);
         var tooMany = Enumerable.Range(0, SyncLimits.RecordsPerPush + 1).Select(i => new SyncRecord(SyncKinds.Task, $"t{i}", "bG9ja2Vk")).ToList();

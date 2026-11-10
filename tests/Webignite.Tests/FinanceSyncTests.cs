@@ -170,4 +170,29 @@ public sealed class FinanceSyncTests : IDisposable
         Assert.Equal(0, jaco.Unread);
         Assert.Equal(0, eddie.Unread); // his own message isn't unread for him
     }
+
+    [Fact]
+    public async Task The_business_settings_reach_the_partner_and_a_change_there_comes_back_but_looks_stay_on_each_pc()
+    {
+        var (eddie, jaco) = await TwoPcs();
+        eddie.Store.SetSetting("documents", new DocumentSettings { InvoiceDueDays = 14 });
+        eddie.Store.SetSetting("price-list", new List<string> { "Hosting, 12 months" });
+        eddie.Store.SetSetting("appearance", "dark");
+        await Sync(eddie);
+        await Sync(jaco);
+        Assert.Equal(14, jaco.Store.GetSetting<DocumentSettings>("documents")!.InvoiceDueDays);
+        Assert.Equal(["Hosting, 12 months"], jaco.Store.GetSetting<List<string>>("price-list")!);
+        Assert.Null(jaco.Store.GetSetting<string>("appearance"));
+
+        await Task.Delay(20, Cancel);
+        jaco.Store.SetSetting("documents", jaco.Store.GetSetting<DocumentSettings>("documents")! with { QuoteExpiryDays = 60 });
+        await Sync(jaco);
+        await Sync(eddie);
+        var back = eddie.Store.GetSetting<DocumentSettings>("documents")!;
+        Assert.Equal((14, 60), (back.InvoiceDueDays, back.QuoteExpiryDays));
+
+        // Nothing goes back and forth once both have the same.
+        Assert.Equal(0, (await eddie.Sync.SyncAsync(Cancel)).Changed);
+        Assert.Equal(0, (await jaco.Sync.SyncAsync(Cancel)).Changed);
+    }
 }
