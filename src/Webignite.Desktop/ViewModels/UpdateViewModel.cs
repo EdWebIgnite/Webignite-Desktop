@@ -45,10 +45,19 @@ public partial class UpdateViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Runs just before the update is put in place: whatever runs from the install's folder (the connector Claude
+    /// Desktop keeps open, ChatGPT's tunnel) is stopped, or Windows won't let the files be replaced and the old
+    /// version opens again.
+    /// </summary>
+    public Action? BeforeRestart { get; set; }
+
     [RelayCommand]
     private void Restart()
     {
-        if (manager is not null && ready is not null)
-            manager.ApplyUpdatesAndRestart(ready);
+        if (manager is null || ready is null)
+            return;
+        BeforeRestart?.Invoke();
+        manager.ApplyUpdatesAndRestart(ready);
     }
 }

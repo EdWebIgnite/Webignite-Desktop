@@ -218,6 +218,15 @@ public partial class MainViewModel : ViewModelBase
     {
         this.services = services;
         services.CatchUp();
+        Updates.BeforeRestart = () =>
+        {
+            services.ChatGpt.Dispose();
+            if (OperatingSystem.IsWindows())
+            {
+                ChatGptTunnelRunner.StopStrays();
+                AssistantSetup.StopConnectors();
+            }
+        };
         Updates.CheckAsync().Forget("Checking for an update");
         // The sidebar, in groups. Headings sit between the groups; the pages keep the order shown here.
         // Each page is built the first time it is opened, so starting the app builds Overview and nothing else.
