@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -358,4 +359,30 @@ public partial class MainWindow : Window
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool FlashWindowEx(ref FlashInfo info);
+
+    private FlyoutBase? groupList;
+
+    // A group's icon on the folded sidebar: its pages open in a list beside it. Only one list is open at a time.
+    private void ShowGroupList(object? sender, Avalonia.Input.PointerEventArgs e) => ShowGroupList(sender);
+
+    private void ShowGroupList(object? sender, Avalonia.Input.TappedEventArgs e) => ShowGroupList(sender);
+
+    private void ShowGroupList(object? sender)
+    {
+        if (sender is not Control icon || FlyoutBase.GetAttachedFlyout(icon) is not { } list || list.IsOpen)
+            return;
+        if (groupList != list)
+            groupList?.Hide();
+        groupList = list;
+        list.ShowAt(icon);
+    }
+
+    // A page, tool or link picked in a group's list opens as if picked in the sidebar.
+    private void OpenGroupEntry(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: GroupEntry entry } || DataContext is not MainViewModel main)
+            return;
+        groupList?.Hide();
+        main.SelectedNav = entry.Target;
+    }
 }
