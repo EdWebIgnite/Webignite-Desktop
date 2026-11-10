@@ -435,7 +435,7 @@
                 <Button Classes="quiet" Content="Connect again" Command="{Binding ConnectChatGptCommand}" IsEnabled="{Binding !ChatGptBusy}" IsVisible="{Binding ChatGptConnected}" />
                 <Button Classes="link" Content="Stop" Command="{Binding DisconnectChatGptCommand}" IsVisible="{Binding ChatGptConnected}" />
               </StackPanel>
-              <Border Classes.ready="{Binding ChatGptConnected}" Classes.pending="{Binding !ChatGptConnected}">
+              <Border Classes.ready="{Binding ChatGptWorking}" Classes.pending="{Binding !ChatGptWorking}">
                 <TextBlock Text="{Binding ChatGptStatus}" TextWrapping="Wrap" Classes.problem="{Binding ChatGptProblem}" />
               </Border>
             </StackPanel>

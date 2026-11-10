@@ -73,6 +73,10 @@ public static partial class ChatGptTunnel
         return null;
     }
 
-    /// <summary>The connector as tunnel-client's --mcp.command wants it: the program's path in quotes, as it may hold spaces.</summary>
-    public static string Command(string connectorPath) => "\"" + connectorPath + "\"";
+    /// <summary>
+    /// The connector as tunnel-client's --mcp.command wants it: the program's path in quotes, as it may hold spaces,
+    /// and with forward slashes, as tunnel-client reads a backslash as an escape and drops it (C:\Users\Ed became
+    /// C:UsersEd). Windows takes forward slashes in a path just as well.
+    /// </summary>
+    public static string Command(string connectorPath) => "\"" + connectorPath.Replace('\\', '/') + "\"";
 }

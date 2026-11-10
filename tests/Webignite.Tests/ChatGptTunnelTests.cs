@@ -48,7 +48,8 @@ public sealed class ChatGptTunnelTests
         var sums = $"{new string('b', 64)}  tunnel-client-v0.0.12-linux-amd64.zip\n{hash.ToUpperInvariant()} *tunnel-client-v0.0.12-windows-amd64.zip\n";
         Assert.Equal(hash, ChatGptTunnel.Checksum(sums, "tunnel-client-v0.0.12-windows-amd64.zip"));
         Assert.Null(ChatGptTunnel.Checksum(sums, "tunnel-client-v0.0.12-windows-arm64.zip"));
-        Assert.Equal("\"C:\\Users\\Ed\\AppData\\Local\\Webignite\\Webignite.Connector.exe\"",
-            ChatGptTunnel.Command(@"C:\Users\Ed\AppData\Local\Webignite\Webignite.Connector.exe"));
+        // Forward slashes: tunnel-client drops backslashes, which turned C:\Users\eduar into C:Userseduar.
+        Assert.Equal("\"C:/Users/Eduard Teichert/AppData/Local/WebigniteDesktop/current/Webignite.Connector.exe\"",
+            ChatGptTunnel.Command(@"C:\Users\Eduard Teichert\AppData\Local\WebigniteDesktop\current\Webignite.Connector.exe"));
     }
 }
