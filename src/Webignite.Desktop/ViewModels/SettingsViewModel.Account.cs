@@ -154,7 +154,7 @@ public partial class SettingsViewModel
     [RelayCommand]
     private Task SyncNow() => Busy(async () =>
     {
-        var result = await services.SyncNowAsync();
+        var result = await services.SyncNowAsync(byHand: true);
         SaySync(result.Summary(), problem: result.Problem is not null || result.Unreadable > 0);
         ShowLastSynced();
         ShowLicence();

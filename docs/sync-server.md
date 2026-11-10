@@ -109,7 +109,7 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 A workspace's plan is on the server (`trial`, `active` with a paid-until day, or `complimentary`); `set-plan`
 changes it. The server signs the licence with ECDSA P-256 (`Licences` in Core); the app checks it with the public
 key built in (`LicenceKey.Public`), keeps it in the setting `licence` and fetches it again twice a day while
-signed in. Each time it's read, the licence must be for the workspace signed in, and the PC's clock mustn't be
+signed in, and at once from Sync now. Each time it's read, the licence must be for the workspace signed in, and the PC's clock mustn't be
 behind the latest time already seen (setting `licence-latest-seen`), so winding the clock back doesn't help. The trial is 30 days; after the licence runs out there are 14 days' grace, then the app locks
 (`Licences.Locks`, not switched on until payments are set up).
 
