@@ -171,4 +171,35 @@ public class XeroPayloadTests
         Assert.True(clash.Code.Length <= XeroItems.LongestCode);
         Assert.True(XeroItems.New(new string('x', 80), items).Name.Length <= XeroItems.LongestName);
     }
+
+    [Fact]
+    public void A_quote_status_change_keeps_its_number_expiry_and_wording_so_xero_does_not_renumber_it()
+    {
+        var record = JsonNode.Parse("""
+            {"QuoteID":"q1","QuoteNumber":"QU-1020","Reference":"Site move","Title":"Website","Summary":"Thanks","Terms":"50% upfront",
+             "CurrencyCode":"ZAR","BrandingThemeID":"t1","LineAmountTypes":"NoTax","Status":"DRAFT","DateString":"2026-11-10T00:00:00",
+             "ExpiryDateString":"2026-12-10T00:00:00","Contact":{"ContactID":"k1","Name":"Eedria"}}
+            """)!.AsObject();
+        var sent = XeroPayload.QuoteStatus(record, "SENT", new DateOnly(2026, 12, 12));
+        Assert.Equal("SENT", sent["Status"]!.GetValue<string>());
+        Assert.Equal("QU-1020", sent["QuoteNumber"]!.GetValue<string>());
+        Assert.Equal("2026-12-12", sent["ExpiryDate"]!.GetValue<string>());
+        Assert.Equal("2026-11-10", sent["Date"]!.GetValue<string>());
+        Assert.Equal("50% upfront", sent["Terms"]!.GetValue<string>());
+        Assert.Equal("k1", sent["Contact"]!["ContactID"]!.GetValue<string>());
+        Assert.Null(sent["LineItems"]);
+        // Without a new expiry, Xero's own stays.
+        Assert.Equal("2026-12-10", XeroPayload.QuoteStatus(record, "ACCEPTED")["ExpiryDate"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void A_quote_is_valid_for_the_set_days_from_sending_unless_a_date_was_picked_by_hand()
+    {
+        var made = new DateOnly(2026, 11, 1);
+        var sent = new DateOnly(2026, 11, 10);
+        Assert.Equal(new DateOnly(2026, 12, 10), DocumentDefaults.QuoteExpiryOnSending(made.AddDays(30), made, sent, 30)); // the default moves
+        Assert.Equal(new DateOnly(2026, 12, 10), DocumentDefaults.QuoteExpiryOnSending(null, made, sent, 30));
+        Assert.Equal(new DateOnly(2027, 1, 31), DocumentDefaults.QuoteExpiryOnSending(new DateOnly(2027, 1, 31), made, sent, 30)); // picked stays
+        Assert.Equal(new DateOnly(2026, 12, 10), DocumentDefaults.QuoteExpiryOnSending(new DateOnly(2026, 11, 5), made, sent, 30)); // already past
+    }
 }

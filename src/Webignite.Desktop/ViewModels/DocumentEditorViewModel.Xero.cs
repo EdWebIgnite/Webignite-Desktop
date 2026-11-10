@@ -390,13 +390,13 @@ public partial class DocumentEditorViewModel
                 Unfilled = filled.Unfilled,
                 AfterSent = async sentTo =>
                 {
-                    stored = await sending.MarkSentAsync(stamped, sentTo);
+                    stored = await sending.MarkSentAsync(stamped, sentTo, expiryDays: services.Settings.Documents.QuoteExpiryDays);
                     RefreshXero();
                     RefreshEmail();
                 },
                 // A quote is marked sent in Xero only as its mail goes, and Xero's PDF fetched again then, so it
                 // says QUOTE rather than DRAFT QUOTE. Closing the mail unsent leaves Xero as it was.
-                BeforeSend = Kind == DocumentKind.Quote ? mail => SendingQuote(sending, stamped, pdf, mail) : null,
+                BeforeSend = Kind == DocumentKind.Quote ? mail => SendingQuote(sending, stamped, pdf, mail, services.Settings.Documents.QuoteExpiryDays) : null,
             });
             ShowXero(opened ? "" : MailDrafts.AnotherOpen, problem: !opened);
         }
@@ -416,9 +416,10 @@ public partial class DocumentEditorViewModel
 
     // The quote marked sent and its PDF, now saying QUOTE, put in the mail in place of the draft one. If the
     // person took the PDF off the mail, it stays off.
-    private static async Task<Webignite.Core.Mail.OutgoingMail> SendingQuote(XeroSending sending, StoredDocument quote, Webignite.Core.Mail.OutgoingAttachment draftPdf, Webignite.Core.Mail.OutgoingMail mail)
+    private static async Task<Webignite.Core.Mail.OutgoingMail> SendingQuote(XeroSending sending, StoredDocument quote, Webignite.Core.Mail.OutgoingAttachment draftPdf, Webignite.Core.Mail.OutgoingMail mail,
+        int expiryDays)
     {
-        var pdf = await sending.QuoteSentPdfAsync(quote);
+        var pdf = await sending.QuoteSentPdfAsync(quote, expiryDays);
         if (draftPdf.FilePath is not { } path || !mail.Attachments.Any(a => a.FilePath == path))
             return mail;
         await File.WriteAllBytesAsync(path, pdf);

@@ -168,7 +168,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
     /// it so, and gives Xero's PDF as it is now, which says QUOTE rather than DRAFT QUOTE. Xero can't put a sent quote
     /// back to draft, so this runs only at that moment. Throws when Xero couldn't be told; then nothing is sent.
     /// </summary>
-    public async Task<byte[]> QuoteSentPdfAsync(StoredDocument stored, CancellationToken cancel = default)
+    public async Task<byte[]> QuoteSentPdfAsync(StoredDocument stored, int expiryDays = 30, CancellationToken cancel = default)
     {
         if (!IsQuote(stored) || stored.Xero.Id is null)
             throw new InvalidOperationException("Only a quote in Xero is marked sent this way.");
@@ -180,7 +180,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
         {
             try
             {
-                await PostQuoteSentAsync(stored, record, cancel);
+                await PostQuoteSentAsync(stored, record, expiryDays, cancel);
             }
             catch (XeroUncertainException)
             {
@@ -192,20 +192,23 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
         return await api.PdfAsync($"Quotes/{stored.Xero.Id}", cancel);
     }
 
-    private Task<JsonObject> PostQuoteSentAsync(StoredDocument stored, JsonObject record, CancellationToken cancel) =>
-        api.PostAsync($"Quotes/{stored.Xero.Id}", new JsonObject
-        {
-            ["QuoteID"] = stored.Xero.Id,
-            ["Status"] = XeroStatuses.Sent,
-            ["Contact"] = new JsonObject { ["ContactID"] = XeroApi.Str(record["Contact"]?["ContactID"]) },
-            ["Date"] = XeroPayload.NormalizeDate(XeroApi.Str(record["DateString"])),
-        }, stored.Id + "-sent", cancel);
+    // Marks the quote SENT, with its number and the rest kept, and valid for expiryDays from today unless a date was
+    // picked by hand. The new expiry is kept here too.
+    private async Task PostQuoteSentAsync(StoredDocument stored, JsonObject record, int expiryDays, CancellationToken cancel)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var expiry = DocumentDefaults.QuoteExpiryOnSending(stored.Document.DueOrExpiryDate, stored.Document.Date, today, expiryDays);
+        update(stored, s => s with { Document = s.Document with { DueOrExpiryDate = expiry } });
+        record["QuoteID"] ??= stored.Xero.Id;
+        await api.PostAsync($"Quotes/{stored.Xero.Id}", XeroPayload.QuoteStatus(record, XeroStatuses.Sent, expiry), stored.Id + "-sent", cancel);
+    }
 
     /// <summary>
     /// After the mail went out: marks an invoice as sent in Xero, or a quote as SENT. A failure here is
     /// reported, not retried; the mail itself has already gone.
     /// </summary>
-    public async Task<StoredDocument> MarkSentAsync(StoredDocument stored, IReadOnlyList<Webignite.Core.Mail.MailPerson>? sentTo = null, CancellationToken cancel = default)
+    public async Task<StoredDocument> MarkSentAsync(StoredDocument stored, IReadOnlyList<Webignite.Core.Mail.MailPerson>? sentTo = null, int expiryDays = 30,
+        CancellationToken cancel = default)
     {
         stored = update(stored, s => s with
         {
@@ -220,7 +223,7 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
             // Usually marked SENT already as the mail went (QuoteSentPdfAsync); this catches one that wasn't.
             var record = await ReadAsync(stored, cancel);
             if (XeroApi.Str(record["Status"]) == XeroStatuses.Draft)
-                await PostQuoteSentAsync(stored, record, cancel);
+                await PostQuoteSentAsync(stored, record, expiryDays, cancel);
         }
         else
             await api.PostAsync($"Invoices/{stored.Xero.Id}", new JsonObject { ["InvoiceID"] = stored.Xero.Id, ["SentToContact"] = true },
@@ -246,13 +249,8 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
         var wanted = accepted ? XeroStatuses.Accepted : XeroStatuses.Declined;
         try
         {
-            await api.PostAsync($"Quotes/{stored.Xero.Id}", new JsonObject
-            {
-                ["QuoteID"] = stored.Xero.Id,
-                ["Status"] = wanted,
-                ["Contact"] = new JsonObject { ["ContactID"] = XeroApi.Str(record["Contact"]?["ContactID"]) },
-                ["Date"] = XeroPayload.NormalizeDate(XeroApi.Str(record["DateString"])),
-            }, stored.Id + "-" + wanted.ToLowerInvariant(), cancel);
+            record["QuoteID"] ??= stored.Xero.Id;
+            await api.PostAsync($"Quotes/{stored.Xero.Id}", XeroPayload.QuoteStatus(record, wanted), stored.Id + "-" + wanted.ToLowerInvariant(), cancel);
         }
         catch (XeroUncertainException)
         {

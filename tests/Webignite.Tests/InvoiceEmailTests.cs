@@ -104,7 +104,7 @@ public sealed class InvoiceEmailTests
         Assert.Single(xero.Posts);
 
         var sent = await sending.MarkSentAsync(ready.Stored, [new Webignite.Core.Mail.MailPerson("Thandi Mokoena", "thandi@karoocoffee.co.za")],
-            TestContext.Current.CancellationToken);
+            cancel: TestContext.Current.CancellationToken);
         Assert.NotNull(sent.Delivery.Emailed);
         Assert.Equal("Thandi Mokoena", sent.Delivery.EmailedTo);
         Assert.True(xero.Posts[^1].Body["SentToContact"]!.GetValue<bool>());
@@ -119,7 +119,12 @@ public sealed class InvoiceEmailTests
         Assert.Empty(xero.Posts);
         Assert.Null(ready.Values.OnlineLink);
         await sending.MarkSentAsync(ready.Stored, cancel: TestContext.Current.CancellationToken);
-        Assert.Equal("SENT", Assert.Single(xero.Posts).Body["Status"]!.GetValue<string>());
+        var marked = Assert.Single(xero.Posts).Body;
+        Assert.Equal("SENT", marked["Status"]!.GetValue<string>());
+        // The number and the rest go along, or Xero gives the quote its next number and empties the expiry date.
+        Assert.Equal("QU-0042", marked["QuoteNumber"]!.GetValue<string>());
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Today).AddDays(30).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            marked["ExpiryDate"]!.GetValue<string>());
     }
 
     [Fact]
@@ -132,13 +137,18 @@ public sealed class InvoiceEmailTests
         Assert.EndsWith("DRAFT", Encoding.ASCII.GetString(ready.Pdf), StringComparison.Ordinal); // shown while writing
         Assert.Empty(xero.Posts); // opening the mail changes nothing in Xero
 
-        var pdf = await sending.QuoteSentPdfAsync(ready.Stored, cancel);
+        var pdf = await sending.QuoteSentPdfAsync(ready.Stored, cancel: cancel);
         Assert.EndsWith("SENT", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.Equal("SENT", Assert.Single(xero.Posts).Body["Status"]!.GetValue<string>());
+        var marked = Assert.Single(xero.Posts).Body;
+        Assert.Equal("SENT", marked["Status"]!.GetValue<string>());
+        // The number and the rest go along, or Xero gives the quote its next number and empties the expiry date.
+        Assert.Equal("QU-0042", marked["QuoteNumber"]!.GetValue<string>());
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Today).AddDays(30).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            marked["ExpiryDate"]!.GetValue<string>());
 
         // After the mail went, nothing is written again; nor when sending once more.
         await sending.MarkSentAsync(ready.Stored, cancel: cancel);
-        await sending.QuoteSentPdfAsync(ready.Stored, cancel);
+        await sending.QuoteSentPdfAsync(ready.Stored, cancel: cancel);
         Assert.Single(xero.Posts);
     }
 
@@ -147,7 +157,7 @@ public sealed class InvoiceEmailTests
     {
         var xero = new FakeXero { QuoteStatus = "DELETED" };
         var sending = Make(xero, []);
-        await Assert.ThrowsAsync<XeroException>(() => sending.QuoteSentPdfAsync(Stored(DocumentKind.Quote), TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<XeroException>(() => sending.QuoteSentPdfAsync(Stored(DocumentKind.Quote), cancel: TestContext.Current.CancellationToken));
         Assert.Empty(xero.Posts);
     }
 
@@ -167,6 +177,7 @@ public sealed class InvoiceEmailTests
         var accepted = await sending.DecideQuoteAsync(sent, accepted: true, TestContext.Current.CancellationToken);
         Assert.Equal("ACCEPTED", xero.Posts[^1].Body["Status"]!.GetValue<string>());
         Assert.Equal("k1", xero.Posts[^1].Body["Contact"]!["ContactID"]!.GetValue<string>());
+        Assert.Equal("QU-0042", xero.Posts[^1].Body["QuoteNumber"]!.GetValue<string>());
         Assert.Equal(Settlement.Accepted, accepted.Settled?.As);
         Assert.Equal("ACCEPTED", accepted.Xero.Status);
         Assert.False(QuoteOutcomes.CanDecide(accepted));
