@@ -166,6 +166,10 @@ public partial class SettingsViewModel
         SyncProblem = problem;
     }
 
+    /// <summary>Starts the setup guide again (Xero, ChatGPT and a look round), from Account and sync.</summary>
+    [RelayCommand]
+    private void RunSetupGuide() => services.Go.SetupGuide();
+
     [RelayCommand]
     private void ShowAccountForm(string form)
     {

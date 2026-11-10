@@ -725,6 +725,8 @@
         <!-- Signed in: who, the workspace, two-factor and inviting your partner. -->
         <StackPanel Spacing="12" IsVisible="{Binding IsSignedIn}">
           <TextBlock Text="{Binding SignedInAs}" TextWrapping="Wrap" />
+          <Button Classes="link" HorizontalAlignment="Left" Content="Go through the setup guide again" Command="{Binding RunSetupGuideCommand}"
+                  ToolTip.Tip="Xero, ChatGPT and a look round the main pages" />
           <Border Classes="pending" IsVisible="{Binding HasNewRecoveryKey}" Padding="14">
             <StackPanel Spacing="8">
               <TextBlock FontWeight="SemiBold" Text="Your recovery key" />

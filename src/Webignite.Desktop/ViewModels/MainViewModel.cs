@@ -421,6 +421,7 @@ public partial class MainViewModel : ViewModelBase
             Selected = this[Page.Notes];
             PageOf<NotesViewModel>(Page.Notes).ShowClient(id, name);
         };
+        go.SetupGuideAction = () => StartGuide();
         go.OpenSettingsAction = section =>
         {
             Selected = this[Page.Settings];

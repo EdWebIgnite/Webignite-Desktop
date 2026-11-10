@@ -37,6 +37,7 @@ public partial class App : Application
                 ApplyRestoredBackup();
                 Services = new AppServices(LocalStore.OpenDefault());
             }
+            MainViewModel.AskToSignInAtStart = true;
             var window = new MainWindow { DataContext = new MainViewModel(Services) };
             desktop.MainWindow = window;
             var services = Services;

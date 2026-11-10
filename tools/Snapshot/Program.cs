@@ -476,8 +476,38 @@ Check("Switched on, the welcome screen shows when nobody is signed in", vm.Showi
 Save("welcome");
 vm.WelcomeCreateCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
-Check("Create an account carries on in Settings, Account and sync, on the new account form",
-    !vm.ShowingWelcome && vm.Selected.Key == Page.Settings && settingsPage.IsNewAccountForm);
+Check("Create an account carries on in Settings, Account and sync, on the new account form, with the guide above",
+    !vm.ShowingWelcome && vm.Selected.Key == Page.Settings && settingsPage.IsNewAccountForm && vm.ShowingGuide);
+vm.EndGuideCommand.Execute(null);
+// The setup guide: joining, Xero and ChatGPT on the real Settings page, then a look round the main pages.
+vm.WelcomeJoinCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("Join with an invite code starts the guide on the join form; the step waits for signing in",
+    vm.ShowingGuide && vm.GuideStep.Key == "join" && vm.Selected.Key == Page.Settings && settingsPage.IsJoinForm
+    && !vm.GuideStepDone && vm.GuideNextLabel == "Skip for now" && !vm.GuideCanGoBack);
+Save("setup-guide-join");
+vm.GuideNextCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("Then Xero, on its own Settings section", vm.GuideStep.Key == "xero" && settingsPage.ShowXero && vm.GuideCanGoBack);
+Save("setup-guide-xero");
+vm.GuideNextCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("Then ChatGPT", vm.GuideStep.Key == "chatgpt" && settingsPage.ShowAssistants);
+Save("setup-guide-chatgpt");
+vm.GuideNextCommand.Execute(null);
+vm.GuideNextCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("The look round shows the real pages: To approve", vm.GuideStep.Key == "approvals" && vm.Selected.Key == Page.Approvals && vm.GuideNextLabel == "Next");
+Save("setup-guide-approvals");
+while (vm.GuideStep.Key != "done")
+    vm.GuideNextCommand.Execute(null);
+Check("The last step finishes", vm.GuideNextLabel == "Finish");
+vm.GuideNextCommand.Execute(null);
+Check("Finished, the guide goes and doesn't come back on its own", !vm.ShowingGuide && services.Settings.SetupGuide is { Finished: true });
+vm.Welcome();
+Check("Opening again while signed out asks to sign in, but doesn't start the guide by itself", !vm.ShowingGuide && vm.ShowingWelcome);
+vm.WelcomeNotNowCommand.Execute(null);
+vm.Selected = vm[Page.Settings];
 settingsPage.ShowAccountFormCommand.Execute("sign-in");
 MainViewModel.AskToSignInAtStart = false;
 settingsPage.Open("xero");
