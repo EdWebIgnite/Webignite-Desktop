@@ -51,7 +51,8 @@ public sealed class XeroClientWatch(LocalStore store, Func<CancellationToken, Ta
                 // Looked for again, in case the same client was added by hand while Xero was being read.
                 if (ClientDirectory.Find(store.ListClients(), contact.Name) is not null)
                     continue;
-                store.SaveClient(XeroClients.New(contact, Client.NewId(), now));
+                // The id is made from Xero's, so both PCs bringing in the same customer keep one client when they sync.
+                store.SaveClient(XeroClients.New(contact, "xc-" + contact.Id.ToLowerInvariant(), now));
                 added++;
             }
             var filled = 0;

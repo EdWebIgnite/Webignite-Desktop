@@ -125,7 +125,8 @@ public static class XeroDocuments
         var wentOut = !draft && (row.Kind == DocumentKind.Quote ? row.Status != XeroStatuses.Draft : row.SentToContact);
         return new StoredDocument
         {
-            Id = before?.Id ?? StoredDocument.NewId(),
+            // Made from Xero's id, so both PCs bringing in the same one keep it as one when they sync.
+            Id = before?.Id ?? "xd-" + row.Id.ToLowerInvariant(),
             Document = document,
             Status = DocumentStatus.InXero,
             Source = DocumentSource.App,

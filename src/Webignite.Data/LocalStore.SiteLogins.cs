@@ -30,6 +30,7 @@ public sealed partial class LocalStore
         foreach (var login in logins)
             Remove("site_logins", login.Id);
         Remove("clients", clientId);
+        MarkGone("client", clientId);
         return logins;
     });
 }

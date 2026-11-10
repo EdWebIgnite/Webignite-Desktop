@@ -67,6 +67,22 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 - **Limits:** at most 500 records a push and a pull, ids of up to 64 letters, digits, `-` and `_`, and 512 KB a
   record. A record too big for the server stays on the PC and is counted.
 
+## How quotes, invoices, clients and contacts sync
+
+- **All of them.** The business is run by both of you, so every quote, invoice, client and person in Contacts syncs,
+  not only what's ticked. They're locked the same way as projects (`RecordLock`), as `Shared<T>`: the record, when
+  it was last changed and, for one deleted, when (`SyncService.Shared.cs`). Mail and site logins stay on each PC.
+- **Merging** (`SharedMerge` in Core). The copy changed later wins, with care so nothing that happened is lost: once
+  a quote or invoice is approved, emailed, chased, settled or taken off To approve on either PC it stays so; the link
+  to Xero keeps whichever copy got further with Xero; credit notes and attachments from both PCs are kept. A deletion
+  stands unless the other PC changed the record after it. Deletions are noted (table `sync_gone`) so they reach the
+  other PC.
+- **What stays on the PC.** A client's folder picked by hand and its linked files are paths on that PC: they never
+  leave it, and a client arriving from the other PC keeps this PC's own.
+- **Xero.** Each of you connects Xero on your own PC (the same organisation). Clients, quotes and invoices brought in
+  from Xero get ids made from Xero's (`xc-…`, `xd-…`), so both PCs bringing in the same one keep it as one; and a PC
+  signed in but not synced yet waits before bringing anything in from Xero (`AppServices.WaitsForFirstSync`).
+
 ## Licences
 
 A workspace's plan is on the server (`trial`, `active` with a paid-until day, or `complimentary`); `set-plan`
