@@ -466,6 +466,20 @@ Save("settings-account-people-and-password");
 settingsPage.KeepMemberCommand.Execute(null);
 settingsPage.CancelChangeAccountPasswordCommand.Execute(null);
 settingsPage.Members.Clear();
+// The invite: one message with the install link, the code and the steps, to copy or send by mail.
+SetShown(nameof(SettingsViewModel.InviteText), "K7QM-2XRT-9WDF-HB4N-PZ6C");
+SetShown(nameof(SettingsViewModel.InviteMessage), Webignite.Core.Accounts.InvitePackage.Message("K7QM-2XRT-9WDF-HB4N-PZ6C",
+    new DateTimeOffset(2026, 11, 17, 12, 0, 0, TimeSpan.Zero), "Eddie", System.Globalization.CultureInfo.GetCultureInfo("en-ZA")));
+window.Height = 1500;
+Dispatcher.UIThread.RunJobs();
+Check("An invite shows the whole message with the install link and the code, to copy or mail",
+    settingsPage.HasInvite && settingsPage.InviteMessage.Contains(Webignite.Core.Accounts.InvitePackage.InstallLink, StringComparison.Ordinal)
+    && settingsPage.CopyInviteCommand is not null && settingsPage.MailInviteCommand is not null);
+Save("settings-account-invite");
+window.Height = 860;
+SetShown(nameof(SettingsViewModel.InviteText), "");
+SetShown(nameof(SettingsViewModel.InviteMessage), "");
+Dispatcher.UIThread.RunJobs();
 SetShown(nameof(SettingsViewModel.IsSignedIn), false);
 // The welcome screen: off while testing, so the app opens straight in; on, it asks to sign in when nobody has.
 Check("While testing, the app opens without asking to sign in", !vm.ShowingWelcome);
