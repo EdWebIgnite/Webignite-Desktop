@@ -52,6 +52,13 @@ public sealed partial class ServerStore
             """);
     }
 
+    /// <summary>A whole, consistent copy of the database in a new file, taken while the server runs.</summary>
+    public void CopyTo(string path)
+    {
+        using var db = Open();
+        Run(db, "VACUUM INTO $path", ("$path", path));
+    }
+
     private static void AddColumn(SqliteConnection db, string table, string column, string definition)
     {
         using var look = Command(db, $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = $name", [("$name", column)]);

@@ -10,9 +10,12 @@ using Webignite.Server;
 // a web server that does HTTPS (Caddy, see docs), so it only listens on the PC it runs on.
 //
 // Settings, from the environment:
-//   WEBIGNITE_SERVER_SECRET  32+ random bytes, Base64. Required outside Development. Keep it out of the repository.
+//   WEBIGNITE_SERVER_SECRET  32+ random bytes, Base64. Keep it out of the repository. When it isn't set, the server
+//                            makes one and keeps it in the data folder (ServerFiles), as on the Synology NAS.
 //   WEBIGNITE_SERVER_DATA    the folder for the database (default ./data).
-//   WEBIGNITE_LICENCE_KEY    the key licences are signed with (Base64 PKCS#8). Make one with: make-licence-key
+//   WEBIGNITE_LICENCE_KEY    the key licences are signed with (Base64 PKCS#8). Make one with: make-licence-key.
+//                            When it isn't set, the server makes one and keeps it in the data folder too.
+//   WEBIGNITE_NIGHTLY_BACKUP true for a copy of the database every night in the data folder's backups folder.
 //
 // Commands, instead of running the server (see docs/server-setup.md):
 //   make-licence-key                              prints a new licence key pair
@@ -30,19 +33,28 @@ if (args is ["make-licence-key"])
 
 var builder = WebApplication.CreateBuilder(args);
 
+var dataFolder = Environment.GetEnvironmentVariable("WEBIGNITE_SERVER_DATA") is { Length: > 0 } folder ? folder : Path.Combine(AppContext.BaseDirectory, "data");
+Directory.CreateDirectory(dataFolder);
+// The tests and a developer's PC make throwaway keys; a real server keeps its own in the data folder unless given.
+var throwaway = builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Testing";
+
 var secretText = Environment.GetEnvironmentVariable("WEBIGNITE_SERVER_SECRET");
 byte[] secret;
 if (!string.IsNullOrWhiteSpace(secretText))
     secret = Convert.FromBase64String(secretText);
-else if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Testing")
+else if (throwaway)
     secret = RandomNumberGenerator.GetBytes(32);
 else
-    throw new InvalidOperationException("Set WEBIGNITE_SERVER_SECRET (32 random bytes, Base64) before starting the server.");
+    secret = Convert.FromBase64String(ServerFiles.Kept(dataFolder, ServerFiles.Secret, () => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))));
 if (secret.Length < 32)
     throw new InvalidOperationException("WEBIGNITE_SERVER_SECRET must be at least 32 bytes.");
 
-var dataFolder = Environment.GetEnvironmentVariable("WEBIGNITE_SERVER_DATA") is { Length: > 0 } folder ? folder : Path.Combine(AppContext.BaseDirectory, "data");
-Directory.CreateDirectory(dataFolder);
+// Read when first needed, as the tests' settings only arrive once the app is built.
+string? LicenceKeyText(IConfiguration settings)
+{
+    var text = settings["Webignite:LicenceKey"] ?? Environment.GetEnvironmentVariable("WEBIGNITE_LICENCE_KEY");
+    return string.IsNullOrWhiteSpace(text) && !throwaway ? ServerFiles.Kept(dataFolder, ServerFiles.LicenceKey, () => Licences.NewKeys().PrivateKey) : text;
+}
 
 builder.Services.AddSingleton(sp => new ServerStore(sp.GetRequiredService<IConfiguration>()["Webignite:Database"] ?? Path.Combine(dataFolder, "webignite-server.db")));
 builder.Services.AddSingleton(new ServerKeys(secret));
@@ -53,7 +65,12 @@ builder.Services.AddSingleton(sp => new AccountService(sp.GetRequiredService<Ser
 builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = Webignite.Core.Sync.SyncLimits.LargestRequest);
 builder.Services.AddSingleton<SyncService>();
 builder.Services.AddSingleton(sp => new LicenceService(sp.GetRequiredService<ServerStore>(), sp.GetRequiredService<TimeProvider>(),
-    LicenceService.KeyFrom(sp.GetRequiredService<IConfiguration>()["Webignite:LicenceKey"] ?? Environment.GetEnvironmentVariable("WEBIGNITE_LICENCE_KEY"))));
+    LicenceService.KeyFrom(LicenceKeyText(sp.GetRequiredService<IConfiguration>()))));
+if (Environment.GetEnvironmentVariable("WEBIGNITE_NIGHTLY_BACKUP") is "true" or "1")
+{
+    builder.Services.AddHostedService(sp => new NightlyBackup(sp.GetRequiredService<ServerStore>(), Path.Combine(dataFolder, "backups"),
+        sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<ILogger<NightlyBackup>>()));
+}
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower);
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
@@ -91,6 +108,9 @@ app.UseForwardedHeaders();
 app.UseRateLimiter();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+// The public half of the licence key, to copy into the app (LicenceKey.Public). Safe to show anyone.
+app.MapGet("/licence-public-key", (LicenceService licences) =>
+    licences.PublicKey is { } key ? Results.Text(key) : Results.NotFound());
 AccountEndpoints.Map(app);
 
 app.Run();
