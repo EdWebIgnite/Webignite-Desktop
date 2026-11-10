@@ -541,6 +541,60 @@
       </StackPanel>
     </Border>
 
+    <!-- How quote and invoice mails look: the branded layout around the words. -->
+    <Border Classes="card" IsVisible="{Binding ShowEmails}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="How quote and invoice mails look" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Your words above go out inside this layout: the logo, a panel with the amount, the date and a button (View and pay online on invoices, Accept this quote on quotes), then the banking details (invoices), your terms and your details at the bottom. Both PCs use the same." />
+        <TextBlock FontWeight="SemiBold" Text="Logo" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Border Background="White" CornerRadius="6" Padding="10,6" IsVisible="{Binding HasBrandLogo}">
+            <Image Source="{Binding BrandLogo}" Height="48" Stretch="Uniform" />
+          </Border>
+          <Button Classes="quiet" Content="Choose logo" Click="ChooseBrandLogo" VerticalAlignment="Center" />
+          <Button Classes="link" Content="Remove" Command="{Binding RemoveBrandLogoCommand}" IsVisible="{Binding HasBrandLogo}" VerticalAlignment="Center" />
+        </StackPanel>
+        <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,8,Auto,8,Auto">
+          <StackPanel Grid.Row="0" Grid.Column="0">
+            <TextBlock Classes="label" Text="Company name" />
+            <TextBox Text="{Binding BrandCompany}" PlaceholderText="e.g. Webignite (Pty) Ltd" />
+          </StackPanel>
+          <StackPanel Grid.Row="0" Grid.Column="2">
+            <TextBlock Classes="label" Text="Phone" />
+            <TextBox Text="{Binding BrandPhone}" />
+          </StackPanel>
+          <StackPanel Grid.Row="2" Grid.Column="0">
+            <TextBlock Classes="label" Text="Email (an Accept this quote reply goes here)" />
+            <TextBox Text="{Binding BrandEmail}" />
+          </StackPanel>
+          <StackPanel Grid.Row="2" Grid.Column="2">
+            <TextBlock Classes="label" Text="Website" />
+            <TextBox Text="{Binding BrandWebsite}" />
+          </StackPanel>
+          <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3">
+            <TextBlock Classes="label" Text="Address" />
+            <TextBox Text="{Binding BrandAddress}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="54" />
+          </StackPanel>
+        </Grid>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Banking details, as they should read (on invoice mails)" />
+          <TextBox Text="{Binding BrandBank}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96"
+                   PlaceholderText="Bank, account type, account number, branch code, and what to use as the reference" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Link to your terms and conditions" />
+          <TextBox Text="{Binding BrandTerms}" PlaceholderText="https://" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="quiet" Content="Save" Command="{Binding SaveBrandCommand}" />
+          <Button Classes="link" Content="Send a test to myself" Command="{Binding SendBrandTestCommand}" />
+        </StackPanel>
+        <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding BrandProblem}" Text="{Binding BrandMessage}"
+                   IsVisible="{Binding BrandMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding ShowFiles}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Client folders" />

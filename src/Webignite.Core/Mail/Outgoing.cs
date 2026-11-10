@@ -44,6 +44,9 @@ public sealed record OutgoingMail
 
     /// <summary>The draft on the server this replaces, so saving or sending doesn't leave an old copy behind.</summary>
     public uint? DraftUid { get; init; }
+
+    /// <summary>A designed frame put around the words as the mail goes (quotes and invoices); null for plain mail.</summary>
+    public MailLayout? Layout { get; init; }
 }
 
 /// <summary>A picture inside the mail's text, sent as part of the message.</summary>
@@ -202,6 +205,8 @@ public static class Replies
     public static string TextPart(OutgoingMail mail)
     {
         var body = mail.Html is null ? MailFormat.ToText(mail.Body.TrimEnd()) : mail.Body.TrimEnd();
+        if (mail.Layout is { TextAfter.Length: > 0 } layout)
+            body += "\n\n" + layout.TextAfter.TrimEnd();
         if (mail.Quote is not { } quote)
             return body;
         var earlier = quote.IsForward
@@ -216,7 +221,8 @@ public static class Replies
     /// <summary>The HTML version: the new text, then the earlier message in a quote block.</summary>
     public static string HtmlPart(OutgoingMail mail, string? signatureImageId = null)
     {
-        var html = new StringBuilder("<div style=\"font-family: Arial, sans-serif; font-size: 10.5pt\">");
+        // Inside a layout, the words take the layout's own type; plain mail sets its own.
+        var html = new StringBuilder(mail.Layout is null ? "<div style=\"font-family: Arial, sans-serif; font-size: 10.5pt\">" : "<div>");
         if (mail.Html is not null)
             html.Append("<div class=\"").Append(BodyClass).Append("\">").Append(mail.Html).Append("</div>");
         else
@@ -230,7 +236,8 @@ public static class Replies
             html.Append(quote.Html ?? MailHtml.FromText(quote.Text));
             html.Append(quote.IsForward ? "</div>" : "</blockquote>");
         }
-        return html.Append("</div>").ToString();
+        html.Append("</div>");
+        return mail.Layout is { } layout ? layout.Html.Replace(MailLayout.BodyMarker, html.ToString(), StringComparison.Ordinal) : html.ToString();
     }
 }
 

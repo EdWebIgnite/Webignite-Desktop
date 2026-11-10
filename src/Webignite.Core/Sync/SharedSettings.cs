@@ -9,7 +9,7 @@ namespace Webignite.Core.Sync;
 /// </summary>
 public static class SharedSettings
 {
-    public static readonly IReadOnlyList<string> Names = ["documents", "email-templates", "price-list", "project-templates", "income-plan", "xero"];
+    public static readonly IReadOnlyList<string> Names = ["documents", "email-templates", "price-list", "project-templates", "income-plan", "xero", "mail-brand"];
 
     /// <summary>The setting that holds when each shared setting was last changed on this PC or arrived.</summary>
     public const string StampsName = "shared-settings-changed";

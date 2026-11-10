@@ -197,6 +197,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         UpdateXeroStatus();
         LoadTemplates(services.Settings.EmailTemplates);
         LoadPrices();
+        LoadBrand();
     }
 
     private void UpdateBackupStatus()

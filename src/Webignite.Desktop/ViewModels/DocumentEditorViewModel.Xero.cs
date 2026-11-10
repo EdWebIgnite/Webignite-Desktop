@@ -397,6 +397,11 @@ public partial class DocumentEditorViewModel
                 // A quote is marked sent in Xero only as its mail goes, and Xero's PDF fetched again then, so it
                 // says QUOTE rather than DRAFT QUOTE. Closing the mail unsent leaves Xero as it was.
                 BeforeSend = Kind == DocumentKind.Quote ? mail => SendingQuote(sending, stamped, pdf, mail, services.Settings.Documents.QuoteExpiryDays) : null,
+                Note = BrandedNote,
+                // The branded layout, with the quote's expiry as it is once marked sent.
+                Layout = () => DocumentMailLayout.Build(
+                    ready.Values with { DueOrExpiryDate = services.Documents.Get(stamped.Id)?.Document.DueOrExpiryDate ?? ready.Values.DueOrExpiryDate },
+                    services.Settings.MailBrand, AcceptTo(mailbox)),
             });
             ShowXero(opened ? "" : MailDrafts.AnotherOpen, problem: !opened);
         }
@@ -425,6 +430,13 @@ public partial class DocumentEditorViewModel
         await File.WriteAllBytesAsync(path, pdf);
         return mail with { Attachments = [.. mail.Attachments.Select(a => a.FilePath == path ? a with { Size = pdf.Length } : a)] };
     }
+
+    /// <summary>What a quote or invoice mail says above it: the words go out inside the branded layout.</summary>
+    internal const string BrandedNote = "This goes out in your branded layout: logo, the amount and a button above your words, banking details, terms and your details below. Set it up in Settings, Email wording.";
+
+    /// <summary>Where a quote's Accept this quote button replies: the email in the layout's footer, else this mailbox.</summary>
+    private string AcceptTo(Webignite.Core.Mail.MailAccount mailbox) =>
+        services.Settings.MailBrand.Email is { Length: > 0 } email && email.Contains('@', StringComparison.Ordinal) ? email.Trim() : mailbox.Address;
 
     private void RefreshEmail()
     {
