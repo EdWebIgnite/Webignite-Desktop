@@ -454,7 +454,8 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
             Select(row).Forget("Opening a mail");
     }
 
-    public bool Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null, Func<IReadOnlyList<MailPerson>, Task>? afterSent = null)
+    public bool Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null, Func<IReadOnlyList<MailPerson>, Task>? afterSent = null,
+        Func<OutgoingMail, Task<OutgoingMail>>? beforeSend = null)
     {
         if (Composer is { HasChanges: true } open)
         {
@@ -463,7 +464,7 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
             return false;
         }
         Reload();
-        Composer = new ComposeViewModel(services, this, accounts, mail, source, answering, afterSent);
+        Composer = new ComposeViewModel(services, this, accounts, mail, source, answering, afterSent, beforeSend);
         return true;
     }
 

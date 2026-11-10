@@ -19,6 +19,13 @@ public sealed record MailDraft(MailAccount From, string? To, string Subject, str
 
     /// <summary>Runs once the mail has gone, given who it went to, e.g. to tell Xero.</summary>
     public Func<IReadOnlyList<MailPerson>, Task>? AfterSent { get; init; }
+
+    /// <summary>
+    /// Runs as the mail goes, once Undo has passed and just before it's handed to the server, and gives the mail to
+    /// send (e.g. with a fresh PDF). A quote is marked sent in Xero here, so its PDF says QUOTE rather than DRAFT
+    /// QUOTE. When it fails, nothing is sent and the mail comes back.
+    /// </summary>
+    public Func<OutgoingMail, Task<OutgoingMail>>? BeforeSend { get; init; }
 }
 
 /// <summary>
@@ -60,6 +67,6 @@ public sealed class MailDrafts(AppServices services)
             Body = draft.Body,
             Attachments = draft.Attachments,
         };
-        return services.Go.ComposeMail(mail, DraftNotes.For(to.People.Count, draft.NoAddress, draft.Unfilled, draft.Note), draft.AfterSent);
+        return services.Go.ComposeMail(mail, DraftNotes.For(to.People.Count, draft.NoAddress, draft.Unfilled, draft.Note), draft.AfterSent, draft.BeforeSend);
     }
 }

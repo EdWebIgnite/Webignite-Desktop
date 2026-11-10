@@ -23,11 +23,14 @@ public partial class ComposeViewModel : ViewModelBase
     private string savedState;
 
     private readonly Func<IReadOnlyList<MailPerson>, Task>? afterSent;
+    private readonly Func<OutgoingMail, Task<OutgoingMail>>? beforeSend;
 
     public ComposeViewModel(AppServices services, MailViewModel owner, IReadOnlyList<MailAccount> accounts, OutgoingMail mail,
-        byte[]? source = null, MailSummary? answering = null, Func<IReadOnlyList<MailPerson>, Task>? afterSent = null)
+        byte[]? source = null, MailSummary? answering = null, Func<IReadOnlyList<MailPerson>, Task>? afterSent = null,
+        Func<OutgoingMail, Task<OutgoingMail>>? beforeSend = null)
     {
         this.afterSent = afterSent;
+        this.beforeSend = beforeSend;
         this.services = services;
         this.owner = owner;
         this.source = source;
@@ -239,8 +242,23 @@ public partial class ComposeViewModel : ViewModelBase
     {
         IsWorking = true;
         Say("Sending…", false);
+        var told = false;
         try
         {
+            if (beforeSend is not null)
+            {
+                try
+                {
+                    mail = await beforeSend(mail);
+                    told = true;
+                }
+                catch (Exception e) when (e is Webignite.Xero.XeroException or HttpRequestException or InvalidOperationException or TaskCanceledException)
+                {
+                    owner.Reopen(this);
+                    Say("Not sent: " + e.Message, true);
+                    return;
+                }
+            }
             var message = MailComposer.Build(mail, From, source);
             var note = await services.Mail.SendAsync(From, message, answering?.AccountId == From.Id ? answering : null, draftUid);
             if (afterSent is not null)
@@ -259,12 +277,12 @@ public partial class ComposeViewModel : ViewModelBase
         catch (MailException e)
         {
             owner.Reopen(this);
-            Say("Not sent: " + e.Message, true);
+            Say("Not sent: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""), true);
         }
         catch (IOException e)
         {
             owner.Reopen(this);
-            Say("Not sent. Couldn't read an attachment: " + e.Message, true);
+            Say("Not sent. Couldn't read an attachment: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""), true);
         }
         finally
         {

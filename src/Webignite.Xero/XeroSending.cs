@@ -164,6 +164,44 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
     }
 
     /// <summary>
+    /// As a quote's mail goes (the person pressed Send and Undo has passed): marks it SENT in Xero, checks Xero has
+    /// it so, and gives Xero's PDF as it is now, which says QUOTE rather than DRAFT QUOTE. Xero can't put a sent quote
+    /// back to draft, so this runs only at that moment. Throws when Xero couldn't be told; then nothing is sent.
+    /// </summary>
+    public async Task<byte[]> QuoteSentPdfAsync(StoredDocument stored, CancellationToken cancel = default)
+    {
+        if (!IsQuote(stored) || stored.Xero.Id is null)
+            throw new InvalidOperationException("Only a quote in Xero is marked sent this way.");
+        var record = await ReadAsync(stored, cancel);
+        var status = XeroApi.Str(record["Status"]);
+        if (status is XeroStatuses.Deleted or XeroStatuses.Voided or XeroStatuses.Declined)
+            throw new XeroException($"It is {status.ToLowerInvariant()} in Xero, so it wasn't sent.");
+        if (status == XeroStatuses.Draft)
+        {
+            try
+            {
+                await PostQuoteSentAsync(stored, record, cancel);
+            }
+            catch (XeroUncertainException)
+            {
+                // Fall through: reading it back says whether Xero got it.
+            }
+            if (XeroApi.Str((await ReadAsync(stored, cancel))["Status"]) == XeroStatuses.Draft)
+                throw new XeroException("Xero didn't mark the quote as sent, so the mail wasn't sent. Try again in a moment.");
+        }
+        return await api.PdfAsync($"Quotes/{stored.Xero.Id}", cancel);
+    }
+
+    private Task<JsonObject> PostQuoteSentAsync(StoredDocument stored, JsonObject record, CancellationToken cancel) =>
+        api.PostAsync($"Quotes/{stored.Xero.Id}", new JsonObject
+        {
+            ["QuoteID"] = stored.Xero.Id,
+            ["Status"] = XeroStatuses.Sent,
+            ["Contact"] = new JsonObject { ["ContactID"] = XeroApi.Str(record["Contact"]?["ContactID"]) },
+            ["Date"] = XeroPayload.NormalizeDate(XeroApi.Str(record["DateString"])),
+        }, stored.Id + "-sent", cancel);
+
+    /// <summary>
     /// After the mail went out: marks an invoice as sent in Xero, or a quote as SENT. A failure here is
     /// reported, not retried; the mail itself has already gone.
     /// </summary>
@@ -179,15 +217,10 @@ public sealed class XeroSending(XeroApi api, Func<StoredDocument, Func<StoredDoc
         });
         if (IsQuote(stored))
         {
+            // Usually marked SENT already as the mail went (QuoteSentPdfAsync); this catches one that wasn't.
             var record = await ReadAsync(stored, cancel);
             if (XeroApi.Str(record["Status"]) == XeroStatuses.Draft)
-                await api.PostAsync($"Quotes/{stored.Xero.Id}", new JsonObject
-                {
-                    ["QuoteID"] = stored.Xero.Id,
-                    ["Status"] = XeroStatuses.Sent,
-                    ["Contact"] = new JsonObject { ["ContactID"] = XeroApi.Str(record["Contact"]?["ContactID"]) },
-                    ["Date"] = XeroPayload.NormalizeDate(XeroApi.Str(record["DateString"])),
-                }, stored.Id + "-sent", cancel);
+                await PostQuoteSentAsync(stored, record, cancel);
         }
         else
             await api.PostAsync($"Invoices/{stored.Xero.Id}", new JsonObject { ["InvoiceID"] = stored.Xero.Id, ["SentToContact"] = true },

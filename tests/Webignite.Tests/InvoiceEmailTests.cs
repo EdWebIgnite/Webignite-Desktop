@@ -123,6 +123,35 @@ public sealed class InvoiceEmailTests
     }
 
     [Fact]
+    public async Task A_quote_is_marked_sent_as_its_mail_goes_so_the_PDF_sent_is_not_the_draft_one()
+    {
+        var xero = new FakeXero();
+        var sending = Make(xero, []);
+        var cancel = TestContext.Current.CancellationToken;
+        var ready = await sending.PrepareAsync(Stored(DocumentKind.Quote), "Webignite", cancel: cancel);
+        Assert.EndsWith("DRAFT", Encoding.ASCII.GetString(ready.Pdf), StringComparison.Ordinal); // shown while writing
+        Assert.Empty(xero.Posts); // opening the mail changes nothing in Xero
+
+        var pdf = await sending.QuoteSentPdfAsync(ready.Stored, cancel);
+        Assert.EndsWith("SENT", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Equal("SENT", Assert.Single(xero.Posts).Body["Status"]!.GetValue<string>());
+
+        // After the mail went, nothing is written again; nor when sending once more.
+        await sending.MarkSentAsync(ready.Stored, cancel: cancel);
+        await sending.QuoteSentPdfAsync(ready.Stored, cancel);
+        Assert.Single(xero.Posts);
+    }
+
+    [Fact]
+    public async Task A_quote_deleted_in_Xero_is_not_sent()
+    {
+        var xero = new FakeXero { QuoteStatus = "DELETED" };
+        var sending = Make(xero, []);
+        await Assert.ThrowsAsync<XeroException>(() => sending.QuoteSentPdfAsync(Stored(DocumentKind.Quote), TestContext.Current.CancellationToken));
+        Assert.Empty(xero.Posts);
+    }
+
+    [Fact]
     public async Task A_sent_quote_is_marked_accepted_or_declined_in_xero_only_once_sent()
     {
         var xero = new FakeXero();
@@ -256,7 +285,7 @@ public sealed class InvoiceEmailTests
                 return Json("{}");
             }
             if (request.Headers.Accept.Any(a => a.MediaType == "application/pdf"))
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Encoding.ASCII.GetBytes("%PDF-1.4 test")) };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Encoding.ASCII.GetBytes("%PDF-1.4 test " + QuoteStatus)) };
             return path switch
             {
                 "Invoices/inv1/OnlineInvoice" => Json("""{"OnlineInvoices":[{"OnlineInvoiceUrl":"https://in.xero.com/abc"}]}"""),
