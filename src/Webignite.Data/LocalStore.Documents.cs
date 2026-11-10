@@ -38,7 +38,26 @@ public sealed partial class LocalStore
     public StoredDocument? Get(string id) => Find<StoredDocument>("documents", DocumentContext, id);
 
     /// <summary>Removes a document from this PC. Only for ones that never went to Xero.</summary>
-    public void DeleteDocument(string id) => Remove("documents", id);
+    public void DeleteDocument(string id) => InOneGo(() =>
+    {
+        Remove("documents", id);
+        MarkGone("document", id);
+        return 0;
+    });
+
+    /// <summary>A document as it came from the other PC, kept with its own times.</summary>
+    public StoredDocument PutAsSynced(StoredDocument stored)
+    {
+        Run("""
+            INSERT INTO documents (id, kind, status, created, updated, payload)
+            VALUES ($id, $kind, $status, $created, $updated, $payload)
+            ON CONFLICT (id) DO UPDATE SET kind = $kind, status = $status, updated = $updated, payload = $payload
+            """,
+            ("$id", stored.Id), ("$kind", stored.Document.Kind.ToString()), ("$status", stored.Status.ToString()),
+            ("$created", stored.Created.ToString("O")), ("$updated", stored.Updated.ToString("O")),
+            ("$payload", Seal(DocumentContext + stored.Id, stored)));
+        return stored;
+    }
 
     /// <summary>Newest first.</summary>
     public IReadOnlyList<StoredDocument> List(DocumentKind? kind = null) => kind is null

@@ -177,6 +177,12 @@ public sealed partial class LocalStore : IDisposable
                 project_id TEXT NOT NULL,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS sync_gone (
+                kind TEXT NOT NULL,
+                id TEXT NOT NULL,
+                at TEXT NOT NULL,
+                PRIMARY KEY (kind, id)
+            );
             CREATE TABLE IF NOT EXISTS sync_sent (
                 kind TEXT NOT NULL,
                 id TEXT NOT NULL,

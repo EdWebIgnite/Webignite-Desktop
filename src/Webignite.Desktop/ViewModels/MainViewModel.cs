@@ -60,6 +60,7 @@ public partial class MainViewModel : ViewModelBase
                 "projects" => [Page.Calendar, Page.Planner, Page.Overview, Page.MyPages, Page.Inbox],
                 "todos" => [Page.Calendar, Page.Planner, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
                 "clients" => [Page.Clients, Page.Overview, Page.Retainers],
+                "documents" => [Page.Quotes, Page.Invoices, Page.Money, Page.Reports, Page.Approvals, Page.Overview],
                 "contacts" => [Page.Contacts],
                 "notes" => [Page.Notes],
                 "calendar" => [Page.Calendar, Page.Planner, Page.Overview, Page.Home],
@@ -76,6 +77,8 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Brings Xero's customers in as clients and tells the Clients pages that are open.</summary>
     private async Task CheckXeroClientsAsync()
     {
+        if (services.WaitsForFirstSync)
+            return;
         var news = await services.Work.Run("Bringing clients in from Xero", () => services.XeroClients.RunAsync());
         if (news.Added + news.Filled == 0)
             return;
@@ -88,6 +91,8 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Brings in quotes and invoices made in Xero itself and has the pages that show money read again.</summary>
     private async Task CheckXeroDocumentsAsync()
     {
+        if (services.WaitsForFirstSync)
+            return;
         var news = await services.Work.Run("Bringing in quotes and invoices from Xero", () => services.XeroDocuments.RunAsync());
         if (news.Problem is { } problem)
             Webignite.Data.AppLog.Write(problem);

@@ -52,12 +52,13 @@ public sealed record SyncResult(int Changed = 0, int Sent = 0, string? Problem =
 }
 
 /// <summary>
-/// Syncs shared projects (their sections, tasks, comments, activity and messages) with the workspace on the sync server.
+/// Syncs shared projects (their sections, tasks, comments, activity and messages), and every quote, invoice, client and
+/// contact (SyncService.Shared.cs), with the workspace on the sync server.
 /// Every record is locked on this PC with the workspace key before it goes, so the server only ever holds what it
 /// can't read. What comes in is merged field by field with this PC's copy (see <see cref="RecordMerge"/>), and only
 /// records that changed since they were last sent go out. Personal projects never leave the PC.
 /// </summary>
-public sealed class SyncService(LocalStore store, AccountClient account, TimeProvider? clock = null) : IDisposable
+public sealed partial class SyncService(LocalStore store, AccountClient account, TimeProvider? clock = null) : IDisposable
 {
     private const string StateName = "sync";
     private const string TeamName = "team";
@@ -205,6 +206,8 @@ public sealed class SyncService(LocalStore store, AccountClient account, TimePro
                     store.SaveActivity(activity); // written once: a copy already here is the same line
                     sent.Add((SyncKinds.Activity, record.Id, fingerprint));
                     return Taken.Same;
+                case SyncKinds.Document or SyncKinds.Client or SyncKinds.Contact:
+                    return TakeInShared(record.Kind, record.Id, json, fingerprint, sent);
                 case SyncKinds.Team:
                     if (record.Id != TeamId || JsonSerializer.Deserialize<TeamRecord>(json, RecordLock.Json) is not { } team)
                         return Taken.Unreadable;
@@ -322,6 +325,7 @@ public sealed class SyncService(LocalStore store, AccountClient account, TimePro
         all.AddRange(store.ListAllComments().Where(c => shared.Contains(c.ProjectId)).Select(c => Make(SyncKinds.Comment, c.Id, c)));
         all.AddRange(store.ListAllMessages().Where(m => shared.Contains(m.ProjectId)).Select(m => Make(SyncKinds.Message, m.Id, m)));
         all.AddRange(store.ListAllActivity().Where(a => shared.Contains(a.ProjectId)).Select(a => Make(SyncKinds.Activity, a.Id, a)));
+        all.AddRange(OutgoingShared());
         return [.. all.Where(r => SyncLimits.IdIsFine(r.Id))];
     }
 

@@ -11,7 +11,12 @@ public sealed partial class LocalStore
 
     public Person? GetContact(string id) => Find<Person>("contacts", ContactContext, id);
 
-    public void DeleteContact(string id) => Remove("contacts", id);
+    public void DeleteContact(string id) => InOneGo(() =>
+    {
+        Remove("contacts", id);
+        MarkGone("contact", id);
+        return 0;
+    });
 
     public IReadOnlyList<Person> ListContacts() => ReadAll<Person>(ContactContext, "SELECT id, payload FROM contacts");
 }

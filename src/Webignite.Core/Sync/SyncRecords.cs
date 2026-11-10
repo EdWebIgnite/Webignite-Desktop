@@ -17,7 +17,13 @@ public static class SyncKinds
     public const string Team = "team";
     public const string Message = "message";
 
-    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { Project, Heading, Task, Comment, Activity, Team, Message };
+    /// <summary>Quotes and invoices, clients and people in Contacts: the business both of you run.</summary>
+    public const string Document = "document";
+    public const string Client = "client";
+    public const string Contact = "contact";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact };
 }
 
 /// <summary>

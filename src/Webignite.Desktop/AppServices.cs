@@ -99,6 +99,12 @@ public sealed class AppServices : IDisposable
     /// Syncs shared projects now, off the screen's thread, and has the open pages read again when something came in.
     /// Problems are logged; the result says what happened for whoever asked.
     /// </summary>
+    /// <summary>
+    /// Signed in but not synced yet on this PC: Xero's clients, quotes and invoices wait to come in until the other
+    /// PC's copies have, so the same one from Xero isn't kept twice.
+    /// </summary>
+    public bool WaitsForFirstSync => Account.IsSignedIn && Sync.State.LastSynced is null;
+
     public async Task<SyncResult> SyncNowAsync()
     {
         var result = await Task.Run(() => Sync.SyncAsync());
@@ -107,7 +113,7 @@ public sealed class AppServices : IDisposable
             await Task.Run(() => Account.RefreshLicenceAsync(TimeSpan.FromHours(12), DateTimeOffset.UtcNow));
         if (result.Changed > 0)
         {
-            AreasChanged?.Invoke(["projects"]);
+            AreasChanged?.Invoke(["projects", "documents", "clients", "contacts"]);
             AnnounceInbox(await Task.Run(Inbox.NewlyArrived));
         }
         // Logged once when it starts going wrong, not every minute while the internet is down.

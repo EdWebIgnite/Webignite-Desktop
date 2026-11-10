@@ -7,9 +7,17 @@ public sealed partial class LocalStore
 {
     private const string ClientContext = "client:";
 
-    public Client SaveClient(Client client) => Put("clients", ClientContext, client.Id, client);
+    public Client SaveClient(Client client) => Put("clients", ClientContext, client.Id, client with { Updated = clock.GetUtcNow() });
 
-    public void DeleteClient(string id) => Remove("clients", id);
+    /// <summary>A client as it came from the other PC, kept with its own time.</summary>
+    public Client PutClientAsSynced(Client client) => Put("clients", ClientContext, client.Id, client);
+
+    public void DeleteClient(string id) => InOneGo(() =>
+    {
+        Remove("clients", id);
+        MarkGone("client", id);
+        return 0;
+    });
 
     /// <summary>
     /// Changes a client as it is stored now, in one go, so a change made meanwhile (a note added, a project

@@ -44,6 +44,9 @@ public sealed record Client
 
     public DateTimeOffset Created { get; init; }
 
+    /// <summary>When it was last saved on any PC, so the later copy wins when the two of you sync.</summary>
+    public DateTimeOffset Updated { get; init; }
+
     /// <summary>
     /// Claude or ChatGPT changed the client's email or name: shown on the client's page and stopping the email and Xero
     /// steps until Eddie says it's right, as a mail could have tricked them into it.
