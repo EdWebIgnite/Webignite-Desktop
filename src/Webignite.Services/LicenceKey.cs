@@ -7,7 +7,7 @@ namespace Webignite.Services;
 /// </summary>
 public static class LicenceKey
 {
-    public const string Public = "";
+    public const string Public = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPbaYHUOvQOkFdel4cZbutTawCDcmEh8fhlbfztvZKNsljg+lk6qu5n89MpamUpkaMJMxPwDswkVmrXP2EUWs1A==";
 }
 
 /// <summary>The licence kept on this PC (setting <c>licence</c>): the signed token and when it was last fetched.</summary>

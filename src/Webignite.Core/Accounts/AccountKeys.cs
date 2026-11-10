@@ -81,6 +81,15 @@ public static class AccountRules
 /// <summary>The sync server's address: HTTPS only, except a server on this PC (for testing).</summary>
 public static class SyncAddress
 {
+    /// <summary>
+    /// Webignite's own sync server (on the Synology NAS, docs/synology-setup.md), filled in for anyone who hasn't
+    /// picked one, so joining is only the invite code, an email and a password.
+    /// </summary>
+    public const string Ours = "https://sync.greatgraphicgroup.synology.me";
+
+    /// <summary>The address kept on this PC, or ours when none has been kept yet.</summary>
+    public static string OrOurs(string? kept) => string.IsNullOrWhiteSpace(kept) ? Ours : Normal(kept);
+
     public static string Normal(string address) => address.Trim().TrimEnd('/');
 
     public static string? Problem(string? address)

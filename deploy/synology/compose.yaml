@@ -1,36 +1,23 @@
 # The Webignite sync server on a Synology NAS, for Container Manager (docs/synology-setup.md). Paste all of this
-# into a new project. Nothing in it needs changing: the server makes its own secret and licence key the first
-# time and keeps them, with the database and the nightly backups, in the project's data folder.
+# into a new project, after making a folder called data in the project's folder. Nothing in it needs changing:
+# the server makes its own secret and licence key the first time and keeps them, with the database and the
+# nightly backups, in that data folder.
 #
 # DSM's own reverse proxy does HTTPS in front of it. The server shares the NAS's network but only listens on the
 # NAS itself (127.0.0.1:5080), so it can't be reached from outside except through that proxy.
+#
+# It runs as root inside its container because Synology's own permissions on shared folders don't let the image's
+# usual user write to the data folder. It can only reach that one folder. Logs use Docker's usual format, which
+# is the one Container Manager's Log tab can show.
 
 services:
-  # Runs once before the server: gives the data folder to the server's own user (id 1654), as a new folder on
-  # the NAS belongs to the admin. Then it stops; Container Manager shows it as stopped, which is right.
-  prepare:
-    image: ghcr.io/edwebignite/webignite-server:latest
-    user: "0:0"
-    entrypoint: ["chown", "-R", "1654:1654", "/data"]
-    network_mode: none
-    restart: "no"
-    volumes:
-      - ./data:/data
-
   server:
     image: ghcr.io/edwebignite/webignite-server:latest
-    depends_on:
-      prepare:
-        condition: service_completed_successfully
+    user: "0:0"
     network_mode: host
     restart: unless-stopped
     environment:
       WEBIGNITE_NIGHTLY_BACKUP: "true"
       Logging__LogLevel__Webignite.Server.NightlyBackup: Information
-    logging:
-      driver: local
-      options:
-        max-size: 10m
-        max-file: "3"
     volumes:
       - ./data:/data
