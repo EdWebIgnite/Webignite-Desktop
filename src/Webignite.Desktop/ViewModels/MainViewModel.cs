@@ -313,10 +313,10 @@ public partial class MainViewModel : ViewModelBase
             Selected = mailModule;
             Mail.WriteTo(to);
         };
-        go.ComposeMailAction = (mail, note, afterSent) =>
+        go.ComposeMailAction = (mail, note, afterSent, beforeSend) =>
         {
             Selected = mailModule;
-            if (!Mail.Compose(mail, afterSent: afterSent))
+            if (!Mail.Compose(mail, afterSent: afterSent, beforeSend: beforeSend))
                 return false;
             if (note is not null && Mail.Composer is { } composer)
             {

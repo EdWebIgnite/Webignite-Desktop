@@ -394,6 +394,9 @@ public partial class DocumentEditorViewModel
                     RefreshXero();
                     RefreshEmail();
                 },
+                // A quote is marked sent in Xero only as its mail goes, and Xero's PDF fetched again then, so it
+                // says QUOTE rather than DRAFT QUOTE. Closing the mail unsent leaves Xero as it was.
+                BeforeSend = Kind == DocumentKind.Quote ? mail => SendingQuote(sending, stamped, pdf, mail) : null,
             });
             ShowXero(opened ? "" : MailDrafts.AnotherOpen, problem: !opened);
         }
@@ -409,6 +412,17 @@ public partial class DocumentEditorViewModel
             RefreshXero();
             RefreshEmail();
         }
+    }
+
+    // The quote marked sent and its PDF, now saying QUOTE, put in the mail in place of the draft one. If the
+    // person took the PDF off the mail, it stays off.
+    private static async Task<Webignite.Core.Mail.OutgoingMail> SendingQuote(XeroSending sending, StoredDocument quote, Webignite.Core.Mail.OutgoingAttachment draftPdf, Webignite.Core.Mail.OutgoingMail mail)
+    {
+        var pdf = await sending.QuoteSentPdfAsync(quote);
+        if (draftPdf.FilePath is not { } path || !mail.Attachments.Any(a => a.FilePath == path))
+            return mail;
+        await File.WriteAllBytesAsync(path, pdf);
+        return mail with { Attachments = [.. mail.Attachments.Select(a => a.FilePath == path ? a with { Size = pdf.Length } : a)] };
     }
 
     private void RefreshEmail()
