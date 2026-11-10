@@ -110,6 +110,7 @@ public sealed partial class MainViewModel
                 watched = settings;
                 settings.PropertyChanged += SettingsChanged;
             }
+            settings.LoadShared(); // the Xero app may have arrived from the other PC since joining
             settings.Open(section);
             if (step.Check == SetupCheck.SignedIn && !services.Account.IsSignedIn)
                 settings.ShowAccountFormCommand.Execute(form ?? "join");

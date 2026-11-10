@@ -18,17 +18,10 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     public SettingsViewModel(AppServices services)
     {
         this.services = services;
-        var documents = services.Settings.Documents;
-        InvoiceDueDays = documents.InvoiceDueDays.ToString();
-        QuoteExpiryDays = documents.QuoteExpiryDays.ToString();
-        var xero = services.Settings.Xero;
-        ClientId = xero.ClientId ?? "";
-        UpdateXeroStatus();
+        LoadShared();
         UpdateAssistantStatus();
         LoadChatGpt();
-        LoadTemplates(services.Settings.EmailTemplates);
         UpdateBackupStatus();
-        LoadPrices();
         LoadFileTags();
         LoadScreenshots();
         LoadNotes();
@@ -180,15 +173,30 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     }
     partial void OnRestoreReadyChanged(bool value) => OnPropertyChanged(nameof(ShowRestore));
 
-    /// <summary>Looks again when the page is opened, as backups run in the background.</summary>
+    /// <summary>Looks again when the page is opened, as backups run in the background and settings arrive from the other PC.</summary>
     public void Refresh()
     {
-        LoadPrices();
+        LoadShared();
         UpdateAssistantStatus();
         LoadChatGpt();
         LoadAssistantChanges();
         LoadAccount();
         UpdateBackupStatus();
+    }
+
+    /// <summary>
+    /// What the business shares between both PCs (quote and invoice terms, the Xero app, email wording, the price
+    /// list), read again, as it may have arrived from the other PC since the page was made.
+    /// </summary>
+    public void LoadShared()
+    {
+        var documents = services.Settings.Documents;
+        InvoiceDueDays = documents.InvoiceDueDays.ToString();
+        QuoteExpiryDays = documents.QuoteExpiryDays.ToString();
+        ClientId = services.Settings.Xero.ClientId ?? "";
+        UpdateXeroStatus();
+        LoadTemplates(services.Settings.EmailTemplates);
+        LoadPrices();
     }
 
     private void UpdateBackupStatus()
