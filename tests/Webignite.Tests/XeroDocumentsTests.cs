@@ -40,6 +40,28 @@ public sealed class XeroDocumentsTests : IDisposable
     };
 
     [Fact]
+    public void Webignites_own_deleted_or_voided_in_Xero_are_settled_and_nothing_else_changes()
+    {
+        StoredDocument Ours(string id, string xeroId) => new()
+        {
+            Id = id,
+            Document = Samples.Completed(Samples.NewInvoice()),
+            Xero = new XeroLink { Id = xeroId, State = XeroWriteState.Verified },
+        };
+        var deleted = Ours("a", "x1");
+        var voided = Ours("b", "x2");
+        var still = Ours("c", "x3");
+        var settledAlready = Ours("d", "x4") with { Settled = new SettledState { On = Now, As = Settlement.Paid } };
+
+        var plan = XeroDocuments.Plan([deleted, voided, still, settledAlready],
+            [Invoice("x1", "DELETED"), Invoice("x2", "VOIDED"), Invoice("x3"), Invoice("x4", "VOIDED")], Now);
+
+        Assert.Equal([("a", Settlement.Deleted), ("b", Settlement.Voided)], plan.Gone);
+        Assert.Empty(plan.ToAdd);
+        Assert.Empty(plan.ToRefresh);
+    }
+
+    [Fact]
     public void New_ones_come_in_as_made_in_xero_and_webignites_own_are_left_alone()
     {
         var ours = new StoredDocument

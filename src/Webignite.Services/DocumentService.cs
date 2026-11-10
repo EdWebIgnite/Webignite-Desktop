@@ -76,6 +76,13 @@ public sealed class DocumentService(LocalStore store)
     /// </summary>
     public StoredDocument Put(StoredDocument stored) => store.Save(stored);
 
+    /// <summary>Takes something in Xero off To approve by hand; it stays in its list and Xero isn't changed. Null when it can't be.</summary>
+    public StoredDocument? TakeOffApprovals(WaitingItem item, DateTimeOffset now) =>
+        Approvals.CanRemove(item) ? store.Update(item.Stored.Id, s => s with { OffApprovals = now }) : null;
+
+    /// <summary>Puts it back on To approve, for Undo.</summary>
+    public StoredDocument? PutBackOnApprovals(string id) => store.Update(id, s => s with { OffApprovals = null });
+
     /// <summary>Puts a rejected document back, for Undo.</summary>
     public StoredDocument Restore(StoredDocument stored) => store.Save(stored);
 

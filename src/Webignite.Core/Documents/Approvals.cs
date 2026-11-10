@@ -35,12 +35,20 @@ public static class Approvals
     /// </summary>
     public static bool CanReject(WaitingItem item) => item.Kind == WaitingKind.FromAssistant && item.Stored.Xero.Id is null;
 
+    /// <summary>
+    /// Whether it can be taken off the list by hand: anything that's in Xero (for one deleted or changed there, say).
+    /// It stays in its list and Xero isn't touched. What never reached Xero is rejected instead.
+    /// </summary>
+    public static bool CanRemove(WaitingItem item) => item.Stored.Xero.Id is not null;
+
     public static WaitingItem? Why(StoredDocument s)
     {
         var what = s.Document.Kind == DocumentKind.Quote ? "quote" : "invoice";
         var by = s.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude";
         return s switch
         {
+            // Settled (paid, accepted, deleted or voided in Xero) or taken off by hand: nothing left to do here.
+            { Settled: not null } or { OffApprovals: not null } => null,
             { Xero.State: XeroWriteState.Writing or XeroWriteState.Uncertain } =>
                 new(s, WaitingKind.XeroProblem, "It isn't clear whether Xero got it. Open it and use Check Xero."),
             { Xero.State: XeroWriteState.Mismatch } =>
