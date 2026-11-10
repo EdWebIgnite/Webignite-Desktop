@@ -6,8 +6,8 @@ clicking in DSM and in the router, no commands to type. Plan on about an hour.
 What you end up with:
 
 - The sync server running on the NAS in Container Manager, starting by itself whenever the NAS starts.
-- An address for the apps, like `https://webignite-sync.synology.me`, with a proper HTTPS certificate that
-  renews by itself.
+- An address for the apps, like `https://sync.yourname.synology.me`, with a proper HTTPS certificate that
+  renews by itself. Webignite has Webignite's own address built in, so people joining only need an invite code.
 - A backup of the server's database every night, kept for 30 days.
 
 Everything that syncs is locked on your PCs before it leaves, so the NAS never holds anything it can read.
@@ -45,17 +45,19 @@ If you can't find that setting in the router, tell me the router's make and mode
 
 This also makes a shared folder called **docker**.
 
-## 4. Make a folder for Webignite
+## 4. Make the folders for the sync server
 
 1. Open **File Station**.
-2. Click the **docker** folder, then **Create**, **Create folder**, and call it `webignite`.
+2. Click the **docker** folder, then **Create**, **Create folder** (not Create shared folder), and call it
+   `system_sync`.
+3. Open **system_sync**, and in it make one more folder called `data`. The NAS doesn't make it by itself.
 
 ## 5. Start the sync server
 
 1. Open **Container Manager** and click **Project** on the left.
 2. Click **Create**.
-3. **Project name:** `webignite`
-4. **Path:** click **Set Path**, choose **docker**, then **webignite**, and click **Select**.
+3. **Project name:** `system_sync`
+4. **Path:** click **Set Path**, choose **docker**, then **system_sync**, and click **Select**.
 5. **Source:** choose **Create docker-compose.yml**.
 6. Copy everything in
    [deploy/synology/compose.yaml](https://github.com/EdWebIgnite/Webignite-Desktop/blob/main/deploy/synology/compose.yaml)
@@ -63,22 +65,24 @@ This also makes a shared folder called **docker**.
 7. Click **Next**. If it asks about a web portal through Web Station, leave that **unticked**. Click **Next**
    again, then **Done**.
 
-It downloads the server and starts it. When it's finished, the project shows two containers:
+It downloads the server and starts it. When it's finished, the project shows **system_sync-server-1** running,
+with a green dot. Its **Log** tab shows **Application started**.
 
-- **webignite-server-1** running, with a green dot. That's the sync server.
-- **webignite-prepare-1** stopped. That's right: it only gets the folder ready, then stops.
+## 6. Get an address and a certificate for the NAS
 
-## 6. Get an address for the NAS
+1. In DSM, open **Control Panel**, **External Access**, **DDNS**. If a **Synology** address is already listed
+   with status **Normal** (for example `yourname.synology.me`), use that one: a NAS can only have one. If not,
+   click **Add**, choose **Synology**, pick a hostname, and click **OK**.
+2. The sync server gets its own part of that address: `sync.yourname.synology.me`. Synology points every such
+   part at your NAS already.
+3. Open **Control Panel**, **Security**, **Certificate**, and click **Add**, **Add a new certificate**, **Next**.
+   Description `Sync`, choose **Get a certificate from Let's Encrypt**, **Next**:
+   - **Domain name:** `yourname.synology.me`
+   - **Email:** your email (only used to warn you if renewal fails)
+   - **Subject Alternative Name:** `*.yourname.synology.me` (with the star and dot, so it covers `sync.`)
+   - leave **Set as default certificate** unticked, and click **Done**.
 
-1. In DSM, open **Control Panel**, **External Access**, **DDNS**, and click **Add**.
-2. **Service provider:** Synology.
-3. **Hostname:** type `webignite-sync` and keep `synology.me` next to it. If that name is taken, try another,
-   such as `webignite-eddie`. Write down the full address, for example `webignite-sync.synology.me`.
-4. Tick **Get a certificate from Let's Encrypt and set it as default**.
-5. Tick **Enable Heartbeat** if it's there.
-6. Click **OK**. It takes a minute to get the certificate.
-
-The rest of this guide uses `webignite-sync.synology.me`. Use your own address wherever you see it.
+The rest of this guide uses `sync.yourname.synology.me`. Use your own address wherever you see it.
 
 ## 7. Send the address to the sync server
 
@@ -87,9 +91,9 @@ The rest of this guide uses `webignite-sync.synology.me`. Use your own address w
 
    | | |
    | --- | --- |
-   | Reverse proxy name | `Webignite sync` |
+   | Reverse proxy name | `Sync` |
    | **Source:** Protocol | HTTPS |
-   | **Source:** Hostname | `webignite-sync.synology.me` |
+   | **Source:** Hostname | `sync.yourname.synology.me` |
    | **Source:** Port | `443` |
    | Enable HSTS | ticked |
    | **Destination:** Protocol | HTTP |
@@ -97,8 +101,8 @@ The rest of this guide uses `webignite-sync.synology.me`. Use your own address w
    | **Destination:** Port | `5080` |
 
 3. Click **Save**.
-4. Open **Control Panel**, **Security**, **Certificate**, and click **Settings**. Next to
-   `webignite-sync.synology.me`, choose the certificate for `webignite-sync.synology.me`, and click **OK**.
+4. Open **Control Panel**, **Security**, **Certificate**, and click **Settings**. Scroll to the bottom of the
+   list: next to `sync.yourname.synology.me`, choose the `yourname.synology.me` certificate, and click **OK**.
 
 ## 8. Open the door in the router
 
@@ -126,47 +130,49 @@ The NAS can now be reached from the internet, so make sure these are on:
 2. **Control Panel**, **Security**, **Account**: tick **Enable Account Protection**.
 3. Your DSM admin login has two-step sign-in on: click your name at the top right of DSM, **Personal**,
    **Security**, **2-Factor Authentication**.
-4. If **Control Panel**, **Security**, **Firewall** is switched on, add a rule that allows port **443**.
+4. If **Control Panel**, **Security**, **Firewall** is switched on and the check in step 10 fails from mobile
+   data, add a rule that allows port **443**.
 
 ## 10. Check it works
 
 1. On your phone, **switch off Wi-Fi**, so it uses mobile data like someone outside your home.
-2. Open `https://webignite-sync.synology.me/health`.
+2. Open `https://sync.yourname.synology.me/health`.
 
 It should show `{"status":"ok"}`. Then open the same address on a PC at home. It should show the same.
 
 If it doesn't work, see Troubleshooting at the end.
 
-## 11. Send me the licence key
+## 11. The licence key
 
-Open `https://webignite-sync.synology.me/licence-public-key`. It shows one long line of letters and numbers.
-Copy all of it and send it to me. It's safe to share, and it goes into the app so licences work.
+`https://sync.yourname.synology.me/licence-public-key` shows one long line of letters and numbers: the public
+half of the server's licence key. It's safe to share. It goes into the app (`LicenceKey.Public`) so licences
+work; for Webignite's own NAS it's in already.
 
 ## 12. Sign up in Webignite
 
 On your PC, in Webignite, open **Settings**, **Account and sync**:
 
-1. **Sync server:** `https://webignite-sync.synology.me`
-2. **Create an account** with your email, a long password and the workspace name (Webignite).
+1. **Sync server:** Webignite's own is filled in. For another server, click **Change** and type its address.
+2. **New account** with your email, a long password and the workspace name (Webignite).
 3. Write down or print the **recovery key** it shows, and keep it away from the PC. It's the only way back in
    if you forget your password.
 4. **Turn on two-factor** with your authenticator app, and keep the recovery codes with the recovery key.
 5. **Make an invite code** and send it to your partner somewhere only they can see it.
 
-On your partner's PC: the same sync server address, then **Join with an invite**, their own email and password,
-and the code. They keep their own recovery key and turn on two-factor too.
+On your partner's PC: **Join with an invite**, then the code, their own email and password. The sync server is
+filled in already. They keep their own recovery key and turn on two-factor too.
 
 Projects ticked **Shared** then sync every minute while you're both signed in.
 
 ## 13. Back up somewhere other than the NAS
 
-The server copies its database every night at 02:30 into `docker/webignite/data/backups` and keeps 30 days.
-That doesn't help if the NAS itself fails, so copy the whole `webignite` folder somewhere else as well:
+The server copies its database every night at 02:30 into `docker/system_sync/data/backups` and keeps 30 days.
+That doesn't help if the NAS itself fails, so copy the whole `system_sync` folder somewhere else as well:
 
 1. In **Package Center**, install **Hyper Backup**.
 2. Open it, click **+**, **Data backup task**.
 3. Choose where it goes: a USB drive plugged into the NAS, or a cloud such as Synology C2 or Google Drive.
-4. Tick the folder **docker**, **webignite**.
+4. Tick the folder **docker**, **system_sync**.
 5. Set it to run **daily** at **03:30**.
 6. Switch on **encryption** when it asks, and keep that password in your password manager.
 
@@ -194,9 +200,9 @@ cuts and protects the NAS's disks.
 - **It opens on mobile data but not on a PC at home:** the router doesn't send your own address back inside your
   home. Tell me the router's make and model.
 - **The health page says 502 or Bad Gateway:** the server isn't running. In Container Manager, **Project**,
-  **webignite**, click **Action**, **Start**.
+  **system_sync**, click **Action**, **Start**.
 - **A certificate warning:** redo step 7, part 4, and pick the `synology.me` certificate.
-- **Anything else:** in Container Manager, **Container**, **webignite-server-1**, **Log**. Copy the last lines
+- **Anything else:** in Container Manager, **Container**, **system_sync-server-1**, **Log**. Copy the last lines
   and send them to me.
 
 ## Later, when Webignite is sold to clients

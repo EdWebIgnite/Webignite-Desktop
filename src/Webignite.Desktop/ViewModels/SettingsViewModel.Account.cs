@@ -10,6 +10,22 @@ namespace Webignite.Desktop.ViewModels;
 public partial class SettingsViewModel
 {
     [ObservableProperty] public partial string SyncServer { get; set; } = "";
+
+    /// <summary>Whether the sync server's address can be typed: only when asked for, or when it isn't ours.</summary>
+    [ObservableProperty] public partial bool ChangingSyncServer { get; set; }
+    public bool ShowSyncServerBox => ChangingSyncServer || SyncAddress.Normal(SyncServer) != SyncAddress.Ours;
+    public string SyncServerShown => "Sync server: " + SyncAddress.Normal(SyncServer).Replace("https://", "", StringComparison.Ordinal);
+
+    partial void OnSyncServerChanged(string value)
+    {
+        OnPropertyChanged(nameof(ShowSyncServerBox));
+        OnPropertyChanged(nameof(SyncServerShown));
+    }
+
+    partial void OnChangingSyncServerChanged(bool value) => OnPropertyChanged(nameof(ShowSyncServerBox));
+
+    [RelayCommand]
+    private void ChangeSyncServer() => ChangingSyncServer = true;
     [ObservableProperty] public partial string AccountEmail { get; set; } = "";
     [ObservableProperty] public partial string AccountPassword { get; set; } = "";
     [ObservableProperty] public partial string AccountPasswordAgain { get; set; } = "";
@@ -99,7 +115,7 @@ public partial class SettingsViewModel
     private void LoadAccount()
     {
         var account = services.Account;
-        SyncServer = account.Settings.ServerAddress;
+        SyncServer = SyncAddress.OrOurs(account.Settings.ServerAddress);
         if (AccountEmail.Length == 0)
             AccountEmail = account.Settings.Email;
         IsSignedIn = account.IsSignedIn;

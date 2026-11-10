@@ -13,6 +13,7 @@ using Webignite.Desktop.ViewModels;
 using Webignite.Desktop.Views;
 using Webignite.Xero.Auth;
 using Webignite.Core;
+using Webignite.Core.Accounts;
 
 // Usage: dotnet run --project tools/Snapshot -- <output folder>
 // Uses a throwaway database with sample documents, never the real one.
@@ -397,6 +398,13 @@ settingsPage.PartnerName = "Jaco";
 settingsPage.SaveTeamCommand.Execute(null);
 Save("settings-projects");
 settingsPage.Open("account");
+// Joining needs nothing but the invite: our own sync server is filled in, shown as a line with Change.
+settingsPage.ShowAccountFormCommand.Execute("join");
+Dispatcher.UIThread.RunJobs();
+Check("Our own sync server is filled in and its box is folded away", settingsPage.SyncServer == SyncAddress.Ours && !settingsPage.ShowSyncServerBox);
+Save("settings-account-join");
+settingsPage.ChangeSyncServerCommand.Execute(null);
+Check("Change opens the sync server's box", settingsPage.ShowSyncServerBox);
 settingsPage.ShowAccountFormCommand.Execute("new");
 settingsPage.SyncServer = "http://sync.webignite.co.za";
 Wait(settingsPage.CreateAccountCommand.ExecuteAsync(null), "Creating an account against a plain-http server");

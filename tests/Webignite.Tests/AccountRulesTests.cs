@@ -107,4 +107,13 @@ public sealed class AccountRulesTests
         Assert.False(StartRules.AskToSignIn(switchedOn: true, signedIn: true));
         Assert.False(StartRules.AskToSignIn(switchedOn: false, signedIn: false));
     }
+
+    [Fact]
+    public void Our_own_sync_server_is_used_until_another_is_kept()
+    {
+        Assert.Equal(SyncAddress.Ours, SyncAddress.OrOurs(null));
+        Assert.Equal(SyncAddress.Ours, SyncAddress.OrOurs("  "));
+        Assert.Equal("https://sync.example.co.za", SyncAddress.OrOurs("https://sync.example.co.za/"));
+        Assert.Null(SyncAddress.Problem(SyncAddress.Ours));
+    }
 }
