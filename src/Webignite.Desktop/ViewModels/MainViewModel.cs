@@ -660,10 +660,12 @@ public partial class MainViewModel : ViewModelBase
                 OpenProjectLink(link);
             if (value is MyPageLink pageLink)
                 OpenMyPageLink(pageLink);
-            // The Planner entry opens Home and its sidebar; the arrow at the top goes back to the main sidebar.
+            // The Planner entry opens its sidebar, and Home unless a Planner page is on screen already (back to the main
+            // sidebar and in again); the arrow at the top goes back to the main sidebar.
             if (value is SectionLink)
             {
-                Selected = this[Page.Home];
+                if (!Selected.InPlanner)
+                    Selected = this[Page.Home];
                 Sidebar.EnterPlanner();
             }
             if (value is SidebarBack)

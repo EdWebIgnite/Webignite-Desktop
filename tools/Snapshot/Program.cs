@@ -3008,6 +3008,17 @@ Save("site-check");
             && vm.Sidebar.PlannerItems.First() is SidebarBack
             && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Inbox", "Projects", "Calendar", "Week", "Time"])
             && vm.Sidebar.PlannerItems.OfType<ProjectLink>().Any(l => l.Kind == ProjectLinkKind.MyTasks));
+        // Back to the main sidebar, then a real click on Planner again: it goes straight back in.
+        vm.SelectedNav = vm.Sidebar.PlannerBack;
+        Dispatcher.UIThread.RunJobs();
+        var mainNavList = window.GetVisualDescendants().OfType<Avalonia.Controls.ListBox>().First(l => l.Name == "Nav");
+        var plannerRow = mainNavList.ContainerFromItem(vm.Sidebar.Items.OfType<SectionLink>().First())!;
+        var plannerAt = plannerRow.TranslatePoint(new Point(plannerRow.Bounds.Width / 2, plannerRow.Bounds.Height / 2), window)!.Value;
+        Check("After the back arrow, Planner is still marked in the main sidebar", !vm.Sidebar.IsPlanner && vm.SelectedNav is SectionLink);
+        window.MouseDown(plannerAt, Avalonia.Input.MouseButton.Left);
+        window.MouseUp(plannerAt, Avalonia.Input.MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        Check("Clicking Planner again goes back into it, on the Planner page that was open", vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Home);
         Check("Home greets, counts the week and lists my tasks and recent projects", homePage.Greeting.Contains(services.Me().Name, StringComparison.Ordinal)
             && homePage.CompletedText.EndsWith("completed", StringComparison.Ordinal)
             && homePage.Projects.OfType<HomeProjectTile>().Any() && homePage.Projects.First() is HomeCreateTile);

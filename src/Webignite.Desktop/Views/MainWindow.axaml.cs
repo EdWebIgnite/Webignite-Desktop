@@ -233,6 +233,10 @@ public partial class MainWindow : Window
             {
                 if (item is NavGroup group)
                     group.Toggle();
+                // The entry already picked, clicked again (Planner after its back arrow, Projects while a project is
+                // open): the list sees no change, so it's picked again here.
+                else if (Equals(list.SelectedItem, item) && DataContext is MainViewModel main)
+                    main.SelectedNav = item;
                 else
                     list.SelectedItem = item;
             },
