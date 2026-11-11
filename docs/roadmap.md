@@ -32,9 +32,7 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 
 ### Websites, drawn by WebView2
 
-- **Responsive preview.** A live page that can be scrolled and clicked, at any width.
-- **Phone simulator.** The same preview as a named phone or tablet: its screen size, pixel density, touch and the address it tells sites it is, turned upright or sideways, as browser device toolbars do. It is still Edge's engine pretending, so a fault that only Safari on a real iPhone has won't show.
-  - A range of devices to pick from, kept as a list in Core so one is added in a line: iPhones (a small older one such as the SE, the standard size of the last few years, and the largest Pro Max), Samsungs (a recent S, a large Ultra, a mid-range A and a 360-wide budget Android, which many South African visitors use, plus a fold), a Pixel, iPads (Mini, Air, the large Pro) and an Android tablet, then a laptop and a desktop. A box takes any other size. The exact sizes are looked up when it is built.
+- **Site crawler for sites that need JavaScript.** The crawler reading pages through the browser, for sites that draw themselves with scripts.
 
 ### Everyday
 
@@ -51,7 +49,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 2. ~~DNS and mail record tool~~ Built: DNS records, under Web tools.
 3. ~~Site crawler, reading HTML only~~ Built: Site crawler, under Web tools.
 4. ~~WebView2 groundwork, with Save a web page as a PDF and Website screenshots~~ Built: Page to PDF or picture, under Web tools.
-5. **Responsive preview and Phone simulator.** One window, on top of step 4.
+5. ~~Responsive preview and Phone simulator~~ Built: Show as, in Page to PDF or picture. The device sizes were written from memory, not looked up, so correct any that are off in `Devices.All`.
 6. **Site crawler for sites that need JavaScript.** Needs step 4.
 7. **Screen ruler.** Reuses the colour picker's frozen screen.
 8. **Text snippets from any program.**

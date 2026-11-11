@@ -110,6 +110,15 @@ public sealed class WebView2Core : IDisposable
         return await controller.CoreWebView2.PrintToPdfAsync(path, settings);
     }
 
+    /// <summary>A PNG of what the browser is showing in its window right now, as the person sees it.</summary>
+    public async Task<byte[]> PreviewAsync()
+    {
+        ObjectDisposedException.ThrowIf(closed, this);
+        using var png = new MemoryStream();
+        await controller.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, png);
+        return png.ToArray();
+    }
+
     private void OnStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var address))

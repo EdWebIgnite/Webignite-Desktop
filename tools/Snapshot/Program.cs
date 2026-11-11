@@ -2082,6 +2082,44 @@ SaveWindow(captureWindow, "tools-page-capture");
     Wait(capture.SavePagePdfToAsync(Path.Combine(saved, "again.pdf")), "The PDF was tried");
     Check("When the browser can't, the tool says so and carries on", capture.CaptureProblem && capture.CaptureNote.StartsWith("That didn't work", StringComparison.Ordinal) && capture.CaptureReady);
 }
+// The same page shown as a phone, a tablet too big for the window, a typed size, and back.
+{
+    var saved = Path.Combine(data, "page-capture-devices");
+    Directory.CreateDirectory(saved);
+    standInBrowser!.Calls.Clear();
+    capture.CaptureDevice = capture.CaptureDevices.First(d => d.Label == "iPhone 14");
+    Check("Shown as an iPhone the page is its size, says it is one, is touched, and is fetched again",
+        Until(() => standInBrowser.Calls.Contains("Page.reload")) && capture.DeviceSize.StartsWith("390 × 844", StringComparison.Ordinal)
+        && standInBrowser.Asked.Any(a => a.Contains("iPhone", StringComparison.Ordinal)) && standInBrowser.Calls.Contains("Emulation.setTouchEmulationEnabled"));
+    Check("The iPhone's screen is drawn in the middle at its own width", capture.IsDeviceOn && capture.PaneWidth <= 390 && capture.PaneWidth / capture.PaneHeight is > 0.45 and < 0.47);
+    SaveWindow(captureWindow, "tools-page-capture-phone");
+    Wait(capture.SavePagePicturesToAsync(saved), "The phone picture was taken");
+    Check("A picture taken as a device is of that device, laid out as a phone, and named after it",
+        File.Exists(Path.Combine(saved, "karoocoffee-co-za-menu-iphone-14-390.png")) && Directory.GetFiles(saved).Length == 1
+        && standInBrowser.Asked.Any(a => a.Contains("\"width\":390", StringComparison.Ordinal) && a.Contains("\"mobile\":true", StringComparison.Ordinal) && a.Contains("\"deviceScaleFactor\":1", StringComparison.Ordinal)));
+    Check("After the picture the browser is put back to showing the iPhone",
+        Until(() => standInBrowser.Calls.LastIndexOf("Emulation.setEmitTouchEventsForMouse") > standInBrowser.Calls.LastIndexOf("Page.captureScreenshot")));
+    standInBrowser.Calls.Clear();
+    capture.CaptureSideways = true;
+    Check("Turned sideways it is wider than tall, without fetching the page again",
+        Until(() => standInBrowser.Calls.Contains("Emulation.setDeviceMetricsOverride")) && capture.PaneWidth > capture.PaneHeight && !standInBrowser.Calls.Contains("Page.reload"));
+    capture.CaptureSideways = false;
+    capture.CaptureDevice = capture.CaptureDevices.First(d => d.Label == "iPad Pro 13 inch");
+    Check("A screen taller than the window is shrunk to fit and says by how much",
+        capture.PaneHeight < 1366 && capture.DeviceSize.StartsWith("1024 × 1366, shown at ", StringComparison.Ordinal));
+    SaveWindow(captureWindow, "tools-page-capture-tablet");
+    capture.CaptureDevice = capture.CaptureDevices[^1];
+    capture.CustomWidth = "wide";
+    Check("A typed size that isn't a number is asked for again, and the page fills the window meanwhile",
+        capture.IsCustomDevice && !capture.IsDeviceOn && double.IsNaN(capture.PaneWidth) && capture.DeviceSize.StartsWith("Type a width and height", StringComparison.Ordinal));
+    capture.CustomWidth = "500";
+    capture.CustomHeight = "400";
+    Check("A typed size is used as it is", capture.IsDeviceOn && capture.PaneWidth == 500 && capture.PaneHeight == 400 && capture.DeviceSize == "500 × 400");
+    standInBrowser.Calls.Clear();
+    capture.CaptureDevice = capture.CaptureDevices[0];
+    Check("Back to Fit the window the browser is itself again",
+        Until(() => standInBrowser.Calls.Contains("Emulation.clearDeviceMetricsOverride") && standInBrowser.Calls.Contains("Page.reload")) && !capture.IsDeviceOn && double.IsNaN(capture.PaneWidth));
+}
 captureWindow.Close();
 Check("Closing the page tool's window shuts its browser down", standInBrowser!.Disposed && !capture.HasCaptureView);
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
