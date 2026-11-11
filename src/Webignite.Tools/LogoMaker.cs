@@ -81,7 +81,16 @@ public sealed class LogoMaster : IDisposable
         var bitmap = new SKBitmap(new SKImageInfo(boxWidth, boxHeight, SKColorType.Rgba8888, SKAlphaType.Premul));
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear(SKColors.Transparent);
-        var room = new SKRect((float)(boxWidth * margin), (float)(boxHeight * margin), (float)(boxWidth * (1 - margin)), (float)(boxHeight * (1 - margin)));
+        DrawOn(canvas, new SKRect((float)(boxWidth * margin), (float)(boxHeight * margin), (float)(boxWidth * (1 - margin)), (float)(boxHeight * (1 - margin))), ink);
+        return bitmap;
+    }
+
+    /// <summary>
+    /// Draws the logo as big as fits in the room given, centred, on any canvas. On a PDF's canvas an SVG stays a
+    /// drawing, so it prints sharp.
+    /// </summary>
+    public void DrawOn(SKCanvas canvas, SKRect room, LogoInk ink)
+    {
         var scale = Math.Min(room.Width / Width, room.Height / Height);
         var (w, h) = (Width * scale, Height * scale);
         var into = SKRect.Create(room.MidX - w / 2, room.MidY - h / 2, w, h);
@@ -102,7 +111,6 @@ public sealed class LogoMaster : IDisposable
             using var image = SKImage.FromBitmap(picture);
             canvas.DrawImage(image, into, new SKSamplingOptions(SKCubicResampler.Mitchell), paint);
         }
-        return bitmap;
     }
 
     public void Dispose()

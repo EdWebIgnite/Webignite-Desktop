@@ -100,7 +100,7 @@ public sealed class ToolWindow : Window
         ToolKind.ScreenText => "Text from the screen",
         ToolKind.Compare => "Compare",
         ToolKind.Duplicates => "Duplicate files",
-        ToolKind.Logos => "Logo pack and favicons",
+        ToolKind.Logos => "Logo pack, favicons and brand sheet",
         ToolKind.Social => "Social images",
         _ => "Website images",
     };

@@ -2337,6 +2337,20 @@ colourWindow.Close();
         File.Exists(Path.Combine(made, "favicons", "favicon.ico")) && File.Exists(Path.Combine(made, "favicons", "apple-touch-icon.png")) && File.Exists(Path.Combine(made, "favicons", "site.webmanifest"))
         && File.Exists(Path.Combine(made, "favicons", "favicon.svg")) && logos.HasFaviconHtml && logos.FaviconHtml.Contains("theme-color\" content=\"#E8590C", StringComparison.Ordinal));
     SaveWindow(logoWindow, "tools-logos");
+    // The brand sheet: this logo, the palette built in Colours above, and two typefaces.
+    Check("The brand sheet shows the palette from Colours and who it is from", logos.BrandColours.Count == 4 && logos.BrandColours[0].Tip == "Primary #E8590C");
+    logos.BrandHeadingFont = "A Typeface Nobody Has";
+    logos.BrandBodyFont = "";
+    logos.BrandPreparedBy = "Webignite";
+    var sheet = Path.Combine(output, "brand-sheet.pdf");
+    Wait(logos.SaveBrandSheetToCommand.ExecuteAsync(sheet), "The brand sheet was made");
+    Check("The brand sheet is one page with the name and the colour codes as real text, and names the missing typeface",
+        Until(() => PdfPageCount(sheet) == 1 && PdfReadText(sheet).Contains("Karoo Coffee", StringComparison.Ordinal) && PdfReadText(sheet).Contains("#E8590C", StringComparison.Ordinal))
+        && logos.LogoMessage.Contains("A Typeface Nobody Has isn't installed", StringComparison.Ordinal) && !logos.LogoProblem);
+    SaveWindow(logoWindow, "tools-logos-brand");
+    logos.LogoName = "";
+    Check("A brand sheet without a name is asked for one", logos.BrandSheetProblem() is not null && logos.LogoProblem);
+    logos.LogoName = "Karoo Coffee";
     Wait(logos.OpenLogoAsync(Path.Combine(data, "logos", "sign.png")), "A small picture was opened");
     Check("A small picture on a solid background says what will be left out",
         logos.LogoPreviews.Count == 1 && logos.LogoWarning.Contains("120 pixels wide", StringComparison.Ordinal) && logos.LogoWarning.Contains("no see-through background", StringComparison.Ordinal));

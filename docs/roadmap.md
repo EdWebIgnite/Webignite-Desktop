@@ -1,6 +1,6 @@
 # What may come later
 
-Tools and ideas that were agreed as worth doing. Nothing here is built. When one is started, take it off this list and add it to [architecture.md](architecture.md) in the same PR.
+Tools and ideas that were agreed as worth doing. The first list is built; what is still to come is under Looks and Later. When something is started, take it off this list and add it to [architecture.md](architecture.md) in the same PR.
 
 ## The browser rule
 
@@ -14,13 +14,9 @@ The app has no browser engine of its own, to stay small and light on memory. Web
 
 How it is hosted (built in step 4): Microsoft's own small wrapper (`Microsoft.Web.WebView2`, only its `Core` library and loader, under 1 MB) drawing in a plain pane of the tool's window. A tool asks `services.NewBrowser()` for an `IWebEngine` and disposes it when its window closes; see Page to PDF or picture in [architecture.md](architecture.md). Avalonia's own `Avalonia.Controls.WebView` was looked at and left: it is free now, but the tools need the browser's developer tools (whole-page pictures, pretending to be a phone), which Microsoft's wrapper gives directly.
 
-## Agreed, to build
+## Agreed, and built
 
-Each is a tool the person opens and uses. Rules go in `Webignite.Core` with tests; picture, font and PDF work goes in `Webignite.Tools`.
-
-### Branding
-
-- **Brand sheet maker.** A client's logo, colours and fonts laid out as a one-page PDF.
+Everything on the agreed list is built; the order and where each one lives is below. What was learnt along the way is in [architecture.md](architecture.md).
 
 ## Order to build them in
 
@@ -39,7 +35,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 11. ~~Palette builder~~ Built: the Palette and Contrast parts of the Colours tool.
 12. ~~Favicon and app icon maker, then Logo export pack~~ Built: Logo pack and favicons, under Web tools.
 13. ~~Social image sizer~~ Built: Social images, under Web tools.
-14. **Brand sheet maker.** Last, as it uses the palette and the logo work.
+14. ~~Brand sheet maker~~ Built: the Brand sheet card in Logos and brand sheet, using the palette from Colours.
 
 ## Looks
 

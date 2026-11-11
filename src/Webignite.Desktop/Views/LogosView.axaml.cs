@@ -18,10 +18,18 @@ public partial class LogosView : UserControl
     {
         base.OnAttachedToVisualTree(e);
         tools = DataContext as ToolsViewModel;
+        tools?.LoadBrand();
+        // The palette may have been changed in Colours while this window was behind it.
+        if (TopLevel.GetTopLevel(this) is Window window)
+            window.Activated += Reload;
     }
+
+    private void Reload(object? sender, EventArgs e) => tools?.LoadBrand();
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        if (TopLevel.GetTopLevel(this) is Window window)
+            window.Activated -= Reload;
         tools?.ClearLogoPreviews();
         tools = null;
         base.OnDetachedFromVisualTree(e);
@@ -56,6 +64,17 @@ public partial class LogosView : UserControl
         var folder = await Picker.Folder(this, "The folder to put the favicons in");
         if (folder is not null)
             await model.SaveFaviconsToCommand.ExecuteAsync(folder);
+    }
+
+    private void SaveBrandSheet(object? sender, RoutedEventArgs e) => SaveBrandSheetAsync().Forget("Making the brand sheet", tell: true);
+
+    private async Task SaveBrandSheetAsync()
+    {
+        if (DataContext is not ToolsViewModel model || model.BrandSheetProblem() is not null)
+            return;
+        var pdf = await Picker.Save(this, "Save the brand sheet", BrandSheet.FileName(model.LogoName), ["*.pdf"], "PDF");
+        if (pdf is not null)
+            await model.SaveBrandSheetToCommand.ExecuteAsync(pdf);
     }
 
     private void CopyHtml(object? sender, RoutedEventArgs e)

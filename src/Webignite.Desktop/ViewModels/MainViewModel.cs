@@ -287,7 +287,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Crawler, "Site crawler", () => new CrawlerViewModel(services), "Crawler"),
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
             new ToolLink(ToolKind.Images, "Website images", "Picture"),
-            new ToolLink(ToolKind.Logos, "Logo pack and favicons", "Logos"),
+            new ToolLink(ToolKind.Logos, "Logos and brand sheet", "Logos"),
             new ToolLink(ToolKind.Social, "Social images", "Social"),
             new ToolLink(ToolKind.Qr, "QR code", "Qr"),
             new ToolLink(ToolKind.WebHelpers, "Web helpers", "Code"),

@@ -74,6 +74,52 @@
       </StackPanel>
     </Border>
 
+    <!-- Brand sheet: it can be made without a logo, from the palette and the typefaces alone -->
+    <Border Classes="card" Padding="16,14">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="h2" Text="Brand sheet" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="One A4 page for the client to hand to a printer or another designer: the logo, each colour with its codes for web and print, and the typefaces in use." />
+        <StackPanel IsVisible="{Binding !HasLogo}">
+          <TextBlock Classes="label" Text="Whose brand it is" />
+          <TextBox Text="{Binding LogoName}" PlaceholderText="Karoo Coffee Roasters" />
+        </StackPanel>
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="link" Content="Open Colours" Padding="0" Command="{Binding OpenColoursForBrandCommand}" />
+          <TextBlock Classes="label" Text="Colours, from the palette in the Colours tool" />
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding BrandColours}" IsVisible="{Binding HasBrandColours}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ShadeRow">
+              <Border Width="34" Height="28" CornerRadius="4" Background="{Binding Brush}" BorderBrush="{DynamicResource Line}" BorderThickness="1" ToolTip.Tip="{Binding Tip}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding !HasBrandColours}"
+                   Text="The palette is empty. Build it in Colours (it can pull the colours from the logo) and they will be here." />
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel Grid.Column="0">
+            <TextBlock Classes="label" Text="Typeface for headings" />
+            <TextBox Text="{Binding BrandHeadingFont}" PlaceholderText="Montserrat" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Typeface for text" />
+            <TextBox Text="{Binding BrandBodyFont}" PlaceholderText="Open Sans" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="Type each as it is named on this PC. A typeface that isn't installed here is shown in a stand-in, and the sheet says so." />
+        <StackPanel>
+          <TextBlock Classes="label" Text="Prepared by (the line at the foot)" />
+          <TextBox Text="{Binding BrandPreparedBy}" />
+        </StackPanel>
+        <Button Content="Save the brand sheet…" HorizontalAlignment="Left" Click="SaveBrandSheet" IsEnabled="{Binding !LogoBusy}" />
+      </StackPanel>
+    </Border>
+
     <DockPanel IsVisible="{Binding LogoMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
       <Button DockPanel.Dock="Right" Classes="link" Content="Show it in Files" Command="{Binding ShowLogoMadeCommand}" IsVisible="{Binding HasLogoMade}" Margin="12,0,0,0" />
       <TextBlock Classes="muted" Classes.problem="{Binding LogoProblem}" Text="{Binding LogoMessage}" TextWrapping="Wrap" />
