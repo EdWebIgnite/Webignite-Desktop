@@ -40,33 +40,39 @@ public partial class UpdateViewModel : ViewModelBase
 
     public bool CheckDue(DateTimeOffset now) => !IsReady && !Checking && now - LastCheck >= CheckEvery;
 
-    /// <summary>Looks for a newer version and downloads it quietly; true when one is ready to restart into.</summary>
-    public async Task<bool> CheckAsync()
+    /// <summary>Installed with Setup, so it can update itself; a test build or unzipped copy can't, and hides the link.</summary>
+    [ObservableProperty] public partial bool CanUpdate { get; private set; }
+
+    private enum Found { Nothing, Ready, NotInstalled, Unreachable }
+
+    /// <summary>Looks for a newer version and downloads it quietly, saying nothing if it can't (tried again within the hour).</summary>
+    public async Task CheckAsync() => await Look();
+
+    private async Task<Found> Look()
     {
         if (Checking)
-            return IsReady;
+            return IsReady ? Found.Ready : Found.Nothing;
         Checking = true;
         LastCheck = DateTimeOffset.Now;
         try
         {
             manager ??= new UpdateManager(new GithubSource(Repository, null, false));
             if (!manager.IsInstalled)
-                return false; // Running from an unzipped folder or in development: nothing to update.
+                return Found.NotInstalled; // Running from an unzipped folder or in development: nothing to update.
+            CanUpdate = true;
             VersionText = "Version " + manager.CurrentVersion;
             OnPropertyChanged(nameof(VersionText));
             if (await manager.CheckForUpdatesAsync() is not { } update)
-                return false;
+                return Found.Nothing;
             await manager.DownloadUpdatesAsync(update);
             ready = update;
             ReadyVersion = update.TargetFullRelease.Version.ToString();
-            return true;
+            return Found.Ready;
         }
         catch (Exception e) when (e is HttpRequestException or IOException or InvalidOperationException or TaskCanceledException)
         {
-            // Offline or GitHub unreachable: tried again within the hour.
             Webignite.Data.AppLog.Write("Checking for an update", e);
-            CheckNote = "Couldn't reach the update server. Check the internet connection and try again.";
-            return false;
+            return Found.Unreachable;
         }
         finally
         {
@@ -74,16 +80,18 @@ public partial class UpdateViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Check for updates, from the link under the version.</summary>
+    /// <summary>Check for updates, from the link under the version: says what it found.</summary>
     [RelayCommand(CanExecute = nameof(CanCheckNow))]
     private async Task CheckNow()
     {
         CheckNote = "Checking…";
-        var found = await CheckAsync();
-        if (found)
-            CheckNote = "";
-        else if (CheckNote == "Checking…")
-            CheckNote = manager?.IsInstalled == false ? "This copy isn't installed, so it can't update itself." : "You have the newest version.";
+        CheckNote = await Look() switch
+        {
+            Found.Ready => "",
+            Found.NotInstalled => "This copy isn't installed, so it can't update itself.",
+            Found.Unreachable => "Couldn't reach the update server. Check the internet connection and try again.",
+            _ => "You have the newest version.",
+        };
     }
 
     private bool CanCheckNow() => !Checking && !IsReady;

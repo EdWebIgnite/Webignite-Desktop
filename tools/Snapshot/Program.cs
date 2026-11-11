@@ -1846,7 +1846,7 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 }
 
 Open(Page.Overview);
-Check("Check for updates sits under the version, ready to use", vm.Updates.CheckNowCommand.CanExecute(null) && !vm.Updates.IsReady);
+Check("A test build hides Check for updates and says nothing about the update server", !vm.Updates.CanUpdate && vm.Updates.CheckNote.Length == 0);
 Save("overview");
 // Not every mail needs a reply: the × waves one off, and Undo brings it back.
 {
