@@ -79,7 +79,7 @@ public sealed class AppServices : IDisposable
     private ChatService? chat;
 
     /// <summary>Chat between the two of you; messages go with the sync.</summary>
-    public ChatService Chat => chat ??= new ChatService(Store);
+    public ChatService Chat => chat ??= new ChatService(Store) { LastActive = IdleClock.LastActive };
 
     /// <summary>The chat was read on this PC, so the sidebar's unread count can be updated.</summary>
     public Action? ChatRead { get; set; }
@@ -96,7 +96,7 @@ public sealed class AppServices : IDisposable
     private InboxService? inbox;
 
     /// <summary>Shared projects going to and from the workspace on the sync server.</summary>
-    public SyncService Sync => sync ??= new SyncService(Store, Account);
+    public SyncService Sync => sync ??= new SyncService(Store, Account) { MyPresence = () => Chat.Mine(), PresenceArrived = p => Chat.TakeIn(p) };
     private SyncService? sync;
 
     /// <summary>Signed in to a sync server on this PC; looked at without making the account client when there's none set up.</summary>
@@ -134,6 +134,8 @@ public sealed class AppServices : IDisposable
             AnnounceChat(await Task.Run(Chat.NewlyArrived));
             AnnounceInbox(await Task.Run(Inbox.NewlyArrived));
         }
+        if (!result.Skipped)
+            PresenceChanged?.Invoke();
         // Logged once when it starts going wrong, not every minute while the internet is down.
         if (result.Problem != lastSyncProblem && result.Problem is { } problem)
             Webignite.Data.AppLog.Write($"Syncing shared projects: {problem}");
@@ -144,9 +146,25 @@ public sealed class AppServices : IDisposable
 
     private string? lastSyncProblem;
 
+    /// <summary>
+    /// New messages from the partner, for the main window to show as a pop-up in the corner of the screen with a
+    /// sound; when it isn't set (tests), a note each instead.
+    /// </summary>
+    public Action<IReadOnlyList<Webignite.Core.Chat.ChatMessage>>? ChatPopUp { get; set; }
+
+    /// <summary>After each sync, as the partner's status may have changed (or gone Offline).</summary>
+    public Action? PresenceChanged { get; set; }
+
     // A note for each new message from the partner (the newest two, then a count), opening the chat when clicked.
     private void AnnounceChat(IReadOnlyList<Webignite.Core.Chat.ChatMessage> fresh)
     {
+        if (fresh.Count == 0)
+            return;
+        if (ChatPopUp is { } popUp)
+        {
+            popUp(fresh);
+            return;
+        }
         foreach (var message in fresh.TakeLast(2))
             ShowNote?.Invoke($"Message from {Chat.NameOf(message.From)}", Webignite.Core.Chat.ChatRules.Preview(message), () => Go.Chat());
         if (fresh.Count > 2)

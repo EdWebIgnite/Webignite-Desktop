@@ -60,6 +60,44 @@ public sealed class ChatService(LocalStore store, TimeProvider? clock = null)
             store.SetSetting(ReadName, latest);
     }
 
+    // Status: what I picked (this PC only) and what the others' PCs last said (kept as they arrive).
+    private const string ChosenName = "presence-mine";
+    private const string SeenName = "presence-seen";
+
+    /// <summary>When this person last used the PC; set by the app (Windows says how long since the last key or click).</summary>
+    public Func<DateTimeOffset> LastActive { get; set; } = () => DateTimeOffset.UtcNow;
+
+    /// <summary>The status I picked: Available, Busy or Away.</summary>
+    public PresenceState Chosen
+    {
+        get => store.GetSetting<PresenceState?>(ChosenName) ?? PresenceState.Available;
+        set => store.SetSetting(ChosenName, value == PresenceState.Offline ? PresenceState.Available : value);
+    }
+
+    /// <summary>My status as it goes to the other PC with this sync; null when the team isn't set up yet.</summary>
+    public Presence? Mine() => MyId is { } me ? new Presence(me, Chosen, clock.GetUtcNow(), LastActive()) : null;
+
+    /// <summary>What I show as now (Away after a while without using the PC, unless I picked otherwise).</summary>
+    public PresenceState MyShown => PresenceRules.Shown(Mine(), clock.GetUtcNow());
+
+    /// <summary>What my partner shows as now: Offline when their PC hasn't synced for a few minutes.</summary>
+    public PresenceState PartnerShown =>
+        PresenceRules.Shown(Team.Partner is { } partner ? Seen().GetValueOrDefault(partner.Id) : null, clock.GetUtcNow());
+
+    /// <summary>A status from another PC, kept unless it's older than the one already here.</summary>
+    public void TakeIn(Presence presence)
+    {
+        if (presence.PersonId == MyId)
+            return;
+        var seen = Seen();
+        if (seen.TryGetValue(presence.PersonId, out var kept) && kept.LastSeen >= presence.LastSeen)
+            return;
+        seen[presence.PersonId] = presence;
+        store.SetSetting(SeenName, seen);
+    }
+
+    private Dictionary<string, Presence> Seen() => store.GetSetting<Dictionary<string, Presence>>(SeenName) ?? [];
+
     /// <summary>The partner's messages that arrived since this was last asked, for a note each; only the newest few.</summary>
     public IReadOnlyList<ChatMessage> NewlyArrived()
     {

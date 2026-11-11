@@ -622,6 +622,15 @@ public partial class MainViewModel : ViewModelBase
 
     public void UpdateChatUnread() => ChatUnread = services.Chat.Unread;
 
+    /// <summary>My partner's chat status, as the dot on the Chat button.</summary>
+    [ObservableProperty] public partial Webignite.Core.Chat.PresenceState ChatPartnerShown { get; private set; } = Webignite.Core.Chat.PresenceState.Offline;
+
+    public string ChatPartnerTip => $"Chat with {services.Chat.PartnerName}: {Webignite.Core.Chat.PresenceRules.Word(ChatPartnerShown).ToLowerInvariant()}";
+
+    partial void OnChatPartnerShownChanged(Webignite.Core.Chat.PresenceState value) => OnPropertyChanged(nameof(ChatPartnerTip));
+
+    public void UpdateChatPresence() => ChatPartnerShown = services.Chat.PartnerShown;
+
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void OpenChat() => services.Go.Chat();
 

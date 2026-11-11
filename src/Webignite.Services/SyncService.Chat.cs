@@ -31,6 +31,27 @@ public sealed partial class SyncService
         return new Out(kind, id, json, RecordLock.Fingerprint(json));
     }
 
+    /// <summary>
+    /// My chat status, sent with every sync (its time changes each time, so it always goes); null sends nothing.
+    /// Set by the app, which knows when the PC was last used.
+    /// </summary>
+    public Func<Presence?>? MyPresence { get; set; }
+
+    /// <summary>Statuses from the other PC, as they arrive.</summary>
+    public Action<Presence>? PresenceArrived { get; set; }
+
+    private List<Out> OutgoingPresence() =>
+        MyPresence?.Invoke() is { } mine && SyncLimits.IdIsFine(mine.PersonId) ? [MakeStored(SyncKinds.Presence, mine.PersonId, mine)] : [];
+
+    private Taken TakeInPresence(string id, string json, string fingerprint, List<(string, string, string)> sent)
+    {
+        if (JsonSerializer.Deserialize<Presence>(json, StoredJson.Options) is not { } presence || presence.PersonId != id)
+            return Taken.Unreadable;
+        PresenceArrived?.Invoke(presence);
+        sent.Add((SyncKinds.Presence, id, fingerprint));
+        return Taken.Same; // a status isn't a change to the business, so pages aren't read again for it
+    }
+
     private Taken TakeInChat(string kind, string id, string json, string fingerprint, List<(string, string, string)> sent)
     {
         if (kind == SyncKinds.Chat)
