@@ -115,11 +115,17 @@ public sealed class AppServices : IDisposable
     /// </summary>
     public bool WaitsForFirstSync => Account.IsSignedIn && Sync.State.LastSynced is null;
 
-    /// <summary>Syncs now; by hand (Sync now), the licence is fetched again too, so a change to the plan shows at once.</summary>
-    public async Task<SyncResult> SyncNowAsync(bool byHand = false)
+    /// <summary>
+    /// Syncs now. Chat and your status go every time; everything else goes when a full sync is due (every 15
+    /// minutes), asked for, or by hand (Sync now), when the licence is fetched again too, so a change to the plan shows at once.
+    /// </summary>
+    public async Task<SyncResult> SyncNowAsync(bool byHand = false, bool full = false)
     {
         var xeroApp = Settings.Xero.ClientId;
-        var result = await Task.Run(() => Sync.SyncAsync());
+        var quick = !byHand && !full && !Webignite.Core.Sync.SyncTiming.FullDue(lastFullSync, DateTimeOffset.UtcNow);
+        var result = await Task.Run(() => Sync.SyncAsync(quick));
+        if (!quick && result.Worked)
+            lastFullSync = DateTimeOffset.UtcNow;
         // The Xero app can arrive from the other PC: a sign-in for another app is started afresh.
         if (Settings.Xero.ClientId != xeroApp)
             xero = null;
@@ -145,6 +151,7 @@ public sealed class AppServices : IDisposable
     }
 
     private string? lastSyncProblem;
+    private DateTimeOffset? lastFullSync;
 
     /// <summary>
     /// New messages from the partner, for the main window to show as a pop-up in the corner of the screen with a

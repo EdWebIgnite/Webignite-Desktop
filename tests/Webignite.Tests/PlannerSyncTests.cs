@@ -119,6 +119,39 @@ public sealed class PlannerSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task A_quick_sync_sends_chat_at_once_and_leaves_project_changes_for_the_next_full_one()
+    {
+        var (owner, member) = await TwoPcs();
+        var project = Shared(owner, "Kloof Street Dental site");
+        await Sync(owner);
+        await Sync(member);
+
+        var task = Task(owner, project, "Send the wireframes");
+        owner.Store.SaveChatMessage(new Webignite.Core.Chat.ChatMessage { Id = "chat-1", From = "eddie", Text = "Wireframes coming", Sent = DateTimeOffset.UtcNow });
+        var quick = await owner.Sync.SyncAsync(quick: true, Cancel);
+        Assert.True(quick.Worked, quick.Problem);
+        Assert.Equal(1, quick.Sent);
+        await member.Sync.SyncAsync(quick: true, Cancel);
+        Assert.NotNull(member.Store.GetChatMessage("chat-1"));
+        Assert.Null(member.Store.GetProjectTask(task.Id));
+        // The project already sent stays as it is on the other PC: a quick sync takes nothing back.
+        Assert.True(member.Store.GetProject(project.Id)!.Shared);
+
+        await Sync(owner);
+        await member.Sync.SyncAsync(quick: true, Cancel);
+        Assert.Equal("Send the wireframes", member.Store.GetProjectTask(task.Id)!.Title);
+    }
+
+    [Fact]
+    public void Everything_goes_on_the_first_sync_and_then_every_fifteen_minutes()
+    {
+        var start = new DateTimeOffset(2026, 11, 11, 9, 0, 0, TimeSpan.Zero);
+        Assert.True(Webignite.Core.Sync.SyncTiming.FullDue(null, start));
+        Assert.False(Webignite.Core.Sync.SyncTiming.FullDue(start, start.AddMinutes(14)));
+        Assert.True(Webignite.Core.Sync.SyncTiming.FullDue(start, start.AddMinutes(15)));
+    }
+
+    [Fact]
     public async Task Messages_on_a_shared_project_reach_the_other_pc_with_their_replies()
     {
         var (owner, member) = await TwoPcs();

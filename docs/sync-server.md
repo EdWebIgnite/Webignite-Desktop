@@ -65,7 +65,7 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
   given to the right person (`TeamIds`). The partner's PC sends nothing until it has them.
 - **Only what changed goes.** The PC keeps a fingerprint of what it last sent per record (table `sync_sent`) and
   sends only records whose fingerprint differs. It pulls everything after its cursor first, then pushes. It runs
-  every minute while signed in, and from Sync now in Settings (`SyncService` in Services).
+  chat and status every minute while signed in, everything else every 15 minutes (`SyncTiming` in Core) and on closing, and all of it from Sync now in Settings (`SyncService` in Services).
 - **Limits:** at most 500 records a push and a pull, ids of up to 64 letters, digits, `-` and `_`, and 512 KB a
   record. A record too big for the server stays on the PC and is counted.
 

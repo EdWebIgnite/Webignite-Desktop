@@ -77,7 +77,13 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
 
     private void Keep(SyncState state) => store.SetSetting(StateName, state);
 
-    public async Task<SyncResult> SyncAsync(CancellationToken cancel = default)
+    public Task<SyncResult> SyncAsync(CancellationToken cancel = default) => SyncAsync(quick: false, cancel);
+
+    /// <summary>
+    /// Takes in whatever your partner sent, then sends what changed here. A quick sync (every minute) sends only chat
+    /// and your status; the rest goes with a full one (every 15 minutes, by hand, and on closing).
+    /// </summary>
+    public async Task<SyncResult> SyncAsync(bool quick, CancellationToken cancel = default)
     {
         if (!account.IsSignedIn)
             return new SyncResult(Skipped: true);
@@ -85,7 +91,7 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
             return new SyncResult(Skipped: true);
         try
         {
-            return await Run(cancel);
+            return await Run(quick, cancel);
         }
         finally
         {
@@ -93,7 +99,7 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
         }
     }
 
-    private async Task<SyncResult> Run(CancellationToken cancel)
+    private async Task<SyncResult> Run(bool quick, CancellationToken cancel)
     {
         if (account.WorkspaceKey is not { } workspaceKey)
             return new SyncResult(Problem: "Sign in again on this PC, so it has the key that unlocks your shared projects.");
@@ -145,13 +151,15 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
             Keep(state with { LastSynced = clock.GetUtcNow() });
             return new SyncResult(changed, Unreadable: unreadable, WaitingForOwner: true);
         }
-        var outgoing = Outgoing(owner && state.Team is null, out var teamSent);
+        TeamRecord? teamSent = null;
+        var outgoing = quick ? OutgoingQuick() : Outgoing(owner && state.Team is null, out teamSent);
         var already = store.SentFingerprints();
         var changedHere = outgoing.Where(r => !already.TryGetValue((r.Kind, r.Id), out var f) || f != r.Fingerprint).ToList();
         // Locked, a record grows by a third; one too big for the server stays here rather than holding up the rest.
         var due = changedHere.Where(r => (System.Text.Encoding.UTF8.GetByteCount(r.Json) + 30) / 3 * 4 <= SyncLimits.LargestPayload).ToList();
         var tooBig = changedHere.Count - due.Count;
-        var takenBack = TakenBack(outgoing, already);
+        // What's taken back is worked out from everything sent before, so only a full sync can tell.
+        var takenBack = quick ? [] : TakenBack(outgoing, already);
         due.AddRange(takenBack);
         var count = 0;
         foreach (var batch in Batches(due))
@@ -305,6 +313,9 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
         var json = Json(value);
         return new Out(kind, id, json, RecordLock.Fingerprint(json));
     }
+
+    /// <summary>A quick sync's records: chat and my status only.</summary>
+    private List<Out> OutgoingQuick() => [.. OutgoingChat().Concat(OutgoingPresence()).Where(r => SyncLimits.IdIsFine(r.Id))];
 
     /// <summary>
     /// Everything in shared projects (deleted ones too, so the deletion reaches the other PC), and the team when this
