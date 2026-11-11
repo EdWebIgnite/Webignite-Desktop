@@ -729,6 +729,9 @@ public partial class MainViewModel : ViewModelBase
         }
         foreach (var mail in Built<MailViewModel>(Page.Mail))
             problem = await mail.PrepareToCloseAsync() ?? problem;
+        // What changed since the last full sync goes to your partner now, waiting a few seconds at most.
+        if (problem is null && services.MaySync)
+            await Task.WhenAny(services.SyncNowAsync(full: true), Task.Delay(TimeSpan.FromSeconds(5)));
         return problem;
     }
 

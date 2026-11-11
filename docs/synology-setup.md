@@ -162,7 +162,7 @@ On your PC, in Webignite, open **Settings**, **Account and sync**:
 On your partner's PC: **Join with an invite**, then the code, their own email and password. The sync server is
 filled in already. They keep their own recovery key and turn on two-factor too.
 
-Projects ticked **Shared** then sync every minute while you're both signed in.
+Projects ticked **Shared** then sync every 15 minutes while you're both signed in (chat every minute).
 
 ## 13. Back up somewhere other than the NAS
 
