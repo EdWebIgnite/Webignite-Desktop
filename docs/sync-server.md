@@ -55,7 +55,7 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 - **What the server sees:** the workspace, each record's kind and id, its size, and the order records arrived in.
   Never names, titles, notes or anything inside.
 - **Only shared projects.** Projects ticked Shared, with their sections, tasks, comments, activity and messages. Personal
-  projects never leave the PC. Attached files don't sync yet.
+  projects never leave the PC. Files attached to tasks in shared projects go too, in locked parts, up to 25 MB each (`SyncService.Attachments.cs`).
 - **Merging.** When a record comes in that this PC also has, each field keeps whichever change was made later, by
   the stamps every record carries (`RecordMerge`). You and your partner can change different things on the same
   task at the same time and both are kept. A deletion stays deleted unless the other PC changed the record after it.

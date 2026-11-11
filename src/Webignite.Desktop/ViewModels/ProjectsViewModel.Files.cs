@@ -169,7 +169,12 @@ public sealed partial class AttachmentRow : ObservableObject
     public string Path { get; }
     public string Name => Attachment.FileName;
     public string TaskTitle => Task.Title;
-    public string About => $"{FileKinds.Of(Attachment.FileName, false)} · {FileSizes.Format(Attachment.Size)}";
+    public string About => Arrived
+        ? $"{FileKinds.Of(Attachment.FileName, false)} · {FileSizes.Format(Attachment.Size)}"
+        : Webignite.Core.Projects.AttachmentParts.Travels(Attachment) ? "On its way…" : "Too big to sync, on the other PC only";
+
+    /// <summary>The file is on this PC: attached here, or come over from the other PC with sync.</summary>
+    public bool Arrived => File.Exists(Path);
     public bool IsPicture => Attachment.IsPicture;
     public bool IsCover => Task.CoverId == Attachment.Id;
     public bool CanBeCover => IsPicture && !IsCover;
@@ -187,7 +192,9 @@ public sealed partial class AttachmentRow : ObservableObject
     private void Open()
     {
         if (!File.Exists(Path))
-            page.Tell($"{Name} isn't on this PC any more.");
+            page.Tell(Webignite.Core.Projects.AttachmentParts.Travels(Attachment)
+                ? $"{Name} is still on its way from the other PC. It comes with the next sync, within 15 minutes."
+                : $"{Name} is bigger than 25 MB, so it stays on the PC it was attached on.");
         // A program or script (from a mail, say) is never started from here, as with mail attachments: it's shown in
         // its folder, where Windows asks before running it.
         else if (Webignite.Core.Mail.AttachmentPreview.IsProgram(Name))

@@ -61,7 +61,7 @@ public sealed class PlannerSyncTests : IDisposable
         made.Add(account);
         Assert.Null(account.UseServer("http://localhost"));
         var projects = new ProjectService(store, () => store.GetSetting<TeamSettings>("team")!.Me!.Id, clock, Path.Combine(folder, name + "-files"));
-        var sync = new SyncService(store, account, clock);
+        var sync = new SyncService(store, account, clock) { AttachmentsFolder = projects.AttachmentsFolder };
         made.Add(sync);
         return new Pc(store, account, projects, sync);
     }
@@ -140,6 +140,44 @@ public sealed class PlannerSyncTests : IDisposable
         await Sync(owner);
         await member.Sync.SyncAsync(quick: true, Cancel);
         Assert.Equal("Send the wireframes", member.Store.GetProjectTask(task.Id)!.Title);
+    }
+
+    [Fact]
+    public async Task A_file_attached_on_one_pc_arrives_on_the_other()
+    {
+        var (owner, member) = await TwoPcs();
+        var project = Shared(owner, "Kloof Street Dental site");
+        var task = Task(owner, project, "Send the wireframes");
+        // Bigger than one part, so it travels in pieces and is put back together.
+        var bytes = new byte[AttachmentParts.PartBytes * 2 + 1234];
+        new Random(7).NextBytes(bytes);
+        var source = Path.Combine(folder, "Wireframes.pdf");
+        File.WriteAllBytes(source, bytes);
+        var attached = owner.Projects.Attach(task.Id, source).Saved!.Attachments.Single();
+
+        await Sync(owner);
+        await Sync(member);
+
+        var arrived = member.Store.GetProjectTask(task.Id)!.Attachments.Single();
+        var path = member.Projects.PathOf(task.Id, arrived);
+        Assert.True(File.Exists(path));
+        Assert.Equal(bytes, File.ReadAllBytes(path));
+        Assert.Equal(attached.Id, arrived.Id);
+
+        // Nothing goes again, from either PC.
+        Assert.Equal(0, (await Sync(owner)).Sent);
+        Assert.Equal(0, (await Sync(member)).Sent);
+    }
+
+    [Fact]
+    public void Parts_that_make_no_sense_are_turned_away_before_anything_is_written()
+    {
+        var good = AttachmentParts.Split("task1", new TaskAttachment("att1", "a.pdf", 10, DateTimeOffset.UtcNow, "eddie"), new byte[10]).Single();
+        Assert.True(AttachmentParts.IsSound(good));
+        Assert.False(AttachmentParts.IsSound(good with { TaskId = "../../Windows" }));
+        Assert.False(AttachmentParts.IsSound(good with { Index = 3 }));
+        Assert.False(AttachmentParts.IsSound(good with { Bytes = AttachmentParts.MostBytes + 1 }));
+        Assert.False(AttachmentParts.IsSound(good with { Data = new byte[11] }));
     }
 
     [Fact]
