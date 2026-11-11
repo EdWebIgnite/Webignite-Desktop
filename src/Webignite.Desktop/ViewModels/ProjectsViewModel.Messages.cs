@@ -45,7 +45,7 @@ public sealed partial class ProjectsViewModel
 
     /// <summary>Under Share: how sharing reaches your partner, or what's needed first.</summary>
     public string ShareNote => services.MaySync
-        ? $"Shared projects sync with {services.Team().Partner!.Name} every minute, locked on this PC so only the two of you can read them. Untick to make it yours alone again."
+        ? $"Shared projects sync with {services.Team().Partner!.Name} every 15 minutes (or click Sync now in Settings), locked on this PC so only the two of you can read them. Untick to make it yours alone again."
         : "Sign in on both PCs under Settings, Account and sync, and shared projects sync between you. Until then they stay on this PC.";
 
     internal void ListMessages()

@@ -2793,6 +2793,22 @@ Save("site-check");
         Dispatcher.UIThread.RunJobs();
         Save("projects-calendar");
         window.Width = 1280;
+        // The project pane dragged wide on a big screen, then the window on a small one: the panes close up to fit.
+        projectsPage.ListViewCommand.Execute(null);
+        projectsPage.Panels.Show("list", true);
+        projectsPage.Panels.Show("task", true);
+        projectsPage.Panels.Resized("project", 1700);
+        for (var tick = 0; tick < 5; tick++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        }
+        var paneGrid = window.GetVisualDescendants().OfType<PanelGrid>().First(g => g.IsEffectivelyVisible && g.DataContext == projectsPage);
+        Check("Panes dragged wide on a big screen fit a small window", paneGrid.Children.Where(c => c.IsVisible && PanelGrid.GetPane(c) is not null)
+            .All(c => c.Bounds.Right <= paneGrid.Bounds.Width + 1 && c.Bounds.Width >= Webignite.Core.Layout.Panels.MinWidth - 1)
+            && paneGrid.Children.Count(c => c.IsVisible && PanelGrid.GetPane(c) is not null) == 3);
+        Save("projects-small-window");
+        projectsPage.Panels.Reset();
         // Put the dates back for the checks after, and take the dependency off.
         services.Projects.RemoveDependency(fivePages.Id, coloursFirst.Id);
         foreach (var (id, (start, due)) in datedBefore)

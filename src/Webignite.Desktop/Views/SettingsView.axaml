@@ -799,7 +799,7 @@
 
           <TextBlock FontWeight="SemiBold" Text="Shared projects" Margin="0,6,0,0" />
           <TextBlock Classes="muted" TextWrapping="Wrap"
-                     Text="Projects ticked Shared, with their sections, tasks, comments and activity, sync every minute while you're signed in. When you both change the same task, each field keeps whoever changed it last. Personal projects stay on this PC. Attached files don't sync yet." />
+                     Text="Projects ticked Shared, with their sections, tasks, comments and activity, sync every 15 minutes while you're signed in, and when you click Sync now or close Webignite. Chat and your status go every minute. When you both change the same task, each field keeps whoever changed it last. Personal projects stay on this PC. Attached files don't sync yet." />
           <StackPanel Orientation="Horizontal" Spacing="12">
             <Button Content="Sync now" Command="{Binding SyncNowCommand}" IsEnabled="{Binding !AccountBusy}" />
             <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center" Text="{Binding LastSyncedText}" />

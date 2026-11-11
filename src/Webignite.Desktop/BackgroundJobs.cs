@@ -21,7 +21,7 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
     public Func<Task>? CheckXeroDocuments { get; init; }
     public Func<Task>? CheckXeroBills { get; init; }
 
-    /// <summary>Syncs shared projects; run every minute while signed in to a sync server.</summary>
+    /// <summary>Syncs; run every minute while signed in to a sync server (chat and status each time, the rest every 15 minutes).</summary>
     public Func<Task>? SyncProjects { get; init; }
 
     /// <summary>
@@ -101,7 +101,7 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
         // Client websites are visited every 15 minutes.
         if (CheckSites is not null && services.SiteWatch.Due(now))
             CheckSites().Forget("Checking client websites");
-        // Shared projects sync every minute while signed in; a sync still running is left to finish.
+        // Chat and your status sync every minute while signed in, the rest every 15 minutes; a sync still running is left to finish.
         if (SyncProjects is not null && services.MaySync)
             SyncProjects().Forget("Syncing shared projects");
         // Once an hour, whether the daily backup is due, for when the app stays open for days.

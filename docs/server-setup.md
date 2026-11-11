@@ -178,7 +178,7 @@ On your PC, in Webignite, open **Settings, Account and sync**:
 On your partner's PC: the same server address, then **Join with an invite**, their own email and password, and
 the code. They keep their own recovery key and turn on two-factor too.
 
-Projects ticked **Shared** then sync every minute while you're both signed in.
+Projects ticked **Shared** then sync every 15 minutes while you're both signed in (chat every minute).
 
 ## 10. Nightly backups
 
