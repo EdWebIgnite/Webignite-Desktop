@@ -50,6 +50,8 @@
             </TextBox.KeyBindings>
           </TextBox>
         </DockPanel>
+        <CheckBox Content="The site builds its pages with JavaScript" IsChecked="{Binding RunScripts}" IsEnabled="{Binding IsIdle}"
+                  ToolTip.Tip="Reads each page in a browser after its scripts have run. Slower: one page at a time. Tick it when a crawl finds almost no links or titles on a site that plainly has them." />
         <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsCrawling}">
           <c:Spinner Size="16" VerticalAlignment="Center" />
           <TextBlock Classes="muted" Text="{Binding Progress}" VerticalAlignment="Center" />

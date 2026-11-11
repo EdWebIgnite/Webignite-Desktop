@@ -233,6 +233,58 @@ public sealed class SiteCrawlTests
     private static string Html(string title, string body) => $"<title>{title}</title><meta name='description' content='About {title}'><h1>{title}</h1>{body}";
 
     [Fact]
+    public async Task A_site_built_by_scripts_is_read_as_the_browser_has_it()
+    {
+        // The server sends an empty shell; the menu link and the titles only exist once the scripts have run.
+        var site = new FakeSite(new()
+        {
+            ["https://app.co.za/"] = (200, "<title>Loading</title><div id='root'></div>", null),
+            ["https://app.co.za/menu"] = (200, "<title>Loading</title><div id='root'></div>", null),
+            ["https://app.co.za/plain"] = (200, Html("Plain", ""), null),
+        });
+        var asked = new List<string>();
+        Task<string?> Browser(Uri address, CancellationToken cancel)
+        {
+            asked.Add(address.AbsolutePath);
+            return Task.FromResult(address.AbsolutePath switch
+            {
+                "/" => Html("Home", "<a href='/menu'>Menu</a> <a href='/plain'>Plain</a>"),
+                "/menu" => Html("Menu", "<a href='/'>Home</a>"),
+                _ => null,
+            });
+        }
+
+        var result = await new SiteCrawler(new HttpClient(site)).CrawlAsync(new Uri("https://app.co.za/"), 50, null, Browser, TestContext.Current.CancellationToken);
+
+        var rows = result.Rows.ToDictionary(r => r.Page.Url.AbsolutePath);
+        Assert.Equal(["/", "/menu", "/plain"], rows.Keys.Order());
+        Assert.Equal("Home", rows["/"].Page.Facts!.Title);
+        Assert.Equal("Menu", rows["/menu"].Page.Facts!.Title);
+        // When the browser gets nothing from a page, what the server sent is used.
+        Assert.Equal("Plain", rows["/plain"].Page.Facts!.Title);
+        Assert.Equal(["/", "/menu", "/plain"], asked.Order());
+    }
+
+    [Fact]
+    public async Task Without_a_browser_a_site_built_by_scripts_shows_only_its_shell()
+    {
+        var site = new FakeSite(new() { ["https://app.co.za/"] = (200, "<title>Loading</title><div id='root'></div>", null) });
+        var result = await new SiteCrawler(new HttpClient(site)).CrawlAsync(new Uri("https://app.co.za/"), 50, null, TestContext.Current.CancellationToken);
+        Assert.Equal("Loading", Assert.Single(result.Rows).Page.Facts!.Title);
+    }
+
+    [Fact]
+    public void The_browsers_answer_is_read_for_its_html()
+    {
+        Assert.Equal("<html><body>Hi</body></html>", RenderedHtml.Read("""{"result":{"type":"string","value":"<html><body>Hi</body></html>"}}"""));
+        Assert.Null(RenderedHtml.Read("""{"result":{"type":"undefined"}}"""));
+        Assert.Null(RenderedHtml.Read("""{"result":{"type":"string","value":""}}"""));
+        Assert.Null(RenderedHtml.Read("not json"));
+        Assert.Null(RenderedHtml.Read(null));
+        Assert.Contains("\"awaitPromise\":true", RenderedHtml.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_crawl_walks_the_site_keeps_to_robots_and_finds_what_is_broken()
     {
         var site = new FakeSite(new()

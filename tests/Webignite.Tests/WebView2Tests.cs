@@ -109,6 +109,63 @@ public class WebView2Tests
         }
     }
 
+    /// <summary>
+    /// The crawler's browser: one with no window at all. It must still run a page's scripts, so links a script
+    /// adds a moment after loading are in the HTML it gives back.
+    /// </summary>
+    [Fact]
+    public void With_no_window_a_page_built_by_scripts_is_read_once_it_is_built()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        Assert.SkipWhen(WebView2Core.InstalledVersion() is null, "This PC has no WebView2.");
+
+        var folder = Path.Combine(Path.GetTempPath(), "webignite-webview2-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var page = Path.Combine(folder, "built.html");
+        File.WriteAllText(page, """
+            <html><head><title>Loading</title></head><body><div id="root"></div>
+            <script>
+              setTimeout(() => {
+                document.title = "Built by script";
+                document.getElementById("root").innerHTML = "<h1>Menu</h1><a href='/tea'>Tea</a>";
+                setTimeout(() => { document.getElementById("root").insertAdjacentHTML("beforeend", "<a href='/coffee'>Coffee</a>"); }, 300);
+              }, 400);
+            </script></body></html>
+            """);
+        try
+        {
+            var (html, missing) = ReadBuilt(folder, page);
+
+            Assert.NotNull(html);
+            var facts = HtmlFacts.Read(html);
+            Assert.Equal("Built by script", facts.Title);
+            Assert.Equal(["/tea", "/coffee"], facts.Links.Select(l => l.Href));
+            Assert.Null(missing);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // As above.
+            }
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static (string? Html, string? Missing) ReadBuilt(string folder, string page) => OnAWindowThread(async _ =>
+    {
+        using var core = await WebView2Core.StartAsync(WebView2Core.NoWindow, Path.Combine(folder, "browser"));
+        var html = await core.ReadRenderedAsync(new Uri(page), CancellationToken.None);
+        // A page that isn't there gives nothing, and the reader carries on.
+        var missing = await core.ReadRenderedAsync(new Uri(Path.Combine(folder, "nothere.html")), CancellationToken.None);
+        return (html, missing);
+    });
+
     private sealed record DeviceSeen(string[] AsDevice, byte[] Preview, string[] Back);
 
     [SupportedOSPlatform("windows")]

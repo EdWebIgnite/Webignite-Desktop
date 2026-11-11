@@ -11,8 +11,8 @@ public sealed record CrawlResult(IReadOnlyList<CrawlRow> Rows, bool StoppedAtLim
 
 /// <summary>
 /// Walks a website from one address: reads each page of the same site, follows its links, and checks that the
-/// links, pictures, stylesheets and scripts it points at answer. Reads the HTML as the server sends it, so it runs
-/// no JavaScript. Polite: a few requests at a time, robots.txt kept to, and it says who it is. Read-only.
+/// links, pictures, stylesheets and scripts it points at answer. Reads the HTML as the server sends it, running no
+/// JavaScript, unless it is handed a browser to read each page with (for sites built by scripts). Polite: a few requests at a time, robots.txt kept to, and it says who it is. Read-only.
 /// Tests hand in their own <see cref="HttpClient"/> over a fake handler.
 /// </summary>
 public sealed class SiteCrawler(HttpClient http)
@@ -33,9 +33,19 @@ public sealed class SiteCrawler(HttpClient http)
 
     private const int MostHops = 5;
 
-    public async Task<CrawlResult> CrawlAsync(Uri start, int mostPages, IProgress<CrawlProgress>? progress = null, CancellationToken cancel = default)
+    public Task<CrawlResult> CrawlAsync(Uri start, int mostPages, IProgress<CrawlProgress>? progress = null, CancellationToken cancel = default) =>
+        CrawlAsync(start, mostPages, progress, null, cancel);
+
+    /// <param name="rendered">
+    /// For sites that build their pages with JavaScript: given a page's address, the HTML as a browser has it
+    /// after the scripts ran, or null to use what the server sent. Pages are then read one at a time, as there
+    /// is one browser. Links are still only checked for an answer, as before.
+    /// </param>
+    public async Task<CrawlResult> CrawlAsync(Uri start, int mostPages, IProgress<CrawlProgress>? progress,
+        Func<Uri, CancellationToken, Task<string?>>? rendered, CancellationToken cancel = default)
     {
         mostPages = Math.Clamp(mostPages, 1, SiteCrawl.MostPages);
+        var atOnce = rendered is null ? AtOnce : 1;
         var robots = await RobotsAsync(start, cancel);
         var pages = new List<CrawledPage>();
         var seen = new HashSet<Uri> { start };
@@ -50,10 +60,10 @@ public sealed class SiteCrawler(HttpClient http)
         {
             while (waiting.Count > 0 || running.Count > 0)
             {
-                while (waiting.Count > 0 && running.Count < AtOnce && pages.Count + running.Count < mostPages)
+                while (waiting.Count > 0 && running.Count < atOnce && pages.Count + running.Count < mostPages)
                 {
                     var (url, foundOn) = waiting.Dequeue();
-                    running.Add(PageAsync(url, foundOn, cancel));
+                    running.Add(PageAsync(url, foundOn, rendered, cancel));
                 }
                 if (running.Count == 0)
                 {
@@ -170,7 +180,7 @@ public sealed class SiteCrawler(HttpClient http)
         }
     }
 
-    private async Task<CrawledPage> PageAsync(Uri url, Uri? foundOn, CancellationToken cancel)
+    private async Task<CrawledPage> PageAsync(Uri url, Uri? foundOn, Func<Uri, CancellationToken, Task<string?>>? rendered, CancellationToken cancel)
     {
         try
         {
@@ -182,7 +192,11 @@ public sealed class SiteCrawler(HttpClient http)
             var isHtml = response.Content.Headers.ContentType?.MediaType is null or "text/html" or "application/xhtml+xml";
             PageFacts? facts = null;
             if (response.IsSuccessStatusCode && isHtml)
-                facts = HtmlFacts.Read(await ReadAsync(response, cancel));
+            {
+                // The server's answer says whether there is a page; the browser, when there is one, says what is on it.
+                var sent = await ReadAsync(response, cancel);
+                facts = HtmlFacts.Read(rendered is null ? sent : await rendered(url, cancel) ?? sent);
+            }
             return new CrawledPage { Url = url, Status = status, Facts = facts, FoundOn = foundOn };
         }
         catch (Exception e) when (e is HttpRequestException or IOException || (e is TaskCanceledException && !cancel.IsCancellationRequested))

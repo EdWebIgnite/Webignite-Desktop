@@ -31,10 +31,12 @@ var noWeb = new Webignite.Services.SiteCrawler(new HttpClient(new NoWeb()));
 // WebView2 is Windows only, so the web tools get a stand-in browser here, or none at all to see what they say then.
 var browserThere = false;
 StandInBrowser? standInBrowser = null;
+StandInReader? standInReader = null;
 var services = new AppServices(store)
 {
     TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey, Dns = noDns, Crawler = noWeb,
     NewBrowser = () => browserThere ? standInBrowser = new StandInBrowser() : null,
+    NewPageReader = () => browserThere ? standInReader = new StandInReader() : null,
 };
 services.Settings.Backups = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
 // Client folders as on Eddie's PC (C:\Projects), with a few files in them, for Files and the client pages.
@@ -2395,6 +2397,16 @@ Open(Page.Crawler);
     Wait(crawler.StartCommand.ExecuteAsync(null), "The crawl finished");
     Check("With no internet the crawl says the site didn't answer, and is ready to go again",
         crawler.MessageIsProblem && crawler.Message.StartsWith("The site didn't answer", StringComparison.Ordinal) && !crawler.IsCrawling && crawler.StartCommand.CanExecute(null));
+    // For a site built by JavaScript, with no browser to read it with and then with the stand-in.
+    crawler.RunScripts = true;
+    browserThere = false;
+    Wait(crawler.StartCommand.ExecuteAsync(null), "The crawl was tried without a browser");
+    Check("Without a browser a JavaScript crawl says what it needs and doesn't start",
+        crawler.MessageIsProblem && crawler.Message.Contains("WebView2", StringComparison.Ordinal) && !crawler.IsCrawling && crawler.StartCommand.CanExecute(null));
+    browserThere = true;
+    Wait(crawler.StartCommand.ExecuteAsync(null), "The crawl with a browser finished");
+    Check("A JavaScript crawl starts a browser for itself and shuts it down when it ends", standInReader is { Started: true, Disposed: true } && !crawler.IsCrawling);
+    crawler.RunScripts = false;
     static Webignite.Core.Web.CrawledPage Found(string path, Webignite.Core.Web.PageFacts? facts = null, int status = 200, string? to = null, string? on = "/") => new()
     {
         Url = new Uri("https://karoocoffee.co.za" + path), Status = status, Facts = facts,
@@ -4425,6 +4437,23 @@ sealed class StandInSpelling : Webignite.Core.Writing.ISpelling
     }
 
     public void Ignore(string word) => Add(word);
+}
+
+/// <summary>A page reader with no browser behind it: it notes that it was started and shut down.</summary>
+sealed class StandInReader : Webignite.Desktop.Web.IPageReader
+{
+    public bool Started { get; private set; }
+    public bool Disposed { get; private set; }
+
+    public Task StartAsync()
+    {
+        Started = true;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> ReadAsync(Uri address, CancellationToken cancel) => Task.FromResult<string?>(null);
+
+    public void Dispose() => Disposed = true;
 }
 
 /// <summary>A browser that opens nothing: it says a page opened, hands back a small picture, and notes what it was asked.</summary>

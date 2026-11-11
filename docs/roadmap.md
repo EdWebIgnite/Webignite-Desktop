@@ -7,7 +7,7 @@ Tools and ideas that were agreed as worth doing. Nothing here is built. When one
 The app has no browser engine of its own, to stay small and light on memory. WebView2 is allowed for the web tools below that need a page drawn as a browser draws it, on these terms:
 
 - It uses the WebView2 that Windows already has and keeps up to date. None is shipped with the app. A PC without it is told so, with where to get it, and the rest of the app carries on.
-- It starts when one of those tools' windows opens and is shut down when the window closes. While open it costs roughly 200 to 400 MB in its own `msedgewebview2.exe` processes; closed, nothing.
+- It starts when one of those tools' windows opens and is shut down when the window closes. The Site crawler's is the one without a window: it starts when a JavaScript crawl starts and is shut down when that crawl ends. While open it costs roughly 200 to 400 MB in its own `msedgewebview2.exe` processes; closed, nothing.
 - Nothing at start-up touches it. `WebView2Tests` checks on Windows that no WebView2 process is left after it is closed (`tools/Measure` runs on Linux, where there is no WebView2).
 - Mail keeps its own light renderer. Nothing outside the web tools uses WebView2.
 - WebView2 is Windows only, so `tools/Snapshot` (which runs on Linux) needs a stand-in, as `IVideoTools` is for video.
@@ -30,10 +30,6 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 
 - **Screen ruler.** Measure pixels on screen from any program, like the colour picker.
 
-### Websites, drawn by WebView2
-
-- **Site crawler for sites that need JavaScript.** The crawler reading pages through the browser, for sites that draw themselves with scripts.
-
 ### Everyday
 
 - **Text snippets from any program.** A short code or a shortcut pastes a saved block of text: banking details, standard replies, code.
@@ -50,7 +46,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 3. ~~Site crawler, reading HTML only~~ Built: Site crawler, under Web tools.
 4. ~~WebView2 groundwork, with Save a web page as a PDF and Website screenshots~~ Built: Page to PDF or picture, under Web tools.
 5. ~~Responsive preview and Phone simulator~~ Built: Show as, in Page to PDF or picture. The device sizes were written from memory, not looked up, so correct any that are off in `Devices.All`.
-6. **Site crawler for sites that need JavaScript.** Needs step 4.
+6. ~~Site crawler for sites that need JavaScript~~ Built: a tick on the Site crawler page.
 7. **Screen ruler.** Reuses the colour picker's frozen screen.
 8. **Text snippets from any program.**
 9. **Copy text from a picture.** Reuses the screenshot picker.

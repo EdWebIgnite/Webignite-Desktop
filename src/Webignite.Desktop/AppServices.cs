@@ -64,6 +64,13 @@ public sealed class AppServices : IDisposable
     public Func<Web.IWebEngine?> NewBrowser { get; init; } = () =>
         OperatingSystem.IsWindows() ? new Web.WebView2Engine(Path.Combine(Webignite.Data.DataPaths.Root(), "browser")) : null;
 
+    /// <summary>
+    /// A browser nobody sees, for reading pages that scripts build, or null where there is none. Each call makes
+    /// a new one; whoever asked disposes it when the job is done.
+    /// </summary>
+    public Func<Web.IPageReader?> NewPageReader { get; init; } = () =>
+        OperatingSystem.IsWindows() ? new Web.WebView2Reader(Path.Combine(Webignite.Data.DataPaths.Root(), "browser")) : null;
+
     /// <summary>DNS lookups for the DNS records tool.</summary>
     public DnsClient Dns { get; init; } = DnsClient.Default;
 

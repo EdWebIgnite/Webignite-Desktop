@@ -62,6 +62,47 @@ public sealed class WebView2Core : IDisposable
         }
     }
 
+    /// <summary>
+    /// Passed as the window to <see cref="StartAsync"/> for a browser nobody sees (Windows' own "message only"
+    /// window): it loads pages and runs their scripts, but draws nothing.
+    /// </summary>
+    public static IntPtr NoWindow { get; } = new(-3);
+
+    /// <summary>
+    /// Opens a page, lets its scripts build it, and gives the HTML as it then stands. Null when the page didn't
+    /// open or gave nothing. One page at a time.
+    /// </summary>
+    public async Task<string?> ReadRenderedAsync(Uri address, CancellationToken cancel)
+    {
+        ObjectDisposedException.ThrowIf(closed, this);
+        var opened = new TaskCompletionSource<PageOpened>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void Done(PageOpened page) => opened.TrySetResult(page);
+        Opened += Done;
+        try
+        {
+            Open(address);
+            using var tooLong = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+            tooLong.CancelAfter(TimeSpan.FromSeconds(30));
+            await using var stop = tooLong.Token.Register(() => opened.TrySetCanceled(tooLong.Token));
+            PageOpened page;
+            try
+            {
+                page = await opened.Task;
+            }
+            catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+            {
+                return null;
+            }
+            if (!page.Ok || closed)
+                return null;
+            return RenderedHtml.Read(await controller.CoreWebView2.CallDevToolsProtocolMethodAsync("Runtime.evaluate", RenderedHtml.Message));
+        }
+        finally
+        {
+            Opened -= Done;
+        }
+    }
+
     /// <summary>The main browser process, so a check can see that it has gone after closing.</summary>
     public int BrowserProcessId { get; }
 
