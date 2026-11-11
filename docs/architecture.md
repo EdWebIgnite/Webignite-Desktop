@@ -33,7 +33,7 @@ flowchart LR
 | Claude Desktop, ChatGPT | They start `Webignite.Connector`, which offers tools over MCP. ChatGPT reaches it through OpenAI's Secure MCP Tunnel: Connect ChatGPT in Settings downloads OpenAI's `tunnel-client` (checked against the release's SHA256SUMS), and `ChatGptTunnelRunner` keeps it running while Webignite is open with the tunnel id (setting `chatgpt-tunnel`) and key (Credential Manager, `chatgpt-tunnel-key`); it starts the connector for each request. Rules in `ChatGptTunnel` (Core). | `Webignite.Connector` |
 | Websites, Google PageSpeed, rdap.org, dns.google, Cloudflare DNS | Site check, uptime watch, domain and hosting reports. | `Webignite.Services`, `Core/Web` |
 | OneDrive folder | Backups land in a synced folder, encrypted with a password. | `Webignite.Data/Backups.cs` |
-| GitHub releases | Velopack checks for and downloads updates. | `Desktop/ViewModels/UpdateViewModel.cs` |
+| GitHub releases | Velopack checks for and downloads updates: at start, every hour while open, and from Check for updates under the version in the sidebar. | `Desktop/ViewModels/UpdateViewModel.cs` |
 | Windows | Credential Manager holds mail passwords and the Xero sign-in; DPAPI protects the database key. | `Webignite.Data/Secrets.cs`, `VaultKey.cs`, `Webignite.Xero/WindowsCredentialStore.cs` |
 
 ## 2. The programs and projects
