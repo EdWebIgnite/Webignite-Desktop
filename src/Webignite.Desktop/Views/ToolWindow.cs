@@ -26,11 +26,21 @@ public sealed class ToolWindow : Window
             ToolKind.Qr => 620,
             ToolKind.WebHelpers => 720,
             ToolKind.Dns => 760,
+            ToolKind.PageCapture => 1180,
             _ => 640,
         };
         MinWidth = 340;
-        SizeToContent = SizeToContent.Height;
-        MaxHeight = 860;
+        // A tool that shows a web page fills a window of its own size; the others are as tall as what is in them.
+        if (Fills)
+        {
+            Height = 800;
+            MinHeight = 420;
+        }
+        else
+        {
+            SizeToContent = SizeToContent.Height;
+            MaxHeight = 860;
+        }
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = this.TryFindResource("Canvas", out var canvas) && canvas is IBrush brush ? brush : Brushes.WhiteSmoke;
@@ -43,13 +53,17 @@ public sealed class ToolWindow : Window
             ToolKind.Qr => new QrView(),
             ToolKind.WebHelpers => new WebHelpersView(),
             ToolKind.Dns => new DnsView(),
+            ToolKind.PageCapture => new PageCaptureView(),
             _ => new ImagesView(),
         };
         view.Margin = new Thickness(18, 16);
-        Content = new ScrollViewer { Content = view, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
+        Content = Fills ? view : new ScrollViewer { Content = view, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
     }
 
     public ToolKind Kind { get; }
+
+    /// <summary>True for a tool that shows a web page: it fills a big window that stands on its own.</summary>
+    public bool Fills => Kind == ToolKind.PageCapture;
 
     public ToolsViewModel Tools { get; }
 
@@ -62,6 +76,7 @@ public sealed class ToolWindow : Window
         ToolKind.Qr => "QR code",
         ToolKind.WebHelpers => "Web helpers",
         ToolKind.Dns => "DNS records",
+        ToolKind.PageCapture => "Page to PDF or picture",
         _ => "Website images",
     };
 }

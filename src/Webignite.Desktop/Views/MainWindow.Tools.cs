@@ -68,7 +68,9 @@ public partial class MainWindow
         var window = new ToolWindow(kind, new ToolsViewModel(services));
         window.Closed += (_, _) => toolWindows.Remove(kind);
         toolWindows[kind] = window;
-        if (owned)
+        // A tool that fills a big window stands on its own, so this window can come in front of it again
+        // (to show what it saved, say). The small ones float over this window.
+        if (owned && !window.Fills)
             window.Show(this);
         else
             window.Show();
