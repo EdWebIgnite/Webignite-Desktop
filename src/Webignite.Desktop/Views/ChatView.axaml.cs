@@ -20,8 +20,10 @@ public partial class ChatView : UserControl
             if (DataContext is ChatViewModel chat && e.DataTransfer.TryGetFiles() is { } files)
                 chat.AddFiles(files.Select(f => f.TryGetLocalPath()).OfType<string>());
         });
-        // A pasted picture (a screenshot) goes with the message.
+        // A pasted picture (a screenshot) goes with the message. Enter is caught on its way in: the box, taking new
+        // lines, would otherwise keep Enter for itself and the message would never go.
         DraftBox.AddHandler(KeyDownEvent, PasteKeyDown, RoutingStrategies.Tunnel);
+        DraftBox.AddHandler(KeyDownEvent, DraftKeyDown, RoutingStrategies.Tunnel);
     }
 
     /// <summary>Shows the newest message at the bottom.</summary>
