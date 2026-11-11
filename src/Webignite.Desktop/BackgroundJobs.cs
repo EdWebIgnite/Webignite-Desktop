@@ -11,6 +11,8 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
 {
     private readonly DispatcherTimer minute = new() { Interval = TimeSpan.FromMinutes(1) };
     private readonly DispatcherTimer assistants = new() { Interval = TimeSpan.FromSeconds(3) };
+    private readonly DispatcherTimer chat = new() { Interval = Webignite.Core.Chat.ChatTiming.Lively };
+    private Task? chatSync;
     private DateTimeOffset assistantsSeen;
     private DateTimeOffset lastBackupLook = DateTimeOffset.Now;
 
@@ -30,6 +32,9 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
     /// </summary>
     public Action<IReadOnlyList<string>>? AssistantChanged { get; init; }
 
+    /// <summary>Whether the chat window is open; while it is (or messages went lately), chat is looked for every few seconds.</summary>
+    public Func<bool>? ChatOpen { get; init; }
+
     /// <summary>Runs once a minute after the jobs, for small housekeeping such as letting unused pages go.</summary>
     public Action? EveryMinute { get; init; }
 
@@ -44,6 +49,11 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
             CheckMail().Forget("Checking mail");
         minute.Tick += Tick;
         minute.Start();
+        if (SyncProjects is not null)
+        {
+            chat.Tick += ChatTick;
+            chat.Start();
+        }
         if (AssistantChanged is not null)
         {
             assistantsSeen = ReadSignal()?.At ?? DateTimeOffset.MinValue;
@@ -53,6 +63,17 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
     }
 
     private void AssistantsTick(object? sender, EventArgs e) => LookForAssistants();
+
+    // While the two of you are chatting, a quick sync every few seconds brings messages in almost at once. One at a
+    // time: a sync still running is left to finish.
+    private void ChatTick(object? sender, EventArgs e)
+    {
+        if (chatSync is { IsCompleted: false } || !services.MaySync
+            || !Webignite.Core.Chat.ChatTiming.IsLively(ChatOpen?.Invoke() == true, services.Chat.LastMessageAt, DateTimeOffset.UtcNow))
+            return;
+        chatSync = SyncProjects!();
+        chatSync.Forget("Looking for chat messages");
+    }
 
     /// <summary>What the timer does every few seconds: if Claude or ChatGPT changed something since, says which parts.</summary>
     public void LookForAssistants()
@@ -119,5 +140,7 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
         minute.Tick -= Tick;
         assistants.Stop();
         assistants.Tick -= AssistantsTick;
+        chat.Stop();
+        chat.Tick -= ChatTick;
     }
 }

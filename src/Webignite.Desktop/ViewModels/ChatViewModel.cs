@@ -181,7 +181,7 @@ public sealed partial class ChatViewModel(AppServices services) : ViewModelBase,
         Say("", problem: false);
         Refresh();
         // Sent straight away rather than waiting for the minute's sync.
-        services.SyncNowAsync().Forget("Sending a chat message");
+        services.SendChatNowAsync().Forget("Sending a chat message");
     }
 
     private void Say(string text, bool problem)

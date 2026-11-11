@@ -2038,6 +2038,7 @@ Check("Closing the window stops it following the history and lets the pictures g
     services.Chat.TakeIn(new Webignite.Core.Chat.Presence(partnerId, Webignite.Core.Chat.PresenceState.Available, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow,
         chatStart.AddMinutes(5)));
     var chatWindow = window.ShowChat(services);
+    Check("With the chat open, messages are looked for every few seconds", services.ChatOpen);
     Check("The chat reads as WhatsApp's: a day chip, his name with online under it, two ticks on what he's read",
         chatWindow.Chat.Messages[0].Day == "Today" && !chatWindow.Chat.Messages[1].HasDay && chatWindow.Chat.PartnerName == "Jaco"
         && chatWindow.Chat.PartnerLine == "online" && chatWindow.Chat.Messages[1].Tick == Webignite.Core.Chat.ChatTick.Read);
@@ -2077,6 +2078,8 @@ Check("Closing the window stops it following the history and lets the pictures g
         && fileMenu.Items.OfType<Avalonia.Controls.MenuItem>().Select(i => i.Header as string).SequenceEqual(["Open", "Copy picture", "Save a copy…"]));
     fileButton.ContextMenu?.Close();
     chatWindow.Close();
+    Dispatcher.UIThread.RunJobs();
+    Check("Closing the chat goes back to looking every minute", !services.ChatOpen);
     services.Secrets.Delete("webignite-sync-refresh");
 }
 // Website images: two made-up photos, shrunk for real so the sizes are true.
