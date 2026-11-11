@@ -12,6 +12,11 @@ public sealed class ChatGptTunnelTests
         Assert.Equal("tunnel_abcd_0123456789abcdef0123456789abcdef", ChatGptTunnel.TunnelId("tunnel_abcd_0123456789abcdef0123456789abcdef").Id);
         Assert.Contains("starts with tunnel_", ChatGptTunnel.TunnelId("").Problem, StringComparison.Ordinal);
         Assert.NotNull(ChatGptTunnel.TunnelId("tunnel_ABC").Problem);
+        // A copy from a web page can bring invisible characters or words along; the ID is still found.
+        Assert.Equal("tunnel_6af410fb96808191bf6f7dd8362660ba", ChatGptTunnel.TunnelId("\u200Btunnel_6af410fb96808191bf6f7dd8362660ba\uFEFF").Id);
+        Assert.Equal("tunnel_6af410fb96808191bf6f7dd8362660ba", ChatGptTunnel.TunnelId("ID: tunnel_6af410fb\u200B96808191bf6f7dd8362660ba").Id);
+        Assert.Equal("tunnel_6af410fb96808191bf6f7dd8362660ba", ChatGptTunnel.TunnelId("TUNNEL_6AF410FB96808191BF6F7DD8362660BA").Id);
+        Assert.NotNull(ChatGptTunnel.TunnelId("tunnel_6af410fb96808191bf6f7dd8362660ba1").Problem); // one too many
         Assert.NotNull(ChatGptTunnel.TunnelId("sk-proj-0123456789abcdef0123456789abcdef").Problem);
     }
 
