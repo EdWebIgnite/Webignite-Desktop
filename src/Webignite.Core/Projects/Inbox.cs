@@ -1,6 +1,6 @@
 namespace Webignite.Core.Projects;
 
-public enum InboxKind { Assigned, Mentioned, Commented, Completed, Changed, Liked, Message }
+public enum InboxKind { Assigned, Mentioned, Commented, Completed, Changed, Liked, Message, Added }
 
 /// <summary>
 /// Something your partner did that you'd want to know about, as Asana's Inbox: a task given to you, a comment
@@ -10,6 +10,7 @@ public enum InboxKind { Assigned, Mentioned, Commented, Completed, Changed, Like
 /// <param name="Line">What happened, after the person's name: "commented", "assigned this task to you".</param>
 /// <param name="Snippet">The comment's words, when it's about one.</param>
 /// <param name="MessageId">The message it's about, when it's from a project's Messages tab rather than a task (TaskId is then empty).</param>
+/// <remarks>Being added to a project (Added) has neither a task nor a message: TaskTitle is then the project's name.</remarks>
 public sealed record InboxItem(string Key, InboxKind Kind, string TaskId, string ProjectId, string TaskTitle, string WhoId, string Who,
     DateTimeOffset At, string Line, string Snippet = "", string? MessageId = null);
 
@@ -34,13 +35,13 @@ public static class InboxRules
 
     /// <summary>
     /// What's in my Inbox, newest first: things others did since <paramref name="since"/> on live tasks I follow or
-    /// am given, comments mentioning me, likes on my comments and tasks, and messages on projects' Messages tabs
-    /// (with likes on mine). Never what I did myself, nor what Claude or ChatGPT did (they work for one of us, who
+    /// am given, comments mentioning me, likes on my comments and tasks, messages on projects' Messages tabs
+    /// (with likes on mine), and projects the other person shared with me (added me to). Never what I did myself, nor what Claude or ChatGPT did (they work for one of us, who
     /// already knows).
     /// </summary>
     public static IReadOnlyList<InboxItem> Build(string me, IEnumerable<ProjectTask> tasks, IEnumerable<TaskComment> comments,
         IEnumerable<TaskActivity> activity, DateTimeOffset since, Func<string?, string> nameOf, IFormatProvider culture,
-        IEnumerable<ProjectMessage>? messages = null)
+        IEnumerable<ProjectMessage>? messages = null, IEnumerable<Project>? projects = null)
     {
         var live = tasks.Where(t => t.Deleted is null).ToDictionary(t => t.Id, StringComparer.Ordinal);
         bool Mine(ProjectTask t) => t.Followers.Contains(me) || t.AssignedTo == me;
@@ -89,6 +90,16 @@ public static class InboxRules
                     m.Mentions.Contains(me) ? "mentioned you in a message" : m.ReplyTo is null ? "posted a message" : "replied to a message"));
             if (m.Created.By == me)
                 items.AddRange(Likes(m.Id, m.LikedBy, m.Fields, since, Others).Select(l => Said(l.Key, InboxKind.Liked, l.By, l.At, "liked your message")));
+        }
+        // Shared by the other person: I've been added to it. Shared again after being taken back counts again.
+        foreach (var p in projects ?? [])
+        {
+            if (p.Deleted is not null || !p.Shared)
+                continue;
+            var shared = p.Fields.TryGetValue("shared", out var stamp) ? stamp : p.Created;
+            if (shared.At >= since && Others(shared.By))
+                items.Add(new InboxItem("added:" + p.Id + ":" + shared.At.ToUnixTimeMilliseconds().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    InboxKind.Added, "", p.Id, p.Name, shared.By, nameOf(shared.By), shared.At, "added you to this project"));
         }
         return [.. items.OrderByDescending(i => i.At).ThenBy(i => i.Key, StringComparer.Ordinal)];
     }
@@ -151,6 +162,7 @@ public static class InboxRules
         InboxKind.Completed => $"{item.Who} completed {item.TaskTitle}",
         InboxKind.Liked => $"{item.Who} {item.Line}",
         InboxKind.Message => $"{item.Who} {item.Line}: {item.TaskTitle}",
+        InboxKind.Added => $"{item.Who} added you to {item.TaskTitle}",
         _ => $"{item.Who} changed {item.TaskTitle}",
     };
 

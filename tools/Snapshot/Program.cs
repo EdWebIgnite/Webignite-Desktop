@@ -416,16 +416,16 @@ Dispatcher.UIThread.RunJobs();
 settingsPage.Open("mail");
 Check("Settings, Mail shows the spelling choices", settingsPage.SpellCheckOn && settingsPage.SpellLanguages.Count > 0 && settingsPage.SpellNote.Length > 0);
 Save("settings-mail");
-settingsPage.Open("projects");
+settingsPage.Open("organisation");
 settingsPage.PartnerName = "Jaco";
 settingsPage.SaveTeamCommand.Execute(null);
-Check("Settings, Projects names you and your partner", services.Team().Partner!.Name == "Jaco" && services.Team().Me!.Name == "Me" && !settingsPage.TeamProblem);
+Check("Settings, Your organisation names you and your partner", services.Team().Partner!.Name == "Jaco" && services.Team().Me!.Name == "Me" && !settingsPage.TeamProblem);
 settingsPage.PartnerName = "me";
 settingsPage.SaveTeamCommand.Execute(null);
 Check("Your partner can't have your name", settingsPage.TeamProblem && services.Team().Partner!.Name == "Jaco");
 settingsPage.PartnerName = "Jaco";
 settingsPage.SaveTeamCommand.Execute(null);
-Save("settings-projects");
+Save("settings-organisation-names");
 // ChatGPT, step by step: a tunnel and a key from OpenAI, then Connect ChatGPT runs OpenAI's tunnel in the background.
 settingsPage.Open("assistants");
 settingsPage.ChatGptTunnelId = "tunnel_ABC";
@@ -470,18 +470,29 @@ SetShown(nameof(SettingsViewModel.LastSyncedText), $"Last synced {new DateTime(2
 Dispatcher.UIThread.RunJobs();
 Check("Signed in shows Sync now and when it last synced", settingsPage.SyncNowCommand is not null && settingsPage.LastSyncedText.StartsWith("Last synced", StringComparison.Ordinal));
 Save("settings-account-signed-in");
-// Who's in the workspace: the owner can take a partner out, after a yes; and a new password, or other PCs signed out.
-settingsPage.Members.Add(new MemberRowViewModel("eddie@webignite.co.za", true, false, settingsPage));
-settingsPage.Members.Add(new MemberRowViewModel("lize@webignite.co.za", false, true, settingsPage));
+// Your organisation: who's in the workspace with their names, emails, roles and status; the owner can take a partner out, after a yes.
+settingsPage.Open("organisation");
+SetShown(nameof(SettingsViewModel.OrganisationText), "Webignite: 2 people");
+settingsPage.Members.Clear();
+settingsPage.Members.Add(new MemberRowViewModel("Eddie", "eddie@webignite.co.za", "Owner", true, Webignite.Core.Chat.PresenceState.Available, false, settingsPage));
+settingsPage.Members.Add(new MemberRowViewModel("Jaco", "jaco@webignite.co.za", "Member", false, Webignite.Core.Chat.PresenceState.Away, true, settingsPage));
+Dispatcher.UIThread.RunJobs();
+Check("Your organisation lists everyone with their initials, email, role and status", settingsPage.ShowOrganisation && settingsPage.Members.Count == 2
+    && settingsPage.Members[1].ShownText == "Away" && settingsPage.Members[0].IsMe);
+Save("settings-organisation");
 settingsPage.Members[1].RemoveCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("Taking a partner out asks first", settingsPage.ConfirmingRemove && settingsPage.RemoveQuestion.Contains("jaco@webignite.co.za", StringComparison.Ordinal));
+Save("settings-organisation-take-out");
+settingsPage.KeepMemberCommand.Execute(null);
+settingsPage.Members.Clear();
+// A new password, or other PCs signed out.
+settingsPage.Open("account");
 settingsPage.StartChangeAccountPasswordCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
-Check("Taking a partner out asks first", settingsPage.ConfirmingRemove && settingsPage.RemoveQuestion.Contains("lize@webignite.co.za", StringComparison.Ordinal));
 Check("Change password asks for the current one and the new one twice", settingsPage.ChangingAccountPassword);
 Save("settings-account-people-and-password");
-settingsPage.KeepMemberCommand.Execute(null);
 settingsPage.CancelChangeAccountPasswordCommand.Execute(null);
-settingsPage.Members.Clear();
 // The invite: one message with the install link, the code and the steps, to copy or send by mail.
 SetShown(nameof(SettingsViewModel.InviteText), "K7QM-2XRT-9WDF-HB4N-PZ6C");
 SetShown(nameof(SettingsViewModel.InviteMessage), Webignite.Core.Accounts.InvitePackage.Message("K7QM-2XRT-9WDF-HB4N-PZ6C",

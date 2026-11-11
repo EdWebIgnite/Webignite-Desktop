@@ -39,10 +39,11 @@ public sealed class InboxService(LocalStore store, Func<string> me, Func<TeamSet
     /// <summary>Everything in Inbox, newest first, archived ones too (see <see cref="IsArchived"/>).</summary>
     public IReadOnlyList<InboxItem> Items()
     {
-        var live = store.ListProjects().Where(p => p.Deleted is null).Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
+        var projects = store.ListProjects().Where(p => p.Deleted is null).ToList();
+        var live = projects.Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
         var people = team();
         return InboxRules.Build(me(), store.ListProjectTasks().Where(t => live.Contains(t.ProjectId)), store.ListAllComments(), store.ListAllActivity(),
-            State.Since!.Value, people.NameOf, CultureInfo.CurrentCulture, store.ListAllMessages().Where(m => live.Contains(m.ProjectId)));
+            State.Since!.Value, people.NameOf, CultureInfo.CurrentCulture, store.ListAllMessages().Where(m => live.Contains(m.ProjectId)), projects);
     }
 
     public int Unread() => InboxRules.Unread(Items(), State);

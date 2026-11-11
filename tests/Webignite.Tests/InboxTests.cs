@@ -100,6 +100,30 @@ public sealed class InboxTests : IDisposable
     }
 
     [Fact]
+    public void Being_added_to_a_project_shows_once_and_again_if_shared_again()
+    {
+        _ = inbox.State;
+        var project = hers.Add(new Project { Id = ProjectRules.NewId(), Name = "Bosveld Builders website" }).Saved!;
+        Assert.DoesNotContain(inbox.Items(), i => i.Kind == InboxKind.Added); // hers alone so far
+        Later();
+        hers.Change(project.Id, p => p with { Shared = true });
+        var added = Assert.Single(inbox.Items(), i => i.Kind == InboxKind.Added);
+        Assert.Equal("Lize added you to Bosveld Builders website", InboxRules.Headline(added));
+        Assert.Equal(project.Id, added.ProjectId);
+
+        // What I share myself isn't news to me.
+        mine.Add(new Project { Id = ProjectRules.NewId(), Name = "My own admin", Shared = true });
+        Assert.Single(inbox.Items(), i => i.Kind == InboxKind.Added);
+
+        Later();
+        hers.Change(project.Id, p => p with { Shared = false });
+        Later();
+        hers.Change(project.Id, p => p with { Shared = true });
+        var again = Assert.Single(inbox.Items(), i => i.Kind == InboxKind.Added);
+        Assert.NotEqual(added.Key, again.Key);
+    }
+
+    [Fact]
     public void Claude_and_ChatGPT_and_old_news_stay_out()
     {
         var (_, task) = Setup(mine, "Old task");

@@ -98,6 +98,8 @@ public sealed partial class InboxViewModel : ViewModelBase, IRefreshable, IDispo
         Refresh();
         if (row.Item.MessageId is not null)
             services.Go.ProjectMessages(row.Item.ProjectId);
+        else if (row.Item.Kind == InboxKind.Added)
+            services.Go.Project(row.Item.ProjectId);
         else
             services.Go.ProjectTask(row.Item.TaskId);
     }
@@ -134,7 +136,7 @@ public sealed partial class InboxRow(InboxItem item, string projectName, bool un
     public string Line => $"{Item.Who} {Item.Line}";
     public string TaskTitle => Item.TaskTitle;
     public string ProjectName { get; } = projectName;
-    public bool HasProject => ProjectName.Length > 0;
+    public bool HasProject => ProjectName.Length > 0 && Item.Kind != InboxKind.Added; // its title is the project already
     public string Snippet => Item.Snippet;
     public bool HasSnippet => Item.Snippet.Length > 0;
     public bool IsUnread { get; } = unread;

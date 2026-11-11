@@ -139,7 +139,12 @@ public partial class SettingsViewModel
     private void ShowAccountInfo(AccountInfo? account)
     {
         if (account is null)
+        {
+            if (!IsSignedIn)
+                ShowMembers(null);
             return;
+        }
+        LoadTeam(); // names may have come from the workspace's emails just now
         SignedInAs = $"Signed in as {account.Email}, in the workspace {account.Workspace.Name}.";
         IsWorkspaceOwner = account.Workspace.Role == AccountRoles.Owner;
         TwoFactorOn = account.TwoFactor;
@@ -282,7 +287,7 @@ public partial class SettingsViewModel
         HasWorkspaceKey = false;
         NewRecoveryKey = "";
         SignedInAs = InviteText = InviteMessage = RecoveryCodesText = "";
-        Members.Clear();
+        ShowMembers(null);
         MemberToRemove = null;
         ChangingAccountPassword = false;
         ClearTwoFactorSetup();
