@@ -126,4 +126,15 @@ public sealed class ChatTests
         var gone = new Presence("jaco", PresenceState.Available, now.AddHours(-1), now.AddHours(-1));
         Assert.StartsWith("last seen today at", PresenceRules.Line(gone, now, Sast, ZA), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Chat_is_looked_for_every_few_seconds_while_the_window_is_open_or_messages_went_lately()
+    {
+        var now = new DateTimeOffset(2026, 11, 11, 9, 0, 0, TimeSpan.Zero);
+        Assert.True(ChatTiming.IsLively(chatOpen: true, lastMessage: null, now));
+        Assert.True(ChatTiming.IsLively(chatOpen: false, lastMessage: now.AddMinutes(-3), now));
+        Assert.False(ChatTiming.IsLively(chatOpen: false, lastMessage: now.AddMinutes(-30), now));
+        Assert.False(ChatTiming.IsLively(chatOpen: false, lastMessage: null, now));
+        Assert.True(ChatTiming.Lively <= TimeSpan.FromSeconds(10));
+    }
 }

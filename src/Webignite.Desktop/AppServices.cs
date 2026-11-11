@@ -164,6 +164,23 @@ public sealed class AppServices : IDisposable
     /// </summary>
     public Action<IReadOnlyList<Webignite.Core.Chat.ChatMessage>>? ChatPopUp { get; set; }
 
+    /// <summary>The chat window is open: chat is looked for every few seconds rather than every minute.</summary>
+    public bool ChatOpen { get; set; }
+
+    /// <summary>
+    /// Sends a chat message (or status) now. When a sync is already running it waits for it to finish and goes
+    /// straight after, rather than until the next one.
+    /// </summary>
+    public async Task SendChatNowAsync()
+    {
+        for (var tries = 0; tries < 40 && MaySync; tries++)
+        {
+            if (!(await SyncNowAsync()).Skipped)
+                return;
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
+        }
+    }
+
     /// <summary>Mail was read or marked unread on the Mail page: the sidebar's count is read again at once.</summary>
     public Action? MailCountsChanged { get; set; }
 

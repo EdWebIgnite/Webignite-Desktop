@@ -62,8 +62,13 @@ public partial class MainWindow
             return open;
         }
         var window = new ChatWindow(new ChatViewModel(services));
-        window.Closed += (_, _) => chatWindow = null;
+        window.Closed += (_, _) =>
+        {
+            chatWindow = null;
+            services.ChatOpen = false;
+        };
         chatWindow = window;
+        services.ChatOpen = true; // messages are looked for every few seconds while it's open
         window.Show(this);
         return window;
     }

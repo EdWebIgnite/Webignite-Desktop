@@ -323,6 +323,7 @@ public partial class MainViewModel : ViewModelBase
             CheckXeroDocuments = CheckXeroDocumentsAsync,
             CheckXeroBills = CheckXeroBillsAsync,
             SyncProjects = () => services.SyncNowAsync(),
+            ChatOpen = () => services.ChatOpen,
             EveryMinute = () =>
             {
                 ReleaseIdle(PageIdle);
