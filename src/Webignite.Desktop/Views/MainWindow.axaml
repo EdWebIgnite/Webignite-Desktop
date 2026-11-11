@@ -16,6 +16,7 @@
     <KeyBinding Gesture="F5" Command="{Binding RefreshPageCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding ToggleShortcutsCommand}" />
     <KeyBinding Gesture="Ctrl+B" Command="{Binding Sidebar.ToggleCommand}" />
+    <KeyBinding Gesture="Ctrl+M" Command="{Binding ToggleMenuCommand}" />
     <KeyBinding Gesture="Ctrl+T" Command="{Binding NewTabCommand}" />
     <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseThisTabCommand}" />
     <KeyBinding Gesture="Ctrl+Tab" Command="{Binding NextTabCommand}" CommandParameter="1" />
@@ -37,6 +38,8 @@
 
   <Grid ColumnDefinitions="Auto,*">
 
+    <!-- The sidebar, in its three widths. Not shown at all when the menu is the Menu button or the dock. -->
+    <Panel Grid.Column="0" IsVisible="{Binding IsSidebarMenu}">
     <!-- The sidebar tucked away: a thin strip with the button that brings it back (or Ctrl+B). -->
     <Border Grid.Column="0" Width="44" Background="{DynamicResource Nav}" Padding="6,18" IsVisible="{Binding Sidebar.IsHidden}">
       <Button Classes="navtoggle" VerticalAlignment="Top" HorizontalAlignment="Center" Command="{Binding Sidebar.ToggleCommand}"
@@ -342,8 +345,14 @@
       </DockPanel>
     </Border>
 
+    </Panel>
+
     <!-- Tabs, once there are two, then the page on screen -->
     <DockPanel Grid.Column="1">
+      <!-- Without the sidebar: a bar along the top (Views/MenuBarView), and the dock along the bottom (Views/DockView).
+           Both are made only while their menu is the one picked (MainWindow.Menu.cs). -->
+      <ContentControl x:Name="MenuBarHost" DockPanel.Dock="Top" />
+      <ContentControl x:Name="DockHost" DockPanel.Dock="Bottom" />
       <Border DockPanel.Dock="Top" Classes="tabstrip" IsVisible="{Binding ShowTabs}">
         <DockPanel>
           <Button DockPanel.Dock="Right" Classes="tabplus" Command="{Binding NewTabCommand}" ToolTip.Tip="New tab (Ctrl+T)" VerticalAlignment="Center">
@@ -480,6 +489,9 @@
         </DockPanel>
       </Grid>
     </DockPanel>
+
+    <!-- The whole menu, over the page (Views/MenuOverlayView), made the first time it is opened. -->
+    <ContentControl x:Name="MenuHost" Grid.ColumnSpan="2" IsVisible="{Binding IsMenuOpen}" />
 
     <!-- Ctrl+K search, over everything -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{DynamicResource Scrim}" PointerPressed="CloseSearch">

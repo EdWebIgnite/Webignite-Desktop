@@ -97,6 +97,17 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     public bool IsDarkSidebar => services.Settings.Appearance.Sidebar == SidebarTone.Dark;
     public bool IsLightSidebar => services.Settings.Appearance.Sidebar == SidebarTone.Light;
 
+    public bool IsMenuSidebar => services.Settings.Appearance.Menu == Webignite.Core.Layout.MenuKind.Sidebar;
+    public bool IsMenuButton => services.Settings.Appearance.Menu == Webignite.Core.Layout.MenuKind.Button;
+    public bool IsMenuDock => services.Settings.Appearance.Menu == Webignite.Core.Layout.MenuKind.Dock;
+
+    [RelayCommand]
+    private void UseMenu(string kind)
+    {
+        if (Enum.TryParse<Webignite.Core.Layout.MenuKind>(kind, out var value))
+            SetLook(services.Settings.Appearance with { Menu = value });
+    }
+
     [RelayCommand]
     private void UseStyle(string style)
     {
@@ -146,7 +157,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
 
     private void LookChanged(AppearanceSettings look)
     {
-        foreach (var name in new[] { nameof(IsLight), nameof(IsDark), nameof(IsFollowingWindows), nameof(IsGraphite), nameof(IsMidnight), nameof(IsWarm), nameof(IsAsanaDark), nameof(IsStandardLight), nameof(IsAsanaLight), nameof(IsClassic), nameof(IsAiry), nameof(IsDarkSidebar), nameof(IsLightSidebar) })
+        foreach (var name in new[] { nameof(IsLight), nameof(IsDark), nameof(IsFollowingWindows), nameof(IsGraphite), nameof(IsMidnight), nameof(IsWarm), nameof(IsAsanaDark), nameof(IsStandardLight), nameof(IsAsanaLight), nameof(IsClassic), nameof(IsAiry), nameof(IsDarkSidebar), nameof(IsLightSidebar), nameof(IsMenuSidebar), nameof(IsMenuButton), nameof(IsMenuDock) })
             OnPropertyChanged(name);
     }
 

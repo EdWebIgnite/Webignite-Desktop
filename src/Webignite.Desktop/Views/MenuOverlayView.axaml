@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.MenuOverlayView"
+             x:DataType="vm:MainViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.megamenu">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="22,22,22,24" />
+      <Setter Property="BoxShadow" Value="{DynamicResource OverlayShadow}" />
+    </Style>
+    <Style Selector="Button.menuentry">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.menuentry:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
+    <Style Selector="Button.menuentry.current">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </UserControl.Styles>
+<Grid Background="{DynamicResource Scrim}" PointerPressed="CloseMenu">
+  <Border Classes="megamenu" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="24,58,24,24" PointerPressed="KeepMenuOpen">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl ItemsSource="{Binding MenuColumns}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><WrapPanel ItemSpacing="18" LineSpacing="20" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:MenuColumn">
+            <StackPanel Width="250">
+              <TextBlock Classes="label caps" Text="{Binding Title}" Margin="10,0,0,6" />
+              <ItemsControl ItemsSource="{Binding Entries}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MenuEntry">
+                    <Button Classes="menuentry" Classes.current="{Binding IsCurrent}"
+                            Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).PickFromMenuCommand}" CommandParameter="{Binding}">
+                      <Button.ContextMenu>
+                        <ContextMenu IsVisible="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).IsDockMenu}">
+                          <MenuItem Header="Add to the dock" IsEnabled="{Binding CanAdd}"
+                                    Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).AddToDockCommand}" CommandParameter="{Binding}" />
+                          <MenuItem Header="Take off the dock" IsEnabled="{Binding CanTakeOff}"
+                                    Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).TakeOffDockCommand}" CommandParameter="{Binding}" />
+                        </ContextMenu>
+                      </Button.ContextMenu>
+                      <DockPanel>
+                        <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="17"
+                                Foreground="{DynamicResource Muted}" Margin="0,0,11,0" VerticalAlignment="Center" />
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" Classes.short="{Binding Late}" FontSize="{DynamicResource Text12}" Text="{Binding Figure}"
+                                   IsVisible="{Binding HasFigure}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                      </DockPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Border>
+</Grid>
+</UserControl>
