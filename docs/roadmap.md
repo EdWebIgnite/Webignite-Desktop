@@ -39,6 +39,7 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 - **Website screenshots.** A page at set widths (phone, tablet, desktop), the whole page top to bottom included, saved to the client's folder or opened in Mark-up.
 - **Responsive preview.** A live page that can be scrolled and clicked, at any width.
 - **Phone simulator.** The same preview as a named phone or tablet: its screen size, pixel density, touch and the address it tells sites it is, turned upright or sideways, as browser device toolbars do. It is still Edge's engine pretending, so a fault that only Safari on a real iPhone has won't show.
+  - A range of devices to pick from, kept as a list in Core so one is added in a line: iPhones (a small older one such as the SE, the standard size of the last few years, and the largest Pro Max), Samsungs (a recent S, a large Ultra, a mid-range A and a 360-wide budget Android, which many South African visitors use, plus a fold), a Pixel, iPads (Mini, Air, the large Pro) and an Android tablet, then a laptop and a desktop. A box takes any other size. The exact sizes are looked up when it is built.
 
 ### Everyday
 
@@ -46,6 +47,25 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 - **Copy text from a picture.** Pick an area of the screen and get its words, through Windows' own text reading.
 - **Compare.** Two files or two folders side by side, showing what differs.
 - **Duplicate file finder** in Files.
+
+## Order to build them in
+
+Web first, as that is most of the work; branding last. Each step is its own PR.
+
+1. **Small web tools.** Quick, no outside parts, used straight away.
+2. **DNS and mail record tool.** Builds on the lookups Domains and hosting already does.
+3. **Site crawler**, reading HTML only.
+4. **WebView2 groundwork, with Save a web page as a PDF and Website screenshots.** The simplest uses, to prove it starts with the tool, stops with it, and leaves nothing behind.
+5. **Responsive preview and Phone simulator.** One window, on top of step 4.
+6. **Site crawler for sites that need JavaScript.** Needs step 4.
+7. **Screen ruler.** Reuses the colour picker's frozen screen.
+8. **Text snippets from any program.**
+9. **Copy text from a picture.** Reuses the screenshot picker.
+10. **Compare**, then **Duplicate file finder**, both in Files.
+11. **Palette builder**, in the Colours tool.
+12. **Favicon and app icon maker**, then **Logo export pack.** They share the picture work.
+13. **Social image sizer.**
+14. **Brand sheet maker.** Last, as it uses the palette and the logo work.
 
 ## Later
 
