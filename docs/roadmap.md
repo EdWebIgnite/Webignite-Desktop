@@ -70,7 +70,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 
 The app is getting more than one style to try side by side, so we can see what works. Colours and style are separate choices (Settings, Style), and Classic stays as it is.
 
-- **Airy** covers the whole app: a white page, flat cards, soft boxes, light borderless toolbars, taller sidebar rows, and its own touches on Mail, writing a mail, the Projects list and board, and Chat. Every screen has been drawn in it and looked over. Still worth a closer pass: the client page's folding rows, Files' side list, Settings' long forms, and the small tool windows.
+- **Airy** covers the whole app: a white page, flat cards, soft boxes, light borderless toolbars, taller sidebar rows, and its own touches on Mail, writing a mail, the Projects list and board, and Chat. Every screen has been drawn in it and looked over. The client page's folding rows, Files' side list and rows, and Settings' side menu have had their own pass too. What's left is whatever shows up in daily use.
 - **Light sidebar** works with every style and palette.
 - Still to build: **Compact** (dense, small corners, thin lines) and **Soft** (rounder, pill buttons, tinted panels).
 - Later, if styles aren't enough: a density choice, and bigger layout changes such as a top bar.

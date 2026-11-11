@@ -152,6 +152,45 @@
     <Setter Property="FontWeight" Value="Normal" />
   </Style>
 
+  <!-- Folding rows (a client's page): each heading has more room. -->
+  <Style Selector="Window.look-airy Button.foldhead">
+    <Setter Property="Padding" Value="4,19,24,19" />
+  </Style>
+
+  <!-- Settings' side menu: taller rows, and the section on screen filled, as white wouldn't show on a white page. -->
+  <Style Selector="Window.look-airy ListBox.sections ListBoxItem">
+    <Setter Property="Padding" Value="14,9" />
+    <Setter Property="Margin" Value="0,0,0,3" />
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.sections ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.sections ListBoxItem:selected:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+
+  <!-- Files: roomier places and rows, rounder address bar. -->
+  <Style Selector="Window.look-airy Button.place">
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.files ListBoxItem">
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.files.thumbs ListBoxItem">
+    <Setter Property="Padding" Value="6" />
+  </Style>
+  <Style Selector="Window.look-airy Border.address">
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <!-- A label used as a column heading keeps to the middle of the taller band. -->
+  <Style Selector="Window.look-airy Border.stickyhead TextBlock.label">
+    <Setter Property="Margin" Value="0" />
+  </Style>
+
   <!-- Tabs: a little taller and rounder. -->
   <Style Selector="Window.look-airy Border.tabstrip">
     <Setter Property="Padding" Value="10,8,10,0" />
