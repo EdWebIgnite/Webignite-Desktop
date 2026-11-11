@@ -22,7 +22,11 @@ Directory.CreateDirectory(output);
 var data = Directory.CreateTempSubdirectory("webignite-snapshot-").FullName;
 var snapshotKey = RandomNumberGenerator.GetBytes(32);
 var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(snapshotKey));
-var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey };
+// The DNS tool never reaches the network here: what it shows is handed to it below.
+var noDns = new Webignite.Services.DnsClient(
+    (_, _, _) => Task.FromException<byte[]>(new HttpRequestException("Couldn't look that up. Check the internet connection.")),
+    (_, _, _) => Task.FromException<byte[]>(new System.Net.Sockets.SocketException()));
+var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey, Dns = noDns };
 services.Settings.Backups = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
 // Client folders as on Eddie's PC (C:\Projects), with a few files in them, for Files and the client pages.
 var projects = Path.Combine(data, "Projects");
@@ -205,7 +209,7 @@ void SaveLooks(string name)
     Check($"After trying the other styles on {name}, Classic is back with nothing of them switched on",
         was.Style != LookStyle.Classic || was.Sidebar != SidebarTone.Dark
         || Looks.Style == LookStyle.Classic && !window.Classes.Any(c => c.StartsWith("look-", StringComparison.Ordinal))
-            && !Application.Current!.Resources.ContainsKey("Nav") && !Application.Current.Resources.ContainsKey("Canvas")
+            && !Application.Current!.Resources.ContainsKey("Nav")
             && !Application.Current.Resources.ContainsKey("Text12"));
     // Parts that were on screen while another style was on must have their own shape again, not only new ones.
     Check($"After trying the other styles on {name}, no card or list row on screen has a shape it didn't have before",
@@ -1925,7 +1929,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -1979,6 +1983,50 @@ Check("A campaign link is built as it's typed",
     helpers.UtmLink == "https://karoocoffee.co.za/specials?utm_source=newsletter&utm_medium=email&utm_campaign=spring-sale");
 SaveWindow(helpersWindow, "tools-web-utm");
 helpersWindow.Close();
+var dnsWindow = window.ShowTool(ToolKind.Dns, services);
+var dns = dnsWindow.Tools;
+dns.LookUpDnsCommand.Execute(null);
+Check("A lookup with nothing typed asks for a domain", dns.DnsProblem && dns.DnsNote.StartsWith("Type a domain", StringComparison.Ordinal));
+dns.DnsName = "karoocoffee.co.za";
+dns.DnsTypeChoice = Webignite.Core.Web.DnsType.MX;
+Wait(dns.LookUpDnsCommand.ExecuteAsync(null), "The lookup finished");
+Check("With no internet a lookup says so and the tool carries on", dns.DnsProblem && dns.DnsNote.StartsWith("Couldn't look that up", StringComparison.Ordinal) && !dns.DnsBusy);
+dns.ShowDnsAnswer("karoocoffee.co.za", new Webignite.Core.Web.DnsAnswer(
+    [new("karoocoffee.co.za", Webignite.Core.Web.DnsType.MX, 7200, "10 mail.karoocoffee.co.za"), new("karoocoffee.co.za", Webignite.Core.Web.DnsType.MX, 7200, "20 mail2.karoocoffee.co.za")], 0, false));
+Check("A lookup lists its records with how long each is kept", dns.DnsRows.Count == 2 && dns.DnsRows[0].Kept == "kept 2 hours" && dns.DnsNote.Length == 0);
+SaveWindow(dnsWindow, "tools-dns-lookup");
+dns.ShowDnsAnswer("nothere.karoocoffee.co.za", new Webignite.Core.Web.DnsAnswer([], 3, false));
+Check("A name that doesn't exist says so", dns.DnsProblem && !dns.HasDnsRows && dns.DnsNote.Contains("doesn't exist", StringComparison.Ordinal));
+dns.ShowDnsPartCommand.Execute(DnsPart.Spread);
+dns.DnsName = "www.karoocoffee.co.za";
+dns.DnsTypeChoice = Webignite.Core.Web.DnsType.A;
+dns.ShowSpread(
+[
+    new("ns1.host-h.net", true, ["41.203.18.99"]),
+    new("ns2.dns-h.com", true, ["41.203.18.99"]),
+    new("Cloudflare (1.1.1.1)", false, ["41.203.18.99"]),
+    new("Google (8.8.8.8)", false, ["41.203.18.10"]),
+    new("Quad9 (9.9.9.9)", false, ["41.203.18.99"]),
+    new("OpenDNS", false, ["41.203.18.10"]),
+    new("AdGuard", false, [], "No answer."),
+], 3600);
+Check("The spread check says who is behind and how long it can take",
+    dns.SpreadVerdict.StartsWith("Still spreading: 2 of 4 resolvers", StringComparison.Ordinal) && dns.SpreadVerdict.Contains("1 hour", StringComparison.Ordinal)
+    && dns.SpreadRows.Count(r => r.Behind) == 2 && dns.SpreadRows.Count(r => r.State == "Up to date") == 2);
+SaveWindow(dnsWindow, "tools-dns-spread");
+dns.ShowDnsPartCommand.Execute(DnsPart.Mail);
+dns.MailDomain = "karoocoffee.co.za";
+dns.ShowMailNow(Webignite.Core.Web.MailRecords.Now(["v=spf1 include:spf.host-h.net ~all"], [], hasMail: true));
+dns.SpfSenders.First(s => s.Name == "xneelo").IsOn = true;
+dns.SpfSenders.First(s => s.Name == "Mailchimp").IsOn = true;
+dns.SpfWebServer = true;
+dns.DmarcReports = "dmarc@karoocoffee.co.za";
+dns.DkimSelector = "default";
+Check("The SPF record follows the ticks", dns.SpfRecord.Value == "v=spf1 mx a include:spf.host-h.net include:servers.mcsv.net ~all");
+Check("The DMARC record starts by watching, with where reports go", dns.DmarcRecord.Value == "v=DMARC1; p=none; rua=mailto:dmarc@karoocoffee.co.za");
+Check("What the domain has now is shown, with what's missing marked", dns.MailNow.Count == 2 && dns.MailNow[1].Problem && dns.DkimHost == "default._domainkey");
+SaveWindow(dnsWindow, "tools-dns-mail");
+dnsWindow.Close();
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
 SaveWindow(passwordWindow, "tools-passwords");
 passwordWindow.Close();

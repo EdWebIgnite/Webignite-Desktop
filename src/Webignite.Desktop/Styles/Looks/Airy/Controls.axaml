@@ -1,13 +1,13 @@
 <!--
-  The Airy style, laid over Styles/Controls.axaml when it is picked (see Looks.cs). More room, a white page, flat
-  cards and soft filled boxes. Only shape and which palette colour goes where: no colour of its own.
+  The Airy style, laid over Styles/Controls.axaml when it is picked (see Looks.cs). More room, flat cards and soft
+  filled boxes, on the same soft page as Classic. Only shape and which palette colour goes where: no colour of its own.
 -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="using:Webignite.Desktop.Controls">
 
-  <!-- The page is white (Looks.cs gives the page's colour name the cards' white); cards are marked by a thin line
-       instead of a shadow on grey. -->
+  <!-- Cards are marked by a thin line instead of a shadow. The page keeps Classic's soft grey: white all over
+       the window was too bright to look at all day. -->
   <Style Selector="Window.look-airy Border.card">
     <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
     <Setter Property="CornerRadius" Value="14" />
@@ -157,17 +157,11 @@
     <Setter Property="Padding" Value="4,19,24,19" />
   </Style>
 
-  <!-- Settings' side menu: taller rows, and the section on screen filled, as white wouldn't show on a white page. -->
+  <!-- Settings' side menu: taller rows. -->
   <Style Selector="Window.look-airy ListBox.sections ListBoxItem">
     <Setter Property="Padding" Value="14,9" />
     <Setter Property="Margin" Value="0,0,0,3" />
     <Setter Property="CornerRadius" Value="9" />
-  </Style>
-  <Style Selector="Window.look-airy ListBox.sections ListBoxItem:selected /template/ ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource Surface2}" />
-  </Style>
-  <Style Selector="Window.look-airy ListBox.sections ListBoxItem:selected:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource Surface2}" />
   </Style>
 
   <!-- Files: roomier places and rows, rounder address bar. -->

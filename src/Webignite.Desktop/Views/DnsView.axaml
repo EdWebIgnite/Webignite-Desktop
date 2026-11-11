@@ -1,0 +1,197 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:web="using:Webignite.Core.Web"
+             x:Class="Webignite.Desktop.Views.DnsView"
+             x:DataType="vm:ToolsViewModel">
+  <UserControl.Styles>
+    <Style Selector="SelectableTextBlock.record">
+      <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+      <Setter Property="FontSize" Value="{DynamicResource Text13}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Border.built">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="12,10" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="14">
+    <Border Classes="segments" HorizontalAlignment="Left">
+      <StackPanel Orientation="Horizontal">
+        <Button Classes="segment" Classes.on="{Binding IsDnsLookup}" Content="Look up"
+                Command="{Binding ShowDnsPartCommand}" CommandParameter="{x:Static vm:DnsPart.Lookup}" />
+        <Button Classes="segment" Classes.on="{Binding IsDnsSpread}" Content="Has it spread?"
+                Command="{Binding ShowDnsPartCommand}" CommandParameter="{x:Static vm:DnsPart.Spread}" />
+        <Button Classes="segment" Classes.on="{Binding IsDnsMail}" Content="Mail records"
+                Command="{Binding ShowDnsPartCommand}" CommandParameter="{x:Static vm:DnsPart.Mail}" />
+      </StackPanel>
+    </Border>
+
+    <!-- The name and kind, for both Look up and Has it spread -->
+    <StackPanel Spacing="10" IsVisible="{Binding !IsDnsMail}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="primary" Content="Look up" Margin="8,0,0,0" IsDefault="True"
+                Command="{Binding LookUpDnsCommand}" IsVisible="{Binding IsDnsLookup}" />
+        <Button DockPanel.Dock="Right" Classes="primary" Content="Check" Margin="8,0,0,0" IsDefault="True"
+                Command="{Binding CheckSpreadCommand}" IsVisible="{Binding IsDnsSpread}" />
+        <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding DnsTypes}" SelectedItem="{Binding DnsTypeChoice}" Width="110" Margin="8,0,0,0" />
+        <TextBox Text="{Binding DnsName}" PlaceholderText="karoocoffee.co.za, or _dmarc.karoocoffee.co.za" />
+      </DockPanel>
+      <TextBlock Classes="muted" Classes.problem="{Binding DnsProblem}" FontSize="{DynamicResource Text12}" Text="{Binding DnsNote}" TextWrapping="Wrap"
+                 IsVisible="{Binding DnsNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+
+    <!-- Look up -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsDnsLookup}">
+      <ItemsControl ItemsSource="{Binding DnsRows}" IsVisible="{Binding HasDnsRows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:DnsRow">
+            <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,8">
+              <Grid ColumnDefinitions="64,*,Auto,Auto">
+                <TextBlock Grid.Column="0" FontWeight="SemiBold" Text="{Binding Type}" VerticalAlignment="Center" />
+                <SelectableTextBlock Grid.Column="1" Classes="record" Text="{Binding Value}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Kept}" VerticalAlignment="Center" Margin="12,0"
+                           ToolTip.Tip="How long resolvers may remember this record before asking again" />
+                <Button Grid.Column="3" Classes="quiet" Content="Copy" Padding="10,3" Click="CopyRow" Tag="{Binding Value}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                 Text="Asked through Cloudflare's public resolver, or Google's when it doesn't answer. Nothing is changed anywhere." />
+    </StackPanel>
+
+    <!-- Has it spread? -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsDnsSpread}">
+      <Border Classes="pending" IsVisible="{Binding HasSpreadRows}">
+        <TextBlock Text="{Binding SpreadVerdict}" FontWeight="SemiBold" TextWrapping="Wrap" />
+      </Border>
+      <ItemsControl ItemsSource="{Binding SpreadRows}" IsVisible="{Binding HasSpreadRows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:SpreadRow">
+            <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,8">
+              <Grid ColumnDefinitions="210,*,Auto">
+                <StackPanel Grid.Column="0">
+                  <TextBlock Text="{Binding Where}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Kind}" />
+                </StackPanel>
+                <SelectableTextBlock Grid.Column="1" Classes="record" Text="{Binding Says}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Classes="muted" Classes.short="{Binding Behind}" FontSize="{DynamicResource Text12}" Text="{Binding State}"
+                           VerticalAlignment="Center" Margin="12,0,0,0" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                 Text="After a record is changed, the domain's own name servers have the new one straight away. Everyone else remembers the old one until its time runs out. This asks both and says who has caught up." />
+    </StackPanel>
+
+    <!-- Mail records -->
+    <StackPanel Spacing="16" IsVisible="{Binding IsDnsMail}">
+      <StackPanel Spacing="8">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="quiet" Content="See what it has now" Margin="8,0,0,0" Command="{Binding ReadMailRecordsCommand}" />
+          <TextBox Text="{Binding MailDomain}" PlaceholderText="The domain, such as karoocoffee.co.za" />
+        </DockPanel>
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MailNote}" TextWrapping="Wrap"
+                   IsVisible="{Binding MailNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <ItemsControl ItemsSource="{Binding MailNow}" IsVisible="{Binding HasMailNow}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="web:DomainFinding">
+              <Grid ColumnDefinitions="64,*" Margin="0,3">
+                <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Label}" />
+                <TextBlock Grid.Column="1" Classes.short="{Binding Problem}" Text="{Binding Value}" TextWrapping="Wrap" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- SPF -->
+      <StackPanel Spacing="8">
+        <TextBlock Classes="h2" Text="SPF: who may send mail for the domain" />
+        <WrapPanel>
+          <CheckBox Content="Its own mail servers" IsChecked="{Binding SpfMailServers}" Margin="0,0,18,0" />
+          <CheckBox Content="The website's server (contact forms)" IsChecked="{Binding SpfWebServer}" Margin="0,0,18,0" />
+        </WrapPanel>
+        <ItemsControl ItemsSource="{Binding SpfSenders}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SenderChoice">
+              <CheckBox Content="{Binding Name}" IsChecked="{Binding IsOn}" Margin="0,0,18,0" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBox Text="{Binding SpfOthers}" PlaceholderText="Anything else: a server's address, or another service's domain" />
+        <CheckBox Content="Refuse mail from anything not listed (-all). Leave off until every sender is in." IsChecked="{Binding SpfHard}" />
+        <Border Classes="built">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Content="Copy" VerticalAlignment="Top" Margin="12,0,0,0" Click="CopySpf" />
+            <StackPanel Spacing="4">
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="TXT record, host @ (the domain itself)" />
+              <SelectableTextBlock Classes="record" Text="{Binding SpfRecord.Value}" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <ItemsControl ItemsSource="{Binding SpfRecord.Notes}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding}" TextWrapping="Wrap" Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- DMARC -->
+      <StackPanel Spacing="8">
+        <TextBlock Classes="h2" Text="DMARC: what happens to mail that fails" />
+        <Grid ColumnDefinitions="Auto,10,*">
+          <ComboBox Grid.Column="0" ItemsSource="{Binding DmarcPolicies}" SelectedItem="{Binding DmarcPolicyChoice}" MinWidth="270" />
+          <TextBox Grid.Column="2" Text="{Binding DmarcReports}" PlaceholderText="Where reports go, such as dmarc@karoocoffee.co.za" />
+        </Grid>
+        <Border Classes="built">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="primary" Content="Copy" VerticalAlignment="Top" Margin="12,0,0,0" Click="CopyDmarc" />
+            <StackPanel Spacing="4">
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="TXT record, host _dmarc" />
+              <SelectableTextBlock Classes="record" Text="{Binding DmarcRecord.Value}" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <ItemsControl ItemsSource="{Binding DmarcRecord.Notes}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding}" TextWrapping="Wrap" Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- DKIM -->
+      <StackPanel Spacing="8">
+        <TextBlock Classes="h2" Text="DKIM: the mail host's signature" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="The mail host makes the key, in its control panel, so there is nothing to build here. It gives a selector and a long value to add as a TXT record. Check below that it is in place." />
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="quiet" Content="Check it" Margin="8,0,0,0" Command="{Binding CheckDkimCommand}" />
+          <TextBox Text="{Binding DkimSelector}" PlaceholderText="The selector, such as default" />
+        </DockPanel>
+        <TextBlock FontSize="{DynamicResource Text12}" Classes="muted" IsVisible="{Binding HasDkimHost}" TextWrapping="Wrap">
+          <Run Text="TXT record, host" /> <Run Text="{Binding DkimHost, Mode=OneWay}" FontWeight="SemiBold" />
+        </TextBlock>
+        <TextBlock Text="{Binding DkimVerdict}" TextWrapping="Wrap"
+                   IsVisible="{Binding DkimVerdict, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </StackPanel>
+
+    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding WebMessage}" TextWrapping="Wrap"
+               IsVisible="{Binding WebMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

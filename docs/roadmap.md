@@ -29,7 +29,6 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 ### Websites
 
 - **Site crawler.** Every page of a site with its title, description, status, broken links and missing alt text, saved as a spreadsheet. Reads the HTML directly; uses WebView2 only for a site that builds its pages with JavaScript.
-- **DNS and mail record tool.** Look up any record, check it has spread, and build SPF, DKIM and DMARC records to paste in at the host.
 - **Screen ruler.** Measure pixels on screen from any program, like the colour picker.
 
 ### Websites, drawn by WebView2
@@ -52,7 +51,7 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 Web first, as that is most of the work; branding last. Each step is its own PR.
 
 1. ~~Small web tools~~ Built: Web helpers, under Web tools.
-2. **DNS and mail record tool.** Builds on the lookups Domains and hosting already does.
+2. ~~DNS and mail record tool~~ Built: DNS records, under Web tools.
 3. **Site crawler**, reading HTML only.
 4. **WebView2 groundwork, with Save a web page as a PDF and Website screenshots.** The simplest uses, to prove it starts with the tool, stops with it, and leaves nothing behind.
 5. **Responsive preview and Phone simulator.** One window, on top of step 4.
@@ -70,7 +69,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 
 The app is getting more than one style to try side by side, so we can see what works. Colours and style are separate choices (Settings, Style), and Classic stays as it is.
 
-- **Airy** covers the whole app: a white page, flat cards, soft boxes, light borderless toolbars, taller sidebar rows, and its own touches on Mail, writing a mail, the Projects list and board, and Chat. Every screen has been drawn in it and looked over. The client page's folding rows, Files' side list and rows, and Settings' side menu have had their own pass too. What's left is whatever shows up in daily use.
+- **Airy** covers the whole app: Classic's soft grey page (a white page was tried and was too bright), flat cards, soft boxes, light borderless toolbars, taller sidebar rows, and its own touches on Mail, writing a mail, the Projects list and board, and Chat. Every screen has been drawn in it and looked over. The client page's folding rows, Files' side list and rows, and Settings' side menu have had their own pass too. What's left is whatever shows up in daily use.
 - **Light sidebar** works with every style and palette.
 - Still to build: **Compact** (dense, small corners, thin lines) and **Soft** (rounder, pill buttons, tinted panels).
 - Later, if styles aren't enough: a density choice, and bigger layout changes such as a top bar.

@@ -13,6 +13,7 @@ public enum ToolKind
     Qr,
     Images,
     WebHelpers,
+    Dns,
 }
 
 /// <summary>
