@@ -452,6 +452,19 @@
               </StackPanel>
             </StackPanel>
           </DockPanel>
+          <!-- The ChatGPT desktop app needs none of the steps above: it runs the connector itself. -->
+          <Border Classes="card" Padding="12" Margin="0,4,0,0">
+            <StackPanel Spacing="6">
+              <TextBlock FontWeight="SemiBold" Text="Using the ChatGPT app on this PC instead?" />
+              <TextBlock TextWrapping="Wrap" Classes="muted"
+                         Text="It doesn't need a tunnel or a key. In the ChatGPT app choose Connect to a custom MCP, name it Webignite, set Type to STDIO, paste this into Command and leave the rest empty." />
+              <SelectableTextBlock Text="{Binding ConnectorPath}" FontFamily="Consolas, Menlo, monospace" FontSize="12" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Copy the connector's path" Command="{Binding CopyConnectorPathCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding ConnectorPathNote}" VerticalAlignment="Center" TextWrapping="Wrap" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
         </StackPanel>
 
         <TextBlock FontWeight="SemiBold" Text="What they changed lately" Margin="0,6,0,0" />
