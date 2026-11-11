@@ -1,6 +1,6 @@
 # Webignite Desktop
 
-Native Windows app (C#, .NET 10, Avalonia 12, MVVM with CommunityToolkit.Mvvm). Chromium, Electron, Tauri and WebView2 are off the table: the owner wants no browser engine in the app.
+Native Windows app (C#, .NET 10, Avalonia 12, MVVM with CommunityToolkit.Mvvm). Chromium, Electron and Tauri are off the table: the owner wants no browser engine in the app, to keep it small and light on memory. The one exception is WebView2 (the copy Windows already has, never one shipped with the app), and only inside the web tools that need a page drawn (page to PDF, website screenshots, responsive and phone preview, crawling a site that needs JavaScript): it starts when such a tool's window opens, is shut down when it closes so no `msedgewebview2.exe` is left, and is never touched at start-up. Mail and everything else stay off it.
 
 - Build: `dotnet build Webignite.slnx`. Test: `dotnet test --solution Webignite.slnx` (Microsoft.Testing.Platform, xUnit v3).
 - Screenshots of the UI: `dotnet run --project tools/Snapshot -- <folder>`. Use this to check UI changes; it runs on Linux.
