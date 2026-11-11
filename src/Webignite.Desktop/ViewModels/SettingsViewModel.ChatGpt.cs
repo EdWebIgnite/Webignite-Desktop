@@ -132,4 +132,21 @@ public partial class SettingsViewModel
         ChatGptStatus = message;
         ChatGptProblem = problem;
     }
+
+    /// <summary>
+    /// The connector's full path, for the ChatGPT desktop app's "Connect to a custom MCP": Type STDIO, Command this
+    /// path, nothing else. No tunnel or key needed there; the tunnel is only for ChatGPT on the web or a phone.
+    /// </summary>
+    public string ConnectorPath => AssistantSetup.ConnectorPath();
+
+    [ObservableProperty] public partial string ConnectorPathNote { get; private set; } = "";
+
+    [RelayCommand]
+    private async Task CopyConnectorPath(Avalonia.Controls.TopLevel? top)
+    {
+        if (top?.Clipboard is not { } clipboard)
+            return;
+        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, ConnectorPath);
+        ConnectorPathNote = "Copied. Paste it into Command in ChatGPT's \"Connect to a custom MCP\".";
+    }
 }

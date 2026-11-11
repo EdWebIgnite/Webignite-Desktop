@@ -436,7 +436,13 @@ settingsPage.ChatGptTunnelId = "tunnel_0123456789abcdef0123456789abcdef";
 settingsPage.ChatGptStatus = "Not connected yet.";
 settingsPage.ChatGptProblem = false;
 Dispatcher.UIThread.RunJobs();
+Check("The ChatGPT desktop app's way shows the connector's full path to copy", settingsPage.ConnectorPath.Contains("Webignite.Connector", StringComparison.Ordinal)
+    && settingsPage.CopyConnectorPathCommand is not null);
+window.Height = 1500;
+Dispatcher.UIThread.RunJobs();
 Save("settings-chatgpt");
+window.Height = 860;
+Dispatcher.UIThread.RunJobs();
 settingsPage.Open("account");
 // Joining needs nothing but the invite: our own sync server is filled in, shown as a line with Change.
 settingsPage.ShowAccountFormCommand.Execute("join");
