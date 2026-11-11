@@ -222,7 +222,7 @@ flowchart LR
 | Client work | Clients, Contacts, Retainers, Domains and hosting |
 | Billing | Quotes, Invoices, Money, Reports |
 | Planner (its own sidebar) | Back arrow, Home, My tasks, Projects, WORK (each running project, Templates, + for a new project), PLAN (Calendar, Week, Time) |
-| Computer | Files, PDF tools, Notes; the tools Calculator, Password generator, Colours, Clipboard history |
+| Computer | Files, PDF tools, Notes; the tools Calculator, Password generator, Colours, Clipboard history, Text snippets |
 | Web tools | Site check, Site crawler, Mark-up; the tools Website images, QR code, Web helpers, DNS records, Page to PDF or picture, Screen ruler |
 | (bottom) | Settings |
 
