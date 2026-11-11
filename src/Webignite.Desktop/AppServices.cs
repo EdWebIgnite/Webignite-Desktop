@@ -54,6 +54,9 @@ public sealed class AppServices : IDisposable
     /// <summary>Domain, certificate and speed checks for the Site check page.</summary>
     public SiteChecker SiteChecker { get; init; } = SiteChecker.Default;
 
+    /// <summary>Walks a website for the Site crawler page.</summary>
+    public SiteCrawler Crawler { get; init; } = SiteCrawler.Default;
+
     /// <summary>DNS lookups for the DNS records tool.</summary>
     public DnsClient Dns { get; init; } = DnsClient.Default;
 

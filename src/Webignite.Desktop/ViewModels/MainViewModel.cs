@@ -280,6 +280,7 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Clipboard, "Clipboard history", "Clipboard"),
             new NavGroup("web-tools", "WEB TOOLS") { Icon = "SiteCheck" },
             new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
+            new Module(Page.Crawler, "Site crawler", () => new CrawlerViewModel(services), "Crawler"),
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
             new ToolLink(ToolKind.Images, "Website images", "Picture"),
             new ToolLink(ToolKind.Qr, "QR code", "Qr"),
