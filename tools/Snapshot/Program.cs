@@ -1940,7 +1940,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2163,6 +2163,13 @@ snippets.SnippetRows[2].ChangeCommand.Execute(null);
 snippets.RemoveSnippetCommand.Execute(null);
 Check("A snippet can be removed", snippets.SnippetRows.Count == 2 && services.Settings.Snippets.Items.Count == 2);
 snippetWindow.Close();
+var screenTextWindow = window.ShowTool(ToolKind.ScreenText, services);
+Check("Text from the screen names its shortcut and shows nothing until something is read",
+    !screenTextWindow.Tools.HasScreenText && screenTextWindow.Tools.ScreenTextHint.StartsWith("Ctrl+Alt+X", StringComparison.Ordinal));
+screenTextWindow.Tools.ScreenTextRead = "Karoo Coffee Roasters" + Environment.NewLine + "Small-batch coffee from the Karoo" + Environment.NewLine + "Shop now";
+Check("What was read is shown to check and copy from", screenTextWindow.Tools.HasScreenText);
+SaveWindow(screenTextWindow, "tools-screen-text");
+screenTextWindow.Close();
 var rulerWindow = window.ShowTool(ToolKind.Ruler, services);
 rulerWindow.Tools.AddMeasurement("480 × 270 px (320 × 180 at 100%)");
 rulerWindow.Tools.AddMeasurement("24 × 1080 px");

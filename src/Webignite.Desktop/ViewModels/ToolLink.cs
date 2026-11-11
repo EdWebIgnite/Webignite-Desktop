@@ -17,6 +17,7 @@ public enum ToolKind
     PageCapture,
     Ruler,
     Snippets,
+    ScreenText,
 }
 
 /// <summary>

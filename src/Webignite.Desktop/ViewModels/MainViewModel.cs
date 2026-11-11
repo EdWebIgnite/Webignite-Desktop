@@ -279,6 +279,7 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Colours, "Colours", "Palette"),
             new ToolLink(ToolKind.Clipboard, "Clipboard history", "Clipboard"),
             new ToolLink(ToolKind.Snippets, "Text snippets", "Snippets"),
+            new ToolLink(ToolKind.ScreenText, "Text from the screen", "ScreenText"),
             new NavGroup("web-tools", "WEB TOOLS") { Icon = "SiteCheck" },
             new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
             new Module(Page.Crawler, "Site crawler", () => new CrawlerViewModel(services), "Crawler"),

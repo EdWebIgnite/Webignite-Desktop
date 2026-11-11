@@ -6,6 +6,8 @@
   -->
   <PropertyGroup>
     <RootNamespace>Webignite.Tools</RootNamespace>
+    <!-- Windows' text reading (WindowsOcr.cs) is called through its own tables of functions, which needs pointers. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- The WebView2 wrapper comes with a 600 KB file of notes for programmers; it isn't shipped. -->
     <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>

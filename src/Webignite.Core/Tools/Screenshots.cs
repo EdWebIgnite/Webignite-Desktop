@@ -40,10 +40,15 @@ public sealed record ScreenshotSettings
 
     /// <summary>The keys that open the text snippets from any program, to paste one where you were typing. Empty turns it off.</summary>
     public string SnippetShortcut { get; init; } = DefaultSnippetShortcut;
+
+    public const string DefaultTextShortcut = "Ctrl+Alt+X";
+
+    /// <summary>The keys that copy the words out of an area of the screen. Empty turns it off.</summary>
+    public string TextShortcut { get; init; } = DefaultTextShortcut;
 }
 
 /// <summary>The shortcuts that work from any program, so one can't be given keys another already has.</summary>
-public enum GlobalShortcut { Screenshot, Recording, QuickNote, ColourPicker, ClipboardHistory, Ruler, Snippets }
+public enum GlobalShortcut { Screenshot, Recording, QuickNote, ColourPicker, ClipboardHistory, Ruler, Snippets, ScreenText }
 
 public static class GlobalShortcuts
 {
@@ -55,6 +60,7 @@ public static class GlobalShortcuts
         GlobalShortcut.ClipboardHistory => "clipboard history",
         GlobalShortcut.Ruler => "screen ruler",
         GlobalShortcut.Snippets => "text snippets",
+        GlobalShortcut.ScreenText => "text from the screen",
         _ => "colour picker",
     };
 
@@ -71,6 +77,7 @@ public static class GlobalShortcuts
             (GlobalShortcut.ClipboardHistory, shots.ClipboardShortcut),
             (GlobalShortcut.Ruler, shots.RulerShortcut),
             (GlobalShortcut.Snippets, shots.SnippetShortcut),
+            (GlobalShortcut.ScreenText, shots.TextShortcut),
         };
         foreach (var (shortcut, taken) in all)
         {
@@ -92,6 +99,7 @@ public static class GlobalShortcuts
         GlobalShortcut.ClipboardHistory => "clipboard history",
         GlobalShortcut.Ruler => "the screen ruler",
         GlobalShortcut.Snippets => "text snippets",
+        GlobalShortcut.ScreenText => "text from the screen",
         _ => "the colour picker",
     };
 }

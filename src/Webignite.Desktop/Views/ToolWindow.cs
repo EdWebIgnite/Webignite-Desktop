@@ -29,6 +29,7 @@ public sealed class ToolWindow : Window
             ToolKind.PageCapture => 1180,
             ToolKind.Ruler => 440,
             ToolKind.Snippets => 480,
+            ToolKind.ScreenText => 520,
             _ => 640,
         };
         MinWidth = 340;
@@ -58,6 +59,7 @@ public sealed class ToolWindow : Window
             ToolKind.PageCapture => new PageCaptureView(),
             ToolKind.Ruler => new RulerView(),
             ToolKind.Snippets => new SnippetsView(),
+            ToolKind.ScreenText => new ScreenTextView(),
             _ => new ImagesView(),
         };
         view.Margin = new Thickness(18, 16);
@@ -87,6 +89,7 @@ public sealed class ToolWindow : Window
         ToolKind.PageCapture => "Page to PDF or picture",
         ToolKind.Ruler => "Screen ruler",
         ToolKind.Snippets => "Text snippets",
+        ToolKind.ScreenText => "Text from the screen",
         _ => "Website images",
     };
 }

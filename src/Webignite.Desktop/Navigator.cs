@@ -105,6 +105,11 @@ public sealed class Navigator
     /// </summary>
     public void PickColour(Action<string>? picked = null) => PickColourAction?.Invoke(picked);
 
+    internal Action<Action<string>?>? ReadScreenTextAction { get; set; }
+
+    /// <summary>Freezes the screen to pick an area and copy the words in it. They are also handed to <paramref name="read"/> when given.</summary>
+    public void ReadScreenText(Action<string>? read = null) => ReadScreenTextAction?.Invoke(read);
+
     internal Action<Action<string>?>? MeasureScreenAction { get; set; }
 
     /// <summary>Freezes the screen to measure something on it. The size is copied, and handed to <paramref name="measured"/> when given.</summary>

@@ -769,6 +769,16 @@
                      Text="Opens your saved blocks of text from any program. Pick one and it is pasted where you were typing." />
         </StackPanel>
         <StackPanel>
+          <TextBlock Classes="label" Text="Text from the screen shortcut" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox Width="220" Text="{Binding TextShortcut, Mode=OneWay}" IsReadOnly="True"
+                     PlaceholderText="Click, then press the keys" KeyDown="TextShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+X" />
+            <Button Classes="link" Content="Turn off" Command="{Binding TextShortcutOffCommand}" />
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
+                     Text="Freezes the screen; drag over words in a picture, a video or a locked PDF and they are copied as text. Read on this PC by Windows." />
+        </StackPanel>
+        <StackPanel>
           <TextBlock Classes="label" Text="Screen ruler shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding RulerShortcut, Mode=OneWay}" IsReadOnly="True"

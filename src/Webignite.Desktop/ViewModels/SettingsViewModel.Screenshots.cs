@@ -19,6 +19,7 @@ public partial class SettingsViewModel
     [ObservableProperty] public partial string ColourShortcut { get; private set; } = "";
     [ObservableProperty] public partial string RulerShortcut { get; private set; } = "";
     [ObservableProperty] public partial string SnippetShortcut { get; private set; } = "";
+    [ObservableProperty] public partial string TextShortcut { get; private set; } = "";
     [ObservableProperty] public partial string ClipboardShortcut { get; private set; } = "";
 
     /// <summary>Record the microphone with the screen.</summary>
@@ -40,6 +41,7 @@ public partial class SettingsViewModel
         ClipboardShortcut = services.Settings.Screenshots.ClipboardShortcut is { Length: > 0 } clips ? clips : "Off";
         RulerShortcut = services.Settings.Screenshots.RulerShortcut is { Length: > 0 } ruler ? ruler : "Off";
         SnippetShortcut = services.Settings.Screenshots.SnippetShortcut is { Length: > 0 } snippets ? snippets : "Off";
+        TextShortcut = services.Settings.Screenshots.TextShortcut is { Length: > 0 } text ? text : "Off";
     }
 
     /// <summary>Why these keys can't be used for this shortcut, when another one has them.</summary>
@@ -66,6 +68,35 @@ public partial class SettingsViewModel
         ColourShortcut = hotkey.ToString();
         var taken = services.ApplyColourShortcut?.Invoke();
         Shortcut(taken ?? $"Press {hotkey} in any program, then click a colour to copy its code.", taken is not null);
+    }
+
+    /// <summary>The keys pressed in the text-from-the-screen shortcut box.</summary>
+    public void SetTextShortcut(string keys)
+    {
+        var (hotkey, problem) = Hotkey.Parse(keys);
+        if (hotkey is null)
+        {
+            Shortcut(problem!, true);
+            return;
+        }
+        if (Clash(hotkey, GlobalShortcut.ScreenText) is { } clash)
+        {
+            Shortcut(clash, true);
+            return;
+        }
+        services.Settings.Screenshots = services.Settings.Screenshots with { TextShortcut = hotkey.ToString() };
+        TextShortcut = hotkey.ToString();
+        var taken = services.ApplyTextShortcut?.Invoke();
+        Shortcut(taken ?? $"Press {hotkey} in any program, then drag over the words to copy them.", taken is not null);
+    }
+
+    [RelayCommand]
+    private void TextShortcutOff()
+    {
+        services.Settings.Screenshots = services.Settings.Screenshots with { TextShortcut = "" };
+        TextShortcut = "Off";
+        services.ApplyTextShortcut?.Invoke();
+        Shortcut("The text-from-the-screen shortcut is off. Use the Text from the screen tool.", false);
     }
 
     /// <summary>The keys pressed in the text snippets shortcut box.</summary>

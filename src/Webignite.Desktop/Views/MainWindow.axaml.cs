@@ -65,6 +65,7 @@ public partial class MainWindow : Window
             WireTools(services);
             WireColourPicker(services);
             WireRuler(services);
+            WireScreenText(services);
             WirePictures(services);
             WireChat(services, main);
         }
