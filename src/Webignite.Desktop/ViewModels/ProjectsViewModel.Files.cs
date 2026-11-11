@@ -67,6 +67,14 @@ public sealed partial class ProjectsViewModel
         AfterFilesChanged(taskId);
     }
 
+    /// <summary>Files dropped on a task's row or card: attached to it, saying so, as the task may not be open.</summary>
+    public void AttachTo(TaskRow row, IReadOnlyList<string> paths)
+    {
+        Attach(row.Task.Id, paths);
+        if (Message.Length == 0 && paths.Count > 0)
+            Message = paths.Count == 1 ? $"Attached {Path.GetFileName(paths[0])} to {row.Task.Title}." : $"Attached {paths.Count} files to {row.Task.Title}.";
+    }
+
     internal void Detach(AttachmentRow row)
     {
         Ours(() => services.Projects.Detach(row.Task.Id, row.Attachment.Id));

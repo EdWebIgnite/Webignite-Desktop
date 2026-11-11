@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -140,6 +141,17 @@ public partial class ProjectsView : FullBleedView
             if (Projects is { Detail: { } task } projects && e.DataTransfer.TryGetFiles() is { } files)
                 projects.Attach(task.Task.Id, files.Select(f => f.TryGetLocalPath()).OfType<string>());
         });
+
+        // A picture or files pasted into the comment box are attached to the task; words paste as words.
+        CommentBox.AddHandler(TextBox.PastingFromClipboardEvent, CommentPasting);
+
+        // Files dropped on a task's row in the List, or its card on the Board, are attached to that task, as Asana's.
+        foreach (var host in new Control[] { TaskList, Board })
+        {
+            host.AddHandler(DragDrop.DragOverEvent, FileOverTask, handledEventsToo: true);
+            host.AddHandler(DragDrop.DragLeaveEvent, (_, _) => MarkFileDrop(null), handledEventsToo: true);
+            host.AddHandler(DragDrop.DropEvent, FileDroppedOnTask, handledEventsToo: true);
+        }
 
         // Narrow (a task open beside it), the list drops Priority and closes its cells up, as Asana's does.
         ListArea.SizeChanged += (_, e) => ListArea.Classes.Set("narrowlist", e.NewSize.Width < 820);
@@ -520,6 +532,76 @@ public partial class ProjectsView : FullBleedView
             NewSubtaskBox.BringIntoView();
             NewSubtaskBox.Focus();
         });
+    }
+
+    // The task's row or card under a drag, lit up while files from Windows are over it.
+    private Border? fileDropOn;
+
+    private static Border? TaskUnder(object? source) =>
+        (source as Visual)?.GetSelfAndVisualAncestors().OfType<Border>()
+            .FirstOrDefault(b => b.DataContext is TaskRow && (b.Classes.Contains("taskrow") || b.Classes.Contains("boardcard")));
+
+    private void MarkFileDrop(Border? on)
+    {
+        if (ReferenceEquals(on, fileDropOn))
+            return;
+        fileDropOn?.Classes.Remove("filedrop");
+        fileDropOn = on;
+        on?.Classes.Add("filedrop");
+    }
+
+    private void FileOverTask(object? sender, DragEventArgs e)
+    {
+        var on = e.DataTransfer.Contains(DataFormat.File) ? TaskUnder(e.Source) : null;
+        MarkFileDrop(on);
+        e.DragEffects = on is null ? DragDropEffects.None : DragDropEffects.Copy;
+        e.Handled = true;
+    }
+
+    private void FileDroppedOnTask(object? sender, DragEventArgs e)
+    {
+        var on = TaskUnder(e.Source);
+        MarkFileDrop(null);
+        if (on?.DataContext is not TaskRow row || Projects is not { } projects || e.DataTransfer.TryGetFiles() is not { } files)
+            return;
+        e.Handled = true;
+        projects.AttachTo(row, files.Select(f => f.TryGetLocalPath()).OfType<string>().ToList());
+    }
+
+    private void CommentPasting(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true; // decided once the clipboard has been read
+        CommentPasteAsync().Forget("Pasting into a comment", tell: true);
+    }
+
+    private async Task CommentPasteAsync()
+    {
+        if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard || Projects is not { Detail: { } task } projects)
+            return;
+        var formats = await clipboard.GetDataFormatsAsync();
+        var text = formats.Contains(DataFormat.Text) ? await clipboard.TryGetTextAsync() : null;
+        switch (Webignite.Core.Chat.ChatRules.PasteAs(formats.Contains(DataFormat.File), formats.Contains(DataFormat.Bitmap), text))
+        {
+            case Webignite.Core.Chat.ChatPaste.Files:
+                if (await clipboard.TryGetFilesAsync() is { } items)
+                    projects.Attach(task.Task.Id, items.Select(i => i.TryGetLocalPath()).OfType<string>().ToList());
+                break;
+            case Webignite.Core.Chat.ChatPaste.Picture:
+                if (await clipboard.TryGetBitmapAsync() is { } bitmap)
+                {
+                    // Saved as a PNG named by the time, then attached like any file.
+                    var path = Path.Combine(Path.GetTempPath(), $"Pasted picture {DateTime.Now:yyyy-MM-dd HHmmss}.png");
+                    using (bitmap)
+                    using (var file = File.Create(path))
+                        bitmap.Save(file, Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                    projects.Attach(task.Task.Id, [path]);
+                    File.Delete(path);
+                }
+                break;
+            case Webignite.Core.Chat.ChatPaste.Text:
+                CommentBox.SelectedText = text!;
+                break;
+        }
     }
 
     // Attach files to the open task: picked here, or dropped on the task pane from Windows or the Files page.
