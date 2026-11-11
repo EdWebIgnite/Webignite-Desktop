@@ -1142,7 +1142,6 @@ if (unreadMail is not null)
     Wait(vm.Mail.Select(unreadMail), "An unread mail opened");
 Dispatcher.UIThread.RunJobs();
 var inboxesUnread = vm.Mail.Mailboxes.SelectMany(m => m.Folders).Where(f => f.Kind == FolderKind.Folder && f.Role == Webignite.Core.Mail.FolderRole.Inbox).Sum(f => f.Unread);
-Console.WriteLine($"Sidebar mail count {vm[Page.Mail].Badge}, inboxes {inboxesUnread}, opened {unreadMail?.Summary.Subject}, still unread {unreadMail?.Summary.Seen == false}");
 Check("Mail in the sidebar counts the same as the inboxes as soon as a mail is read", unreadMail is not null && vm[Page.Mail].Badge == inboxesUnread);
 Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41)), "The booking mail opened");
 
