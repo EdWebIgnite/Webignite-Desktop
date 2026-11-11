@@ -25,6 +25,9 @@ public sealed class ChatService(LocalStore store, TimeProvider? clock = null)
 
     public IReadOnlyList<ChatMessage> Messages() => store.ListChatMessages();
 
+    /// <summary>When the newest message was written, by either of you; null with none.</summary>
+    public DateTimeOffset? LastMessageAt => store.ListChatMessages(1).LastOrDefault()?.Sent;
+
     /// <summary>Sends a message with any files (each at most 10 MB); returns it, or null with nothing to send.</summary>
     public ChatMessage? Send(string text, IReadOnlyList<(string Name, byte[] Data)> files)
     {

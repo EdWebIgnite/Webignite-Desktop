@@ -59,3 +59,18 @@ public static class PresenceRules
     /// <summary>A pop-up and a sound for a new message, unless I'm busy (then only the count).</summary>
     public static bool Interrupts(PresenceState mine) => mine != PresenceState.Busy;
 }
+
+/// <summary>
+/// How quickly chat is looked for: every few seconds while the two of you are talking (the chat window open, or a
+/// message either way in the last few minutes), else with the minute's sync.
+/// </summary>
+public static class ChatTiming
+{
+    public static readonly TimeSpan Lively = TimeSpan.FromSeconds(5);
+
+    /// <summary>How long after the last message the chat counts as still going.</summary>
+    public static readonly TimeSpan Talking = TimeSpan.FromMinutes(10);
+
+    public static bool IsLively(bool chatOpen, DateTimeOffset? lastMessage, DateTimeOffset now) =>
+        chatOpen || lastMessage is { } last && now - last <= Talking;
+}
