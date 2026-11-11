@@ -12,7 +12,7 @@ public enum Page
     Clients, Contacts, Files, Retainers, Renewals,
     Quotes, Invoices, Money, Reports,
     Home, Projects, Notes, Calendar, Planner, Time, MyPages,
-    SiteCheck, Markup, Pdf,
+    SiteCheck, Crawler, Markup, Pdf,
     Settings,
     Inbox,
 }

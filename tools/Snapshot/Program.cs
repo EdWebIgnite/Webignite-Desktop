@@ -26,7 +26,9 @@ var store = new LocalStore(Path.Combine(data, "snapshot.db"), new Vault(snapshot
 var noDns = new Webignite.Services.DnsClient(
     (_, _, _) => Task.FromException<byte[]>(new HttpRequestException("Couldn't look that up. Check the internet connection.")),
     (_, _, _) => Task.FromException<byte[]>(new System.Net.Sockets.SocketException()));
-var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey, Dns = noDns };
+// Nor does the site crawler: its client answers every address with "no such server".
+var noWeb = new Webignite.Services.SiteCrawler(new HttpClient(new NoWeb()));
+var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey, Dns = noDns, Crawler = noWeb };
 services.Settings.Backups = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
 // Client folders as on Eddie's PC (C:\Projects), with a few files in them, for Files and the client pages.
 var projects = Path.Combine(data, "Projects");
@@ -2241,6 +2243,52 @@ vm.Invoices.Editor!.Lines[0].Price = "3 x 650";
 Save("invoice-sum");
 
 // Site check, with made-up results (no network here)
+Open(Page.Crawler);
+{
+    var crawler = (CrawlerViewModel)vm[Page.Crawler].Main.Page;
+    Check("The crawler waits for a website before it can start", !crawler.StartCommand.CanExecute(null));
+    crawler.Address = "karoocoffee.co.za";
+    Wait(crawler.StartCommand.ExecuteAsync(null), "The crawl finished");
+    Check("With no internet the crawl says the site didn't answer, and is ready to go again",
+        crawler.MessageIsProblem && crawler.Message.StartsWith("The site didn't answer", StringComparison.Ordinal) && !crawler.IsCrawling && crawler.StartCommand.CanExecute(null));
+    static Webignite.Core.Web.CrawledPage Found(string path, Webignite.Core.Web.PageFacts? facts = null, int status = 200, string? to = null, string? on = "/") => new()
+    {
+        Url = new Uri("https://karoocoffee.co.za" + path), Status = status, Facts = facts,
+        RedirectedTo = to is null ? null : new Uri("https://karoocoffee.co.za" + to), FoundOn = on is null ? null : new Uri("https://karoocoffee.co.za" + on),
+    };
+    var good = new Webignite.Core.Web.PageFacts { Title = "Karoo Coffee Roasters", Description = "Fresh roasts and rusks, baked daily in Graaff-Reinet.", Headings = ["Karoo Coffee"], Images = ["/cup.jpg"] };
+    var pages = new[]
+    {
+        Found("/", good, on: null),
+        Found("/menu", good with { Title = "Menu, prices and opening hours for the Karoo Coffee Roasters café in Graaff-Reinet", Description = "" , ImagesWithoutAlt = ["/a.jpg", "/b.jpg", "/c.jpg"] }),
+        Found("/about", good with { Title = "About us" }),
+        Found("/specials-2024", status: 404, on: "/menu"),
+        Found("/shop", status: 301, to: "/menu"),
+        Found("/contact", good with { Title = "Karoo Coffee Roasters", Headings = [] }),
+        Found("/thanks", good with { Title = "Thank you", NoIndex = true }),
+    };
+    var gone = new Webignite.Core.Web.CheckedLink(new Uri("https://karoocoffee.co.za/specials-2024"), 404, null);
+    var dead = new Webignite.Core.Web.CheckedLink(new Uri("https://oldsupplier.example/"), 0, "there is no such server");
+    var same = Webignite.Core.Web.SiteCrawl.SameTitles(pages);
+    var rows = pages.Select(p =>
+    {
+        IReadOnlyList<Webignite.Core.Web.CheckedLink> broken = p.Url.AbsolutePath == "/menu" ? [gone, dead] : [];
+        var problems = Webignite.Core.Web.SiteCrawl.Problems(p, broken).ToList();
+        if (same.Contains(p.Url))
+            problems.Add("Another page has the same title.");
+        return new Webignite.Core.Web.CrawlRow(p, problems, broken);
+    }).ToList();
+    crawler.ShowResult(new Webignite.Services.CrawlResult(rows, false, false));
+    Check("The crawl opens on the pages with something to fix, and counts them",
+        crawler.ShowsToFix && crawler.Rows.Count == 6 && crawler.Summary == "7 pages, 6 with something to fix, 2 broken links.");
+    Save("crawler");
+    crawler.ShowOnlyCommand.Execute(CrawlFilter.BrokenLinks);
+    Check("Broken links shows only the page that has them", crawler.Rows.Count == 1 && crawler.Rows[0].Path == "/menu");
+    crawler.ShowOnlyCommand.Execute(CrawlFilter.All);
+    Check("Every page shows them all, the good one included", crawler.Rows.Count == 7 && crawler.Rows[2].IsFine);
+    Check("The spreadsheet has a line for each page under its headings", crawler.Csv.Split("\r\n").Length == 10 && crawler.CsvName.StartsWith("karoocoffee.co.za crawl ", StringComparison.Ordinal));
+    crawler.ShowOnlyCommand.Execute(CrawlFilter.ToFix);
+}
 Open(Page.SiteCheck);
 services.Settings.SpeedHistory = new Dictionary<string, IReadOnlyList<Webignite.Core.Web.SpeedRun>>
 {
@@ -4252,4 +4300,11 @@ sealed class StandInVideo(SkiaSharp.SKBitmap picture) : IVideoTools
         Trimmed = (start, end);
         File.Copy(path, output, overwrite: true);
     }
+}
+
+/// <summary>A web with nothing on it: every request fails as it would with no internet.</summary>
+sealed class NoWeb : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+        Task.FromException<HttpResponseMessage>(new HttpRequestException(HttpRequestError.NameResolutionError));
 }

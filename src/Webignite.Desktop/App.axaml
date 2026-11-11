@@ -32,6 +32,7 @@
     <DataTemplate DataType="vm:RenewalsViewModel"><v:RenewalsView /></DataTemplate>
     <DataTemplate DataType="vm:MoneyViewModel"><v:MoneyView /></DataTemplate>
     <DataTemplate DataType="vm:SiteCheckViewModel"><v:SiteCheckView /></DataTemplate>
+    <DataTemplate DataType="vm:CrawlerViewModel"><v:CrawlerView /></DataTemplate>
     <DataTemplate DataType="vm:MarkupViewModel"><v:MarkupView /></DataTemplate>
     <DataTemplate DataType="vm:ReportsViewModel"><v:ReportsView /></DataTemplate>
     <DataTemplate DataType="vm:TimeViewModel"><v:TimeView /></DataTemplate>

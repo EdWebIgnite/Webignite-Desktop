@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.CrawlerView"
+             x:DataType="vm:CrawlerViewModel">
+  <UserControl.Styles>
+    <Style Selector="ListBox.crawl">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="MaxHeight" Value="640" />
+    </Style>
+    <Style Selector="ListBox.crawl ListBoxItem">
+      <Setter Property="Padding" Value="16,10" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="ListBox.crawl ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="ListBox.crawl ListBoxItem:selected /template/ ContentPresenter, ListBox.crawl ListBoxItem:selected:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="18">
+    <StackPanel Spacing="4">
+      <TextBlock Classes="h1" Text="Site crawler" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Every page of a site with what needs fixing: missing titles and descriptions, broken links, pictures with no alt text." />
+    </StackPanel>
+
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0">
+            <ComboBox ItemsSource="{Binding PageLimits}" SelectedItem="{Binding PageLimit}" Width="180" IsEnabled="{Binding IsIdle}"
+                      ToolTip.Tip="The most pages to read before stopping">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="x:Int32">
+                  <TextBlock Text="{Binding StringFormat='Up to {0:N0} pages'}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Classes="primary" Content="Crawl the site" Command="{Binding StartCommand}" IsVisible="{Binding IsIdle}" />
+            <Button Classes="quiet" Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding IsCrawling}" />
+          </StackPanel>
+          <TextBox Text="{Binding Address}" PlaceholderText="A website, e.g. karoocoffee.co.za" FontSize="15" IsEnabled="{Binding IsIdle}">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding StartCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+        </DockPanel>
+        <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsCrawling}">
+          <c:Spinner Size="16" VerticalAlignment="Center" />
+          <TextBlock Classes="muted" Text="{Binding Progress}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Classes="muted" Classes.problem="{Binding MessageIsProblem}" Text="{Binding Message}" TextWrapping="Wrap"
+                   IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="It reads pages as the server sends them, a few at a time, keeps out of what robots.txt puts off limits, and changes nothing. A site that builds its pages with JavaScript shows only what the server sent." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" Padding="0" IsVisible="{Binding HasResults}">
+      <StackPanel>
+        <DockPanel Margin="20,16,20,12">
+          <Button DockPanel.Dock="Right" Classes="quiet" Content="Save as a spreadsheet" Click="SaveSpreadsheet" Margin="12,0,0,0" />
+          <Border DockPanel.Dock="Right" Classes="segments" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="segment" Classes.on="{Binding ShowsToFix}" Content="To fix"
+                      Command="{Binding ShowOnlyCommand}" CommandParameter="{x:Static vm:CrawlFilter.ToFix}" />
+              <Button Classes="segment" Classes.on="{Binding ShowsBroken}" Content="Broken links"
+                      Command="{Binding ShowOnlyCommand}" CommandParameter="{x:Static vm:CrawlFilter.BrokenLinks}" />
+              <Button Classes="segment" Classes.on="{Binding ShowsAll}" Content="Every page"
+                      Command="{Binding ShowOnlyCommand}" CommandParameter="{x:Static vm:CrawlFilter.All}" />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="h2" Text="{Binding Summary}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </DockPanel>
+        <Border Classes="stickyhead" Padding="16,0" IsVisible="{Binding HasRows}">
+          <Grid ColumnDefinitions="*,150">
+            <TextBlock Grid.Column="0" Classes="label tablehead" Margin="0" Text="Page" />
+            <TextBlock Grid.Column="1" Classes="label tablehead" Margin="0" Text="Answer" />
+          </Grid>
+        </Border>
+        <TextBlock Classes="muted" Margin="20,8,20,20" Text="{Binding NothingText}" IsVisible="{Binding NothingToShow}" />
+        <!-- A ListBox builds only the rows on screen, so a crawl of 2 000 pages stays light. -->
+        <ListBox Classes="crawl" ItemsSource="{Binding Rows}" IsVisible="{Binding HasRows}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:CrawlRowView">
+              <Grid ColumnDefinitions="*,150">
+                <Grid.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Open the page" Click="OpenPage" Tag="{Binding Address}" />
+                    <MenuItem Header="Copy the address" Click="CopyAddress" Tag="{Binding Address}" />
+                  </ContextMenu>
+                </Grid.ContextMenu>
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Classes.muted="{Binding Untitled}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Path}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Address}" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding FoundOn}" IsVisible="{Binding HasFoundOn}" />
+                  <ItemsControl ItemsSource="{Binding Problems}" Margin="0,4,0,0" IsVisible="{Binding !IsFine}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <TextBlock Classes="short" FontSize="{DynamicResource Text13}" Text="{Binding}" TextWrapping="Wrap" Margin="0,1" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Classes="muted" Classes.short="{Binding StatusIsProblem}" Text="{Binding Status}" VerticalAlignment="Top" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>
