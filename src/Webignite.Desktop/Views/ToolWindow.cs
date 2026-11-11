@@ -27,6 +27,7 @@ public sealed class ToolWindow : Window
             ToolKind.WebHelpers => 720,
             ToolKind.Dns => 760,
             ToolKind.PageCapture => 1180,
+            ToolKind.Ruler => 440,
             _ => 640,
         };
         MinWidth = 340;
@@ -54,6 +55,7 @@ public sealed class ToolWindow : Window
             ToolKind.WebHelpers => new WebHelpersView(),
             ToolKind.Dns => new DnsView(),
             ToolKind.PageCapture => new PageCaptureView(),
+            ToolKind.Ruler => new RulerView(),
             _ => new ImagesView(),
         };
         view.Margin = new Thickness(18, 16);
@@ -77,6 +79,7 @@ public sealed class ToolWindow : Window
         ToolKind.WebHelpers => "Web helpers",
         ToolKind.Dns => "DNS records",
         ToolKind.PageCapture => "Page to PDF or picture",
+        ToolKind.Ruler => "Screen ruler",
         _ => "Website images",
     };
 }

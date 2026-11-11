@@ -105,6 +105,11 @@ public sealed class Navigator
     /// </summary>
     public void PickColour(Action<string>? picked = null) => PickColourAction?.Invoke(picked);
 
+    internal Action<Action<string>?>? MeasureScreenAction { get; set; }
+
+    /// <summary>Freezes the screen to measure something on it. The size is copied, and handed to <paramref name="measured"/> when given.</summary>
+    public void MeasureScreen(Action<string>? measured = null) => MeasureScreenAction?.Invoke(measured);
+
     /// <summary>Shows a picture in Webignite's own viewer, with the others in its folder a key away.</summary>
     public void Picture(string path) => OpenPictureAction?.Invoke(path);
 

@@ -15,6 +15,7 @@ public enum ToolKind
     WebHelpers,
     Dns,
     PageCapture,
+    Ruler,
 }
 
 /// <summary>

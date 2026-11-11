@@ -26,10 +26,6 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 - **Brand sheet maker.** A client's logo, colours and fonts laid out as a one-page PDF.
 - **Social image sizer.** One picture cropped to Facebook, Instagram, LinkedIn, WhatsApp and link-preview sizes in one go.
 
-### Websites
-
-- **Screen ruler.** Measure pixels on screen from any program, like the colour picker.
-
 ### Everyday
 
 - **Text snippets from any program.** A short code or a shortcut pastes a saved block of text: banking details, standard replies, code.
@@ -47,7 +43,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 4. ~~WebView2 groundwork, with Save a web page as a PDF and Website screenshots~~ Built: Page to PDF or picture, under Web tools.
 5. ~~Responsive preview and Phone simulator~~ Built: Show as, in Page to PDF or picture. The device sizes were written from memory, not looked up, so correct any that are off in `Devices.All`.
 6. ~~Site crawler for sites that need JavaScript~~ Built: a tick on the Site crawler page.
-7. **Screen ruler.** Reuses the colour picker's frozen screen.
+7. ~~Screen ruler~~ Built: Screen ruler, under Web tools, and Ctrl+Alt+M from any program.
 8. **Text snippets from any program.**
 9. **Copy text from a picture.** Reuses the screenshot picker.
 10. **Compare**, then **Duplicate file finder**, both in Files.

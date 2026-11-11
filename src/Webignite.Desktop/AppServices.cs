@@ -394,6 +394,9 @@ public sealed class AppServices : IDisposable
     /// <summary>Set by the main window: takes the colour picker shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyColourShortcut { get; set; }
 
+    /// <summary>Sets the screen ruler's shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
+    public Func<string?>? ApplyRulerShortcut { get; set; }
+
     /// <summary>A colour picked from the screen or a picture goes to the top of the recent colours.</summary>
     public void RememberColour(string hex)
     {

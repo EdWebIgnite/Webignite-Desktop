@@ -1940,7 +1940,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2124,6 +2124,13 @@ SaveWindow(captureWindow, "tools-page-capture");
 }
 captureWindow.Close();
 Check("Closing the page tool's window shuts its browser down", standInBrowser!.Disposed && !capture.HasCaptureView);
+var rulerWindow = window.ShowTool(ToolKind.Ruler, services);
+rulerWindow.Tools.AddMeasurement("480 × 270 px (320 × 180 at 100%)");
+rulerWindow.Tools.AddMeasurement("24 × 1080 px");
+Check("The ruler's window lists what was measured, newest first, and names its shortcut",
+    rulerWindow.Tools.Measurements[0] == "24 × 1080 px" && rulerWindow.Tools.HasMeasurements && rulerWindow.Tools.RulerHint.StartsWith("Ctrl+Alt+M", StringComparison.Ordinal));
+SaveWindow(rulerWindow, "tools-ruler");
+rulerWindow.Close();
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
 SaveWindow(passwordWindow, "tools-passwords");
 passwordWindow.Close();
@@ -2584,6 +2591,29 @@ Save("site-check");
     dropStop.Show();
     dropStop.Canvas.Stop();
     Check("Esc stops the colour picker without a colour", dropStop.Picked.IsCompletedSuccessfully && dropStop.Picked.Result is null);
+
+    // The ruler over the same frozen screen: pointing measures the stretch under the pointer, dragging a box.
+    var ruler = new RulerWindow(frozen, screenArea, 1);
+    ruler.Show();
+    ruler.Canvas.Hover(new Point(370, 668));
+    Dispatcher.UIThread.RunJobs();
+    Check("Pointing measures across and down from the pointer", ruler.Canvas.Now is { Width: > 0, Height: > 0 });
+    using (var rulerFrame = ruler.CaptureRenderedFrame())
+    using (var rulerFile = File.Create(Path.Combine(output, "ruler-pointing.png")))
+        rulerFrame?.Save(rulerFile, new PngBitmapEncoderOptions());
+    ruler.Canvas.Press(new Point(100, 100));
+    ruler.Canvas.Hover(new Point(300, 220));
+    Dispatcher.UIThread.RunJobs();
+    Check("Dragging measures the box dragged", ruler.Canvas.Now == new Webignite.Core.Tools.Measured(201, 121));
+    using (var rulerFrame = ruler.CaptureRenderedFrame())
+    using (var rulerFile = File.Create(Path.Combine(output, "ruler-box.png")))
+        rulerFrame?.Save(rulerFile, new PngBitmapEncoderOptions());
+    ruler.Canvas.Release(new Point(300, 220));
+    Check("Letting go keeps the size", ruler.Kept.IsCompletedSuccessfully && ruler.Kept.Result == new Webignite.Core.Tools.Measured(201, 121));
+    var rulerStop = new RulerWindow(frozen, screenArea, 1);
+    rulerStop.Show();
+    rulerStop.Canvas.Stop();
+    Check("Esc stops the ruler without a size", rulerStop.Kept.IsCompletedSuccessfully && rulerStop.Kept.Result is null);
 
     var grabbed = ScreenGrabWindow.Crop(frozen, picker.Picked.Result!.Value);
     frozen.Dispose();

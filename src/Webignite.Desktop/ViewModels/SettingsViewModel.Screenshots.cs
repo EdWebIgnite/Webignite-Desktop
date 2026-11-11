@@ -17,6 +17,7 @@ public partial class SettingsViewModel
 
     [ObservableProperty] public partial string RecordShortcut { get; private set; } = "";
     [ObservableProperty] public partial string ColourShortcut { get; private set; } = "";
+    [ObservableProperty] public partial string RulerShortcut { get; private set; } = "";
     [ObservableProperty] public partial string ClipboardShortcut { get; private set; } = "";
 
     /// <summary>Record the microphone with the screen.</summary>
@@ -36,6 +37,7 @@ public partial class SettingsViewModel
         RecordShortcut = services.Settings.Screenshots.RecordShortcut is { Length: > 0 } record ? record : "Off";
         ColourShortcut = services.Settings.Screenshots.ColourShortcut is { Length: > 0 } colour ? colour : "Off";
         ClipboardShortcut = services.Settings.Screenshots.ClipboardShortcut is { Length: > 0 } clips ? clips : "Off";
+        RulerShortcut = services.Settings.Screenshots.RulerShortcut is { Length: > 0 } ruler ? ruler : "Off";
     }
 
     /// <summary>Why these keys can't be used for this shortcut, when another one has them.</summary>
@@ -62,6 +64,35 @@ public partial class SettingsViewModel
         ColourShortcut = hotkey.ToString();
         var taken = services.ApplyColourShortcut?.Invoke();
         Shortcut(taken ?? $"Press {hotkey} in any program, then click a colour to copy its code.", taken is not null);
+    }
+
+    /// <summary>The keys pressed in the screen ruler shortcut box.</summary>
+    public void SetRulerShortcut(string keys)
+    {
+        var (hotkey, problem) = Hotkey.Parse(keys);
+        if (hotkey is null)
+        {
+            Shortcut(problem!, true);
+            return;
+        }
+        if (Clash(hotkey, GlobalShortcut.Ruler) is { } clash)
+        {
+            Shortcut(clash, true);
+            return;
+        }
+        services.Settings.Screenshots = services.Settings.Screenshots with { RulerShortcut = hotkey.ToString() };
+        RulerShortcut = hotkey.ToString();
+        var taken = services.ApplyRulerShortcut?.Invoke();
+        Shortcut(taken ?? $"Press {hotkey} in any program, then point at something or drag a box to measure it.", taken is not null);
+    }
+
+    [RelayCommand]
+    private void RulerShortcutOff()
+    {
+        services.Settings.Screenshots = services.Settings.Screenshots with { RulerShortcut = "" };
+        RulerShortcut = "Off";
+        services.ApplyRulerShortcut?.Invoke();
+        Shortcut("The screen ruler shortcut is off. Measure from the Screen ruler tool.", false);
     }
 
     /// <summary>The keys pressed in the clipboard history shortcut box.</summary>
