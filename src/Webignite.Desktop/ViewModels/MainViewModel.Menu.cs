@@ -102,7 +102,19 @@ public sealed partial class MainViewModel
 
     private void FillMenu()
     {
-        var figures = MenuFigures.For(services.Documents.List(), DateOnly.FromDateTime(DateTime.Today), this[Page.Mail].Badge);
+        // Read when the menu opens, so what it says is as things stand now.
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var figures = MenuFigures.For(new MenuFacts
+        {
+            Today = today,
+            Documents = services.Documents.List(),
+            UnreadMail = this[Page.Mail].Badge,
+            Renewals = services.Store.ListRenewals(),
+            Retainers = services.Store.ListRetainers(),
+            Drafted = services.Store.DraftsMade().Keys.ToHashSet(),
+            ReceivedThisMonth = Webignite.Core.Finance.Ledger.Sum(services.Store.ListEntries(Webignite.Core.Dates.MonthStart(today), today), Webignite.Core.Finance.EntryKind.Received),
+            Clients = services.Clients.List(),
+        });
         var dock = DockKeys();
         MenuColumns.Clear();
         var column = new MenuColumn("Start");
