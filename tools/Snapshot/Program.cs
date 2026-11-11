@@ -1958,6 +1958,19 @@ Check("Closing the window stops it following the history and lets the pictures g
     popUp.Say("Jaco", "Looks good. Here's the quote for the extra pages, can you approve it when you're happy?");
     SaveWindow(popUp, "chat-pop-up");
     popUp.Close();
+    // Files dragged over the chat: the whole window says where they'll go.
+    var chatView = chatWindow.GetVisualDescendants().OfType<ChatView>().First();
+    var dropHint = chatView.GetVisualDescendants().OfType<Avalonia.Controls.Border>().First(b => b.Name == "DropHint");
+    dropHint.IsVisible = true;
+    SaveWindow(chatWindow, "chat-drop");
+    dropHint.IsVisible = false;
+    // A file in a message: right-click to open, copy or save it.
+    var fileButton = chatView.GetVisualDescendants().OfType<Avalonia.Controls.Button>().First(b => b.Classes.Contains("chatfile"));
+    fileButton.RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs());
+    Dispatcher.UIThread.RunJobs();
+    Check("A file in a message offers Open, Copy and Save a copy", fileButton.ContextMenu is { } fileMenu
+        && fileMenu.Items.OfType<Avalonia.Controls.MenuItem>().Select(i => i.Header as string).SequenceEqual(["Open", "Copy picture", "Save a copy…"]));
+    fileButton.ContextMenu?.Close();
     chatWindow.Close();
     services.Secrets.Delete("webignite-sync-refresh");
 }

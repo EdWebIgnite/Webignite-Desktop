@@ -21,8 +21,32 @@ public sealed record ChatFile(string Id, string Name, long Bytes, int Parts);
 /// <summary>One piece of a file, small enough to travel as one record.</summary>
 public sealed record ChatPart(string Id, string FileId, int Index, byte[] Data);
 
+/// <summary>What a paste into the chat box adds: files copied in Explorer, a picture, or words.</summary>
+public enum ChatPaste { Nothing, Files, Picture, Text }
+
 public static class ChatRules
 {
+    /// <summary>
+    /// What a paste adds, as WhatsApp does: files copied in Explorer go with the message; a picture (a screenshot,
+    /// or one copied from a web page, which brings its address along as words) goes as a picture; anything else
+    /// with words, such as a few lines from Word, pastes as words.
+    /// </summary>
+    public static ChatPaste PasteAs(bool hasFiles, bool hasPicture, string? text)
+    {
+        if (hasFiles)
+            return ChatPaste.Files;
+        var words = text?.Trim() ?? "";
+        if (hasPicture && (words.Length == 0 || IsAddress(words)))
+            return ChatPaste.Picture;
+        return text is { Length: > 0 } ? ChatPaste.Text : ChatPaste.Nothing;
+    }
+
+    // One web address or file path on its own, as a browser puts beside a copied picture.
+    private static bool IsAddress(string words) =>
+        !words.Any(char.IsWhiteSpace)
+        && (words.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || words.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || words.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase) || words.StartsWith("file:", StringComparison.OrdinalIgnoreCase));
+
     /// <summary>The biggest file that can be sent: enough for screenshots and documents, small enough for the server.</summary>
     public const long MostBytes = 10 * 1024 * 1024;
 
