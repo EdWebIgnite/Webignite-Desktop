@@ -21,7 +21,6 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 ### Branding
 
 - **Brand sheet maker.** A client's logo, colours and fonts laid out as a one-page PDF.
-- **Social image sizer.** One picture cropped to Facebook, Instagram, LinkedIn, WhatsApp and link-preview sizes in one go.
 
 ## Order to build them in
 
@@ -39,7 +38,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 10. ~~Compare, then Duplicate file finder~~ Built: Compare and Duplicate files, under Computer and on Files' right-click.
 11. ~~Palette builder~~ Built: the Palette and Contrast parts of the Colours tool.
 12. ~~Favicon and app icon maker, then Logo export pack~~ Built: Logo pack and favicons, under Web tools.
-13. **Social image sizer.**
+13. ~~Social image sizer~~ Built: Social images, under Web tools.
 14. **Brand sheet maker.** Last, as it uses the palette and the logo work.
 
 ## Looks
