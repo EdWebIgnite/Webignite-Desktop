@@ -159,6 +159,9 @@ public sealed class AppServices : IDisposable
     /// </summary>
     public Action<IReadOnlyList<Webignite.Core.Chat.ChatMessage>>? ChatPopUp { get; set; }
 
+    /// <summary>Mail was read or marked unread on the Mail page: the sidebar's count is read again at once.</summary>
+    public Action? MailCountsChanged { get; set; }
+
     /// <summary>After each sync, as the partner's status may have changed (or gone Offline).</summary>
     public Action? PresenceChanged { get; set; }
 

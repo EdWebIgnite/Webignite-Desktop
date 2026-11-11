@@ -286,6 +286,7 @@ public partial class MainViewModel : ViewModelBase
         mailModule = this[Page.Mail];
         inboxModule = this[Page.Inbox];
         services.Inbox.Changed += () => UpdateInboxBadgeAsync().Forget("Counting what's new in Inbox");
+        services.MailCountsChanged = () => { if (mailModule is not null) UpdateMailBadge(); };
         Sidebar.WorkHeading.AddCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => services.Go.NewProject());
         // When the sidebar swaps lists, the list now on screen marks the page.
         Sidebar.PropertyChanged += (_, e) =>
