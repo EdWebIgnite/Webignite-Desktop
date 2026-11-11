@@ -2256,6 +2256,8 @@ Save("invoice-sum");
         vm.IsMenuOpen && vm.MenuColumns.Count >= 6 && vm.MenuColumns[0].Title == "Start" && vm.MenuColumns.Any(c => c.Title == "Planner")
         && vm.MenuColumns.SelectMany(c => c.Entries).Count(e => e.IsCurrent) == 1);
     Check("The menu says how things stand beside its pages", vm.MenuColumns.SelectMany(c => c.Entries).Any(e => e.HasFigure));
+    Check("Retainers, domains, money and clients have their figures too",
+        new[] { "Retainers", "Renewals", "Money", "Clients" }.All(k => vm.MenuColumns.SelectMany(c => c.Entries).Any(e => e.PageKey == k && e.HasFigure)));
     Save("menu-button-open");
     vm.PickFromMenuCommand.Execute(vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Invoices"));
     Check("Picking a page from the menu opens it and closes the menu", !vm.IsMenuOpen && vm.Selected.Key == Page.Invoices);

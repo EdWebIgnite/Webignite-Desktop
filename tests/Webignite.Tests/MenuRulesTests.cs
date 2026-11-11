@@ -81,4 +81,64 @@ public sealed class MenuRulesTests
             Assert.Equal($"{waiting} waiting", figures["Approvals"].Text);
         Assert.Equal("2 unread", figures["Mail"].Text);
     }
+
+    private static Webignite.Core.Renewals.Renewal Domain(string id, DateOnly renewsOn) => new()
+    {
+        Id = id, Name = id + ".co.za", ClientName = "Karoo Coffee Roasters", Provider = "domains.co.za", RenewsOn = renewsOn, Cost = 99m,
+    };
+
+    private static Webignite.Core.Retainers.Retainer Monthly(string id, int day, bool paused = false) => new()
+    {
+        Id = id, ClientName = "Fynbos Physio", Title = "Monthly care", Lines = [Samples.Priced("Care, [Month]", 1, 900m)], DayOfMonth = day,
+        Starts = new DateOnly(2026, 1, 1), Paused = paused,
+    };
+
+    [Fact]
+    public void Domains_say_what_is_past_its_date_first_then_what_renews_next()
+    {
+        var today = Samples.Today; // Saturday 31 Oct 2026
+        var far = Domain("far", today.AddDays(200));
+        var soon = Domain("soon", today.AddDays(2));
+        var sooner = Domain("sooner", today.AddDays(1));
+        var late = Domain("late", today.AddDays(-3));
+
+        Assert.False(MenuFigures.For(new MenuFacts { Today = today, Renewals = [far] }).ContainsKey("Renewals"));
+        Assert.Equal(new MenuFigure("1 renews Monday"), MenuFigures.For(new MenuFacts { Today = today, Renewals = [far, soon] })["Renewals"]);
+        Assert.Equal(new MenuFigure("1 renews tomorrow"), MenuFigures.For(new MenuFacts { Today = today, Renewals = [sooner] })["Renewals"]);
+        Assert.Equal(new MenuFigure("2 renew soon"), MenuFigures.For(new MenuFacts { Today = today, Renewals = [soon, sooner] })["Renewals"]);
+        Assert.Equal(new MenuFigure("1 overdue", Late: true), MenuFigures.For(new MenuFacts { Today = today, Renewals = [soon, late, far] })["Renewals"]);
+    }
+
+    [Fact]
+    public void Retainers_say_how_many_go_out_next_and_when()
+    {
+        var today = new DateOnly(2026, 11, 11);
+        var facts = new MenuFacts { Today = today, Retainers = [Monthly("a", 25), Monthly("b", 25), Monthly("c", 28), Monthly("d", 25, paused: true)] };
+        Assert.Equal(new MenuFigure("2 go out on the 25th"), MenuFigures.For(facts)["Retainers"]);
+        Assert.Equal(new MenuFigure("1 goes out on the 28th"), MenuFigures.For(facts with { Retainers = [Monthly("c", 28)] })["Retainers"]);
+        Assert.Equal(new MenuFigure("1 goes out today"), MenuFigures.For(facts with { Retainers = [Monthly("e", 11)] })["Retainers"]);
+        // A retainer set for the 31st goes out on the last day of a shorter month, and the menu says that day.
+        Assert.Equal(new MenuFigure("1 goes out on the 30th"), MenuFigures.For(facts with { Retainers = [Monthly("f", 31)] })["Retainers"]);
+        Assert.Equal(new MenuFigure("1 goes out on the 31st"), MenuFigures.For(facts with { Today = new DateOnly(2026, 12, 3), Retainers = [Monthly("f", 31)] })["Retainers"]);
+        Assert.False(MenuFigures.For(facts with { Retainers = [Monthly("d", 25, paused: true)] }).ContainsKey("Retainers"));
+
+        // This month's already drafted: the next one is next month's, said by its date.
+        var drafted = new HashSet<string> { Webignite.Core.Retainers.RetainerSchedule.Key(Monthly("a", 25), new DateOnly(2026, 11, 1)) };
+        Assert.Equal(new MenuFigure("1 goes out 25 Dec"), MenuFigures.For(facts with { Retainers = [Monthly("a", 25)], Drafted = drafted })["Retainers"]);
+    }
+
+    [Fact]
+    public void Money_and_clients_say_what_came_in_and_what_is_being_built()
+    {
+        var today = Samples.Today;
+        Assert.False(MenuFigures.For(new MenuFacts { Today = today }).ContainsKey("Money"));
+        Assert.Equal(Money.Rand(10050m)[..^3] + " in", MenuFigures.For(new MenuFacts { Today = today, ReceivedThisMonth = 10049.60m })["Money"].Text);
+
+        var building = Webignite.Core.Clients.Onboarding.Start(new Webignite.Core.Clients.Client { Id = "a", Name = "Bosveld Builders" }, today);
+        var settled = new Webignite.Core.Clients.Client { Id = "b", Name = "Fynbos Physio" };
+        Assert.True(Webignite.Core.Clients.Onboarding.InProgress(building));
+        Assert.Equal("1 new site", MenuFigures.For(new MenuFacts { Today = today, Clients = [building, settled] })["Clients"].Text);
+        Assert.Equal("2 new sites", MenuFigures.For(new MenuFacts { Today = today, Clients = [building, building with { Id = "c" }] })["Clients"].Text);
+        Assert.False(MenuFigures.For(new MenuFacts { Today = today, Clients = [settled] }).ContainsKey("Clients"));
+    }
 }
