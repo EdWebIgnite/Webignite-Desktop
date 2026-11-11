@@ -5,27 +5,51 @@
              x:Class="Webignite.Desktop.Views.ChatView"
              x:DataType="vm:ChatViewModel"
              DragDrop.AllowDrop="True">
+  <!-- Laid out as WhatsApp's, plainer: who at the top with their status line, a chip per day, bubbles with the
+       time inside and ticks on mine, messages close together grouped, and a round send button. -->
   <UserControl.Styles>
     <Style Selector="Border.bubble">
-      <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="Padding" Value="12,8" />
-      <Setter Property="MaxWidth" Value="380" />
-      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="10,6,10,5" />
+      <Setter Property="MaxWidth" Value="340" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
+    </Style>
+    <Style Selector="Border.bubble.first">
+      <Setter Property="CornerRadius" Value="2,10,10,10" />
     </Style>
     <Style Selector="Border.bubble.mine">
+      <Setter Property="HorizontalAlignment" Value="Right" />
       <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
     </Style>
+    <Style Selector="Border.bubble.mine.first">
+      <Setter Property="CornerRadius" Value="10,2,10,10" />
+    </Style>
     <Style Selector="StackPanel.message">
-      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="Margin" Value="0,2,0,0" />
     </Style>
-    <Style Selector="StackPanel.message.mine">
-      <Setter Property="HorizontalAlignment" Value="Right" />
-    </Style>
-    <Style Selector="StackPanel.message > TextBlock.mine">
-      <Setter Property="HorizontalAlignment" Value="Right" />
+    <Style Selector="StackPanel.message.first">
+      <Setter Property="Margin" Value="0,10,0,0" />
     </Style>
     <Style Selector="Border.bubble SelectableTextBlock">
       <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="TextBlock.stamp">
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="VerticalAlignment" Value="Bottom" />
+    </Style>
+    <Style Selector="TextBlock.stamp.read">
+      <Setter Property="Foreground" Value="{DynamicResource DropMark}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.daychip">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,3" />
+      <Setter Property="Margin" Value="0,12,0,4" />
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
     </Style>
     <Style Selector="Button.chatfile">
       <Setter Property="Background" Value="Transparent" />
@@ -33,17 +57,42 @@
       <Setter Property="Padding" Value="0" />
       <Setter Property="Cursor" Value="Hand" />
     </Style>
+    <Style Selector="Button.sendround">
+      <Setter Property="Width" Value="38" />
+      <Setter Property="Height" Value="38" />
+      <Setter Property="CornerRadius" Value="19" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.typebar">
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="4,2" />
+    </Style>
+    <Style Selector="Border.typebar TextBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.typebar TextBox:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.typebar TextBox:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
   </UserControl.Styles>
   <Panel>
   <DockPanel>
-    <!-- Who's there: my partner's status, and mine to pick (Busy keeps pop-ups and sounds away). -->
-    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="12,8">
+    <!-- Who: my partner's initials with their status dot, their name, and the line under it (online, away, last seen). Mine on the right. -->
+    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="12,8" Background="{DynamicResource Surface}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
           <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding MyShown, Converter={x:Static c:PresenceColours.Brush}}" />
-          <TextBlock Classes="muted" FontSize="12" Text="Me:" VerticalAlignment="Center" />
-          <ComboBox ItemsSource="{Binding StatusChoices}" SelectedItem="{Binding MyStatus}" MinWidth="110" FontSize="12"
-                    ToolTip.Tip="Away shows by itself after 10 minutes without using the PC. Busy means no pop-ups or sounds.">
+          <ComboBox ItemsSource="{Binding StatusChoices}" SelectedItem="{Binding MyStatus}" MinWidth="104" FontSize="12"
+                    ToolTip.Tip="Your status. Away shows by itself after 10 minutes without using the PC. Busy means no pop-ups or sounds.">
             <ComboBox.ItemTemplate>
               <DataTemplate>
                 <TextBlock Text="{Binding Converter={x:Static c:PresenceColours.Word}}" />
@@ -51,14 +100,19 @@
             </ComboBox.ItemTemplate>
           </ComboBox>
         </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{Binding PartnerShown, Converter={x:Static c:PresenceColours.Brush}}" />
-          <TextBlock Text="{Binding PartnerStatusText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Panel DockPanel.Dock="Left" Margin="0,0,10,0" VerticalAlignment="Center">
+          <c:Monogram Text="{Binding PartnerName}" Size="36" />
+          <Ellipse Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Bottom" Stroke="{DynamicResource Surface}" StrokeThickness="2"
+                   Fill="{Binding PartnerShown, Converter={x:Static c:PresenceColours.Brush}}" />
+        </Panel>
+        <StackPanel VerticalAlignment="Center" Spacing="1">
+          <TextBlock Text="{Binding PartnerName}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding PartnerLine}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
         </StackPanel>
       </DockPanel>
     </Border>
-    <!-- Writing: files waiting to go, the words, Attach and Send -->
-    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,10">
+    <!-- Writing: files waiting to go, then a round bar with the paperclip and the words, and a round send button -->
+    <Border DockPanel.Dock="Bottom" Padding="10,8,10,10" Background="{DynamicResource Canvas}">
       <StackPanel Spacing="8">
         <TextBlock Text="{Binding Note}" TextWrapping="Wrap" FontSize="12" Classes="muted" Classes.problem="{Binding NoteIsProblem}"
                    IsVisible="{Binding Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -68,7 +122,7 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:PendingFile">
-              <Border Classes="chip" Background="{DynamicResource Surface2}" CornerRadius="6" Padding="8,4">
+              <Border Classes="chip" Background="{DynamicResource Surface}" CornerRadius="6" Padding="8,4">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <c:Icon Data="{StaticResource Icon.Paperclip}" Size="12" VerticalAlignment="Center" />
                   <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" />
@@ -79,34 +133,36 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <DockPanel>
-          <Button DockPanel.Dock="Right" Classes="primary" Content="Send" Margin="8,0,0,0" VerticalAlignment="Bottom" Command="{Binding SendCommand}" />
-          <Button DockPanel.Dock="Left" Classes="quiet" Margin="0,0,8,0" VerticalAlignment="Bottom" Click="Attach" ToolTip.Tip="Attach files (or drop them here, or paste a screenshot)">
-            <c:Icon Data="{StaticResource Icon.Paperclip}" Size="15" />
+          <Button DockPanel.Dock="Right" Classes="primary sendround" Margin="8,0,0,0" VerticalAlignment="Bottom" Command="{Binding SendCommand}" ToolTip.Tip="Send (Enter)">
+            <c:Icon Data="{StaticResource Icon.Send}" Size="16" Foreground="{DynamicResource OnPrimary}" />
           </Button>
-          <TextBox x:Name="DraftBox" Text="{Binding Draft}" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="140"
-                   PlaceholderText="Write a message. Enter sends, Shift+Enter for a new line." />
+          <Border Classes="typebar">
+            <DockPanel>
+              <Button DockPanel.Dock="Left" Classes="quiet" VerticalAlignment="Bottom" Margin="2,0,0,2" Click="Attach"
+                      ToolTip.Tip="Attach files (or drop them here, or paste a picture)">
+                <c:Icon Data="{StaticResource Icon.Paperclip}" Size="15" />
+              </Button>
+              <TextBox x:Name="DraftBox" Text="{Binding Draft}" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="140" VerticalContentAlignment="Center"
+                       PlaceholderText="Type a message" ToolTip.Tip="Enter sends, Shift+Enter for a new line" />
+            </DockPanel>
+          </Border>
         </DockPanel>
       </StackPanel>
     </Border>
 
-    <Panel>
-      <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Send}" Title="No messages yet"
-                    Text="Write to your partner here. Files and screenshots can go too; everything is locked before it leaves this PC." />
+    <Panel Background="{DynamicResource Canvas}">
+      <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Send}" Title="No messages yet" Text="{Binding EmptyText}" />
       <ScrollViewer x:Name="Scroller" IsVisible="{Binding !IsEmpty}">
-        <ItemsControl ItemsSource="{Binding Messages}" Margin="12,12,12,8">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
+        <ItemsControl ItemsSource="{Binding Messages}" Margin="12,0,12,10">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ChatBubble">
-              <StackPanel Spacing="2" Classes="message" Classes.mine="{Binding IsMine}">
-                <TextBlock Classes="muted" FontSize="11" Classes.mine="{Binding IsMine}">
-                  <Run Text="{Binding Who}" FontWeight="SemiBold" /><Run Text="  " /><Run Text="{Binding When}" />
-                </TextBlock>
-                <Border Classes="bubble" Classes.mine="{Binding IsMine}">
-                  <StackPanel Spacing="6">
-                    <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding HasText}" />
-                    <ItemsControl ItemsSource="{Binding Files}">
+              <StackPanel Classes="message" Classes.first="{Binding IsFirst}">
+                <Border Classes="daychip" IsVisible="{Binding HasDay}">
+                  <TextBlock Text="{Binding Day}" FontSize="11" Classes="muted" />
+                </Border>
+                <Border Classes="bubble" Classes.mine="{Binding IsMine}" Classes.first="{Binding IsFirst}">
+                  <StackPanel Spacing="4">
+                    <ItemsControl ItemsSource="{Binding Files}" IsVisible="{Binding HasFiles}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate><StackPanel Spacing="6" /></ItemsPanelTemplate>
                       </ItemsControl.ItemsPanel>
@@ -115,11 +171,13 @@
                           <Button Classes="chatfile" Command="{Binding OpenCommand}" ContextRequested="FileMenu"
                                   ToolTip.Tip="Click to open. Right-click to copy or save, or drag it out to a folder or another program.">
                             <Panel>
-                              <Image Source="{Binding Picture}" MaxWidth="260" MaxHeight="200" Stretch="Uniform" IsVisible="{Binding HasPicture}" />
+                              <Border CornerRadius="6" ClipToBounds="True" IsVisible="{Binding HasPicture}">
+                                <Image Source="{Binding Picture}" MaxWidth="300" MaxHeight="220" Stretch="Uniform" />
+                              </Border>
                               <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsFile}">
                                 <c:Icon Data="{StaticResource Icon.Paperclip}" Size="14" VerticalAlignment="Center" />
                                 <StackPanel>
-                                  <TextBlock Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="280" />
+                                  <TextBlock Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="260" />
                                   <TextBlock Classes="muted" FontSize="11" Text="{Binding SizeText}" />
                                 </StackPanel>
                               </StackPanel>
@@ -128,6 +186,12 @@
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <!-- The words, then the time (with the ticks on mine) at the bottom right -->
+                    <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding HasText}" MaxWidth="300" />
+                    <StackPanel Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" Margin="12,-2,0,0">
+                      <TextBlock Classes="stamp" Text="{Binding Time}" />
+                      <TextBlock Classes="stamp" Classes.read="{Binding IsRead}" Text="{Binding TickText}" IsVisible="{Binding IsMine}" ToolTip.Tip="{Binding TickTip}" />
+                    </StackPanel>
                   </StackPanel>
                 </Border>
               </StackPanel>

@@ -21,6 +21,12 @@ public sealed record ChatFile(string Id, string Name, long Bytes, int Parts);
 /// <summary>One piece of a file, small enough to travel as one record.</summary>
 public sealed record ChatPart(string Id, string FileId, int Index, byte[] Data);
 
+/// <summary>
+/// How far a message I sent has got, as WhatsApp's ticks: still on this PC (a clock), on the server (one tick), or
+/// read by my partner (two ticks).
+/// </summary>
+public enum ChatTick { Waiting, Sent, Read }
+
 /// <summary>What a paste into the chat box adds: files copied in Explorer, a picture, or words.</summary>
 public enum ChatPaste { Nothing, Files, Picture, Text }
 
@@ -95,6 +101,36 @@ public static class ChatRules
         var said = Projects.TaskTalk.When(at, now, zone, culture);
         return said.Contains(" at ", StringComparison.Ordinal) ? said : said + " at " + TimeZoneInfo.ConvertTime(at, zone).ToString("HH:mm", culture);
     }
+
+    /// <summary>A message's ticks: read once my partner has read past it, sent once it's on the server.</summary>
+    public static ChatTick Tick(ChatMessage message, bool sent, DateTimeOffset? partnerReadUpTo) =>
+        partnerReadUpTo is { } read && read >= message.Sent ? ChatTick.Read : sent ? ChatTick.Sent : ChatTick.Waiting;
+
+    /// <summary>The chip above the first message of each day: Today, Yesterday, the weekday this week, else the date.</summary>
+    public static string Day(DateTimeOffset at, DateTimeOffset now, TimeZoneInfo zone, IFormatProvider culture)
+    {
+        var day = TimeZoneInfo.ConvertTime(at, zone).Date;
+        var today = TimeZoneInfo.ConvertTime(now, zone).Date;
+        var back = (today - day).Days;
+        return back switch
+        {
+            <= 0 => "Today",
+            1 => "Yesterday",
+            < 7 => day.ToString("dddd", culture),
+            _ => day.Year == today.Year ? day.ToString("M", culture) : day.ToString("D", culture),
+        };
+    }
+
+    /// <summary>The time inside a bubble, the PC's way (09:01 or 9:01 AM).</summary>
+    public static string Time(DateTimeOffset at, TimeZoneInfo zone, IFormatProvider culture) => TimeZoneInfo.ConvertTime(at, zone).ToString("t", culture);
+
+    /// <summary>
+    /// Whether a message carries straight on from the one before, as WhatsApp groups them: the same writer, the
+    /// same day, within a few minutes. The first of a group gets the bubble's point.
+    /// </summary>
+    public static bool Follows(ChatMessage? before, ChatMessage message, TimeZoneInfo zone) =>
+        before is not null && before.From == message.From && message.Sent - before.Sent <= TimeSpan.FromMinutes(5)
+        && TimeZoneInfo.ConvertTime(before.Sent, zone).Date == TimeZoneInfo.ConvertTime(message.Sent, zone).Date;
 
     /// <summary>What a note about a new message says: the words, cut short, or what was sent.</summary>
     public static string Preview(ChatMessage message)

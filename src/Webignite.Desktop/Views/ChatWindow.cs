@@ -15,6 +15,8 @@ public sealed class ChatWindow : Window
         this.chat = chat;
         DataContext = chat;
         Title = chat.Title;
+        // The name can arrive after the window opened (from the workspace or your partner's PC).
+        chat.PropertyChanged += TitleChanged;
         Width = 460;
         Height = 620;
         MinWidth = 340;
@@ -30,7 +32,17 @@ public sealed class ChatWindow : Window
             chat.Seen();
         };
         Activated += (_, _) => chat.Seen();
-        Closed += (_, _) => chat.Dispose();
+        Closed += (_, _) =>
+        {
+            chat.PropertyChanged -= TitleChanged;
+            chat.Dispose();
+        };
+    }
+
+    private void TitleChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ChatViewModel.Title))
+            Title = chat.Title;
     }
 
     public ChatViewModel Chat => chat;

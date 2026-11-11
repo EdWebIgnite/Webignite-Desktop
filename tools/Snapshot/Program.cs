@@ -1933,9 +1933,14 @@ Check("Closing the window stops it following the history and lets the pictures g
     services.Store.SaveChatMessage(new Webignite.Core.Chat.ChatMessage { Id = "snap-chat-2", From = me, Text = "Yes, he likes it. Just wants the prices bigger. This is how it looks now:", Files = [shotFile], Sent = chatStart.AddMinutes(4) });
     services.Store.SaveChatMessage(new Webignite.Core.Chat.ChatMessage { Id = "snap-chat-3", From = partnerId, Text = "Looks good. Here's the quote for the extra pages, can you approve it when you're happy?", Files = [pdfFile], Sent = chatStart.AddMinutes(9) });
     services.Secrets.Write("webignite-sync-refresh", "snapshot");
-    // Jaco's PC synced a moment ago and he's been using it: he shows Available.
-    services.Chat.TakeIn(new Webignite.Core.Chat.Presence(partnerId, Webignite.Core.Chat.PresenceState.Available, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+    // Jaco's PC synced a moment ago and he's been using it: he shows Available, and he's read my message.
+    services.Store.MarkSent([(Webignite.Core.Sync.SyncKinds.Chat, "snap-chat-2", "snapshot")]);
+    services.Chat.TakeIn(new Webignite.Core.Chat.Presence(partnerId, Webignite.Core.Chat.PresenceState.Available, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow,
+        chatStart.AddMinutes(5)));
     var chatWindow = window.ShowChat(services);
+    Check("The chat reads as WhatsApp's: a day chip, his name with online under it, two ticks on what he's read",
+        chatWindow.Chat.Messages[0].Day == "Today" && !chatWindow.Chat.Messages[1].HasDay && chatWindow.Chat.PartnerName == "Jaco"
+        && chatWindow.Chat.PartnerLine == "online" && chatWindow.Chat.Messages[1].Tick == Webignite.Core.Chat.ChatTick.Read);
     Check("The chat shows my partner's status and lets me pick mine", chatWindow.Chat.PartnerShown == Webignite.Core.Chat.PresenceState.Available
         && chatWindow.Chat.PartnerStatusText == "Jaco is available" && chatWindow.Chat.StatusChoices.Count == 3);
     Check("The chat shows both of you, the screenshot as a picture and the file to open",

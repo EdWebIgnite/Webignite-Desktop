@@ -78,4 +78,52 @@ public sealed class ChatTests
     [InlineData(false, false, null, ChatPaste.Nothing)]
     public void A_paste_adds_files_a_picture_or_words_as_WhatsApp_does(bool files, bool picture, string? text, ChatPaste expected) =>
         Assert.Equal(expected, ChatRules.PasteAs(files, picture, text));
+
+    private static readonly TimeZoneInfo Sast = TimeZoneInfo.CreateCustomTimeZone("SAST", TimeSpan.FromHours(2), "SAST", "SAST");
+    private static readonly System.Globalization.CultureInfo ZA = System.Globalization.CultureInfo.GetCultureInfo("en-ZA");
+
+    private static ChatMessage Said(string from, DateTimeOffset at) => new() { Id = ChatMessage.NewId(), From = from, Text = "Hi", Sent = at };
+
+    [Fact]
+    public void Ticks_show_a_clock_until_sent_one_tick_on_the_server_and_two_once_read()
+    {
+        var at = new DateTimeOffset(2026, 11, 11, 7, 1, 0, TimeSpan.Zero);
+        var message = Said("eddie", at);
+        Assert.Equal(ChatTick.Waiting, ChatRules.Tick(message, sent: false, partnerReadUpTo: null));
+        Assert.Equal(ChatTick.Sent, ChatRules.Tick(message, sent: true, partnerReadUpTo: at.AddMinutes(-1)));
+        Assert.Equal(ChatTick.Read, ChatRules.Tick(message, sent: true, partnerReadUpTo: at));
+    }
+
+    [Fact]
+    public void Days_read_today_yesterday_the_weekday_then_the_date()
+    {
+        var now = new DateTimeOffset(2026, 11, 11, 8, 0, 0, TimeSpan.Zero); // Wednesday, 10:00 in South Africa
+        Assert.Equal("Today", ChatRules.Day(now.AddHours(-1), now, Sast, ZA));
+        Assert.Equal("Yesterday", ChatRules.Day(now.AddDays(-1), now, Sast, ZA));
+        Assert.Equal("Monday", ChatRules.Day(now.AddDays(-2), now, Sast, ZA));
+        Assert.Contains("October", ChatRules.Day(now.AddDays(-30), now, Sast, ZA), StringComparison.Ordinal);
+        Assert.Contains("2025", ChatRules.Day(now.AddDays(-400), now, Sast, ZA), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Messages_from_the_same_person_a_few_minutes_apart_are_grouped()
+    {
+        var at = new DateTimeOffset(2026, 11, 11, 7, 0, 0, TimeSpan.Zero);
+        var first = Said("jaco", at);
+        Assert.False(ChatRules.Follows(null, first, Sast));
+        Assert.True(ChatRules.Follows(first, Said("jaco", at.AddMinutes(2)), Sast));
+        Assert.False(ChatRules.Follows(first, Said("eddie", at.AddMinutes(2)), Sast));
+        Assert.False(ChatRules.Follows(first, Said("jaco", at.AddMinutes(20)), Sast));
+    }
+
+    [Fact]
+    public void The_line_under_my_partner_s_name_says_online_or_when_they_were_last_seen()
+    {
+        var now = new DateTimeOffset(2026, 11, 11, 8, 0, 0, TimeSpan.Zero);
+        Assert.Equal("offline", PresenceRules.Line(null, now, Sast, ZA));
+        Assert.Equal("online", PresenceRules.Line(new Presence("jaco", PresenceState.Available, now, now), now, Sast, ZA));
+        Assert.Equal("busy", PresenceRules.Line(new Presence("jaco", PresenceState.Busy, now, now), now, Sast, ZA));
+        var gone = new Presence("jaco", PresenceState.Available, now.AddHours(-1), now.AddHours(-1));
+        Assert.StartsWith("last seen today at", PresenceRules.Line(gone, now, Sast, ZA), StringComparison.Ordinal);
+    }
 }
