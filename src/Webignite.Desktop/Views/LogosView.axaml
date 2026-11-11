@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.LogosView"
+             x:DataType="vm:ToolsViewModel">
+  <StackPanel Spacing="14">
+    <!-- The master logo -->
+    <StackPanel Spacing="8">
+      <DockPanel>
+        <Button DockPanel.Dock="Left" Classes="primary" Content="Choose the logo…" Click="ChooseLogo" IsEnabled="{Binding !LogoBusy}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="12,0,0,0" VerticalAlignment="Center"
+                   Text="An SVG is best. Otherwise the biggest PNG there is, with a see-through background." />
+      </DockPanel>
+      <TextBlock Text="{Binding LogoInfo}" TextWrapping="Wrap" IsVisible="{Binding HasLogo}" />
+      <Border Classes="pending" IsVisible="{Binding LogoWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <TextBlock Text="{Binding LogoWarning}" TextWrapping="Wrap" />
+      </Border>
+      <ItemsControl ItemsSource="{Binding LogoPreviews}" IsVisible="{Binding HasLogo}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="12" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:LogoPreview">
+            <StackPanel Spacing="4">
+              <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                <Image Source="{Binding Picture}" Width="160" Height="160" />
+              </Border>
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Label}" HorizontalAlignment="Center" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <StackPanel IsVisible="{Binding HasLogo}">
+        <TextBlock Classes="label" Text="Whose logo it is (used in the file names)" />
+        <TextBox Text="{Binding LogoName}" PlaceholderText="Karoo Coffee Roasters" />
+      </StackPanel>
+    </StackPanel>
+
+    <!-- The pack -->
+    <Border Classes="card" Padding="16,14" IsVisible="{Binding HasLogo}">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="h2" Text="Logo pack" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Every version a client gets asked for, in one zip: colour, all white and all black; see-through PNG and WebP, and JPG; from 250 to 2000 pixels wide, with a note on which to use where." />
+        <Button Content="Save the logo pack…" HorizontalAlignment="Left" Click="SavePack" IsEnabled="{Binding !LogoBusy}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Favicons -->
+    <Border Classes="card" Padding="16,14" IsVisible="{Binding HasLogo}">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="h2" Text="Favicon set" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="The icons a website needs: for browser tabs, Google's results, iPhone and Android home screens, with favicon.ico and the manifest. A square mark works best; a wide logo will be small." />
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel Grid.Column="0">
+            <TextBlock Classes="label" Text="Behind the phone icons" />
+            <TextBox Text="{Binding FaviconFill}" ToolTip.Tip="iPhones and Android need a filled icon. Usually white, or the brand's own colour." />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Browser bar colour on phones" />
+            <TextBox Text="{Binding FaviconTheme}" ToolTip.Tip="Android tints the top of the browser with this. Usually the brand's main colour." />
+          </StackPanel>
+        </Grid>
+        <Button Content="Save the favicon set…" HorizontalAlignment="Left" Click="SaveFavicons" IsEnabled="{Binding !LogoBusy}" />
+        <StackPanel Spacing="6" IsVisible="{Binding HasFaviconHtml}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="quiet" Content="Copy" Padding="10,3" Click="CopyHtml" />
+            <TextBlock Classes="label" Text="Paste this into the head of the page" VerticalAlignment="Center" />
+          </DockPanel>
+          <TextBox Text="{Binding FaviconHtml, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas, Menlo, monospace"
+                   FontSize="{DynamicResource Text12}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <DockPanel IsVisible="{Binding LogoMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+      <Button DockPanel.Dock="Right" Classes="link" Content="Show it in Files" Command="{Binding ShowLogoMadeCommand}" IsVisible="{Binding HasLogoMade}" Margin="12,0,0,0" />
+      <TextBlock Classes="muted" Classes.problem="{Binding LogoProblem}" Text="{Binding LogoMessage}" TextWrapping="Wrap" />
+    </DockPanel>
+  </StackPanel>
+</UserControl>

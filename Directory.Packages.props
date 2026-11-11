@@ -19,6 +19,8 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="MailKit" Version="4.18.2" />
     <PackageVersion Include="QRCoder" Version="1.8.1" />
+    <!-- Draws SVG logos with the Skia the app already has, for the logo and favicon tools. The newest version that uses the same Skia as Avalonia. -->
+    <PackageVersion Include="Svg.Skia" Version="5.1.1" />
     <PackageVersion Include="Avalonia.HtmlRenderer" Version="12.0.0" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.14" />

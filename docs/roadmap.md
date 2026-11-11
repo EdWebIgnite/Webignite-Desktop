@@ -20,8 +20,6 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 
 ### Branding
 
-- **Logo export pack.** One master logo in; every size and format out (PNG, JPG, WebP, SVG; transparent, white and black versions), named properly and zipped for the client.
-- **Favicon and app icon maker.** One logo in, the full favicon set out, with the HTML to paste.
 - **Brand sheet maker.** A client's logo, colours and fonts laid out as a one-page PDF.
 - **Social image sizer.** One picture cropped to Facebook, Instagram, LinkedIn, WhatsApp and link-preview sizes in one go.
 
@@ -40,7 +38,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 9. ~~Copy text from a picture~~ Built: Text from the screen, under Computer, and Ctrl+Alt+X from any program.
 10. ~~Compare, then Duplicate file finder~~ Built: Compare and Duplicate files, under Computer and on Files' right-click.
 11. ~~Palette builder~~ Built: the Palette and Contrast parts of the Colours tool.
-12. **Favicon and app icon maker**, then **Logo export pack.** They share the picture work.
+12. ~~Favicon and app icon maker, then Logo export pack~~ Built: Logo pack and favicons, under Web tools.
 13. **Social image sizer.**
 14. **Brand sheet maker.** Last, as it uses the palette and the logo work.
 

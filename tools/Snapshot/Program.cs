@@ -1940,7 +1940,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2303,6 +2303,46 @@ SaveWindow(colourWindow, "tools-colours");
     colours.ShowColourPartCommand.Execute(ColourPart.Colour);
 }
 colourWindow.Close();
+// Logo pack and favicons, from the SVG logo made above.
+{
+    var logoWindow = window.ShowTool(ToolKind.Logos, services);
+    var logos = logoWindow.Tools;
+    Check("Nothing can be made before a logo is chosen", !logos.HasLogo && !logos.SaveLogoPackToCommand.CanExecute(null));
+    Wait(logos.OpenLogoAsync(Path.Combine(data, "copies", "notes.txt")), "A file that isn't a logo was tried");
+    Check("A file that isn't a picture is turned down in plain words", logos.LogoProblem && !logos.HasLogo);
+    Wait(logos.OpenLogoAsync(Path.Combine(data, "logos", "karoo.svg")), "A logo with its own background was opened");
+    Check("An SVG with its own background is only offered in colour, and says why",
+        logos.LogoPreviews.Count == 1 && logos.LogoWarning.StartsWith("It has no see-through background", StringComparison.Ordinal));
+    File.WriteAllText(Path.Combine(data, "logos", "karoo-mark.svg"), """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="#E8590C"/><path d="M18 32h28" stroke="#3D2B1F" stroke-width="6"/></svg>""");
+    logos.LogoName = "";
+    Wait(logos.OpenLogoAsync(Path.Combine(data, "logos", "karoo-mark.svg")), "The logo was opened");
+    Check("An SVG logo is shown in colour, all white and all black, with a name from its file",
+        logos.HasLogo && logos.LogoPreviews.Count == 3 && logos.LogoName == "Karoo mark" && logos.LogoInfo.StartsWith("An SVG", StringComparison.Ordinal) && logos.LogoWarning.Length == 0);
+    logos.LogoName = "Karoo Coffee";
+    var made = Path.Combine(data, "logo-made");
+    Directory.CreateDirectory(made);
+    var zipPath = Path.Combine(made, Webignite.Core.Tools.LogoPack.ZipName(logos.LogoName));
+    Wait(logos.SaveLogoPackToCommand.ExecuteAsync(zipPath), "The logo pack was made");
+    using (var zip = System.IO.Compression.ZipFile.OpenRead(zipPath))
+        Check("The logo pack is one zip with every version, the SVG and the note",
+            zip.Entries.Count == 30 && zip.Entries.Any(e => e.FullName == "Vector/karoo-coffee.svg") && zip.Entries.Any(e => e.FullName == "White/karoo-coffee-white-1000px.png")
+            && logos.LogoMessage.StartsWith("28 logo files", StringComparison.Ordinal) && logos.HasLogoMade);
+    logos.FaviconFill = "brown";
+    Wait(logos.SaveFaviconsToCommand.ExecuteAsync(Path.Combine(made, "favicons")), "The favicons were tried with a colour that isn't one");
+    Check("A colour that isn't a code is asked for again", logos.LogoProblem && !Directory.Exists(Path.Combine(made, "favicons")));
+    logos.FaviconFill = "#3D2B1F";
+    logos.FaviconTheme = "#E8590C";
+    Wait(logos.SaveFaviconsToCommand.ExecuteAsync(Path.Combine(made, "favicons")), "The favicons were made");
+    Check("The favicon set is saved with the lines to paste",
+        File.Exists(Path.Combine(made, "favicons", "favicon.ico")) && File.Exists(Path.Combine(made, "favicons", "apple-touch-icon.png")) && File.Exists(Path.Combine(made, "favicons", "site.webmanifest"))
+        && File.Exists(Path.Combine(made, "favicons", "favicon.svg")) && logos.HasFaviconHtml && logos.FaviconHtml.Contains("theme-color\" content=\"#E8590C", StringComparison.Ordinal));
+    SaveWindow(logoWindow, "tools-logos");
+    Wait(logos.OpenLogoAsync(Path.Combine(data, "logos", "sign.png")), "A small picture was opened");
+    Check("A small picture on a solid background says what will be left out",
+        logos.LogoPreviews.Count == 1 && logos.LogoWarning.Contains("120 pixels wide", StringComparison.Ordinal) && logos.LogoWarning.Contains("no see-through background", StringComparison.Ordinal));
+    logoWindow.Close();
+    Check("Closing the window lets the logo pictures go", logos.LogoPreviews.Count == 0);
+}
 // Clipboard history: what was copied, text and pictures, newest first, in memory only.
 services.Clipboard.Add("thandi@karoocoffee.co.za");
 services.Clipboard.Add("Hi Pieter,\n\nThe new menu is live on the site. Have a look and shout if anything needs changing.\n\nEddie");

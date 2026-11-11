@@ -32,6 +32,7 @@ public sealed class ToolWindow : Window
             ToolKind.ScreenText => 520,
             ToolKind.Compare => 1180,
             ToolKind.Duplicates => 900,
+            ToolKind.Logos => 640,
             _ => 640,
         };
         MinWidth = 340;
@@ -64,6 +65,7 @@ public sealed class ToolWindow : Window
             ToolKind.ScreenText => new ScreenTextView(),
             ToolKind.Compare => new CompareView(),
             ToolKind.Duplicates => new DuplicatesView(),
+            ToolKind.Logos => new LogosView(),
             _ => new ImagesView(),
         };
         view.Margin = new Thickness(18, 16);
@@ -96,6 +98,7 @@ public sealed class ToolWindow : Window
         ToolKind.ScreenText => "Text from the screen",
         ToolKind.Compare => "Compare",
         ToolKind.Duplicates => "Duplicate files",
+        ToolKind.Logos => "Logo pack and favicons",
         _ => "Website images",
     };
 }

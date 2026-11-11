@@ -20,6 +20,7 @@ public enum ToolKind
     ScreenText,
     Compare,
     Duplicates,
+    Logos,
 }
 
 /// <summary>

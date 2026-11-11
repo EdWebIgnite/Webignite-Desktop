@@ -17,6 +17,7 @@
     <PackageReference Include="bblanchon.PDFium.Win32" />
     <PackageReference Include="bblanchon.PDFium.Linux" />
     <PackageReference Include="QRCoder" />
+    <PackageReference Include="Svg.Skia" />
     <!-- Only the wrapper (Microsoft.Web.WebView2.Core.dll) and its small loader are wanted. The package's own build
          files would also pull in its WPF and WinForms controls, so they are left out and the wrapper is named below. -->
     <PackageReference Include="Microsoft.Web.WebView2" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive;compile" PrivateAssets="build;buildTransitive;contentfiles;analyzers" />

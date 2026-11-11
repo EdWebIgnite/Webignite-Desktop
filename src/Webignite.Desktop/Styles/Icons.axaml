@@ -41,6 +41,7 @@
   <StreamGeometry x:Key="Icon.ScreenText">M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2 M7 8h10 M7 12h10 M7 16h6</StreamGeometry>
   <StreamGeometry x:Key="Icon.Compare">M4 4h6v16H4z M14 4h6v16h-6z M10 9h4 M10 15h4</StreamGeometry>
   <StreamGeometry x:Key="Icon.Duplicates">M9 9h11v11H9z M5 15H4V4h11v1</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Logos">M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Code">M16 18l6-6-6-6 M8 6l-6 6 6 6</StreamGeometry>
   <StreamGeometry x:Key="Icon.Qr">M4 3h3a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1H4a1 1 0 0 1 -1 -1V4a1 1 0 0 1 1 -1z M17 3h3a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1V4a1 1 0 0 1 1 -1z M4 16h3a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1H4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1z M21 16h-3a2 2 0 0 0-2 2v3 M21 21v.01 M12 7v3a2 2 0 0 1-2 2H7 M3 12h.01 M12 3h.01 M12 16v.01 M16 12h1 M21 12v.01 M12 21v-1</StreamGeometry>
   <StreamGeometry x:Key="Icon.Swap">M8 3 4 7l4 4 M4 7h16 M16 21l4-4-4-4 M20 17H4</StreamGeometry>
