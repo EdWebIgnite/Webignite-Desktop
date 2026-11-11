@@ -28,7 +28,6 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 
 ### Everyday
 
-- **Text snippets from any program.** A short code or a shortcut pastes a saved block of text: banking details, standard replies, code.
 - **Copy text from a picture.** Pick an area of the screen and get its words, through Windows' own text reading.
 - **Compare.** Two files or two folders side by side, showing what differs.
 - **Duplicate file finder** in Files.
@@ -44,7 +43,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 5. ~~Responsive preview and Phone simulator~~ Built: Show as, in Page to PDF or picture. The device sizes were written from memory, not looked up, so correct any that are off in `Devices.All`.
 6. ~~Site crawler for sites that need JavaScript~~ Built: a tick on the Site crawler page.
 7. ~~Screen ruler~~ Built: Screen ruler, under Web tools, and Ctrl+Alt+M from any program.
-8. **Text snippets from any program.**
+8. ~~Text snippets from any program~~ Built: Text snippets, under Computer, and Ctrl+Alt+T from any program. A snippet is picked from a small window (by name or code), not by typing its code straight into the other program: that would need a hook on every key typed on the PC, which was left out on purpose.
 9. **Copy text from a picture.** Reuses the screenshot picker.
 10. **Compare**, then **Duplicate file finder**, both in Files.
 11. **Palette builder**, in the Colours tool.

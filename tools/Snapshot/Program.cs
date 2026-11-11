@@ -1940,7 +1940,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2124,6 +2124,45 @@ SaveWindow(captureWindow, "tools-page-capture");
 }
 captureWindow.Close();
 Check("Closing the page tool's window shuts its browser down", standInBrowser!.Disposed && !capture.HasCaptureView);
+// Text snippets: none yet, one saved, found by its code and copied with today's date filled in.
+var snippetWindow = window.ShowTool(ToolKind.Snippets, services);
+var snippets = snippetWindow.Tools;
+Check("With no snippets yet the window says what they are for", snippets.NoSnippets && snippets.SnippetRows.Count == 0);
+snippets.NewSnippetCommand.Execute(null);
+snippets.SaveSnippetCommand.Execute(null);
+Check("A snippet without a name isn't saved", snippets.SnippetProblem && snippets.IsEditingSnippet);
+snippets.SnippetName = "Banking details";
+snippets.SnippetCode = "bank";
+snippets.SnippetText = "Webignite (Pty) Ltd\nFNB cheque account 62000000000\nBranch 250655\nReference: your invoice number";
+SaveWindow(snippetWindow, "tools-snippets-new");
+snippets.SaveSnippetCommand.Execute(null);
+snippets.NewSnippetCommand.Execute(null);
+snippets.SnippetName = "Thanks for the payment";
+snippets.SnippetText = "Hi\n\nThanks, your payment came through on {date}.\n\nRegards\nEddie";
+snippets.SaveSnippetCommand.Execute(null);
+snippets.NewSnippetCommand.Execute(null);
+snippets.SnippetName = "Hosting renewal";
+snippets.SnippetCode = "bank";
+snippets.SnippetText = "Your hosting renews next month.";
+snippets.SaveSnippetCommand.Execute(null);
+Check("Two snippets can't share a code", snippets.SnippetProblem && snippets.SnippetMessage.Contains("already", StringComparison.Ordinal));
+snippets.SnippetCode = "host";
+snippets.SaveSnippetCommand.Execute(null);
+Check("Saved snippets are listed and kept in settings", snippets.SnippetRows.Count == 3 && services.Settings.Snippets.Items.Count == 3 && !snippets.IsEditingSnippet);
+SaveWindow(snippetWindow, "tools-snippets");
+snippets.SnippetSearch = "bank";
+Check("Typing a code finds its snippet first", snippets.SnippetRows.Count == 1 && snippets.SnippetRows[0].Name == "Banking details");
+snippets.SnippetSearch = "thanks";
+string? sent = null;
+snippets.SendSnippet = text => { sent = text; return Task.FromResult("Copied. Paste it where you need it."); };
+Wait(snippets.UseFirstSnippetCommand.ExecuteAsync(null), "The snippet was used");
+Check("Enter uses the best match, with today's date filled in",
+    sent is not null && sent.Contains(DateTime.Now.ToString("d MMMM yyyy"), StringComparison.Ordinal) && !sent.Contains("{date}", StringComparison.Ordinal) && snippets.SnippetMessage.StartsWith("Copied", StringComparison.Ordinal));
+snippets.SnippetSearch = "";
+snippets.SnippetRows[2].ChangeCommand.Execute(null);
+snippets.RemoveSnippetCommand.Execute(null);
+Check("A snippet can be removed", snippets.SnippetRows.Count == 2 && services.Settings.Snippets.Items.Count == 2);
+snippetWindow.Close();
 var rulerWindow = window.ShowTool(ToolKind.Ruler, services);
 rulerWindow.Tools.AddMeasurement("480 × 270 px (320 × 180 at 100%)");
 rulerWindow.Tools.AddMeasurement("24 × 1080 px");

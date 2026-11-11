@@ -73,6 +73,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("notes", value);
     }
 
+    /// <summary>Saved blocks of text to paste anywhere.</summary>
+    public Webignite.Core.Tools.SnippetSettings Snippets
+    {
+        get => store.GetSetting<Webignite.Core.Tools.SnippetSettings>("snippets") ?? new Webignite.Core.Tools.SnippetSettings();
+        set => store.SetSetting("snippets", value);
+    }
+
     public Webignite.Core.Tools.ScreenshotSettings Screenshots
     {
         get => store.GetSetting<Webignite.Core.Tools.ScreenshotSettings>("screenshots") ?? new Webignite.Core.Tools.ScreenshotSettings();

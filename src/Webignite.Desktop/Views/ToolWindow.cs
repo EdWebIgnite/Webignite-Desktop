@@ -28,6 +28,7 @@ public sealed class ToolWindow : Window
             ToolKind.Dns => 760,
             ToolKind.PageCapture => 1180,
             ToolKind.Ruler => 440,
+            ToolKind.Snippets => 480,
             _ => 640,
         };
         MinWidth = 340;
@@ -56,13 +57,18 @@ public sealed class ToolWindow : Window
             ToolKind.Dns => new DnsView(),
             ToolKind.PageCapture => new PageCaptureView(),
             ToolKind.Ruler => new RulerView(),
+            ToolKind.Snippets => new SnippetsView(),
             _ => new ImagesView(),
         };
         view.Margin = new Thickness(18, 16);
+        View = view;
         Content = Fills ? view : new ScrollViewer { Content = view, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
     }
 
     public ToolKind Kind { get; }
+
+    /// <summary>The tool's own screen inside the window.</summary>
+    public Control View { get; }
 
     /// <summary>True for a tool that shows a web page: it fills a big window that stands on its own.</summary>
     public bool Fills => Kind == ToolKind.PageCapture;
@@ -80,6 +86,7 @@ public sealed class ToolWindow : Window
         ToolKind.Dns => "DNS records",
         ToolKind.PageCapture => "Page to PDF or picture",
         ToolKind.Ruler => "Screen ruler",
+        ToolKind.Snippets => "Text snippets",
         _ => "Website images",
     };
 }

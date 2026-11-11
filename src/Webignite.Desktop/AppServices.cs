@@ -394,6 +394,9 @@ public sealed class AppServices : IDisposable
     /// <summary>Set by the main window: takes the colour picker shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyColourShortcut { get; set; }
 
+    /// <summary>Sets the text snippets shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
+    public Func<string?>? ApplySnippetShortcut { get; set; }
+
     /// <summary>Sets the screen ruler's shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
     public Func<string?>? ApplyRulerShortcut { get; set; }
 

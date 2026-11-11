@@ -29,8 +29,50 @@ public partial class MainWindow
         window.Activate();
     }
 
+    private Files.GlobalHotkey? snippetKey;
+
+    private string? ApplySnippetShortcut(AppServices services)
+    {
+        if (!OperatingSystem.IsWindows() || snippetKey is null)
+            return null;
+        var shortcut = services.Settings.Screenshots.SnippetShortcut;
+        if (string.IsNullOrWhiteSpace(shortcut))
+            return snippetKey.Set(null);
+        var (keys, problem) = Webignite.Core.Tools.Hotkey.Parse(shortcut);
+        return problem ?? snippetKey.Set(keys);
+    }
+
+    // From another program: the window that was in front is remembered, so the snippet picked is pasted there.
+    private void ShowSnippetsFromAnywhere(AppServices services)
+    {
+        var typingIn = OperatingSystem.IsWindows() ? Files.PasteElsewhere.WindowInFront() : IntPtr.Zero;
+        if (toolWindows.TryGetValue(ToolKind.Snippets, out var already))
+            already.Close();
+        var window = ShowTool(ToolKind.Snippets, services, owned: false);
+        if (window.View is SnippetsView view)
+            view.PasteInto = typingIn;
+        window.Tools.SnippetsPaste = typingIn != IntPtr.Zero;
+        window.Topmost = true;
+        window.Activate();
+    }
+
     private void WireTools(AppServices services)
     {
+        services.ApplySnippetShortcut = () => ApplySnippetShortcut(services);
+        Opened += (_, _) =>
+        {
+            if (!OperatingSystem.IsWindows())
+                return;
+            snippetKey = new Files.GlobalHotkey(this, 0x574D, () => ShowSnippetsFromAnywhere(services), "Screenshots");
+            if (ApplySnippetShortcut(services) is { } problem)
+                ShowNote("Text snippets shortcut not set", problem, () => services.Go.Settings("screenshots"));
+        };
+        Closed += (_, _) =>
+        {
+            if (OperatingSystem.IsWindows())
+                snippetKey?.Release();
+            snippetKey = null;
+        };
         services.Go.OpenToolAction = kind => ShowTool(kind, services);
         // Clipboard history listens from the start, so what's copied before the tool is opened is there too.
         Opened += (_, _) => services.Clipboard.Watch(this);

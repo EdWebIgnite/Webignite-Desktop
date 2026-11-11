@@ -16,6 +16,7 @@ public enum ToolKind
     Dns,
     PageCapture,
     Ruler,
+    Snippets,
 }
 
 /// <summary>
