@@ -67,4 +67,15 @@ public sealed class ChatTests
         Assert.True(PresenceRules.Interrupts(PresenceState.Away));
         Assert.DoesNotContain(PresenceState.Offline, PresenceRules.Choices);
     }
+
+    [Theory]
+    [InlineData(true, false, null, ChatPaste.Files)]
+    [InlineData(true, true, "some words", ChatPaste.Files)]
+    [InlineData(false, true, null, ChatPaste.Picture)]
+    [InlineData(false, true, "https://example.co.za/photos/shop-front.jpg", ChatPaste.Picture)]
+    [InlineData(false, true, "The shop front, as Pieter sent it", ChatPaste.Text)]
+    [InlineData(false, false, "Morning!", ChatPaste.Text)]
+    [InlineData(false, false, null, ChatPaste.Nothing)]
+    public void A_paste_adds_files_a_picture_or_words_as_WhatsApp_does(bool files, bool picture, string? text, ChatPaste expected) =>
+        Assert.Equal(expected, ChatRules.PasteAs(files, picture, text));
 }

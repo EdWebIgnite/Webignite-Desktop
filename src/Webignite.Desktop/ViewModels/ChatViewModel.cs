@@ -9,7 +9,9 @@ namespace Webignite.Desktop.ViewModels;
 
 /// <summary>
 /// The chat window: messages between the two of you, newest at the bottom, with files and screenshots. What's typed
-/// goes with Send (or Enter); files are added with Attach, by dropping them on the window, or a picture by pasting.
+/// goes with Send (or Enter); files are added with Attach, by dropping them on the window, or by pasting (files copied in
+/// Explorer, a screenshot or a picture copied from a web page). A file in a message opens with a click, and can be
+/// copied, saved or dragged out to Explorer or another program.
 /// Messages reach the other PC with the next sync, about once a minute.
 /// </summary>
 public sealed partial class ChatViewModel(AppServices services) : ViewModelBase, IDisposable
@@ -156,27 +158,65 @@ public sealed partial class ChatViewModel(AppServices services) : ViewModelBase,
     /// <summary>Opens a file from a message: a picture in the picture viewer, anything else in its own program.</summary>
     internal void Open(ChatFile file)
     {
+        if (LocalCopy(file) is not { } path)
+            return;
+        try
+        {
+            if (ChatRules.IsPicture(file.Name))
+                services.Go.Picture(path);
+            else
+                AppServices.OpenFile(path);
+        }
+        catch (System.ComponentModel.Win32Exception e)
+        {
+            Say($"Couldn't open {file.Name}: {e.Message}", problem: true);
+        }
+    }
+
+    /// <summary>
+    /// The file from a message as a file on this PC (under chat-files in the data folder), to open, copy, save or drag
+    /// somewhere; null, with a note, when it hasn't all arrived or can't be written.
+    /// </summary>
+    internal string? LocalCopy(ChatFile file)
+    {
         if (services.Chat.FileBytes(file) is not { } data)
         {
             Say($"{file.Name} is still on its way. Try again in a minute.", problem: false);
-            return;
+            return null;
         }
         try
         {
             var folder = Path.Combine(DataPaths.Root(), "chat-files", file.Id);
             Directory.CreateDirectory(folder);
             var path = Path.Combine(folder, string.Join("_", file.Name.Split(Path.GetInvalidFileNameChars())));
-            File.WriteAllBytes(path, data);
-            if (ChatRules.IsPicture(file.Name))
-                services.Go.Picture(path);
-            else
-                AppServices.OpenFile(path);
+            if (!File.Exists(path) || new FileInfo(path).Length != data.Length)
+                File.WriteAllBytes(path, data);
+            return path;
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            Say($"Couldn't open {file.Name}: {e.Message}", problem: true);
+            Say($"Couldn't get {file.Name} ready: {e.Message}", problem: true);
+            return null;
         }
     }
+
+    /// <summary>A file from a message saved where the person picked.</summary>
+    internal void SaveAs(ChatFile file, string target)
+    {
+        if (LocalCopy(file) is not { } path)
+            return;
+        try
+        {
+            File.Copy(path, target, overwrite: true);
+            Say($"Saved {Path.GetFileName(target)}.", problem: false);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Say($"Couldn't save {file.Name}: {e.Message}", problem: true);
+        }
+    }
+
+    internal void Told(string text, bool problem) => Say(text, problem);
 
     public void Dispose()
     {
@@ -254,8 +294,15 @@ public sealed partial class ChatFileRow : IDisposable
     public bool HasPicture => Picture is not null;
     public bool IsFile => Picture is null;
 
+    public bool IsPictureFile => ChatRules.IsPicture(Name);
+
     [RelayCommand]
     private void Open() => owner.Open(file);
+
+    /// <summary>The file as one on this PC, for Copy, Save a copy and dragging it out.</summary>
+    public string? LocalCopy() => owner.LocalCopy(file);
+
+    public void SaveAs(string target) => owner.SaveAs(file, target);
 
     public void Dispose() => Picture?.Dispose();
 }
