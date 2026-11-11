@@ -186,14 +186,12 @@
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <!-- The words, and the time (with the ticks on mine) tucked in at the bottom right -->
-                    <WrapPanel HorizontalAlignment="Right" ItemSpacing="10">
-                      <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding HasText}" MaxWidth="300" />
-                      <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Bottom" HorizontalAlignment="Right">
-                        <TextBlock Classes="stamp" Text="{Binding Time}" />
-                        <TextBlock Classes="stamp" Classes.read="{Binding IsRead}" Text="{Binding TickText}" IsVisible="{Binding IsMine}" ToolTip.Tip="{Binding TickTip}" />
-                      </StackPanel>
-                    </WrapPanel>
+                    <!-- The words, then the time (with the ticks on mine) at the bottom right -->
+                    <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding HasText}" MaxWidth="300" />
+                    <StackPanel Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" Margin="12,-2,0,0">
+                      <TextBlock Classes="stamp" Text="{Binding Time}" />
+                      <TextBlock Classes="stamp" Classes.read="{Binding IsRead}" Text="{Binding TickText}" IsVisible="{Binding IsMine}" ToolTip.Tip="{Binding TickTip}" />
+                    </StackPanel>
                   </StackPanel>
                 </Border>
               </StackPanel>
