@@ -499,6 +499,9 @@ public partial class MainViewModel : ViewModelBase
             return null;
         };
         Search = new QuickSearchViewModel(services, OpenHit);
+        // The menu's kind and the dock's pages are part of the look; whichever is picked follows it at once.
+        services.Settings.AppearanceChanged += _ => MenuKindChanged();
+        FillDock();
     }
 
     /// <summary>The sidebar entry for a page.</summary>
@@ -782,6 +785,7 @@ public partial class MainViewModel : ViewModelBase
     partial void OnCurrentChanged(PageHost value)
     {
         KeepInTabs(value);
+        FillDock();
         WatchPanes(value);
         WatchProjects(value);
         WatchMyPages(value);

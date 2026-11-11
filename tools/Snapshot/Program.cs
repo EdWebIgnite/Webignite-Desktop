@@ -2243,6 +2243,55 @@ vm.Invoices.Editor!.Lines[0].Price = "3 x 650";
 Save("invoice-sum");
 
 // Site check, with made-up results (no network here)
+// The two menus that aren't the sidebar (Settings, Look and feel, Menu), in Classic and in Airy.
+{
+    var was = services.Settings.Appearance;
+    Open(Page.Overview);
+    services.Settings.Appearance = was with { Menu = MenuKind.Button };
+    Dispatcher.UIThread.RunJobs();
+    Check("With the Menu button the sidebar is gone and a bar along the top takes its place", vm.IsButtonMenu && vm.HasMenuBar && !vm.IsSidebarMenu && !vm.IsMenuOpen);
+    Save("menu-button");
+    vm.ToggleMenuCommand.Execute(null);
+    Check("The menu lists every group the sidebar has, and Planner's own pages",
+        vm.IsMenuOpen && vm.MenuColumns.Count >= 6 && vm.MenuColumns[0].Title == "Start" && vm.MenuColumns.Any(c => c.Title == "Planner")
+        && vm.MenuColumns.SelectMany(c => c.Entries).Count(e => e.IsCurrent) == 1);
+    Check("The menu says how things stand beside its pages", vm.MenuColumns.SelectMany(c => c.Entries).Any(e => e.HasFigure));
+    Save("menu-button-open");
+    vm.PickFromMenuCommand.Execute(vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Invoices"));
+    Check("Picking a page from the menu opens it and closes the menu", !vm.IsMenuOpen && vm.Selected.Key == Page.Invoices);
+    vm.ToggleMenuCommand.Execute(null);
+    vm.PickFromMenuCommand.Execute(vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.Item is ToolLink { Kind: ToolKind.Calculator }));
+    Check("Picking a tool from the menu opens its window and leaves the page", !vm.IsMenuOpen && vm.Selected.Key == Page.Invoices);
+    Open(Page.Overview);
+
+    services.Settings.Appearance = was with { Menu = MenuKind.Dock };
+    Dispatcher.UIThread.RunJobs();
+    Check("The dock holds the usual pages, with the one on screen lit", vm.IsDockMenu && vm.Dock.Count == DockPages.Usual.Count && vm.Dock.Single(e => e.IsCurrent).PageKey == "Overview");
+    Save("menu-dock");
+    vm.ToggleMenuCommand.Execute(null);
+    var notes = vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Notes");
+    Check("A page not on the dock can be added from the menu", notes.CanAdd && !notes.OnDock);
+    vm.AddToDockCommand.Execute(notes);
+    Check("Added, it is on the dock and stays there", vm.Dock.Any(e => e.PageKey == "Notes") && services.Settings.Appearance.Dock!.Contains("Notes"));
+    vm.CloseMenuCommand.Execute(null);
+    vm.TakeOffDockCommand.Execute(vm.Dock.First(e => e.PageKey == "Notes"));
+    Check("Taken off, it is gone again", vm.Dock.All(e => e.PageKey != "Notes"));
+    Open(Page.Mail);
+    Check("On another page the dock lights that one", vm.Dock.Single(e => e.IsCurrent).PageKey == "Mail");
+    Save("menu-dock-mail");
+    Open(Page.Overview);
+    services.Settings.Appearance = was with { Menu = MenuKind.Dock, Style = LookStyle.Airy, Sidebar = SidebarTone.Light };
+    Dispatcher.UIThread.RunJobs();
+    Save("menu-dock-airy");
+    services.Settings.Appearance = was with { Menu = MenuKind.Button, Style = LookStyle.Airy };
+    vm.ToggleMenuCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Save("menu-button-open-airy");
+    vm.CloseMenuCommand.Execute(null);
+    services.Settings.Appearance = was;
+    Dispatcher.UIThread.RunJobs();
+    Check("Back on the sidebar, the bar and the dock are gone", vm.IsSidebarMenu && !vm.HasMenuBar && vm.Dock.Count == 0);
+}
 Open(Page.Crawler);
 {
     var crawler = (CrawlerViewModel)vm[Page.Crawler].Main.Page;

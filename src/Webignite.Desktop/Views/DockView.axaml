@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.DockView"
+             x:DataType="vm:MainViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.dock">
+      <Setter Property="Background" Value="{DynamicResource Nav}" />
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="Padding" Value="8,7" />
+      <Setter Property="BoxShadow" Value="{DynamicResource OverlayShadow}" />
+    </Style>
+    <Style Selector="Button.dockitem">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource NavMuted}" />
+      <Setter Property="Width" Value="70" />
+      <Setter Property="Padding" Value="4,8,4,7" />
+      <Setter Property="CornerRadius" Value="13" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.dockitem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NavHover}" />
+      <Setter Property="Foreground" Value="{DynamicResource NavText}" />
+    </Style>
+    <!-- The page on screen is the lit one: the dock's own colours the other way round. -->
+    <Style Selector="Button.dockitem.current">
+      <Setter Property="Background" Value="{DynamicResource NavText}" />
+      <Setter Property="Foreground" Value="{DynamicResource Nav}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <!-- Its count turns round with it, so it still shows. -->
+    <Style Selector="Button.dockitem.current Border.badge">
+      <Setter Property="Background" Value="{DynamicResource Nav}" />
+    </Style>
+    <Style Selector="Button.dockitem.current Border.badge > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource NavText}" />
+    </Style>
+    <Style Selector="Button.dockitem Border.badge > TextBlock">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.dockitem.current:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NavText}" />
+      <Setter Property="Foreground" Value="{DynamicResource Nav}" />
+    </Style>
+  </UserControl.Styles>
+  <Border Padding="0,6,0,12">
+    <Border Classes="dock" HorizontalAlignment="Center">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <ItemsControl ItemsSource="{Binding Dock}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="4" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:MenuEntry">
+              <Button Classes="dockitem" Classes.current="{Binding IsCurrent}" ToolTip.Tip="{Binding Title}"
+                      Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).PickFromMenuCommand}" CommandParameter="{Binding}">
+                <Button.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Take off the dock" IsEnabled="{Binding CanTakeOff}"
+                              Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).TakeOffDockCommand}" CommandParameter="{Binding}" />
+                  </ContextMenu>
+                </Button.ContextMenu>
+                <Panel>
+                  <StackPanel Spacing="4">
+                    <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="20" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text11}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <Border Classes="badge" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-5,0,0" MinWidth="18" Padding="5,1" IsVisible="{Binding Module.HasBadge}">
+                    <TextBlock Text="{Binding Module.Badge}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
+                  </Border>
+                </Panel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Width="1" Margin="4,10" Background="{DynamicResource NavSelected}" />
+        <Button Classes="dockitem" Command="{Binding ToggleMenuCommand}" ToolTip.Tip="Every page, tool and project (Ctrl+M)">
+          <StackPanel Spacing="4">
+            <c:Icon Data="{StaticResource Icon.Tiles}" Size="20" HorizontalAlignment="Center" />
+            <TextBlock Text="More" FontSize="{DynamicResource Text11}" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+  </Border>
+</UserControl>

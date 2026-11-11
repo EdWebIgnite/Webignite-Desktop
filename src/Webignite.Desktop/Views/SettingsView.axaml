@@ -123,6 +123,21 @@
 
     <Border Classes="card" IsVisible="{Binding ShowLook}">
       <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Menu" />
+        <Border Classes="segments" HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="segment" Classes.on="{Binding IsMenuSidebar}" Content="Sidebar" Command="{Binding UseMenuCommand}" CommandParameter="Sidebar" />
+            <Button Classes="segment" Classes.on="{Binding IsMenuButton}" Content="Menu button" Command="{Binding UseMenuCommand}" CommandParameter="Button" />
+            <Button Classes="segment" Classes.on="{Binding IsMenuDock}" Content="Dock" Command="{Binding UseMenuCommand}" CommandParameter="Dock" />
+          </StackPanel>
+        </Border>
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="How you get to pages. Sidebar is the list down the left. Menu button leaves the page the whole width, and one button (or Ctrl+M) opens every page, tool and project over it, with how things stand beside each. Dock puts the pages you use most in a bar along the bottom, with the rest behind More; right-click a page in the menu to add it to the dock, or one on the dock to take it off." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding ShowLook}">
+      <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Style" />
         <Border Classes="segments" HorizontalAlignment="Left">
           <StackPanel Orientation="Horizontal">

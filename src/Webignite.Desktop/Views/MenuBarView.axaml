@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.MenuBarView"
+             x:DataType="vm:MainViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.menubar">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Padding" Value="14,8" />
+    </Style>
+    <Style Selector="Button.menubutton">
+      <Setter Property="Background" Value="{DynamicResource Primary}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Padding" Value="13,7" />
+      <Setter Property="CornerRadius" Value="9" />
+    </Style>
+    <Style Selector="Button.menubutton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource PrimaryHover}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+    </Style>
+    <Style Selector="Button.barbutton">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="Padding" Value="11,6" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Button.barbutton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
+    <!-- A count on a light surface, as the sidebar's badge is on a dark one. -->
+    <Style Selector="Border.count">
+      <Setter Property="Background" Value="{DynamicResource Primary}" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="MinWidth" Value="18" />
+      <Setter Property="Padding" Value="5,1" />
+    </Style>
+    <Style Selector="Border.count > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <Border Classes="menubar">
+    <DockPanel>
+      <Button DockPanel.Dock="Left" Classes="menubutton" Command="{Binding ToggleMenuCommand}" IsVisible="{Binding IsButtonMenu}" Margin="0,0,14,0"
+              ToolTip.Tip="Every page, tool and project (Ctrl+M)">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <c:Icon Data="{StaticResource Icon.Tiles}" Size="15" VerticalAlignment="Center" />
+          <TextBlock Text="Menu" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+      <TextBlock DockPanel.Dock="Left" Text="Webignite" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" Margin="0,0,14,0" />
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+        <!-- Background work, e.g. checking mail -->
+        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding Work.IsWorking}" VerticalAlignment="Center" Margin="0,0,6,0">
+          <c:Spinner Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Work.Text}" VerticalAlignment="Center" />
+        </StackPanel>
+        <Button Classes="primary" Padding="12,6" IsVisible="{Binding Updates.IsReady}" Command="{Binding Updates.RestartCommand}"
+                Content="{Binding Updates.ReadyVersion, StringFormat='Update to {0}: restart'}" />
+        <Button Classes="barbutton" IsVisible="{Binding Timer.IsRunning}" Command="{Binding OpenTimeCommand}" ToolTip.Tip="Timer running. Click to open Time.">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Data="{StaticResource Icon.Time}" Size="15" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Timer.Clock}" FontFeatures="+tnum" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Classes="barbutton" Command="{Binding Search.ShowCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Data="{StaticResource Icon.Search}" Size="15" VerticalAlignment="Center" />
+            <TextBlock Text="Search" VerticalAlignment="Center" />
+            <TextBlock Text="Ctrl+K" FontSize="{DynamicResource Text11}" Opacity="0.7" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Classes="barbutton" Command="{Binding OpenChatCommand}" ToolTip.Tip="{Binding ChatPartnerTip}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Data="{StaticResource Icon.Chat}" Size="15" VerticalAlignment="Center" />
+            <TextBlock Text="Chat" VerticalAlignment="Center" />
+            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding ChatPartnerShown, Converter={x:Static c:PresenceColours.Brush}}" />
+            <Border Classes="count" IsVisible="{Binding HasChatUnread}" VerticalAlignment="Center">
+              <TextBlock Text="{Binding ChatUnread}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
+            </Border>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+      <TextBlock Classes="muted" Text="{Binding Current.Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+    </DockPanel>
+  </Border>
+</UserControl>

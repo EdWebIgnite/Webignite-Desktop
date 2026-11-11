@@ -58,6 +58,7 @@ public partial class MainWindow : Window
             Restore(services.Settings.Window, main);
             ApplyAppearance(services.Settings.Appearance);
             services.Settings.AppearanceChanged += ApplyAppearance;
+            FollowMenu(main);
             WireScreenshots(main, services);
             WireRecording(main, services);
             WireQuickNote(services);
@@ -285,6 +286,12 @@ public partial class MainWindow : Window
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && DataContext is MainViewModel { IsMenuOpen: true } menu)
+        {
+            menu.IsMenuOpen = false;
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Escape && DataContext is MainViewModel { ShowingShortcuts: true } main)
         {
             main.ShowingShortcuts = false;
