@@ -599,14 +599,33 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
     private void AdjustCounts(IEnumerable<(string AccountId, string Folder, int Change)> changes, IEnumerable<(string AccountId, string Folder)> recount)
     {
         var folders = Mailboxes.SelectMany(m => m.Folders).Where(f => f.Kind == FolderKind.Folder).ToList();
+        var moved = new List<FolderNodeViewModel>();
         foreach (var group in changes.Where(c => c.Change != 0).GroupBy(c => (c.AccountId, c.Folder)))
             if (folders.FirstOrDefault(f => f.Mailbox.Id == group.Key.AccountId && f.Path == group.Key.Folder) is { } folder)
+            {
                 folder.Unread = Math.Max(0, folder.Unread + group.Sum(c => c.Change));
+                moved.Add(folder);
+            }
         foreach (var (accountId, path) in recount.Distinct())
             if (folders.FirstOrDefault(f => f.Mailbox.Id == accountId && f.Path == path) is { } folder)
+            {
                 folder.Unread = services.Store.ListMailSummaries(accountId, path).Count(m => !m.Seen);
+                moved.Add(folder);
+            }
         if (Mailboxes.SelectMany(m => m.Folders).FirstOrDefault(f => f.Kind == FolderKind.AllInboxes) is { } all)
             all.Unread = folders.Where(f => f.Role == FolderRole.Inbox).Sum(f => f.Unread);
+        if (moved.Count == 0)
+            return;
+        // The counts are kept too, so Mail in the sidebar (and the taskbar) shows the same number straight away
+        // rather than at the next mail check; the next check sets them from the server again.
+        foreach (var byAccount in moved.Distinct().GroupBy(f => f.Mailbox.Id))
+        {
+            var stored = services.Store.ListMailFolders(byAccount.Key);
+            foreach (var folder in byAccount)
+                if (stored.FirstOrDefault(f => f.Path == folder.Path) is { } kept && kept.Unread != folder.Unread)
+                    services.Store.SaveMailFolder(kept with { Unread = folder.Unread });
+        }
+        services.MailCountsChanged?.Invoke();
     }
 
     /// <summary>When mail was last checked, for Check for mail's tooltip; it no longer takes a line above the list.</summary>

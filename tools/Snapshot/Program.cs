@@ -1136,6 +1136,13 @@ services.Settings.Appearance = services.Settings.Appearance with { Theme = Theme
 vm.Mail.ClientFilter = vm.Mail.ClientChoices.First(c => c.Label == "Fynbos Physio");
 Save("mail-client-filter");
 vm.Mail.ClientFilter = vm.Mail.ClientChoices[0];
+// Reading a mail takes it off Mail's count in the sidebar at once, not at the next mail check.
+var unreadMail = vm.Mail.Messages.FirstOrDefault(m => !m.Summary.Seen && m.Summary.Folder == "INBOX");
+if (unreadMail is not null)
+    Wait(vm.Mail.Select(unreadMail), "An unread mail opened");
+Dispatcher.UIThread.RunJobs();
+Check("Mail in the sidebar counts the same as All inboxes as soon as a mail is read", unreadMail is not null
+    && vm[Page.Mail].Badge == vm.Mail.Mailboxes.SelectMany(m => m.Folders).First(f => f.Kind == FolderKind.AllInboxes).Unread);
 Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41)), "The booking mail opened");
 
 // Snooze until a picked day: the small form above the list.
