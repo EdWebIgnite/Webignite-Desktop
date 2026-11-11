@@ -3448,6 +3448,20 @@ Save("site-check");
             pdfRow.RemoveCommand.Execute(null);
             Check("Removing a file takes it off the task and out of Files", projectsPage.ProjectFiles.Count == 1
                 && services.Projects.GetTask(coloursTask.Task.Id)!.Attachments.Count == 1);
+            // Files dropped from Windows on a task's row: it lights up while they're over it, and they're attached to it.
+            projectsPage.ListViewCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            var dropRow = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Build the five pages");
+            var dropBorder = window.GetVisualDescendants().OfType<Avalonia.Controls.Border>()
+                .First(b => b.DataContext == dropRow && b.Classes.Contains("taskrow") && b.IsEffectivelyVisible);
+            dropBorder.Classes.Add("filedrop");
+            Save("list-file-drop");
+            dropBorder.Classes.Remove("filedrop");
+            projectsPage.AttachTo(dropRow, [briefPath]);
+            var dropped = services.Projects.GetTask(dropRow.Task.Id)!;
+            Check("Files dropped on a task's row are attached to it, and it says so", dropped.Attachments.Count == 1
+                && projectsPage.Message == "Attached Brief.pdf to Build the five pages.");
+            services.Projects.Detach(dropRow.Task.Id, dropped.Attachments[0].Id);
             // Comments and All activity, as Asana's: a comment posted shows in the feed and counts in the list.
             projectsPage.ListViewCommand.Execute(null);
             projectsPage.OpenTaskById(coloursTask.Task.Id);

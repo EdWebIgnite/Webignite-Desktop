@@ -193,6 +193,11 @@
     <Style Selector="Border.boardcard.open">
       <Setter Property="BorderBrush" Value="{DynamicResource DropMark}" />
     </Style>
+    <!-- Files from Windows dragged over a task: it lights up, and they're attached to it when dropped -->
+    <Style Selector="Border.taskrow.filedrop, Border.boardcard.filedrop">
+      <Setter Property="BorderBrush" Value="{DynamicResource DropMark}" />
+      <Setter Property="Background" Value="{DynamicResource Picked}" />
+    </Style>
     <Style Selector="Border.boardcard.picked">
       <Setter Property="BorderBrush" Value="{DynamicResource DropMark}" />
       <Setter Property="Background" Value="{DynamicResource Picked}" />
@@ -1097,7 +1102,7 @@
                 </StackPanel>
               </Grid>
             </Border>
-          <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}">
+          <ItemsControl x:Name="TaskList" ItemsSource="{Binding Rows}" DragDrop.AllowDrop="True">
             <ItemsControl.DataTemplates>
               <DataTemplate DataType="vm:SectionRow">
                 <Border Classes="listsection" Background="Transparent">
@@ -1473,7 +1478,7 @@
                "Add task" at its foot, and a column at the end to add a heading. -->
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding IsBoard}">
             <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,8">
-            <ItemsControl x:Name="Board" ItemsSource="{Binding Columns}">
+            <ItemsControl x:Name="Board" ItemsSource="{Binding Columns}" DragDrop.AllowDrop="True">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="12" /></ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
