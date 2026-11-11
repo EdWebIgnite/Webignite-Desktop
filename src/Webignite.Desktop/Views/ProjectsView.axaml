@@ -666,7 +666,8 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <StackPanel Orientation="Horizontal" Spacing="6">
+            <!-- Wraps onto a second line when the pane is narrow, rather than running under Share -->
+            <WrapPanel ItemSpacing="6" LineSpacing="6">
               <Button Classes="projecthead" ToolTip.Tip="Set colour and icon">
                 <Border Classes="projecttile" Width="34" Height="34" CornerRadius="8" Background="{Binding EditColour, Converter={x:Static c:ProjectColours.Brush}}">
                   <c:Icon Data="{Binding EditIcon, Converter={x:Static c:ProjectColours.Icon}}" Size="18" Foreground="{DynamicResource OnProject}"
@@ -746,13 +747,13 @@
                   </MenuFlyout>
                 </Button.Flyout>
               </Button>
-            </StackPanel>
+            </WrapPanel>
           </DockPanel>
 
           <!-- The views, as Asana's tabs -->
           <DockPanel Margin="0,-6,0,0">
             <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Summary}" VerticalAlignment="Center" />
-            <StackPanel Orientation="Horizontal">
+            <WrapPanel>
               <Button Classes="viewtab" Classes.on="{Binding IsOverview}" Content="Overview" Command="{Binding OverviewViewCommand}"
                       ToolTip.Tip="What the project is about, its key links and milestones, and how it's going" />
               <Button Classes="viewtab" Classes.on="{Binding IsList}" Content="List" Command="{Binding ListViewCommand}" />
@@ -766,7 +767,7 @@
                       ToolTip.Tip="A month with each task on its due date" />
               <Button Classes="viewtab" Classes.on="{Binding IsFiles}" Content="Files" Command="{Binding FilesViewCommand}"
                       ToolTip.Tip="Every file attached to the project's tasks" />
-            </StackPanel>
+            </WrapPanel>
           </DockPanel>
           <Border Height="1" Background="{DynamicResource Line}" Margin="0,-17,0,0" />
 
@@ -1047,7 +1048,12 @@
           <!-- The list, as Asana's: column headings, then each heading (folding) with its tasks in cells -->
           <StackPanel x:Name="ListArea" IsVisible="{Binding IsList}">
             <Border Classes="listhead">
-              <Grid ColumnDefinitions="22,28,*,Auto,Auto,Auto,Auto,36">
+              <Grid>
+                <!-- The name column stops at a sensible width, as Asana's, so the other columns sit close by -->
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="22" /><ColumnDefinition Width="28" /><ColumnDefinition Width="*" MaxWidth="560" />
+                  <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="36" />
+                </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="2" Text="Task name" />
                 <Border Grid.Column="3" Classes="cellline whocell"><TextBlock Text="Assignee" /></Border>
                 <Border Grid.Column="4" Classes="cellline duecell"><TextBlock Text="Due date" /></Border>
@@ -1116,7 +1122,12 @@
               </DataTemplate>
               <DataTemplate DataType="vm:TaskRow">
                 <Border Classes="taskrow" Classes.picked="{Binding IsPicked}" Classes.subtask="{Binding IsSubtask}" Opacity="{Binding Fade}" ContextRequested="TaskMenu">
-                  <Grid ColumnDefinitions="22,28,*,Auto,Auto,Auto,Auto,36">
+                  <Grid>
+                <!-- The name column stops at a sensible width, as Asana's, so the other columns sit close by -->
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="22" /><ColumnDefinition Width="28" /><ColumnDefinition Width="*" MaxWidth="560" />
+                  <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="36" />
+                </Grid.ColumnDefinitions>
                     <Border Classes="grip" Background="Transparent" ToolTip.Tip="Drag the row to move it">
                       <c:Icon Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
