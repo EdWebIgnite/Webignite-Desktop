@@ -176,23 +176,33 @@ public sealed class AppServices : IDisposable
     {
         foreach (var item in fresh.Take(2))
             ShowNote?.Invoke(Webignite.Core.Projects.InboxRules.Headline(item), item.Snippet,
-                () => { if (item.MessageId is null) Go.ProjectTask(item.TaskId); else Go.ProjectMessages(item.ProjectId); });
+                () =>
+                {
+                    if (item.MessageId is not null)
+                        Go.ProjectMessages(item.ProjectId);
+                    else if (item.Kind == Webignite.Core.Projects.InboxKind.Added)
+                        Go.Project(item.ProjectId);
+                    else
+                        Go.ProjectTask(item.TaskId);
+                });
         if (fresh.Count > 2)
             ShowNote?.Invoke($"{fresh.Count - 2} more in Inbox", "Open Inbox in Planner to see them.", () => Go.To(Page.Inbox));
     }
 
     /// <summary>
-    /// You and your partner, made the first time they're needed: "Me" and "Partner" until named in Settings.
+    /// You and your partner, made the first time they're needed: "Me" and "Partner" until named in Settings, or
+    /// named from the workspace's emails once signed in (<see cref="Webignite.Core.Projects.PeopleRules.Named"/>).
     /// Ids stay the same, so names can change; the one exception is the partner's PC taking on the workspace
     /// owner's ids the first time it syncs.
     /// </summary>
     public Webignite.Core.Projects.TeamSettings Team()
     {
         var team = Settings.Team;
-        if (team.Me is not null && team.Partner is not null)
-            return team;
-        var made = Webignite.Core.Projects.ProjectRules.Ensure(team, null);
-        Settings.Team = made;
+        var made = team.Me is not null && team.Partner is not null ? team : Webignite.Core.Projects.ProjectRules.Ensure(team, null);
+        if (account?.Account is { } signedIn)
+            made = Webignite.Core.Projects.PeopleRules.Named(made, signedIn.Email, signedIn.Workspace.Members.Select(m => m.Email));
+        if (!ReferenceEquals(made, team))
+            Settings.Team = made;
         return made;
     }
 

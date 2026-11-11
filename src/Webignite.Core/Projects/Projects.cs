@@ -348,7 +348,7 @@ public static class ProjectRules
     /// <summary>The team with both people in it: you ("Me" unless a name is known) and "Partner", until renamed.</summary>
     public static TeamSettings Ensure(TeamSettings team, string? myName)
     {
-        var me = team.Me ?? new Teammate { Id = Teammate.NewId(), Name = string.IsNullOrWhiteSpace(myName) ? "Me" : myName.Trim() };
+        var me = team.Me ?? new Teammate { Id = Teammate.NewId(), Name = string.IsNullOrWhiteSpace(myName) ? PeopleRules.DefaultMe : myName.Trim() };
         var partner = team.Partner ?? new Teammate { Id = Teammate.NewId(), Name = DefaultPartner };
         return team with { Me = me, Partner = partner };
     }

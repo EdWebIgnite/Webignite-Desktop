@@ -216,4 +216,25 @@ public sealed class FinanceSyncTests : IDisposable
         await Sync(jaco);
         Assert.Equal(Webignite.Core.Chat.PresenceState.Available, jacoChat.PartnerShown);
     }
+
+    [Fact]
+    public async Task The_name_each_person_gives_themselves_reaches_the_other_pc()
+    {
+        var (eddie, jaco) = await TwoPcs();
+        // Eddie's PC still calls his partner "Partner"; Jaco's own name comes over with Jaco's next sync.
+        Assert.Equal(ProjectRules.DefaultPartner, eddie.Store.GetSetting<TeamSettings>("team")!.Partner!.Name);
+        await Sync(jaco);
+        await Sync(eddie);
+        var team = eddie.Store.GetSetting<TeamSettings>("team")!;
+        Assert.Equal("Jaco", team.Partner!.Name);
+        Assert.Equal("jaco@webignite.co.za", team.Partner.Email);
+
+        // Jaco renames himself: Eddie's PC follows.
+        var jacoTeam = jaco.Store.GetSetting<TeamSettings>("team")!;
+        jaco.Store.SetSetting("team", jacoTeam with { Me = jacoTeam.Me! with { Name = "Jaco van Wyk" } });
+        await Sync(jaco);
+        await Sync(eddie);
+        Assert.Equal("Jaco van Wyk", eddie.Store.GetSetting<TeamSettings>("team")!.Partner!.Name);
+        Assert.Equal("Eddie", jaco.Store.GetSetting<TeamSettings>("team")!.Partner!.Name);
+    }
 }

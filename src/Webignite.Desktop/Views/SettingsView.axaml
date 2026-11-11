@@ -792,27 +792,7 @@
           </Border>
           <TextBlock Classes="muted" FontSize="12" Text="This PC has the workspace key, so it can unlock what's shared." IsVisible="{Binding HasWorkspaceKey}" />
           <TextBlock Classes="problem" FontSize="12" TextWrapping="Wrap" Text="This PC doesn't have the workspace key yet. Sign out and sign in again with your password." IsVisible="{Binding !HasWorkspaceKey}" />
-          <TextBlock FontWeight="SemiBold" Text="People in the workspace" Margin="0,6,0,0" />
-          <ItemsControl ItemsSource="{Binding Members}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:MemberRowViewModel">
-                <DockPanel Margin="0,2">
-                  <Button DockPanel.Dock="Right" Classes="link" Content="Take out" Command="{Binding RemoveCommand}" IsVisible="{Binding CanRemove}"
-                          ToolTip.Tip="They can't sign in or sync any more." />
-                  <TextBlock VerticalAlignment="Center"><Run Text="{Binding Email}" /><Run Text="  " /><Run Classes="muted" Text="{Binding Role}" FontSize="12" /></TextBlock>
-                </DockPanel>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <Border Classes="pending" IsVisible="{Binding ConfirmingRemove}">
-            <StackPanel Spacing="8">
-              <TextBlock TextWrapping="Wrap" Text="{Binding RemoveQuestion}" />
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Classes="quiet" Content="Take them out" Command="{Binding RemoveMemberCommand}" IsEnabled="{Binding !AccountBusy}" />
-                <Button Classes="quiet" Content="Keep them" Command="{Binding KeepMemberCommand}" />
-              </StackPanel>
-            </StackPanel>
-          </Border>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="Who's in the workspace is under Your organisation." />
 
           <TextBlock FontWeight="SemiBold" Text="Licence" Margin="0,6,0,0" />
           <TextBlock Text="{Binding LicenceText}" TextWrapping="Wrap" Classes.problem="{Binding LicenceProblem}" />
@@ -897,23 +877,60 @@
       </StackPanel>
     </Border>
 
-    <Border Classes="card" IsVisible="{Binding ShowProjects}">
+    <Border Classes="card" IsVisible="{Binding ShowOrganisation}">
       <StackPanel Spacing="12">
-        <TextBlock Classes="h2" Text="You and your partner" />
+        <TextBlock Classes="h2" Text="Your organisation" />
+        <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding OrganisationText}" />
+        <!-- Everyone in the workspace, as Asana's members list: initials, name, email, role and status -->
+        <ItemsControl ItemsSource="{Binding Members}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:MemberRowViewModel">
+              <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,10">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="link" Content="Take out" Command="{Binding RemoveCommand}" IsVisible="{Binding CanRemove}"
+                          VerticalAlignment="Center" ToolTip.Tip="They can't sign in or sync any more." />
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Role}" VerticalAlignment="Center" Margin="12,0" />
+                  <Panel DockPanel.Dock="Left" Margin="0,0,12,0" VerticalAlignment="Center">
+                    <c:Monogram Text="{Binding Name}" Size="36" />
+                    <Ellipse Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Bottom" Stroke="{DynamicResource Surface}" StrokeThickness="2"
+                             Fill="{Binding Shown, Converter={x:Static c:PresenceColours.Brush}}" ToolTip.Tip="{Binding ShownText}" />
+                  </Panel>
+                  <StackPanel VerticalAlignment="Center" Spacing="2">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Classes="muted" FontSize="12" Text="(you)" IsVisible="{Binding IsMe}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Email}" IsVisible="{Binding HasEmail}" />
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Classes="pending" IsVisible="{Binding ConfirmingRemove}">
+          <StackPanel Spacing="8">
+            <TextBlock TextWrapping="Wrap" Text="{Binding RemoveQuestion}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="quiet" Content="Take them out" Command="{Binding RemoveMemberCommand}" IsEnabled="{Binding !AccountBusy}" />
+              <Button Classes="quiet" Content="Keep them" Command="{Binding KeepMemberCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <TextBlock FontWeight="SemiBold" Text="Names" Margin="0,6,0,0" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
-                   Text="Projects and tasks can be given to either of you, and every change records who made it and when. Projects stay on this PC for now; sharing them with your partner comes later." />
-        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" Width="520" HorizontalAlignment="Left">
+                   Text="Tasks can be given to either of you, and every change records who made it. Your name goes to your partner's PC with the next sync, and theirs comes to you, so you both see the same names and initials." />
+        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto" RowSpacing="8" Width="520" HorizontalAlignment="Left">
           <TextBlock Text="Your name" VerticalAlignment="Center" />
           <TextBox Grid.Column="1" Text="{Binding MyName}" />
           <TextBlock Grid.Row="1" Text="Partner's name" VerticalAlignment="Center" />
-          <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PartnerName}" />
-          <TextBlock Grid.Row="2" Text="Partner's email" VerticalAlignment="Center" />
-          <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding PartnerEmail}" PlaceholderText="Optional, for later" />
+          <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PartnerName}" ToolTip.Tip="Replaced by the name your partner gives themselves on their PC" />
         </Grid>
         <StackPanel Orientation="Horizontal" Spacing="10">
           <Button Classes="primary" Content="Save" Command="{Binding SaveTeamCommand}" />
           <TextBlock Text="{Binding TeamMessage}" VerticalAlignment="Center" Classes.problem="{Binding TeamProblem}" TextWrapping="Wrap" />
         </StackPanel>
+        <TextBlock Text="{Binding SyncMessage}" TextWrapping="Wrap" Classes.problem="{Binding SyncProblem}" IsVisible="{Binding SyncMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
     </Border>
 

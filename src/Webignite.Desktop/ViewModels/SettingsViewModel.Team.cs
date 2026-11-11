@@ -35,7 +35,8 @@ public partial class SettingsViewModel
             return;
         }
         services.Settings.Team = team with { Me = me, Partner = partner };
-        TeamMessage = "Saved.";
+        ShowMembers(services.Account.IsSignedIn ? services.Account.Account : null);
+        TeamMessage = IsSignedIn ? "Saved. Your partner sees your name after the next sync." : "Saved.";
         TeamProblem = false;
     }
 }
