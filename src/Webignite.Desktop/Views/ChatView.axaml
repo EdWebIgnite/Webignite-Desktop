@@ -83,7 +83,7 @@
             <c:Icon Data="{StaticResource Icon.Paperclip}" Size="15" />
           </Button>
           <TextBox x:Name="DraftBox" Text="{Binding Draft}" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="140"
-                   PlaceholderText="Write a message. Enter sends, Shift+Enter for a new line." KeyDown="DraftKeyDown" />
+                   PlaceholderText="Write a message. Enter sends, Shift+Enter for a new line." />
         </DockPanel>
       </StackPanel>
     </Border>

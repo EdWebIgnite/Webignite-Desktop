@@ -1932,6 +1932,16 @@ Check("Closing the window stops it following the history and lets the pictures g
         && chatWindow.Chat.Messages[2].Files.Single().Picture is null && chatWindow.Chat.Title == "Chat with Jaco");
     chatWindow.Chat.Draft = "Will do, give me ten minutes";
     SaveWindow(chatWindow, "chat");
+    // Enter sends; Shift+Enter is a new line.
+    chatWindow.Activate();
+    chatWindow.FindDescendantOfType<Avalonia.Controls.TextBox>()!.Focus();
+    chatWindow.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.Shift, Avalonia.Input.PhysicalKey.Enter, null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Shift+Enter doesn't send", chatWindow.Chat.Messages.Count == 3);
+    chatWindow.Chat.Draft = "Will do, give me ten minutes";
+    chatWindow.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Enter in the box sends the message", chatWindow.Chat.Messages.Count == 4 && chatWindow.Chat.Draft.Length == 0);
     // A new message while the chat isn't in front: a pop-up in the corner of the screen.
     var popUp = new ChatPopUp(() => { });
     popUp.Say("Jaco", "Looks good. Here's the quote for the extra pages, can you approve it when you're happy?");
