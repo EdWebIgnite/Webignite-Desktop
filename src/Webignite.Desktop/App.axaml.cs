@@ -38,7 +38,9 @@ public partial class App : Application
                 Services = new AppServices(LocalStore.OpenDefault());
             }
             MainViewModel.AskToSignInAtStart = true;
-            var window = new MainWindow { DataContext = new MainViewModel(Services) };
+            var main = new MainViewModel(Services);
+            var window = new MainWindow { DataContext = main };
+            main.WatchMail();
             desktop.MainWindow = window;
             var services = Services;
             window.Opened += (_, _) =>

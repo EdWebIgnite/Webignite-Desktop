@@ -357,6 +357,8 @@
           <ComboBox ItemsSource="{Binding MailCheckChoices}" SelectedItem="{Binding MailCheckMinutes}" MinWidth="80" />
           <TextBlock Text="minutes" VerticalAlignment="Center" />
         </StackPanel>
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="New mail also shows within seconds of arriving, when your mail server can tell Webignite (most can, xneelo included). The check above is the backup." />
         <CheckBox IsChecked="{Binding NotifyNewMail}" Content="Show a note in the corner when new mail arrives" />
         <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
                    Text="Mail is checked while Webignite is open, on any page. The taskbar button flashes when mail comes in while the app is behind other windows." />

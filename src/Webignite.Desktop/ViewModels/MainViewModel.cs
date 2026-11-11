@@ -157,6 +157,19 @@ public partial class MainViewModel : ViewModelBase
         mailModule.Badge = services.Store.ListMailAccounts().Sum(a =>
             services.Store.ListMailFolders(a.Id).FirstOrDefault(f => f.Role == Webignite.Core.Mail.FolderRole.Inbox)?.Unread ?? 0);
 
+    private bool watchingMail;
+
+    /// <summary>
+    /// Has the mail server say when mail lands (IMAP IDLE), so it shows within seconds; the check every few minutes
+    /// stays. Started by the app itself, not by tests or the screenshot tool, which have no real mail server.
+    /// </summary>
+    public void WatchMail()
+    {
+        watchingMail = true;
+        services.MailWatch.NewMail = _ => Avalonia.Threading.Dispatcher.UIThread.Post(() => CheckMailAsync().Forget("Checking mail"));
+        services.MailWatch.Keep(services.Store.ListMailAccounts());
+    }
+
     /// <summary>Fetches new mail, updates the unread count and announces mail that just arrived.</summary>
     public async Task CheckMailAsync()
     {
@@ -189,6 +202,9 @@ public partial class MainViewModel : ViewModelBase
                     inboxes.Add((account.Id, services.Store.ListMailSummaries(account.Id, inbox.Path, 200)));
             }
             UpdateMailBadge();
+            // A mailbox added or its password saved since: watched from now on.
+            if (watchingMail)
+                services.MailWatch.Keep(services.Store.ListMailAccounts());
 
             var found = Webignite.Core.Mail.NewMail.Find(settings.Announced, inboxes);
             services.Settings.MailCheck = settings with { Announced = found.Announced };

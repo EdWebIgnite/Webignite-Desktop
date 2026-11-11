@@ -333,6 +333,10 @@ public sealed class AppServices : IDisposable
     private MailService? mail;
     public MailService Mail => mail ??= new MailService(Store, Secrets);
 
+    /// <summary>Waits on each inbox so new mail shows within seconds; the main window runs the check it asks for.</summary>
+    public Webignite.Mail.MailWatch MailWatch => mailWatch ??= new Webignite.Mail.MailWatch(Secrets);
+    private Webignite.Mail.MailWatch? mailWatch;
+
     /// <summary>Files copied or cut in Files, waiting to be pasted, in any Files tab or window.</summary>
     public Files.FileClipboard FileClipboard { get; } = new();
 
@@ -523,6 +527,8 @@ public sealed class AppServices : IDisposable
         (spelling as IDisposable)?.Dispose();
         // Off the screen's thread: closing the connections continues on whatever thread it started on, so
         // waiting for it here, on that same thread, would only ever time out.
+        if (mailWatch is { } watch)
+            Task.Run(() => watch.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(3));
         if (mail is { } open)
             Task.Run(() => open.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(3));
         xero?.Dispose();
