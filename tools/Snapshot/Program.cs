@@ -2252,6 +2252,56 @@ services.RememberColour("#2F9E44");
 var colourWindow = window.ShowTool(ToolKind.Colours, services);
 Check("The Colours tool shows the recent colours", colourWindow.Tools.RecentColours.Select(c => c.Hex).Take(2).SequenceEqual(["#2F9E44", "#1C1D21"]));
 SaveWindow(colourWindow, "tools-colours");
+{
+    var colours = colourWindow.Tools;
+    colours.ColourInput = "#E8590C";
+    Check("A colour shows its print code, its ten steps from light to dark, and what goes with it",
+        colours.ColourCmyk == "cmyk(0%, 62%, 95%, 9%)" && colours.Shades.Count == 10 && colours.Shades[5].Hex == "#E8590C" && colours.Shades[5].Tip == "500 #E8590C" && colours.GoesWith.Count == 5);
+    SaveWindow(colourWindow, "tools-colours-scale");
+    colours.ClearPaletteCommand.Execute(null);
+    colours.AddToPaletteCommand.Execute(null);
+    colours.AddToPaletteCommand.Execute(null);
+    Check("The colour showing is added to the palette once", services.Settings.Palette.Swatches.Count == 1 && colours.ColourMessage.Contains("already", StringComparison.Ordinal));
+    // A logo as an SVG, and one as a picture: the colours written in the first, the most used in the second.
+    var logos = Path.Combine(data, "logos");
+    Directory.CreateDirectory(logos);
+    File.WriteAllText(Path.Combine(logos, "karoo.svg"), """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#3D2B1F"/><circle cx="32" cy="32" r="20" fill="#E8590C"/><path d="M20 32h24" stroke="#F8F5F0" stroke-width="4"/></svg>""");
+    using (var drawn = new SkiaSharp.SKBitmap(120, 80))
+    {
+        using (var canvas = new SkiaSharp.SKCanvas(drawn))
+        {
+            canvas.Clear(new SkiaSharp.SKColor(0x1B, 0x6C, 0xA8));
+            using var paint = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(0xF2, 0xC1, 0x4E) };
+            canvas.DrawRect(0, 0, 40, 80, paint);
+        }
+        using var png = drawn.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        File.WriteAllBytes(Path.Combine(logos, "sign.png"), png.ToArray());
+    }
+    colours.ShowColourPartCommand.Execute(ColourPart.Palette);
+    colours.AddToPalette(ToolsViewModel.PictureColours(Path.Combine(logos, "karoo.svg")), "karoo.svg");
+    Check("An SVG logo gives the colours written in it, less the one already there",
+        colours.PaletteRows.Select(r => r.Hex).SequenceEqual(["#E8590C", "#3D2B1F", "#F8F5F0"]) && colours.PaletteMessage.StartsWith("2 colours added from karoo.svg", StringComparison.Ordinal));
+    colours.AddToPalette(ToolsViewModel.PictureColours(Path.Combine(logos, "sign.png")), "sign.png");
+    Check("A picture gives its main colours, the most used first", colours.PaletteRows.Count == 5 && colours.PaletteRows[3].Hex == "#1B6CA8" && colours.PaletteRows[4].Hex == "#F2C14E");
+    colours.PaletteRows[0].Name = "Primary";
+    colours.PaletteRows[1].Name = "Ink";
+    colours.PaletteRows[2].Name = "Paper";
+    Check("Names are kept as they are typed", services.Settings.Palette.Swatches.Select(s => s.Name).Take(3).SequenceEqual(["Primary", "Ink", "Paper"]));
+    Check("The palette is written out as CSS variables",
+        Webignite.Core.Tools.ColourPalettes.CssVariables(services.Settings.Palette.Swatches).StartsWith(":root {\n  --primary: #E8590C;\n  --ink: #3D2B1F;\n  --paper: #F8F5F0;\n  --colour-4: #1B6CA8;", StringComparison.Ordinal));
+    SaveWindow(colourWindow, "tools-colours-palette");
+    colours.PaletteRows[4].RemoveCommand.Execute(null);
+    Check("A colour can be taken out", colours.PaletteRows.Count == 4 && services.Settings.Palette.Swatches.Count == 4);
+    colours.ShowColourPartCommand.Execute(ColourPart.Contrast);
+    colours.ContrastText = "#FFFFFF";
+    colours.ContrastBack = "#E8590C";
+    Check("White on the brand orange passes for headings and fails for body text",
+        colours.ContrastRatio.StartsWith("3.", StringComparison.Ordinal) && colours.ContrastRatio.EndsWith(" to 1", StringComparison.Ordinal) && colours.ContrastVerdicts.Select(v => v.Passes).SequenceEqual([false, true, true, false]));
+    SaveWindow(colourWindow, "tools-colours-contrast");
+    colours.ContrastBack = "orange-ish";
+    Check("Something that isn't a colour is asked for again", !colours.HasContrast && colours.ContrastVerdicts.Count == 0 && colours.ContrastRatio.StartsWith("Type two colours", StringComparison.Ordinal));
+    colours.ShowColourPartCommand.Execute(ColourPart.Colour);
+}
 colourWindow.Close();
 // Clipboard history: what was copied, text and pictures, newest first, in memory only.
 services.Clipboard.Add("thandi@karoocoffee.co.za");

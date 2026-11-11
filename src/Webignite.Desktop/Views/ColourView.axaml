@@ -3,35 +3,78 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.ColourView"
              x:DataType="vm:ToolsViewModel">
+  <UserControl.Styles>
+    <!-- A rule that is met is done; one that isn't is a problem. -->
+    <Style Selector="TextBlock.ok">
+      <Setter Property="Foreground" Value="{DynamicResource Ok}" />
+    </Style>
+  </UserControl.Styles>
   <StackPanel Spacing="12">
+    <Border Classes="segments" HorizontalAlignment="Left">
+      <StackPanel Orientation="Horizontal">
+        <Button Classes="segment" Classes.on="{Binding IsColourPart}" Content="Colour"
+                Command="{Binding ShowColourPartCommand}" CommandParameter="{x:Static vm:ColourPart.Colour}" />
+        <Button Classes="segment" Classes.on="{Binding IsPalettePart}" Content="Palette"
+                Command="{Binding ShowColourPartCommand}" CommandParameter="{x:Static vm:ColourPart.Palette}" />
+        <Button Classes="segment" Classes.on="{Binding IsContrastPart}" Content="Contrast"
+                Command="{Binding ShowColourPartCommand}" CommandParameter="{x:Static vm:ColourPart.Contrast}" />
+      </StackPanel>
+    </Border>
+
+    <!-- One colour: its codes, its lighter and darker steps, and what goes with it -->
+    <StackPanel Spacing="12" IsVisible="{Binding IsColourPart}">
           <DockPanel>
             <Button DockPanel.Dock="Right" Classes="quiet" Content="Pick from screen" Margin="8,0,0,0" Click="PickFromScreen"
                     IsVisible="{Binding CanPickFromScreen}" ToolTip.Tip="The screen freezes; click any colour to bring it here. Ctrl+Alt+C does the same from any program." />
             <TextBox Text="{Binding ColourInput}" PlaceholderText="#E8590C or rgb(232, 89, 12)" />
           </DockPanel>
           <Grid ColumnDefinitions="96,16,*" IsVisible="{Binding HasColour}">
-            <Border Grid.Column="0" Height="96" CornerRadius="8" Background="{Binding ColourBrush}" />
+            <Border Grid.Column="0" Height="96" CornerRadius="8" Background="{Binding ColourBrush}" VerticalAlignment="Top" />
             <StackPanel Grid.Column="2" Spacing="2">
               <Button Classes="link" Padding="0,1" Content="{Binding ColourHex}" Command="{Binding CopyHexCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
               <Button Classes="link" Padding="0,1" Content="{Binding ColourRgb}" Command="{Binding CopyRgbCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
               <Button Classes="link" Padding="0,1" Content="{Binding ColourHsl}" Command="{Binding CopyHslCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
+              <Button Classes="link" Padding="0,1" Content="{Binding ColourCmyk}" Command="{Binding CopyCmykCommand}" CommandParameter="{Binding $parent[TopLevel]}"
+                      ToolTip.Tip="Copy. For print: a plain conversion, so a printer's own profile may shift it a little." />
               <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding OnWhite}" TextWrapping="Wrap" Margin="0,4,0,0" />
               <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding OnBlack}" TextWrapping="Wrap" />
             </StackPanel>
           </Grid>
-          <ItemsControl ItemsSource="{Binding Shades}" IsVisible="{Binding HasColour}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ShadeRow">
-                <Button Classes="shade" Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Hex}"
-                        Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
-                  <Border Height="28" CornerRadius="4" Background="{Binding Brush}" />
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+          <StackPanel Spacing="6" IsVisible="{Binding HasColour}">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="link" Content="Add to the palette" Padding="0" Command="{Binding AddToPaletteCommand}" />
+              <TextBlock Classes="label" Text="Lighter and darker (50 to 900)" />
+            </DockPanel>
+            <ItemsControl ItemsSource="{Binding Shades}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShadeRow">
+                  <Button Classes="shade" Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Tip}"
+                          Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
+                    <Border Height="28" CornerRadius="4" Background="{Binding Brush}" />
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+          <StackPanel Spacing="6" IsVisible="{Binding HasColour}">
+            <TextBlock Classes="label" Text="Goes with it" />
+            <ItemsControl ItemsSource="{Binding GoesWith}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShadeRow">
+                  <Button Classes="shade" Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Tip}"
+                          Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
+                    <Border Height="28" CornerRadius="4" Background="{Binding Brush}" />
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
           <StackPanel Spacing="6" IsVisible="{Binding HasRecentColours}">
             <TextBlock Classes="label" Text="Recent colours" />
             <ItemsControl ItemsSource="{Binding RecentColours}">
@@ -50,5 +93,65 @@
           </StackPanel>
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ColourMessage}" TextWrapping="Wrap"
                      IsVisible="{Binding ColourMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+
+    <!-- The palette: named colours, from the Colour part, a logo or a photo, out as CSS variables -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsPalettePart}">
+      <WrapPanel ItemSpacing="8" LineSpacing="6">
+        <Button Classes="quiet" Content="From a logo or photo…" Click="PaletteFromPicture"
+                ToolTip.Tip="The main colours of a PNG, JPG or WebP, or the colours written in an SVG" />
+        <Button Classes="primary" Content="Copy as CSS variables" Command="{Binding CopyPaletteCssCommand}" CommandParameter="{Binding $parent[TopLevel]}" IsVisible="{Binding HasPalette}" />
+        <Button Classes="quiet" Content="Copy as a list" Command="{Binding CopyPaletteListCommand}" CommandParameter="{Binding $parent[TopLevel]}" IsVisible="{Binding HasPalette}" />
+        <Button Classes="link" Content="Clear" Command="{Binding ClearPaletteCommand}" IsVisible="{Binding HasPalette}" />
+      </WrapPanel>
+      <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasPalette}"
+                 Text="No colours yet. Add the one showing under Colour, or pull them from a logo or photo. Name each (primary, ink, paper) and copy the lot as CSS variables." />
+      <ItemsControl ItemsSource="{Binding PaletteRows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:SwatchRow">
+            <Grid ColumnDefinitions="36,10,*,10,84,Auto" Margin="0,3">
+              <Button Grid.Column="0" Classes="shade" Padding="0" Command="{Binding UseCommand}" ToolTip.Tip="Show it under Colour">
+                <Border Width="36" Height="32" CornerRadius="4" Background="{Binding Brush}" BorderBrush="{DynamicResource Line}" BorderThickness="1" />
+              </Button>
+              <TextBox Grid.Column="2" Text="{Binding Name}" PlaceholderText="A name, e.g. primary" />
+              <SelectableTextBlock Grid.Column="4" Text="{Binding Hex}" VerticalAlignment="Center" />
+              <Button Grid.Column="5" Classes="link" Content="Remove" Padding="6,2" Command="{Binding RemoveCommand}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PaletteMessage}" TextWrapping="Wrap"
+                 IsVisible="{Binding PaletteMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+
+    <!-- Contrast: can text of one colour be read on another -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsContrastPart}">
+      <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto">
+        <TextBlock Grid.Column="0" Classes="label" Text="Text" />
+        <TextBlock Grid.Column="2" Classes="label" Text="Background" />
+        <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding ContrastText}" KeyUp="ContrastTextTyped" />
+        <Button Grid.Row="1" Grid.Column="1" Classes="quiet" Content="⇄" Margin="8,0" Command="{Binding SwapContrastCommand}" ToolTip.Tip="Swap the two" />
+        <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding ContrastBack}" />
+      </Grid>
+      <Border CornerRadius="8" Padding="18,16" Background="{Binding ContrastBackBrush}" BorderBrush="{DynamicResource Line}" BorderThickness="1" IsVisible="{Binding HasContrast}">
+        <StackPanel Spacing="4">
+          <TextBlock Text="A heading in this colour" FontSize="24" FontWeight="SemiBold" Foreground="{Binding ContrastTextBrush}" />
+          <TextBlock Text="And a line of ordinary text, the size most of a page is set in." Foreground="{Binding ContrastTextBrush}" TextWrapping="Wrap" />
         </StackPanel>
+      </Border>
+      <TextBlock Classes="h2" Text="{Binding ContrastRatio}" TextWrapping="Wrap" />
+      <ItemsControl ItemsSource="{Binding ContrastVerdicts}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:VerdictRow">
+            <DockPanel Margin="0,2">
+              <TextBlock DockPanel.Dock="Left" Width="40" FontWeight="SemiBold" Text="{Binding Mark}" Classes.ok="{Binding Passes}" Classes.problem="{Binding !Passes}" />
+              <TextBlock Text="{Binding What}" TextWrapping="Wrap" />
+            </DockPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                 Text="These are the WCAG rules that accessibility checks and Google's Lighthouse go by." />
+    </StackPanel>
+  </StackPanel>
 </UserControl>
