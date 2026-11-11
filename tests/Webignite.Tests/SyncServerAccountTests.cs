@@ -120,16 +120,18 @@ public sealed class SyncServerAccountTests : IDisposable
         var session = (await SignUp("eddie@webignite.co.za", Key("eddie"))).Body!;
         var setup = (await Post<TwoFactorSetup>("/api/two-factor", new { }, session.AccessToken)).Body!;
         var key = Base32.Decode(setup.Secret)!;
-        string CodeNow() => Totp.Code(key, Totp.StepOf(DateTimeOffset.UtcNow));
+        // Worked out once and used twice. Asked for afresh each time, a run that crosses the half minute where
+        // codes change would send a new code the second time, which the server rightly takes.
+        var code = Totp.Code(key, Totp.StepOf(DateTimeOffset.UtcNow));
 
         Assert.Equal(HttpStatusCode.BadRequest, (await Post<RecoveryCodes>("/api/two-factor/confirm", new CodeRequest("000000"), session.AccessToken)).Status);
-        var recovery = (await Post<RecoveryCodes>("/api/two-factor/confirm", new CodeRequest(CodeNow()), session.AccessToken)).Body!;
+        var recovery = (await Post<RecoveryCodes>("/api/two-factor/confirm", new CodeRequest(code), session.AccessToken)).Body!;
         Assert.Equal(8, recovery.Codes.Count);
 
         var needsCode = await SignIn("eddie@webignite.co.za", Key("eddie"));
         Assert.Equal((HttpStatusCode.Unauthorized, Needs.Code), (needsCode.Status, needsCode.Problem!.Need));
         // The code just used to turn it on can't be used again; the recovery code works once.
-        Assert.Equal(HttpStatusCode.Unauthorized, (await SignIn("eddie@webignite.co.za", Key("eddie"), CodeNow())).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await SignIn("eddie@webignite.co.za", Key("eddie"), code)).Status);
         Assert.Equal(HttpStatusCode.OK, (await SignIn("eddie@webignite.co.za", Key("eddie"), recovery.Codes[0].ToUpperInvariant())).Status);
         Assert.Equal(HttpStatusCode.Unauthorized, (await SignIn("eddie@webignite.co.za", Key("eddie"), recovery.Codes[0])).Status);
         Assert.Equal(HttpStatusCode.Unauthorized, (await SignIn("eddie@webignite.co.za", Key("wrong"), recovery.Codes[1])).Status);
