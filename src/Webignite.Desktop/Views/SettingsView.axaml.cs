@@ -75,6 +75,24 @@ public partial class SettingsView : UserControl
             settings.SetClipboardShortcut(keys);
     }
 
+    private void TextShortcutKeys(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
+            settings.SetTextShortcut(keys);
+    }
+
+    private void SnippetShortcutKeys(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
+            settings.SetSnippetShortcut(keys);
+    }
+
+    private void RulerShortcutKeys(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
+            settings.SetRulerShortcut(keys);
+    }
+
     private void ColourShortcutKeys(object? sender, KeyEventArgs e)
     {
         if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)

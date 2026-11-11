@@ -15,6 +15,12 @@ public enum ToolKind
     WebHelpers,
     Dns,
     PageCapture,
+    Ruler,
+    Snippets,
+    ScreenText,
+    Compare,
+    Duplicates,
+    Logos,
 }
 
 /// <summary>

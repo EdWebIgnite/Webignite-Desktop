@@ -6,6 +6,8 @@
   -->
   <PropertyGroup>
     <RootNamespace>Webignite.Tools</RootNamespace>
+    <!-- Windows' text reading (WindowsOcr.cs) is called through its own tables of functions, which needs pointers. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- The WebView2 wrapper comes with a 600 KB file of notes for programmers; it isn't shipped. -->
     <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
@@ -15,6 +17,7 @@
     <PackageReference Include="bblanchon.PDFium.Win32" />
     <PackageReference Include="bblanchon.PDFium.Linux" />
     <PackageReference Include="QRCoder" />
+    <PackageReference Include="Svg.Skia" />
     <!-- Only the wrapper (Microsoft.Web.WebView2.Core.dll) and its small loader are wanted. The package's own build
          files would also pull in its WPF and WinForms controls, so they are left out and the wrapper is named below. -->
     <PackageReference Include="Microsoft.Web.WebView2" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive;compile" PrivateAssets="build;buildTransitive;contentfiles;analyzers" />

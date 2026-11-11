@@ -105,6 +105,31 @@ public sealed class Navigator
     /// </summary>
     public void PickColour(Action<string>? picked = null) => PickColourAction?.Invoke(picked);
 
+    internal Action<string, string>? CompareAction { get; set; }
+
+    /// <summary>Opens Compare on two files or two folders.</summary>
+    public void Compare(string left, string right) => CompareAction?.Invoke(left, right);
+
+    internal Action<string>? DuplicatesAction { get; set; }
+
+    /// <summary>Opens the duplicate finder on a folder and starts looking.</summary>
+    public void Duplicates(string folder) => DuplicatesAction?.Invoke(folder);
+
+    internal Action? MainToFrontAction { get; set; }
+
+    /// <summary>Brings the main window in front, e.g. of a tool window that just sent something to it.</summary>
+    public void MainToFront() => MainToFrontAction?.Invoke();
+
+    internal Action<Action<string>?>? ReadScreenTextAction { get; set; }
+
+    /// <summary>Freezes the screen to pick an area and copy the words in it. They are also handed to <paramref name="read"/> when given.</summary>
+    public void ReadScreenText(Action<string>? read = null) => ReadScreenTextAction?.Invoke(read);
+
+    internal Action<Action<string>?>? MeasureScreenAction { get; set; }
+
+    /// <summary>Freezes the screen to measure something on it. The size is copied, and handed to <paramref name="measured"/> when given.</summary>
+    public void MeasureScreen(Action<string>? measured = null) => MeasureScreenAction?.Invoke(measured);
+
     /// <summary>Shows a picture in Webignite's own viewer, with the others in its folder a key away.</summary>
     public void Picture(string path) => OpenPictureAction?.Invoke(path);
 

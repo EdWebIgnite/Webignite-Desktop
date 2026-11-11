@@ -53,12 +53,123 @@ public sealed partial class ToolsViewModel
 
     [ObservableProperty] public partial bool CaptureWholePage { get; set; } = true;
 
+    // The preview: the page filling the window, or shown as a phone, tablet or computer screen.
+
+    /// <summary>Fit the window first, then each device, then a size typed in.</summary>
+    public IReadOnlyList<DeviceChoice> CaptureDevices { get; } =
+        [new DeviceChoice("Fit the window", null), .. Devices.All.Select(d => new DeviceChoice(d.Name, d)), new DeviceChoice("Any size", null, Custom: true)];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCustomDevice), nameof(IsDeviceOn))]
+    public partial DeviceChoice? CaptureDevice { get; set; }
+
+    [ObservableProperty] public partial bool CaptureSideways { get; set; }
+    [ObservableProperty] public partial string CustomWidth { get; set; } = "600";
+    [ObservableProperty] public partial string CustomHeight { get; set; } = "900";
+
+    /// <summary>"390 × 844, shown at 80%", or why the typed size can't be used.</summary>
+    [ObservableProperty] public partial string DeviceSize { get; set; } = "";
+
+    /// <summary>The size the page is drawn at on screen. Not a number when it fills the window.</summary>
+    [ObservableProperty] public partial double PaneWidth { get; set; } = double.NaN;
+    [ObservableProperty] public partial double PaneHeight { get; set; } = double.NaN;
+
+    public bool IsCustomDevice => CaptureDevice?.Custom == true;
+    public bool IsDeviceOn => ActiveDevice is not null;
+
+    private Device? ActiveDevice => CaptureDevice is null ? null : CaptureDevice.Custom ? Devices.Custom(CustomWidth, CustomHeight) : CaptureDevice.Device;
+
+    private double roomWidth;
+    private double roomHeight;
+    private Task deviceWork = Task.CompletedTask;
+
+    partial void OnCaptureDeviceChanged(DeviceChoice? value) => ShowAsDevice(reload: true);
+
+    partial void OnCaptureSidewaysChanged(bool value) => ShowAsDevice(reload: false);
+
+    partial void OnCustomWidthChanged(string value) => ShowAsDevice(reload: false);
+
+    partial void OnCustomHeightChanged(string value) => ShowAsDevice(reload: false);
+
+    /// <summary>How much room the window has for the page. Called by the view as the window is resized.</summary>
+    public void SetCaptureRoom(double width, double height)
+    {
+        if (Math.Abs(width - roomWidth) < 0.5 && Math.Abs(height - roomHeight) < 0.5)
+            return;
+        (roomWidth, roomHeight) = (width, height);
+        ShowAsDevice(reload: false);
+    }
+
+    // Sizes the page's pane to the device and tells the browser to behave as it. Changes queue up, and each
+    // reads the choices as they are when its turn comes, so the last one always wins.
+    private void ShowAsDevice(bool reload)
+    {
+        var device = ActiveDevice;
+        OnPropertyChanged(nameof(IsDeviceOn));
+        var fit = 1.0;
+        if (device is null)
+        {
+            (PaneWidth, PaneHeight) = (double.NaN, double.NaN);
+            DeviceSize = IsCustomDevice ? $"Type a width and height between {Devices.Least} and {Devices.Most}." : "";
+        }
+        else
+        {
+            var (width, height) = device.Screen(CaptureSideways);
+            fit = Devices.Fit(width, height, roomWidth, roomHeight);
+            (PaneWidth, PaneHeight) = (Math.Round(width * fit), Math.Round(height * fit));
+            DeviceSize = Devices.SizeWords(width, height, fit);
+        }
+        if (browser is null || !browserStarted || CaptureWorking)
+            return;
+        // The browser is only told when what it should be has changed: resizing the window with no device
+        // chosen, say, changes nothing for it.
+        var wanted = (device, device is not null && CaptureSideways, fit);
+        if (!reload && wanted == shownAs)
+            return;
+        shownAs = wanted;
+        deviceWork = ApplyDeviceAsync(deviceWork, reload);
+        deviceWork.Forget("Showing the page as a device");
+    }
+
+    private async Task ApplyDeviceAsync(Task before, bool reload)
+    {
+        try
+        {
+            await before;
+        }
+#pragma warning disable CA1031 // An earlier change that failed was logged by its own Forget; this one still gets its turn.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+        }
+        if (browser is not { } open || CaptureWorking)
+            return;
+        if (ActiveDevice is { } device)
+        {
+            var (width, height) = device.Screen(CaptureSideways);
+            await Devices.ApplyAsync(open.DevToolsAsync, device, CaptureSideways, Devices.Fit(width, height, roomWidth, roomHeight));
+        }
+        else
+        {
+            await Devices.ClearAsync(open.DevToolsAsync);
+        }
+        // Sites choose what to send by the device's name, so the page is fetched again as the new one.
+        if (reload && capturePage is not null)
+            await open.DevToolsAsync("Page.reload", "{}");
+    }
+
+    private bool browserStarted;
+
+    // What the browser was last told to be: no device, filling its window, to begin with.
+    private (Device? Device, bool Sideways, double Fit)? shownAs = (null, false, 1.0);
+
     /// <summary>Starts the browser. Called by the window once it is open, never before.</summary>
     public async Task StartCaptureAsync()
     {
         if (browser is not null)
             return;
         Paper ??= Papers[0];
+        CaptureDevice ??= CaptureDevices[0];
         var made = services.NewBrowser();
         if (made is null)
         {
@@ -75,6 +186,12 @@ public sealed partial class ToolsViewModel
             await made.StartAsync();
             if (browser != made)
                 return;
+            browserStarted = true;
+            if (IsDeviceOn)
+            {
+                shownAs = null;
+                ShowAsDevice(reload: false);
+            }
             CaptureNote = "Type a web address and press Enter. Once the page is open, close any cookie banner in it before saving.";
             if (capturePage is null && PageCapture.Address(CaptureAddress) is not null)
                 OpenCapturePage();
@@ -100,6 +217,8 @@ public sealed partial class ToolsViewModel
         if (browser is not { } open)
             return;
         browser = null;
+        browserStarted = false;
+        shownAs = (null, false, 1.0);
         open.Loading -= OnCaptureLoading;
         open.Opened -= OnCaptureOpened;
         CaptureView = null;
@@ -171,7 +290,7 @@ public sealed partial class ToolsViewModel
     {
         if (browser is null || capturePage is null)
             return;
-        if (!CaptureScreens.Any(s => s.IsOn))
+        if (!IsDeviceOn && !CaptureScreens.Any(s => s.IsOn))
         {
             CaptureNote = "Tick at least one screen to take a picture at.";
             CaptureProblem = true;
@@ -187,15 +306,15 @@ public sealed partial class ToolsViewModel
     {
         if (browser is not { } open || capturePage is not { } page)
             return;
-        var screens = CaptureScreens.Where(s => s.IsOn).Select(s => s.Screen).ToList();
+        var (screens, mobile) = ScreensToShoot();
         var whole = CaptureWholePage;
         await CaptureAsync("Taking the pictures…", async () =>
         {
             var cut = 0;
             foreach (var screen in screens)
             {
-                CaptureNote = $"Taking the {screen.Name.ToLowerInvariant()} picture…";
-                var shot = await PageCapture.ShootAsync(open.DevToolsAsync, screen, whole);
+                CaptureNote = $"Taking the {screen.Name} picture…";
+                var shot = await PageCapture.ShootAsync(open.DevToolsAsync, screen, whole, mobile);
                 var name = PageCapture.Free(PageCapture.ShotName(page, screen), n => File.Exists(Path.Combine(folder, n)));
                 capturedFile = Path.Combine(folder, name);
                 await File.WriteAllBytesAsync(capturedFile, shot.Png);
@@ -211,12 +330,13 @@ public sealed partial class ToolsViewModel
     {
         if (browser is not { } open || capturePage is not { } page)
             return;
-        var screen = (CaptureScreens.FirstOrDefault(s => s.IsOn) ?? CaptureScreens[^1]).Screen;
+        var (screens, mobile) = ScreensToShoot();
+        var screen = screens.Count > 0 ? screens[0] : CaptureScreens[^1].Screen;
         var whole = CaptureWholePage;
         string? picture = null;
         await CaptureAsync("Taking the picture…", async () =>
         {
-            var shot = await PageCapture.ShootAsync(open.DevToolsAsync, screen, whole);
+            var shot = await PageCapture.ShootAsync(open.DevToolsAsync, screen, whole, mobile);
             var folder = Path.Combine(Path.GetTempPath(), "Webignite", "pages");
             Directory.CreateDirectory(folder);
             picture = Path.Combine(folder, PageCapture.ShotName(page, screen));
@@ -225,6 +345,15 @@ public sealed partial class ToolsViewModel
         });
         if (picture is not null)
             services.Go.Markup(picture);
+    }
+
+    // As a device, the picture is of that device's screen; otherwise one for each ticked screen.
+    private (IReadOnlyList<ShotWidth> Screens, bool Mobile) ScreensToShoot()
+    {
+        if (ActiveDevice is not { } device)
+            return ([.. CaptureScreens.Where(s => s.IsOn).Select(s => s.Screen)], false);
+        var (width, height) = device.Screen(CaptureSideways);
+        return ([new ShotWidth(device.Name, width, height)], device.Mobile);
     }
 
     private string? capturedFile;
@@ -269,8 +398,19 @@ public sealed partial class ToolsViewModel
         {
             CaptureWorking = false;
             CaptureReady = browser is not null && capturePage is not null;
+            // Taking a picture lays the browser out afresh; put the device being shown back.
+            if (IsDeviceOn)
+            {
+                shownAs = null;
+                ShowAsDevice(reload: false);
+            }
         }
     }
+}
+
+public sealed record DeviceChoice(string Label, Device? Device, bool Custom = false)
+{
+    public override string ToString() => Label;
 }
 
 public sealed record PaperChoice(PaperSize Size, string Label)

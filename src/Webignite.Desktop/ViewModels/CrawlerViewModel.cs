@@ -33,6 +33,11 @@ public sealed partial class CrawlerViewModel(AppServices services) : ViewModelBa
 
     [ObservableProperty] public partial int PageLimit { get; set; } = SiteCrawl.UsualPages;
 
+    /// <summary>Read each page through a browser, after its scripts ran. Slower, and only needed for sites built by JavaScript.</summary>
+    [ObservableProperty] public partial bool RunScripts { get; set; }
+
+    private Web.IPageReader? reader;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsIdle), nameof(HoldsWork))]
     [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand))]
@@ -90,14 +95,39 @@ public sealed partial class CrawlerViewModel(AppServices services) : ViewModelBa
         Show([]);
         try
         {
+            // For a site built by scripts, each page is read through a browser nobody sees, started for this
+            // crawl and shut down when it ends.
+            if (RunScripts)
+            {
+                reader = services.NewPageReader();
+                if (reader is null)
+                {
+                    Message = "Reading pages built by JavaScript needs Microsoft Edge WebView2, which is part of Windows. Untick it to crawl without.";
+                    MessageIsProblem = true;
+                    return;
+                }
+                Progress = "Starting the browser…";
+                try
+                {
+                    await reader.StartAsync();
+                }
+                catch (Webignite.Tools.Web.WebEngineException e)
+                {
+                    Message = e.Message + " Untick the JavaScript box to crawl without it.";
+                    MessageIsProblem = true;
+                    return;
+                }
+            }
             var progress = new Progress<CrawlProgress>(p => Progress = p.LinksChecked > 0
                 ? $"{p.PagesRead:N0} pages read. Checking links: {p.LinksChecked:N0} done."
                 : $"{p.PagesRead:N0} pages read, {p.PagesWaiting:N0} waiting.");
-            var result = await services.Crawler.CrawlAsync(start, PageLimit, progress, stop.Token);
+            var result = await services.Crawler.CrawlAsync(start, PageLimit, progress, reader is null ? null : reader.ReadAsync, stop.Token);
             ShowResult(result);
         }
         finally
         {
+            reader?.Dispose();
+            reader = null;
             IsCrawling = false;
             Progress = "";
         }
@@ -166,6 +196,8 @@ public sealed partial class CrawlerViewModel(AppServices services) : ViewModelBa
         stop?.Cancel();
         stop?.Dispose();
         stop = null;
+        reader?.Dispose();
+        reader = null;
     }
 }
 

@@ -69,25 +69,32 @@ public static class PageCapture
     /// <summary>A file name from the address: "karoocoffee-co-za-about". Safe on every disk, and short.</summary>
     public static string Name(Uri address)
     {
-        var text = new StringBuilder();
         var host = address.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? address.Host[4..] : address.Host;
-        foreach (var c in host + Uri.UnescapeDataString(address.AbsolutePath).TrimEnd('/'))
+        var name = Slug(host + Uri.UnescapeDataString(address.AbsolutePath));
+        if (name.Length > 80)
+            name = name[..80].TrimEnd('-');
+        return name.Length == 0 ? "page" : name;
+    }
+
+    // Letters and digits in lower case, everything else a single dash.
+    private static string Slug(string words)
+    {
+        var text = new StringBuilder();
+        foreach (var c in words)
         {
             if (char.IsAsciiLetterOrDigit(c))
                 text.Append(char.ToLowerInvariant(c));
             else if (text.Length > 0 && text[^1] != '-')
                 text.Append('-');
         }
-        var name = text.ToString().Trim('-');
-        if (name.Length > 80)
-            name = name[..80].TrimEnd('-');
-        return name.Length == 0 ? "page" : name;
+        return text.ToString().Trim('-');
     }
 
     public static string PdfName(Uri address) => Name(address) + ".pdf";
 
+    /// <summary>"karoocoffee-co-za-menu-phone-390.png": the page, the screen's name and its width.</summary>
     public static string ShotName(Uri address, ShotWidth screen) =>
-        $"{Name(address)}-{screen.Name.ToLowerInvariant()}-{screen.Width.ToString(CultureInfo.InvariantCulture)}.png";
+        $"{Name(address)}-{Slug(screen.Name)}-{screen.Width.ToString(CultureInfo.InvariantCulture)}.png";
 
     /// <summary>A name not yet used in the folder: "name.png", then "name (2).png".</summary>
     public static string Free(string name, Func<string, bool> taken)
@@ -132,9 +139,10 @@ public static class PageCapture
     /// so late pictures load, takes the picture, and puts the browser back as it was whatever happens.
     /// </summary>
     /// <param name="devTools">Calls one of the browser's developer tools methods with JSON, and gives its JSON answer.</param>
-    public static async Task<PageShot> ShootAsync(Func<string, string, Task<string>> devTools, ShotWidth screen, bool wholePage)
+    /// <param name="mobile">True to lay the page out as a phone or tablet's browser does.</param>
+    public static async Task<PageShot> ShootAsync(Func<string, string, Task<string>> devTools, ShotWidth screen, bool wholePage, bool mobile = false)
     {
-        await devTools("Emulation.setDeviceMetricsOverride", ScreenMessage(screen.Width, screen.Height));
+        await devTools("Emulation.setDeviceMetricsOverride", ScreenMessage(screen.Width, screen.Height, mobile));
         try
         {
             // The page needs a moment to lay itself out again at the new width.
@@ -154,8 +162,8 @@ public static class PageCapture
     // What is passed to the browser's developer tools. Kept here so it can be tested without a browser.
 
     /// <summary>Makes the browser lay the page out as on a screen this size.</summary>
-    public static string ScreenMessage(int width, int height) =>
-        Json(new Dictionary<string, object> { ["width"] = width, ["height"] = height, ["deviceScaleFactor"] = 1, ["mobile"] = false });
+    public static string ScreenMessage(int width, int height, bool mobile = false) =>
+        Json(new Dictionary<string, object> { ["width"] = width, ["height"] = height, ["deviceScaleFactor"] = 1, ["mobile"] = mobile });
 
     /// <summary>Takes the picture from the top of the page down, past what fits on the screen.</summary>
     public static string PictureMessage(int width, int height) =>

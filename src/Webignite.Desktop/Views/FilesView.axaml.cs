@@ -353,6 +353,11 @@ public partial class FilesView : FullBleedView
                 items.Add(Item("PDF tools", null, () => App.Services?.Go.Pdf([.. picked.Select(r => r.Entry.Path)])));
             if (files.IsGathered && picked.Count == 1)
                 items.Add(Item("Show in its folder", null, () => files.ShowInItsFolder(picked[0])));
+            // Two files, or two folders: side by side. One folder: the copies inside it.
+            if (picked.Count == 2 && picked[0].IsFolder == picked[1].IsFolder)
+                items.Add(Item("Compare the two", null, () => App.Services?.Go.Compare(picked[0].Entry.Path, picked[1].Entry.Path)));
+            if (picked is [{ IsFolder: true } lookIn])
+                items.Add(Item("Find duplicate files in it", null, () => App.Services?.Go.Duplicates(lookIn.Entry.Path)));
             items.Add(TagsMenu(files));
             if (picked.Any(r => !r.IsFolder))
                 items.Add(Item(picked.Count(r => !r.IsFolder) == 1 ? "Mail it" : "Mail them", null, () => files.MailPicked().Forget("Putting the files in a mail", tell: true)));

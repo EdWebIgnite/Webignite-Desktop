@@ -57,6 +57,162 @@ public class WebView2Tests
         }
     }
 
+    /// <summary>
+    /// The phone view: the browser is told to be a screen twice the size of its window, shrunk to half. The page
+    /// must believe the screen's size and name, and what is drawn must be the whole screen shrunk, not its corner.
+    /// </summary>
+    [Fact]
+    public void Shown_as_a_device_the_page_believes_it_and_is_drawn_shrunk_to_fit()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        Assert.SkipWhen(WebView2Core.InstalledVersion() is null, "This PC has no WebView2.");
+
+        var folder = Path.Combine(Path.GetTempPath(), "webignite-webview2-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var page = Path.Combine(folder, "halves.html");
+        File.WriteAllText(page, """
+            <html><head><title>Halves</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+            <body style="margin:0">
+            <div style="position:fixed;left:0;top:0;width:50%;height:100%;background:#ff0000"></div>
+            <div style="position:fixed;left:50%;top:0;width:50%;height:100%;background:#0000ff"></div>
+            </body></html>
+            """);
+        try
+        {
+            var seen = ShowAsDevice(folder, page);
+
+            Assert.Equal("800|600", seen.AsDevice[0] + "|" + seen.AsDevice[1]);
+            Assert.Equal("2", seen.AsDevice[2]);
+            Assert.Contains("WebigniteTestPhone", seen.AsDevice[3], StringComparison.Ordinal);
+            Assert.True(int.Parse(seen.AsDevice[4], System.Globalization.CultureInfo.InvariantCulture) > 0, "A phone is touched");
+
+            // The browser's window is 400 by 300, so that much of what it drew is what a person sees: the top-left
+            // 400 by 300 of the picture, whatever size the picture itself comes back at. The whole page, shrunk to
+            // half, must be there: red in its left half, blue in its right. Drawn at full size instead, only the red
+            // corner would fit and both spots would be red.
+            using var drawn = SkiaSharp.SKBitmap.Decode(seen.Preview);
+            string At(int x, int y) => x < drawn.Width && y < drawn.Height ? $"({x},{y})={drawn.GetPixel(x, y)}" : $"({x},{y})=outside";
+            var where = $"in a {drawn.Width} x {drawn.Height} picture: {At(100, 150)} {At(300, 150)} {At(200, 150)} {At(100, 290)} {At(300, 290)} {At(600, 150)} {At(100, 450)} {At(600, 450)}";
+            Assert.True(drawn.Width >= 400 && drawn.Height >= 300, "The picture should cover the browser's window, " + where);
+            var left = drawn.GetPixel(100, 150);
+            var right = drawn.GetPixel(300, 150);
+            Assert.True(left.Red > 200 && left.Blue < 60, "The left of the window should show the page's red half, " + where);
+            Assert.True(right.Blue > 200 && right.Red < 60, "The right of the window should show the page's blue half, " + where);
+
+            Assert.NotEqual("800", seen.Back[0]);
+            Assert.DoesNotContain("WebigniteTestPhone", seen.Back[3], StringComparison.Ordinal);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // As above.
+            }
+        }
+    }
+
+    /// <summary>
+    /// The crawler's browser: one with no window at all. It must still run a page's scripts, so links a script
+    /// adds a moment after loading are in the HTML it gives back.
+    /// </summary>
+    [Fact]
+    public void With_no_window_a_page_built_by_scripts_is_read_once_it_is_built()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        Assert.SkipWhen(WebView2Core.InstalledVersion() is null, "This PC has no WebView2.");
+
+        var folder = Path.Combine(Path.GetTempPath(), "webignite-webview2-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var page = Path.Combine(folder, "built.html");
+        File.WriteAllText(page, """
+            <html><head><title>Loading</title></head><body><div id="root"></div>
+            <script>
+              setTimeout(() => {
+                document.title = "Built by script";
+                document.getElementById("root").innerHTML = "<h1>Menu</h1><a href='/tea'>Tea</a>";
+                setTimeout(() => { document.getElementById("root").insertAdjacentHTML("beforeend", "<a href='/coffee'>Coffee</a>"); }, 300);
+              }, 400);
+            </script></body></html>
+            """);
+        try
+        {
+            var (html, missing) = ReadBuilt(folder, page);
+
+            Assert.NotNull(html);
+            var facts = HtmlFacts.Read(html);
+            Assert.Equal("Built by script", facts.Title);
+            Assert.Equal(["/tea", "/coffee"], facts.Links.Select(l => l.Href));
+            Assert.Null(missing);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // As above.
+            }
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static (string? Html, string? Missing) ReadBuilt(string folder, string page) => OnAWindowThread(async _ =>
+    {
+        using var core = await WebView2Core.StartAsync(WebView2Core.NoWindow, Path.Combine(folder, "browser"));
+        var html = await core.ReadRenderedAsync(new Uri(page), CancellationToken.None);
+        // A page that isn't there gives nothing, and the reader carries on.
+        var missing = await core.ReadRenderedAsync(new Uri(Path.Combine(folder, "nothere.html")), CancellationToken.None);
+        return (html, missing);
+    });
+
+    private sealed record DeviceSeen(string[] AsDevice, byte[] Preview, string[] Back);
+
+    [SupportedOSPlatform("windows")]
+    private static DeviceSeen ShowAsDevice(string folder, string page) => OnAWindowThread(window => ShowAsDeviceAsync(window, folder, page));
+
+    [SupportedOSPlatform("windows")]
+    private static async Task<DeviceSeen> ShowAsDeviceAsync(IntPtr window, string folder, string page)
+    {
+        using var core = await WebView2Core.StartAsync(window, Path.Combine(folder, "browser"));
+        core.Resize(400, 300);
+        var opened = new TaskCompletionSource<PageOpened>();
+        core.Opened += result => opened.TrySetResult(result);
+        core.Open(new Uri(page));
+        await opened.Task;
+
+        var phone = new Device("Test phone", DeviceKind.Phone, 800, 600, 2, "Mozilla/5.0 (WebigniteTestPhone)");
+        await Devices.ApplyAsync(core.DevToolsAsync, phone, sideways: false, fit: 0.5);
+        var again = new TaskCompletionSource<PageOpened>();
+        core.Opened += result => again.TrySetResult(result);
+        await core.DevToolsAsync("Page.reload", "{}");
+        await again.Task;
+        await Task.Delay(700);
+        var asDevice = await TellAsync(core);
+        var preview = await core.PreviewAsync();
+
+        await Devices.ClearAsync(core.DevToolsAsync);
+        await Task.Delay(300);
+        return new DeviceSeen(asDevice, preview, await TellAsync(core));
+    }
+
+    // What the page itself sees: its width and height, pixel density, the name it gives sites, and touch points.
+    [SupportedOSPlatform("windows")]
+    private static async Task<string[]> TellAsync(WebView2Core core)
+    {
+        var answer = await core.DevToolsAsync("Runtime.evaluate",
+            """{"expression":"[innerWidth, innerHeight, devicePixelRatio, navigator.userAgent, navigator.maxTouchPoints].join('|')","returnByValue":true}""");
+        using var json = System.Text.Json.JsonDocument.Parse(answer);
+        return json.RootElement.GetProperty("result").GetProperty("value").GetString()!.Split('|');
+    }
+
     [SupportedOSPlatform("windows")]
     private static (PageOpened Opened, PageShot Shot, bool PdfSaved, bool BrowserGone) Use(string folder, string page, string pdf) =>
         OnAWindowThread(window => UseAsync(window, folder, page, pdf));

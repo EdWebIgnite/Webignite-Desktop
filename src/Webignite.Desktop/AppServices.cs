@@ -64,6 +64,13 @@ public sealed class AppServices : IDisposable
     public Func<Web.IWebEngine?> NewBrowser { get; init; } = () =>
         OperatingSystem.IsWindows() ? new Web.WebView2Engine(Path.Combine(Webignite.Data.DataPaths.Root(), "browser")) : null;
 
+    /// <summary>
+    /// A browser nobody sees, for reading pages that scripts build, or null where there is none. Each call makes
+    /// a new one; whoever asked disposes it when the job is done.
+    /// </summary>
+    public Func<Web.IPageReader?> NewPageReader { get; init; } = () =>
+        OperatingSystem.IsWindows() ? new Web.WebView2Reader(Path.Combine(Webignite.Data.DataPaths.Root(), "browser")) : null;
+
     /// <summary>DNS lookups for the DNS records tool.</summary>
     public DnsClient Dns { get; init; } = DnsClient.Default;
 
@@ -386,6 +393,24 @@ public sealed class AppServices : IDisposable
 
     /// <summary>Set by the main window: takes the colour picker shortcut from Settings again. Returns why not, when it can't.</summary>
     public Func<string?>? ApplyColourShortcut { get; set; }
+
+    /// <summary>Sets the text-from-the-screen shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
+    public Func<string?>? ApplyTextShortcut { get; set; }
+
+    /// <summary>
+    /// Reads the words in a picture (BGRA pixels, width, height) with Windows' own text reading. Gives null when
+    /// Windows has no reader for the person's languages. Null itself where there is no such thing (not Windows).
+    /// </summary>
+    public Func<byte[], int, int, Task<string?>>? ReadPictureText { get; init; } = OperatingSystem.IsWindows() ? ReadWithWindows : null;
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static Task<string?> ReadWithWindows(byte[] pixels, int width, int height) => Webignite.Tools.WindowsOcr.ReadAsync(pixels, width, height);
+
+    /// <summary>Sets the text snippets shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
+    public Func<string?>? ApplySnippetShortcut { get; set; }
+
+    /// <summary>Sets the screen ruler's shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
+    public Func<string?>? ApplyRulerShortcut { get; set; }
 
     /// <summary>A colour picked from the screen or a picture goes to the top of the recent colours.</summary>
     public void RememberColour(string hex)

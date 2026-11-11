@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.ScreenTextView"
+             x:DataType="vm:ToolsViewModel">
+  <StackPanel Spacing="12">
+    <TextBlock TextWrapping="Wrap"
+               Text="The screen freezes. Drag over the words you want (in a picture, a video, a PDF that won't let you select) and they are copied as text. Windows reads them on this PC; nothing is sent anywhere." />
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <Button Classes="primary" Content="Pick an area" Command="{Binding ReadScreenCommand}" IsEnabled="{Binding CanReadScreen}" />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ScreenTextHint}" VerticalAlignment="Center" />
+    </StackPanel>
+    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Reading text off the screen needs Windows." IsVisible="{Binding !CanReadScreen}" />
+    <StackPanel Spacing="6" IsVisible="{Binding HasScreenText}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="Copy" Padding="10,3" Click="CopyAll" />
+        <TextBlock Classes="label" Text="What was read" VerticalAlignment="Center" />
+      </DockPanel>
+      <TextBox Text="{Binding ScreenTextRead}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" MaxHeight="420" />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                 Text="It is on the clipboard already. Check it against the original: small or fancy lettering can be misread." />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

@@ -73,6 +73,20 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("notes", value);
     }
 
+    /// <summary>The palette being built in the Colours tool.</summary>
+    public Webignite.Core.Tools.PaletteSettings Palette
+    {
+        get => store.GetSetting<Webignite.Core.Tools.PaletteSettings>("palette") ?? new Webignite.Core.Tools.PaletteSettings();
+        set => store.SetSetting("palette", value);
+    }
+
+    /// <summary>Saved blocks of text to paste anywhere.</summary>
+    public Webignite.Core.Tools.SnippetSettings Snippets
+    {
+        get => store.GetSetting<Webignite.Core.Tools.SnippetSettings>("snippets") ?? new Webignite.Core.Tools.SnippetSettings();
+        set => store.SetSetting("snippets", value);
+    }
+
     public Webignite.Core.Tools.ScreenshotSettings Screenshots
     {
         get => store.GetSetting<Webignite.Core.Tools.ScreenshotSettings>("screenshots") ?? new Webignite.Core.Tools.ScreenshotSettings();

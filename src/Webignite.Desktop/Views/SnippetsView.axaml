@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.SnippetsView"
+             x:DataType="vm:ToolsViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.code">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="6,1" />
+      <Setter Property="Margin" Value="8,0,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="10">
+    <!-- Finding and using -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsListingSnippets}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="New snippet" Margin="8,0,0,0" Command="{Binding NewSnippetCommand}" />
+        <TextBox x:Name="SearchBox" Classes="search" Text="{Binding SnippetSearch}" PlaceholderText="Name or code, then Enter">
+          <TextBox.KeyBindings>
+            <KeyBinding Gesture="Enter" Command="{Binding UseFirstSnippetCommand}" />
+          </TextBox.KeyBindings>
+        </TextBox>
+      </DockPanel>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding SnippetHint}" />
+      <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoSnippets}"
+                 Text="No snippets yet. Save text you type again and again (banking details, a standard reply, a piece of code) and paste it anywhere." />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="No snippet matches that." IsVisible="{Binding NoSnippetMatches}" />
+      <ItemsControl ItemsSource="{Binding SnippetRows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:SnippetRow">
+            <Border Classes="taskrow" Padding="0,2">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="link" Content="Change" Padding="6,2" VerticalAlignment="Top" Command="{Binding ChangeCommand}" />
+                <Button Classes="link" Command="{Binding UseCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,4">
+                  <StackPanel Spacing="1">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource Ink}" />
+                      <Border Classes="code" IsVisible="{Binding HasCode}">
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding Code}" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Preview}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Button>
+              </DockPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+
+    <!-- Adding and changing -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsEditingSnippet}">
+      <TextBlock Classes="h2" Text="{Binding SnippetEditTitle}" />
+      <Grid ColumnDefinitions="*,12,130">
+        <StackPanel Grid.Column="0">
+          <TextBlock Classes="label" Text="Name" />
+          <TextBox x:Name="NameBox" Text="{Binding SnippetName}" PlaceholderText="Banking details" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock Classes="label" Text="Code (optional)" />
+          <TextBox Text="{Binding SnippetCode}" PlaceholderText="bank" />
+        </StackPanel>
+      </Grid>
+      <StackPanel>
+        <TextBlock Classes="label" Text="Text" />
+        <TextBox Text="{Binding SnippetText}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap" MinHeight="160" MaxHeight="360" />
+      </StackPanel>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                 Text="{}{date} and {time} become today's date and the time when it is pasted; {clipboard} becomes whatever you last copied." />
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="link" Content="Remove this snippet" Command="{Binding RemoveSnippetCommand}" IsVisible="{Binding CanRemoveSnippet}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Classes="primary" Content="Save" Command="{Binding SaveSnippetCommand}" />
+          <Button Classes="quiet" Content="Cancel" Command="{Binding CancelSnippetCommand}" />
+        </StackPanel>
+      </DockPanel>
+    </StackPanel>
+
+    <TextBlock Classes="muted" Classes.problem="{Binding SnippetProblem}" FontSize="{DynamicResource Text12}" Text="{Binding SnippetMessage}" TextWrapping="Wrap"
+               IsVisible="{Binding SnippetMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

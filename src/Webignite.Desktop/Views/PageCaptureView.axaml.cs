@@ -12,7 +12,12 @@ namespace Webignite.Desktop.Views;
 /// </summary>
 public partial class PageCaptureView : UserControl
 {
-    public PageCaptureView() => InitializeComponent();
+    public PageCaptureView()
+    {
+        InitializeComponent();
+        // A device's screen is shrunk to fit the room there is, so the view model is told how much that is.
+        Room.SizeChanged += (_, e) => (DataContext as ToolsViewModel)?.SetCaptureRoom(e.NewSize.Width - 24, e.NewSize.Height - 24);
+    }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {

@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.DuplicatesView"
+             x:DataType="vm:ToolsViewModel">
+  <DockPanel>
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Classes="primary" Content="Find copies" Margin="8,0,0,0" IsDefault="True"
+              Command="{Binding FindDuplicatesCommand}" IsVisible="{Binding !DuplicatesBusy}" />
+      <Button DockPanel.Dock="Right" Classes="quiet" Content="Stop" Margin="8,0,0,0" Command="{Binding StopDuplicatesCommand}" IsVisible="{Binding DuplicatesBusy}" />
+      <Button DockPanel.Dock="Right" Classes="quiet" Content="Folder…" Margin="8,0,0,0" Click="BrowseFolder" IsEnabled="{Binding !DuplicatesBusy}" />
+      <TextBox Text="{Binding DuplicateFolder}" PlaceholderText="A folder to look through, with everything inside it" IsEnabled="{Binding !DuplicatesBusy}" />
+    </DockPanel>
+
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,10,0,0" IsVisible="{Binding DuplicatesBusy}">
+      <c:Spinner Size="16" VerticalAlignment="Center" />
+      <TextBlock Classes="muted" Text="{Binding DuplicateProgressText}" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <TextBlock DockPanel.Dock="Top" Classes.problem="{Binding DuplicateProblem}" Text="{Binding DuplicateSummary}" TextWrapping="Wrap" Margin="0,10,0,0"
+               IsVisible="{Binding DuplicateSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+    <DockPanel DockPanel.Dock="Top" Margin="0,10,0,8" IsVisible="{Binding HasDuplicateSets}">
+      <Button DockPanel.Dock="Right" Classes="primary" Content="{Binding RecycleDuplicatesText}" Command="{Binding RecycleDuplicatesCommand}" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="quiet" Content="Tick the extra copies" Command="{Binding TickExtraCopiesCommand}"
+                ToolTip.Tip="In each set, ticks every copy but the one nearest the top of the folder. Check before removing: the copy kept may not be the one you'd pick." />
+        <Button Classes="link" Content="Untick all" Command="{Binding ClearDuplicateTicksCommand}" />
+      </StackPanel>
+    </DockPanel>
+
+    <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,8,0,0"
+               Text="Files are compared by what is in them, not by name. Ticked files go to the Recycle Bin, where they can be got back, and one copy of each always stays." />
+
+    <ScrollViewer IsVisible="{Binding HasDuplicateSets}">
+      <ItemsControl ItemsSource="{Binding DuplicateSets}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:DuplicateSetView">
+            <Border Classes="card" Padding="14,10" Margin="0,0,0,10">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Title}" />
+                <ItemsControl ItemsSource="{Binding Files}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DuplicateFileView">
+                      <DockPanel Margin="0,2">
+                        <Button DockPanel.Dock="Right" Classes="link" Content="Show in Files" Padding="6,2" Command="{Binding ShowCommand}" />
+                        <CheckBox IsChecked="{Binding IsTicked}" VerticalAlignment="Center">
+                          <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Ink}" />
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Folder}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </CheckBox>
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

@@ -7,7 +7,7 @@ Tools and ideas that were agreed as worth doing. Nothing here is built. When one
 The app has no browser engine of its own, to stay small and light on memory. WebView2 is allowed for the web tools below that need a page drawn as a browser draws it, on these terms:
 
 - It uses the WebView2 that Windows already has and keeps up to date. None is shipped with the app. A PC without it is told so, with where to get it, and the rest of the app carries on.
-- It starts when one of those tools' windows opens and is shut down when the window closes. While open it costs roughly 200 to 400 MB in its own `msedgewebview2.exe` processes; closed, nothing.
+- It starts when one of those tools' windows opens and is shut down when the window closes. The Site crawler's is the one without a window: it starts when a JavaScript crawl starts and is shut down when that crawl ends. While open it costs roughly 200 to 400 MB in its own `msedgewebview2.exe` processes; closed, nothing.
 - Nothing at start-up touches it. `WebView2Tests` checks on Windows that no WebView2 process is left after it is closed (`tools/Measure` runs on Linux, where there is no WebView2).
 - Mail keeps its own light renderer. Nothing outside the web tools uses WebView2.
 - WebView2 is Windows only, so `tools/Snapshot` (which runs on Linux) needs a stand-in, as `IVideoTools` is for video.
@@ -20,28 +20,8 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 
 ### Branding
 
-- **Logo export pack.** One master logo in; every size and format out (PNG, JPG, WebP, SVG; transparent, white and black versions), named properly and zipped for the client.
-- **Favicon and app icon maker.** One logo in, the full favicon set out, with the HTML to paste.
-- **Palette builder.** Tints and shades from one colour, a palette pulled from a logo or photo, HEX, RGB, HSL and CMYK, a contrast check for text on a background, and the palette as CSS variables. An addition to the Colours tool.
 - **Brand sheet maker.** A client's logo, colours and fonts laid out as a one-page PDF.
 - **Social image sizer.** One picture cropped to Facebook, Instagram, LinkedIn, WhatsApp and link-preview sizes in one go.
-
-### Websites
-
-- **Screen ruler.** Measure pixels on screen from any program, like the colour picker.
-
-### Websites, drawn by WebView2
-
-- **Responsive preview.** A live page that can be scrolled and clicked, at any width.
-- **Phone simulator.** The same preview as a named phone or tablet: its screen size, pixel density, touch and the address it tells sites it is, turned upright or sideways, as browser device toolbars do. It is still Edge's engine pretending, so a fault that only Safari on a real iPhone has won't show.
-  - A range of devices to pick from, kept as a list in Core so one is added in a line: iPhones (a small older one such as the SE, the standard size of the last few years, and the largest Pro Max), Samsungs (a recent S, a large Ultra, a mid-range A and a 360-wide budget Android, which many South African visitors use, plus a fold), a Pixel, iPads (Mini, Air, the large Pro) and an Android tablet, then a laptop and a desktop. A box takes any other size. The exact sizes are looked up when it is built.
-
-### Everyday
-
-- **Text snippets from any program.** A short code or a shortcut pastes a saved block of text: banking details, standard replies, code.
-- **Copy text from a picture.** Pick an area of the screen and get its words, through Windows' own text reading.
-- **Compare.** Two files or two folders side by side, showing what differs.
-- **Duplicate file finder** in Files.
 
 ## Order to build them in
 
@@ -51,14 +31,14 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 2. ~~DNS and mail record tool~~ Built: DNS records, under Web tools.
 3. ~~Site crawler, reading HTML only~~ Built: Site crawler, under Web tools.
 4. ~~WebView2 groundwork, with Save a web page as a PDF and Website screenshots~~ Built: Page to PDF or picture, under Web tools.
-5. **Responsive preview and Phone simulator.** One window, on top of step 4.
-6. **Site crawler for sites that need JavaScript.** Needs step 4.
-7. **Screen ruler.** Reuses the colour picker's frozen screen.
-8. **Text snippets from any program.**
-9. **Copy text from a picture.** Reuses the screenshot picker.
-10. **Compare**, then **Duplicate file finder**, both in Files.
-11. **Palette builder**, in the Colours tool.
-12. **Favicon and app icon maker**, then **Logo export pack.** They share the picture work.
+5. ~~Responsive preview and Phone simulator~~ Built: Show as, in Page to PDF or picture. The device sizes were written from memory, not looked up, so correct any that are off in `Devices.All`.
+6. ~~Site crawler for sites that need JavaScript~~ Built: a tick on the Site crawler page.
+7. ~~Screen ruler~~ Built: Screen ruler, under Web tools, and Ctrl+Alt+M from any program.
+8. ~~Text snippets from any program~~ Built: Text snippets, under Computer, and Ctrl+Alt+T from any program. A snippet is picked from a small window (by name or code), not by typing its code straight into the other program: that would need a hook on every key typed on the PC, which was left out on purpose.
+9. ~~Copy text from a picture~~ Built: Text from the screen, under Computer, and Ctrl+Alt+X from any program.
+10. ~~Compare, then Duplicate file finder~~ Built: Compare and Duplicate files, under Computer and on Files' right-click.
+11. ~~Palette builder~~ Built: the Palette and Contrast parts of the Colours tool.
+12. ~~Favicon and app icon maker, then Logo export pack~~ Built: Logo pack and favicons, under Web tools.
 13. **Social image sizer.**
 14. **Brand sheet maker.** Last, as it uses the palette and the logo work.
 

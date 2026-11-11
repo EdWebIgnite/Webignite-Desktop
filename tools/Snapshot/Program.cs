@@ -31,10 +31,12 @@ var noWeb = new Webignite.Services.SiteCrawler(new HttpClient(new NoWeb()));
 // WebView2 is Windows only, so the web tools get a stand-in browser here, or none at all to see what they say then.
 var browserThere = false;
 StandInBrowser? standInBrowser = null;
+StandInReader? standInReader = null;
 var services = new AppServices(store)
 {
     TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey, Dns = noDns, Crawler = noWeb,
     NewBrowser = () => browserThere ? standInBrowser = new StandInBrowser() : null,
+    NewPageReader = () => browserThere ? standInReader = new StandInReader() : null,
 };
 services.Settings.Backups = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
 // Client folders as on Eddie's PC (C:\Projects), with a few files in them, for Files and the client pages.
@@ -1938,7 +1940,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2082,8 +2084,166 @@ SaveWindow(captureWindow, "tools-page-capture");
     Wait(capture.SavePagePdfToAsync(Path.Combine(saved, "again.pdf")), "The PDF was tried");
     Check("When the browser can't, the tool says so and carries on", capture.CaptureProblem && capture.CaptureNote.StartsWith("That didn't work", StringComparison.Ordinal) && capture.CaptureReady);
 }
+// The same page shown as a phone, a tablet too big for the window, a typed size, and back.
+{
+    var saved = Path.Combine(data, "page-capture-devices");
+    Directory.CreateDirectory(saved);
+    standInBrowser!.Calls.Clear();
+    capture.CaptureDevice = capture.CaptureDevices.First(d => d.Label == "iPhone 14");
+    Check("Shown as an iPhone the page is its size, says it is one, is touched, and is fetched again",
+        Until(() => standInBrowser.Calls.Contains("Page.reload")) && capture.DeviceSize.StartsWith("390 × 844", StringComparison.Ordinal)
+        && standInBrowser.Asked.Any(a => a.Contains("iPhone", StringComparison.Ordinal)) && standInBrowser.Calls.Contains("Emulation.setTouchEmulationEnabled"));
+    Check("The iPhone's screen is drawn in the middle at its own width", capture.IsDeviceOn && capture.PaneWidth <= 390 && capture.PaneWidth / capture.PaneHeight is > 0.45 and < 0.47);
+    SaveWindow(captureWindow, "tools-page-capture-phone");
+    Wait(capture.SavePagePicturesToAsync(saved), "The phone picture was taken");
+    Check("A picture taken as a device is of that device, laid out as a phone, and named after it",
+        File.Exists(Path.Combine(saved, "karoocoffee-co-za-menu-iphone-14-390.png")) && Directory.GetFiles(saved).Length == 1
+        && standInBrowser.Asked.Any(a => a.Contains("\"width\":390", StringComparison.Ordinal) && a.Contains("\"mobile\":true", StringComparison.Ordinal) && a.Contains("\"deviceScaleFactor\":1", StringComparison.Ordinal)));
+    Check("After the picture the browser is put back to showing the iPhone",
+        Until(() => standInBrowser.Calls.LastIndexOf("Emulation.setEmitTouchEventsForMouse") > standInBrowser.Calls.LastIndexOf("Page.captureScreenshot")));
+    standInBrowser.Calls.Clear();
+    capture.CaptureSideways = true;
+    Check("Turned sideways it is wider than tall, without fetching the page again",
+        Until(() => standInBrowser.Calls.Contains("Emulation.setDeviceMetricsOverride")) && capture.PaneWidth > capture.PaneHeight && !standInBrowser.Calls.Contains("Page.reload"));
+    capture.CaptureSideways = false;
+    capture.CaptureDevice = capture.CaptureDevices.First(d => d.Label == "iPad Pro 13 inch");
+    Check("A screen taller than the window is shrunk to fit and says by how much",
+        capture.PaneHeight < 1366 && capture.DeviceSize.StartsWith("1024 × 1366, shown at ", StringComparison.Ordinal));
+    SaveWindow(captureWindow, "tools-page-capture-tablet");
+    capture.CaptureDevice = capture.CaptureDevices[^1];
+    capture.CustomWidth = "wide";
+    Check("A typed size that isn't a number is asked for again, and the page fills the window meanwhile",
+        capture.IsCustomDevice && !capture.IsDeviceOn && double.IsNaN(capture.PaneWidth) && capture.DeviceSize.StartsWith("Type a width and height", StringComparison.Ordinal));
+    capture.CustomWidth = "500";
+    capture.CustomHeight = "400";
+    Check("A typed size is used as it is", capture.IsDeviceOn && capture.PaneWidth == 500 && capture.PaneHeight == 400 && capture.DeviceSize == "500 × 400");
+    standInBrowser.Calls.Clear();
+    capture.CaptureDevice = capture.CaptureDevices[0];
+    Check("Back to Fit the window the browser is itself again",
+        Until(() => standInBrowser.Calls.Contains("Emulation.clearDeviceMetricsOverride") && standInBrowser.Calls.Contains("Page.reload")) && !capture.IsDeviceOn && double.IsNaN(capture.PaneWidth));
+}
 captureWindow.Close();
 Check("Closing the page tool's window shuts its browser down", standInBrowser!.Disposed && !capture.HasCaptureView);
+// Text snippets: none yet, one saved, found by its code and copied with today's date filled in.
+var snippetWindow = window.ShowTool(ToolKind.Snippets, services);
+var snippets = snippetWindow.Tools;
+Check("With no snippets yet the window says what they are for", snippets.NoSnippets && snippets.SnippetRows.Count == 0);
+snippets.NewSnippetCommand.Execute(null);
+snippets.SaveSnippetCommand.Execute(null);
+Check("A snippet without a name isn't saved", snippets.SnippetProblem && snippets.IsEditingSnippet);
+snippets.SnippetName = "Banking details";
+snippets.SnippetCode = "bank";
+snippets.SnippetText = "Webignite (Pty) Ltd\nFNB cheque account 62000000000\nBranch 250655\nReference: your invoice number";
+SaveWindow(snippetWindow, "tools-snippets-new");
+snippets.SaveSnippetCommand.Execute(null);
+snippets.NewSnippetCommand.Execute(null);
+snippets.SnippetName = "Thanks for the payment";
+snippets.SnippetText = "Hi\n\nThanks, your payment came through on {date}.\n\nRegards\nEddie";
+snippets.SaveSnippetCommand.Execute(null);
+snippets.NewSnippetCommand.Execute(null);
+snippets.SnippetName = "Hosting renewal";
+snippets.SnippetCode = "bank";
+snippets.SnippetText = "Your hosting renews next month.";
+snippets.SaveSnippetCommand.Execute(null);
+Check("Two snippets can't share a code", snippets.SnippetProblem && snippets.SnippetMessage.Contains("already", StringComparison.Ordinal));
+snippets.SnippetCode = "host";
+snippets.SaveSnippetCommand.Execute(null);
+Check("Saved snippets are listed and kept in settings", snippets.SnippetRows.Count == 3 && services.Settings.Snippets.Items.Count == 3 && !snippets.IsEditingSnippet);
+SaveWindow(snippetWindow, "tools-snippets");
+snippets.SnippetSearch = "bank";
+Check("Typing a code finds its snippet first", snippets.SnippetRows.Count == 1 && snippets.SnippetRows[0].Name == "Banking details");
+snippets.SnippetSearch = "thanks";
+string? sent = null;
+snippets.SendSnippet = text => { sent = text; return Task.FromResult("Copied. Paste it where you need it."); };
+Wait(snippets.UseFirstSnippetCommand.ExecuteAsync(null), "The snippet was used");
+Check("Enter uses the best match, with today's date filled in",
+    sent is not null && sent.Contains(DateTime.Now.ToString("d MMMM yyyy"), StringComparison.Ordinal) && !sent.Contains("{date}", StringComparison.Ordinal) && snippets.SnippetMessage.StartsWith("Copied", StringComparison.Ordinal));
+snippets.SnippetSearch = "";
+snippets.SnippetRows[2].ChangeCommand.Execute(null);
+snippets.RemoveSnippetCommand.Execute(null);
+Check("A snippet can be removed", snippets.SnippetRows.Count == 2 && services.Settings.Snippets.Items.Count == 2);
+snippetWindow.Close();
+// Compare: two versions of a stylesheet side by side, then two folders, then one file out of them.
+{
+    var compareRoot = Path.Combine(data, "compare");
+    Directory.CreateDirectory(Path.Combine(compareRoot, "live", "css"));
+    Directory.CreateDirectory(Path.Combine(compareRoot, "staging", "css"));
+    var css = string.Join("\n", Enumerable.Range(1, 40).Select(i => i == 12 ? "h1 { color: #3d2b1f; font-size: 2.4rem; }" : i == 30 ? ".button { padding: 12px 24px; }" : $".row-{i} {{ margin: {i}px; }}"));
+    File.WriteAllText(Path.Combine(compareRoot, "live", "css", "site.css"), css);
+    File.WriteAllText(Path.Combine(compareRoot, "staging", "css", "site.css"),
+        css.Replace("font-size: 2.4rem", "font-size: 3rem", StringComparison.Ordinal).Replace(".button { padding: 12px 24px; }", ".button { padding: 14px 28px; }\n.button:hover { opacity: .9; }", StringComparison.Ordinal));
+    File.WriteAllText(Path.Combine(compareRoot, "live", "index.html"), "<h1>Karoo Coffee</h1>");
+    File.WriteAllText(Path.Combine(compareRoot, "staging", "index.html"), "<h1>Karoo Coffee</h1>");
+    File.WriteAllText(Path.Combine(compareRoot, "live", "old-menu.html"), "<h1>Menu</h1>");
+    File.WriteAllText(Path.Combine(compareRoot, "staging", "specials.html"), "<h1>Specials</h1>");
+    var compareWindow = window.ShowTool(ToolKind.Compare, services);
+    var compare = compareWindow.Tools;
+    Check("Compare waits for both sides", !compare.RunCompareCommand.CanExecute(null));
+    compare.StartCompare(Path.Combine(compareRoot, "live", "css", "site.css"), Path.Combine(compareRoot, "staging", "css", "site.css"));
+    Check("Two files are shown side by side with what differs counted",
+        Until(() => !compare.CompareBusy && compare.HasCompareRows) && compare.CompareSummary == "3 lines differ: 2 changed, 1 only on the right." && compare.CompareRows.Count == 41);
+    SaveWindow(compareWindow, "tools-compare-files");
+    compare.CompareOnlyChanges = true;
+    Check("Only what differs folds the matching lines away", compare.CompareRows.Count < 41 && compare.CompareRows.Any(r => r.IsSkipped));
+    SaveWindow(compareWindow, "tools-compare-changes");
+    compare.CompareOnlyChanges = false;
+    compare.StartCompare(Path.Combine(compareRoot, "live"), Path.Combine(compareRoot, "staging"));
+    Check("Two folders are compared file by file, what differs first",
+        Until(() => !compare.CompareBusy && compare.HasCompareFolderRows) && compare.CompareSummary == "3 of 4 files differ: 1 different, 1 only on the left, 1 only on the right."
+        && compare.CompareFolderRows.Count == 4 && !compare.CompareFolderRows[0].Words.StartsWith("The same", StringComparison.Ordinal) && !compare.HasCompareRows);
+    SaveWindow(compareWindow, "tools-compare-folders");
+    compare.CompareFolderRows.First(r => r.CanCompare).CompareCommand.Execute(null);
+    Check("A file that differs opens side by side, with a way back to the folders",
+        Until(() => !compare.CompareBusy && compare.HasCompareRows) && compare.CanGoBackToFolders && !compare.HasCompareFolderRows);
+    compare.BackToFoldersCommand.Execute(null);
+    Check("Back shows the folders again", Until(() => !compare.CompareBusy && compare.HasCompareFolderRows) && !compare.CanGoBackToFolders);
+    compare.StartCompare(Path.Combine(compareRoot, "live"), Path.Combine(compareRoot, "staging", "index.html"));
+    Check("A file against a folder is turned down in plain words", compare.CompareProblem && compare.CompareSummary.StartsWith("One is a file", StringComparison.Ordinal));
+    compareWindow.Close();
+
+    // Duplicate files: copies found by what is in them, ticked, and sent to the bin with one of each kept.
+    var copies = Path.Combine(data, "copies");
+    Directory.CreateDirectory(Path.Combine(copies, "Copy of logos"));
+    Directory.CreateDirectory(Path.Combine(copies, "old"));
+    File.WriteAllText(Path.Combine(copies, "logo.svg"), new string('L', 4000));
+    File.WriteAllText(Path.Combine(copies, "Copy of logos", "logo.svg"), new string('L', 4000));
+    File.WriteAllText(Path.Combine(copies, "old", "logo final.svg"), new string('L', 4000));
+    File.WriteAllText(Path.Combine(copies, "brief.txt"), "The brief");
+    File.WriteAllText(Path.Combine(copies, "old", "brief (1).txt"), "The brief");
+    File.WriteAllText(Path.Combine(copies, "notes.txt"), "Only one of these");
+    var duplicatesWindow = window.ShowTool(ToolKind.Duplicates, services);
+    var duplicates = duplicatesWindow.Tools;
+    duplicates.StartDuplicates(copies);
+    Check("Copies are found by what is in them, the set that frees the most first",
+        Until(() => !duplicates.DuplicatesBusy && duplicates.HasDuplicateSets) && duplicates.DuplicateSets.Count == 2 && duplicates.DuplicateSets[0].Files.Count == 3
+        && duplicates.DuplicateSummary.StartsWith("3 files are copies of others, in 2 sets.", StringComparison.Ordinal) && !duplicates.RecycleDuplicatesCommand.CanExecute(null));
+    duplicates.TickExtraCopiesCommand.Execute(null);
+    Check("Tick the extra copies leaves the one nearest the top of the folder", duplicates.DuplicatesTicked == 3
+        && duplicates.DuplicateSets[0].Files.Single(f => !f.IsTicked).Path == Path.Combine(copies, "logo.svg") && duplicates.RecycleDuplicatesText == "Move 3 files to the Recycle Bin");
+    SaveWindow(duplicatesWindow, "tools-duplicates");
+    foreach (var file in duplicates.DuplicateSets[1].Files)
+        file.IsTicked = true;
+    Wait(duplicates.RecycleDuplicatesCommand.ExecuteAsync(null), "The copies were moved to the bin");
+    Check("The ticked copies go, and one of each stays even when every copy was ticked",
+        File.Exists(Path.Combine(copies, "logo.svg")) && !File.Exists(Path.Combine(copies, "Copy of logos", "logo.svg")) && !File.Exists(Path.Combine(copies, "old", "logo final.svg"))
+        && new[] { Path.Combine(copies, "brief.txt"), Path.Combine(copies, "old", "brief (1).txt") }.Count(File.Exists) == 1 && File.Exists(Path.Combine(copies, "notes.txt"))
+        && !duplicates.HasDuplicateSets && duplicates.DuplicateSummary.StartsWith("3 files are in the Recycle Bin; one copy of each was kept.", StringComparison.Ordinal));
+    duplicatesWindow.Close();
+}
+var screenTextWindow = window.ShowTool(ToolKind.ScreenText, services);
+Check("Text from the screen names its shortcut and shows nothing until something is read",
+    !screenTextWindow.Tools.HasScreenText && screenTextWindow.Tools.ScreenTextHint.StartsWith("Ctrl+Alt+X", StringComparison.Ordinal));
+screenTextWindow.Tools.ScreenTextRead = "Karoo Coffee Roasters" + Environment.NewLine + "Small-batch coffee from the Karoo" + Environment.NewLine + "Shop now";
+Check("What was read is shown to check and copy from", screenTextWindow.Tools.HasScreenText);
+SaveWindow(screenTextWindow, "tools-screen-text");
+screenTextWindow.Close();
+var rulerWindow = window.ShowTool(ToolKind.Ruler, services);
+rulerWindow.Tools.AddMeasurement("480 × 270 px (320 × 180 at 100%)");
+rulerWindow.Tools.AddMeasurement("24 × 1080 px");
+Check("The ruler's window lists what was measured, newest first, and names its shortcut",
+    rulerWindow.Tools.Measurements[0] == "24 × 1080 px" && rulerWindow.Tools.HasMeasurements && rulerWindow.Tools.RulerHint.StartsWith("Ctrl+Alt+M", StringComparison.Ordinal));
+SaveWindow(rulerWindow, "tools-ruler");
+rulerWindow.Close();
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
 SaveWindow(passwordWindow, "tools-passwords");
 passwordWindow.Close();
@@ -2092,7 +2252,97 @@ services.RememberColour("#2F9E44");
 var colourWindow = window.ShowTool(ToolKind.Colours, services);
 Check("The Colours tool shows the recent colours", colourWindow.Tools.RecentColours.Select(c => c.Hex).Take(2).SequenceEqual(["#2F9E44", "#1C1D21"]));
 SaveWindow(colourWindow, "tools-colours");
+{
+    var colours = colourWindow.Tools;
+    colours.ColourInput = "#E8590C";
+    Check("A colour shows its print code, its ten steps from light to dark, and what goes with it",
+        colours.ColourCmyk == "cmyk(0%, 62%, 95%, 9%)" && colours.Shades.Count == 10 && colours.Shades[5].Hex == "#E8590C" && colours.Shades[5].Tip == "500 #E8590C" && colours.GoesWith.Count == 5);
+    SaveWindow(colourWindow, "tools-colours-scale");
+    colours.ClearPaletteCommand.Execute(null);
+    colours.AddToPaletteCommand.Execute(null);
+    colours.AddToPaletteCommand.Execute(null);
+    Check("The colour showing is added to the palette once", services.Settings.Palette.Swatches.Count == 1 && colours.ColourMessage.Contains("already", StringComparison.Ordinal));
+    // A logo as an SVG, and one as a picture: the colours written in the first, the most used in the second.
+    var logos = Path.Combine(data, "logos");
+    Directory.CreateDirectory(logos);
+    File.WriteAllText(Path.Combine(logos, "karoo.svg"), """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#3D2B1F"/><circle cx="32" cy="32" r="20" fill="#E8590C"/><path d="M20 32h24" stroke="#F8F5F0" stroke-width="4"/></svg>""");
+    using (var drawn = new SkiaSharp.SKBitmap(120, 80))
+    {
+        using (var canvas = new SkiaSharp.SKCanvas(drawn))
+        {
+            canvas.Clear(new SkiaSharp.SKColor(0x1B, 0x6C, 0xA8));
+            using var paint = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(0xF2, 0xC1, 0x4E) };
+            canvas.DrawRect(0, 0, 40, 80, paint);
+        }
+        using var png = drawn.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        File.WriteAllBytes(Path.Combine(logos, "sign.png"), png.ToArray());
+    }
+    colours.ShowColourPartCommand.Execute(ColourPart.Palette);
+    colours.AddToPalette(ToolsViewModel.PictureColours(Path.Combine(logos, "karoo.svg")), "karoo.svg");
+    Check("An SVG logo gives the colours written in it, less the one already there",
+        colours.PaletteRows.Select(r => r.Hex).SequenceEqual(["#E8590C", "#3D2B1F", "#F8F5F0"]) && colours.PaletteMessage.StartsWith("2 colours added from karoo.svg", StringComparison.Ordinal));
+    colours.AddToPalette(ToolsViewModel.PictureColours(Path.Combine(logos, "sign.png")), "sign.png");
+    Check("A picture gives its main colours, the most used first", colours.PaletteRows.Count == 5 && colours.PaletteRows[3].Hex == "#1B6CA8" && colours.PaletteRows[4].Hex == "#F2C14E");
+    colours.PaletteRows[0].Name = "Primary";
+    colours.PaletteRows[1].Name = "Ink";
+    colours.PaletteRows[2].Name = "Paper";
+    Check("Names are kept as they are typed", services.Settings.Palette.Swatches.Select(s => s.Name).Take(3).SequenceEqual(["Primary", "Ink", "Paper"]));
+    Check("The palette is written out as CSS variables",
+        Webignite.Core.Tools.ColourPalettes.CssVariables(services.Settings.Palette.Swatches).StartsWith(":root {\n  --primary: #E8590C;\n  --ink: #3D2B1F;\n  --paper: #F8F5F0;\n  --colour-4: #1B6CA8;", StringComparison.Ordinal));
+    SaveWindow(colourWindow, "tools-colours-palette");
+    colours.PaletteRows[4].RemoveCommand.Execute(null);
+    Check("A colour can be taken out", colours.PaletteRows.Count == 4 && services.Settings.Palette.Swatches.Count == 4);
+    colours.ShowColourPartCommand.Execute(ColourPart.Contrast);
+    colours.ContrastText = "#FFFFFF";
+    colours.ContrastBack = "#E8590C";
+    Check("White on the brand orange passes for headings and fails for body text",
+        colours.ContrastRatio.StartsWith("3.", StringComparison.Ordinal) && colours.ContrastRatio.EndsWith(" to 1", StringComparison.Ordinal) && colours.ContrastVerdicts.Select(v => v.Passes).SequenceEqual([false, true, true, false]));
+    SaveWindow(colourWindow, "tools-colours-contrast");
+    colours.ContrastBack = "orange-ish";
+    Check("Something that isn't a colour is asked for again", !colours.HasContrast && colours.ContrastVerdicts.Count == 0 && colours.ContrastRatio.StartsWith("Type two colours", StringComparison.Ordinal));
+    colours.ShowColourPartCommand.Execute(ColourPart.Colour);
+}
 colourWindow.Close();
+// Logo pack and favicons, from the SVG logo made above.
+{
+    var logoWindow = window.ShowTool(ToolKind.Logos, services);
+    var logos = logoWindow.Tools;
+    Check("Nothing can be made before a logo is chosen", !logos.HasLogo && !logos.SaveLogoPackToCommand.CanExecute(null));
+    Wait(logos.OpenLogoAsync(Path.Combine(data, "copies", "notes.txt")), "A file that isn't a logo was tried");
+    Check("A file that isn't a picture is turned down in plain words", logos.LogoProblem && !logos.HasLogo);
+    Wait(logos.OpenLogoAsync(Path.Combine(data, "logos", "karoo.svg")), "A logo with its own background was opened");
+    Check("An SVG with its own background is only offered in colour, and says why",
+        logos.LogoPreviews.Count == 1 && logos.LogoWarning.StartsWith("It has no see-through background", StringComparison.Ordinal));
+    File.WriteAllText(Path.Combine(data, "logos", "karoo-mark.svg"), """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="#E8590C"/><path d="M18 32h28" stroke="#3D2B1F" stroke-width="6"/></svg>""");
+    logos.LogoName = "";
+    Wait(logos.OpenLogoAsync(Path.Combine(data, "logos", "karoo-mark.svg")), "The logo was opened");
+    Check("An SVG logo is shown in colour, all white and all black, with a name from its file",
+        logos.HasLogo && logos.LogoPreviews.Count == 3 && logos.LogoName == "Karoo mark" && logos.LogoInfo.StartsWith("An SVG", StringComparison.Ordinal) && logos.LogoWarning.Length == 0);
+    logos.LogoName = "Karoo Coffee";
+    var made = Path.Combine(data, "logo-made");
+    Directory.CreateDirectory(made);
+    var zipPath = Path.Combine(made, Webignite.Core.Tools.LogoPack.ZipName(logos.LogoName));
+    Wait(logos.SaveLogoPackToCommand.ExecuteAsync(zipPath), "The logo pack was made");
+    using (var zip = System.IO.Compression.ZipFile.OpenRead(zipPath))
+        Check("The logo pack is one zip with every version, the SVG and the note",
+            zip.Entries.Count == 30 && zip.Entries.Any(e => e.FullName == "Vector/karoo-coffee.svg") && zip.Entries.Any(e => e.FullName == "White/karoo-coffee-white-1000px.png")
+            && logos.LogoMessage.StartsWith("28 logo files", StringComparison.Ordinal) && logos.HasLogoMade);
+    logos.FaviconFill = "brown";
+    Wait(logos.SaveFaviconsToCommand.ExecuteAsync(Path.Combine(made, "favicons")), "The favicons were tried with a colour that isn't one");
+    Check("A colour that isn't a code is asked for again", logos.LogoProblem && !Directory.Exists(Path.Combine(made, "favicons")));
+    logos.FaviconFill = "#3D2B1F";
+    logos.FaviconTheme = "#E8590C";
+    Wait(logos.SaveFaviconsToCommand.ExecuteAsync(Path.Combine(made, "favicons")), "The favicons were made");
+    Check("The favicon set is saved with the lines to paste",
+        File.Exists(Path.Combine(made, "favicons", "favicon.ico")) && File.Exists(Path.Combine(made, "favicons", "apple-touch-icon.png")) && File.Exists(Path.Combine(made, "favicons", "site.webmanifest"))
+        && File.Exists(Path.Combine(made, "favicons", "favicon.svg")) && logos.HasFaviconHtml && logos.FaviconHtml.Contains("theme-color\" content=\"#E8590C", StringComparison.Ordinal));
+    SaveWindow(logoWindow, "tools-logos");
+    Wait(logos.OpenLogoAsync(Path.Combine(data, "logos", "sign.png")), "A small picture was opened");
+    Check("A small picture on a solid background says what will be left out",
+        logos.LogoPreviews.Count == 1 && logos.LogoWarning.Contains("120 pixels wide", StringComparison.Ordinal) && logos.LogoWarning.Contains("no see-through background", StringComparison.Ordinal));
+    logoWindow.Close();
+    Check("Closing the window lets the logo pictures go", logos.LogoPreviews.Count == 0);
+}
 // Clipboard history: what was copied, text and pictures, newest first, in memory only.
 services.Clipboard.Add("thandi@karoocoffee.co.za");
 services.Clipboard.Add("Hi Pieter,\n\nThe new menu is live on the site. Have a look and shout if anything needs changing.\n\nEddie");
@@ -2357,6 +2607,16 @@ Open(Page.Crawler);
     Wait(crawler.StartCommand.ExecuteAsync(null), "The crawl finished");
     Check("With no internet the crawl says the site didn't answer, and is ready to go again",
         crawler.MessageIsProblem && crawler.Message.StartsWith("The site didn't answer", StringComparison.Ordinal) && !crawler.IsCrawling && crawler.StartCommand.CanExecute(null));
+    // For a site built by JavaScript, with no browser to read it with and then with the stand-in.
+    crawler.RunScripts = true;
+    browserThere = false;
+    Wait(crawler.StartCommand.ExecuteAsync(null), "The crawl was tried without a browser");
+    Check("Without a browser a JavaScript crawl says what it needs and doesn't start",
+        crawler.MessageIsProblem && crawler.Message.Contains("WebView2", StringComparison.Ordinal) && !crawler.IsCrawling && crawler.StartCommand.CanExecute(null));
+    browserThere = true;
+    Wait(crawler.StartCommand.ExecuteAsync(null), "The crawl with a browser finished");
+    Check("A JavaScript crawl starts a browser for itself and shuts it down when it ends", standInReader is { Started: true, Disposed: true } && !crawler.IsCrawling);
+    crawler.RunScripts = false;
     static Webignite.Core.Web.CrawledPage Found(string path, Webignite.Core.Web.PageFacts? facts = null, int status = 200, string? to = null, string? on = "/") => new()
     {
         Url = new Uri("https://karoocoffee.co.za" + path), Status = status, Facts = facts,
@@ -2534,6 +2794,29 @@ Save("site-check");
     dropStop.Show();
     dropStop.Canvas.Stop();
     Check("Esc stops the colour picker without a colour", dropStop.Picked.IsCompletedSuccessfully && dropStop.Picked.Result is null);
+
+    // The ruler over the same frozen screen: pointing measures the stretch under the pointer, dragging a box.
+    var ruler = new RulerWindow(frozen, screenArea, 1);
+    ruler.Show();
+    ruler.Canvas.Hover(new Point(370, 668));
+    Dispatcher.UIThread.RunJobs();
+    Check("Pointing measures across and down from the pointer", ruler.Canvas.Now is { Width: > 0, Height: > 0 });
+    using (var rulerFrame = ruler.CaptureRenderedFrame())
+    using (var rulerFile = File.Create(Path.Combine(output, "ruler-pointing.png")))
+        rulerFrame?.Save(rulerFile, new PngBitmapEncoderOptions());
+    ruler.Canvas.Press(new Point(100, 100));
+    ruler.Canvas.Hover(new Point(300, 220));
+    Dispatcher.UIThread.RunJobs();
+    Check("Dragging measures the box dragged", ruler.Canvas.Now == new Webignite.Core.Tools.Measured(201, 121));
+    using (var rulerFrame = ruler.CaptureRenderedFrame())
+    using (var rulerFile = File.Create(Path.Combine(output, "ruler-box.png")))
+        rulerFrame?.Save(rulerFile, new PngBitmapEncoderOptions());
+    ruler.Canvas.Release(new Point(300, 220));
+    Check("Letting go keeps the size", ruler.Kept.IsCompletedSuccessfully && ruler.Kept.Result == new Webignite.Core.Tools.Measured(201, 121));
+    var rulerStop = new RulerWindow(frozen, screenArea, 1);
+    rulerStop.Show();
+    rulerStop.Canvas.Stop();
+    Check("Esc stops the ruler without a size", rulerStop.Kept.IsCompletedSuccessfully && rulerStop.Kept.Result is null);
 
     var grabbed = ScreenGrabWindow.Crop(frozen, picker.Picked.Result!.Value);
     frozen.Dispose();
@@ -4387,6 +4670,23 @@ sealed class StandInSpelling : Webignite.Core.Writing.ISpelling
     }
 
     public void Ignore(string word) => Add(word);
+}
+
+/// <summary>A page reader with no browser behind it: it notes that it was started and shut down.</summary>
+sealed class StandInReader : Webignite.Desktop.Web.IPageReader
+{
+    public bool Started { get; private set; }
+    public bool Disposed { get; private set; }
+
+    public Task StartAsync()
+    {
+        Started = true;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> ReadAsync(Uri address, CancellationToken cancel) => Task.FromResult<string?>(null);
+
+    public void Dispose() => Disposed = true;
 }
 
 /// <summary>A browser that opens nothing: it says a page opened, hands back a small picture, and notes what it was asked.</summary>

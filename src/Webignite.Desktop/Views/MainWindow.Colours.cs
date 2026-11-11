@@ -125,6 +125,6 @@ public partial class MainWindow
 
     private static IEnumerable<Window> AppWindows() =>
         Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.Windows.Where(w => w is not ColourPickWindow)
+            ? desktop.Windows.Where(w => w is not ColourPickWindow and not RulerWindow)
             : [];
 }
