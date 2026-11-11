@@ -1839,6 +1839,7 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 }
 
 Open(Page.Overview);
+Check("Check for updates sits under the version, ready to use", vm.Updates.CheckNowCommand.CanExecute(null) && !vm.Updates.IsReady);
 Save("overview");
 // Not every mail needs a reply: the × waves one off, and Undo brings it back.
 {

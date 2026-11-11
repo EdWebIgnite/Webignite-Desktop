@@ -309,6 +309,9 @@ public partial class MainViewModel : ViewModelBase
             EveryMinute = () =>
             {
                 ReleaseIdle(PageIdle);
+                // A new version is looked for every hour while Webignite stays open, not only at start.
+                if (Updates.CheckDue(DateTimeOffset.Now))
+                    Updates.CheckAsync().Forget("Checking for an update");
                 // ChatGPT's tunnel, when it's connected, runs while Webignite is open and starts again if it stops.
                 if (OperatingSystem.IsWindows())
                     services.ChatGpt.KeepRunning();
