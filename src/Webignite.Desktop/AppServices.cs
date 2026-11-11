@@ -162,6 +162,15 @@ public sealed class AppServices : IDisposable
     /// <summary>After each sync, as the partner's status may have changed (or gone Offline).</summary>
     public Action? PresenceChanged { get; set; }
 
+    /// <summary>
+    /// New messages from the partner, for the main window to show as a pop-up in the corner of the screen with a
+    /// sound; when it isn't set (tests), a note each instead.
+    /// </summary>
+    public Action<IReadOnlyList<Webignite.Core.Chat.ChatMessage>>? ChatPopUp { get; set; }
+
+    /// <summary>After each sync, as the partner's status may have changed (or gone Offline).</summary>
+    public Action? PresenceChanged { get; set; }
+
     // A note for each new message from the partner (the newest two, then a count), opening the chat when clicked.
     private void AnnounceChat(IReadOnlyList<Webignite.Core.Chat.ChatMessage> fresh)
     {
