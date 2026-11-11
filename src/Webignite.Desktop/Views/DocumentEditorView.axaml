@@ -11,7 +11,7 @@
   <StackPanel Spacing="18">
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding SaveState}" VerticalAlignment="Center" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding SaveState}" VerticalAlignment="Center" />
         <Button Classes="quiet" Content="Make invoice" Command="{Binding MakeInvoiceCommand}" IsVisible="{Binding IsQuote}"
                 IsEnabled="{Binding CanCopy}" ToolTip.Tip="Starts a draft invoice with this quote's customer and lines." />
         <Button Classes="quiet" Content="Copy" Command="{Binding CopyCommand}" IsEnabled="{Binding CanCopy}"
@@ -83,7 +83,7 @@
             <Button Classes="link" Content="Cancel" Command="{Binding CancelSavePackageCommand}" />
           </StackPanel>
         </StackPanel>
-        <TextBlock FontSize="12" Classes="muted" Classes.problem="{Binding PackageProblem}" Text="{Binding PackageMessage}" Margin="20,0,20,14"
+        <TextBlock FontSize="{DynamicResource Text12}" Classes="muted" Classes.problem="{Binding PackageProblem}" Text="{Binding PackageMessage}" Margin="20,0,20,14"
                    IsVisible="{Binding PackageMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
     </Border>
@@ -125,7 +125,7 @@
                           Command="{Binding #Root.((vm:DocumentEditorViewModel)DataContext).UseContactCommand}" CommandParameter="{Binding}">
                     <StackPanel>
                       <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Email}" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Email}" />
                     </StackPanel>
                   </Button>
                 </DataTemplate>
@@ -159,7 +159,7 @@
         <Border Classes="pending" IsVisible="{Binding RecordingPayment}">
           <StackPanel Spacing="8">
             <TextBlock FontWeight="SemiBold" Text="Record a payment in Xero" />
-            <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="12" Text="{Binding PaymentHint}" />
+            <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PaymentHint}" />
             <Grid ColumnDefinitions="140,12,170,12,*">
               <TextBox Text="{Binding PaymentAmountText}" Watermark="Amount (R)" />
               <CalendarDatePicker Grid.Column="2" SelectedDate="{Binding PaymentDay}" DisplayDateEnd="{x:Static sys:DateTime.Today}" HorizontalAlignment="Stretch" />
@@ -181,7 +181,7 @@
         <Border Classes="pending" IsVisible="{Binding Crediting}">
           <StackPanel Spacing="8">
             <TextBlock FontWeight="SemiBold" Text="Draft a credit note in Xero" />
-            <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="12" Text="{Binding CreditHint}" />
+            <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding CreditHint}" />
             <Grid ColumnDefinitions="140,12,*">
               <TextBox Text="{Binding CreditAmountText}" Watermark="Amount (R)" />
               <TextBox Grid.Column="2" Text="{Binding CreditReason}" Watermark="Reason, e.g. Hosting cancelled for December" />
@@ -195,14 +195,14 @@
         <ItemsControl ItemsSource="{Binding AttachmentsText}" IsVisible="{Binding HasAttachments}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="x:String">
-              <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding}" Margin="0,2" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding}" Margin="0,2" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <ItemsControl ItemsSource="{Binding CreditNotesText}" IsVisible="{Binding HasCreditNotes}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="x:String">
-              <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding}" Margin="0,2" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding}" Margin="0,2" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -260,16 +260,16 @@
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
                   Content="Create draft in Xero" Command="{Binding CreateInXeroCommand}"
                   IsVisible="{Binding ShowCreate}" IsEnabled="{Binding CanCreate}" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding XeroHint}"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding XeroHint}"
                      IsVisible="{Binding ShowCreate}" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding ShowCreate}"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding ShowCreate}"
                      Text="It goes in as a draft. Approving and sending stay with you." />
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
                   Content="Update draft in Xero" Command="{Binding UpdateInXeroCommand}"
                   IsVisible="{Binding IsChangingInXero}" IsEnabled="{Binding CanUpdate}" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding XeroHint}"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding XeroHint}"
                      IsVisible="{Binding IsChangingInXero}" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding IsChangingInXero}"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding IsChangingInXero}"
                      Text="It stays a draft. Approving and sending stay with you." />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Discard changes" Command="{Binding DiscardChangeCommand}" IsVisible="{Binding IsChangingInXero}" IsEnabled="{Binding !XeroBusy}"
@@ -280,7 +280,7 @@
                   Content="Start over (only if it isn't in Xero)" Command="{Binding StartOverCommand}" IsVisible="{Binding ShowStartOver}" IsEnabled="{Binding !XeroBusy}" />
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="{Binding EmailButtonText}" Command="{Binding StartEmailCommand}" IsVisible="{Binding ShowEmail}" IsEnabled="{Binding !XeroBusy}" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding EmailedText}" IsVisible="{Binding HasEmailedText}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding EmailedText}" IsVisible="{Binding HasEmailedText}" />
           <Grid ColumnDefinitions="*,8,*" IsVisible="{Binding CanDecideQuote}">
             <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Content="Client accepted" Command="{Binding AcceptQuoteCommand}"
@@ -304,7 +304,7 @@
             <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Content="Attach a file in Xero" Click="PickAttachment"
                     ToolTip.Tip="Attaches a file, such as a timesheet or signed proposal, to this one in Xero." />
-            <CheckBox Content="Show it on the online invoice" IsChecked="{Binding AttachOnline}" IsVisible="{Binding !IsQuote}" FontSize="12" />
+            <CheckBox Content="Show it on the online invoice" IsChecked="{Binding AttachOnline}" IsVisible="{Binding !IsQuote}" FontSize="{DynamicResource Text12}" />
           </StackPanel>
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Open in Xero" Command="{Binding OpenInXeroCommand}" IsVisible="{Binding HasXeroLink}" />

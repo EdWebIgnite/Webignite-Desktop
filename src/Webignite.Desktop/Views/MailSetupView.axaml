@@ -43,7 +43,7 @@
 
         <CheckBox Content="Show server settings" IsChecked="{Binding ShowServers}" />
         <StackPanel Spacing="10" IsVisible="{Binding ShowServers}">
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                      Text="Filled in from the address. For xneelo these are mail.yourdomain and smtp.yourdomain, with SSL on ports 993 and 465." />
           <Grid ColumnDefinitions="3*,12,*">
             <StackPanel Grid.Column="0">
@@ -79,7 +79,7 @@
             <Button Classes="quiet" Content="Choose a picture…" Click="ChooseSignatureImage" />
             <Button Classes="link" Content="Remove picture" Command="{Binding RemoveSignatureImageCommand}" IsVisible="{Binding HasSignatureImage}" />
           </StackPanel>
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                      Text="A logo or banner, PNG or JPG, under 300 KB. It goes under your signature on mail sent from this mailbox." />
         </StackPanel>
         <CheckBox Content="Invoices are sent from this mailbox" IsChecked="{Binding SendsInvoices}" />

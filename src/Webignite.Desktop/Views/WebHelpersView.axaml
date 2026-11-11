@@ -1,0 +1,186 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:tools="using:Webignite.Core.Tools"
+             x:Class="Webignite.Desktop.Views.WebHelpersView"
+             x:DataType="vm:ToolsViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBox.code">
+      <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12x5}" />
+      <Setter Property="AcceptsReturn" Value="True" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Height" Value="170" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="14">
+    <Border Classes="segments" HorizontalAlignment="Left">
+      <WrapPanel>
+        <Button Classes="segment" Classes.on="{Binding IsLorem}" Content="Filler text"
+                Command="{Binding ShowHelperCommand}" CommandParameter="{x:Static vm:WebHelper.Lorem}" />
+        <Button Classes="segment" Classes.on="{Binding IsPlaceholder}" Content="Placeholder picture"
+                Command="{Binding ShowHelperCommand}" CommandParameter="{x:Static vm:WebHelper.Placeholder}" />
+        <Button Classes="segment" Classes.on="{Binding IsUnits}" Content="px and rem"
+                Command="{Binding ShowHelperCommand}" CommandParameter="{x:Static vm:WebHelper.Units}" />
+        <Button Classes="segment" Classes.on="{Binding IsMinify}" Content="Minify"
+                Command="{Binding ShowHelperCommand}" CommandParameter="{x:Static vm:WebHelper.Minify}" />
+        <Button Classes="segment" Classes.on="{Binding IsJson}" Content="JSON"
+                Command="{Binding ShowHelperCommand}" CommandParameter="{x:Static vm:WebHelper.Json}" />
+        <Button Classes="segment" Classes.on="{Binding IsCases}" Content="Slug and case"
+                Command="{Binding ShowHelperCommand}" CommandParameter="{x:Static vm:WebHelper.Cases}" />
+        <Button Classes="segment" Classes.on="{Binding IsUtm}" Content="Campaign link"
+                Command="{Binding ShowHelperCommand}" CommandParameter="{x:Static vm:WebHelper.Utm}" />
+      </WrapPanel>
+    </Border>
+
+    <!-- Filler text -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsLorem}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <NumericUpDown Value="{Binding LoremCount}" Minimum="1" Maximum="{Binding LoremMost}" Increment="1" FormatString="0" Width="120" />
+        <ComboBox ItemsSource="{Binding LoremKinds}" SelectedItem="{Binding LoremKindChoice}" MinWidth="140" />
+        <CheckBox Content="Start with Lorem ipsum" IsChecked="{Binding LoremClassicStart}" Margin="8,0,0,0" />
+      </StackPanel>
+      <TextBox Text="{Binding LoremText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="240"
+               VerticalContentAlignment="Top" />
+      <Button Classes="primary" Content="Copy" HorizontalAlignment="Left" Click="CopyLorem" />
+    </StackPanel>
+
+    <!-- Placeholder picture -->
+    <Grid ColumnDefinitions="*,24,300" IsVisible="{Binding IsPlaceholder}">
+      <StackPanel Grid.Column="0" Spacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Width" />
+            <NumericUpDown Value="{Binding PlaceholderWidth}" Minimum="1" Maximum="{Binding PlaceholderMost}" Increment="10" FormatString="0" Width="130" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Height" />
+            <NumericUpDown Value="{Binding PlaceholderHeight}" Minimum="1" Maximum="{Binding PlaceholderMost}" Increment="10" FormatString="0" Width="130" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Words on it (its size when left empty)" />
+          <TextBox Text="{Binding PlaceholderText}" PlaceholderText="{Binding PlaceholderLabel}" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Colour" />
+          <TextBox Text="{Binding PlaceholderColour}" Classes.problem="{Binding PlaceholderColourProblem}" Width="160" HorizontalAlignment="Left" />
+        </StackPanel>
+        <Button Classes="primary" Content="Save as PNG" HorizontalAlignment="Left" Click="SavePlaceholder" />
+      </StackPanel>
+      <Border Grid.Column="2" Height="200" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource Line}">
+        <Border Width="{Binding PreviewWidth}" Height="{Binding PreviewHeight}" Background="{Binding PlaceholderBrush}"
+                HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="True">
+          <TextBlock Text="{Binding PlaceholderLabel}" FontSize="{Binding PreviewFont}" Foreground="{Binding PlaceholderInk}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+      </Border>
+    </Grid>
+
+    <!-- px and rem -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsUnits}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <StackPanel>
+          <TextBlock Classes="label" Text="Size, in px or rem" />
+          <TextBox Text="{Binding UnitInput}" PlaceholderText="24px or 1.5rem" Width="200" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Base size (px)" />
+          <TextBox Text="{Binding UnitBase}" Width="110" />
+        </StackPanel>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding HasUnitAnswer}">
+        <TextBlock Text="{Binding UnitSum}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Button Classes="primary" Content="Copy" Click="CopyUnit" />
+      </StackPanel>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding UnitHint}" TextWrapping="Wrap"
+                 IsVisible="{Binding UnitHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+
+    <!-- Minify -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsMinify}">
+      <ComboBox ItemsSource="{Binding MinifyKinds}" SelectedItem="{Binding MinifyKindChoice}" MinWidth="160" />
+      <TextBox Classes="code" Text="{Binding MinifyInput}" PlaceholderText="Paste the code here" />
+      <TextBox Classes="code" Text="{Binding MinifyOutput, Mode=OneWay}" IsReadOnly="True" IsVisible="{Binding HasMinifyOutput}" />
+      <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding HasMinifyOutput}">
+        <Button Classes="primary" Content="Copy" Click="CopyMinified" />
+        <TextBlock Classes="muted" Text="{Binding MinifySaved}" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MinifyNote}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <!-- JSON -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsJson}">
+      <Border Classes="segments" HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal">
+          <Button Classes="segment" Classes.on="{Binding JsonLaidOut}" Content="Laid out" Command="{Binding JsonLayoutCommand}" CommandParameter="out" />
+          <Button Classes="segment" Classes.on="{Binding JsonOneLine}" Content="On one line" Command="{Binding JsonLayoutCommand}" CommandParameter="one" />
+        </StackPanel>
+      </Border>
+      <TextBox Classes="code" Text="{Binding JsonInput}" PlaceholderText="Paste the JSON here" />
+      <TextBlock Classes="problem" Text="{Binding JsonProblem}" TextWrapping="Wrap" IsVisible="{Binding HasJsonProblem}" />
+      <TextBox Classes="code" Text="{Binding JsonOutput, Mode=OneWay}" IsReadOnly="True" IsVisible="{Binding HasJsonOutput}" />
+      <Button Classes="primary" Content="Copy" HorizontalAlignment="Left" Click="CopyJson" IsVisible="{Binding HasJsonOutput}" />
+    </StackPanel>
+
+    <!-- Slug and case -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsCases}">
+      <TextBox Text="{Binding CaseInput}" PlaceholderText="Type or paste a heading, a page title or a name" />
+      <ItemsControl ItemsSource="{Binding Cases}" IsVisible="{Binding HasCases}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="tools:TextCase">
+            <Grid ColumnDefinitions="120,*,Auto" Margin="0,3">
+              <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Name}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{Binding Text}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                         ToolTip.Tip="{Binding Text}" />
+              <Button Grid.Column="2" Classes="quiet" Content="Copy" Padding="10,3" Margin="8,0,0,0" Click="CopyCase" Tag="{Binding}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding !HasCases}"
+                 Text="The slug is what goes in a page's web address: lower case, no accents, hyphens between words." />
+    </StackPanel>
+
+    <!-- Campaign link -->
+    <StackPanel Spacing="10" IsVisible="{Binding IsUtm}">
+      <StackPanel>
+        <TextBlock Classes="label" Text="Page the link opens" />
+        <TextBox Text="{Binding UtmAddress}" PlaceholderText="karoocoffee.co.za/specials" />
+      </StackPanel>
+      <Grid ColumnDefinitions="*,10,*,10,*">
+        <StackPanel Grid.Column="0">
+          <TextBlock Classes="label" Text="Source (where it's posted)" />
+          <TextBox Text="{Binding UtmSource}" PlaceholderText="newsletter" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock Classes="label" Text="Medium (what kind)" />
+          <TextBox Text="{Binding UtmMedium}" PlaceholderText="email" />
+        </StackPanel>
+        <StackPanel Grid.Column="4">
+          <TextBlock Classes="label" Text="Campaign" />
+          <TextBox Text="{Binding UtmCampaign}" PlaceholderText="spring-sale" />
+        </StackPanel>
+      </Grid>
+      <Grid ColumnDefinitions="*,10,*">
+        <StackPanel Grid.Column="0">
+          <TextBlock Classes="label" Text="Search term (optional)" />
+          <TextBox Text="{Binding UtmTerm}" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock Classes="label" Text="Which advert or button (optional)" />
+          <TextBox Text="{Binding UtmContent}" />
+        </StackPanel>
+      </Grid>
+      <TextBlock Classes="problem" Text="{Binding UtmProblem}" TextWrapping="Wrap" IsVisible="{Binding HasUtmProblem}" />
+      <TextBox Text="{Binding UtmLink, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" IsVisible="{Binding HasUtmLink}" />
+      <Button Classes="primary" Content="Copy" HorizontalAlignment="Left" Click="CopyUtm" IsVisible="{Binding HasUtmLink}" />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                 Text="Google Analytics reads these tags to say which mail, post or advert a visit came from. Keep the same spelling each time: Newsletter and newsletter count as two." />
+    </StackPanel>
+
+    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding WebMessage}" TextWrapping="Wrap"
+               IsVisible="{Binding WebMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

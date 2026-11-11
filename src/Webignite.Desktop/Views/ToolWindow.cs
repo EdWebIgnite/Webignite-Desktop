@@ -24,6 +24,7 @@ public sealed class ToolWindow : Window
             ToolKind.Colours => 480,
             ToolKind.Clipboard => 460,
             ToolKind.Qr => 620,
+            ToolKind.WebHelpers => 720,
             _ => 640,
         };
         MinWidth = 340;
@@ -39,6 +40,7 @@ public sealed class ToolWindow : Window
             ToolKind.Colours => new ColourView(),
             ToolKind.Clipboard => new ClipboardView(),
             ToolKind.Qr => new QrView(),
+            ToolKind.WebHelpers => new WebHelpersView(),
             _ => new ImagesView(),
         };
         view.Margin = new Thickness(18, 16);
@@ -56,6 +58,7 @@ public sealed class ToolWindow : Window
         ToolKind.Colours => "Colours",
         ToolKind.Clipboard => "Clipboard history",
         ToolKind.Qr => "QR code",
+        ToolKind.WebHelpers => "Web helpers",
         _ => "Website images",
     };
 }

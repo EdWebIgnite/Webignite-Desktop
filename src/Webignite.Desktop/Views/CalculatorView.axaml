@@ -103,7 +103,7 @@
         <TextBlock FontWeight="SemiBold" Text="Put it on an invoice" />
         <TextBox Text="{Binding LineDescription}" PlaceholderText="What the line is for, e.g. Content updates, 3.5 hours" />
         <Button Classes="primary" Content="Add to invoice" Command="{Binding AddToInvoiceCommand}" IsEnabled="{Binding HasAnswer}" />
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="Goes on the invoice you have open, or a new one. Price boxes on quotes and invoices take sums too." />
       </StackPanel>
     </Border>

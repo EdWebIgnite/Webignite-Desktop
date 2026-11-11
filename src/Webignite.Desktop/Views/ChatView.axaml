@@ -33,10 +33,10 @@
       <Setter Property="Margin" Value="0,10,0,0" />
     </Style>
     <Style Selector="Border.bubble SelectableTextBlock">
-      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontSize" Value="{DynamicResource Text13}" />
     </Style>
     <Style Selector="TextBlock.stamp">
-      <Setter Property="FontSize" Value="10" />
+      <Setter Property="FontSize" Value="{DynamicResource Text10}" />
       <Setter Property="Foreground" Value="{DynamicResource Muted}" />
       <Setter Property="VerticalAlignment" Value="Bottom" />
     </Style>
@@ -91,7 +91,7 @@
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
           <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding MyShown, Converter={x:Static c:PresenceColours.Brush}}" />
-          <ComboBox ItemsSource="{Binding StatusChoices}" SelectedItem="{Binding MyStatus}" MinWidth="104" FontSize="12"
+          <ComboBox ItemsSource="{Binding StatusChoices}" SelectedItem="{Binding MyStatus}" MinWidth="104" FontSize="{DynamicResource Text12}"
                     ToolTip.Tip="Your status. Away shows by itself after 10 minutes without using the PC. Busy means no pop-ups or sounds.">
             <ComboBox.ItemTemplate>
               <DataTemplate>
@@ -107,14 +107,14 @@
         </Panel>
         <StackPanel VerticalAlignment="Center" Spacing="1">
           <TextBlock Text="{Binding PartnerName}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-          <TextBlock Text="{Binding PartnerLine}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding PartnerLine}" Classes="muted" FontSize="{DynamicResource Text12}" TextTrimming="CharacterEllipsis" />
         </StackPanel>
       </DockPanel>
     </Border>
     <!-- Writing: files waiting to go, then a round bar with the paperclip and the words, and a round send button -->
     <Border DockPanel.Dock="Bottom" Padding="10,8,10,10" Background="{DynamicResource Canvas}">
       <StackPanel Spacing="8">
-        <TextBlock Text="{Binding Note}" TextWrapping="Wrap" FontSize="12" Classes="muted" Classes.problem="{Binding NoteIsProblem}"
+        <TextBlock Text="{Binding Note}" TextWrapping="Wrap" FontSize="{DynamicResource Text12}" Classes="muted" Classes.problem="{Binding NoteIsProblem}"
                    IsVisible="{Binding Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <ItemsControl ItemsSource="{Binding Pending}" IsVisible="{Binding HasPending}">
           <ItemsControl.ItemsPanel>
@@ -125,7 +125,7 @@
               <Border Classes="chip" Background="{DynamicResource Surface}" CornerRadius="6" Padding="8,4">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <c:Icon Data="{StaticResource Icon.Paperclip}" Size="12" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Name}" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" />
                   <Button Classes="link" Content="×" Padding="2,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Take it off" />
                 </StackPanel>
               </Border>
@@ -158,7 +158,7 @@
             <DataTemplate x:DataType="vm:ChatBubble">
               <StackPanel Classes="message" Classes.first="{Binding IsFirst}">
                 <Border Classes="daychip" IsVisible="{Binding HasDay}">
-                  <TextBlock Text="{Binding Day}" FontSize="11" Classes="muted" />
+                  <TextBlock Text="{Binding Day}" FontSize="{DynamicResource Text11}" Classes="muted" />
                 </Border>
                 <Border Classes="bubble" Classes.mine="{Binding IsMine}" Classes.first="{Binding IsFirst}">
                   <StackPanel Spacing="4">
@@ -177,8 +177,8 @@
                               <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsFile}">
                                 <c:Icon Data="{StaticResource Icon.Paperclip}" Size="14" VerticalAlignment="Center" />
                                 <StackPanel>
-                                  <TextBlock Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="260" />
-                                  <TextBlock Classes="muted" FontSize="11" Text="{Binding SizeText}" />
+                                  <TextBlock Text="{Binding Name}" FontSize="{DynamicResource Text13}" TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                                  <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding SizeText}" />
                                 </StackPanel>
                               </StackPanel>
                             </Panel>

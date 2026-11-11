@@ -18,11 +18,11 @@
         <Grid ColumnDefinitions="*,210,230">
           <StackPanel Grid.Column="0" Spacing="2">
             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" />
           </StackPanel>
           <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
             <TextBlock Text="{Binding When}" Classes.short="{Binding IsOverdue}" />
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding Amounts}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Amounts}" />
           </StackPanel>
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Right">
             <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !ConfirmingRemove}">

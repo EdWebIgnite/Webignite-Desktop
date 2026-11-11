@@ -18,9 +18,9 @@
             <Button Classes="primary" Content="Save as PNG" Click="SaveQrPng" IsEnabled="{Binding HasQr}" />
             <Button Classes="quiet" Content="Save as SVG" Click="SaveQrSvg" IsEnabled="{Binding HasQr}" />
           </StackPanel>
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding QrMessage}" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding QrMessage}" TextWrapping="Wrap"
                      IsVisible="{Binding QrMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                      Text="PNG for print and documents, SVG for websites or a printer that wants artwork." />
         </StackPanel>
         <Border Grid.Column="2" Width="220" Height="220" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource Line}">

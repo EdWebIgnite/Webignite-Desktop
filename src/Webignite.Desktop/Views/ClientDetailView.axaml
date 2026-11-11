@@ -110,7 +110,7 @@
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsSaved}">
                 <Button Classes="link" Content="Delete client" Command="{Binding AskDeleteCommand}" IsVisible="{Binding !ConfirmingDelete}" />
                 <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ConfirmingDelete}">
-                  <TextBlock Classes="muted" FontSize="12" Text="Quotes and invoices stay." VerticalAlignment="Center" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Quotes and invoices stay." VerticalAlignment="Center" />
                   <Button Classes="quiet" Content="Delete" Command="{Binding DeleteCommand}" />
                   <Button Classes="link" Content="Keep" Command="{Binding CancelDeleteCommand}" />
                 </StackPanel>
@@ -118,7 +118,7 @@
               <StackPanel Orientation="Horizontal" Spacing="12">
                 <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" />
                 <c:SavedNote Stamp="{Binding SavedStamp}" />
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding SaveState}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding SaveState}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
               </StackPanel>
             </DockPanel>
           </StackPanel>
@@ -175,11 +175,11 @@
                         <Grid ColumnDefinitions="*,Auto,110,Auto">
                           <StackPanel Grid.Column="0" Margin="8,0" Spacing="2">
                             <TextBlock Text="{Binding Number}" Classes.muted="{Binding !IsInXero}" />
-                            <TextBlock Classes="muted" FontSize="12" Text="{Binding Date}" />
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Date}" />
                           </StackPanel>
                           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" ToolTip.Tip="{Binding Owing}">
                             <Ellipse Classes="dot" Classes.done="{Binding IsDone}" Classes.problem="{Binding IsOverdue}" Classes.waiting="{Binding IsWaiting}" />
-                            <TextBlock Classes="status" Classes.problem="{Binding IsOverdue}" Text="{Binding Status}" FontSize="13" />
+                            <TextBlock Classes="status" Classes.problem="{Binding IsOverdue}" Text="{Binding Status}" FontSize="{DynamicResource Text13}" />
                           </StackPanel>
                           <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Total}" Margin="8,0" VerticalAlignment="Center" />
                           <c:Icon Grid.Column="3" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" />
@@ -201,14 +201,14 @@
                                             Command="{Binding #Root.((vm:ClientDetailViewModel)DataContext).OpenMailCommand}" CommandParameter="{Binding}">
                                       <DockPanel Margin="8,0">
                                         <c:Icon DockPanel.Dock="Right" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" Margin="8,0,0,0" />
-                                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" Margin="8,0,0,0" />
+                                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding When}" Margin="8,0,0,0" />
                                         <StackPanel Spacing="2">
                                           <TextBlock Text="{Binding Subject}" TextTrimming="CharacterEllipsis" Classes.unread="{Binding IsUnread}">
                                             <TextBlock.Styles>
                                               <Style Selector="TextBlock.unread"><Setter Property="FontWeight" Value="SemiBold" /></Style>
                                             </TextBlock.Styles>
                                           </TextBlock>
-                                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                       </DockPanel>
                                     </Button>
@@ -257,13 +257,13 @@
                                               HorizontalAlignment="Left" ToolTip.Tip="Open in Contacts" />
                                       <WrapPanel ItemSpacing="6" LineSpacing="4">
                                         <Border Classes="pill" IsVisible="{Binding IsMain}">
-                                          <TextBlock FontSize="11" Text="Contact person" />
+                                          <TextBlock FontSize="{DynamicResource Text11}" Text="Contact person" />
                                         </Border>
                                         <Border Classes="pill" IsVisible="{Binding GetsInvoices}">
-                                          <TextBlock FontSize="11" Text="Gets quotes and invoices" />
+                                          <TextBlock FontSize="{DynamicResource Text11}" Text="Gets quotes and invoices" />
                                         </Border>
                                       </WrapPanel>
-                                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextWrapping="Wrap" />
+                                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" TextWrapping="Wrap" />
                                       <WrapPanel ItemSpacing="12">
                                         <Button Classes="link" Content="Make contact person" Padding="0,2" Command="{Binding MakeMainCommand}" IsVisible="{Binding NotMain}" />
                                         <Button Classes="link" Content="Send invoices here" Padding="0,2" Command="{Binding MakeBillingCommand}" IsVisible="{Binding CanGetInvoices}" />
@@ -289,7 +289,7 @@
                         <Button DockPanel.Dock="Right" Classes="link" Padding="6,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Not needed for this client">
                           <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
                         </Button>
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0" />
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0" />
                         <CheckBox IsChecked="{Binding Done}" Content="{Binding Name}" />
                       </DockPanel>
                     </DataTemplate>
@@ -316,7 +316,7 @@
               <StackPanel Spacing="10">
                 <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasProjects}"
                            Text="Add a project, like New website or Monthly SEO, to log time against it on the Time page." />
-                <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding HasProjects}" Text="Tick a project when it's finished. Its time is kept." />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" IsVisible="{Binding HasProjects}" Text="Tick a project when it's finished. Its time is kept." />
                 <ItemsControl ItemsSource="{Binding ProjectRows}" IsVisible="{Binding HasProjects}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ClientProjectRow">
@@ -326,8 +326,8 @@
                         </CheckBox>
                         <!-- Time logged, and the project's own rate when it differs from the client's. -->
                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="32,0,0,0">
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Time}" VerticalAlignment="Center" />
-                          <TextBox Text="{Binding Rate, UpdateSourceTrigger=LostFocus}" Width="96" MinHeight="0" FontSize="12" Padding="6,2"
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Time}" VerticalAlignment="Center" />
+                          <TextBox Text="{Binding Rate, UpdateSourceTrigger=LostFocus}" Width="96" MinHeight="0" FontSize="{DynamicResource Text12}" Padding="6,2"
                                    PlaceholderText="Own rate, R" Classes.problem="{Binding RateProblem}"
                                    ToolTip.Tip="This project's own hourly rate. Leave it empty to use the client's rate." />
                         </StackPanel>
@@ -381,18 +381,18 @@
                                       <Button Classes="link" Content="{Binding AddressText}" Command="{Binding OpenSiteCommand}" IsVisible="{Binding HasAddress}"
                                               Padding="0,1" HorizontalAlignment="Left" ToolTip.Tip="Open it in your browser" />
                                       <DockPanel IsVisible="{Binding HasUserName}">
-                                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="Username" Width="64" VerticalAlignment="Center" />
+                                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="{DynamicResource Text12}" Text="Username" Width="64" VerticalAlignment="Center" />
                                         <Button DockPanel.Dock="Right" Classes="link" Content="Copy" Padding="6,1" Command="{Binding CopyUserNameCommand}" />
                                         <SelectableTextBlock Text="{Binding UserName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                       </DockPanel>
                                       <DockPanel IsVisible="{Binding HasPassword}">
-                                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="Password" Width="64" VerticalAlignment="Center" />
+                                        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="{DynamicResource Text12}" Text="Password" Width="64" VerticalAlignment="Center" />
                                         <Button DockPanel.Dock="Right" Classes="link" Content="Copy" Padding="6,1" Command="{Binding CopyPasswordCommand}"
                                                 ToolTip.Tip="Cleared from the clipboard after 30 seconds, and kept out of Windows clipboard history" />
                                         <Button DockPanel.Dock="Right" Classes="link" Content="{Binding ShowText}" Padding="6,1" Command="{Binding RevealCommand}" />
                                         <SelectableTextBlock Text="{Binding PasswordText}" FontFamily="Consolas, Menlo, monospace" VerticalAlignment="Center" TextWrapping="Wrap" />
                                       </DockPanel>
-                                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Notes}" TextWrapping="Wrap" IsVisible="{Binding HasNotes}" />
+                                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Notes}" TextWrapping="Wrap" IsVisible="{Binding HasNotes}" />
                                     </StackPanel>
                                   </Border>
                                 </DataTemplate>
@@ -440,7 +440,7 @@
                                 </StackPanel>
                               </StackPanel>
                             </Border>
-                            <TextBlock Classes="muted" FontSize="12" Text="{Binding LoginsMessage}" TextWrapping="Wrap"
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding LoginsMessage}" TextWrapping="Wrap"
                                        IsVisible="{Binding LoginsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </StackPanel>
             </c:FoldSection>
@@ -468,7 +468,7 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ClientNoteLink">
                       <DockPanel Margin="0,2">
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0,0,0" />
                         <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,2" HorizontalAlignment="Left" />
                       </DockPanel>
                     </DataTemplate>
@@ -482,7 +482,7 @@
                   <Button Classes="quiet" Content="Add note" Command="{Binding AddLogEntryCommand}" />
                   <Button Classes="quiet" Content="Link a file" Click="LinkFiles" ToolTip.Tip="Contracts, briefs, logos. The file stays where it is" />
                 </StackPanel>
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding RecordsMessage}" TextWrapping="Wrap"
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding RecordsMessage}" TextWrapping="Wrap"
                            IsVisible="{Binding RecordsMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
                 <ItemsControl ItemsSource="{Binding FileRows}" IsVisible="{Binding HasFiles}">
@@ -498,7 +498,7 @@
                         <StackPanel>
                           <Button Classes="link" Content="{Binding Name}" Padding="0,2" Command="{Binding OpenCommand}" IsVisible="{Binding !Missing}" HorizontalAlignment="Left" />
                           <TextBlock Text="{Binding Name}" Margin="0,2" IsVisible="{Binding Missing}" TextDecorations="Strikethrough" />
-                          <TextBlock Classes="muted" FontSize="12" Classes.problem="{Binding Missing}" Text="{Binding Detail}" TextWrapping="Wrap" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Classes.problem="{Binding Missing}" Text="{Binding Detail}" TextWrapping="Wrap" />
                         </StackPanel>
                       </DockPanel>
                     </DataTemplate>
@@ -518,7 +518,7 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !HasFiles}"
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding !HasFiles}"
                            Text="Drop files here to link them. Keep them in OneDrive so they're backed up too." />
               </StackPanel>
             </c:FoldSection>

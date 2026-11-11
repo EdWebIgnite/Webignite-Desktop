@@ -1,0 +1,205 @@
+<!--
+  The Airy style, laid over Styles/Controls.axaml when it is picked (see Looks.cs). More room, a white page, flat
+  cards and soft filled boxes. Only shape and which palette colour goes where: no colour of its own.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Webignite.Desktop.Controls">
+
+  <!-- The page is white (Looks.cs gives the page's colour name the cards' white); cards are marked by a thin line
+       instead of a shadow on grey. -->
+  <Style Selector="Window.look-airy Border.card">
+    <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
+    <Setter Property="CornerRadius" Value="14" />
+    <Setter Property="Padding" Value="26" />
+  </Style>
+  <Style Selector="Window.look-airy Border.pending">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Window.look-airy TextBlock.h1">
+    <Setter Property="FontSize" Value="28" />
+  </Style>
+  <Style Selector="Window.look-airy TextBlock.h2">
+    <Setter Property="FontSize" Value="17" />
+  </Style>
+  <Style Selector="Window.look-airy TextBlock.label">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+  </Style>
+
+  <!-- Typing boxes: taller, softly filled, with no edge until pointed at or typed in. -->
+  <Style Selector="Window.look-airy TextBox, Window.look-airy ComboBox, Window.look-airy NumericUpDown, Window.look-airy DatePicker, Window.look-airy TimePicker, Window.look-airy CalendarDatePicker, Window.look-airy AutoCompleteBox">
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="MinHeight" Value="38" />
+  </Style>
+  <Style Selector="Window.look-airy TextBox">
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+  <Style Selector="Window.look-airy TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Window.look-airy TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="Window.look-airy TextBox.inline">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="8,5" />
+  </Style>
+  <Style Selector="Window.look-airy TextBox.inline /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Window.look-airy TextBox.inline:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Window.look-airy TextBox.inline:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+
+  <!-- Buttons: rounder, with more room round the words. -->
+  <Style Selector="Window.look-airy Button.primary">
+    <Setter Property="Padding" Value="17,9" />
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="Window.look-airy Button.quiet">
+    <Setter Property="Padding" Value="13,8" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+  </Style>
+  <!-- Toolbar buttons (the format bar, Files, Notes): no edge of their own, lit only when pointed at or on. -->
+  <Style Selector="Window.look-airy Button.format">
+    <Setter Property="Padding" Value="9,6" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format.icon">
+    <Setter Property="Padding" Value="8,7" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format.on">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Window.look-airy Border.segments">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="3" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Window.look-airy Button.segment">
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Window.look-airy Button.viewtab">
+    <Setter Property="Padding" Value="2,9" />
+    <Setter Property="Margin" Value="0,0,20,0" />
+  </Style>
+
+  <!-- A table's headings: a paler, taller band. -->
+  <Style Selector="Window.look-airy Border.stickyhead">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="Height" Value="42" />
+  </Style>
+
+  <!-- Sidebar: taller rows and more air between the groups. -->
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem">
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.nav.icons ListBoxItem">
+    <Setter Property="Padding" Value="0,12" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem.heading">
+    <Setter Property="Padding" Value="12,22,12,6" />
+    <Setter Property="Margin" Value="0" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem.gap">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Height" Value="18" />
+  </Style>
+  <Style Selector="Window.look-airy Button.navsearch">
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="Window.look-airy c|Icon.navicon">
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem:selected c|Icon.navicon">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem:selected">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem.heading:selected">
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+
+  <!-- Folding rows (a client's page): each heading has more room. -->
+  <Style Selector="Window.look-airy Button.foldhead">
+    <Setter Property="Padding" Value="4,19,24,19" />
+  </Style>
+
+  <!-- Settings' side menu: taller rows, and the section on screen filled, as white wouldn't show on a white page. -->
+  <Style Selector="Window.look-airy ListBox.sections ListBoxItem">
+    <Setter Property="Padding" Value="14,9" />
+    <Setter Property="Margin" Value="0,0,0,3" />
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.sections ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.sections ListBoxItem:selected:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+
+  <!-- Files: roomier places and rows, rounder address bar. -->
+  <Style Selector="Window.look-airy Button.place">
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.files ListBoxItem">
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.files.thumbs ListBoxItem">
+    <Setter Property="Padding" Value="6" />
+  </Style>
+  <Style Selector="Window.look-airy Border.address">
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <!-- A label used as a column heading keeps to the middle of the taller band. -->
+  <Style Selector="Window.look-airy Border.stickyhead TextBlock.label">
+    <Setter Property="Margin" Value="0" />
+  </Style>
+
+  <!-- Tabs: a little taller and rounder. -->
+  <Style Selector="Window.look-airy Border.tabstrip">
+    <Setter Property="Padding" Value="10,8,10,0" />
+  </Style>
+  <Style Selector="Window.look-airy ListBox.tabs ListBoxItem">
+    <Setter Property="Padding" Value="14,8,10,9" />
+    <Setter Property="CornerRadius" Value="10,10,0,0" />
+  </Style>
+  <Style Selector="Window.look-airy Border.poptab">
+    <Setter Property="CornerRadius" Value="10,10,0,0" />
+  </Style>
+</Styles>

@@ -1,0 +1,24 @@
+<!-- Writing a mail in the Airy style, laid over the styles in ComposeView.axaml (see Looks.cs). -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- The address boxes match the other boxes: softly filled, no edge until typed in. -->
+  <Style Selector="Window.look-airy Border.addressbox">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Padding" Value="7,5" />
+    <Setter Property="MinHeight" Value="38" />
+  </Style>
+  <Style Selector="Window.look-airy Border.addressbox:focus-within">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+  </Style>
+  <Style Selector="Window.look-airy TextBox.addressinput">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Window.look-airy Border.addresschip">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="Padding" Value="9,3,4,3" />
+  </Style>
+</Styles>

@@ -38,7 +38,7 @@
                 </Button.Flyout>
               </Button>
             </WrapPanel>
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding FileMessage}" TextWrapping="Wrap"
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding FileMessage}" TextWrapping="Wrap"
                        IsVisible="{Binding FileMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
 
@@ -83,7 +83,7 @@
                         <c:Monogram Text="{Binding Name}" Size="34" />
                         <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
                           <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Line}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Reach}" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Line}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Reach}" />
                         </StackPanel>
                         <c:Icon Grid.Column="3" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
                       </Grid>
@@ -210,7 +210,7 @@
 
               <StackPanel Orientation="Horizontal" Spacing="12">
                 <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" />
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" VerticalAlignment="Center" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Message}" VerticalAlignment="Center" />
               </StackPanel>
             </StackPanel>
           </Border>
@@ -228,10 +228,10 @@
                     <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                             Command="{Binding #Root.((vm:ContactsViewModel)DataContext).OpenTheirMailCommand}" CommandParameter="{Binding}">
                       <DockPanel Margin="8,0">
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding When}" Margin="8,0,0,0" />
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding When}" Margin="8,0,0,0" />
                         <StackPanel Spacing="2">
                           <TextBlock Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                       </DockPanel>
                     </Button>
@@ -254,9 +254,9 @@
                       <Grid ColumnDefinitions="*,Auto,Auto" Margin="8,0">
                         <StackPanel Spacing="2">
                           <TextBlock Text="{Binding Number}" FontWeight="SemiBold" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Date}" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Date}" />
                         </StackPanel>
-                        <TextBlock Grid.Column="1" Classes="muted" FontSize="12" Text="{Binding Status}" VerticalAlignment="Center" Margin="12,0" />
+                        <TextBlock Grid.Column="1" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Status}" VerticalAlignment="Center" Margin="12,0" />
                         <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Total}" VerticalAlignment="Center" />
                       </Grid>
                     </Button>

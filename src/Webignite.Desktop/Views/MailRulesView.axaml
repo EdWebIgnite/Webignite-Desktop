@@ -70,7 +70,7 @@
             </ItemsControl>
             <StackPanel Orientation="Horizontal" Spacing="12">
               <Button Classes="primary" Content="Add rule" Command="{Binding AddCommand}" />
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" VerticalAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Message}" VerticalAlignment="Center" TextWrapping="Wrap" />
             </StackPanel>
           </StackPanel>
         </Border>

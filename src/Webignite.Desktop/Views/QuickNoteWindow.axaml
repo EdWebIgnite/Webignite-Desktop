@@ -29,7 +29,7 @@
       <TextBox x:Name="TimeBox" Grid.Column="1" PlaceholderText="Time, e.g. 9:30 or 14:00-15:00" ToolTip.Tip="Leave it empty for all day" />
     </Grid>
 
-    <TextBlock x:Name="Problem" Classes="problem" FontSize="12" TextWrapping="Wrap" IsVisible="False" />
+    <TextBlock x:Name="Problem" Classes="problem" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="False" />
 
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="12">
@@ -44,6 +44,6 @@
         </ComboBox.ItemTemplate>
       </ComboBox>
     </DockPanel>
-    <TextBlock Classes="muted" FontSize="12" Text="Ctrl+Enter or Esc saves it. Ctrl+1, 2 and 3 switch between note, to-do and event." TextWrapping="Wrap" />
+    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Ctrl+Enter or Esc saves it. Ctrl+1, 2 and 3 switch between note, to-do and event." TextWrapping="Wrap" />
   </StackPanel>
 </Window>

@@ -19,7 +19,7 @@
                     <c:Icon Name="PART_Chevron" Data="{StaticResource Icon.ChevronRight}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <c:Icon Grid.Column="1" Data="{TemplateBinding Icon}" Size="16" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <TextBlock Grid.Column="2" Text="{TemplateBinding Title}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
-                    <TextBlock Grid.Column="3" Name="PART_Summary" Text="{TemplateBinding Summary}" Classes="muted" FontSize="13"
+                    <TextBlock Grid.Column="3" Name="PART_Summary" Text="{TemplateBinding Summary}" Classes="muted" FontSize="{DynamicResource Text13}"
                                HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Right" TextWrapping="Wrap" MaxLines="2" />
                   </Grid>
                 </Button>
@@ -80,8 +80,14 @@
   </Style>
   <Style Selector="TextBlock.label">
     <Setter Property="Foreground" Value="{DynamicResource Muted}" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource Text12}" />
     <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+  <!-- A label in small capitals over a list (CLIENTS, NOTEBOOKS). Its size is set here, not on the label itself:
+       a named size on the element doesn't win over the label's own, as a typed number did. -->
+  <Style Selector="TextBlock.label.caps">
+    <Setter Property="FontSize" Value="{DynamicResource Text10x5}" />
+    <Setter Property="LetterSpacing" Value="0.6" />
   </Style>
   <Style Selector="TextBlock.tablehead">
     <Setter Property="Margin" Value="8,0" />
@@ -213,7 +219,7 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="8,4" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource Text13}" />
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="HorizontalContentAlignment" Value="Left" />
     <Setter Property="VerticalAlignment" Value="Center" />
@@ -364,7 +370,7 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="10,4" />
     <Setter Property="CornerRadius" Value="5" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource Text12}" />
     <Setter Property="Foreground" Value="{DynamicResource Muted}" />
   </Style>
   <Style Selector="Button.segment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
@@ -503,7 +509,7 @@
     <Setter Property="CornerRadius" Value="15" />
     <Setter Property="Padding" Value="12,5" />
     <Setter Property="Margin" Value="0,0,6,0" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource Text13}" />
     <Setter Property="Foreground" Value="{DynamicResource Text}" />
     <Setter Property="Cursor" Value="Hand" />
   </Style>
@@ -589,7 +595,7 @@
   <!-- Section headings inside a page, e.g. "Renew soon" or "Today" above a card. -->
   <Style Selector="TextBlock.section">
     <Setter Property="Foreground" Value="{DynamicResource Muted}" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource Text12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Margin" Value="2,0,0,0" />
   </Style>
@@ -745,7 +751,7 @@
       <ControlTemplate>
         <StackPanel Orientation="Horizontal" Spacing="5">
           <c:Icon Data="{StaticResource Icon.Check}" Size="14" Foreground="{DynamicResource Ok}" VerticalAlignment="Center" />
-          <TextBlock Text="Saved" FontSize="12" Foreground="{DynamicResource Ok}" VerticalAlignment="Center" />
+          <TextBlock Text="Saved" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource Ok}" VerticalAlignment="Center" />
         </StackPanel>
       </ControlTemplate>
     </Setter>
@@ -1026,7 +1032,7 @@
   </Style>
   <Style Selector="Button.sorthead">
     <Setter Property="Padding" Value="0,8" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource Text12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="ListBox.files ListBoxItem">
@@ -1092,7 +1098,7 @@
   <!-- Label and value pairs, e.g. Files' details pane. -->
   <Style Selector="Grid.facts > TextBlock">
     <Setter Property="Margin" Value="0,0,12,6" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource Text12}" />
   </Style>
   <!-- A folder's share of the space in Files' Space view. -->
   <Style Selector="Border.spacebar">

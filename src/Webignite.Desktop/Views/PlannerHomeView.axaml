@@ -84,7 +84,7 @@
             <Flyout Placement="BottomEdgeAlignedRight">
               <StackPanel Spacing="10" Width="300">
                 <TextBlock Classes="h2" Text="Widgets" />
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                            Text="Tick to add one to Home. Drag a widget by its heading to move it; its ··· menu makes it full or half width." />
                 <ItemsControl ItemsSource="{Binding WidgetChoices}">
                   <ItemsControl.ItemTemplate>
@@ -92,7 +92,7 @@
                       <CheckBox IsChecked="{Binding IsOn}" Margin="0,4">
                         <StackPanel>
                           <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" TextWrapping="Wrap" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" TextWrapping="Wrap" />
                         </StackPanel>
                       </CheckBox>
                     </DataTemplate>
@@ -160,7 +160,7 @@
                               <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="0,8">
                                 <DockPanel>
                                   <CheckBox DockPanel.Dock="Left" Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
-                                  <TextBlock DockPanel.Dock="Right" Text="{Binding DueText}" Classes="muted" Classes.problem="{Binding IsLate}" FontSize="12"
+                                  <TextBlock DockPanel.Dock="Right" Text="{Binding DueText}" Classes="muted" Classes.problem="{Binding IsLate}" FontSize="{DynamicResource Text12}"
                                              VerticalAlignment="Center" Margin="10,0,0,0" />
                                   <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0" ToolTip.Tip="{Binding Project}">
                                     <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text}" />
@@ -181,7 +181,7 @@
                         <Button DockPanel.Dock="Right" Classes="link" Content="Browse projects" Command="{Binding Page.BrowseProjectsCommand}" VerticalAlignment="Center" />
                         <Button Classes="quiet" Padding="8,4" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip.Tip="Which projects to show">
                           <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Classes="muted" Text="{Binding Page.ProjectsShownText}" FontSize="12" VerticalAlignment="Center" />
+                            <TextBlock Classes="muted" Text="{Binding Page.ProjectsShownText}" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                             <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
                           </StackPanel>
                           <Button.Flyout>
@@ -240,8 +240,8 @@
                               <c:Monogram DockPanel.Dock="Left" Text="{Binding Name}" Size="40" Margin="0,0,14,0" VerticalAlignment="Center" />
                               <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                <TextBlock Classes="muted" FontSize="12" Text="{Binding Role}" />
-                                <TextBlock FontSize="12" Text="{Binding Load}" Classes.problem="{Binding HasLate}" />
+                                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Role}" />
+                                <TextBlock FontSize="{DynamicResource Text12}" Text="{Binding Load}" Classes.problem="{Binding HasLate}" />
                               </StackPanel>
                             </DockPanel>
                           </Button>
@@ -263,10 +263,10 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                   <Ellipse Width="9" Height="9" Fill="{Binding Health, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
                                   <TextBlock Text="{Binding Project}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                  <TextBlock Classes="muted" FontSize="12" Text="{Binding HealthText}" VerticalAlignment="Center" />
+                                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding HealthText}" VerticalAlignment="Center" />
                                 </StackPanel>
                                 <TextBlock Text="{Binding Text}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasText}" />
-                                <TextBlock Classes="muted" FontSize="12" Text="{Binding Byline}" />
+                                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Byline}" />
                               </StackPanel>
                             </Button>
                           </DataTemplate>
@@ -287,12 +287,12 @@
                               <DockPanel>
                                 <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Milestone}" Size="13" Foreground="{DynamicResource Muted}"
                                         VerticalAlignment="Center" Margin="0,0,10,0" />
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding DueText}" Classes="muted" Classes.problem="{Binding IsLate}" FontSize="12"
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding DueText}" Classes="muted" Classes.problem="{Binding IsLate}" FontSize="{DynamicResource Text12}"
                                            VerticalAlignment="Center" Margin="10,0,0,0" />
                                 <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0">
                                   <StackPanel>
                                     <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Text}" />
-                                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Project}" />
+                                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Project}" />
                                   </StackPanel>
                                 </Button>
                               </DockPanel>

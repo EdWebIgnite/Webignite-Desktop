@@ -61,7 +61,7 @@
     <!-- My tasks, or one project's open tasks -->
     <DataTemplate DataType="vm:TasksBody">
       <Panel>
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding Empty}" TextWrapping="Wrap" IsVisible="{Binding Empty, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Empty}" TextWrapping="Wrap" IsVisible="{Binding Empty, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
           <ItemsControl ItemsSource="{Binding Lines}">
             <ItemsControl.DataTemplates>
@@ -73,9 +73,9 @@
                   <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Done}" VerticalAlignment="Top" Margin="0,0,4,0" ToolTip.Tip="Tick it off" />
                   <StackPanel VerticalAlignment="Center">
                     <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0" ToolTip.Tip="Open in Projects">
-                      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{DynamicResource Text}" />
+                      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="{DynamicResource Text13}" Foreground="{DynamicResource Text}" />
                     </Button>
-                    <TextBlock Classes="muted" FontSize="11" Text="{Binding About}" Classes.problem="{Binding Overdue}" IsVisible="{Binding HasAbout}"
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding About}" Classes.problem="{Binding Overdue}" IsVisible="{Binding HasAbout}"
                                TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                 </DockPanel>
@@ -89,15 +89,15 @@
     <!-- Today -->
     <DataTemplate DataType="vm:TodayBody">
       <Panel>
-        <TextBlock Classes="muted" FontSize="12" Text="Nothing booked or due today." IsVisible="{Binding IsEmpty}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Nothing booked or due today." IsVisible="{Binding IsEmpty}" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
           <ItemsControl ItemsSource="{Binding Items}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:AgendaItemViewModel">
                 <c:AgendaChip Padding="8,5" Margin="0,0,0,5">
                   <DockPanel>
-                    <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="44" IsVisible="{Binding HasTime}" FontWeight="SemiBold" FontSize="12" />
-                    <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="12" />
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="44" IsVisible="{Binding HasTime}" FontWeight="SemiBold" FontSize="{DynamicResource Text12}" />
+                    <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="{DynamicResource Text12}" />
                   </DockPanel>
                 </c:AgendaChip>
               </DataTemplate>
@@ -129,7 +129,7 @@
               <Button Classes="minday" ToolTip.Tip="{Binding Tip}"
                       Command="{Binding $parent[ItemsControl].((vm:MonthBody)DataContext).OpenCalendarCommand}" Opacity="{Binding IsOtherMonth, Converter={x:Static v:MyPagesView.Faded}}">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                  <TextBlock Text="{Binding Number}" FontSize="12" HorizontalAlignment="Center" FontWeight="{Binding IsToday, Converter={x:Static v:MyPagesView.Bold}}" />
+                  <TextBlock Text="{Binding Number}" FontSize="{DynamicResource Text12}" HorizontalAlignment="Center" FontWeight="{Binding IsToday, Converter={x:Static v:MyPagesView.Bold}}" />
                   <Border Classes="monthdot" HorizontalAlignment="Center" IsVisible="{Binding HasItems}" />
                 </StackPanel>
               </Button>
@@ -164,16 +164,16 @@
           <Button DockPanel.Dock="Right" Content="Stop" Command="{Binding StopCommand}" IsVisible="{Binding Timer.IsRunning}" />
           <TextBlock Text="{Binding Timer.Clock}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
         </DockPanel>
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding Timer.RunningFor}" TextTrimming="CharacterEllipsis" IsVisible="{Binding Timer.IsRunning}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Timer.RunningFor}" TextTrimming="CharacterEllipsis" IsVisible="{Binding Timer.IsRunning}" />
         <TextBox Text="{Binding Note}" PlaceholderText="What are you working on?" IsVisible="{Binding !Timer.IsRunning}" />
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" TextWrapping="Wrap" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Message}" TextWrapping="Wrap" />
       </StackPanel>
     </DataTemplate>
 
     <!-- A client's card -->
     <DataTemplate DataType="vm:ClientBody">
       <Panel>
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding IsMissing}"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding IsMissing}"
                    Text="This client was removed. Remove the widget, or add another." />
         <DockPanel IsVisible="{Binding !IsMissing}">
           <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
@@ -183,10 +183,10 @@
           <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <StackPanel Spacing="3">
               <TextBlock Text="{Binding Person}" FontWeight="SemiBold" />
-              <SelectableTextBlock Text="{Binding Email}" FontSize="12" />
-              <SelectableTextBlock Text="{Binding Phone}" FontSize="12" />
-              <SelectableTextBlock Text="{Binding Website}" FontSize="12" />
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding Notes}" TextWrapping="Wrap" Margin="0,6,0,0" />
+              <SelectableTextBlock Text="{Binding Email}" FontSize="{DynamicResource Text12}" />
+              <SelectableTextBlock Text="{Binding Phone}" FontSize="{DynamicResource Text12}" />
+              <SelectableTextBlock Text="{Binding Website}" FontSize="{DynamicResource Text12}" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Notes}" TextWrapping="Wrap" Margin="0,6,0,0" />
             </StackPanel>
           </ScrollViewer>
         </DockPanel>
@@ -196,7 +196,7 @@
     <!-- Needs you, as on Overview -->
     <DataTemplate DataType="vm:NeedsYouBody">
       <Panel>
-        <TextBlock Classes="muted" FontSize="12" Text="Nothing needs you right now." IsVisible="{Binding IsEmpty}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Nothing needs you right now." IsVisible="{Binding IsEmpty}" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
           <ItemsControl ItemsSource="{Binding Lines}">
             <ItemsControl.ItemTemplate>
@@ -204,10 +204,10 @@
                 <DockPanel Margin="0,0,0,8">
                   <Ellipse DockPanel.Dock="Left" Classes="dot" Classes.problem="{Binding Problem}" Margin="0,6,10,0" VerticalAlignment="Top" />
                   <StackPanel Spacing="2">
-                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12.5" Classes.problem="{Binding Problem}" />
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="{DynamicResource Text12x5}" Classes.problem="{Binding Problem}" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                      <Button Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}" Padding="0" FontSize="12" />
-                      <Button Classes="link" Content="No reply needed" Command="{Binding NoReplyNeededCommand}" IsVisible="{Binding CanWaveOff}" Padding="0" FontSize="12"
+                      <Button Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}" Padding="0" FontSize="{DynamicResource Text12}" />
+                      <Button Classes="link" Content="No reply needed" Command="{Binding NoReplyNeededCommand}" IsVisible="{Binding CanWaveOff}" Padding="0" FontSize="{DynamicResource Text12}"
                               ToolTip.Tip="Takes it off this list. It comes back if they write again." />
                     </StackPanel>
                   </StackPanel>
@@ -224,18 +224,18 @@
       <DockPanel>
         <Button DockPanel.Dock="Bottom" Classes="link" Content="Open Mail" Command="{Binding OpenMailCommand}" HorizontalAlignment="Left" Padding="0" Margin="0,8,0,0" />
         <Panel>
-          <TextBlock Classes="muted" FontSize="12" Text="No mail here yet. Add a mailbox under Mail." IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="No mail here yet. Add a mailbox under Mail." IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
           <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Lines}" Margin="0,0,12,0">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:MailLine">
                   <Button Classes="minday" Command="{Binding OpenCommand}" HorizontalContentAlignment="Stretch" Padding="6,5" Margin="-6,0">
                     <DockPanel>
-                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="11" Text="{Binding When}" VerticalAlignment="Top" Margin="8,1,0,0" />
+                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding When}" VerticalAlignment="Top" Margin="8,1,0,0" />
                       <StackPanel>
-                        <TextBlock Text="{Binding From}" FontSize="12.5" TextTrimming="CharacterEllipsis"
+                        <TextBlock Text="{Binding From}" FontSize="{DynamicResource Text12x5}" TextTrimming="CharacterEllipsis"
                                    FontWeight="{Binding Unread, Converter={x:Static v:MyPagesView.Bold}}" />
-                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
                       </StackPanel>
                     </DockPanel>
                   </Button>
@@ -262,11 +262,11 @@
               <c:Icon Data="{StaticResource Icon.NewWindow}" Size="13" />
             </Button>
           </StackPanel>
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" TextTrimming="CharacterEllipsis"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Folder}" ToolTip.Tip="{Binding Folder}" TextTrimming="CharacterEllipsis"
                      VerticalAlignment="Center" Margin="6,0" />
         </DockPanel>
         <Panel>
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding Empty}" IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Empty}" IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
           <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Lines}" Margin="0,0,12,0">
               <ItemsControl.ItemTemplate>
@@ -275,12 +275,12 @@
                           PointerPressed="FileLinePressed" PointerMoved="FileLineMoved" PointerReleased="FileLineReleased"
                           PointerCaptureLost="FileLineCaptureLost" ToolTip.Tip="{Binding Name}">
                     <DockPanel>
-                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="11" Text="{Binding About}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                      <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding About}" VerticalAlignment="Center" Margin="8,0,0,0" />
                       <Panel DockPanel.Dock="Left" Width="18" Margin="0,0,8,0">
                         <c:Icon Data="{StaticResource Icon.Folder}" Size="14" IsVisible="{Binding IsFolder}" Foreground="{DynamicResource Muted}" />
                         <c:Icon Data="{StaticResource Icon.Quotes}" Size="14" IsVisible="{Binding IsFile}" Foreground="{DynamicResource Muted}" />
                       </Panel>
-                      <TextBlock Text="{Binding Name}" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Name}" FontSize="{DynamicResource Text12x5}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                     </DockPanel>
                   </Border>
                 </DataTemplate>
@@ -292,7 +292,7 @@
     </DataTemplate>
 
     <DataTemplate DataType="vm:SoonBody">
-      <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="This widget can't be shown in this version of the app." />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="This widget can't be shown in this version of the app." />
     </DataTemplate>
   </UserControl.DataTemplates>
 
@@ -350,7 +350,7 @@
           <Button Classes="row" Width="300" Padding="18,14" Command="{Binding OpenCommand}" HorizontalContentAlignment="Stretch">
             <StackPanel Spacing="4">
               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" TextWrapping="Wrap" MaxLines="2" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" TextWrapping="Wrap" MaxLines="2" />
             </StackPanel>
           </Button>
         </DataTemplate>

@@ -85,6 +85,12 @@ services.Settings.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "
     "Hosting, yearly", [new Line { Description = "Website hosting, 12 months", Quantity = 1, UnitPrice = 2400m }]);
 // Pages change at once here: the script doesn't wait for fades to finish.
 services.Settings.Appearance = new AppearanceSettings { Motion = Motion.Off };
+// WEBIGNITE_SNAPSHOT_STYLE=Airy (and WEBIGNITE_SNAPSHOT_SIDEBAR=Light) draws every screen in that style, to go
+// through a style page by page. Left unset, as in CI, the screens are Classic.
+if (Enum.TryParse<LookStyle>(Environment.GetEnvironmentVariable("WEBIGNITE_SNAPSHOT_STYLE"), out var wholeRunStyle))
+    services.Settings.Appearance = services.Settings.Appearance with { Style = wholeRunStyle };
+if (Enum.TryParse<SidebarTone>(Environment.GetEnvironmentVariable("WEBIGNITE_SNAPSHOT_SIDEBAR"), out var wholeRunSidebar))
+    services.Settings.Appearance = services.Settings.Appearance with { Sidebar = wholeRunSidebar };
 var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();
@@ -167,6 +173,45 @@ void Save(string name)
     Console.WriteLine("Saved " + name);
 }
 
+// The corners and room that the cards and list rows on screen have, each kind once: what a style changes. Only
+// what can be seen (a hidden part takes its styles when it is next shown), and not how many or which, as a list
+// draws fewer rows while they are taller and may be left scrolled elsewhere.
+List<string> Shapes() => [.. AllShapes().Distinct().Order()];
+
+List<string> AllShapes() =>
+[
+    .. window.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.Classes.Contains("card") && b.IsEffectivelyVisible).Select(b => $"{b.CornerRadius} {b.Padding}"),
+    .. window.GetVisualDescendants().OfType<Avalonia.Controls.ListBoxItem>().Where(i => i.IsEffectivelyVisible).Select(i => $"{i.Padding} {i.Margin} {i.CornerRadius}"),
+];
+
+// The same screen in the other styles, to compare them: Airy with a light and a dark sidebar, and the Classic
+// style with a light sidebar. Classic with its dark sidebar is the screenshot under the plain name.
+void SaveLooks(string name)
+{
+    var was = services.Settings.Appearance;
+    Dispatcher.UIThread.RunJobs();
+    var shapesBefore = Shapes();
+    foreach (var (style, tone) in new[] { (LookStyle.Airy, SidebarTone.Light), (LookStyle.Airy, SidebarTone.Dark), (LookStyle.Classic, SidebarTone.Light) })
+    {
+        services.Settings.Appearance = was with { Style = style, Sidebar = tone };
+        Dispatcher.UIThread.RunJobs();
+        Save($"look-{style.ToString().ToLowerInvariant()}-{tone.ToString().ToLowerInvariant()}-{name}");
+    }
+    services.Settings.Appearance = was;
+    Dispatcher.UIThread.RunJobs();
+    // Drawn once more, so rows the list let go of while they were taller are back before anything is checked.
+    window.CaptureRenderedFrame()?.Dispose();
+    Dispatcher.UIThread.RunJobs();
+    Check($"After trying the other styles on {name}, Classic is back with nothing of them switched on",
+        was.Style != LookStyle.Classic || was.Sidebar != SidebarTone.Dark
+        || Looks.Style == LookStyle.Classic && !window.Classes.Any(c => c.StartsWith("look-", StringComparison.Ordinal))
+            && !Application.Current!.Resources.ContainsKey("Nav") && !Application.Current.Resources.ContainsKey("Canvas")
+            && !Application.Current.Resources.ContainsKey("Text12"));
+    // Parts that were on screen while another style was on must have their own shape again, not only new ones.
+    Check($"After trying the other styles on {name}, no card or list row on screen has a shape it didn't have before",
+        was.Style != LookStyle.Classic || Shapes().All(shapesBefore.Contains));
+}
+
 Save("overview-start");
 
 vm.ToggleShortcutsCommand.Execute(null);
@@ -239,6 +284,7 @@ invoice.Lines[1].Price = "R650";
 invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
 invoice.SaveCommand.Execute(null);
 Save("invoice-editor");
+SaveLooks("invoice-editor");
 // Items for Xero's Item column, a number of our own and a discount on the whole invoice.
 invoice.Lines[0].Item = "Hosting";
 invoice.Lines[1].Item = "Content updates";
@@ -682,6 +728,7 @@ Check("Bringing clients in without Xero says to connect it", vm.Clients.XeroMess
 vm.Clients.XeroMessage = "";
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Save("client");
+SaveLooks("client");
 {
     // Claude changes the client's email (a mail could have tricked it): the page asks for a check until It's right.
     var shown = vm.Clients.Detail!;
@@ -1066,6 +1113,7 @@ vm.Mail.StatusIsProblem = false;
 var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 Wait(vm.Mail.Select(opened), "The mail opened");
 Save("mail");
+SaveLooks("mail");
 {
     // A hidden pane leaves a strip with its name; a click on it, or Ctrl+Shift+1, brings it back.
     vm.TogglePaneCommand.Execute("1");
@@ -1848,6 +1896,7 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 Open(Page.Overview);
 Check("A test build hides Check for updates and says nothing about the update server", !vm.Updates.CanUpdate && vm.Updates.CheckNote.Length == 0);
 Save("overview");
+SaveLooks("overview");
 // Not every mail needs a reply: the × waves one off, and Undo brings it back.
 {
     var overview = (OverviewViewModel)vm[Page.Overview].Main.Page;
@@ -1876,7 +1925,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -1893,6 +1942,43 @@ var qrWindow = window.ShowTool(ToolKind.Qr, services);
 qrWindow.Tools.QrInput = "karoocoffee.co.za/menu";
 SaveWindow(qrWindow, "tools-qr");
 qrWindow.Close();
+var helpersWindow = window.ShowTool(ToolKind.WebHelpers, services);
+var helpers = helpersWindow.Tools;
+Check("Web helpers opens on filler text, three paragraphs starting the usual way",
+    helpers.IsLorem && helpers.LoremText.StartsWith("Lorem ipsum dolor sit amet", StringComparison.Ordinal) && helpers.LoremText.Split("\n\n").Length == 3);
+SaveWindow(helpersWindow, "tools-web-lorem");
+helpers.ShowHelperCommand.Execute(WebHelper.Placeholder);
+Check("A placeholder picture is drawn at the size asked for",
+    helpers.PlaceholderLabel == "1200 × 630" && helpers.PlaceholderPng() is { Length: > 100 } placeholderPng
+    && new Avalonia.Media.Imaging.Bitmap(new MemoryStream(placeholderPng)).PixelSize == new Avalonia.PixelSize(1200, 630));
+SaveWindow(helpersWindow, "tools-web-placeholder");
+helpers.ShowHelperCommand.Execute(WebHelper.Units);
+Check("px and rem answers as it's typed", helpers.UnitSum == "24px = 1.5rem");
+SaveWindow(helpersWindow, "tools-web-units");
+helpers.ShowHelperCommand.Execute(WebHelper.Minify);
+helpers.MinifyInput = "/* The header */\n.site-header {\n    color: #333;\n    margin: 0 auto;\n}\n\n.site-header a:hover {\n    text-decoration: underline;\n}\n";
+Check("Minify makes a stylesheet smaller", helpers.MinifyOutput == ".site-header{color:#333;margin:0 auto}.site-header a:hover{text-decoration:underline}");
+SaveWindow(helpersWindow, "tools-web-minify");
+helpers.ShowHelperCommand.Execute(WebHelper.Json);
+helpers.JsonInput = "{\"name\":\"Karoo Coffee\",\"open\":true,\"tags\":[\"coffee\",\"bakery\"]}";
+Check("JSON is laid out", helpers.JsonOutput.StartsWith("{\n  \"name\": \"Karoo Coffee\"", StringComparison.Ordinal) && !helpers.HasJsonProblem);
+SaveWindow(helpersWindow, "tools-web-json");
+helpers.JsonInput = "{\"name\": oops}";
+Check("Broken JSON says so and shows nothing to copy", helpers.HasJsonProblem && !helpers.HasJsonOutput);
+helpers.ShowHelperCommand.Execute(WebHelper.Cases);
+helpers.CaseInput = "Karoo Coffee: Our Menu & Prices";
+Check("A heading becomes a slug", helpers.Cases.First().Text == "karoo-coffee-our-menu-prices" && helpers.Cases.Count == 9);
+SaveWindow(helpersWindow, "tools-web-cases");
+helpers.ShowHelperCommand.Execute(WebHelper.Utm);
+helpers.UtmAddress = "karoocoffee.co.za/specials";
+Check("A campaign link asks for its source", helpers.HasUtmProblem && !helpers.HasUtmLink);
+helpers.UtmSource = "newsletter";
+helpers.UtmMedium = "email";
+helpers.UtmCampaign = "spring-sale";
+Check("A campaign link is built as it's typed",
+    helpers.UtmLink == "https://karoocoffee.co.za/specials?utm_source=newsletter&utm_medium=email&utm_campaign=spring-sale");
+SaveWindow(helpersWindow, "tools-web-utm");
+helpersWindow.Close();
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
 SaveWindow(passwordWindow, "tools-passwords");
 passwordWindow.Close();
@@ -2633,6 +2719,7 @@ Save("site-check");
         Check("A task typed under a heading is added there", projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == "Point the domain at the new site" && r.Section?.Name == "Launch"));
         Dispatcher.UIThread.RunJobs();
         Save("projects");
+SaveLooks("projects");
         projectsPage.EditName = "Bosveld Builders new website";
         projectsPage.Keep();
         Check("Renaming a project is saved once typing stops", services.Projects.Get(site.Id)!.Name == "Bosveld Builders new website" && projectsPage.TabTitle == "Bosveld Builders new website");
@@ -3141,6 +3228,7 @@ Save("site-check");
         window.Height = 1080;
         Dispatcher.UIThread.RunJobs();
         Save("planner-home");
+SaveLooks("planner-home");
         // The same with the sidebar folded to icons, wide and narrow: the cards share the width and never overlap.
         vm.Sidebar.Toggle();
         Dispatcher.UIThread.RunJobs();

@@ -16,7 +16,7 @@
       <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
     <Style Selector="Border.listhead > Grid > TextBlock, Border.listhead > Grid > Border > TextBlock">
-      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12}" />
       <Setter Property="Foreground" Value="{DynamicResource Muted}" />
       <Setter Property="Margin" Value="8,0" />
     </Style>
@@ -107,7 +107,7 @@
     </Style>
     <Style Selector="Grid.fields > TextBlock.field">
       <Setter Property="Foreground" Value="{DynamicResource Muted}" />
-      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontSize" Value="{DynamicResource Text13}" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Border.projectchip">
@@ -211,7 +211,7 @@
       <Setter Property="Spacing" Value="3" />
     </Style>
     <Style Selector="StackPanel.cardcount > TextBlock, TextBlock.carddue">
-      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12}" />
       <Setter Property="Foreground" Value="{DynamicResource Muted}" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
@@ -289,7 +289,7 @@
       <Setter Property="Background" Value="{DynamicResource Surface}" />
     </Style>
     <Style Selector="TextBlock.timelinemonth">
-      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12}" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Margin" Value="6,4,0,0" />
       <Setter Property="TextWrapping" Value="NoWrap" />
@@ -338,7 +338,7 @@
     </Style>
     <Style Selector="TextBlock.barname">
       <Setter Property="Foreground" Value="{DynamicResource OnProject}" />
-      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12}" />
       <Setter Property="Margin" Value="10,0" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -401,7 +401,7 @@
     <Style Selector="Border.fieldadd"><Setter Property="Width" Value="40" /></Style>
     <Style Selector="Border.fieldcell > TextBlock">
       <Setter Property="Margin" Value="8,0" />
-      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12}" />
       <Setter Property="Foreground" Value="{DynamicResource Muted}" />
     </Style>
     <Style Selector="Border.fieldpill">
@@ -432,7 +432,7 @@
             </Button>
             <TextBox x:Name="NewProjectBox" Text="{Binding NewProjectName}" PlaceholderText="New project name" />
           </DockPanel>
-          <TextBlock Classes="problem" FontSize="12" Text="{Binding ListMessage}" TextWrapping="Wrap"
+          <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" Text="{Binding ListMessage}" TextWrapping="Wrap"
                      IsVisible="{Binding ListMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
           <Border Classes="card" Padding="0">
@@ -512,7 +512,7 @@
                     </Border>
                     <StackPanel Spacing="4">
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Description}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Description}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                   </DockPanel>
                 </Button>
@@ -583,7 +583,7 @@
             <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding AddTodoCommand}" Margin="8,0,0,0" />
             <TextBox Text="{Binding NewTodo}" PlaceholderText="Add a to-do of your own, then Enter" KeyDown="TodoKey" />
           </DockPanel>
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding MyMessage}" IsVisible="{Binding HasMyMessage}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MyMessage}" IsVisible="{Binding HasMyMessage}" />
           <c:EmptyState IsVisible="{Binding MyTasksEmpty}" Icon="{StaticResource Icon.Check}" Title="All clear"
                         Text="Tasks given to you in any project and your own to-dos show here, soonest first. Ones with a due date show in Week and Calendar too." />
           <ItemsControl ItemsSource="{Binding MyRows}">
@@ -595,7 +595,7 @@
                     <CheckBox Classes="tick" IsChecked="{Binding Done}" VerticalAlignment="Center" ToolTip.Tip="Mark complete" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,6">
                       <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" />
                     </StackPanel>
                     <Button Grid.Column="2" Classes="cell" Classes.empty="{Binding !HasDue}" Classes.late="{Binding IsLate}" Content="{Binding DueText}"
                             Click="TodoDueClicked" MinWidth="90" VerticalAlignment="Center" ToolTip.Tip="When it's due" />
@@ -608,7 +608,7 @@
               </DataTemplate>
               <DataTemplate DataType="vm:MyGroupRow">
                 <DockPanel Margin="0,14,0,2">
-                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Count}" VerticalAlignment="Center" />
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Count}" VerticalAlignment="Center" />
                   <TextBlock Classes="section" Classes.overdue="{Binding Overdue}" Text="{Binding Title}" />
                 </DockPanel>
               </DataTemplate>
@@ -619,8 +619,8 @@
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,4">
                       <TextBox Classes="inline" Text="{Binding Title}" />
                       <StackPanel Orientation="Horizontal" Spacing="8" Margin="6,0,0,2">
-                        <TextBlock Classes="muted" FontSize="12" Text="{Binding ProjectName}" />
-                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Subtasks, StringFormat='{}{0} subtasks'}" IsVisible="{Binding HasSubtasks}" />
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ProjectName}" />
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Subtasks, StringFormat='{}{0} subtasks'}" IsVisible="{Binding HasSubtasks}" />
                         <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TaskMarks}" IsVisible="{Binding HasMarks}" />
                       </StackPanel>
                     </StackPanel>
@@ -653,10 +653,10 @@
                     <StackPanel Orientation="Horizontal" Spacing="10">
                       <c:Monogram Text="{Binding MyName}" Size="28" />
                       <TextBlock Text="{Binding MyName}" VerticalAlignment="Center" />
-                      <TextBlock Classes="muted" FontSize="12" Text="(you)" VerticalAlignment="Center" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="(you)" VerticalAlignment="Center" />
                     </StackPanel>
                     <CheckBox IsChecked="{Binding EditShared}" Content="{Binding SharedLabel}" />
-                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding ShareNote}" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding ShareNote}" />
                   </StackPanel>
                 </Flyout>
               </Button.Flyout>
@@ -740,7 +740,7 @@
               <Button Classes="quiet" VerticalAlignment="Center" Padding="8,4" ToolTip.Tip="How it's going">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <Ellipse Width="9" Height="9" Fill="{Binding EditHealth, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding HealthText}" FontSize="12" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding HealthText}" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                 </StackPanel>
                 <Button.Flyout>
                   <MenuFlyout Placement="BottomEdgeAlignedLeft">
@@ -757,7 +757,7 @@
 
           <!-- The views, as Asana's tabs -->
           <DockPanel Margin="0,-6,0,0">
-            <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Summary}" VerticalAlignment="Center" />
+            <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Summary}" VerticalAlignment="Center" />
             <WrapPanel>
               <Button Classes="viewtab" Classes.on="{Binding IsOverview}" Content="Overview" Command="{Binding OverviewViewCommand}"
                       ToolTip.Tip="What the project is about, its key links and milestones, and how it's going" />
@@ -846,7 +846,7 @@
                 </Button.Flyout>
               </Button>
             </StackPanel>
-            <TextBlock Classes="muted" FontSize="12" Margin="12,0" VerticalAlignment="Center" Text="Sorted or grouped: drag to reorder is off until Sort is None and Group is Headings."
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Margin="12,0" VerticalAlignment="Center" Text="Sorted or grouped: drag to reorder is off until Sort is None and Group is Headings."
                        IsVisible="{Binding !CanReorder}" TextTrimming="CharacterEllipsis" />
           </DockPanel>
           <TextBlock Classes="problem" Text="{Binding Message}" TextWrapping="Wrap"
@@ -885,13 +885,13 @@
                         <c:Monogram Text="{Binding Name}" Size="34" VerticalAlignment="Center" />
                         <StackPanel VerticalAlignment="Center">
                           <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Role}" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Role}" />
                         </StackPanel>
                       </StackPanel>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Classes="muted" FontSize="12" Text="Tick Shared under Details to add your partner. They see it once you're both signed in under Settings, Account and sync."
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Tick Shared under Details to add your partner. They see it once you're both signed in under Settings, Account and sync."
                            IsVisible="{Binding !EditShared}" TextWrapping="Wrap" />
               </StackPanel>
 
@@ -920,7 +920,7 @@
                           </Border>
                           <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Classes="muted" FontSize="12" Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Url}" TextTrimming="CharacterEllipsis" />
                           </StackPanel>
                         </DockPanel>
                       </Button>
@@ -966,7 +966,7 @@
                 </ItemsControl>
                 <TextBox Classes="inline addtaskbox" Text="{Binding NewMilestone}" PlaceholderText="Add a milestone, then Enter" KeyDown="MilestoneKey" />
               </StackPanel>
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding MadeText}" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MadeText}" />
             </StackPanel>
 
             <StackPanel Grid.Column="2" Spacing="16">
@@ -978,19 +978,19 @@
                     <Button Classes="quiet healthpick" Classes.on="{Binding UpdateOnTrack}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.OnTrack}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.OnTrack}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
-                        <TextBlock Text="On track" FontSize="12" VerticalAlignment="Center" />
+                        <TextBlock Text="On track" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
                     <Button Classes="quiet healthpick" Classes.on="{Binding UpdateAtRisk}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.AtRisk}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.AtRisk}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
-                        <TextBlock Text="At risk" FontSize="12" VerticalAlignment="Center" />
+                        <TextBlock Text="At risk" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
                     <Button Classes="quiet healthpick" Classes.on="{Binding UpdateOffTrack}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.OffTrack}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.OffTrack}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
-                        <TextBlock Text="Off track" FontSize="12" VerticalAlignment="Center" />
+                        <TextBlock Text="Off track" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
                   </StackPanel>
@@ -1002,7 +1002,7 @@
                       <Button Classes="quiet" Content="Cancel" Command="{Binding CancelUpdateCommand}" />
                     </StackPanel>
                   </StackPanel>
-                  <TextBlock Classes="muted" FontSize="12" Text="Pick one to write an update. The newest sets the status in the header."
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Pick one to write an update. The newest sets the status in the header."
                              IsVisible="{Binding NoUpdates}" TextWrapping="Wrap" />
                   <ItemsControl ItemsSource="{Binding Updates}">
                     <ItemsControl.ItemTemplate>
@@ -1014,7 +1014,7 @@
                               <TextBlock Text="{Binding HealthText}" FontWeight="SemiBold" VerticalAlignment="Center" />
                             </StackPanel>
                             <TextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding HasText}" />
-                            <TextBlock Classes="muted" FontSize="12" Text="{Binding Byline}" />
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Byline}" />
                           </StackPanel>
                         </Border>
                       </DataTemplate>
@@ -1117,7 +1117,7 @@
                             ToolTip.Tip="Delete the heading; its tasks stay, under no heading">
                       <c:Icon Data="{StaticResource Icon.Trash}" Size="14" />
                     </Button>
-                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Count}" VerticalAlignment="Center" Margin="8,0" />
+                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Count}" VerticalAlignment="Center" Margin="8,0" />
                     <Panel>
                       <TextBox Classes="inline heading" Text="{Binding Name}" IsVisible="{Binding IsHeading}" HorizontalAlignment="Left" MinWidth="200" />
                       <TextBlock Classes="section" Text="{Binding Title}" IsVisible="{Binding !IsHeading}" Margin="7,6" />
@@ -1152,19 +1152,19 @@
                               VerticalAlignment="Center" Margin="6,0,0,0" ToolTip.Tip="{Binding WaitingText}" />
                       <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasComments}" ToolTip.Tip="Comments" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="3">
-                          <TextBlock Text="{Binding CommentText}" FontSize="11" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding CommentText}" FontSize="{DynamicResource Text11}" VerticalAlignment="Center" />
                           <c:Icon Data="{StaticResource Project.ChatBubbles}" Size="11" VerticalAlignment="Center" />
                         </StackPanel>
                       </Border>
                       <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasAttachments}" ToolTip.Tip="Files attached" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="3">
-                          <TextBlock Text="{Binding AttachmentCount}" FontSize="11" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding AttachmentCount}" FontSize="{DynamicResource Text11}" VerticalAlignment="Center" />
                           <c:Icon Data="{StaticResource Icon.Paperclip}" Size="11" VerticalAlignment="Center" />
                         </StackPanel>
                       </Border>
                       <Border DockPanel.Dock="Right" Classes="subcount" IsVisible="{Binding HasSubtasks}" ToolTip.Tip="Subtasks done" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="3">
-                          <TextBlock Text="{Binding Subtasks}" FontSize="11" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding Subtasks}" FontSize="{DynamicResource Text11}" VerticalAlignment="Center" />
                           <c:Icon Data="{StaticResource Icon.Checklist}" Size="11" VerticalAlignment="Center" />
                         </StackPanel>
                       </Border>
@@ -1189,7 +1189,7 @@
                     <Border Grid.Column="5" Classes="cellline prioritycell">
                       <Button Classes="cell" Click="PriorityClicked" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" ToolTip.Tip="How much it matters">
                         <Border Classes="pill" Classes.strong="{Binding IsHigh}" IsVisible="{Binding HasPriority}">
-                          <TextBlock Text="{Binding PriorityText}" FontSize="11" />
+                          <TextBlock Text="{Binding PriorityText}" FontSize="{DynamicResource Text11}" />
                         </Border>
                       </Button>
                     </Border>
@@ -1204,7 +1204,7 @@
                             <Button Classes="cell" Click="FieldCellClicked" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" ToolTip.Tip="{Binding Field.Name}">
                               <Panel>
                                 <Border Classes="fieldpill" IsVisible="{Binding IsPill}" Background="{Binding Colour, Converter={x:Static c:ProjectColours.Brush}}">
-                                  <TextBlock Text="{Binding Text}" FontSize="11" Foreground="{DynamicResource OnProject}" TextTrimming="CharacterEllipsis" />
+                                  <TextBlock Text="{Binding Text}" FontSize="{DynamicResource Text11}" Foreground="{DynamicResource OnProject}" TextTrimming="CharacterEllipsis" />
                                 </Border>
                                 <TextBlock Text="{Binding Text}" IsVisible="{Binding IsPlain}" TextTrimming="CharacterEllipsis" />
                               </Panel>
@@ -1254,8 +1254,8 @@
                           <TextBlock Classes="timelinemonth" Text="{Binding Month}" Height="20" ClipToBounds="False" />
                           <Border Classes="timelineday" Classes.weekend="{Binding IsWeekend}" Classes.today="{Binding IsToday}">
                             <StackPanel>
-                              <TextBlock Text="{Binding Initial}" FontSize="10" HorizontalAlignment="Center" Classes="muted" />
-                              <TextBlock Text="{Binding Number}" FontSize="12" HorizontalAlignment="Center" />
+                              <TextBlock Text="{Binding Initial}" FontSize="{DynamicResource Text10}" HorizontalAlignment="Center" Classes="muted" />
+                              <TextBlock Text="{Binding Number}" FontSize="{DynamicResource Text12}" HorizontalAlignment="Center" />
                             </StackPanel>
                           </Border>
                         </StackPanel>
@@ -1323,8 +1323,8 @@
             <Border Grid.Column="2" Classes="overviewcard" VerticalAlignment="Top">
               <StackPanel Spacing="8">
                 <TextBlock Classes="overviewhead" Text="Unscheduled" />
-                <TextBlock Classes="muted" FontSize="12" Text="Tasks with no due date. Drag one onto a day." TextWrapping="Wrap" IsVisible="{Binding !NoUnscheduled}" />
-                <TextBlock Classes="muted" FontSize="12" Text="Every task has a date." IsVisible="{Binding NoUnscheduled}" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Tasks with no due date. Drag one onto a day." TextWrapping="Wrap" IsVisible="{Binding !NoUnscheduled}" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Every task has a date." IsVisible="{Binding NoUnscheduled}" />
                 <ItemsControl x:Name="UnscheduledList" ItemsSource="{Binding Unscheduled}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:TaskRow">
@@ -1358,7 +1358,7 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="x:String">
-                  <TextBlock Classes="muted" FontSize="12" Text="{Binding}" Margin="8,0" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding}" Margin="8,0" />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -1380,7 +1380,7 @@
                           </Button.Flyout>
                         </Button>
                         <Border Classes="daynumber" Classes.today="{Binding IsToday}" HorizontalAlignment="Left">
-                          <TextBlock Text="{Binding Number}" FontSize="12" />
+                          <TextBlock Text="{Binding Number}" FontSize="{DynamicResource Text12}" />
                         </Border>
                       </DockPanel>
                       <ItemsControl ItemsSource="{Binding Tasks}">
@@ -1391,14 +1391,14 @@
                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                   <c:Icon Data="{StaticResource Icon.Milestone}" Size="10" IsVisible="{Binding IsMilestone}" VerticalAlignment="Center" />
                                   <c:Icon Data="{StaticResource Icon.Blocked}" Size="10" IsVisible="{Binding IsWaiting}" VerticalAlignment="Center" ToolTip.Tip="{Binding WaitingText}" />
-                                  <TextBlock Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                  <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text12}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 </StackPanel>
                               </Border>
                             </Border>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
-                      <TextBlock Classes="muted" FontSize="11" Text="{Binding More}" IsVisible="{Binding HasMore}" Margin="4,0" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding More}" IsVisible="{Binding HasMore}" Margin="4,0" />
                     </StackPanel>
                   </Border>
                 </DataTemplate>
@@ -1429,7 +1429,7 @@
                     <StackPanel Spacing="10">
                       <TextBlock Text="{Binding Subject}" FontWeight="SemiBold" FontSize="16" TextWrapping="Wrap" />
                       <ContentControl Content="{Binding Start}" ContentTemplate="{StaticResource MessageLine}" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding ReplyCount}" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ReplyCount}" />
                       <ItemsControl ItemsSource="{Binding Replies}" ItemTemplate="{StaticResource MessageLine}" Margin="20,0,0,0">
                         <ItemsControl.ItemsPanel>
                           <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
@@ -1466,7 +1466,7 @@
                         </Panel>
                       </Border>
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding TaskTitle}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding TaskTitle}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                   </Button>
                 </DataTemplate>
@@ -1540,7 +1540,7 @@
                                       <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:FieldCell">
                                           <Border Classes="fieldpill" Background="{Binding Colour, Converter={x:Static c:ProjectColours.Brush}}" ToolTip.Tip="{Binding Field.Name}">
-                                            <TextBlock Text="{Binding Text}" FontSize="11" Foreground="{DynamicResource OnProject}" />
+                                            <TextBlock Text="{Binding Text}" FontSize="{DynamicResource Text11}" Foreground="{DynamicResource OnProject}" />
                                           </Border>
                                         </DataTemplate>
                                       </ItemsControl.ItemTemplate>
@@ -1623,7 +1623,7 @@
                 <Button Classes="quiet panetool" Command="{Binding ToggleLikeCommand}" ToolTip.Tip="{Binding LikeTip}">
                   <StackPanel Orientation="Horizontal" Spacing="3">
                     <c:Icon Data="{StaticResource Icon.Like}" Size="15" Classes.liked="{Binding ILikeIt}" />
-                    <TextBlock Text="{Binding LikeCount}" FontSize="12" VerticalAlignment="Center" IsVisible="{Binding LikeCount, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Text="{Binding LikeCount}" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" IsVisible="{Binding LikeCount, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
                 </Button>
                 <Button Classes="quiet panetool" Command="{Binding StartTimerCommand}" ToolTip.Tip="Start the timer on this task (Time page)">
@@ -1688,7 +1688,7 @@
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="x:String">
-                      <Button Classes="quiet" Padding="8,2" FontSize="12" Content="{Binding StringFormat='+ {0}'}"
+                      <Button Classes="quiet" Padding="8,2" FontSize="{DynamicResource Text12}" Content="{Binding StringFormat='+ {0}'}"
                               Command="{Binding #Root.((vm:ProjectsViewModel)DataContext).Detail.AddTagCommand}" CommandParameter="{Binding}" />
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
@@ -1719,13 +1719,13 @@
                 <Button Classes="quiet" Padding="8,4" HorizontalAlignment="Left" ToolTip.Tip="Pick a task in this project that has to be done first">
                   <StackPanel Orientation="Horizontal" Spacing="6">
                     <c:Icon Data="{StaticResource Icon.Plus}" Size="12" VerticalAlignment="Center" />
-                    <TextBlock Text="Add a task it waits on" FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock Text="Add a task it waits on" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                   </StackPanel>
                   <Button.Flyout>
                     <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="DependencyFilling" />
                   </Button.Flyout>
                 </Button>
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding BlockingText}" IsVisible="{Binding HasBlocking}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding BlockingText}" IsVisible="{Binding HasBlocking}" TextWrapping="Wrap" />
               </StackPanel>
             </Grid>
             <!-- The project's custom fields, as Asana's -->
@@ -1782,11 +1782,11 @@
                             <c:Icon Data="{StaticResource Icon.Quotes}" Size="24" Foreground="{DynamicResource Muted}" IsVisible="{Binding ShowsIcon}"
                                     HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <Border Classes="coverbadge" IsVisible="{Binding IsCover}" HorizontalAlignment="Left" VerticalAlignment="Top">
-                              <TextBlock Text="Cover" FontSize="10" />
+                              <TextBlock Text="Cover" FontSize="{DynamicResource Text10}" />
                             </Border>
                           </Panel>
                         </Border>
-                        <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Name}" FontSize="{DynamicResource Text12}" TextTrimming="CharacterEllipsis" />
                       </StackPanel>
                     </Button>
                   </DataTemplate>
@@ -1798,7 +1798,7 @@
             <StackPanel x:Name="SubtaskArea" Spacing="4" Background="Transparent">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Classes="label" Text="Subtasks" VerticalAlignment="Center" />
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding SubtaskTally}" VerticalAlignment="Center" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding SubtaskTally}" VerticalAlignment="Center" />
                 <Button Classes="quiet panetool" Click="AddSubtaskClicked" ToolTip.Tip="Add a subtask">
                   <c:Icon Data="{StaticResource Icon.Plus}" Size="13" />
                 </Button>
@@ -1856,7 +1856,7 @@
                   </StackPanel>
                   <StackPanel Spacing="2">
                     <TextBlock Text="{Binding MailSubject}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding MailAbout}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MailAbout}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                 </DockPanel>
               </Border>
@@ -1868,7 +1868,7 @@
                       <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Command="{Binding LinkCommand}">
                         <StackPanel Spacing="2" Margin="6,0">
                           <TextBlock Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                       </Button>
                     </DataTemplate>
@@ -1877,7 +1877,7 @@
               </StackPanel>
             </StackPanel>
 
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding History}" TextWrapping="Wrap" Margin="0,8,0,0" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding History}" TextWrapping="Wrap" Margin="0,8,0,0" />
 
             <!-- The feed, as Asana's: Comments or All activity, then a box to comment -->
             <Border Height="1" Background="{DynamicResource Line}" Margin="-24,4" />
@@ -1885,7 +1885,7 @@
               <Button Classes="feedtab" Classes.on="{Binding ShowsComments}" Content="Comments" Command="{Binding ShowCommentsCommand}" />
               <Button Classes="feedtab" Classes.on="{Binding ShowsAll}" Content="All activity" Command="{Binding ShowAllActivityCommand}" />
             </StackPanel>
-            <TextBlock Classes="muted" FontSize="12" Text="No comments yet. Write one below." IsVisible="{Binding NoFeed}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="No comments yet. Write one below." IsVisible="{Binding NoFeed}" />
             <ItemsControl ItemsSource="{Binding Feed}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:FeedRow">
@@ -1895,16 +1895,16 @@
                              Margin="10,7,20,0" IsVisible="{Binding IsActivity}" />
                     <StackPanel Spacing="2">
                       <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="{Binding Who}" FontWeight="SemiBold" FontSize="13" />
-                        <TextBlock Text="{Binding Text}" FontSize="13" Classes="muted" IsVisible="{Binding IsActivity}" TextWrapping="Wrap" MaxWidth="300" />
-                        <TextBlock Text="{Binding When}" Classes="muted" FontSize="12" />
+                        <TextBlock Text="{Binding Who}" FontWeight="SemiBold" FontSize="{DynamicResource Text13}" />
+                        <TextBlock Text="{Binding Text}" FontSize="{DynamicResource Text13}" Classes="muted" IsVisible="{Binding IsActivity}" TextWrapping="Wrap" MaxWidth="300" />
+                        <TextBlock Text="{Binding When}" Classes="muted" FontSize="{DynamicResource Text12}" />
                       </StackPanel>
                       <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding IsComment}" />
                       <Button Classes="quiet" Padding="4,2" HorizontalAlignment="Left" IsVisible="{Binding IsComment}"
                               Command="{Binding ToggleLikeCommand}" ToolTip.Tip="{Binding LikeTip}">
                         <StackPanel Orientation="Horizontal" Spacing="3">
                           <c:Icon Data="{StaticResource Icon.Like}" Size="13" Classes.liked="{Binding ILikeIt}" />
-                          <TextBlock Text="{Binding LikeCount}" FontSize="11" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding LikeCount}" FontSize="{DynamicResource Text11}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
                     </StackPanel>
@@ -1942,7 +1942,7 @@
                 <DockPanel>
                   <Button DockPanel.Dock="Right" Classes="link" Content="{Binding FollowButton}" Command="{Binding ToggleFollowCommand}"
                           ToolTip.Tip="Followers hear about comments and changes to this task in Inbox" />
-                  <TextBlock Classes="muted" FontSize="12" Text="{Binding FollowersText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding FollowersText}" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </DockPanel>
               </StackPanel>
             </DockPanel>
@@ -1959,15 +1959,15 @@
         <c:Monogram DockPanel.Dock="Left" Text="{Binding Who}" Size="28" VerticalAlignment="Top" Margin="0,0,10,0" />
         <StackPanel Spacing="3">
           <StackPanel Orientation="Horizontal" Spacing="6">
-            <TextBlock Text="{Binding Who}" FontWeight="SemiBold" FontSize="13" />
-            <TextBlock Text="{Binding When}" Classes="muted" FontSize="12" />
+            <TextBlock Text="{Binding Who}" FontWeight="SemiBold" FontSize="{DynamicResource Text13}" />
+            <TextBlock Text="{Binding When}" Classes="muted" FontSize="{DynamicResource Text12}" />
           </StackPanel>
           <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" />
           <StackPanel Orientation="Horizontal" Spacing="4">
             <Button Classes="quiet" Padding="4,2" Command="{Binding ToggleLikeCommand}" ToolTip.Tip="Like">
               <StackPanel Orientation="Horizontal" Spacing="3">
                 <c:Icon Data="{StaticResource Icon.Like}" Size="13" Classes.liked="{Binding ILikeIt}" />
-                <TextBlock Text="{Binding LikeCount}" FontSize="11" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding LikeCount}" FontSize="{DynamicResource Text11}" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
             <Button Classes="quiet" Padding="4,2" Command="{Binding DeleteCommand}" IsVisible="{Binding IsMine}" ToolTip.Tip="Delete">
@@ -1981,13 +1981,13 @@
     <DataTemplate x:Key="TaskMarks" x:DataType="vm:TaskRow">
       <StackPanel Orientation="Horizontal" Spacing="4">
         <Border Classes="pill strong" IsVisible="{Binding IsHigh}" ToolTip.Tip="High priority">
-          <TextBlock Text="High" FontSize="11" />
+          <TextBlock Text="High" FontSize="{DynamicResource Text11}" />
         </Border>
         <Border Classes="pill" IsVisible="{Binding IsLow}" ToolTip.Tip="Low priority">
-          <TextBlock Text="Low" FontSize="11" Foreground="{DynamicResource Muted}" />
+          <TextBlock Text="Low" FontSize="{DynamicResource Text11}" Foreground="{DynamicResource Muted}" />
         </Border>
         <Border Classes="pill" IsVisible="{Binding Repeats}" ToolTip.Tip="Comes back once it's ticked off">
-          <TextBlock Text="{Binding RepeatLabel}" FontSize="11" Foreground="{DynamicResource Muted}" />
+          <TextBlock Text="{Binding RepeatLabel}" FontSize="{DynamicResource Text11}" Foreground="{DynamicResource Muted}" />
         </Border>
         <ItemsControl ItemsSource="{Binding Tags}">
           <ItemsControl.ItemsPanel>
@@ -1995,7 +1995,7 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="x:String">
-              <Border Classes="pill"><TextBlock Text="{Binding}" FontSize="11" /></Border>
+              <Border Classes="pill"><TextBlock Text="{Binding}" FontSize="{DynamicResource Text11}" /></Border>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -2005,7 +2005,7 @@
     <DataTemplate x:Key="ListMarks" x:DataType="vm:TaskRow">
       <StackPanel Orientation="Horizontal" Spacing="4">
         <Border Classes="pill" IsVisible="{Binding Repeats}" ToolTip.Tip="Comes back once it's ticked off">
-          <TextBlock Text="{Binding RepeatLabel}" FontSize="11" Foreground="{DynamicResource Muted}" />
+          <TextBlock Text="{Binding RepeatLabel}" FontSize="{DynamicResource Text11}" Foreground="{DynamicResource Muted}" />
         </Border>
         <ItemsControl ItemsSource="{Binding Tags}">
           <ItemsControl.ItemsPanel>
@@ -2013,7 +2013,7 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="x:String">
-              <Border Classes="pill"><TextBlock Text="{Binding}" FontSize="11" /></Border>
+              <Border Classes="pill"><TextBlock Text="{Binding}" FontSize="{DynamicResource Text11}" /></Border>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -2025,7 +2025,7 @@
         <Grid ColumnDefinitions="*,28" Margin="8,0">
           <StackPanel Spacing="2" VerticalAlignment="Center">
             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" IsVisible="{Binding HasAbout}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" IsVisible="{Binding HasAbout}" TextTrimming="CharacterEllipsis" />
           </StackPanel>
           <c:Icon Grid.Column="1" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />
         </Grid>
