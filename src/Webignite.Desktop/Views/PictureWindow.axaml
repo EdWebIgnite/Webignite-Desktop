@@ -60,7 +60,7 @@
           </Button>
           <StackPanel VerticalAlignment="Center" Margin="8,0,0,0">
             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="420" />
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding Info}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Info}" />
           </StackPanel>
         </StackPanel>
       </DockPanel>
@@ -72,7 +72,7 @@
         <TextBlock VerticalAlignment="Center" Text="{Binding CropText}" />
         <Button Classes="primary" Content="Crop" Command="{Binding ApplyCropCommand}" ToolTip.Tip="Enter. Undo puts the picture back." />
         <Button Classes="link" Content="Cancel" Command="{Binding StopToolCommand}" />
-        <TextBlock Classes="problem" FontSize="12" VerticalAlignment="Center" Text="{Binding ToolProblem}" />
+        <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" Text="{Binding ToolProblem}" />
       </StackPanel>
     </Border>
 
@@ -88,7 +88,7 @@
         <Button Classes="link" Content="25%" Command="{Binding ResizeToCommand}" CommandParameter="25" />
         <Button Classes="primary" Content="Resize" Command="{Binding ApplyResizeCommand}" ToolTip.Tip="Undo puts the picture back" />
         <Button Classes="link" Content="Cancel" Command="{Binding StopToolCommand}" />
-        <TextBlock Classes="problem" FontSize="12" VerticalAlignment="Center" Text="{Binding ToolProblem}" TextWrapping="Wrap" MaxWidth="260" />
+        <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" Text="{Binding ToolProblem}" TextWrapping="Wrap" MaxWidth="260" />
       </StackPanel>
     </Border>
 
@@ -107,13 +107,13 @@
       <StackPanel Spacing="8">
         <Grid ColumnDefinitions="*,16,*" Height="220">
           <DockPanel Grid.Column="0">
-            <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="12" Text="{Binding BeforeText}" Margin="0,4,0,0" />
+            <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding BeforeText}" Margin="0,4,0,0" />
             <Border Background="{DynamicResource Nav}" CornerRadius="6">
               <Image Source="{Binding Picture}" Stretch="Uniform" Margin="6" />
             </Border>
           </DockPanel>
           <DockPanel Grid.Column="2">
-            <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="12" Text="{Binding AfterText}" Margin="0,4,0,0" />
+            <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding AfterText}" Margin="0,4,0,0" />
             <Border Background="{DynamicResource Nav}" CornerRadius="6">
               <Image Source="{Binding AfterPicture}" Stretch="Uniform" Margin="6" />
             </Border>

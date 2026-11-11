@@ -19,8 +19,8 @@
             <TextBlock DockPanel.Dock="Left" Text="Save as" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold" />
             <TextBox x:Name="NameBox" Text="{Binding FileName}" KeyDown="NameKeys" />
           </DockPanel>
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding Shows, StringFormat='Shows {0}'}" IsVisible="{Binding HasShows}" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding Message}" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Shows, StringFormat='Shows {0}'}" IsVisible="{Binding HasShows}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Message}" TextWrapping="Wrap"
                      IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
       </DockPanel>

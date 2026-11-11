@@ -20,7 +20,7 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:FilePlaceGroup">
               <StackPanel Margin="0,0,0,14" Spacing="2">
-                <TextBlock Text="{Binding Title}" Classes="label" Margin="10,0,0,4" FontSize="10.5" LetterSpacing="0.6" />
+                <TextBlock Text="{Binding Title}" Classes="label caps" Margin="10,0,0,4" />
                 <ItemsControl ItemsSource="{Binding Places}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FilePlace">
@@ -164,9 +164,9 @@
                   </Button>
                 </StackPanel>
                 <StackPanel Spacing="4">
-                  <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="{DynamicResource Text12}" TextTrimming="CharacterEllipsis" />
                   <ProgressBar Value="{Binding Fraction}" Minimum="0" Maximum="1" Height="4" MinHeight="4" IsVisible="{Binding IsActive}" />
-                  <TextBlock Classes="muted" FontSize="11" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </DockPanel>
             </Border>
@@ -177,8 +177,8 @@
       <!-- What's here, and anything to say about the last thing done -->
       <Border DockPanel.Dock="Bottom" Padding="16,6" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="12" Text="{Binding StatusText}" VerticalAlignment="Center" />
-          <TextBlock Classes="muted" Classes.problem="{Binding MessageIsProblem}" FontSize="12" Text="{Binding Message}" TextTrimming="CharacterEllipsis"
+          <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding StatusText}" VerticalAlignment="Center" />
+          <TextBlock Classes="muted" Classes.problem="{Binding MessageIsProblem}" FontSize="{DynamicResource Text12}" Text="{Binding Message}" TextTrimming="CharacterEllipsis"
                      HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0" />
         </DockPanel>
       </Border>
@@ -208,7 +208,7 @@
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
                       <TextBlock Text="{Binding Details.Text, FallbackValue=''}" IsVisible="{Binding Details.HasText, FallbackValue=False}" TextWrapping="Wrap"
-                                 FontSize="11" Margin="10" TextTrimming="CharacterEllipsis" />
+                                 FontSize="{DynamicResource Text11}" Margin="10" TextTrimming="CharacterEllipsis" />
                     </Panel>
                   </Border>
                   <StackPanel Spacing="2">
@@ -240,7 +240,7 @@
             <!-- Columns from the right, so Name takes what is left; Kind and Tags step aside when the list is narrow. -->
             <DockPanel>
               <Button DockPanel.Dock="Right" Width="80" Classes="link sorthead" Content="Size" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Size}" HorizontalContentAlignment="Right" />
-              <TextBlock DockPanel.Dock="Right" Width="150" Classes="label" Text="Tags" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Padding="6,0" IsVisible="{Binding !IsNarrow}" />
+              <TextBlock DockPanel.Dock="Right" Width="150" Classes="label" Text="Tags" FontSize="{DynamicResource Text12}" FontWeight="SemiBold" VerticalAlignment="Center" Padding="6,0" IsVisible="{Binding !IsNarrow}" />
               <Button DockPanel.Dock="Right" Width="140" Classes="link sorthead" Content="{Binding KindHeading}" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Kind}" IsVisible="{Binding !IsNarrow}" />
               <Button DockPanel.Dock="Right" Width="160" Classes="link sorthead" Content="Date changed" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Modified}" />
               <Button Classes="link sorthead" Content="Name" Command="{Binding SortByCommand}" CommandParameter="{x:Static files:FileSort.Name}" />
@@ -283,7 +283,7 @@
               <ListBox.DataTemplates>
                 <DataTemplate DataType="vm:FileHeaderRow">
                   <DockPanel Margin="8,12,8,4" MinWidth="{Binding $parent[ListBox].Bounds.Width, Converter={x:Static c:Widths.LessMargin}}">
-                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding CountText}" />
+                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding CountText}" />
                     <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" />
                   </DockPanel>
                 </DataTemplate>
@@ -302,7 +302,7 @@
                         <TextBlock Classes="muted" Text="{Binding KindText}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Entry.Path}" IsVisible="{Binding !HasSpace}" />
                         <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasSpace}">
                           <Border Classes="spacebar" Width="{Binding SpaceBar}" Height="8" VerticalAlignment="Center" />
-                          <TextBlock Classes="muted" FontSize="11" Text="{Binding SpaceText}" VerticalAlignment="Center" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding SpaceText}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Panel>
                       <TextBlock DockPanel.Dock="Right" Width="154" Classes="muted" Text="{Binding ModifiedText}" VerticalAlignment="Center" Margin="6,0,0,0" />
@@ -327,7 +327,7 @@
                         </Panel>
                       </Border>
                       <TextBlock Text="{Binding Name}" TextAlignment="Center" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
-                                 FontSize="12" IsVisible="{Binding !IsRenaming}" />
+                                 FontSize="{DynamicResource Text12}" IsVisible="{Binding !IsRenaming}" />
                       <ItemsControl ItemsSource="{Binding Tags}" ItemTemplate="{StaticResource TagDot}" HorizontalAlignment="Center" IsVisible="{Binding HasTags}" ToolTip.Tip="{Binding TagText}">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                       </ItemsControl>
@@ -335,7 +335,7 @@
                     <!-- Renaming, in any view -->
                     <StackPanel IsVisible="{Binding IsRenaming}" VerticalAlignment="Center" Margin="26,0,0,0">
                       <TextBox Classes="rename" Text="{Binding RenameText}" MinWidth="220" KeyDown="RenameKeys" LostFocus="RenameLost" />
-                      <TextBlock Classes="problem" FontSize="11" Text="{Binding RenameProblem}" IsVisible="{Binding RenameProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      <TextBlock Classes="problem" FontSize="{DynamicResource Text11}" Text="{Binding RenameProblem}" IsVisible="{Binding RenameProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     </StackPanel>
                   </Panel>
                 </DataTemplate>
@@ -359,7 +359,7 @@
                       </StackPanel>
                       <StackPanel VerticalAlignment="Center">
                         <TextBlock FontWeight="SemiBold" Text="{Binding QuickLook.Name, FallbackValue=''}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis">
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextTrimming="CharacterEllipsis">
                           <Run Text="{Binding QuickLook.KindText, FallbackValue=''}" />
                           <Run Text="  " />
                           <Run Text="{Binding QuickLook.SizeText, FallbackValue=''}" />
@@ -385,7 +385,7 @@
                       </ItemsControl>
                     </ScrollViewer>
                     <ScrollViewer IsVisible="{Binding QuickLook.HasText, FallbackValue=False}">
-                      <SelectableTextBlock Text="{Binding QuickLook.Text, FallbackValue=''}" TextWrapping="Wrap" Margin="24,18" FontSize="13" />
+                      <SelectableTextBlock Text="{Binding QuickLook.Text, FallbackValue=''}" TextWrapping="Wrap" Margin="24,18" FontSize="{DynamicResource Text13}" />
                     </ScrollViewer>
                     <StackPanel IsVisible="{Binding QuickLook.ShowsIcon, FallbackValue=False}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="40">
                       <c:Icon Data="{Binding QuickLook.Icon, Converter={x:Static c:IconConverter.Instance}, FallbackValue={x:Null}}" Size="64"
@@ -424,7 +424,7 @@
                       <Button Classes="quiet" Content="Cancel" Command="{Binding CancelCommand}" />
                       <Button Classes="primary" Content="Rename them" Command="{Binding ApplyCommand}" />
                     </StackPanel>
-                    <TextBlock Classes="problem" FontSize="12" Text="{Binding Problem}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" Text="{Binding Problem}" TextWrapping="Wrap" VerticalAlignment="Center" />
                   </DockPanel>
                   <Border Margin="0,14,0,0" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
                     <ScrollViewer>
@@ -460,7 +460,7 @@
                 <TextBlock FontWeight="SemiBold" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
               </DockPanel>
             </Border>
-            <TextBlock DockPanel.Dock="Top" Classes="muted" FontSize="12" Margin="20,8,20,0" Text="{Binding Note}" TextWrapping="Wrap" IsVisible="{Binding HasNote}" />
+            <TextBlock DockPanel.Dock="Top" Classes="muted" FontSize="{DynamicResource Text12}" Margin="20,8,20,0" Text="{Binding Note}" TextWrapping="Wrap" IsVisible="{Binding HasNote}" />
             <Panel>
               <TextBlock Classes="muted" Margin="20" Text="Opening…" IsVisible="{Binding IsLoading}" />
               <ScrollViewer>

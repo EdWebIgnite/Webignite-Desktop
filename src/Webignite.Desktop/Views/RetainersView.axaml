@@ -30,7 +30,7 @@
             <Button DockPanel.Dock="Right" Classes="link" Content="Close" Command="{Binding HideXeroRepeatingCommand}" VerticalAlignment="Top" />
             <StackPanel Spacing="4">
               <TextBlock Classes="label" Text="REPEATING INVOICES IN XERO" />
-              <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding RepeatingNote}" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding RepeatingNote}" />
             </StackPanel>
           </DockPanel>
           <ItemsControl ItemsSource="{Binding Repeating}">
@@ -40,12 +40,12 @@
                   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                     <TextBlock Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" />
                     <Button Classes="quiet" Content="Make it a retainer" Command="{Binding MakeCommand}" IsVisible="{Binding CanMake}" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding WhyNot}" IsVisible="{Binding !CanMake}" VerticalAlignment="Center" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding WhyNot}" IsVisible="{Binding !CanMake}" VerticalAlignment="Center" />
                   </StackPanel>
                   <StackPanel Spacing="2">
                     <TextBlock FontWeight="SemiBold" Text="{Binding Client}" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Title}" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Schedule}" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Title}" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Schedule}" />
                   </StackPanel>
                 </DockPanel>
               </DataTemplate>
@@ -81,7 +81,7 @@
                     <StackPanel Spacing="2">
                       <TextBlock Text="{Binding Client}" FontWeight="SemiBold" Classes.muted="{Binding IsPaused}" />
                       <TextBlock Text="{Binding Title}" Classes.muted="{Binding IsPaused}" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Schedule}" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Schedule}" />
                     </StackPanel>
                   </StackPanel>
                   <TextBlock Grid.Column="1" Classes="amount" Classes.muted="{Binding IsPaused}" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0,16,0" />

@@ -30,14 +30,14 @@
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="8">
               <TextBlock Classes="h2" FontSize="14" Text="{Binding Name}" />
-              <TextBlock Classes="muted" FontSize="12" Text="Free" IsVisible="{Binding IsFree}" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Free" IsVisible="{Binding IsFree}" />
               <ItemsControl ItemsSource="{Binding Items}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:AgendaItemViewModel">
                     <c:AgendaChip Padding="6,4">
                       <StackPanel>
-                        <TextBlock Classes="muted" FontSize="11" Text="{Binding Time}" IsVisible="{Binding HasTime}" />
-                        <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap" />
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding Time}" IsVisible="{Binding HasTime}" />
+                        <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" />
                       </StackPanel>
                     </c:AgendaChip>
                   </DataTemplate>
@@ -58,8 +58,8 @@
     <Border Classes="card" IsVisible="{Binding HasUnplanned}">
       <StackPanel Spacing="10">
         <TextBlock Classes="h2" Text="Tasks and to-dos without a day" />
-        <TextBlock Classes="muted" FontSize="12" Text="Give each one a day this week so it shows up above and on the calendar." />
-        <TextBlock Classes="problem" FontSize="12" Text="{Binding Message}" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Give each one a day this week so it shows up above and on the calendar." />
+        <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" Text="{Binding Message}" TextWrapping="Wrap"
                    IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <ItemsControl ItemsSource="{Binding Unplanned}">
           <ItemsControl.ItemTemplate>
@@ -69,7 +69,7 @@
                           ItemsSource="{Binding Days}" SelectedItem="{Binding PlanFor}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
-                  <TextBlock Classes="muted" FontSize="12" Text="{Binding About}" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" />
                 </StackPanel>
               </DockPanel>
             </DataTemplate>

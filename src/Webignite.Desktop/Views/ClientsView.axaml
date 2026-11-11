@@ -24,7 +24,7 @@
               <TextBlock Classes="h1" Text="Clients" VerticalAlignment="Center" />
             </DockPanel>
             <TextBlock Classes="headline" Text="{Binding Headline}" TextWrapping="Wrap" IsVisible="{Binding !IsEmpty}" />
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding XeroMessage}" TextWrapping="Wrap"
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding XeroMessage}" TextWrapping="Wrap"
                        IsVisible="{Binding XeroMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <WrapPanel ItemSpacing="6" LineSpacing="6">
               <Button Classes="quiet" Content="Bring in from Xero" Command="{Binding BringInFromXeroCommand}" IsEnabled="{Binding !BringingIn}"
@@ -100,8 +100,8 @@
                             <c:Monogram Text="{Binding Name}" Size="34" />
                             <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
                               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                              <TextBlock Classes="muted" FontSize="12" Text="{Binding Contact}" IsVisible="{Binding HasContact}" TextTrimming="CharacterEllipsis" />
-                              <TextBlock Classes="muted" FontSize="12" Text="{Binding Work}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Work}" />
+                              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Contact}" IsVisible="{Binding HasContact}" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Work}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Work}" />
                             </StackPanel>
                           </Grid>
                           <TextBlock Grid.Column="1" Classes="amount" Classes.problem="{Binding HasOverdue}" Text="{Binding Owed}" Margin="8,0" VerticalAlignment="Center"

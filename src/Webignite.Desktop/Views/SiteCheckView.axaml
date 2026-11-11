@@ -57,8 +57,8 @@
           <StackPanel Grid.Column="0" Spacing="2">
             <TextBlock Text="{Binding SpeedScore}" FontSize="48" FontWeight="Bold" Classes.problem="{Binding SpeedIsProblem}" />
             <TextBlock Classes="muted" Text="{Binding SpeedVerdict}" />
-            <TextBlock Classes="muted" FontSize="12" Text="out of 100. 90 and up is good." TextWrapping="Wrap" />
-            <TextBlock FontSize="12" Text="{Binding SpeedChange}" TextWrapping="Wrap" Margin="0,4,0,0"
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="out of 100. 90 and up is good." TextWrapping="Wrap" />
+            <TextBlock FontSize="{DynamicResource Text12}" Text="{Binding SpeedChange}" TextWrapping="Wrap" Margin="0,4,0,0"
                        IsVisible="{Binding SpeedChange, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <Button Classes="link" Content="Copy for a report" Margin="0,6,0,0" Padding="0"
                     Command="{Binding CopyReportCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
@@ -83,7 +83,7 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                      Text="Images are usually the biggest win. The Website images tool under Tools makes them smaller." />
         </StackPanel>
       </StackPanel>
@@ -107,11 +107,11 @@
                 <Grid ColumnDefinitions="2*,2*,70,2*,Auto">
                   <StackPanel Grid.Column="0" Spacing="1">
                     <TextBlock Text="{Binding Domain}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Client}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Client}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                   <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Status}" Classes.problem="{Binding Down}" TextWrapping="Wrap" />
-                    <TextBlock Classes="problem" FontSize="12" Text="{Binding Note}" TextWrapping="Wrap"
+                    <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" Text="{Binding Note}" TextWrapping="Wrap"
                                IsVisible="{Binding Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
                   <TextBlock Grid.Column="2" Classes="muted" Text="{Binding Percent}" VerticalAlignment="Center" ToolTip.Tip="Over the last 30 days" />

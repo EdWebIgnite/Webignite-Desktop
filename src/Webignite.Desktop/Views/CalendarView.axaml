@@ -44,19 +44,19 @@
                   <StackPanel Spacing="3">
                     <Panel HorizontalAlignment="Left">
                       <Border Classes="todaydot" IsVisible="{Binding IsToday}" />
-                      <TextBlock Classes="daynum" Classes.today="{Binding IsToday}" Text="{Binding DayNumber}" FontSize="12" FontWeight="SemiBold"
+                      <TextBlock Classes="daynum" Classes.today="{Binding IsToday}" Text="{Binding DayNumber}" FontSize="{DynamicResource Text12}" FontWeight="SemiBold"
                                  HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,3" />
                     </Panel>
                     <ItemsControl ItemsSource="{Binding Items}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:AgendaItemViewModel">
                           <c:AgendaChip Padding="4,1" Margin="0,0,0,2">
-                            <TextBlock Text="{Binding Title}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text11}" TextTrimming="CharacterEllipsis" />
                           </c:AgendaChip>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Classes="muted" FontSize="11" Text="{Binding More}" IsVisible="{Binding HasMore}" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding More}" IsVisible="{Binding HasMore}" />
                   </StackPanel>
                 </Button>
               </DataTemplate>
@@ -93,7 +93,7 @@
                       </Button>
                       <StackPanel>
                         <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
-                        <TextBlock Classes="muted" FontSize="11">
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text11}">
                           <Run Text="{Binding Time}" /><Run Text="  " /><Run Text="{Binding KindLabel}" />
                         </TextBlock>
                       </StackPanel>
@@ -113,7 +113,7 @@
               <TextBox Text="{Binding NewTime}" PlaceholderText="Time" ToolTip.Tip="e.g. 9:30 or 14:00. Empty means all day." />
               <TextBox Grid.Column="2" Text="{Binding NewLocation}" PlaceholderText="Where (optional)" />
             </Grid>
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding FormMessage}" TextWrapping="Wrap" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding FormMessage}" TextWrapping="Wrap" />
             <Button Classes="primary" Content="Add to this day" Command="{Binding AddEventCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
           </StackPanel>
         </Border>

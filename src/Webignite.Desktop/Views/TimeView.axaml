@@ -99,7 +99,7 @@
           </Button>
           <StackPanel Spacing="2">
             <TextBlock Classes="h2" Text="Where the time went" />
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding PeriodValue}" IsVisible="{Binding PeriodValue, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PeriodValue}" IsVisible="{Binding PeriodValue, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
         </DockPanel>
         <ItemsControl ItemsSource="{Binding Totals}">
@@ -147,7 +147,7 @@
                         <TextBlock DockPanel.Dock="Right" Text="{Binding Time}" VerticalAlignment="Center" Margin="12,0" FontFeatures="+tnum" />
                         <StackPanel VerticalAlignment="Center" Spacing="1">
                           <TextBlock Text="{Binding Who}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                          <TextBlock Classes="muted" FontSize="12" Text="{Binding Note}" IsVisible="{Binding HasNote}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Note}" IsVisible="{Binding HasNote}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                       </DockPanel>
                     </Border>

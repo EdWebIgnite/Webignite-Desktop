@@ -173,9 +173,12 @@ void Save(string name)
     Console.WriteLine("Saved " + name);
 }
 
-// The corners and room of every card and sidebar row on screen: what a style changes. Only what can be seen:
-// a hidden part takes its styles when it is next shown.
-List<string> Shapes() =>
+// The corners and room that the cards and list rows on screen have, each kind once: what a style changes. Only
+// what can be seen (a hidden part takes its styles when it is next shown), and not how many or which, as a list
+// draws fewer rows while they are taller and may be left scrolled elsewhere.
+List<string> Shapes() => [.. AllShapes().Distinct().Order()];
+
+List<string> AllShapes() =>
 [
     .. window.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.Classes.Contains("card") && b.IsEffectivelyVisible).Select(b => $"{b.CornerRadius} {b.Padding}"),
     .. window.GetVisualDescendants().OfType<Avalonia.Controls.ListBoxItem>().Where(i => i.IsEffectivelyVisible).Select(i => $"{i.Padding} {i.Margin} {i.CornerRadius}"),
@@ -196,13 +199,17 @@ void SaveLooks(string name)
     }
     services.Settings.Appearance = was;
     Dispatcher.UIThread.RunJobs();
+    // Drawn once more, so rows the list let go of while they were taller are back before anything is checked.
+    window.CaptureRenderedFrame()?.Dispose();
+    Dispatcher.UIThread.RunJobs();
     Check($"After trying the other styles on {name}, Classic is back with nothing of them switched on",
         was.Style != LookStyle.Classic || was.Sidebar != SidebarTone.Dark
         || Looks.Style == LookStyle.Classic && !window.Classes.Any(c => c.StartsWith("look-", StringComparison.Ordinal))
-            && !Application.Current!.Resources.ContainsKey("Nav") && !Application.Current.Resources.ContainsKey("Canvas"));
+            && !Application.Current!.Resources.ContainsKey("Nav") && !Application.Current.Resources.ContainsKey("Canvas")
+            && !Application.Current.Resources.ContainsKey("Text12"));
     // Parts that were on screen while another style was on must have their own shape again, not only new ones.
-    Check($"After trying the other styles on {name}, the cards and sidebar rows on screen are as they were",
-        was.Style != LookStyle.Classic || Shapes().SequenceEqual(shapesBefore));
+    Check($"After trying the other styles on {name}, no card or list row on screen has a shape it didn't have before",
+        was.Style != LookStyle.Classic || Shapes().All(shapesBefore.Contains));
 }
 
 Save("overview-start");

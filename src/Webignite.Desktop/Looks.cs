@@ -39,6 +39,13 @@ public static class Looks
 
     private static readonly string[] SwappedKeys = ["Canvas", "Nav", "NavHover", "NavSelected", "NavText", "NavMuted"];
 
+    // The small text sizes of Styles/Sizes.axaml, by name, and what Airy makes them: a size up, as small grey
+    // text is what tires the eyes.
+    private static readonly (string Key, double Airy)[] Sizes =
+    [
+        ("Text10", 11), ("Text10x5", 11.5), ("Text11", 12), ("Text11x5", 12.5), ("Text12", 13), ("Text12x5", 13.5), ("Text13", 14),
+    ];
+
     // Pages that asked for their part of the style, and the windows that are open, held weakly so each is still
     // let go when closed.
     private static readonly List<(WeakReference<StyledElement> View, string Page)> pages = [];
@@ -103,10 +110,18 @@ public static class Looks
     private static StyleInclude Include(string file) =>
         new((Uri?)null) { Source = new Uri($"avares://Webignite{Folder}{Style}/{file}.axaml") };
 
+    // Which palette colour goes where, and the small text sizes: both by name, so what is on screen follows at once.
     private static void ApplyColours(Application app, AppearanceSettings settings)
     {
         foreach (var key in SwappedKeys)
             app.Resources.Remove(key);
+        foreach (var (key, airy) in Sizes)
+        {
+            if (settings.Style == LookStyle.Airy)
+                app.Resources[key] = airy;
+            else
+                app.Resources.Remove(key);
+        }
         // Read before anything is swapped, so these are the palette's own.
         var canvas = Find("Canvas");
         var surface = Find("Surface");

@@ -42,7 +42,7 @@
           <TextBlock DockPanel.Dock="Right" Classes="figure" FontSize="18" Text="{Binding Total}" VerticalAlignment="Center" />
           <Button Classes="quiet" Content="+ Add line" Command="{Binding AddLineCommand}" />
         </DockPanel>
-        <TextBlock Classes="muted" FontSize="12" Margin="20,0,20,16" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Margin="20,0,20,16" TextWrapping="Wrap"
                    Text="Type [Month] in a description and it becomes the month, so &quot;Hosting, [Month]&quot; reads &quot;Hosting, November 2026&quot;." />
       </StackPanel>
     </Border>

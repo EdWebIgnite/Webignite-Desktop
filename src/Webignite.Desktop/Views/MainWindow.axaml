@@ -63,7 +63,7 @@
               <Ellipse Width="8" Height="8" Fill="{Binding ChatPartnerShown, Converter={x:Static c:PresenceColours.Brush}}"
                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-3" />
               <Border Classes="badge" IsVisible="{Binding HasChatUnread}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-10,0">
-                <TextBlock Text="{Binding ChatUnread}" FontSize="10" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding ChatUnread}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
               </Border>
             </Panel>
           </Button>
@@ -88,7 +88,7 @@
                 <FlyoutBase.AttachedFlyout>
                   <Flyout Placement="RightEdgeAlignedTop" ShowMode="TransientWithDismissOnPointerMoveAway" HorizontalOffset="6">
                     <StackPanel MinWidth="210" Spacing="2" Margin="-6">
-                      <TextBlock Classes="muted" FontSize="12" FontWeight="SemiBold" Text="{Binding Name}" Margin="12,6,12,4" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" FontWeight="SemiBold" Text="{Binding Name}" Margin="12,6,12,4" />
                       <ItemsControl ItemsSource="{Binding Entries}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate DataType="vm:GroupEntry">
@@ -121,7 +121,7 @@
               <Panel Background="Transparent" ToolTip.Tip="{Binding Title}" ToolTip.Placement="Right">
                 <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="20" HorizontalAlignment="Center" />
                 <Border Classes="badge" IsVisible="{Binding HasBadge}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0">
-                  <TextBlock Text="{Binding Badge}" FontSize="10" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Badge}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
                 </Border>
               </Panel>
             </DataTemplate>
@@ -141,10 +141,10 @@
             </Button>
             <TextBlock Text="Webignite" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource NavText}" />
           </DockPanel>
-          <TextBlock Text="Quotes, invoices and more" FontSize="12" Foreground="{DynamicResource NavMuted}" />
+          <TextBlock Text="Quotes, invoices and more" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
           <Button Classes="navsearch" Margin="0,12,0,0" HorizontalAlignment="Stretch" Command="{Binding Search.ShowCommand}">
             <DockPanel>
-              <TextBlock DockPanel.Dock="Right" Text="Ctrl+K" FontSize="11" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+              <TextBlock DockPanel.Dock="Right" Text="Ctrl+K" FontSize="{DynamicResource Text11}" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
               <c:Icon Classes="navicon" Data="{StaticResource Icon.Search}" Size="16" Foreground="{DynamicResource NavMuted}" Margin="0,0,10,0" VerticalAlignment="Center" />
               <TextBlock Text="Search" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
             </DockPanel>
@@ -156,7 +156,7 @@
           <Button Classes="navsearch" HorizontalAlignment="Stretch" Command="{Binding OpenChatCommand}" ToolTip.Tip="{Binding ChatPartnerTip}">
             <DockPanel>
               <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasChatUnread}" VerticalAlignment="Center">
-                <TextBlock Text="{Binding ChatUnread}" FontSize="10" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding ChatUnread}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
               </Border>
               <!-- My partner's status: teal available, yellow away, busy, grey offline. -->
               <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
@@ -171,7 +171,7 @@
             <DockPanel>
               <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Time}" Size="16" Foreground="{DynamicResource NavText}" Margin="0,0,8,0" VerticalAlignment="Center" />
               <TextBlock DockPanel.Dock="Right" Text="{Binding Timer.Clock}" Foreground="{DynamicResource NavText}" FontFeatures="+tnum" VerticalAlignment="Center" Margin="8,0,0,0" />
-              <TextBlock Text="{Binding Timer.RunningFor}" Foreground="{DynamicResource NavMuted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="12" />
+              <TextBlock Text="{Binding Timer.RunningFor}" Foreground="{DynamicResource NavMuted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="{DynamicResource Text12}" />
             </DockPanel>
           </Button>
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -181,12 +181,12 @@
           <!-- Background work, e.g. checking mail, so it's clear something is happening. -->
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,0" IsVisible="{Binding Work.IsWorking}">
             <c:Spinner Size="12" Foreground="{DynamicResource NavText}" VerticalAlignment="Center" />
-            <TextBlock FontSize="12" Foreground="{DynamicResource NavText}" Text="{Binding Work.Text}" VerticalAlignment="Center" />
+            <TextBlock FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavText}" Text="{Binding Work.Text}" VerticalAlignment="Center" />
           </StackPanel>
-          <TextBlock FontSize="11" Foreground="{DynamicResource NavMuted}" TextWrapping="Wrap"
+          <TextBlock FontSize="{DynamicResource Text11}" Foreground="{DynamicResource NavMuted}" TextWrapping="Wrap"
                      Text="{Binding Updates.VersionText, StringFormat='{}{0} · Data stays on this PC'}" />
           <!-- Looks for a new version now rather than waiting for the hourly look -->
-          <Button Classes="link" FontSize="11" Padding="0" HorizontalAlignment="Left" Foreground="{DynamicResource NavText}"
+          <Button Classes="link" FontSize="{DynamicResource Text11}" Padding="0" HorizontalAlignment="Left" Foreground="{DynamicResource NavText}"
                   Content="Check for updates" Command="{Binding Updates.CheckNowCommand}">
             <Button.IsVisible>
               <MultiBinding Converter="{x:Static BoolConverters.And}">
@@ -195,7 +195,7 @@
               </MultiBinding>
             </Button.IsVisible>
           </Button>
-          <TextBlock FontSize="11" Foreground="{DynamicResource NavMuted}" TextWrapping="Wrap" Text="{Binding Updates.CheckNote}"
+          <TextBlock FontSize="{DynamicResource Text11}" Foreground="{DynamicResource NavMuted}" TextWrapping="Wrap" Text="{Binding Updates.CheckNote}"
                      IsVisible="{Binding Updates.CheckNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
 
@@ -217,7 +217,7 @@
                   <c:Icon Classes="fold" Size="14" Foreground="{DynamicResource NavMuted}" IsVisible="{Binding IsOpen}" Data="{StaticResource Icon.ChevronDown}" />
                   <c:Icon Classes="fold" Size="14" Foreground="{DynamicResource NavMuted}" IsVisible="{Binding IsFolded}" Data="{StaticResource Icon.ChevronRight}" />
                 </Panel>
-                <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text10x5}" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>
             <!-- The top of the Planner sidebar: back to the main one -->
@@ -234,7 +234,7 @@
                         Command="{Binding AddCommand}" ToolTip.Tip="{Binding AddTip}" VerticalAlignment="Center">
                   <c:Icon Data="{StaticResource Icon.Plus}" Size="13" Foreground="{DynamicResource NavMuted}" />
                 </Button>
-                <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text10x5}" FontWeight="SemiBold" LetterSpacing="0.6" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
               </DockPanel>
             </DataTemplate>
             <!-- A section with a sidebar of its own (Planner): the arrow says it opens one -->
@@ -279,7 +279,7 @@
                       <Button Classes="panechip" Command="{Binding RestoreCommand}" ToolTip.Tip="{Binding Title, StringFormat='Show {0} again'}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                           <c:Icon Data="{StaticResource Icon.SidebarShow}" Size="12" VerticalAlignment="Center" />
-                          <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
                     </DataTemplate>
@@ -319,14 +319,14 @@
                       <Button Classes="panechip" Command="{Binding RestoreCommand}" ToolTip.Tip="{Binding Title, StringFormat='Show {0} again'}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                           <c:Icon Data="{StaticResource Icon.SidebarShow}" Size="12" VerticalAlignment="Center" />
-                          <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasBadge}">
-                  <TextBlock Text="{Binding Badge}" FontSize="11" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Badge}" FontSize="{DynamicResource Text11}" FontWeight="SemiBold" />
                 </Border>
                 <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
                         Margin="0,0,12,0" VerticalAlignment="Center" />
@@ -395,7 +395,7 @@
           </StackPanel>
           <StackPanel Spacing="6" MaxWidth="780" HorizontalAlignment="Left">
             <StackPanel Orientation="Horizontal" Spacing="10">
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding GuideProgress}" VerticalAlignment="Center" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding GuideProgress}" VerticalAlignment="Center" />
               <ProgressBar Value="{Binding GuideFraction}" Minimum="0" Maximum="100" Width="140" Height="4" MinHeight="4" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Classes="h2" Text="{Binding GuideStep.Title}" />
@@ -497,10 +497,10 @@
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="search:SearchHit">
                 <DockPanel Margin="4,2">
-                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding KindLabel}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding KindLabel}" VerticalAlignment="Center" Margin="12,0,0,0" />
                   <StackPanel>
                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                 </DockPanel>
               </DataTemplate>
@@ -538,7 +538,7 @@
                 <Grid ColumnDefinitions="150,*" Margin="0,5">
                   <Border Grid.Column="0" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Line2}" BorderThickness="1"
                           CornerRadius="5" Padding="7,2" HorizontalAlignment="Left" VerticalAlignment="Top">
-                    <TextBlock Text="{Binding Keys}" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Keys}" FontSize="{DynamicResource Text12}" FontWeight="SemiBold" />
                   </Border>
                   <TextBlock Grid.Column="1" Text="{Binding What}" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </Grid>

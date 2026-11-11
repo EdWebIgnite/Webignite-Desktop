@@ -7,7 +7,7 @@
   <UserControl.Styles>
     <Style Selector="TextBox.code">
       <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
-      <Setter Property="FontSize" Value="12.5" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12x5}" />
       <Setter Property="AcceptsReturn" Value="True" />
       <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="Height" Value="170" />
@@ -94,7 +94,7 @@
         <TextBlock Text="{Binding UnitSum}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
         <Button Classes="primary" Content="Copy" Click="CopyUnit" />
       </StackPanel>
-      <TextBlock Classes="muted" FontSize="12" Text="{Binding UnitHint}" TextWrapping="Wrap"
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding UnitHint}" TextWrapping="Wrap"
                  IsVisible="{Binding UnitHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </StackPanel>
 
@@ -107,7 +107,7 @@
         <Button Classes="primary" Content="Copy" Click="CopyMinified" />
         <TextBlock Classes="muted" Text="{Binding MinifySaved}" VerticalAlignment="Center" />
       </StackPanel>
-      <TextBlock Classes="muted" FontSize="12" Text="{Binding MinifyNote}" TextWrapping="Wrap" />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MinifyNote}" TextWrapping="Wrap" />
     </StackPanel>
 
     <!-- JSON -->
@@ -139,7 +139,7 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-      <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !HasCases}"
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding !HasCases}"
                  Text="The slug is what goes in a page's web address: lower case, no accents, hyphens between words." />
     </StackPanel>
 
@@ -176,11 +176,11 @@
       <TextBlock Classes="problem" Text="{Binding UtmProblem}" TextWrapping="Wrap" IsVisible="{Binding HasUtmProblem}" />
       <TextBox Text="{Binding UtmLink, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" IsVisible="{Binding HasUtmLink}" />
       <Button Classes="primary" Content="Copy" HorizontalAlignment="Left" Click="CopyUtm" IsVisible="{Binding HasUtmLink}" />
-      <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                  Text="Google Analytics reads these tags to say which mail, post or advert a visit came from. Keep the same spelling each time: Newsletter and newsletter count as two." />
     </StackPanel>
 
-    <TextBlock Classes="muted" FontSize="12" Text="{Binding WebMessage}" TextWrapping="Wrap"
+    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding WebMessage}" TextWrapping="Wrap"
                IsVisible="{Binding WebMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
   </StackPanel>
 </UserControl>

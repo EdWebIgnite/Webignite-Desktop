@@ -30,7 +30,7 @@
             <Panel>
               <Image Source="{Binding Frame}" Stretch="Uniform" />
               <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Padding="8,3" CornerRadius="4" Background="{DynamicResource Nav}">
-                <TextBlock Text="{Binding FrameText}" Foreground="{DynamicResource NavText}" FontSize="12" />
+                <TextBlock Text="{Binding FrameText}" Foreground="{DynamicResource NavText}" FontSize="{DynamicResource Text12}" />
               </Border>
             </Panel>
           </Border>
@@ -54,7 +54,7 @@
               <Run Text="  " />
               <Run Text="{Binding SizeText}" Foreground="{DynamicResource Muted}" />
             </TextBlock>
-            <TextBlock Classes="problem" FontSize="12" TextWrapping="Wrap" Text="{Binding SoundProblem}" IsVisible="{Binding HasSoundProblem}" />
+            <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding SoundProblem}" IsVisible="{Binding HasSoundProblem}" />
             <ComboBox ItemsSource="{Binding $parent[UserControl].((vm:MarkupViewModel)DataContext).Clients}"
                       SelectedItem="{Binding $parent[UserControl].((vm:MarkupViewModel)DataContext).Client, Mode=OneWay}" SelectionChanged="ClientPicked"
                       PlaceholderText="Which client" HorizontalAlignment="Stretch">
@@ -129,7 +129,7 @@
         <Border Classes="card" IsVisible="{Binding HasImage}">
           <StackPanel Spacing="10">
             <TextBlock Classes="label" Text="NOTES" />
-            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !HasPins}"
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding !HasPins}"
                        Text="Click on the picture with Numbered note chosen, then write what each number means here." />
             <ItemsControl ItemsSource="{Binding Pins}">
               <ItemsControl.ItemTemplate>

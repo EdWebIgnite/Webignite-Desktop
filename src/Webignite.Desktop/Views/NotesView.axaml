@@ -28,7 +28,7 @@
           <Button DockPanel.Dock="Right" Classes="quiet format icon" Command="{Binding AddNotebookCommand}" ToolTip.Tip="New notebook">
             <c:Icon Data="{StaticResource Icon.Plus}" Size="14" />
           </Button>
-          <TextBlock Text="NOTEBOOKS" Classes="label" FontSize="10.5" LetterSpacing="0.6" VerticalAlignment="Center" />
+          <TextBlock Text="NOTEBOOKS" Classes="label caps" VerticalAlignment="Center" />
         </DockPanel>
 
         <!-- Asking for a name: a new folder, or a new name -->
@@ -42,7 +42,7 @@
             </StackPanel>
           </StackPanel>
         </Border>
-        <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding Message}" Margin="10,8,0,0"
+        <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding Message}" Margin="10,8,0,0"
                    IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <WrapPanel DockPanel.Dock="Bottom" ItemSpacing="12" Margin="10,6,0,0">
           <Button Classes="link" Content="New folder" Command="{Binding AddFolderCommand}" IsVisible="{Binding CanAddFolder}" />
@@ -60,7 +60,7 @@
                 <DockPanel.ContextMenu>
                   <ContextMenu Opening="PlaceMenuOpening" />
                 </DockPanel.ContextMenu>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding CountText}" FontSize="11.5" Opacity="0.7" VerticalAlignment="Center" Margin="6,0,0,0" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding CountText}" FontSize="{DynamicResource Text11x5}" Opacity="0.7" VerticalAlignment="Center" Margin="6,0,0,0" />
                 <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="15" Margin="0,0,9,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                            FontWeight="{Binding IsNotebook, Converter={x:Static v:NotesView.NotebookWeight}}" />
@@ -101,8 +101,8 @@
                     <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Pin}" Size="12" Opacity="0.6" IsVisible="{Binding Pinned}" Margin="6,0,0,0" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                   </DockPanel>
-                  <TextBlock Text="{Binding Preview}" Classes="muted" FontSize="12" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasPreview}" />
-                  <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" Opacity="0.85" />
+                  <TextBlock Text="{Binding Preview}" Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasPreview}" />
+                  <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="{DynamicResource Text11}" TextTrimming="CharacterEllipsis" Opacity="0.85" />
                 </StackPanel>
               </DataTemplate>
             </ListBox.ItemTemplate>
@@ -120,7 +120,7 @@
         <!-- Where it is, who it's about, pin, delete -->
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-            <TextBlock Classes="muted" FontSize="12" Text="{Binding SavedText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding SavedText}" VerticalAlignment="Center" Margin="0,0,8,0" />
             <ComboBox x:Name="ClientBox" Width="180" PlaceholderText="About a client" ItemsSource="{Binding Clients}" SelectedItem="{Binding OpenClient, Mode=OneWay}"
                       SelectionChanged="ClientChosen" IsEnabled="{Binding CanEdit}" ToolTip.Tip="The note shows on this client's page">
               <ComboBox.ItemTemplate>
@@ -145,7 +145,7 @@
               <c:Icon Data="{StaticResource Icon.Trash}" Size="16" />
             </Button>
           </StackPanel>
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding PlaceText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PlaceText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
         </DockPanel>
 
         <!-- A deleted note can be read, put back or deleted for good -->

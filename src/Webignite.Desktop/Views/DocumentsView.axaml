@@ -23,7 +23,7 @@
         <StackPanel Spacing="4">
           <TextBlock Classes="h1" Text="{Binding Title}" />
           <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding HasAny}" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding XeroMessage}" IsVisible="{Binding HasXeroMessage}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding XeroMessage}" IsVisible="{Binding HasXeroMessage}" />
         </StackPanel>
       </DockPanel>
 
@@ -93,14 +93,14 @@
                       <c:Monogram Text="{Binding CustomerName}" Size="28" />
                       <StackPanel Grid.Column="2" Spacing="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Customer}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis"
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis"
                                    ToolTip.Tip="{Binding Detail}" />
                       </StackPanel>
                     </Grid>
                     <TextBlock Grid.Column="2" Text="{Binding Date}" Margin="8,0" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center" ToolTip.Tip="{Binding Owing}">
                       <Ellipse Classes="dot" Classes.done="{Binding IsDone}" Classes.problem="{Binding IsOverdue}" Classes.waiting="{Binding IsWaiting}" />
-                      <TextBlock Classes="status" Classes.problem="{Binding IsOverdue}" Text="{Binding Status}" FontSize="13" />
+                      <TextBlock Classes="status" Classes.problem="{Binding IsOverdue}" Text="{Binding Status}" FontSize="{DynamicResource Text13}" />
                     </StackPanel>
                     <TextBlock Grid.Column="4" Classes="amount" Text="{Binding Total}" Margin="8,0" VerticalAlignment="Center" />
                     <c:Icon Grid.Column="5" Classes="chevron" Data="{StaticResource Icon.ChevronRight}" HorizontalAlignment="Right" />

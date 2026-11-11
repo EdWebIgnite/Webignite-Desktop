@@ -15,8 +15,8 @@
               <Button Classes="link" Padding="0,1" Content="{Binding ColourHex}" Command="{Binding CopyHexCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
               <Button Classes="link" Padding="0,1" Content="{Binding ColourRgb}" Command="{Binding CopyRgbCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
               <Button Classes="link" Padding="0,1" Content="{Binding ColourHsl}" Command="{Binding CopyHslCommand}" CommandParameter="{Binding $parent[TopLevel]}" ToolTip.Tip="Copy" />
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding OnWhite}" TextWrapping="Wrap" Margin="0,4,0,0" />
-              <TextBlock Classes="muted" FontSize="12" Text="{Binding OnBlack}" TextWrapping="Wrap" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding OnWhite}" TextWrapping="Wrap" Margin="0,4,0,0" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding OnBlack}" TextWrapping="Wrap" />
             </StackPanel>
           </Grid>
           <ItemsControl ItemsSource="{Binding Shades}" IsVisible="{Binding HasColour}">
@@ -48,7 +48,7 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
           </StackPanel>
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding ColourMessage}" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ColourMessage}" TextWrapping="Wrap"
                      IsVisible="{Binding ColourMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
 </UserControl>

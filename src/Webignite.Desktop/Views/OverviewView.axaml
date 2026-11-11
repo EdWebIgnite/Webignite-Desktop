@@ -34,7 +34,7 @@
             <TextBlock Classes="label" Text="CAME IN THIS MONTH" VerticalAlignment="Center" />
           </DockPanel>
           <TextBlock Classes="figure" Text="{Binding CameIn}" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding CameInLine}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding CameInLine}" TextWrapping="Wrap" />
           <c:Sparkline Values="{Binding CameInTrend}" Stroke="{DynamicResource InvoiceTint}" Height="28" Margin="0,4,0,0"
                        ToolTip.Tip="The last six months, this one so far on the right" />
         </StackPanel>
@@ -46,12 +46,12 @@
             <TextBlock Classes="label" Text="OWED TO YOU" VerticalAlignment="Center" />
           </DockPanel>
           <TextBlock Classes="figure" Text="{Binding Owed}" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding OwedLine}" TextWrapping="Wrap" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding PaymentsText}" TextWrapping="Wrap" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding BillsLine}" TextWrapping="Wrap" IsVisible="{Binding HasBillsLine}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding OwedLine}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PaymentsText}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding BillsLine}" TextWrapping="Wrap" IsVisible="{Binding HasBillsLine}" />
           <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding XeroConnected}">
             <Button Classes="quiet" Content="Check payments now" Command="{Binding CheckPaymentsNowCommand}"
-                    IsEnabled="{Binding !CheckingPayments}" HorizontalAlignment="Left" Padding="0,2" FontSize="12" />
+                    IsEnabled="{Binding !CheckingPayments}" HorizontalAlignment="Left" Padding="0,2" FontSize="{DynamicResource Text12}" />
             <c:Spinner IsVisible="{Binding CheckingPayments}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
           </StackPanel>
         </StackPanel>
@@ -63,7 +63,7 @@
             <TextBlock Classes="label" Text="OVERDUE" VerticalAlignment="Center" />
           </DockPanel>
           <TextBlock Classes="figure" Text="{Binding Overdue}" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding OverdueLine}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding OverdueLine}" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="9,0,0,0">
@@ -73,7 +73,7 @@
             <TextBlock Classes="label" Text="QUOTES OUT" VerticalAlignment="Center" />
           </DockPanel>
           <TextBlock Classes="figure" Text="{Binding QuotesOut}" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding QuotesLine}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding QuotesLine}" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
     </UniformGrid>
@@ -95,7 +95,7 @@
                         Command="{Binding NoReplyNeededCommand}" VerticalAlignment="Center"
                         ToolTip.Tip="Takes it off this list. It comes back if they write again." />
                 <Button DockPanel.Dock="Right" Classes="link needsextra" Content="{Binding Action}" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}"
-                        FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        FontSize="{DynamicResource Text12}" Margin="10,0,0,0" VerticalAlignment="Center" />
                 <Button Classes="row needsline" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         ToolTip.Tip="{Binding Action}">
                   <DockPanel>
@@ -129,7 +129,7 @@
             <DataTemplate x:DataType="vm:AgendaItemViewModel">
               <c:AgendaChip Padding="10,7" Margin="0,0,0,6">
                 <DockPanel>
-                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding KindLabel}" VerticalAlignment="Center" />
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding KindLabel}" VerticalAlignment="Center" />
                   <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="52" IsVisible="{Binding HasTime}" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
                 </DockPanel>

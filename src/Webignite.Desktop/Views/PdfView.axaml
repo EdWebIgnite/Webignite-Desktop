@@ -54,8 +54,8 @@
 
       <Border DockPanel.Dock="Bottom" Padding="24,6" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="Working…" IsVisible="{Binding Working}" />
-          <TextBlock Classes="muted" Classes.problem="{Binding MessageIsProblem}" FontSize="12" Text="{Binding Message}" TextTrimming="CharacterEllipsis" />
+          <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="Working…" IsVisible="{Binding Working}" />
+          <TextBlock Classes="muted" Classes.problem="{Binding MessageIsProblem}" FontSize="{DynamicResource Text12}" Text="{Binding Message}" TextTrimming="CharacterEllipsis" />
         </DockPanel>
       </Border>
 
@@ -78,7 +78,7 @@
                     <Image Source="{Binding Thumbnail}" Stretch="Uniform" MaxWidth="170" MaxHeight="220" />
                   </LayoutTransformControl>
                 </Border>
-                <TextBlock HorizontalAlignment="Center" FontSize="12">
+                <TextBlock HorizontalAlignment="Center" FontSize="{DynamicResource Text12}">
                   <Run Text="{Binding Number}" FontWeight="SemiBold" />
                   <Run Text="  " />
                   <Run Text="{Binding From}" Foreground="{DynamicResource Muted}" />

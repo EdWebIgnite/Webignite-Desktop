@@ -74,7 +74,7 @@ The app is getting more than one style to try side by side, so we can see what w
 - **Light sidebar** works with every style and palette.
 - Still to build: **Compact** (dense, small corners, thin lines) and **Soft** (rounder, pill buttons, tinted panels).
 - Later, if styles aren't enough: a density choice, and bigger layout changes such as a top bar.
-- Text sizes typed on the pages themselves (size 12 appears about 310 times) can't be changed by a style yet. Moving them into named classes is the next piece of groundwork.
+- Small text sizes now have names every page uses, and Airy makes each a size bigger. Body text and headings are unchanged.
 
 ## Later
 

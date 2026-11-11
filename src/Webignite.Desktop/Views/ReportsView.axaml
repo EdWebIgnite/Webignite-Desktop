@@ -31,9 +31,9 @@
               <TextBlock Classes="figure" Classes.short="{Binding TaxYearShort}" Text="{Binding TaxYearLeftOver}" />
             </StackPanel>
           </UniformGrid>
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding TaxYearChange}" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding TaxYearChange}" TextWrapping="Wrap"
                      IsVisible="{Binding TaxYearChange, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-          <TextBlock Classes="muted" FontSize="12" Text="{Binding AverageReceived}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding AverageReceived}" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
 
@@ -43,11 +43,11 @@
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource InvoiceTint}" />
-                <TextBlock Classes="muted" FontSize="12" Text="Received" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Received" />
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource Line2}" />
-                <TextBlock Classes="muted" FontSize="12" Text="Expenses" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Expenses" />
               </StackPanel>
             </StackPanel>
             <TextBlock Classes="h2" Text="Month by month" />
@@ -102,7 +102,7 @@
                       <c:ShareBar Fraction="{Binding Share}" Fill="{DynamicResource InvoiceSoft}" />
                       <DockPanel Margin="10,7">
                         <TextBlock DockPanel.Dock="Right" Classes="amount" Text="{Binding Amount}" />
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Percent}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Percent}" Margin="0,0,12,0" VerticalAlignment="Center" />
                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                       </DockPanel>
                     </Panel>

@@ -43,7 +43,7 @@
             <ComboBox ItemsSource="{Binding SalesAccounts}" SelectedItem="{Binding ChosenAccount}" MinWidth="280" IsVisible="{Binding HasAccounts}" />
             <Button Classes="primary" Content="Use this account" Command="{Binding SaveAccountCommand}" IsVisible="{Binding HasAccounts}" />
           </StackPanel>
-          <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding AccountProblem}" Text="{Binding AccountMessage}" />
+          <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding AccountProblem}" Text="{Binding AccountMessage}" />
           <TextBlock FontWeight="SemiBold" Text="Branding theme" Margin="0,6,0,0" />
           <TextBlock TextWrapping="Wrap" Text="{Binding ThemeText}" />
           <StackPanel Orientation="Horizontal" Spacing="8">
@@ -51,7 +51,7 @@
             <ComboBox ItemsSource="{Binding BrandingThemes}" SelectedItem="{Binding ChosenTheme}" MinWidth="280" IsVisible="{Binding HasThemes}" />
             <Button Classes="primary" Content="Use this theme" Command="{Binding SaveThemeCommand}" IsVisible="{Binding HasThemes}" />
           </StackPanel>
-          <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding ThemeProblem}" Text="{Binding ThemeMessage}" />
+          <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding ThemeProblem}" Text="{Binding ThemeMessage}" />
         </StackPanel>
         <Button Classes="quiet" Content="Disconnect Xero" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsConnected}" />
       </StackPanel>
@@ -79,7 +79,7 @@
 
         <StackPanel Spacing="8" IsVisible="{Binding ShowPasswordFields}">
           <TextBlock FontWeight="SemiBold" Text="Backup password" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                      Text="It locks every backup, and you'll need it to restore on a new PC. Write it down somewhere safe. It stays on this PC in Windows Credential Manager." />
           <StackPanel Orientation="Horizontal" Spacing="12">
             <TextBox Width="240" PasswordChar="•" Text="{Binding NewBackupPassword}" PlaceholderText="At least 10 characters" />
@@ -103,7 +103,7 @@
         <Border Classes="pending" IsVisible="{Binding ShowRestore}">
           <StackPanel Spacing="8">
             <TextBlock FontWeight="SemiBold" Text="{Binding RestoreFileName, StringFormat='Restore {0}'}" TextWrapping="Wrap" />
-            <TextBlock FontSize="12" TextWrapping="Wrap"
+            <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                        Text="This replaces everything in Webignite with what's in the backup. Your current data is kept aside first, so nothing is lost." />
             <StackPanel Orientation="Horizontal" Spacing="12">
               <TextBox Width="240" PasswordChar="•" Text="{Binding RestorePassword}" PlaceholderText="Password of that backup" />
@@ -114,9 +114,9 @@
         </Border>
         <Button Classes="primary" Content="Restart and restore" Command="{Binding RestartToRestoreCommand}" IsVisible="{Binding RestoreReady}" />
 
-        <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding BackupMessageIsProblem}"
+        <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding BackupMessageIsProblem}"
                    Text="{Binding BackupMessage}" IsVisible="{Binding BackupMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="Mailbox passwords and the Xero sign-in aren't in backups. After restoring on a new PC, sign in to those again." />
       </StackPanel>
     </Border>
@@ -130,7 +130,7 @@
             <Button Classes="segment" Classes.on="{Binding IsAiry}" Content="Airy" Command="{Binding UseStyleCommand}" CommandParameter="Airy" />
           </StackPanel>
         </Border>
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="The shape of the app: spacing, corners and edges. Classic is the look Webignite has always had. Airy gives everything more room on a white page, with flat cards and soft boxes. Any style goes with any colours below." />
         <TextBlock Classes="label" Text="Sidebar" />
         <Border Classes="segments" HorizontalAlignment="Left">
@@ -139,7 +139,7 @@
             <Button Classes="segment" Classes.on="{Binding IsLightSidebar}" Content="Light" Command="{Binding UseSidebarCommand}" CommandParameter="Light" />
           </StackPanel>
         </Border>
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="Light gives the sidebar the page's own colours, in whichever look is picked." />
       </StackPanel>
     </Border>
@@ -154,7 +154,7 @@
             <Button Classes="segment" Classes.on="{Binding IsFollowingWindows}" Content="Same as Windows" Command="{Binding UseThemeCommand}" CommandParameter="FollowWindows" />
           </StackPanel>
         </Border>
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="Pick a light look and a dark look. Same as Windows switches between your light and dark looks when Windows does." />
         <TextBlock Classes="label" Text="Light look" />
         <WrapPanel>
@@ -187,7 +187,7 @@
               </Border>
               <StackPanel Spacing="1">
                 <TextBlock Text="Webignite" FontWeight="SemiBold" />
-                <TextBlock Classes="muted" FontSize="12" Text="Light page, black sidebar" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Light page, black sidebar" />
               </StackPanel>
             </StackPanel>
           </Button>
@@ -220,7 +220,7 @@
               </Border>
               <StackPanel Spacing="1">
                 <TextBlock Text="Asana" FontWeight="SemiBold" />
-                <TextBlock Classes="muted" FontSize="12" Text="Asana's light colours" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Asana's light colours" />
               </StackPanel>
             </StackPanel>
           </Button>
@@ -256,7 +256,7 @@
               </Border>
               <StackPanel Spacing="1">
                 <TextBlock Text="Graphite" FontWeight="SemiBold" />
-                <TextBlock Classes="muted" FontSize="12" Text="Neutral grey" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Neutral grey" />
               </StackPanel>
             </StackPanel>
           </Button>
@@ -289,7 +289,7 @@
               </Border>
               <StackPanel Spacing="1">
                 <TextBlock Text="Midnight" FontWeight="SemiBold" />
-                <TextBlock Classes="muted" FontSize="12" Text="Deep blue" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Deep blue" />
               </StackPanel>
             </StackPanel>
           </Button>
@@ -322,7 +322,7 @@
               </Border>
               <StackPanel Spacing="1">
                 <TextBlock Text="Warm" FontWeight="SemiBold" />
-                <TextBlock Classes="muted" FontSize="12" Text="Charcoal brown" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Charcoal brown" />
               </StackPanel>
             </StackPanel>
           </Button>
@@ -355,7 +355,7 @@
               </Border>
               <StackPanel Spacing="1">
                 <TextBlock Text="Asana" FontWeight="SemiBold" />
-                <TextBlock Classes="muted" FontSize="12" Text="Asana's dark greys" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Asana's dark greys" />
               </StackPanel>
             </StackPanel>
           </Button>
@@ -367,7 +367,7 @@
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Motion" />
         <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.MotionChoices}" SelectedItem="{Binding MotionChoice}" MinWidth="380" />
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="Reduced or Off is easier on the eyes and on older PCs. It changes straight away." />
       </StackPanel>
     </Border>
@@ -380,10 +380,10 @@
           <ComboBox ItemsSource="{Binding MailCheckChoices}" SelectedItem="{Binding MailCheckMinutes}" MinWidth="80" />
           <TextBlock Text="minutes" VerticalAlignment="Center" />
         </StackPanel>
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="New mail also shows within seconds of arriving, when your mail server can tell Webignite (most can, xneelo included). The check above is the backup." />
         <CheckBox IsChecked="{Binding NotifyNewMail}" Content="Show a note in the corner when new mail arrives" />
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="Mail is checked while Webignite is open, on any page. The taskbar button flashes when mail comes in while the app is behind other windows." />
       </StackPanel>
     </Border>
@@ -402,10 +402,10 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding SpellNote}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding SpellNote}" />
         <Button Content="Add a language in Windows" Command="{Binding OpenWindowsLanguagesCommand}" IsVisible="{Binding SpellLanguageMissing}"
                 HorizontalAlignment="Left" />
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="A wavy line marks a word Windows doesn't know. Right-click it for suggestions, to add it to the dictionary, or to ignore it." />
       </StackPanel>
     </Border>
@@ -483,10 +483,10 @@
               <TextBlock FontWeight="SemiBold" Text="Using the ChatGPT app on this PC instead?" />
               <TextBlock TextWrapping="Wrap" Classes="muted"
                          Text="It doesn't need a tunnel or a key. In the ChatGPT app choose Connect to a custom MCP, name it Webignite, set Type to STDIO, paste this into Command and leave the rest empty." />
-              <SelectableTextBlock Text="{Binding ConnectorPath}" FontFamily="Consolas, Menlo, monospace" FontSize="12" TextWrapping="Wrap" />
+              <SelectableTextBlock Text="{Binding ConnectorPath}" FontFamily="Consolas, Menlo, monospace" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" />
               <StackPanel Orientation="Horizontal" Spacing="10">
                 <Button Content="Copy the connector's path" Command="{Binding CopyConnectorPathCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding ConnectorPathNote}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ConnectorPathNote}" VerticalAlignment="Center" TextWrapping="Wrap" />
               </StackPanel>
             </StackPanel>
           </Border>
@@ -495,22 +495,22 @@
         <TextBlock FontWeight="SemiBold" Text="What they changed lately" Margin="0,6,0,0" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
                    Text="Everything Claude and ChatGPT change shows here, newest first. When they replaced writing (a description, a note, notes on a client or person) or a client's email or name, Put back brings the old version back." />
-        <TextBlock Classes="muted" FontSize="12" Text="Nothing yet." IsVisible="{Binding !HasAssistantChanges}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Nothing yet." IsVisible="{Binding !HasAssistantChanges}" />
         <ItemsControl ItemsSource="{Binding AssistantChanges}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:AssistantChangeRow">
               <DockPanel Margin="0,0,0,6">
                 <Button DockPanel.Dock="Right" Classes="quiet" Content="Put back" Command="{Binding PutBackCommand}" IsVisible="{Binding CanPutBack}" VerticalAlignment="Center" />
-                <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="Put back" IsVisible="{Binding WasPutBack}" VerticalAlignment="Center" Margin="8,0" />
+                <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="Put back" IsVisible="{Binding WasPutBack}" VerticalAlignment="Center" Margin="8,0" />
                 <StackPanel>
                   <TextBlock Text="{Binding What}" TextWrapping="Wrap" />
-                  <TextBlock Classes="muted" FontSize="12" Text="{Binding When}" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding When}" />
                 </StackPanel>
               </DockPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding AssistantChangesMessage}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding AssistantChangesMessage}" />
       </StackPanel>
     </Border>
 
@@ -527,7 +527,7 @@
         <StackPanel>
           <TextBlock Classes="label" Text="Message" />
           <TextBox Text="{Binding InvoiceBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="150" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding InvoicePlaceholders}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding InvoicePlaceholders}" />
         </StackPanel>
         <TextBlock FontWeight="SemiBold" Text="Quote" Margin="0,6,0,0" />
         <StackPanel>
@@ -537,7 +537,7 @@
         <StackPanel>
           <TextBlock Classes="label" Text="Message" />
           <TextBox Text="{Binding QuoteBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding QuotePlaceholders}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding QuotePlaceholders}" />
         </StackPanel>
         <TextBlock FontWeight="SemiBold" Text="Quote follow-up, a week after sending" Margin="0,6,0,0" />
         <StackPanel>
@@ -556,7 +556,7 @@
         <StackPanel>
           <TextBlock Classes="label" Text="Message" />
           <TextBox Text="{Binding ReminderBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="Reminders can also use [Days Overdue]." />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,4,0,0" Text="Reminders can also use [Days Overdue]." />
         </StackPanel>
         <TextBlock FontWeight="SemiBold" Text="Monthly statement" Margin="0,6,0,0" />
         <StackPanel>
@@ -566,7 +566,7 @@
         <StackPanel>
           <TextBlock Classes="label" Text="Message" />
           <TextBox Text="{Binding StatementBody}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,4,0,0"
                      Text="Statements use [Statement Lines], [Statement Date] and [Amount Due] for the total still owed." />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="12">
@@ -574,7 +574,7 @@
           <Button Classes="link" Content="Use Xero's standard wording" Command="{Binding ResetTemplatesCommand}" />
           <TextBlock Classes="muted" Text="{Binding TemplatesMessage}" VerticalAlignment="Center" />
         </StackPanel>
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="The mailbox signature goes under the message, picture included." />
       </StackPanel>
     </Border>
@@ -628,7 +628,7 @@
           <Button Classes="quiet" Content="Save" Command="{Binding SaveBrandCommand}" />
           <Button Classes="link" Content="Send a test to myself" Command="{Binding SendBrandTestCommand}" />
         </StackPanel>
-        <TextBlock FontSize="12" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding BrandProblem}" Text="{Binding BrandMessage}"
+        <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Classes="muted" Classes.problem="{Binding BrandProblem}" Text="{Binding BrandMessage}"
                    IsVisible="{Binding BrandMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
     </Border>
@@ -650,14 +650,14 @@
         <TextBlock Classes="h2" Text="Pictures" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
                    Text="Open pictures from Windows Explorer in Webignite's picture viewer. Windows lets only you choose the default, so this puts Webignite on the list and opens Default apps, where you pick it for JPG, PNG, WebP and the rest." />
-        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding !CanOfferForPictures}"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding !CanOfferForPictures}"
                    Text="This needs Windows." />
         <WrapPanel IsVisible="{Binding CanOfferForPictures}" ItemSpacing="8" LineSpacing="8">
           <Button Classes="quiet" Content="Offer Webignite for pictures" Command="{Binding OfferForPicturesCommand}" IsVisible="{Binding NotOfferedForPictures}" />
           <Button Classes="quiet" Content="Choose it in Default apps" Command="{Binding OpenDefaultAppsCommand}" IsVisible="{Binding OfferedForPictures}" />
           <Button Classes="link" Content="Stop offering it" Command="{Binding StopOfferingForPicturesCommand}" IsVisible="{Binding OfferedForPictures}" />
         </WrapPanel>
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding PicturesMessage}" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PicturesMessage}" TextWrapping="Wrap"
                    IsVisible="{Binding PicturesMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
     </Border>
@@ -694,7 +694,7 @@
           <TextBox Text="{Binding NewFileTag}" Width="220" PlaceholderText="e.g. Needs client OK" KeyDown="NewFileTagKeys" />
           <Button Classes="quiet" Content="Add tag" Command="{Binding AddFileTagCommand}" />
         </StackPanel>
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding FileTagMessage}" TextWrapping="Wrap"
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding FileTagMessage}" TextWrapping="Wrap"
                    IsVisible="{Binding FileTagMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
     </Border>
@@ -712,7 +712,7 @@
             <Button Classes="link" Content="Ctrl+Alt+S" Command="{Binding ShortcutBackCommand}" ToolTip.Tip="Go back to the usual shortcut" />
             <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" />
           </StackPanel>
-          <TextBlock FontSize="12" Classes="muted" Classes.problem="{Binding ShortcutProblem}" Text="{Binding ShortcutMessage}" TextWrapping="Wrap" Margin="0,6,0,0"
+          <TextBlock FontSize="{DynamicResource Text12}" Classes="muted" Classes.problem="{Binding ShortcutProblem}" Text="{Binding ShortcutMessage}" TextWrapping="Wrap" Margin="0,6,0,0"
                      IsVisible="{Binding ShortcutMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
         <StackPanel>
@@ -730,7 +730,7 @@
                      PlaceholderText="Click, then press the keys" KeyDown="ClipboardShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+V" />
             <Button Classes="link" Content="Turn off" Command="{Binding ClipboardShortcutOffCommand}" />
           </StackPanel>
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="Opens the last things you copied, text and pictures, from any program." />
         </StackPanel>
         <StackPanel>
@@ -740,7 +740,7 @@
                      PlaceholderText="Click, then press the keys" KeyDown="ColourShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+C" />
             <Button Classes="link" Content="Turn off" Command="{Binding ColourShortcutOffCommand}" />
           </StackPanel>
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="Freezes the screen; click any colour and its code is copied, e.g. #E8590C. Esc stops." />
         </StackPanel>
         <StackPanel>
@@ -749,7 +749,7 @@
             <Button DockPanel.Dock="Right" Classes="quiet" Content="Choose folder" Click="ChooseScreenshotFolder" Margin="8,0,0,0" />
             <TextBox Text="{Binding ScreenshotFolder, Mode=OneWay}" IsReadOnly="True" />
           </DockPanel>
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="With a client picked in Mark-up, the screenshot is saved in their client folder instead." />
         </StackPanel>
       </StackPanel>
@@ -766,8 +766,8 @@
           <TextBox Text="{Binding SyncServer}" PlaceholderText="https://sync.webignite.co.za" IsEnabled="{Binding IsSignedOut}" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !ShowSyncServerBox}">
-          <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center" Text="{Binding SyncServerShown}" />
-          <Button Classes="link" FontSize="12" Content="Change" Command="{Binding ChangeSyncServerCommand}" IsVisible="{Binding IsSignedOut}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" Text="{Binding SyncServerShown}" />
+          <Button Classes="link" FontSize="{DynamicResource Text12}" Content="Change" Command="{Binding ChangeSyncServerCommand}" IsVisible="{Binding IsSignedOut}" />
         </StackPanel>
 
         <!-- Signed out: sign in, create an account, or join a workspace with an invite. -->
@@ -828,9 +828,9 @@
               <Button Content="I've kept it safe" Command="{Binding RecoveryKeyKeptCommand}" HorizontalAlignment="Left" />
             </StackPanel>
           </Border>
-          <TextBlock Classes="muted" FontSize="12" Text="This PC has the workspace key, so it can unlock what's shared." IsVisible="{Binding HasWorkspaceKey}" />
-          <TextBlock Classes="problem" FontSize="12" TextWrapping="Wrap" Text="This PC doesn't have the workspace key yet. Sign out and sign in again with your password." IsVisible="{Binding !HasWorkspaceKey}" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="Who's in the workspace is under Your organisation." />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="This PC has the workspace key, so it can unlock what's shared." IsVisible="{Binding HasWorkspaceKey}" />
+          <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="This PC doesn't have the workspace key yet. Sign out and sign in again with your password." IsVisible="{Binding !HasWorkspaceKey}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="Who's in the workspace is under Your organisation." />
 
           <TextBlock FontWeight="SemiBold" Text="Licence" Margin="0,6,0,0" />
           <TextBlock Text="{Binding LicenceText}" TextWrapping="Wrap" Classes.problem="{Binding LicenceProblem}" />
@@ -840,7 +840,7 @@
                      Text="Projects ticked Shared, with their sections, tasks, comments and activity, sync every 15 minutes while you're signed in, and when you click Sync now or close Webignite. Chat and your status go every minute. When you both change the same task, each field keeps whoever changed it last. Personal projects stay on this PC. Files attached to tasks go too (up to 25 MB each)." />
           <StackPanel Orientation="Horizontal" Spacing="12">
             <Button Content="Sync now" Command="{Binding SyncNowCommand}" IsEnabled="{Binding !AccountBusy}" />
-            <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center" Text="{Binding LastSyncedText}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" Text="{Binding LastSyncedText}" />
           </StackPanel>
 
           <TextBlock FontWeight="SemiBold" Text="Two-factor" Margin="0,6,0,0" />
@@ -927,7 +927,7 @@
                 <DockPanel>
                   <Button DockPanel.Dock="Right" Classes="link" Content="Take out" Command="{Binding RemoveCommand}" IsVisible="{Binding CanRemove}"
                           VerticalAlignment="Center" ToolTip.Tip="They can't sign in or sync any more." />
-                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Text="{Binding Role}" VerticalAlignment="Center" Margin="12,0" />
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Role}" VerticalAlignment="Center" Margin="12,0" />
                   <Panel DockPanel.Dock="Left" Margin="0,0,12,0" VerticalAlignment="Center">
                     <c:Monogram Text="{Binding Name}" Size="36" />
                     <Ellipse Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Bottom" Stroke="{DynamicResource Surface}" StrokeThickness="2"
@@ -936,9 +936,9 @@
                   <StackPanel VerticalAlignment="Center" Spacing="2">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                      <TextBlock Classes="muted" FontSize="12" Text="(you)" IsVisible="{Binding IsMe}" VerticalAlignment="Center" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="(you)" IsVisible="{Binding IsMe}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Email}" IsVisible="{Binding HasEmail}" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Email}" IsVisible="{Binding HasEmail}" />
                   </StackPanel>
                 </DockPanel>
               </Border>
@@ -986,7 +986,7 @@
             <Button Classes="link" Content="Turn off" Command="{Binding QuickNoteOffCommand}" />
             <Button Classes="link" Content="Try it" Command="{Binding OpenQuickNoteCommand}" />
           </StackPanel>
-          <TextBlock FontSize="12" Classes="muted" Classes.problem="{Binding QuickNoteProblem}" Text="{Binding QuickNoteMessage}" TextWrapping="Wrap" Margin="0,6,0,0"
+          <TextBlock FontSize="{DynamicResource Text12}" Classes="muted" Classes.problem="{Binding QuickNoteProblem}" Text="{Binding QuickNoteMessage}" TextWrapping="Wrap" Margin="0,6,0,0"
                      IsVisible="{Binding QuickNoteMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
         <StackPanel>
@@ -1019,7 +1019,7 @@
           <Button Classes="quiet" Content="Save" Command="{Binding SaveDefaultsCommand}" />
           <TextBlock Classes="muted" Text="{Binding DefaultsMessage}" VerticalAlignment="Center" />
         </StackPanel>
-        <TextBlock Classes="muted" FontSize="12" Text="Currency is ZAR and there is no VAT, as Webignite is not VAT registered." />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Currency is ZAR and there is no VAT, as Webignite is not VAT registered." />
       </StackPanel>
     </Border>
 
@@ -1041,7 +1041,7 @@
                     <Run Text="  " />
                     <Run Text="{Binding Summary}" FontWeight="Normal" Foreground="{DynamicResource Muted}" />
                   </TextBlock>
-                  <TextBlock Classes="muted" FontSize="12" Text="{Binding LinesText}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding LinesText}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </DockPanel>
             </DataTemplate>

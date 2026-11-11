@@ -25,21 +25,21 @@
         <StackPanel Spacing="6">
           <TextBlock Classes="label" Text="RECEIVED" />
           <TextBlock Classes="figure" Text="{Binding Received}" />
-          <TextBlock Classes="muted" FontSize="12" Text="Before expenses." />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Before expenses." />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="6,0">
         <StackPanel Spacing="6">
           <TextBlock Classes="label" Text="EXPENSES" />
           <TextBlock Classes="figure" Text="{Binding Expenses}" />
-          <TextBlock Classes="muted" FontSize="12" Text="Including monthly ones." />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Including monthly ones." />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="12,0,0,0">
         <StackPanel Spacing="6">
           <TextBlock Classes="label" Text="LEFT OVER" />
           <TextBlock Classes="figure" Classes.short="{Binding IsShort}" Text="{Binding LeftOver}" />
-          <TextBlock Classes="muted" FontSize="12" Text="Received less expenses." />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Received less expenses." />
         </StackPanel>
       </Border>
     </UniformGrid>
@@ -88,7 +88,7 @@
               <TextBlock Grid.Row="3" Grid.Column="4" Classes="label" Text="AMOUNT (R)" />
               <TextBox Grid.Row="4" Grid.Column="4" Text="{Binding BillTotal}" />
             </Grid>
-            <TextBlock TextWrapping="Wrap" FontSize="12" Text="{Binding BillMessage}" Classes.problem="{Binding BillMessageIsProblem}"
+            <TextBlock TextWrapping="Wrap" FontSize="{DynamicResource Text12}" Text="{Binding BillMessage}" Classes.problem="{Binding BillMessageIsProblem}"
                        Classes.muted="{Binding !BillMessageIsProblem}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
               <Button Classes="primary" Content="Draft bill in Xero" Command="{Binding DraftBillCommand}" IsEnabled="{Binding !BillBusy}"
@@ -97,7 +97,7 @@
                       IsVisible="{Binding AskAddSupplier}" />
               <Button Classes="quiet" Content="Cancel" Command="{Binding CancelBillCommand}" />
             </StackPanel>
-            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="It goes in as a draft with the PDF attached. Approving and paying stay with you in Xero." />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="It goes in as a draft with the PDF attached. Approving and paying stay with you in Xero." />
           </StackPanel>
         </Border>
         <ItemsControl ItemsSource="{Binding BillRows}" IsVisible="{Binding HasBills}">
@@ -110,14 +110,14 @@
                              Classes.problem="{Binding IsOverdue}" />
                   <StackPanel Spacing="2">
                     <TextBlock Text="{Binding Supplier}" FontWeight="SemiBold" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Details}" Classes.problem="{Binding IsOverdue}" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Details}" Classes.problem="{Binding IsOverdue}" />
                   </StackPanel>
                 </DockPanel>
               </Button>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding BillsRead}" IsVisible="{Binding XeroConnected}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding BillsRead}" IsVisible="{Binding XeroConnected}" />
       </StackPanel>
     </Border>
 
@@ -166,9 +166,9 @@
         <DockPanel>
           <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="6" Margin="0,0,20,8" VerticalAlignment="Center">
             <Border Width="12" Height="12" CornerRadius="3" Background="{DynamicResource Primary}" Opacity="0.25" />
-            <TextBlock Classes="muted" FontSize="12" Text="Expected" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Expected" />
             <Border Width="12" Height="12" CornerRadius="3" Background="{DynamicResource Primary}" Margin="10,0,0,0" />
-            <TextBlock Classes="muted" FontSize="12" Text="Came in" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Came in" />
           </StackPanel>
         </DockPanel>
       </StackPanel>
@@ -198,7 +198,7 @@
                     <TextBox Grid.Column="1" Text="{Binding ManualText}" IsVisible="{Binding IsManual}" PlaceholderText="Amount"
                              HorizontalAlignment="Right" Width="120" TextAlignment="Right" Padding="8,2" MinHeight="26" />
                     <TextBlock Grid.Column="2" Classes="amount" Text="{Binding CameIn}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="3" Classes="muted" Classes.short="{Binding IsShort}" FontSize="12" Text="{Binding Gap}"
+                    <TextBlock Grid.Column="3" Classes="muted" Classes.short="{Binding IsShort}" FontSize="{DynamicResource Text12}" Text="{Binding Gap}"
                                HorizontalAlignment="Right" VerticalAlignment="Center" />
                   </Grid>
                 </Border>
@@ -257,7 +257,7 @@
                     <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                       <TextBlock Text="{Binding Party}" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0" />
                     <Button Grid.Column="3" Classes="link" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}">
@@ -295,7 +295,7 @@
                     <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                       <TextBlock Text="{Binding Party}" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0" />
                     <Button Grid.Column="3" Classes="link" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}">
@@ -324,7 +324,7 @@
                 <Grid ColumnDefinitions="*,Auto,Auto">
                   <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Name}" Classes.muted="{Binding IsPaused}" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Detail}" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" />
                   </StackPanel>
                   <TextBlock Grid.Column="1" Classes="amount" Classes.muted="{Binding IsPaused}" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0,16,0" />
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">

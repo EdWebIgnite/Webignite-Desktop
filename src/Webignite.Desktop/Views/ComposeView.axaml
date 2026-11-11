@@ -101,7 +101,7 @@
                           </StackPanel>
                           <StackPanel>
                             <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Classes="muted" FontSize="11" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
                           </StackPanel>
                         </DockPanel>
                       </DataTemplate>
@@ -133,7 +133,7 @@
 
       <DockPanel>
         <Button DockPanel.Dock="Left" Classes="quiet" Content="Attach files" Click="OnAttach" VerticalAlignment="Top" Margin="0,0,10,0" />
-        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="11" Text="or drop files here" VerticalAlignment="Top" Margin="0,9,10,0"
+        <TextBlock DockPanel.Dock="Left" Classes="muted" FontSize="{DynamicResource Text11}" Text="or drop files here" VerticalAlignment="Top" Margin="0,9,10,0"
                    IsVisible="{Binding !HasAttachments}" />
         <ItemsControl ItemsSource="{Binding Attachments}">
           <ItemsControl.ItemsPanel>
@@ -144,7 +144,7 @@
               <Border Classes="card" Padding="10,4" Margin="0,0,8,6">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{Binding Name}" MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                  <TextBlock Classes="muted" FontSize="11" Text="{Binding Size}" VerticalAlignment="Center" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding Size}" VerticalAlignment="Center" />
                   <Button Classes="link" Content="Remove" Command="{Binding RemoveCommand}" />
                 </StackPanel>
               </Border>
@@ -210,7 +210,7 @@
             </Button>
             <Button Classes="primary" Content="Send" Command="{Binding SendCommand}" IsEnabled="{Binding !IsWorking}" />
           </StackPanel>
-          <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                      Classes="muted" Classes.problem="{Binding MessageIsProblem}" Text="{Binding Message}" />
         </DockPanel>
       </StackPanel>
@@ -377,9 +377,9 @@
               <TextBlock DockPanel.Dock="Left" Classes="muted" Text="Call it" VerticalAlignment="Center" Margin="0,0,8,0" />
               <TextBox x:Name="TemplateNameBox" Text="{Binding TemplateName}" PlaceholderText="e.g. Monthly maintenance report" />
             </DockPanel>
-            <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" TextWrapping="Wrap"
                        Text="Keeps To, Cc, the subject and the writing, without your signature. Type {name} or {client} where they should be filled in." />
-            <TextBlock Classes="problem" FontSize="12" Text="{Binding TemplateProblem}" IsVisible="{Binding HasTemplateProblem}" TextWrapping="Wrap" />
+            <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" Text="{Binding TemplateProblem}" IsVisible="{Binding HasTemplateProblem}" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
         <Border Classes="card" Padding="10,6" IsVisible="{Binding AskingReplyName}">
@@ -392,7 +392,7 @@
               <TextBlock DockPanel.Dock="Left" Classes="muted" Text="Call it" VerticalAlignment="Center" Margin="0,0,8,0" />
               <TextBox x:Name="ReplyNameBox" Text="{Binding ReplyName}" PlaceholderText="e.g. Payment received" />
             </DockPanel>
-            <TextBlock Classes="problem" FontSize="12" Text="{Binding ReplyProblem}" IsVisible="{Binding HasReplyProblem}" TextWrapping="Wrap" />
+            <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" Text="{Binding ReplyProblem}" IsVisible="{Binding HasReplyProblem}" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
         <Border Classes="card" Padding="10,6" IsVisible="{Binding AskingForLink}">
@@ -423,7 +423,7 @@
           <DataTemplate x:DataType="core:Contact">
             <StackPanel Margin="2,1">
               <TextBlock Text="{Binding Display}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-              <TextBlock Classes="muted" FontSize="11" Text="Adds everyone in the group" IsVisible="{Binding IsGroup}" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="Adds everyone in the group" IsVisible="{Binding IsGroup}" />
             </StackPanel>
           </DataTemplate>
         </ListBox.ItemTemplate>
