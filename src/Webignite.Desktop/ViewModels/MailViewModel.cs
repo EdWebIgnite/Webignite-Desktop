@@ -225,6 +225,8 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
               ?? folders.FirstOrDefault(f => f.Kind == FolderKind.AllInboxes)
               ?? folders.FirstOrDefault(f => f.Kind == FolderKind.Folder);
         MarkCurrent();
+        // The folder counts just read are the ones Mail in the sidebar should show too.
+        services.MailCountsChanged?.Invoke();
         ShowSetup = accounts.Count == 0 || ShowSetup && Setup.IsOpen;
         if (accounts.Count == 0)
             Setup.StartNew();
