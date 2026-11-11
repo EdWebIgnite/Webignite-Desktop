@@ -21,6 +21,7 @@ public enum ToolKind
     Compare,
     Duplicates,
     Logos,
+    Social,
 }
 
 /// <summary>

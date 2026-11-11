@@ -138,6 +138,63 @@ public sealed partial class ToolsViewModel
             FaviconHtml = html;
     }
 
+    // Brand sheet: the logo, the palette from the Colours tool and two typefaces, on one A4 page.
+
+    [ObservableProperty] public partial string BrandHeadingFont { get; set; } = "";
+    [ObservableProperty] public partial string BrandBodyFont { get; set; } = "";
+    [ObservableProperty] public partial string BrandPreparedBy { get; set; } = "";
+
+    /// <summary>The palette as it will go on the sheet. Read again each time the window is shown.</summary>
+    public ObservableCollection<ShadeRow> BrandColours { get; } = [];
+
+    public bool HasBrandColours => BrandColours.Count > 0;
+
+    /// <summary>Reads the palette built in Colours, and who the sheet is from.</summary>
+    public void LoadBrand()
+    {
+        BrandColours.Clear();
+        foreach (var (swatch, colour) in BrandSheet.Shown(services.Settings.Palette.Swatches))
+            BrandColours.Add(new ShadeRow(colour, swatch.Name));
+        OnPropertyChanged(nameof(HasBrandColours));
+        if (BrandPreparedBy.Length == 0)
+            BrandPreparedBy = services.Settings.Xero.TenantName ?? "";
+    }
+
+    [RelayCommand]
+    private void OpenColoursForBrand() => services.Go.Tool(ToolKind.Colours);
+
+    private BrandSheetContent BrandNow => new()
+    {
+        Name = LogoName, LogoPath = LogoPath, Colours = services.Settings.Palette.Swatches,
+        HeadingFont = BrandHeadingFont, BodyFont = BrandBodyFont, PreparedBy = BrandPreparedBy,
+    };
+
+    /// <summary>Why the brand sheet can't be saved yet, shown as a problem; null when it can.</summary>
+    public string? BrandSheetProblem()
+    {
+        var problem = BrandSheet.Problem(BrandNow);
+        if (problem is not null)
+            LogoSaid(problem, problem: true);
+        return problem;
+    }
+
+    /// <summary>Makes the brand sheet as a PDF at this path.</summary>
+    [RelayCommand]
+    private async Task SaveBrandSheetTo(string pdfPath)
+    {
+        if (LogoBusy || BrandSheetProblem() is not null)
+            return;
+        var content = BrandNow;
+        IReadOnlyList<string> missing = [];
+        await LogoJobAsync("Making the brand sheet…", () =>
+        {
+            missing = BrandSheetMaker.Write(content, pdfPath);
+            return (pdfPath, $"The brand sheet is saved as {Path.GetFileName(pdfPath)}.");
+        });
+        if (!LogoProblem && BrandSheet.MissingFonts(missing) is { } note)
+            LogoSaid(LogoMessage + " " + note, problem: false);
+    }
+
     private async Task LogoJobAsync(string doing, Func<(string Made, string Said)> job)
     {
         LogoBusy = true;

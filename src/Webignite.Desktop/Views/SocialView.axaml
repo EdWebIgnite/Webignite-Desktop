@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.SocialView"
+             x:DataType="vm:ToolsViewModel">
+  <StackPanel Spacing="12">
+    <DockPanel>
+      <Button DockPanel.Dock="Left" Classes="primary" Content="Choose a picture…" Click="ChoosePicture" IsEnabled="{Binding !SocialBusy}" />
+      <TextBlock Classes="muted" TextWrapping="Wrap" Margin="12,0,0,0" VerticalAlignment="Center" Text="{Binding SocialInfo}" />
+    </DockPanel>
+    <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasSocialPicture}"
+               Text="One picture, cut to the shape each network wants: tick the ones you need, check how each is cut, and save them all at once. The bigger the picture you start with, the better." />
+
+    <StackPanel Spacing="6">
+      <TextBlock Classes="label" Text="Sizes" />
+      <ItemsControl ItemsSource="{Binding SocialChoices}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:SocialChoice">
+            <CheckBox Content="{Binding Label}" IsChecked="{Binding IsOn}" Margin="0,1" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+
+    <Grid ColumnDefinitions="*,12,*,12,120" IsVisible="{Binding HasSocialPicture}">
+      <StackPanel Grid.Column="0">
+        <TextBlock Classes="label" Text="When it has to be cut, keep" />
+        <ComboBox ItemsSource="{Binding SocialFocuses}" SelectedItem="{Binding SocialFocusChoice}" HorizontalAlignment="Stretch" />
+      </StackPanel>
+      <StackPanel Grid.Column="2">
+        <TextBlock Classes="label" Text="Name for the files" />
+        <TextBox Text="{Binding SocialName}" />
+      </StackPanel>
+      <StackPanel Grid.Column="4">
+        <TextBlock Classes="label" Text="Save as" />
+        <ComboBox ItemsSource="{Binding SocialFormats}" SelectedItem="{Binding SocialFormat}" HorizontalAlignment="Stretch" />
+      </StackPanel>
+    </Grid>
+
+    <ItemsControl ItemsSource="{Binding SocialPreviews}" IsVisible="{Binding HasSocialPicture}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><WrapPanel ItemSpacing="12" LineSpacing="12" /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:SocialPreview">
+          <StackPanel Spacing="3" Width="150">
+            <Border Height="150">
+              <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                <Image Source="{Binding Picture}" Stretch="None" />
+              </Border>
+            </Border>
+            <TextBlock FontSize="{DynamicResource Text12}" Text="{Binding Label}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
+            <TextBlock Classes="muted" Classes.problem="{Binding Soft}" FontSize="{DynamicResource Text11}" Text="{Binding Pixels}" HorizontalAlignment="Center" />
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <DockPanel IsVisible="{Binding HasSocialPicture}">
+      <Button DockPanel.Dock="Left" Classes="primary" Content="Save them all…" Click="SaveAll" IsEnabled="{Binding !SocialBusy}" />
+      <Button DockPanel.Dock="Right" Classes="link" Content="Show them in Files" Command="{Binding ShowSocialMadeCommand}" IsVisible="{Binding HasSocialMade}" Margin="12,0,0,0" />
+      <TextBlock Classes="muted" Classes.problem="{Binding SocialProblem}" Text="{Binding SocialMessage}" TextWrapping="Wrap" Margin="12,0,0,0" VerticalAlignment="Center" />
+    </DockPanel>
+    <TextBlock Classes="muted" Classes.problem="{Binding SocialProblem}" Text="{Binding SocialMessage}" TextWrapping="Wrap" IsVisible="{Binding !HasSocialPicture}" />
+  </StackPanel>
+</UserControl>

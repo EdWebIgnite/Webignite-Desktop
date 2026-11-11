@@ -1940,7 +1940,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2337,11 +2337,67 @@ colourWindow.Close();
         File.Exists(Path.Combine(made, "favicons", "favicon.ico")) && File.Exists(Path.Combine(made, "favicons", "apple-touch-icon.png")) && File.Exists(Path.Combine(made, "favicons", "site.webmanifest"))
         && File.Exists(Path.Combine(made, "favicons", "favicon.svg")) && logos.HasFaviconHtml && logos.FaviconHtml.Contains("theme-color\" content=\"#E8590C", StringComparison.Ordinal));
     SaveWindow(logoWindow, "tools-logos");
+    // The brand sheet: this logo, the palette built in Colours above, and two typefaces.
+    Check("The brand sheet shows the palette from Colours and who it is from", logos.BrandColours.Count == 4 && logos.BrandColours[0].Tip == "Primary #E8590C");
+    logos.BrandHeadingFont = "A Typeface Nobody Has";
+    logos.BrandBodyFont = "";
+    logos.BrandPreparedBy = "Webignite";
+    var sheet = Path.Combine(output, "brand-sheet.pdf");
+    Wait(logos.SaveBrandSheetToCommand.ExecuteAsync(sheet), "The brand sheet was made");
+    Check("The brand sheet is one page with the name and the colour codes as real text, and names the missing typeface",
+        Until(() => PdfPageCount(sheet) == 1 && PdfReadText(sheet).Contains("Karoo Coffee", StringComparison.Ordinal) && PdfReadText(sheet).Contains("#E8590C", StringComparison.Ordinal))
+        && logos.LogoMessage.Contains("A Typeface Nobody Has isn't installed", StringComparison.Ordinal) && !logos.LogoProblem);
+    SaveWindow(logoWindow, "tools-logos-brand");
+    logos.LogoName = "";
+    Check("A brand sheet without a name is asked for one", logos.BrandSheetProblem() is not null && logos.LogoProblem);
+    logos.LogoName = "Karoo Coffee";
     Wait(logos.OpenLogoAsync(Path.Combine(data, "logos", "sign.png")), "A small picture was opened");
     Check("A small picture on a solid background says what will be left out",
         logos.LogoPreviews.Count == 1 && logos.LogoWarning.Contains("120 pixels wide", StringComparison.Ordinal) && logos.LogoWarning.Contains("no see-through background", StringComparison.Ordinal));
     logoWindow.Close();
     Check("Closing the window lets the logo pictures go", logos.LogoPreviews.Count == 0);
+}
+// Social images: one wide photo cut to each network's shape.
+{
+    var photo = Path.Combine(data, "logos", "opening day.jpg");
+    using (var drawn = new SkiaSharp.SKBitmap(2400, 1600))
+    {
+        using (var canvas = new SkiaSharp.SKCanvas(drawn))
+        {
+            canvas.Clear(new SkiaSharp.SKColor(0xD9, 0xC7, 0xB0));
+            using var paint = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(0x3D, 0x2B, 0x1F), IsAntialias = true };
+            canvas.DrawRect(0, 1100, 2400, 500, paint);
+            paint.Color = new SkiaSharp.SKColor(0xE8, 0x59, 0x0C);
+            canvas.DrawCircle(1200, 700, 380, paint);
+            paint.Color = new SkiaSharp.SKColor(0x1B, 0x6C, 0xA8);
+            canvas.DrawRect(120, 200, 420, 620, paint);
+        }
+        using var jpg = drawn.Encode(SkiaSharp.SKEncodedImageFormat.Jpeg, 90);
+        File.WriteAllBytes(photo, jpg.ToArray());
+    }
+    var socialWindow = window.ShowTool(ToolKind.Social, services);
+    var social = socialWindow.Tools;
+    Check("The usual sizes are ticked to begin with, and nothing can be saved without a picture",
+        social.SocialChoices.Count(c => c.IsOn) == 6 && !social.SaveSocialToCommand.CanExecute(null));
+    Wait(social.OpenSocialAsync(photo), "The photo was opened");
+    Check("Each ticked size is shown as it will be cut, named after the file",
+        Until(() => social.SocialPreviews.Count == 6) && social.SocialName == "opening day" && social.SocialInfo == "2,400 × 1,600 pixels."
+        // The photo is too short for a story, so that one alone is marked as enlarged.
+        && social.SocialPreviews.Single(p => p.Soft).Label == "Instagram story or reel");
+    SaveWindow(socialWindow, "tools-social");
+    social.SocialChoices.First(c => c.Size.Label == "LinkedIn page cover").IsOn = true;
+    social.SocialChoices.First(c => c.Size.Label == "Facebook post").IsOn = false;
+    Check("Ticking and unticking sizes redraws them", Until(() => social.SocialPreviews.Count == 6 && social.SocialPreviews.Any(p => p.Label == "LinkedIn page cover") && social.SocialPreviews.All(p => p.Label != "Facebook post")));
+    var socialOut = Path.Combine(data, "social-made");
+    Wait(social.SaveSocialToCommand.ExecuteAsync(socialOut), "The social pictures were saved");
+    Check("Every ticked size is saved at its exact size, named for where it goes",
+        Directory.GetFiles(socialOut).Length == 6 && social.SocialMessage.StartsWith("6 pictures saved. One had to be enlarged", StringComparison.Ordinal) && social.HasSocialMade
+        && Until(() => Webignite.Tools.PictureTools.Size(Path.Combine(socialOut, "opening-day-instagram-story-or-reel-1080x1920.jpg")) == (1080, 1920)
+            && Webignite.Tools.PictureTools.Size(Path.Combine(socialOut, "opening-day-linkedin-page-cover-1128x191.jpg")) == (1128, 191)));
+    Wait(social.OpenSocialAsync(Path.Combine(data, "logos", "sign.png")), "A small picture was opened");
+    Check("A picture too small for a size says it will be enlarged", Until(() => social.SocialPreviews.Count == 6 && social.SocialPreviews.All(p => p.Soft)));
+    socialWindow.Close();
+    Check("Closing the window lets the small pictures go", social.SocialPreviews.Count == 0);
 }
 // Clipboard history: what was copied, text and pictures, newest first, in memory only.
 services.Clipboard.Add("thandi@karoocoffee.co.za");
