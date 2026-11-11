@@ -1876,7 +1876,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -1893,6 +1893,43 @@ var qrWindow = window.ShowTool(ToolKind.Qr, services);
 qrWindow.Tools.QrInput = "karoocoffee.co.za/menu";
 SaveWindow(qrWindow, "tools-qr");
 qrWindow.Close();
+var helpersWindow = window.ShowTool(ToolKind.WebHelpers, services);
+var helpers = helpersWindow.Tools;
+Check("Web helpers opens on filler text, three paragraphs starting the usual way",
+    helpers.IsLorem && helpers.LoremText.StartsWith("Lorem ipsum dolor sit amet", StringComparison.Ordinal) && helpers.LoremText.Split("\n\n").Length == 3);
+SaveWindow(helpersWindow, "tools-web-lorem");
+helpers.ShowHelperCommand.Execute(WebHelper.Placeholder);
+Check("A placeholder picture is drawn at the size asked for",
+    helpers.PlaceholderLabel == "1200 × 630" && helpers.PlaceholderPng() is { Length: > 100 } placeholderPng
+    && new Avalonia.Media.Imaging.Bitmap(new MemoryStream(placeholderPng)).PixelSize == new Avalonia.PixelSize(1200, 630));
+SaveWindow(helpersWindow, "tools-web-placeholder");
+helpers.ShowHelperCommand.Execute(WebHelper.Units);
+Check("px and rem answers as it's typed", helpers.UnitSum == "24px = 1.5rem");
+SaveWindow(helpersWindow, "tools-web-units");
+helpers.ShowHelperCommand.Execute(WebHelper.Minify);
+helpers.MinifyInput = "/* The header */\n.site-header {\n    color: #333;\n    margin: 0 auto;\n}\n\n.site-header a:hover {\n    text-decoration: underline;\n}\n";
+Check("Minify makes a stylesheet smaller", helpers.MinifyOutput == ".site-header{color:#333;margin:0 auto}.site-header a:hover{text-decoration:underline}");
+SaveWindow(helpersWindow, "tools-web-minify");
+helpers.ShowHelperCommand.Execute(WebHelper.Json);
+helpers.JsonInput = "{\"name\":\"Karoo Coffee\",\"open\":true,\"tags\":[\"coffee\",\"bakery\"]}";
+Check("JSON is laid out", helpers.JsonOutput.StartsWith("{\n  \"name\": \"Karoo Coffee\"", StringComparison.Ordinal) && !helpers.HasJsonProblem);
+SaveWindow(helpersWindow, "tools-web-json");
+helpers.JsonInput = "{\"name\": oops}";
+Check("Broken JSON says so and shows nothing to copy", helpers.HasJsonProblem && !helpers.HasJsonOutput);
+helpers.ShowHelperCommand.Execute(WebHelper.Cases);
+helpers.CaseInput = "Karoo Coffee: Our Menu & Prices";
+Check("A heading becomes a slug", helpers.Cases.First().Text == "karoo-coffee-our-menu-prices" && helpers.Cases.Count == 9);
+SaveWindow(helpersWindow, "tools-web-cases");
+helpers.ShowHelperCommand.Execute(WebHelper.Utm);
+helpers.UtmAddress = "karoocoffee.co.za/specials";
+Check("A campaign link asks for its source", helpers.HasUtmProblem && !helpers.HasUtmLink);
+helpers.UtmSource = "newsletter";
+helpers.UtmMedium = "email";
+helpers.UtmCampaign = "spring-sale";
+Check("A campaign link is built as it's typed",
+    helpers.UtmLink == "https://karoocoffee.co.za/specials?utm_source=newsletter&utm_medium=email&utm_campaign=spring-sale");
+SaveWindow(helpersWindow, "tools-web-utm");
+helpersWindow.Close();
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
 SaveWindow(passwordWindow, "tools-passwords");
 passwordWindow.Close();

@@ -12,6 +12,7 @@ public enum ToolKind
     Clipboard,
     Qr,
     Images,
+    WebHelpers,
 }
 
 /// <summary>

@@ -31,7 +31,6 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 - **Site crawler.** Every page of a site with its title, description, status, broken links and missing alt text, saved as a spreadsheet. Reads the HTML directly; uses WebView2 only for a site that builds its pages with JavaScript.
 - **DNS and mail record tool.** Look up any record, check it has spread, and build SPF, DKIM and DMARC records to paste in at the host.
 - **Screen ruler.** Measure pixels on screen from any program, like the colour picker.
-- **Small web tools.** Lorem ipsum, placeholder pictures, px to rem, CSS and JS minify, JSON tidy, slug and case converter, UTM link builder.
 
 ### Websites, drawn by WebView2
 
@@ -52,7 +51,7 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 
 Web first, as that is most of the work; branding last. Each step is its own PR.
 
-1. **Small web tools.** Quick, no outside parts, used straight away.
+1. ~~Small web tools~~ Built: Web helpers, under Web tools.
 2. **DNS and mail record tool.** Builds on the lookups Domains and hosting already does.
 3. **Site crawler**, reading HTML only.
 4. **WebView2 groundwork, with Save a web page as a PDF and Website screenshots.** The simplest uses, to prove it starts with the tool, stops with it, and leaves nothing behind.

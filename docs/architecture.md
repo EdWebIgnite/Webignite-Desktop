@@ -218,10 +218,10 @@ flowchart LR
 | Billing | Quotes, Invoices, Money, Reports |
 | Planner (its own sidebar) | Back arrow, Home, My tasks, Projects, WORK (each running project, Templates, + for a new project), PLAN (Calendar, Week, Time) |
 | Computer | Files, PDF tools, Notes; the tools Calculator, Password generator, Colours, Clipboard history |
-| Web tools | Site check, Mark-up; the tools Website images, QR code |
+| Web tools | Site check, Mark-up; the tools Website images, QR code, Web helpers |
 | (bottom) | Settings |
 
-A tool in the sidebar is a `ToolLink`, not a page: clicking it opens the tool in a small `ToolWindow` of its own (`MainWindow.Tools.cs`, one window per tool, above the app, closed with it), with a fresh `ToolsViewModel` that goes when the window closes. Each tool's screen is its own view (`CalculatorView`, `PasswordView`, `ColourView`, `QrView`, `ImagesView`). The calculator takes clicks on its pad, typing and the number pad; Enter works it out and carries on from the answer. When the app adds a sidebar group, a saved order of the person's starts afresh (`Sidebar.Reconcile`), so the new group gets its pages.
+A tool in the sidebar is a `ToolLink`, not a page: clicking it opens the tool in a small `ToolWindow` of its own (`MainWindow.Tools.cs`, one window per tool, above the app, closed with it), with a fresh `ToolsViewModel` that goes when the window closes. Each tool's screen is its own view (`CalculatorView`, `PasswordView`, `ColourView`, `QrView`, `ImagesView`, `WebHelpersView`). Web helpers (`ToolsViewModel.Web.cs`, rules in `Core/Tools/WebHelpers.cs`) shows one helper at a time, each answering as it's typed with a Copy: filler text (`LoremIpsum`, the same words every time), a placeholder picture saved as PNG (`Placeholders`), px and rem (`CssUnits`), smaller CSS and JavaScript (`Minify`, which only takes out comments and spare space and never renames), JSON laid out or on one line (`JsonTidy`, saying which line is broken), a heading as a slug and in every case (`TextCases`), and a link with campaign tags (`UtmLinks`). Nothing in it is saved. The calculator takes clicks on its pad, typing and the number pad; Enter works it out and carries on from the answer. When the app adds a sidebar group, a saved order of the person's starts afresh (`Sidebar.Reconcile`), so the new group gets its pages.
 
 ### What is stored where
 

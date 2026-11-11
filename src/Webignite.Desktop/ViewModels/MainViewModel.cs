@@ -283,6 +283,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
             new ToolLink(ToolKind.Images, "Website images", "Picture"),
             new ToolLink(ToolKind.Qr, "QR code", "Qr"),
+            new ToolLink(ToolKind.WebHelpers, "Web helpers", "Code"),
             new NavGroup("end", ""),
             new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings", readingWidth: true),
         ];

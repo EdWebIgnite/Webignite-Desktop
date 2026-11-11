@@ -121,7 +121,7 @@ Anything that prepares a mail for the person to read and send (an invoice, a rem
 
 ## A package
 
-Versions are central in `Directory.Packages.props`; a project's `.csproj` names the package with no version. Dependabot opens a PR when a newer version is out. No browser engine of any kind (Chromium, WebView2, Electron, Tauri) may be added.
+Versions are central in `Directory.Packages.props`; a project's `.csproj` names the package with no version. Dependabot opens a PR when a newer version is out. No browser engine (Chromium, Electron, Tauri) may be added. The one exception is WebView2, the copy Windows already has, and only inside the web tools on the terms in [roadmap.md](roadmap.md): started when such a tool opens, shut down when it closes, never at start-up.
 
 ## Before a pull request
 
