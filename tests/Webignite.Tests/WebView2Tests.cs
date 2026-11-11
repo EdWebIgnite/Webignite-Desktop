@@ -87,11 +87,18 @@ public class WebView2Tests
             Assert.Contains("WebigniteTestPhone", seen.AsDevice[3], StringComparison.Ordinal);
             Assert.True(int.Parse(seen.AsDevice[4], System.Globalization.CultureInfo.InvariantCulture) > 0, "A phone is touched");
 
+            // The browser's window is 400 by 300, so that much of what it drew is what a person sees: the top-left
+            // 400 by 300 of the picture, whatever size the picture itself comes back at. The whole page, shrunk to
+            // half, must be there: red in its left half, blue in its right. Drawn at full size instead, only the red
+            // corner would fit and both spots would be red.
             using var drawn = SkiaSharp.SKBitmap.Decode(seen.Preview);
-            var left = drawn.GetPixel(drawn.Width / 4, drawn.Height / 2);
-            var right = drawn.GetPixel(drawn.Width * 3 / 4, drawn.Height / 2);
-            Assert.True(left.Red > 200 && left.Blue < 60, $"The left of what is drawn should be the page's red half, but is {left} in a {drawn.Width} x {drawn.Height} picture");
-            Assert.True(right.Blue > 200 && right.Red < 60, $"The right of what is drawn should be the page's blue half, but is {right} in a {drawn.Width} x {drawn.Height} picture");
+            string At(int x, int y) => x < drawn.Width && y < drawn.Height ? $"({x},{y})={drawn.GetPixel(x, y)}" : $"({x},{y})=outside";
+            var where = $"in a {drawn.Width} x {drawn.Height} picture: {At(100, 150)} {At(300, 150)} {At(200, 150)} {At(100, 290)} {At(300, 290)} {At(600, 150)} {At(100, 450)} {At(600, 450)}";
+            Assert.True(drawn.Width >= 400 && drawn.Height >= 300, "The picture should cover the browser's window, " + where);
+            var left = drawn.GetPixel(100, 150);
+            var right = drawn.GetPixel(300, 150);
+            Assert.True(left.Red > 200 && left.Blue < 60, "The left of the window should show the page's red half, " + where);
+            Assert.True(right.Blue > 200 && right.Red < 60, "The right of the window should show the page's blue half, " + where);
 
             Assert.NotEqual("800", seen.Back[0]);
             Assert.DoesNotContain("WebigniteTestPhone", seen.Back[3], StringComparison.Ordinal);
