@@ -284,6 +284,7 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Images, "Website images", "Picture"),
             new ToolLink(ToolKind.Qr, "QR code", "Qr"),
             new ToolLink(ToolKind.WebHelpers, "Web helpers", "Code"),
+            new ToolLink(ToolKind.Dns, "DNS records", "Dns"),
             new NavGroup("end", ""),
             new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings", readingWidth: true),
         ];

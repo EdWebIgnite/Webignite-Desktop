@@ -25,6 +25,7 @@ public sealed class ToolWindow : Window
             ToolKind.Clipboard => 460,
             ToolKind.Qr => 620,
             ToolKind.WebHelpers => 720,
+            ToolKind.Dns => 760,
             _ => 640,
         };
         MinWidth = 340;
@@ -41,6 +42,7 @@ public sealed class ToolWindow : Window
             ToolKind.Clipboard => new ClipboardView(),
             ToolKind.Qr => new QrView(),
             ToolKind.WebHelpers => new WebHelpersView(),
+            ToolKind.Dns => new DnsView(),
             _ => new ImagesView(),
         };
         view.Margin = new Thickness(18, 16);
@@ -59,6 +61,7 @@ public sealed class ToolWindow : Window
         ToolKind.Clipboard => "Clipboard history",
         ToolKind.Qr => "QR code",
         ToolKind.WebHelpers => "Web helpers",
+        ToolKind.Dns => "DNS records",
         _ => "Website images",
     };
 }
