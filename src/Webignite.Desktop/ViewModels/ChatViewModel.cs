@@ -53,26 +53,59 @@ public sealed partial class ChatViewModel(AppServices services) : ViewModelBase,
 
     public string PartnerStatusText => $"{services.Chat.PartnerName} is {PresenceRules.Word(PartnerShown).ToLowerInvariant()}";
 
-    /// <summary>Statuses read again, after a sync or a pick.</summary>
+    /// <summary>My partner's name at the top, as WhatsApp's, with the line under it: online, away, or last seen.</summary>
+    public string PartnerName => services.Chat.PartnerName;
+
+    public string PartnerLine => services.Chat.PartnerLine;
+
+    public string EmptyText => $"Write to {PartnerName} here. Files and screenshots can go too; everything is locked before it leaves this PC.";
+
+    /// <summary>Statuses, names and ticks read again, after a sync or a pick.</summary>
     public void ShowPresence()
     {
         OnPropertyChanged(nameof(MyShown));
         OnPropertyChanged(nameof(PartnerShown));
         OnPropertyChanged(nameof(PartnerStatusText));
+        OnPropertyChanged(nameof(PartnerName));
+        OnPropertyChanged(nameof(PartnerLine));
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(EmptyText));
+        var onServer = services.Chat.OnServer();
+        var readUpTo = services.Chat.Partner?.ReadUpTo;
+        foreach (var bubble in Messages.Where(b => b.IsMine))
+            bubble.Tick = ChatRules.Tick(bubble.Message, onServer.Contains(bubble.Id), readUpTo);
     }
 
     public bool IsEmpty => Messages.Count == 0;
 
     public bool HasPending => Pending.Count > 0;
 
-    /// <summary>Reads the messages again, keeping the pictures already shown.</summary>
+    /// <summary>
+    /// Reads the messages again, keeping the pictures already shown, as WhatsApp lays them out: a chip for each day,
+    /// messages from the same person close together grouped, and ticks on mine.
+    /// </summary>
     public void Refresh()
     {
         var shown = Messages.ToDictionary(m => m.Id);
         var messages = services.Chat.Messages();
+        var onServer = services.Chat.OnServer();
+        var readUpTo = services.Chat.Partner?.ReadUpTo;
+        var now = DateTimeOffset.Now;
+        var zone = TimeZoneInfo.Local;
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
         Messages.Clear();
+        ChatMessage? before = null;
         foreach (var message in messages)
-            Messages.Add(shown.TryGetValue(message.Id, out var kept) && kept.Complete ? kept : new ChatBubble(message, services, this));
+        {
+            var bubble = shown.TryGetValue(message.Id, out var kept) && kept.Complete ? kept : new ChatBubble(message, services, this);
+            var newDay = before is null || TimeZoneInfo.ConvertTime(before.Sent, zone).Date != TimeZoneInfo.ConvertTime(message.Sent, zone).Date;
+            bubble.Day = newDay ? ChatRules.Day(message.Sent, now, zone, culture) : null;
+            bubble.IsFirst = !ChatRules.Follows(before, message, zone);
+            if (bubble.IsMine)
+                bubble.Tick = ChatRules.Tick(message, onServer.Contains(message.Id), readUpTo);
+            Messages.Add(bubble);
+            before = message;
+        }
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(CanChat));
         if (!CanChat)
@@ -82,7 +115,9 @@ public sealed partial class ChatViewModel(AppServices services) : ViewModelBase,
     /// <summary>The window is in front: everything shown has been read.</summary>
     public void Seen()
     {
-        services.Chat.MarkRead();
+        // Read just now: my partner's ticks turn blue with the next quick sync, sent straight away.
+        if (services.Chat.MarkRead())
+            services.SyncNowAsync().Forget("Telling your partner the chat's been read");
         services.ChatRead?.Invoke();
     }
 
@@ -225,12 +260,14 @@ public sealed partial class ChatViewModel(AppServices services) : ViewModelBase,
     }
 }
 
-/// <summary>One message as shown: who, when, the words, and its files.</summary>
-public sealed class ChatBubble : IDisposable
+/// <summary>One message as shown: who, when, the words, its files, and on mine the ticks.</summary>
+public sealed partial class ChatBubble : ObservableObject, IDisposable
 {
     public ChatBubble(ChatMessage message, AppServices services, ChatViewModel owner)
     {
+        Message = message;
         Id = message.Id;
+        Time = ChatRules.Time(message.Sent, TimeZoneInfo.Local, System.Globalization.CultureInfo.CurrentCulture);
         IsMine = message.From == services.Chat.MyId;
         Who = services.Chat.NameOf(message.From);
         When = ChatRules.When(message.Sent, DateTimeOffset.Now, TimeZoneInfo.Local, System.Globalization.CultureInfo.CurrentCulture);
@@ -239,7 +276,31 @@ public sealed class ChatBubble : IDisposable
         Complete = Files.All(f => f.Arrived);
     }
 
+    public ChatMessage Message { get; }
     public string Id { get; }
+
+    /// <summary>The time inside the bubble.</summary>
+    public string Time { get; }
+
+    /// <summary>The day chip above it, on the first message of each day.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDay))]
+    public partial string? Day { get; set; }
+
+    public bool HasDay => Day is not null;
+
+    /// <summary>The first of a run from the same person: a little more room above and the bubble's point.</summary>
+    [ObservableProperty] public partial bool IsFirst { get; set; } = true;
+
+    /// <summary>On mine: a clock while it's still on this PC, one tick on the server, two once read.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TickText), nameof(IsRead), nameof(TickTip))]
+    public partial ChatTick Tick { get; set; }
+
+    public string TickText => Tick switch { ChatTick.Waiting => "◷", ChatTick.Sent => "✓", _ => "✓✓" };
+    public bool IsRead => Tick == ChatTick.Read;
+    public string TickTip => Tick switch { ChatTick.Waiting => "Still on this PC; it goes with the next sync", ChatTick.Sent => "Sent", _ => "Read" };
+
     public bool IsMine { get; }
     public bool IsTheirs => !IsMine;
     public string Who { get; }
@@ -247,6 +308,7 @@ public sealed class ChatBubble : IDisposable
     public string Text { get; }
     public bool HasText => Text.Length > 0;
     public IReadOnlyList<ChatFileRow> Files { get; }
+    public bool HasFiles => Files.Count > 0;
 
     /// <summary>Every file has arrived, so this bubble needn't be made again.</summary>
     public bool Complete { get; }

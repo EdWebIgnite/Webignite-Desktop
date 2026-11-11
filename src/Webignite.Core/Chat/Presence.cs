@@ -4,10 +4,11 @@ namespace Webignite.Core.Chat;
 public enum PresenceState { Available, Busy, Away, Offline }
 
 /// <summary>
-/// A person's status as it travels between the PCs: what they picked, when their PC last synced, and when they last
-/// used the PC (so they show Away after a while without using it).
+/// A person's status as it travels between the PCs: what they picked, when their PC last synced, when they last
+/// used the PC (so they show Away after a while without using it), and how far they've read the chat (for the
+/// two ticks on what I sent). PCs on an older Webignite send no ReadUpTo.
 /// </summary>
-public sealed record Presence(string PersonId, PresenceState Chosen, DateTimeOffset LastSeen, DateTimeOffset LastActive);
+public sealed record Presence(string PersonId, PresenceState Chosen, DateTimeOffset LastSeen, DateTimeOffset LastActive, DateTimeOffset? ReadUpTo = null);
 
 public static class PresenceRules
 {
@@ -37,6 +38,23 @@ public static class PresenceRules
         PresenceState.Away => "Away",
         _ => "Offline",
     };
+
+    /// <summary>
+    /// The line under my partner's name, as WhatsApp's: "online", "away", "busy", or "last seen today at 09:01"
+    /// once their PC has gone quiet; "offline" when nothing has been heard from it.
+    /// </summary>
+    public static string Line(Presence? presence, DateTimeOffset now, TimeZoneInfo zone, IFormatProvider culture) => Shown(presence, now) switch
+    {
+        PresenceState.Available => "online",
+        PresenceState.Busy => "busy",
+        PresenceState.Away => "away",
+        _ when presence is null => "offline",
+        _ => "last seen " + Lower(ChatRules.When(presence.LastSeen, now, zone, culture)),
+    };
+
+    // "Today at 09:01" reads "today at 09:01" after "last seen"; a weekday or date keeps its capital.
+    private static string Lower(string said) =>
+        said.StartsWith("Today", StringComparison.Ordinal) || said.StartsWith("Yesterday", StringComparison.Ordinal) ? char.ToLowerInvariant(said[0]) + said[1..] : said;
 
     /// <summary>A pop-up and a sound for a new message, unless I'm busy (then only the count).</summary>
     public static bool Interrupts(PresenceState mine) => mine != PresenceState.Busy;

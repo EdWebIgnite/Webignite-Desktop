@@ -52,12 +52,14 @@ public sealed class ChatService(LocalStore store, TimeProvider? clock = null)
 
     private DateTimeOffset ReadUpTo => store.GetSetting<DateTimeOffset?>(ReadName) ?? DateTimeOffset.MinValue;
 
-    /// <summary>Everything here has been seen (the chat window is open and in front).</summary>
-    public void MarkRead()
+    /// <summary>Everything here has been seen (the chat window is open and in front); true when that's news.</summary>
+    public bool MarkRead()
     {
         var latest = store.ListChatMessages(1).LastOrDefault()?.Sent ?? clock.GetUtcNow();
-        if (latest > ReadUpTo)
-            store.SetSetting(ReadName, latest);
+        if (latest <= ReadUpTo)
+            return false;
+        store.SetSetting(ReadName, latest);
+        return true;
     }
 
     // Status: what I picked (this PC only) and what the others' PCs last said (kept as they arrive).
@@ -75,14 +77,25 @@ public sealed class ChatService(LocalStore store, TimeProvider? clock = null)
     }
 
     /// <summary>My status as it goes to the other PC with this sync; null when the team isn't set up yet.</summary>
-    public Presence? Mine() => MyId is { } me ? new Presence(me, Chosen, clock.GetUtcNow(), LastActive()) : null;
+    public Presence? Mine() => MyId is { } me
+        ? new Presence(me, Chosen, clock.GetUtcNow(), LastActive(), ReadUpTo == DateTimeOffset.MinValue ? null : ReadUpTo)
+        : null;
+
+    /// <summary>My partner's status as their PC last sent it; null before anything has come.</summary>
+    public Presence? Partner => Team.Partner is { } partner ? Seen().GetValueOrDefault(partner.Id) : null;
+
+    /// <summary>The ids of my messages already on the server (one tick); the rest are still on this PC.</summary>
+    public IReadOnlySet<string> OnServer() =>
+        store.SentFingerprints().Keys.Where(k => k.Kind == Webignite.Core.Sync.SyncKinds.Chat).Select(k => k.Id).ToHashSet(StringComparer.Ordinal);
 
     /// <summary>What I show as now (Away after a while without using the PC, unless I picked otherwise).</summary>
     public PresenceState MyShown => PresenceRules.Shown(Mine(), clock.GetUtcNow());
 
     /// <summary>What my partner shows as now: Offline when their PC hasn't synced for a few minutes.</summary>
-    public PresenceState PartnerShown =>
-        PresenceRules.Shown(Team.Partner is { } partner ? Seen().GetValueOrDefault(partner.Id) : null, clock.GetUtcNow());
+    public PresenceState PartnerShown => PresenceRules.Shown(Partner, clock.GetUtcNow());
+
+    /// <summary>The line under my partner's name: online, away, busy, or when they were last seen.</summary>
+    public string PartnerLine => PresenceRules.Line(Partner, clock.GetUtcNow(), TimeZoneInfo.Local, System.Globalization.CultureInfo.CurrentCulture);
 
     /// <summary>A status from another PC, kept unless it's older than the one already here.</summary>
     public void TakeIn(Presence presence)
