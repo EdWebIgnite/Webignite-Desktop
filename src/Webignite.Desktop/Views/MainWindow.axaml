@@ -185,6 +185,18 @@
           </StackPanel>
           <TextBlock FontSize="11" Foreground="{DynamicResource NavMuted}" TextWrapping="Wrap"
                      Text="{Binding Updates.VersionText, StringFormat='{}{0} · Data stays on this PC'}" />
+          <!-- Looks for a new version now rather than waiting for the hourly look -->
+          <Button Classes="link" FontSize="11" Padding="0" HorizontalAlignment="Left" Foreground="{DynamicResource NavText}"
+                  Content="Check for updates" Command="{Binding Updates.CheckNowCommand}">
+            <Button.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="Updates.CanUpdate" />
+                <Binding Path="!Updates.IsReady" />
+              </MultiBinding>
+            </Button.IsVisible>
+          </Button>
+          <TextBlock FontSize="11" Foreground="{DynamicResource NavMuted}" TextWrapping="Wrap" Text="{Binding Updates.CheckNote}"
+                     IsVisible="{Binding Updates.CheckNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
 
         <!-- The main list, and the Planner one that takes its place while a Planner page is open -->
