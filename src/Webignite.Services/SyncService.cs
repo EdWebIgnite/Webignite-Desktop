@@ -314,12 +314,13 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
         return new Out(kind, id, json, RecordLock.Fingerprint(json));
     }
 
+    /// <summary>A quick sync's records: chat and my status only.</summary>
+    private List<Out> OutgoingQuick() => [.. OutgoingChat().Concat(OutgoingPresence()).Where(r => SyncLimits.IdIsFine(r.Id))];
+
     /// <summary>
     /// Everything in shared projects (deleted ones too, so the deletion reaches the other PC), and the team when this
     /// is the first of the owner's PCs to sync.
     /// </summary>
-    private List<Out> OutgoingQuick() => [.. OutgoingChat().Concat(OutgoingPresence()).Where(r => SyncLimits.IdIsFine(r.Id))];
-
     private List<Out> Outgoing(bool withTeam, out TeamRecord? team)
     {
         var projects = store.ListProjects().Where(p => p.Shared).ToList();
