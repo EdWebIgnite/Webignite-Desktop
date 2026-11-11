@@ -24,6 +24,7 @@ public partial class ProjectsView : FullBleedView
     public ProjectsView()
     {
         InitializeComponent();
+        Looks.Attach(this, "Projects");
         // Tasks drag by any part of their row or card; headings by their name, in the list or as board columns.
         var tasks = new DragRules
         {

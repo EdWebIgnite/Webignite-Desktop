@@ -92,6 +92,25 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     public bool IsStandardLight => services.Settings.Appearance.LightPalette == LightPalette.Standard;
     public bool IsAsanaLight => services.Settings.Appearance.LightPalette == LightPalette.Asana;
 
+    public bool IsClassic => services.Settings.Appearance.Style == LookStyle.Classic;
+    public bool IsAiry => services.Settings.Appearance.Style == LookStyle.Airy;
+    public bool IsDarkSidebar => services.Settings.Appearance.Sidebar == SidebarTone.Dark;
+    public bool IsLightSidebar => services.Settings.Appearance.Sidebar == SidebarTone.Light;
+
+    [RelayCommand]
+    private void UseStyle(string style)
+    {
+        if (Enum.TryParse<LookStyle>(style, out var value))
+            SetLook(services.Settings.Appearance with { Style = value });
+    }
+
+    [RelayCommand]
+    private void UseSidebar(string tone)
+    {
+        if (Enum.TryParse<SidebarTone>(tone, out var value))
+            SetLook(services.Settings.Appearance with { Sidebar = value });
+    }
+
     [RelayCommand]
     private void UseTheme(string theme)
     {
@@ -127,7 +146,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
 
     private void LookChanged(AppearanceSettings look)
     {
-        foreach (var name in new[] { nameof(IsLight), nameof(IsDark), nameof(IsFollowingWindows), nameof(IsGraphite), nameof(IsMidnight), nameof(IsWarm), nameof(IsAsanaDark), nameof(IsStandardLight), nameof(IsAsanaLight) })
+        foreach (var name in new[] { nameof(IsLight), nameof(IsDark), nameof(IsFollowingWindows), nameof(IsGraphite), nameof(IsMidnight), nameof(IsWarm), nameof(IsAsanaDark), nameof(IsStandardLight), nameof(IsAsanaLight), nameof(IsClassic), nameof(IsAiry), nameof(IsDarkSidebar), nameof(IsLightSidebar) })
             OnPropertyChanged(name);
     }
 

@@ -66,6 +66,16 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 13. **Social image sizer.**
 14. **Brand sheet maker.** Last, as it uses the palette and the logo work.
 
+## Looks
+
+The app is getting more than one style to try side by side, so we can see what works. Colours and style are separate choices (Settings, Style), and Classic stays as it is.
+
+- **Airy** is started: the whole app's cards, boxes, buttons, tabs and sidebar, plus Mail and the Projects list. Still to go through page by page: Planner Home, Calendar, Week, the client page, the editors, Files, Settings.
+- **Light sidebar** works with every style and palette.
+- Still to build: **Compact** (dense, small corners, thin lines) and **Soft** (rounder, pill buttons, tinted panels).
+- Later, if styles aren't enough: a density choice, and bigger layout changes such as a top bar.
+- Text sizes typed on the pages themselves (size 12 appears about 310 times) can't be changed by a style yet. Moving them into named classes is the next piece of groundwork.
+
 ## Later
 
 ### WordPress connector

@@ -1,0 +1,151 @@
+<!--
+  The Airy style, laid over Styles/Controls.axaml when it is picked (see Looks.cs). More room, a white page, flat
+  cards and soft filled boxes. Only shape and which palette colour goes where: no colour of its own.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Webignite.Desktop.Controls">
+
+  <!-- A white page; cards are marked by a thin line instead of a shadow on grey. -->
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="Border.card">
+    <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
+    <Setter Property="CornerRadius" Value="14" />
+    <Setter Property="Padding" Value="26" />
+  </Style>
+  <Style Selector="Border.pending">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="TextBlock.h1">
+    <Setter Property="FontSize" Value="28" />
+  </Style>
+  <Style Selector="TextBlock.h2">
+    <Setter Property="FontSize" Value="17" />
+  </Style>
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+  </Style>
+
+  <!-- Typing boxes: taller, softly filled, with no edge until pointed at or typed in. -->
+  <Style Selector="TextBox, ComboBox, NumericUpDown, DatePicker, TimePicker, CalendarDatePicker, AutoCompleteBox">
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="MinHeight" Value="40" />
+  </Style>
+  <Style Selector="TextBox">
+    <Setter Property="Padding" Value="12,9" />
+  </Style>
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="TextBox.inline">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="8,5" />
+  </Style>
+  <Style Selector="TextBox.inline /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="TextBox.inline:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="TextBox.inline:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+
+  <!-- Buttons: rounder, with more room round the words. -->
+  <Style Selector="Button.primary">
+    <Setter Property="Padding" Value="18,10" />
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="Button.quiet">
+    <Setter Property="Padding" Value="14,9" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Border.segments">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="3" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.segment">
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Button.viewtab">
+    <Setter Property="Padding" Value="2,10" />
+    <Setter Property="Margin" Value="0,0,24,0" />
+  </Style>
+
+  <!-- A table's headings: quiet words over a line, not a grey bar. -->
+  <Style Selector="Border.stickyhead">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="Height" Value="42" />
+  </Style>
+
+  <!-- Sidebar: taller rows and more air between the groups. -->
+  <Style Selector="ListBox.nav ListBoxItem">
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="ListBox.nav.icons ListBoxItem">
+    <Setter Property="Padding" Value="0,12" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem.heading">
+    <Setter Property="Padding" Value="12,22,12,6" />
+    <Setter Property="Margin" Value="0" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem.gap">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Height" Value="18" />
+  </Style>
+  <Style Selector="Button.navsearch">
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+  <Style Selector="c|Icon.navicon">
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem:selected c|Icon.navicon">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem:selected">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem.heading:selected">
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+
+  <!-- Tabs: a soft strip, the tab on screen white like its page. -->
+  <Style Selector="Border.tabstrip">
+    <Setter Property="Background" Value="{DynamicResource Canvas}" />
+    <Setter Property="Padding" Value="10,8,10,0" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem">
+    <Setter Property="Padding" Value="14,8,10,9" />
+    <Setter Property="CornerRadius" Value="10,10,0,0" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:selected /template/ ContentPresenter, ListBox.tabs ListBoxItem:selected:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  </Style>
+  <Style Selector="Border.poptab">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="CornerRadius" Value="10,10,0,0" />
+  </Style>
+</Styles>

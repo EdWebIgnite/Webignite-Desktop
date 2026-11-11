@@ -21,6 +21,11 @@ public sealed record AppearanceSettings
     public Theme Theme { get; init; } = Theme.Light;
     public DarkPalette DarkPalette { get; init; } = DarkPalette.Graphite;
     public LightPalette LightPalette { get; init; } = LightPalette.Standard;
+
+    /// <summary>Spacing, corners and text sizes; see <see cref="Looks"/>.</summary>
+    public LookStyle Style { get; init; } = LookStyle.Classic;
+
+    public SidebarTone Sidebar { get; init; } = SidebarTone.Dark;
 }
 
 /// <summary>Light, dark, or whatever Windows is set to.</summary>

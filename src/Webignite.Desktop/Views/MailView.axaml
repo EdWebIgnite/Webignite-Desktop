@@ -48,6 +48,20 @@
     <Style Selector="Button.newfolder">
       <Setter Property="Foreground" Value="{DynamicResource Muted}" />
     </Style>
+    <!-- Set here rather than on the parts themselves, so a style (Styles/Looks) can lay its own over them. -->
+    <Style Selector="Border.folderpane">
+      <Setter Property="Background" Value="{DynamicResource Canvas}" />
+    </Style>
+    <Style Selector="StackPanel.mailbox">
+      <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
+    <Style Selector="StackPanel.listhead">
+      <Setter Property="Margin" Value="16,16,16,8" />
+      <Setter Property="Spacing" Value="10" />
+    </Style>
+    <Style Selector="Grid.mailrow > StackPanel">
+      <Setter Property="Spacing" Value="2" />
+    </Style>
     <!-- The message list: rows edge to edge with a line between, like a mail app. -->
     <Style Selector="ListBox.messages">
       <Setter Property="Background" Value="{DynamicResource Surface}" />
@@ -253,7 +267,7 @@
     <!-- The mail itself: folders, messages, the open message -->
     <c:PanelGrid Layout="{Binding Panels.Layout}" Panels="{Binding Panels}" Resized="PaneResized" IsVisible="{Binding ShowMail}">
       <!-- Folders and categories -->
-      <Border c:PanelGrid.Pane="folders" c:PanelGrid.DefaultWidth="240" Background="{DynamicResource Canvas}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <Border c:PanelGrid.Pane="folders" c:PanelGrid.DefaultWidth="240" Classes="folderpane" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>
           <StackPanel DockPanel.Dock="Bottom" Margin="12" Spacing="10">
             <!-- A new or renamed folder -->
@@ -312,7 +326,7 @@
               <ItemsControl ItemsSource="{Binding Mailboxes}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MailboxNodeViewModel">
-                    <StackPanel Classes="mailbox" Margin="0,0,0,14" Background="Transparent">
+                    <StackPanel Classes="mailbox" Background="Transparent">
                       <DockPanel Margin="4,0,4,4" IsVisible="{Binding HasTitle}">
                         <Button DockPanel.Dock="Right" Classes="link onhover" FontSize="12" Content="Edit" Command="{Binding EditCommand}" />
                         <!-- A click on the name folds the mailbox up to its name and Inbox, or opens it again -->
@@ -398,7 +412,7 @@
       <!-- Message list -->
       <Border c:PanelGrid.Pane="messages" c:PanelGrid.DefaultWidth="380" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel>
-          <StackPanel DockPanel.Dock="Top" Margin="16,16,16,8" Spacing="10">
+          <StackPanel DockPanel.Dock="Top" Classes="listhead">
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
                 <c:Spinner IsVisible="{Binding IsBusy}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,4,0"
@@ -498,7 +512,7 @@
                   <Border Classes="mailcard" Classes.unread="{Binding IsUnread}">
                     <Grid ColumnDefinitions="14,*" Classes="mailrow" Classes.unread="{Binding IsUnread}" Background="Transparent">
                       <Border Grid.Column="0" Classes="unreaddot" IsVisible="{Binding IsUnread}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,6,0,0" />
-                      <StackPanel Grid.Column="1" Spacing="2">
+                      <StackPanel Grid.Column="1">
                         <DockPanel>
                           <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="12" Margin="8,0,0,0" Text="{Binding When}" />
                           <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Paperclip}" Size="13" Margin="6,0,0,0" Foreground="{DynamicResource Muted}"

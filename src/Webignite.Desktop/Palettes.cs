@@ -45,7 +45,10 @@ public static class Palettes
             platform.ColorValuesChanged += (_, _) =>
             {
                 if (applied is { Theme: Theme.FollowWindows } again)
+                {
                     Apply(again);
+                    Looks.Apply(again);
+                }
             };
         }
 

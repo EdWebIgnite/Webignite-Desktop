@@ -167,6 +167,24 @@ void Save(string name)
     Console.WriteLine("Saved " + name);
 }
 
+// The same screen in the other styles, to compare them: Airy with a light and a dark sidebar, and the Classic
+// style with a light sidebar. Classic with its dark sidebar is the screenshot under the plain name.
+void SaveLooks(string name)
+{
+    var was = services.Settings.Appearance;
+    foreach (var (style, tone) in new[] { (LookStyle.Airy, SidebarTone.Light), (LookStyle.Airy, SidebarTone.Dark), (LookStyle.Classic, SidebarTone.Light) })
+    {
+        services.Settings.Appearance = was with { Style = style, Sidebar = tone };
+        Dispatcher.UIThread.RunJobs();
+        Save($"look-{style.ToString().ToLowerInvariant()}-{tone.ToString().ToLowerInvariant()}-{name}");
+    }
+    services.Settings.Appearance = was;
+    Dispatcher.UIThread.RunJobs();
+    Check($"After trying the other styles on {name}, Classic is back with nothing laid over it",
+        Looks.Style == LookStyle.Classic && !Application.Current!.Styles.OfType<Avalonia.Markup.Xaml.Styling.StyleInclude>().Any(i => i.Source?.OriginalString.Contains("/Looks/") == true)
+        && !Application.Current.Resources.ContainsKey("Nav"));
+}
+
 Save("overview-start");
 
 vm.ToggleShortcutsCommand.Execute(null);
@@ -239,6 +257,7 @@ invoice.Lines[1].Price = "R650";
 invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
 invoice.SaveCommand.Execute(null);
 Save("invoice-editor");
+SaveLooks("invoice-editor");
 // Items for Xero's Item column, a number of our own and a discount on the whole invoice.
 invoice.Lines[0].Item = "Hosting";
 invoice.Lines[1].Item = "Content updates";
@@ -682,6 +701,7 @@ Check("Bringing clients in without Xero says to connect it", vm.Clients.XeroMess
 vm.Clients.XeroMessage = "";
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Save("client");
+SaveLooks("client");
 {
     // Claude changes the client's email (a mail could have tricked it): the page asks for a check until It's right.
     var shown = vm.Clients.Detail!;
@@ -1066,6 +1086,7 @@ vm.Mail.StatusIsProblem = false;
 var opened = vm.Mail.Messages.First(m => m.Summary.Uid == 41);
 Wait(vm.Mail.Select(opened), "The mail opened");
 Save("mail");
+SaveLooks("mail");
 {
     // A hidden pane leaves a strip with its name; a click on it, or Ctrl+Shift+1, brings it back.
     vm.TogglePaneCommand.Execute("1");
@@ -1848,6 +1869,7 @@ vm.Approvals.Editor!.BackCommand.Execute(null);
 Open(Page.Overview);
 Check("A test build hides Check for updates and says nothing about the update server", !vm.Updates.CanUpdate && vm.Updates.CheckNote.Length == 0);
 Save("overview");
+SaveLooks("overview");
 // Not every mail needs a reply: the × waves one off, and Undo brings it back.
 {
     var overview = (OverviewViewModel)vm[Page.Overview].Main.Page;
@@ -2667,6 +2689,7 @@ Save("site-check");
         Check("A task typed under a heading is added there", projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == "Point the domain at the new site" && r.Section?.Name == "Launch"));
         Dispatcher.UIThread.RunJobs();
         Save("projects");
+SaveLooks("projects");
         projectsPage.EditName = "Bosveld Builders new website";
         projectsPage.Keep();
         Check("Renaming a project is saved once typing stops", services.Projects.Get(site.Id)!.Name == "Bosveld Builders new website" && projectsPage.TabTitle == "Bosveld Builders new website");
@@ -3175,6 +3198,7 @@ Save("site-check");
         window.Height = 1080;
         Dispatcher.UIThread.RunJobs();
         Save("planner-home");
+SaveLooks("planner-home");
         // The same with the sidebar folded to icons, wide and narrow: the cards share the width and never overlap.
         vm.Sidebar.Toggle();
         Dispatcher.UIThread.RunJobs();

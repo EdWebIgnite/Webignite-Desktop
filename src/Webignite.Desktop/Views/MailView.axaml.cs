@@ -23,6 +23,7 @@ public partial class MailView : FullBleedView
     public MailView()
     {
         InitializeComponent();
+        Looks.Attach(this, "Mail");
         // Links in mail open in the normal browser, never inside the app.
         Body.LinkClicked += (_, e) =>
         {

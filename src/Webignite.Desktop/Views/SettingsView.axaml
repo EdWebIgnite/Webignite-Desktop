@@ -123,6 +123,29 @@
 
     <Border Classes="card" IsVisible="{Binding ShowLook}">
       <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Style" />
+        <Border Classes="segments" HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="segment" Classes.on="{Binding IsClassic}" Content="Classic" Command="{Binding UseStyleCommand}" CommandParameter="Classic" />
+            <Button Classes="segment" Classes.on="{Binding IsAiry}" Content="Airy" Command="{Binding UseStyleCommand}" CommandParameter="Airy" />
+          </StackPanel>
+        </Border>
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="The shape of the app: spacing, corners and edges. Classic is the look Webignite has always had. Airy gives everything more room on a white page, with flat cards and soft boxes. Any style goes with any colours below." />
+        <TextBlock Classes="label" Text="Sidebar" />
+        <Border Classes="segments" HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="segment" Classes.on="{Binding IsDarkSidebar}" Content="Dark" Command="{Binding UseSidebarCommand}" CommandParameter="Dark" />
+            <Button Classes="segment" Classes.on="{Binding IsLightSidebar}" Content="Light" Command="{Binding UseSidebarCommand}" CommandParameter="Light" />
+          </StackPanel>
+        </Border>
+        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                   Text="Light gives the sidebar the page's own colours, in whichever look is picked." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding ShowLook}">
+      <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Light and dark" />
         <Border Classes="segments" HorizontalAlignment="Left">
           <StackPanel Orientation="Horizontal">
