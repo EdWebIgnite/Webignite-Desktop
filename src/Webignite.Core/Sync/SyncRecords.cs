@@ -32,11 +32,14 @@ public static class SyncKinds
     /// <summary>Each PC's own person, with the name they chose, so the other PC shows it (<see cref="Projects.PeopleRules"/>).</summary>
     public const string Person = "person";
 
+    /// <summary>A piece of a file attached to a task in a shared project (<see cref="Projects.AttachmentParts"/>).</summary>
+    public const string AttachPart = "attachpart";
+
     /// <summary>Settings that belong to the business rather than the PC (<see cref="SharedSettings"/>).</summary>
     public const string Setting = "setting";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
-        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact, Chat, ChatPart, Setting, Presence, Person };
+        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact, Chat, ChatPart, Setting, Presence, Person, AttachPart };
 }
 
 /// <summary>

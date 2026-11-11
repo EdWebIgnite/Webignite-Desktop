@@ -96,7 +96,12 @@ public sealed class AppServices : IDisposable
     private InboxService? inbox;
 
     /// <summary>Shared projects going to and from the workspace on the sync server.</summary>
-    public SyncService Sync => sync ??= new SyncService(Store, Account) { MyPresence = () => Chat.Mine(), PresenceArrived = p => Chat.TakeIn(p) };
+    public SyncService Sync => sync ??= new SyncService(Store, Account)
+    {
+        MyPresence = () => Chat.Mine(),
+        PresenceArrived = p => Chat.TakeIn(p),
+        AttachmentsFolder = Projects.AttachmentsFolder,
+    };
     private SyncService? sync;
 
     /// <summary>Signed in to a sync server on this PC; looked at without making the account client when there's none set up.</summary>

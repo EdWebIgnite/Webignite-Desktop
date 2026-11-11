@@ -220,6 +220,8 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
                     return TakeInPresence(record.Id, json, fingerprint, sent);
                 case SyncKinds.Person:
                     return TakeInPerson(record.Id, json, fingerprint, sent);
+                case SyncKinds.AttachPart:
+                    return TakeInAttachmentPart(record.Id, json, fingerprint, sent);
                 case SyncKinds.Setting:
                     return TakeInSetting(record.Id, json, fingerprint, owner, sent);
                 case SyncKinds.Document or SyncKinds.Client or SyncKinds.Contact:
@@ -340,7 +342,9 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
         }
         all.AddRange(projects.Select(p => Make(SyncKinds.Project, p.Id, p)));
         all.AddRange(store.ListHeadings().Where(h => shared.Contains(h.ProjectId)).Select(h => Make(SyncKinds.Heading, h.Id, h)));
-        all.AddRange(store.ListProjectTasks().Where(t => shared.Contains(t.ProjectId)).Select(t => Make(SyncKinds.Task, t.Id, t)));
+        var sharedTasks = store.ListProjectTasks().Where(t => shared.Contains(t.ProjectId)).ToList();
+        all.AddRange(sharedTasks.Select(t => Make(SyncKinds.Task, t.Id, t)));
+        all.AddRange(OutgoingAttachments(sharedTasks));
         all.AddRange(store.ListAllComments().Where(c => shared.Contains(c.ProjectId)).Select(c => Make(SyncKinds.Comment, c.Id, c)));
         all.AddRange(store.ListAllMessages().Where(m => shared.Contains(m.ProjectId)).Select(m => Make(SyncKinds.Message, m.Id, m)));
         all.AddRange(store.ListAllActivity().Where(a => shared.Contains(a.ProjectId)).Select(a => Make(SyncKinds.Activity, a.Id, a)));
