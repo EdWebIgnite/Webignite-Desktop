@@ -21,6 +21,7 @@ public partial class ComposeView : UserControl
     public ComposeView()
     {
         InitializeComponent();
+        Looks.Attach(this, "Compose");
         // The quoted mail never fetches anything from the internet.
         QuotePanel.ImageLoad += (_, e) =>
         {

@@ -85,6 +85,12 @@ services.Settings.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "
     "Hosting, yearly", [new Line { Description = "Website hosting, 12 months", Quantity = 1, UnitPrice = 2400m }]);
 // Pages change at once here: the script doesn't wait for fades to finish.
 services.Settings.Appearance = new AppearanceSettings { Motion = Motion.Off };
+// WEBIGNITE_SNAPSHOT_STYLE=Airy (and WEBIGNITE_SNAPSHOT_SIDEBAR=Light) draws every screen in that style, to go
+// through a style page by page. Left unset, as in CI, the screens are Classic.
+if (Enum.TryParse<LookStyle>(Environment.GetEnvironmentVariable("WEBIGNITE_SNAPSHOT_STYLE"), out var wholeRunStyle))
+    services.Settings.Appearance = services.Settings.Appearance with { Style = wholeRunStyle };
+if (Enum.TryParse<SidebarTone>(Environment.GetEnvironmentVariable("WEBIGNITE_SNAPSHOT_SIDEBAR"), out var wholeRunSidebar))
+    services.Settings.Appearance = services.Settings.Appearance with { Sidebar = wholeRunSidebar };
 var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();
@@ -167,11 +173,21 @@ void Save(string name)
     Console.WriteLine("Saved " + name);
 }
 
+// The corners and room of every card and sidebar row on screen: what a style changes. Only what can be seen:
+// a hidden part takes its styles when it is next shown.
+List<string> Shapes() =>
+[
+    .. window.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.Classes.Contains("card") && b.IsEffectivelyVisible).Select(b => $"{b.CornerRadius} {b.Padding}"),
+    .. window.GetVisualDescendants().OfType<Avalonia.Controls.ListBoxItem>().Where(i => i.IsEffectivelyVisible).Select(i => $"{i.Padding} {i.Margin} {i.CornerRadius}"),
+];
+
 // The same screen in the other styles, to compare them: Airy with a light and a dark sidebar, and the Classic
 // style with a light sidebar. Classic with its dark sidebar is the screenshot under the plain name.
 void SaveLooks(string name)
 {
     var was = services.Settings.Appearance;
+    Dispatcher.UIThread.RunJobs();
+    var shapesBefore = Shapes();
     foreach (var (style, tone) in new[] { (LookStyle.Airy, SidebarTone.Light), (LookStyle.Airy, SidebarTone.Dark), (LookStyle.Classic, SidebarTone.Light) })
     {
         services.Settings.Appearance = was with { Style = style, Sidebar = tone };
@@ -180,9 +196,13 @@ void SaveLooks(string name)
     }
     services.Settings.Appearance = was;
     Dispatcher.UIThread.RunJobs();
-    Check($"After trying the other styles on {name}, Classic is back with nothing laid over it",
-        Looks.Style == LookStyle.Classic && !Application.Current!.Styles.OfType<Avalonia.Markup.Xaml.Styling.StyleInclude>().Any(i => i.Source?.OriginalString.Contains("/Looks/") == true)
-        && !Application.Current.Resources.ContainsKey("Nav"));
+    Check($"After trying the other styles on {name}, Classic is back with nothing of them switched on",
+        was.Style != LookStyle.Classic || was.Sidebar != SidebarTone.Dark
+        || Looks.Style == LookStyle.Classic && !window.Classes.Any(c => c.StartsWith("look-", StringComparison.Ordinal))
+            && !Application.Current!.Resources.ContainsKey("Nav") && !Application.Current.Resources.ContainsKey("Canvas"));
+    // Parts that were on screen while another style was on must have their own shape again, not only new ones.
+    Check($"After trying the other styles on {name}, the cards and sidebar rows on screen are as they were",
+        was.Style != LookStyle.Classic || Shapes().SequenceEqual(shapesBefore));
 }
 
 Save("overview-start");

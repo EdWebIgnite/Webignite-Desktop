@@ -2,70 +2,67 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="using:Webignite.Desktop.Controls">
-  <!-- Folders: white like the list, with taller rows; the sidebar is the only grey. -->
-  <Style Selector="Border.folderpane">
-    <Setter Property="Background" Value="{DynamicResource Surface}" />
-  </Style>
-  <Style Selector="Button.folder">
+  <!-- Folders: taller rows. -->
+  <Style Selector="Window.look-airy Button.folder">
     <Setter Property="MinHeight" Value="36" />
     <Setter Property="CornerRadius" Value="9" />
   </Style>
-  <Style Selector="Button.folder.current">
+  <Style Selector="Window.look-airy Button.folder.current">
     <Setter Property="Background" Value="{DynamicResource Line}" />
   </Style>
-  <Style Selector="StackPanel.mailbox">
+  <Style Selector="Window.look-airy StackPanel.mailbox">
     <Setter Property="Margin" Value="0,0,0,26" />
   </Style>
 
   <!-- The list: each mail has room, and the open one is tinted rather than lifted. -->
-  <Style Selector="Border.mailcard">
+  <Style Selector="Window.look-airy Border.mailcard">
     <Setter Property="Padding" Value="22,16" />
   </Style>
-  <Style Selector="Border.mailcard.unread">
+  <Style Selector="Window.look-airy Border.mailcard.unread">
     <Setter Property="Padding" Value="19,16,22,16" />
   </Style>
-  <Style Selector="ListBox.messages ListBoxItem:selected Border.mailcard">
+  <Style Selector="Window.look-airy ListBox.messages ListBoxItem:selected Border.mailcard">
     <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
   </Style>
-  <Style Selector="Grid.mailrow TextBlock.who">
+  <Style Selector="Window.look-airy Grid.mailrow TextBlock.who">
     <Setter Property="FontSize" Value="15" />
   </Style>
-  <Style Selector="Grid.mailrow TextBlock.subject">
+  <Style Selector="Window.look-airy Grid.mailrow TextBlock.subject">
     <Setter Property="FontSize" Value="13.5" />
   </Style>
-  <Style Selector="Grid.mailrow > StackPanel">
+  <Style Selector="Window.look-airy Grid.mailrow > StackPanel">
     <Setter Property="Spacing" Value="5" />
   </Style>
-  <Style Selector="StackPanel.listhead">
+  <Style Selector="Window.look-airy StackPanel.listhead">
     <Setter Property="Margin" Value="22,22,22,16" />
     <Setter Property="Spacing" Value="14" />
   </Style>
   <!-- The buttons beside the list's name stay small, so the name keeps its room. -->
-  <Style Selector="StackPanel.listhead Button.quiet">
+  <Style Selector="Window.look-airy StackPanel.listhead Button.quiet">
     <Setter Property="Padding" Value="10,7" />
   </Style>
-  <Style Selector="StackPanel.listhead Button.primary">
+  <Style Selector="Window.look-airy StackPanel.listhead Button.primary">
     <Setter Property="Padding" Value="14,8" />
   </Style>
-  <Style Selector="Button.filterchip">
+  <Style Selector="Window.look-airy Button.filterchip">
     <Setter Property="Padding" Value="13,5" />
     <Setter Property="CornerRadius" Value="14" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
   </Style>
 
   <!-- The open mail -->
-  <Style Selector="TextBlock.readersubject">
+  <Style Selector="Window.look-airy TextBlock.readersubject">
     <Setter Property="FontSize" Value="20" />
     <Setter Property="Foreground" Value="{DynamicResource Ink}" />
   </Style>
-  <Style Selector="Button.tool">
+  <Style Selector="Window.look-airy Button.tool">
     <Setter Property="Padding" Value="10,8" />
     <Setter Property="CornerRadius" Value="9" />
   </Style>
-  <Style Selector="Border.underbar">
+  <Style Selector="Window.look-airy Border.underbar">
     <Setter Property="Padding" Value="26,14" />
   </Style>
-  <Style Selector="Button.attachchip">
+  <Style Selector="Window.look-airy Button.attachchip">
     <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Padding" Value="12,7,6,7" />
     <Setter Property="Background" Value="{DynamicResource Surface2}" />

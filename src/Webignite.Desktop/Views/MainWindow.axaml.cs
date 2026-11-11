@@ -167,6 +167,7 @@ public partial class MainWindow : Window
     private void ApplyAppearance(AppearanceSettings appearance)
     {
         Palettes.Apply(appearance);
+        Looks.Follow(this);
         Looks.Apply(appearance);
         Classes.Set("motion-full", appearance.Motion == Motion.Full);
         Classes.Set("motion-reduced", appearance.Motion == Motion.Reduced);

@@ -21,6 +21,7 @@ public partial class ChatView : UserControl
     public ChatView()
     {
         InitializeComponent();
+        Looks.Attach(this, "Chat");
         // Files dropped anywhere on the window go with the message, as WhatsApp. The box takes drops itself, so the
         // window listens for those it has already seen too.
         AddHandler(DragDrop.DragEnterEvent, DragEntered, handledEventsToo: true);

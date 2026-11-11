@@ -6,146 +6,161 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="using:Webignite.Desktop.Controls">
 
-  <!-- A white page; cards are marked by a thin line instead of a shadow on grey. -->
-  <Style Selector="Window">
-    <Setter Property="Background" Value="{DynamicResource Surface}" />
-  </Style>
-  <Style Selector="Border.card">
+  <!-- The page is white (Looks.cs gives the page's colour name the cards' white); cards are marked by a thin line
+       instead of a shadow on grey. -->
+  <Style Selector="Window.look-airy Border.card">
     <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
     <Setter Property="CornerRadius" Value="14" />
     <Setter Property="Padding" Value="26" />
   </Style>
-  <Style Selector="Border.pending">
+  <Style Selector="Window.look-airy Border.pending">
     <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Padding" Value="16,12" />
     <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
 
-  <Style Selector="TextBlock.h1">
+  <Style Selector="Window.look-airy TextBlock.h1">
     <Setter Property="FontSize" Value="28" />
   </Style>
-  <Style Selector="TextBlock.h2">
+  <Style Selector="Window.look-airy TextBlock.h2">
     <Setter Property="FontSize" Value="17" />
   </Style>
-  <Style Selector="TextBlock.label">
+  <Style Selector="Window.look-airy TextBlock.label">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="Margin" Value="0,0,0,6" />
   </Style>
 
   <!-- Typing boxes: taller, softly filled, with no edge until pointed at or typed in. -->
-  <Style Selector="TextBox, ComboBox, NumericUpDown, DatePicker, TimePicker, CalendarDatePicker, AutoCompleteBox">
+  <Style Selector="Window.look-airy TextBox, Window.look-airy ComboBox, Window.look-airy NumericUpDown, Window.look-airy DatePicker, Window.look-airy TimePicker, Window.look-airy CalendarDatePicker, Window.look-airy AutoCompleteBox">
     <Setter Property="CornerRadius" Value="9" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
-    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="MinHeight" Value="38" />
   </Style>
-  <Style Selector="TextBox">
-    <Setter Property="Padding" Value="12,9" />
+  <Style Selector="Window.look-airy TextBox">
+    <Setter Property="Padding" Value="12,8" />
   </Style>
-  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+  <Style Selector="Window.look-airy TextBox:pointerover /template/ Border#PART_BorderElement">
     <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
   </Style>
-  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+  <Style Selector="Window.look-airy TextBox:focus /template/ Border#PART_BorderElement">
     <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
     <Setter Property="Background" Value="{DynamicResource Surface}" />
   </Style>
-  <Style Selector="TextBox.inline">
+  <Style Selector="Window.look-airy TextBox.inline">
     <Setter Property="MinHeight" Value="32" />
     <Setter Property="Padding" Value="8,5" />
   </Style>
-  <Style Selector="TextBox.inline /template/ Border#PART_BorderElement">
+  <Style Selector="Window.look-airy TextBox.inline /template/ Border#PART_BorderElement">
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Background" Value="Transparent" />
   </Style>
-  <Style Selector="TextBox.inline:pointerover /template/ Border#PART_BorderElement">
+  <Style Selector="Window.look-airy TextBox.inline:pointerover /template/ Border#PART_BorderElement">
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
   </Style>
-  <Style Selector="TextBox.inline:focus /template/ Border#PART_BorderElement">
+  <Style Selector="Window.look-airy TextBox.inline:focus /template/ Border#PART_BorderElement">
     <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
     <Setter Property="Background" Value="{DynamicResource Surface}" />
   </Style>
 
   <!-- Buttons: rounder, with more room round the words. -->
-  <Style Selector="Button.primary">
-    <Setter Property="Padding" Value="18,10" />
+  <Style Selector="Window.look-airy Button.primary">
+    <Setter Property="Padding" Value="17,9" />
     <Setter Property="CornerRadius" Value="9" />
   </Style>
-  <Style Selector="Button.quiet">
-    <Setter Property="Padding" Value="14,9" />
+  <Style Selector="Window.look-airy Button.quiet">
+    <Setter Property="Padding" Value="13,8" />
     <Setter Property="CornerRadius" Value="9" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
   </Style>
-  <Style Selector="Border.segments">
+  <!-- Toolbar buttons (the format bar, Files, Notes): no edge of their own, lit only when pointed at or on. -->
+  <Style Selector="Window.look-airy Button.format">
+    <Setter Property="Padding" Value="9,6" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format.icon">
+    <Setter Property="Padding" Value="8,7" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format.on">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Window.look-airy Button.format.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Window.look-airy Border.segments">
     <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Padding" Value="3" />
     <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
-  <Style Selector="Button.segment">
+  <Style Selector="Window.look-airy Button.segment">
     <Setter Property="Padding" Value="14,6" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="FontSize" Value="13" />
   </Style>
-  <Style Selector="Button.viewtab">
-    <Setter Property="Padding" Value="2,10" />
-    <Setter Property="Margin" Value="0,0,24,0" />
+  <Style Selector="Window.look-airy Button.viewtab">
+    <Setter Property="Padding" Value="2,9" />
+    <Setter Property="Margin" Value="0,0,20,0" />
   </Style>
 
-  <!-- A table's headings: quiet words over a line, not a grey bar. -->
-  <Style Selector="Border.stickyhead">
-    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  <!-- A table's headings: a paler, taller band. -->
+  <Style Selector="Window.look-airy Border.stickyhead">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
     <Setter Property="Height" Value="42" />
   </Style>
 
   <!-- Sidebar: taller rows and more air between the groups. -->
-  <Style Selector="ListBox.nav ListBoxItem">
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem">
     <Setter Property="Padding" Value="12,9" />
     <Setter Property="Margin" Value="0,1" />
     <Setter Property="CornerRadius" Value="9" />
   </Style>
-  <Style Selector="ListBox.nav.icons ListBoxItem">
+  <Style Selector="Window.look-airy ListBox.nav.icons ListBoxItem">
     <Setter Property="Padding" Value="0,12" />
   </Style>
-  <Style Selector="ListBox.nav ListBoxItem.heading">
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem.heading">
     <Setter Property="Padding" Value="12,22,12,6" />
     <Setter Property="Margin" Value="0" />
   </Style>
-  <Style Selector="ListBox.nav ListBoxItem.gap">
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem.gap">
     <Setter Property="Padding" Value="0" />
     <Setter Property="Margin" Value="0" />
     <Setter Property="Height" Value="18" />
   </Style>
-  <Style Selector="Button.navsearch">
+  <Style Selector="Window.look-airy Button.navsearch">
     <Setter Property="CornerRadius" Value="9" />
   </Style>
-  <Style Selector="c|Icon.navicon">
+  <Style Selector="Window.look-airy c|Icon.navicon">
     <Setter Property="Opacity" Value="0.6" />
   </Style>
-  <Style Selector="ListBox.nav ListBoxItem:selected c|Icon.navicon">
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem:selected c|Icon.navicon">
     <Setter Property="Opacity" Value="1" />
   </Style>
-  <Style Selector="ListBox.nav ListBoxItem:selected">
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem:selected">
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
-  <Style Selector="ListBox.nav ListBoxItem.heading:selected">
+  <Style Selector="Window.look-airy ListBox.nav ListBoxItem.heading:selected">
     <Setter Property="FontWeight" Value="Normal" />
   </Style>
 
-  <!-- Tabs: a soft strip, the tab on screen white like its page. -->
-  <Style Selector="Border.tabstrip">
-    <Setter Property="Background" Value="{DynamicResource Canvas}" />
+  <!-- Tabs: a little taller and rounder. -->
+  <Style Selector="Window.look-airy Border.tabstrip">
     <Setter Property="Padding" Value="10,8,10,0" />
   </Style>
-  <Style Selector="ListBox.tabs ListBoxItem">
+  <Style Selector="Window.look-airy ListBox.tabs ListBoxItem">
     <Setter Property="Padding" Value="14,8,10,9" />
     <Setter Property="CornerRadius" Value="10,10,0,0" />
   </Style>
-  <Style Selector="ListBox.tabs ListBoxItem:selected /template/ ContentPresenter, ListBox.tabs ListBoxItem:selected:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource Surface}" />
-  </Style>
-  <Style Selector="Border.poptab">
-    <Setter Property="Background" Value="{DynamicResource Surface}" />
+  <Style Selector="Window.look-airy Border.poptab">
     <Setter Property="CornerRadius" Value="10,10,0,0" />
   </Style>
 </Styles>
