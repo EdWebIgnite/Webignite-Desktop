@@ -274,6 +274,8 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
             new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
             new Module(Page.Notes, "Notes", () => new NotesViewModel(services), "Notes", fullBleed: true),
+            new ToolLink(ToolKind.Compare, "Compare", "Compare"),
+            new ToolLink(ToolKind.Duplicates, "Duplicate files", "Duplicates"),
             new ToolLink(ToolKind.Calculator, "Calculator", "Calculator"),
             new ToolLink(ToolKind.Passwords, "Password generator", "Key"),
             new ToolLink(ToolKind.Colours, "Colours", "Palette"),

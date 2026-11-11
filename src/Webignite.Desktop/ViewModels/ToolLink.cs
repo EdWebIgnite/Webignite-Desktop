@@ -18,6 +18,8 @@ public enum ToolKind
     Ruler,
     Snippets,
     ScreenText,
+    Compare,
+    Duplicates,
 }
 
 /// <summary>

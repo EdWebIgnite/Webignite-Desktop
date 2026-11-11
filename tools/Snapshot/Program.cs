@@ -1940,7 +1940,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2163,6 +2163,73 @@ snippets.SnippetRows[2].ChangeCommand.Execute(null);
 snippets.RemoveSnippetCommand.Execute(null);
 Check("A snippet can be removed", snippets.SnippetRows.Count == 2 && services.Settings.Snippets.Items.Count == 2);
 snippetWindow.Close();
+// Compare: two versions of a stylesheet side by side, then two folders, then one file out of them.
+{
+    var compareRoot = Path.Combine(data, "compare");
+    Directory.CreateDirectory(Path.Combine(compareRoot, "live", "css"));
+    Directory.CreateDirectory(Path.Combine(compareRoot, "staging", "css"));
+    var css = string.Join("\n", Enumerable.Range(1, 40).Select(i => i == 12 ? "h1 { color: #3d2b1f; font-size: 2.4rem; }" : i == 30 ? ".button { padding: 12px 24px; }" : $".row-{i} {{ margin: {i}px; }}"));
+    File.WriteAllText(Path.Combine(compareRoot, "live", "css", "site.css"), css);
+    File.WriteAllText(Path.Combine(compareRoot, "staging", "css", "site.css"),
+        css.Replace("font-size: 2.4rem", "font-size: 3rem", StringComparison.Ordinal).Replace(".button { padding: 12px 24px; }", ".button { padding: 14px 28px; }\n.button:hover { opacity: .9; }", StringComparison.Ordinal));
+    File.WriteAllText(Path.Combine(compareRoot, "live", "index.html"), "<h1>Karoo Coffee</h1>");
+    File.WriteAllText(Path.Combine(compareRoot, "staging", "index.html"), "<h1>Karoo Coffee</h1>");
+    File.WriteAllText(Path.Combine(compareRoot, "live", "old-menu.html"), "<h1>Menu</h1>");
+    File.WriteAllText(Path.Combine(compareRoot, "staging", "specials.html"), "<h1>Specials</h1>");
+    var compareWindow = window.ShowTool(ToolKind.Compare, services);
+    var compare = compareWindow.Tools;
+    Check("Compare waits for both sides", !compare.RunCompareCommand.CanExecute(null));
+    compare.StartCompare(Path.Combine(compareRoot, "live", "css", "site.css"), Path.Combine(compareRoot, "staging", "css", "site.css"));
+    Check("Two files are shown side by side with what differs counted",
+        Until(() => !compare.CompareBusy && compare.HasCompareRows) && compare.CompareSummary == "3 lines differ: 2 changed, 1 only on the right." && compare.CompareRows.Count == 41);
+    SaveWindow(compareWindow, "tools-compare-files");
+    compare.CompareOnlyChanges = true;
+    Check("Only what differs folds the matching lines away", compare.CompareRows.Count < 41 && compare.CompareRows.Any(r => r.IsSkipped));
+    SaveWindow(compareWindow, "tools-compare-changes");
+    compare.CompareOnlyChanges = false;
+    compare.StartCompare(Path.Combine(compareRoot, "live"), Path.Combine(compareRoot, "staging"));
+    Check("Two folders are compared file by file, what differs first",
+        Until(() => !compare.CompareBusy && compare.HasCompareFolderRows) && compare.CompareSummary == "3 of 4 files differ: 1 different, 1 only on the left, 1 only on the right."
+        && compare.CompareFolderRows.Count == 4 && !compare.CompareFolderRows[0].Words.StartsWith("The same", StringComparison.Ordinal) && !compare.HasCompareRows);
+    SaveWindow(compareWindow, "tools-compare-folders");
+    compare.CompareFolderRows.First(r => r.CanCompare).CompareCommand.Execute(null);
+    Check("A file that differs opens side by side, with a way back to the folders",
+        Until(() => !compare.CompareBusy && compare.HasCompareRows) && compare.CanGoBackToFolders && !compare.HasCompareFolderRows);
+    compare.BackToFoldersCommand.Execute(null);
+    Check("Back shows the folders again", Until(() => !compare.CompareBusy && compare.HasCompareFolderRows) && !compare.CanGoBackToFolders);
+    compare.StartCompare(Path.Combine(compareRoot, "live"), Path.Combine(compareRoot, "staging", "index.html"));
+    Check("A file against a folder is turned down in plain words", compare.CompareProblem && compare.CompareSummary.StartsWith("One is a file", StringComparison.Ordinal));
+    compareWindow.Close();
+
+    // Duplicate files: copies found by what is in them, ticked, and sent to the bin with one of each kept.
+    var copies = Path.Combine(data, "copies");
+    Directory.CreateDirectory(Path.Combine(copies, "Copy of logos"));
+    Directory.CreateDirectory(Path.Combine(copies, "old"));
+    File.WriteAllText(Path.Combine(copies, "logo.svg"), new string('L', 4000));
+    File.WriteAllText(Path.Combine(copies, "Copy of logos", "logo.svg"), new string('L', 4000));
+    File.WriteAllText(Path.Combine(copies, "old", "logo final.svg"), new string('L', 4000));
+    File.WriteAllText(Path.Combine(copies, "brief.txt"), "The brief");
+    File.WriteAllText(Path.Combine(copies, "old", "brief (1).txt"), "The brief");
+    File.WriteAllText(Path.Combine(copies, "notes.txt"), "Only one of these");
+    var duplicatesWindow = window.ShowTool(ToolKind.Duplicates, services);
+    var duplicates = duplicatesWindow.Tools;
+    duplicates.StartDuplicates(copies);
+    Check("Copies are found by what is in them, the set that frees the most first",
+        Until(() => !duplicates.DuplicatesBusy && duplicates.HasDuplicateSets) && duplicates.DuplicateSets.Count == 2 && duplicates.DuplicateSets[0].Files.Count == 3
+        && duplicates.DuplicateSummary.StartsWith("3 files are copies of others, in 2 sets.", StringComparison.Ordinal) && !duplicates.RecycleDuplicatesCommand.CanExecute(null));
+    duplicates.TickExtraCopiesCommand.Execute(null);
+    Check("Tick the extra copies leaves the one nearest the top of the folder", duplicates.DuplicatesTicked == 3
+        && duplicates.DuplicateSets[0].Files.Single(f => !f.IsTicked).Path == Path.Combine(copies, "logo.svg") && duplicates.RecycleDuplicatesText == "Move 3 files to the Recycle Bin");
+    SaveWindow(duplicatesWindow, "tools-duplicates");
+    foreach (var file in duplicates.DuplicateSets[1].Files)
+        file.IsTicked = true;
+    Wait(duplicates.RecycleDuplicatesCommand.ExecuteAsync(null), "The copies were moved to the bin");
+    Check("The ticked copies go, and one of each stays even when every copy was ticked",
+        File.Exists(Path.Combine(copies, "logo.svg")) && !File.Exists(Path.Combine(copies, "Copy of logos", "logo.svg")) && !File.Exists(Path.Combine(copies, "old", "logo final.svg"))
+        && new[] { Path.Combine(copies, "brief.txt"), Path.Combine(copies, "old", "brief (1).txt") }.Count(File.Exists) == 1 && File.Exists(Path.Combine(copies, "notes.txt"))
+        && !duplicates.HasDuplicateSets && duplicates.DuplicateSummary.StartsWith("3 files are in the Recycle Bin; one copy of each was kept.", StringComparison.Ordinal));
+    duplicatesWindow.Close();
+}
 var screenTextWindow = window.ShowTool(ToolKind.ScreenText, services);
 Check("Text from the screen names its shortcut and shows nothing until something is read",
     !screenTextWindow.Tools.HasScreenText && screenTextWindow.Tools.ScreenTextHint.StartsWith("Ctrl+Alt+X", StringComparison.Ordinal));

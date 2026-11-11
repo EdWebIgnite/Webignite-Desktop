@@ -30,10 +30,12 @@ public sealed class ToolWindow : Window
             ToolKind.Ruler => 440,
             ToolKind.Snippets => 480,
             ToolKind.ScreenText => 520,
+            ToolKind.Compare => 1180,
+            ToolKind.Duplicates => 900,
             _ => 640,
         };
         MinWidth = 340;
-        // A tool that shows a web page fills a window of its own size; the others are as tall as what is in them.
+        // A tool that needs room fills a window of its own size; the others are as tall as what is in them.
         if (Fills)
         {
             Height = 800;
@@ -60,6 +62,8 @@ public sealed class ToolWindow : Window
             ToolKind.Ruler => new RulerView(),
             ToolKind.Snippets => new SnippetsView(),
             ToolKind.ScreenText => new ScreenTextView(),
+            ToolKind.Compare => new CompareView(),
+            ToolKind.Duplicates => new DuplicatesView(),
             _ => new ImagesView(),
         };
         view.Margin = new Thickness(18, 16);
@@ -72,8 +76,8 @@ public sealed class ToolWindow : Window
     /// <summary>The tool's own screen inside the window.</summary>
     public Control View { get; }
 
-    /// <summary>True for a tool that shows a web page: it fills a big window that stands on its own.</summary>
-    public bool Fills => Kind == ToolKind.PageCapture;
+    /// <summary>True for a tool that needs room (a web page, two files side by side, a long list): it fills a big window that stands on its own.</summary>
+    public bool Fills => Kind is ToolKind.PageCapture or ToolKind.Compare or ToolKind.Duplicates;
 
     public ToolsViewModel Tools { get; }
 
@@ -90,6 +94,8 @@ public sealed class ToolWindow : Window
         ToolKind.Ruler => "Screen ruler",
         ToolKind.Snippets => "Text snippets",
         ToolKind.ScreenText => "Text from the screen",
+        ToolKind.Compare => "Compare",
+        ToolKind.Duplicates => "Duplicate files",
         _ => "Website images",
     };
 }

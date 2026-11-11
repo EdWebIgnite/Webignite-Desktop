@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.CompareView"
+             x:DataType="vm:ToolsViewModel">
+  <UserControl.Styles>
+    <Style Selector="ListBox.rows">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox.rows ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="ListBox.rows ListBoxItem /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="TextBlock.code">
+      <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12x5}" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
+    <Style Selector="TextBlock.number">
+      <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+      <Setter Property="FontSize" Value="{DynamicResource Text11}" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="TextAlignment" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.muted.strong">
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <!-- The left side's own lines are tinted one colour and the right side's another; neither is red or green. -->
+    <Style Selector="Border.left.differs">
+      <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
+    </Style>
+    <Style Selector="Border.right.differs">
+      <Setter Property="Background" Value="{DynamicResource QuoteSoft}" />
+    </Style>
+  </UserControl.Styles>
+  <DockPanel>
+    <!-- The two sides -->
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto">
+      <TextBlock Grid.Column="0" Classes="label" Text="Left" />
+      <TextBlock Grid.Column="2" Classes="label" Text="Right" />
+      <DockPanel Grid.Row="1" Grid.Column="0">
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="Folder…" Margin="6,0,0,0" Click="BrowseLeftFolder" />
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="File…" Margin="6,0,0,0" Click="BrowseLeftFile" />
+        <TextBox Text="{Binding CompareLeft}" PlaceholderText="A file or a folder" />
+      </DockPanel>
+      <Button Grid.Row="1" Grid.Column="1" Classes="quiet" Content="⇄" Margin="8,0" Command="{Binding SwapCompareCommand}" ToolTip.Tip="Swap the two sides" />
+      <DockPanel Grid.Row="1" Grid.Column="2">
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="Folder…" Margin="6,0,0,0" Click="BrowseRightFolder" />
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="File…" Margin="6,0,0,0" Click="BrowseRightFile" />
+        <TextBox Text="{Binding CompareRight}" PlaceholderText="The file or folder to compare it with" />
+      </DockPanel>
+    </Grid>
+
+    <DockPanel DockPanel.Dock="Top" Margin="0,10,0,8">
+      <Button DockPanel.Dock="Left" Classes="primary" Content="Compare" Command="{Binding RunCompareCommand}" IsDefault="True" />
+      <Button DockPanel.Dock="Left" Classes="quiet" Content="Back to the folders" Margin="8,0,0,0" Command="{Binding BackToFoldersCommand}"
+              IsVisible="{Binding CanGoBackToFolders}" />
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" IsVisible="{Binding HasCompareRows}">
+        <CheckBox Content="Only what differs" IsChecked="{Binding CompareOnlyChanges}" />
+        <CheckBox Content="Ignore spaces at the ends of lines" IsChecked="{Binding CompareIgnoreSpaces}" />
+      </StackPanel>
+      <TextBlock Classes="muted" Classes.problem="{Binding CompareProblem}" Text="{Binding CompareSummary}" Margin="12,0" VerticalAlignment="Center"
+                 TextTrimming="CharacterEllipsis" />
+    </DockPanel>
+
+    <Panel>
+      <!-- Two files, line by line -->
+      <ListBox Classes="rows" ItemsSource="{Binding CompareRows}" IsVisible="{Binding HasCompareRows}"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:DiffRowView">
+            <Panel MinWidth="{Binding $parent[UserControl].((vm:ToolsViewModel)DataContext).CompareWidth}">
+              <Grid ColumnDefinitions="44,12,*,44,12,*" IsVisible="{Binding IsLine}">
+                <TextBlock Grid.Column="0" Classes="number" Text="{Binding LeftNumber}" />
+                <Border Grid.Column="1" Grid.ColumnSpan="2" Classes="left" Classes.differs="{Binding LeftDiffers}" Margin="6,0,0,0" />
+                <TextBlock Grid.Column="1" Classes="number" Text="{Binding LeftMark}" Margin="6,0,0,0" TextAlignment="Center" />
+                <TextBlock Grid.Column="2" Classes="code" Text="{Binding Left}" Margin="4,1,8,1" />
+                <TextBlock Grid.Column="3" Classes="number" Text="{Binding RightNumber}" />
+                <Border Grid.Column="4" Grid.ColumnSpan="2" Classes="right" Classes.differs="{Binding RightDiffers}" Margin="6,0,0,0" />
+                <TextBlock Grid.Column="4" Classes="number" Text="{Binding RightMark}" Margin="6,0,0,0" TextAlignment="Center" />
+                <TextBlock Grid.Column="5" Classes="code" Text="{Binding Right}" Margin="4,1,8,1" />
+              </Grid>
+              <Border Background="{DynamicResource Surface2}" Padding="0,3" IsVisible="{Binding IsSkipped}">
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding SkippedWords}" Margin="56,0,0,0" />
+              </Border>
+            </Panel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <!-- Two folders, file by file -->
+      <ListBox Classes="rows" ItemsSource="{Binding CompareFolderRows}" IsVisible="{Binding HasCompareFolderRows}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:FolderRowView">
+            <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="12,6">
+              <Grid ColumnDefinitions="*,150,90,90,150">
+                <TextBlock Grid.Column="0" Text="{Binding Path}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="muted" Classes.strong="{Binding Differs}" Text="{Binding Words}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding LeftSize}" VerticalAlignment="Center" TextAlignment="Right" />
+                <TextBlock Grid.Column="3" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding RightSize}" VerticalAlignment="Center" TextAlignment="Right" />
+                <Button Grid.Column="4" Classes="quiet" Content="See what differs" Padding="10,3" Margin="12,0,0,0" Command="{Binding CompareCommand}"
+                        HorizontalAlignment="Right" IsVisible="{Binding CanCompare}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
+  </DockPanel>
+</UserControl>

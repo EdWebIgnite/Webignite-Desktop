@@ -58,6 +58,9 @@ public partial class MainWindow
 
     private void WireTools(AppServices services)
     {
+        services.Go.CompareAction = (left, right) => ShowTool(ToolKind.Compare, services).Tools.StartCompare(left, right);
+        services.Go.DuplicatesAction = folder => ShowTool(ToolKind.Duplicates, services).Tools.StartDuplicates(folder);
+        services.Go.MainToFrontAction = Activate;
         services.ApplySnippetShortcut = () => ApplySnippetShortcut(services);
         Opened += (_, _) =>
         {
