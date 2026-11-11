@@ -21,17 +21,19 @@ public static partial class ChatGptTunnel
     /// <summary>Where the running tunnel answers on this PC, for checking it's connected.</summary>
     public const string HealthAddress = "127.0.0.1:47121";
 
-    [GeneratedRegex("^tunnel_([a-z0-9]{4}_)?[a-z0-9]{32}$")]
+    // Found anywhere in what was pasted: a copy from a web page can bring invisible characters, or words, along with it.
+    [GeneratedRegex("tunnel_(?:[a-z0-9]{4}_)?[a-z0-9]{32}(?![a-z0-9])", RegexOptions.IgnoreCase)]
     private static partial Regex TunnelIdPattern();
 
     /// <summary>The tunnel id as typed, trimmed, or a reason it isn't one ("tunnel_" and 32 small letters or digits, as OpenAI shows it).</summary>
     public static (string? Id, string? Problem) TunnelId(string? typed)
     {
-        var id = (typed ?? "").Trim();
+        // Invisible characters a copy can bring (zero-width spaces, a byte-order mark) are taken out first.
+        var id = new string((typed ?? "").Where(c => !char.IsWhiteSpace(c) && char.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.Format).ToArray());
         if (id.Length == 0)
             return (null, "Paste the tunnel's ID from OpenAI's Tunnels page. It starts with tunnel_.");
-        return TunnelIdPattern().IsMatch(id)
-            ? (id, null)
+        return TunnelIdPattern().Match(id) is { Success: true } found
+            ? (found.Value.ToLowerInvariant(), null)
             : (null, "That isn't a tunnel ID. Copy it again from OpenAI's Tunnels page: it starts with tunnel_ and has 32 letters and digits after it.");
     }
 
