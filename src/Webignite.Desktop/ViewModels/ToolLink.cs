@@ -14,6 +14,7 @@ public enum ToolKind
     Images,
     WebHelpers,
     Dns,
+    PageCapture,
 }
 
 /// <summary>

@@ -286,6 +286,7 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Qr, "QR code", "Qr"),
             new ToolLink(ToolKind.WebHelpers, "Web helpers", "Code"),
             new ToolLink(ToolKind.Dns, "DNS records", "Dns"),
+            new ToolLink(ToolKind.PageCapture, "Page to PDF or picture", "PageCapture"),
             new NavGroup("end", ""),
             new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings", readingWidth: true),
         ];

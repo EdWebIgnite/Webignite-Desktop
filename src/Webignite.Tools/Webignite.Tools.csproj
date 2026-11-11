@@ -6,6 +6,8 @@
   -->
   <PropertyGroup>
     <RootNamespace>Webignite.Tools</RootNamespace>
+    <!-- The WebView2 wrapper comes with a 600 KB file of notes for programmers; it isn't shipped. -->
+    <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
@@ -13,6 +15,12 @@
     <PackageReference Include="bblanchon.PDFium.Win32" />
     <PackageReference Include="bblanchon.PDFium.Linux" />
     <PackageReference Include="QRCoder" />
+    <!-- Only the wrapper (Microsoft.Web.WebView2.Core.dll) and its small loader are wanted. The package's own build
+         files would also pull in its WPF and WinForms controls, so they are left out and the wrapper is named below. -->
+    <PackageReference Include="Microsoft.Web.WebView2" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive;compile" PrivateAssets="build;buildTransitive;contentfiles;analyzers" />
+    <Reference Include="Microsoft.Web.WebView2.Core">
+      <HintPath>$(PkgMicrosoft_Web_WebView2)\lib_manual\netcoreapp3.0\Microsoft.Web.WebView2.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Webignite.Core\Webignite.Core.csproj" />

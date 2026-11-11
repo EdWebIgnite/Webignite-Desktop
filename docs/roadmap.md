@@ -8,11 +8,11 @@ The app has no browser engine of its own, to stay small and light on memory. Web
 
 - It uses the WebView2 that Windows already has and keeps up to date. None is shipped with the app. A PC without it is told so, with where to get it, and the rest of the app carries on.
 - It starts when one of those tools' windows opens and is shut down when the window closes. While open it costs roughly 200 to 400 MB in its own `msedgewebview2.exe` processes; closed, nothing.
-- Nothing at start-up touches it. `tools/Measure` should check that no WebView2 process is left after a tool closes.
+- Nothing at start-up touches it. `WebView2Tests` checks on Windows that no WebView2 process is left after it is closed (`tools/Measure` runs on Linux, where there is no WebView2).
 - Mail keeps its own light renderer. Nothing outside the web tools uses WebView2.
 - WebView2 is Windows only, so `tools/Snapshot` (which runs on Linux) needs a stand-in, as `IVideoTools` is for video.
 
-Still to check before building: the best way to host WebView2 in Avalonia 12.
+How it is hosted (built in step 4): Microsoft's own small wrapper (`Microsoft.Web.WebView2`, only its `Core` library and loader, under 1 MB) drawing in a plain pane of the tool's window. A tool asks `services.NewBrowser()` for an `IWebEngine` and disposes it when its window closes; see Page to PDF or picture in [architecture.md](architecture.md). Avalonia's own `Avalonia.Controls.WebView` was looked at and left: it is free now, but the tools need the browser's developer tools (whole-page pictures, pretending to be a phone), which Microsoft's wrapper gives directly.
 
 ## Agreed, to build
 
@@ -32,8 +32,6 @@ Each is a tool the person opens and uses. Rules go in `Webignite.Core` with test
 
 ### Websites, drawn by WebView2
 
-- **Save a web page as a PDF.**
-- **Website screenshots.** A page at set widths (phone, tablet, desktop), the whole page top to bottom included, saved to the client's folder or opened in Mark-up.
 - **Responsive preview.** A live page that can be scrolled and clicked, at any width.
 - **Phone simulator.** The same preview as a named phone or tablet: its screen size, pixel density, touch and the address it tells sites it is, turned upright or sideways, as browser device toolbars do. It is still Edge's engine pretending, so a fault that only Safari on a real iPhone has won't show.
   - A range of devices to pick from, kept as a list in Core so one is added in a line: iPhones (a small older one such as the SE, the standard size of the last few years, and the largest Pro Max), Samsungs (a recent S, a large Ultra, a mid-range A and a 360-wide budget Android, which many South African visitors use, plus a fold), a Pixel, iPads (Mini, Air, the large Pro) and an Android tablet, then a laptop and a desktop. A box takes any other size. The exact sizes are looked up when it is built.
@@ -52,7 +50,7 @@ Web first, as that is most of the work; branding last. Each step is its own PR.
 1. ~~Small web tools~~ Built: Web helpers, under Web tools.
 2. ~~DNS and mail record tool~~ Built: DNS records, under Web tools.
 3. ~~Site crawler, reading HTML only~~ Built: Site crawler, under Web tools.
-4. **WebView2 groundwork, with Save a web page as a PDF and Website screenshots.** The simplest uses, to prove it starts with the tool, stops with it, and leaves nothing behind.
+4. ~~WebView2 groundwork, with Save a web page as a PDF and Website screenshots~~ Built: Page to PDF or picture, under Web tools.
 5. **Responsive preview and Phone simulator.** One window, on top of step 4.
 6. **Site crawler for sites that need JavaScript.** Needs step 4.
 7. **Screen ruler.** Reuses the colour picker's frozen screen.

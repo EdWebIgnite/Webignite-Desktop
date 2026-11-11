@@ -7,6 +7,8 @@
     <!-- PDFium, the PDF library (not a browser), called directly from Webignite.Tools/Pdfium.cs. Linux is for tests and screenshots. -->
     <PackageVersion Include="bblanchon.PDFium.Win32" Version="159.0.8138" />
     <PackageVersion Include="bblanchon.PDFium.Linux" Version="159.0.8138" />
+    <!-- Talks to the WebView2 that Windows already has; no browser is shipped. Only the web tools use it (docs/roadmap.md). -->
+    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
     <PackageVersion Include="Velopack" Version="1.2.161" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.5" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.5" />

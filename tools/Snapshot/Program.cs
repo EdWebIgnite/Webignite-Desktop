@@ -28,7 +28,14 @@ var noDns = new Webignite.Services.DnsClient(
     (_, _, _) => Task.FromException<byte[]>(new System.Net.Sockets.SocketException()));
 // Nor does the site crawler: its client answers every address with "no such server".
 var noWeb = new Webignite.Services.SiteCrawler(new HttpClient(new NoWeb()));
-var services = new AppServices(store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey, Dns = noDns, Crawler = noWeb };
+// WebView2 is Windows only, so the web tools get a stand-in browser here, or none at all to see what they say then.
+var browserThere = false;
+StandInBrowser? standInBrowser = null;
+var services = new AppServices(store)
+{
+    TokenStore = new MemoryTokenStore(), VaultKeySource = () => snapshotKey, Dns = noDns, Crawler = noWeb,
+    NewBrowser = () => browserThere ? standInBrowser = new StandInBrowser() : null,
+};
 services.Settings.Backups = new Webignite.Core.Backups.BackupSettings { Folder = Path.Combine(data, "OneDrive", "Webignite backups") };
 // Client folders as on Eddie's PC (C:\Projects), with a few files in them, for Files and the client pages.
 var projects = Path.Combine(data, "Projects");
@@ -1931,7 +1938,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2029,6 +2036,54 @@ Check("The DMARC record starts by watching, with where reports go", dns.DmarcRec
 Check("What the domain has now is shown, with what's missing marked", dns.MailNow.Count == 2 && dns.MailNow[1].Problem && dns.DkimHost == "default._domainkey");
 SaveWindow(dnsWindow, "tools-dns-mail");
 dnsWindow.Close();
+// Page to PDF or picture, first on a PC with no browser to draw with, then with the stand-in.
+var noBrowserWindow = window.ShowTool(ToolKind.PageCapture, services);
+Check("Without a browser the page tool says why and offers nothing to save",
+    noBrowserWindow.Tools.CaptureWithout.Contains("WebView2", StringComparison.Ordinal) && !noBrowserWindow.Tools.HasCaptureView
+    && !noBrowserWindow.Tools.SavePagePdfCommand.CanExecute(null));
+SaveWindow(noBrowserWindow, "tools-page-capture-none");
+noBrowserWindow.Close();
+browserThere = true;
+var captureWindow = window.ShowTool(ToolKind.PageCapture, services);
+var capture = captureWindow.Tools;
+Check("The browser starts when the page tool's window opens, and not before", Until(() => standInBrowser is { Started: true } && capture.HasCaptureView));
+Check("Nothing can be saved before a page is open", !capture.SavePagePdfCommand.CanExecute(null) && !capture.SavePagePicturesCommand.CanExecute(null));
+capture.CaptureAddress = "karoo coffee";
+capture.OpenCapturePageCommand.Execute(null);
+Check("Something that isn't an address is said to be so", capture.CaptureProblem && capture.CaptureNote.StartsWith("That isn't a web address", StringComparison.Ordinal));
+capture.CaptureAddress = "nothere.karoocoffee.co.za";
+capture.OpenCapturePageCommand.Execute(null);
+Check("A page that doesn't open says why and can't be saved",
+    capture.CaptureProblem && capture.CaptureNote.StartsWith("There is no site at that address", StringComparison.Ordinal) && !capture.CaptureReady);
+capture.CaptureAddress = "karoocoffee.co.za/menu";
+capture.OpenCapturePageCommand.Execute(null);
+Check("An open page shows its title and full address, and can be saved",
+    capture.CaptureNote == "Menu | Karoo Coffee" && capture.CaptureAddress == "https://karoocoffee.co.za/menu" && !capture.CaptureProblem
+    && capture.SavePagePdfCommand.CanExecute(null) && capture.SavePagePicturesCommand.CanExecute(null));
+SaveWindow(captureWindow, "tools-page-capture");
+{
+    var saved = Path.Combine(data, "page-capture");
+    Directory.CreateDirectory(saved);
+    Wait(capture.SavePagePicturesToAsync(saved), "The pictures were taken");
+    Check("A picture is saved for each ticked screen, named after the page",
+        File.Exists(Path.Combine(saved, "karoocoffee-co-za-menu-phone-390.png")) && File.Exists(Path.Combine(saved, "karoocoffee-co-za-menu-desktop-1920.png"))
+        && Directory.GetFiles(saved).Length == 2 && capture.CaptureNote == "2 pictures saved." && capture.HasCaptured && capture.CaptureReady);
+    Check("Each picture was taken at its own width, the whole page, and the browser put back after",
+        standInBrowser!.Calls.Count(c => c == "Page.captureScreenshot") == 2 && standInBrowser.Calls[^1] == "Emulation.clearDeviceMetricsOverride"
+        && standInBrowser.Asked.Any(a => a.Contains("\"width\":390", StringComparison.Ordinal) && a.Contains("\"height\":2400", StringComparison.Ordinal)));
+    Wait(capture.SavePagePicturesToAsync(saved), "The pictures were taken again");
+    Check("Saving again keeps the first pictures", Directory.GetFiles(saved).Length == 4 && File.Exists(Path.Combine(saved, "karoocoffee-co-za-menu-phone-390 (2).png")));
+    capture.PdfSideways = true;
+    Wait(capture.SavePagePdfToAsync(Path.Combine(saved, "menu.pdf")), "The PDF was made");
+    Check("The page is saved as a PDF with the paper chosen",
+        File.Exists(Path.Combine(saved, "menu.pdf")) && capture.CaptureNote == "Saved as menu.pdf." && standInBrowser.Pdf is { Paper: Webignite.Core.Web.PaperSize.A4, Sideways: true, Backgrounds: true });
+    SaveWindow(captureWindow, "tools-page-capture-saved");
+    standInBrowser.FailNext = true;
+    Wait(capture.SavePagePdfToAsync(Path.Combine(saved, "again.pdf")), "The PDF was tried");
+    Check("When the browser can't, the tool says so and carries on", capture.CaptureProblem && capture.CaptureNote.StartsWith("That didn't work", StringComparison.Ordinal) && capture.CaptureReady);
+}
+captureWindow.Close();
+Check("Closing the page tool's window shuts its browser down", standInBrowser!.Disposed && !capture.HasCaptureView);
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
 SaveWindow(passwordWindow, "tools-passwords");
 passwordWindow.Close();
@@ -4332,6 +4387,79 @@ sealed class StandInSpelling : Webignite.Core.Writing.ISpelling
     }
 
     public void Ignore(string word) => Add(word);
+}
+
+/// <summary>A browser that opens nothing: it says a page opened, hands back a small picture, and notes what it was asked.</summary>
+sealed class StandInBrowser : Webignite.Desktop.Web.IWebEngine
+{
+    // The smallest PNG there is: one clear pixel.
+    private const string Pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+    public StandInBrowser() => View = new Avalonia.Controls.Border
+    {
+        Background = Avalonia.Media.Brushes.White,
+        Child = new Avalonia.Controls.StackPanel
+        {
+            Margin = new Avalonia.Thickness(40, 32), Spacing = 14,
+            Children =
+            {
+                new Avalonia.Controls.TextBlock { Text = "Karoo Coffee", FontSize = 30, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.Black },
+                new Avalonia.Controls.TextBlock { Text = "Menu", FontSize = 20, Foreground = Avalonia.Media.Brushes.Black },
+                new Avalonia.Controls.TextBlock { Text = "(The page itself is drawn here by WebView2 on Windows. This is a stand-in for the screenshot tool.)", Foreground = Avalonia.Media.Brushes.Gray },
+            },
+        },
+    };
+
+    public Avalonia.Controls.Control View { get; }
+    public bool Started { get; private set; }
+    public bool Disposed { get; private set; }
+    public bool FailNext { get; set; }
+    public List<string> Calls { get; } = [];
+    public List<string> Asked { get; } = [];
+    public Webignite.Core.Web.PdfChoices? Pdf { get; private set; }
+
+    public event Action<Uri>? Loading;
+    public event Action<Webignite.Core.Web.PageOpened>? Opened;
+
+    public Task StartAsync()
+    {
+        Started = true;
+        return Task.CompletedTask;
+    }
+
+    public void Open(Uri address)
+    {
+        Loading?.Invoke(address);
+        var there = !address.Host.StartsWith("nothere.", StringComparison.Ordinal);
+        Opened?.Invoke(new Webignite.Core.Web.PageOpened(address, there, there ? 200 : 0, there ? "Menu | Karoo Coffee" : "",
+            there ? "" : Webignite.Core.Web.PageCapture.Problem(0, "HostNameNotResolved")));
+    }
+
+    public Task<string> DevToolsAsync(string method, string parametersJson)
+    {
+        Calls.Add(method);
+        Asked.Add(parametersJson);
+        return Task.FromResult(method switch
+        {
+            "Runtime.evaluate" => """{"result":{"type":"number","value":2400}}""",
+            "Page.captureScreenshot" => "{\"data\":\"" + Pixel + "\"}",
+            _ => "{}",
+        });
+    }
+
+    public Task<bool> SavePdfAsync(string path, Webignite.Core.Web.PdfChoices choices)
+    {
+        if (FailNext)
+        {
+            FailNext = false;
+            return Task.FromResult(false);
+        }
+        Pdf = choices;
+        File.WriteAllText(path, "%PDF-1.4");
+        return Task.FromResult(true);
+    }
+
+    public void Dispose() => Disposed = true;
 }
 
 sealed class StandInVideo(SkiaSharp.SKBitmap picture) : IVideoTools

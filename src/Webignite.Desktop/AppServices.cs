@@ -57,6 +57,13 @@ public sealed class AppServices : IDisposable
     /// <summary>Walks a website for the Site crawler page.</summary>
     public SiteCrawler Crawler { get; init; } = SiteCrawler.Default;
 
+    /// <summary>
+    /// A browser for a web tool's window, or null where there is none (anything but Windows). Each call makes a new
+    /// one; the tool that asked disposes it when its window closes. Nothing of it exists until a tool asks.
+    /// </summary>
+    public Func<Web.IWebEngine?> NewBrowser { get; init; } = () =>
+        OperatingSystem.IsWindows() ? new Web.WebView2Engine(Path.Combine(Webignite.Data.DataPaths.Root(), "browser")) : null;
+
     /// <summary>DNS lookups for the DNS records tool.</summary>
     public DnsClient Dns { get; init; } = DnsClient.Default;
 
