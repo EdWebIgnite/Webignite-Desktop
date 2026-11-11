@@ -12,7 +12,7 @@ public enum LookStyle
     /// <summary>The look the app has always had. Nothing is laid over it.</summary>
     Classic,
 
-    /// <summary>More room, a white page, flat cards and soft filled boxes.</summary>
+    /// <summary>More room, flat cards and soft filled boxes, on the same soft page as Classic.</summary>
     Airy,
 }
 
@@ -30,14 +30,14 @@ public enum SidebarTone
 /// have the say over the app's. Every rule in those files starts with Window.look-{style}, and each window carries
 /// that class only while the style is picked, so going back to Classic switches the rules off by themselves, on
 /// parts already on screen too (taking a style's file away again doesn't reach the insides of controls that are
-/// already drawn). Which palette colour goes where can change too (Airy's page takes the cards' white; a light
-/// sidebar takes the page's colours), but every colour still comes from the palette in use.
+/// already drawn). Which palette colour goes where can change too (a light sidebar takes the
+/// cards' colours), but every colour still comes from the palette in use.
 /// </summary>
 public static class Looks
 {
     private const string Folder = "/Styles/Looks/";
 
-    private static readonly string[] SwappedKeys = ["Canvas", "Nav", "NavHover", "NavSelected", "NavText", "NavMuted"];
+    private static readonly string[] SwappedKeys = ["Nav", "NavHover", "NavSelected", "NavText", "NavMuted"];
 
     // The small text sizes of Styles/Sizes.axaml, by name, and what Airy makes them: a size up, as small grey
     // text is what tires the eyes.
@@ -122,19 +122,12 @@ public static class Looks
             else
                 app.Resources.Remove(key);
         }
-        // Read before anything is swapped, so these are the palette's own.
-        var canvas = Find("Canvas");
-        var surface = Find("Surface");
-        // Airy's page is white: everything that takes the page's colour (the window, list panes, the tab on
-        // screen) takes the cards' white, and the grey the page had goes to the light sidebar.
-        var whitePage = settings.Style == LookStyle.Airy;
-        if (whitePage)
-            Set("Canvas", surface);
         if (settings.Sidebar != SidebarTone.Light)
             return;
-        Set("Nav", whitePage ? canvas : surface);
-        Set("NavHover", Find(whitePage ? "Line" : "TableHead"));
-        Set("NavSelected", whitePage ? surface : Find("Line"));
+        // A light sidebar is the white of the cards, beside the page's soft grey.
+        Set("Nav", Find("Surface"));
+        Set("NavHover", Find("TableHead"));
+        Set("NavSelected", Find("Line"));
         Set("NavText", Find("Ink"));
         Set("NavMuted", Find("Muted"));
 

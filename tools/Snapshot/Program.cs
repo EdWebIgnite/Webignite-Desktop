@@ -209,7 +209,7 @@ void SaveLooks(string name)
     Check($"After trying the other styles on {name}, Classic is back with nothing of them switched on",
         was.Style != LookStyle.Classic || was.Sidebar != SidebarTone.Dark
         || Looks.Style == LookStyle.Classic && !window.Classes.Any(c => c.StartsWith("look-", StringComparison.Ordinal))
-            && !Application.Current!.Resources.ContainsKey("Nav") && !Application.Current.Resources.ContainsKey("Canvas")
+            && !Application.Current!.Resources.ContainsKey("Nav")
             && !Application.Current.Resources.ContainsKey("Text12"));
     // Parts that were on screen while another style was on must have their own shape again, not only new ones.
     Check($"After trying the other styles on {name}, no card or list row on screen has a shape it didn't have before",

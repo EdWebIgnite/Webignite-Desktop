@@ -1,12 +1,8 @@
 <!-- Chat in the Airy style, laid over the styles in ChatView.axaml (see Looks.cs). -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- On Airy's white page the other person's bubbles are softly filled, so they still stand off the page. -->
+  <!-- Bubbles sit flat on the page, like the cards. -->
   <Style Selector="Window.look-airy Border.bubble">
-    <Setter Property="Background" Value="{DynamicResource Surface2}" />
     <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
-  </Style>
-  <Style Selector="Window.look-airy Border.bubble.mine">
-    <Setter Property="Background" Value="{DynamicResource InvoiceSoft}" />
   </Style>
 </Styles>

@@ -131,7 +131,7 @@
           </StackPanel>
         </Border>
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
-                   Text="The shape of the app: spacing, corners and edges. Classic is the look Webignite has always had. Airy gives everything more room on a white page, with flat cards and soft boxes. Any style goes with any colours below." />
+                   Text="The shape of the app: spacing, corners and edges. Classic is the look Webignite has always had. Airy gives everything more room, with flat cards, soft boxes and slightly larger small text. Any style goes with any colours below." />
         <TextBlock Classes="label" Text="Sidebar" />
         <Border Classes="segments" HorizontalAlignment="Left">
           <StackPanel Orientation="Horizontal">
@@ -140,7 +140,7 @@
           </StackPanel>
         </Border>
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
-                   Text="Light gives the sidebar the page's own colours, in whichever look is picked." />
+                   Text="Light makes the sidebar white, like the cards, in whichever look is picked." />
       </StackPanel>
     </Border>
 
