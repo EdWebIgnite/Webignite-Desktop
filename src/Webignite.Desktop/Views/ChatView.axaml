@@ -35,6 +35,27 @@
     </Style>
   </UserControl.Styles>
   <DockPanel>
+    <!-- Who's there: my partner's status, and mine to pick (Busy keeps pop-ups and sounds away). -->
+    <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="12,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding MyShown, Converter={x:Static c:PresenceColours.Brush}}" />
+          <TextBlock Classes="muted" FontSize="12" Text="Me:" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding StatusChoices}" SelectedItem="{Binding MyStatus}" MinWidth="110" FontSize="12"
+                    ToolTip.Tip="Away shows by itself after 10 minutes without using the PC. Busy means no pop-ups or sounds.">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Converter={x:Static c:PresenceColours.Word}}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{Binding PartnerShown, Converter={x:Static c:PresenceColours.Brush}}" />
+          <TextBlock Text="{Binding PartnerStatusText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
     <!-- Writing: files waiting to go, the words, Attach and Send -->
     <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,10">
       <StackPanel Spacing="8">

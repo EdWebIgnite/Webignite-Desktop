@@ -26,11 +26,14 @@ public static class SyncKinds
     public const string Chat = "chat";
     public const string ChatPart = "chatpart";
 
+    /// <summary>Each person's chat status (Available, Busy, Away), sent with every sync while Webignite is open.</summary>
+    public const string Presence = "presence";
+
     /// <summary>Settings that belong to the business rather than the PC (<see cref="SharedSettings"/>).</summary>
     public const string Setting = "setting";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
-        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact, Chat, ChatPart, Setting };
+        { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact, Chat, ChatPart, Setting, Presence };
 }
 
 /// <summary>

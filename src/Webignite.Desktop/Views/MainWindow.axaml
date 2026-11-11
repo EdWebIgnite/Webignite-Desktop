@@ -57,9 +57,11 @@
           </Button>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,8,0,0">
-          <Button Classes="navtoggle" HorizontalAlignment="Center" Command="{Binding OpenChatCommand}" ToolTip.Tip="Chat with your partner">
+          <Button Classes="navtoggle" HorizontalAlignment="Center" Command="{Binding OpenChatCommand}" ToolTip.Tip="{Binding ChatPartnerTip}">
             <Panel>
               <c:Icon Data="{StaticResource Icon.Chat}" Size="18" Foreground="{DynamicResource NavText}" />
+              <Ellipse Width="8" Height="8" Fill="{Binding ChatPartnerShown, Converter={x:Static c:PresenceColours.Brush}}"
+                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-3" />
               <Border Classes="badge" IsVisible="{Binding HasChatUnread}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-10,0">
                 <TextBlock Text="{Binding ChatUnread}" FontSize="10" FontWeight="SemiBold" />
               </Border>
@@ -151,11 +153,14 @@
 
         <StackPanel DockPanel.Dock="Bottom" Margin="6,8,6,0" Spacing="6">
           <!-- Chat with your partner, in a small window; the count is messages not read yet. -->
-          <Button Classes="navsearch" HorizontalAlignment="Stretch" Command="{Binding OpenChatCommand}" ToolTip.Tip="Chat with your partner">
+          <Button Classes="navsearch" HorizontalAlignment="Stretch" Command="{Binding OpenChatCommand}" ToolTip.Tip="{Binding ChatPartnerTip}">
             <DockPanel>
               <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasChatUnread}" VerticalAlignment="Center">
                 <TextBlock Text="{Binding ChatUnread}" FontSize="10" FontWeight="SemiBold" />
               </Border>
+              <!-- My partner's status: teal available, yellow away, busy, grey offline. -->
+              <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
+                       Fill="{Binding ChatPartnerShown, Converter={x:Static c:PresenceColours.Brush}}" />
               <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Chat}" Size="16" Foreground="{DynamicResource NavText}" Margin="0,0,10,0" VerticalAlignment="Center" />
               <TextBlock Text="Chat" Foreground="{DynamicResource NavText}" VerticalAlignment="Center" />
             </DockPanel>

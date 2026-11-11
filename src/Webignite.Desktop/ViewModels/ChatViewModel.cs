@@ -26,6 +26,39 @@ public sealed partial class ChatViewModel(AppServices services) : ViewModelBase,
 
     public string Title => $"Chat with {services.Chat.PartnerName}";
 
+    /// <summary>The statuses I can pick, and the one picked: Busy keeps pop-ups and sounds away.</summary>
+    public IReadOnlyList<PresenceState> StatusChoices => PresenceRules.Choices;
+
+    public PresenceState MyStatus
+    {
+        get => services.Chat.Chosen;
+        set
+        {
+            if (value == services.Chat.Chosen)
+                return;
+            services.Chat.Chosen = value;
+            OnPropertyChanged();
+            ShowPresence();
+            services.SyncNowAsync().Forget("Telling your partner your status");
+        }
+    }
+
+    /// <summary>What I show as now (Away after 10 minutes without using the PC, unless picked otherwise).</summary>
+    public PresenceState MyShown => services.Chat.MyShown;
+
+    /// <summary>What my partner shows as now, and in words: "Jaco is away".</summary>
+    public PresenceState PartnerShown => services.Chat.PartnerShown;
+
+    public string PartnerStatusText => $"{services.Chat.PartnerName} is {PresenceRules.Word(PartnerShown).ToLowerInvariant()}";
+
+    /// <summary>Statuses read again, after a sync or a pick.</summary>
+    public void ShowPresence()
+    {
+        OnPropertyChanged(nameof(MyShown));
+        OnPropertyChanged(nameof(PartnerShown));
+        OnPropertyChanged(nameof(PartnerStatusText));
+    }
+
     public bool IsEmpty => Messages.Count == 0;
 
     public bool HasPending => Pending.Count > 0;

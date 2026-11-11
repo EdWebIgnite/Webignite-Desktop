@@ -1922,7 +1922,11 @@ Check("Closing the window stops it following the history and lets the pictures g
     services.Store.SaveChatMessage(new Webignite.Core.Chat.ChatMessage { Id = "snap-chat-2", From = me, Text = "Yes, he likes it. Just wants the prices bigger. This is how it looks now:", Files = [shotFile], Sent = chatStart.AddMinutes(4) });
     services.Store.SaveChatMessage(new Webignite.Core.Chat.ChatMessage { Id = "snap-chat-3", From = partnerId, Text = "Looks good. Here's the quote for the extra pages, can you approve it when you're happy?", Files = [pdfFile], Sent = chatStart.AddMinutes(9) });
     services.Secrets.Write("webignite-sync-refresh", "snapshot");
+    // Jaco's PC synced a moment ago and he's been using it: he shows Available.
+    services.Chat.TakeIn(new Webignite.Core.Chat.Presence(partnerId, Webignite.Core.Chat.PresenceState.Available, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
     var chatWindow = window.ShowChat(services);
+    Check("The chat shows my partner's status and lets me pick mine", chatWindow.Chat.PartnerShown == Webignite.Core.Chat.PresenceState.Available
+        && chatWindow.Chat.PartnerStatusText == "Jaco is available" && chatWindow.Chat.StatusChoices.Count == 3);
     Check("The chat shows both of you, the screenshot as a picture and the file to open",
         chatWindow.Chat.Messages.Count == 3 && chatWindow.Chat.CanChat && chatWindow.Chat.Messages[1].Files.Single().Picture is not null
         && chatWindow.Chat.Messages[2].Files.Single().Picture is null && chatWindow.Chat.Title == "Chat with Jaco");
@@ -1938,6 +1942,11 @@ Check("Closing the window stops it following the history and lets the pictures g
     chatWindow.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
     Dispatcher.UIThread.RunJobs();
     Check("Enter in the box sends the message", chatWindow.Chat.Messages.Count == 4 && chatWindow.Chat.Draft.Length == 0);
+    // A new message while the chat isn't in front: a pop-up in the corner of the screen.
+    var popUp = new ChatPopUp(() => { });
+    popUp.Say("Jaco", "Looks good. Here's the quote for the extra pages, can you approve it when you're happy?");
+    SaveWindow(popUp, "chat-pop-up");
+    popUp.Close();
     chatWindow.Close();
     services.Secrets.Delete("webignite-sync-refresh");
 }

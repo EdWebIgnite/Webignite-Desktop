@@ -52,4 +52,19 @@ public sealed class ChatTests
         Assert.Equal("4 Nov at 09:30", ChatRules.When(new DateTimeOffset(2026, 11, 4, 9, 30, 0, TimeSpan.Zero), now, TimeZoneInfo.Utc, culture));
         Assert.Equal("4 Nov 2025 at 09:30", ChatRules.When(new DateTimeOffset(2025, 11, 4, 9, 30, 0, TimeSpan.Zero), now, TimeZoneInfo.Utc, culture));
     }
+
+    [Fact]
+    public void A_status_shows_as_picked_away_after_ten_quiet_minutes_and_offline_once_the_pc_stops_syncing()
+    {
+        var now = new DateTimeOffset(2026, 11, 11, 9, 0, 0, TimeSpan.Zero);
+        var here = new Presence("jaco", PresenceState.Available, now.AddSeconds(-30), now.AddMinutes(-2));
+        Assert.Equal(PresenceState.Available, PresenceRules.Shown(here, now));
+        Assert.Equal(PresenceState.Away, PresenceRules.Shown(here with { LastActive = now.AddMinutes(-11) }, now));
+        Assert.Equal(PresenceState.Busy, PresenceRules.Shown(here with { Chosen = PresenceState.Busy, LastActive = now.AddMinutes(-30) }, now));
+        Assert.Equal(PresenceState.Offline, PresenceRules.Shown(here with { LastSeen = now.AddMinutes(-4) }, now));
+        Assert.Equal(PresenceState.Offline, PresenceRules.Shown(null, now));
+        Assert.False(PresenceRules.Interrupts(PresenceState.Busy));
+        Assert.True(PresenceRules.Interrupts(PresenceState.Away));
+        Assert.DoesNotContain(PresenceState.Offline, PresenceRules.Choices);
+    }
 }

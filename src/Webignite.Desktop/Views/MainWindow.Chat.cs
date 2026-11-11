@@ -16,8 +16,41 @@ public partial class MainWindow
             main.UpdateChatUnread();
         };
         services.ChatRead = main.UpdateChatUnread;
+        services.ChatPopUp = fresh => PopUpChat(services, fresh);
+        services.PresenceChanged = () =>
+        {
+            chatWindow?.Chat.ShowPresence();
+            main.UpdateChatPresence();
+        };
         main.UpdateChatUnread();
-        Closing += (_, _) => chatWindow?.Close();
+        main.UpdateChatPresence();
+        Closing += (_, _) =>
+        {
+            chatWindow?.Close();
+            chatPopUp?.Close();
+        };
+    }
+
+    private ChatPopUp? chatPopUp;
+
+    // A new message while the chat isn't in front: a pop-up in the corner of the screen, a short sound and the taskbar
+    // flashing, unless I'm Busy (then only the count on the Chat button).
+    private void PopUpChat(AppServices services, IReadOnlyList<Webignite.Core.Chat.ChatMessage> fresh)
+    {
+        if (chatWindow is { IsActive: true } || !Webignite.Core.Chat.PresenceRules.Interrupts(services.Chat.MyShown))
+            return;
+        var last = fresh[^1];
+        var from = services.Chat.NameOf(last.From);
+        var text = Webignite.Core.Chat.ChatRules.Preview(last) + (fresh.Count > 1 ? $" (and {fresh.Count - 1} more)" : "");
+        if (chatPopUp is null)
+        {
+            chatPopUp = new ChatPopUp(() => ShowChat(services));
+            chatPopUp.Closed += (_, _) => chatPopUp = null;
+        }
+        chatPopUp.Say(from, text);
+        IdleClock.Chime();
+        if (!IsActive)
+            Flash();
     }
 
     /// <summary>Opens the chat, or brings it forward. Returns the window, for the screenshot tool.</summary>

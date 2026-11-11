@@ -195,4 +195,25 @@ public sealed class FinanceSyncTests : IDisposable
         Assert.Equal(0, (await eddie.Sync.SyncAsync(Cancel)).Changed);
         Assert.Equal(0, (await jaco.Sync.SyncAsync(Cancel)).Changed);
     }
+
+    [Fact]
+    public async Task My_status_reaches_my_partner_with_each_sync()
+    {
+        var (eddie, jaco) = await TwoPcs();
+        var eddieChat = new ChatService(eddie.Store);
+        var jacoChat = new ChatService(jaco.Store);
+        eddie.Sync.MyPresence = () => eddieChat.Mine();
+        jaco.Sync.PresenceArrived = p => jacoChat.TakeIn(p);
+        Assert.Equal(Webignite.Core.Chat.PresenceState.Offline, jacoChat.PartnerShown);
+
+        eddieChat.Chosen = Webignite.Core.Chat.PresenceState.Busy;
+        await Sync(eddie);
+        await Sync(jaco);
+        Assert.Equal(Webignite.Core.Chat.PresenceState.Busy, jacoChat.PartnerShown);
+
+        eddieChat.Chosen = Webignite.Core.Chat.PresenceState.Available;
+        await Sync(eddie);
+        await Sync(jaco);
+        Assert.Equal(Webignite.Core.Chat.PresenceState.Available, jacoChat.PartnerShown);
+    }
 }
