@@ -77,6 +77,27 @@ public static class Panels
     }
 
     /// <summary>
+    /// The widths the fixed panes get in the room there is, so nothing runs off the window after it shrinks or moves
+    /// to a smaller screen. The last pane, which takes what's left, keeps at least a quarter of the room; the others
+    /// shrink in proportion, never below <see cref="MinWidth"/>. Wanted widths that fit come back as they are, so the
+    /// remembered widths return on a bigger screen.
+    /// </summary>
+    public static IReadOnlyList<double> Fit(IReadOnlyList<double> wanted, double room)
+    {
+        if (wanted.Count == 0 || room <= 0 || double.IsNaN(room) || double.IsInfinity(room))
+            return wanted;
+        var spare = room - Math.Max(MinWidth, room / 4);
+        var total = wanted.Sum();
+        if (total <= spare)
+            return wanted;
+        var floor = MinWidth * wanted.Count;
+        if (spare <= floor)
+            return [.. wanted.Select(_ => MinWidth)];
+        var scale = (spare - floor) / (total - floor);
+        return [.. wanted.Select(w => Math.Floor(MinWidth + Math.Max(0, w - MinWidth) * scale))];
+    }
+
+    /// <summary>
     /// A saved layout against the panes the page has now: panes added since go on the right, panes that no
     /// longer exist are dropped. The result always has every current pane exactly once.
     /// </summary>

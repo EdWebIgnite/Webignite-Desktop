@@ -72,6 +72,9 @@ public sealed class PanelGrid : Grid
     private List<string> shown = [];
     private bool railed;
 
+    // The fixed panes' columns with the widths they'd like; they get less while the window is too narrow (Fit).
+    private readonly List<(ColumnDefinition Column, double Wanted)> fixedColumns = [];
+
     private void Rebuild()
     {
         var panes = Panes.ToDictionary(c => GetPane(c)!, c => c);
@@ -86,9 +89,11 @@ public sealed class PanelGrid : Grid
                 if (!control.IsVisible || !layout.Widths.TryGetValue(pane, out var width))
                     continue;
                 var column = ColumnDefinitions[GetColumn(control)];
-                if (!column.Width.IsStar)
-                    column.Width = new GridLength(width, GridUnitType.Pixel);
+                var at = fixedColumns.FindIndex(f => f.Column == column);
+                if (at >= 0)
+                    fixedColumns[at] = (column, width);
             }
+            Fit();
             return;
         }
         shown = visible;
@@ -102,6 +107,7 @@ public sealed class PanelGrid : Grid
         rails.Clear();
 
         ColumnDefinitions.Clear();
+        fixedColumns.Clear();
         foreach (var (pane, control) in panes)
             control.IsVisible = visible.Contains(pane);
         // A hidden pane leaves a strip where it was, to bring it back with a click.
@@ -127,11 +133,14 @@ public sealed class PanelGrid : Grid
             // Hidden panes between this one and the next showing one.
             var after = order.SkipWhile(p => p != visible[i]).Skip(1).TakeWhile(p => !visible.Contains(p)).ToList();
             var width = layout.Widths.TryGetValue(visible[i], out var saved) ? saved : GetDefaultWidth(control);
-            ColumnDefinitions.Add(new ColumnDefinition
+            var column = new ColumnDefinition
             {
                 Width = last ? new GridLength(1, GridUnitType.Star) : new GridLength(width, GridUnitType.Pixel),
                 MinWidth = Webignite.Core.Layout.Panels.MinWidth,
-            });
+            };
+            ColumnDefinitions.Add(column);
+            if (!last)
+                fixedColumns.Add((column, width));
             SetColumn(control, ColumnDefinitions.Count - 1);
             if (last)
             {
@@ -169,6 +178,30 @@ public sealed class PanelGrid : Grid
                 rails.Add(handle);
                 Children.Add(handle);
             }
+        }
+        Fit();
+    }
+
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        if (e.WidthChanged)
+            Fit();
+    }
+
+    // Narrows the fixed panes while the window is too small for their widths (after a move to a smaller screen,
+    // or the window made narrower), and gives them back their widths when there's room again.
+    private void Fit()
+    {
+        if (fixedColumns.Count == 0 || Bounds.Width <= 0)
+            return;
+        var strips = ColumnDefinitions.Where(c => c.Width.IsAuto).Sum(c => c.ActualWidth);
+        var widths = Webignite.Core.Layout.Panels.Fit([.. fixedColumns.Select(f => f.Wanted)], Bounds.Width - strips);
+        for (var i = 0; i < fixedColumns.Count; i++)
+        {
+            var column = fixedColumns[i].Column;
+            if (Math.Abs(column.Width.Value - widths[i]) > 0.5)
+                column.Width = new GridLength(widths[i], GridUnitType.Pixel);
         }
     }
 

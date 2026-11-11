@@ -95,4 +95,20 @@ public sealed class PanelsTests
         Assert.Equal(layout.Hidden, back.Hidden);
         Assert.Equal(420, back.Widths["messages"]);
     }
+
+    [Fact]
+    public void Panes_from_a_big_screen_shrink_to_fit_a_small_one_and_come_back_on_the_big_one()
+    {
+        // Dragged wide on a big screen: the list 340, the project 1700, the task pane takes the rest.
+        double[] wanted = [340, 1700];
+        Assert.Equal(wanted, Panels.Fit(wanted, 2800));
+
+        var small = Panels.Fit(wanted, 1300);
+        Assert.True(small.Sum() <= 1300 - 1300 / 4.0);
+        Assert.All(small, w => Assert.True(w >= Panels.MinWidth));
+        Assert.True(small[1] > small[0]); // still in proportion
+
+        // No room at all: each at its narrowest.
+        Assert.Equal([Panels.MinWidth, Panels.MinWidth], Panels.Fit(wanted, 400));
+    }
 }
