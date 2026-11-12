@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
-             xmlns:v="using:Webignite.Desktop.Views"
              x:Class="Webignite.Desktop.Views.OverviewView"
              x:DataType="vm:OverviewViewModel">
   <UserControl.Styles>
@@ -21,25 +20,11 @@
     </Style>
   </UserControl.Styles>
 
-  <StackPanel Spacing="22">
+  <StackPanel x:Name="Parts" Spacing="22">
     <DockPanel>
       <!-- The page is the person's to arrange: which of its own parts show, and widgets of their own under them. -->
-      <Button DockPanel.Dock="Right" Classes="quiet" Content="Customise" VerticalAlignment="Top" ToolTip.Tip="Choose what shows on this page, and add widgets of your own">
-        <Button.Flyout>
-          <Flyout Placement="BottomEdgeAlignedRight">
-            <StackPanel Spacing="4" MinWidth="230">
-              <TextBlock Classes="label caps" Text="Show on this page" Margin="6,2,6,4" />
-              <ToggleButton Classes="pick" IsChecked="{Binding FiguresOn, Mode=OneWay}" Command="{Binding ToggleFiguresCommand}" Content="The four figures" />
-              <ToggleButton Classes="pick" IsChecked="{Binding NeedsYouOn, Mode=OneWay}" Command="{Binding ToggleNeedsYouCommand}" Content="Needs you" />
-              <ToggleButton Classes="pick" IsChecked="{Binding TodayOn, Mode=OneWay}" Command="{Binding ToggleTodayCommand}" Content="Today" />
-              <Border Height="1" Background="{DynamicResource Line}" Margin="0,6" />
-              <Button Classes="link" Content="Add widgets of your own" Command="{Binding AddWidgetsCommand}" HorizontalAlignment="Left" IsVisible="{Binding NoBoard}" />
-              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" MaxWidth="230" Margin="6,0"
-                         Text="Your widgets sit under what is ticked here: add, move and size them with Add widget and Arrange." />
-            </StackPanel>
-          </Flyout>
-        </Button.Flyout>
-      </Button>
+      <Button DockPanel.Dock="Right" Classes="quiet" Content="Customise" VerticalAlignment="Top" Click="Customise"
+              ToolTip.Tip="Choose what shows on this page, and add widgets of your own" />
       <StackPanel Spacing="4">
         <TextBlock Classes="h1" Text="{Binding Greeting}" />
         <TextBlock Classes="muted" Text="{Binding TodayText}" />
@@ -161,13 +146,6 @@
     </Border>
     </Grid>
 
-    <!-- The person's own widgets, the same ones My pages has. Built only once there are some. -->
-    <ContentControl Content="{Binding Board}" IsVisible="{Binding HasBoard}">
-      <ContentControl.ContentTemplate>
-        <DataTemplate x:DataType="vm:MyPagesViewModel">
-          <v:MyPagesView />
-        </DataTemplate>
-      </ContentControl.ContentTemplate>
-    </ContentControl>
+    <!-- The person's own widgets go here, under the page's own parts, once there are some (OverviewView.axaml.cs). -->
   </StackPanel>
 </UserControl>

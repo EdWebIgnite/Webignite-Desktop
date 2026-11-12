@@ -74,6 +74,17 @@ public static class Looks
         ApplyColours(app, settings);
     }
 
+    /// <summary>
+    /// Gives something that is about to be shown in a pop-up the look pop-ups have (Styles/DockPop.axaml). The file
+    /// is read the first time a pop-up opens, as none is on screen when the app starts.
+    /// </summary>
+    public static void PopUps(StyledElement content)
+    {
+        const string file = "/Styles/DockPop.axaml";
+        if (!content.Styles.OfType<StyleInclude>().Any(s => s.Source?.OriginalString.EndsWith(file, StringComparison.Ordinal) == true))
+            content.Styles.Add(new StyleInclude((Uri?)null) { Source = new Uri("avares://Webignite" + file) });
+    }
+
     /// <summary>A page asks for its part of the style in use, and of any picked while it is open.</summary>
     public static void Attach(StyledElement view, string page)
     {

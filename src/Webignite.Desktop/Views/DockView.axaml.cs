@@ -92,21 +92,24 @@ public partial class DockView : UserControl
     // row to click. Rows can be dragged to another place in the group, which is the order the menu keeps everywhere.
     private void ShowGroup(Button button, MenuEntry group)
     {
-        var flyout = new Flyout { Placement = PlacementMode.Top, VerticalOffset = -12 };
+        var flyout = new Flyout { Placement = PlacementMode.Top, VerticalOffset = -2 };
         flyout.FlyoutPresenterClasses.Add("dockpop");
-        if (GroupList(group, flyout.Hide) is not { } list)
+        if (GroupCard(group, flyout.Hide) is not { } card)
             return;
-        flyout.Content = list;
+        flyout.Content = card;
         flyout.ShowAt(button);
     }
 
-    /// <summary>
-    /// What a group's pop-up holds, as a card of its own. For the screenshot tool, which can't draw pop-ups.
-    /// </summary>
-    public Control? GroupPicture(MenuEntry group)
+    /// <summary>What a group's pop-up shows: a white card with its name and what is in it. Also for the screenshot tool, which can't draw pop-ups.</summary>
+    public Control? GroupPicture(MenuEntry group) => GroupCard(group, () => { });
+
+    private Border? GroupCard(MenuEntry group, Action picked)
     {
-        var card = new Border { Child = GroupList(group, () => { }) };
+        if (GroupList(group, picked) is not { } list)
+            return null;
+        var card = new Border { Child = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
         card.Classes.Add("dockpopcard");
+        Looks.PopUps(card);
         return card;
     }
 
