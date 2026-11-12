@@ -7,13 +7,21 @@ namespace Webignite.Desktop.ViewModels;
 
 // The template gallery, as Asana's: the templates that come with the app filed by category, the person's own under
 // My templates, and a blank project. A template opens to show what's in it, with a name and a start date to use it.
-public sealed partial class ProjectsViewModel
+public sealed partial class ProjectGalleryPart(AppServices services, ProjectsViewModel page) : ViewModelBase
 {
+    /// <summary>The page went to or left the template gallery: what depends on that says so.</summary>
+    internal void GalleryShownChanged()
+    {
+        OnPropertyChanged(nameof(IsGallery));
+        OnPropertyChanged(nameof(IsPreviewing));
+        OnPropertyChanged(nameof(GalleryEmpty));
+    }
+
     public const string AllTemplates = "All";
     public const string MyTemplates = "My templates";
 
     /// <summary>The chips along the top: all, the person's own, then each category that has templates.</summary>
-    public IReadOnlyList<GalleryChip> GalleryChips => galleryChips ??= [.. new[] { AllTemplates, MyTemplates }.Concat(BuiltInTemplates.Categories).Select(c => new GalleryChip(c, this))];
+    public IReadOnlyList<GalleryChip> GalleryChips => galleryChips ??= [.. new[] { AllTemplates, MyTemplates }.Concat(BuiltInTemplates.Categories).Select(c => new GalleryChip(c, page))];
 
     private IReadOnlyList<GalleryChip>? galleryChips;
 
@@ -27,15 +35,15 @@ public sealed partial class ProjectsViewModel
 
     public ObservableCollection<GalleryCard> GalleryCards { get; } = [];
 
-    public bool GalleryEmpty => IsTemplates && Previewing is null && GalleryCards.Count == 0;
+    public bool GalleryEmpty => page.IsTemplates && Previewing is null && GalleryCards.Count == 0;
 
     /// <summary>The template opened to look at, or null for the gallery.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsPreviewing), nameof(IsGallery), nameof(GalleryEmpty))]
-    public partial GalleryCard? Previewing { get; private set; }
+    public partial GalleryCard? Previewing { get; internal set; }
 
-    public bool IsPreviewing => IsTemplates && Previewing is not null;
-    public bool IsGallery => IsTemplates && Previewing is null;
+    public bool IsPreviewing => page.IsTemplates && Previewing is not null;
+    public bool IsGallery => page.IsTemplates && Previewing is null;
 
     /// <summary>The opened template's headings, each with its tasks, as the project will start.</summary>
     public IReadOnlyList<GalleryHeading> PreviewHeadings { get; private set; } = [];
@@ -50,11 +58,11 @@ public sealed partial class ProjectsViewModel
         ListTemplates();
     }
 
-    private void ListTemplates()
+    internal void ListTemplates()
     {
         GalleryCards.Clear();
-        var mine = Templates.OrderBy(t => t.Name, StringComparer.CurrentCultureIgnoreCase).Select(t => GalleryCard.Mine(t, this));
-        var builtIn = BuiltInTemplates.All.Select(t => GalleryCard.Of(t, this));
+        var mine = page.Templates.OrderBy(t => t.Name, StringComparer.CurrentCultureIgnoreCase).Select(t => GalleryCard.Mine(t, page));
+        var builtIn = BuiltInTemplates.All.Select(t => GalleryCard.Of(t, page));
         var shown = GalleryCategory switch
         {
             AllTemplates => mine.Concat(builtIn),
@@ -72,7 +80,7 @@ public sealed partial class ProjectsViewModel
     public void Preview(GalleryCard card)
     {
         Previewing = card;
-        PreviewName = NewProjectName.Trim().Length > 0 ? NewProjectName.Trim() : card.Name;
+        PreviewName = page.NewProjectName.Trim().Length > 0 ? page.NewProjectName.Trim() : card.Name;
         PreviewStart = DateTime.Today;
         PreviewHeadings = [.. card.Template.Headings.Select(h => new GalleryHeading(h,
             [.. card.Template.Tasks.Where(t => t.Heading == h).Select(t => t.Subtasks.Count > 0 ? $"{t.Title} ({t.Subtasks.Count} subtasks)" : t.Title)]))];
@@ -88,20 +96,20 @@ public sealed partial class ProjectsViewModel
     {
         if (Previewing is not { } card)
             return;
-        SaveTyped();
+        page.SaveTyped();
         var start = DateOnly.FromDateTime(PreviewStart ?? DateTime.Today);
-        var saved = Ours(() => services.Projects.AddFromTemplate(card.Template, PreviewName, start));
+        var saved = page.Ours(() => services.Projects.AddFromTemplate(card.Template, PreviewName, start));
         // A board template opens on its board.
         if (card.Board)
-            StartLayout(saved.Id, new ProjectLayout { Board = true });
+            page.StartLayout(saved.Id, new ProjectLayout { Board = true });
         // A template from the gallery brings its own colour and icon, as Asana's do.
         if (card.Icon is { } icon && card.Colour is { } colour)
-            saved = Ours(() => services.Projects.Change(saved.Id, p => p with { Icon = icon, Colour = colour })).Saved ?? saved;
+            saved = page.Ours(() => services.Projects.Change(saved.Id, p => p with { Icon = icon, Colour = colour })).Saved ?? saved;
         Previewing = null;
-        NewProjectName = "";
-        ListMessage = "";
-        ShowList();
-        Show(saved);
+        page.NewProjectName = "";
+        page.ListMessage = "";
+        page.ShowList();
+        page.Show(saved);
     }
 
     [RelayCommand]
@@ -110,13 +118,13 @@ public sealed partial class ProjectsViewModel
         if (Previewing is { IsMine: true } card)
         {
             Previewing = null;
-            RemoveTemplate(card.Template);
+            page.RemoveTemplate(card.Template);
         }
     }
 
     /// <summary>A blank project, from the gallery's button, as Asana's.</summary>
     [RelayCommand]
-    private void BlankProject() => NewProjectCommand.Execute(null);
+    private void BlankProject() => page.NewProjectCommand.Execute(null);
 }
 
 /// <summary>A template in the gallery: its square, name and what it's for.</summary>
@@ -129,7 +137,7 @@ public sealed partial class GalleryCard(ProjectTemplate template, string categor
     public string? Icon { get; } = icon;
     public string? Colour { get; } = colour;
     public bool Board { get; } = board;
-    public bool IsMine => Category == ProjectsViewModel.MyTemplates;
+    public bool IsMine => Category == ProjectGalleryPart.MyTemplates;
 
     /// <summary>The square's look: the template's own, or a grey board for the person's own templates.</summary>
     public string TileIcon => Icon ?? "Board";
@@ -142,10 +150,10 @@ public sealed partial class GalleryCard(ProjectTemplate template, string categor
     public static GalleryCard Of(BuiltInTemplate t, ProjectsViewModel page) => new(t.Template, t.Category, t.Description, t.Icon, t.Colour, t.Board, page);
 
     public static GalleryCard Mine(ProjectTemplate t, ProjectsViewModel page) =>
-        new(t, ProjectsViewModel.MyTemplates, "Saved from one of your projects.", null, null, false, page);
+        new(t, ProjectGalleryPart.MyTemplates, "Saved from one of your projects.", null, null, false, page);
 
     [RelayCommand]
-    private void Open() => page.Preview(this);
+    private void Open() => page.GalleryPart.Preview(this);
 }
 
 /// <summary>A category along the top of the gallery; the one picked is a pill.</summary>
@@ -157,7 +165,7 @@ public sealed partial class GalleryChip : ObservableObject
     {
         this.page = page;
         Name = name;
-        IsOn = name == page.GalleryCategory;
+        IsOn = name == page.GalleryPart.GalleryCategory;
     }
 
     public string Name { get; }
@@ -165,7 +173,7 @@ public sealed partial class GalleryChip : ObservableObject
     [ObservableProperty] public partial bool IsOn { get; set; }
 
     [RelayCommand]
-    private void Show() => page.ShowCategory(Name);
+    private void Show() => page.GalleryPart.ShowCategory(Name);
 }
 
 /// <summary>A heading in a template's preview, with its tasks.</summary>

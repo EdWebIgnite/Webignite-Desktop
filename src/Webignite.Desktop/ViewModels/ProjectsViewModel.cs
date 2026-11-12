@@ -16,15 +16,25 @@ namespace Webignite.Desktop.ViewModels;
 public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHoldsWork, ITabTitle, IHasPanes, IDisposable
 {
     private readonly AppServices services;
+
+    // Each view of a project with state of its own is its own part; the page holds them and the screen binds to them by name.
+    public ProjectMessagesPart MessagesPart { get; }
+    public ProjectFilesPart FilesPart { get; }
+    public ProjectGalleryPart GalleryPart { get; }
+    public ProjectMyTodosPart MyTodosPart { get; }
     private readonly DispatcherTimer typing = new() { Interval = TimeSpan.FromMilliseconds(700) };
     private readonly HashSet<object> typed = [];
-    private Project? open;
+    internal Project? open;
     private bool ours;
     private bool loading;
 
     public ProjectsViewModel(AppServices services)
     {
         this.services = services;
+        MessagesPart = new(services, this);
+        FilesPart = new(services, this);
+        GalleryPart = new(services, this);
+        MyTodosPart = new(services, this);
         Panels = new PanelsViewModel(services.Settings, "projects", [("list", "Projects"), ("project", "Open project"), ("task", "Open task")]);
         typing.Tick += (_, _) => SaveTyped();
         services.Projects.Changed += ElsewhereChanged;
@@ -80,7 +90,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     [ObservableProperty] public partial bool ShowDone { get; set; }
     [ObservableProperty] public partial string NewProjectName { get; set; } = "";
-    [ObservableProperty] public partial string ListMessage { get; private set; } = "";
+    [ObservableProperty] public partial string ListMessage { get; internal set; } = "";
 
     public bool IsEmpty => SharedProjects.Count + PersonalProjects.Count == 0 && !services.Projects.Projects().Any();
     public bool HasShared => SharedProjects.Count > 0;
@@ -102,7 +112,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         else if (IsMyTasks)
             ShowMyTasks();
         else if (IsTemplates)
-            ListTemplates();
+            GalleryPart.ListTemplates();
         if (Detail is { } detail)
         {
             if (services.Projects.GetTask(detail.Task.Id) is null)
@@ -111,10 +121,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 detail.Reload();
         }
         if (IsMessages)
-            ListMessages();
+            MessagesPart.ListMessages();
     }
 
-    private void ShowList()
+    internal void ShowList()
     {
         var team = services.Team();
         SharedProjects.Clear();
@@ -156,8 +166,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     public IReadOnlyList<ProjectTemplate> Templates => services.Settings.ProjectTemplates;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle), nameof(Showing), nameof(IsGallery), nameof(IsPreviewing), nameof(GalleryEmpty))]
+    [NotifyPropertyChangedFor(nameof(IsClosed), nameof(TabTitle), nameof(Showing))]
     public partial bool IsTemplates { get; private set; }
+
+    partial void OnIsTemplatesChanged(bool value) => GalleryPart.GalleryShownChanged();
 
     /// <summary>Shows the template gallery on the right, to start a project from a template or a blank one.</summary>
     public void ShowTemplates()
@@ -166,8 +178,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         CloseProject();
         IsMyTasks = false;
         IsTemplates = true;
-        Previewing = null;
-        ListTemplates();
+        GalleryPart.Previewing = null;
+        GalleryPart.ListTemplates();
         if (!Panels["project"].IsShown)
             Panels["project"].IsShown = true;
         TuckList();
@@ -176,7 +188,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     private void TemplatesChanged()
     {
         OnPropertyChanged(nameof(Templates));
-        ListTemplates();
+        GalleryPart.ListTemplates();
     }
 
 
@@ -271,12 +283,12 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         TuckList();
     }
 
-    private void ShowMyTasks()
+    internal void ShowMyTasks()
     {
         MyRows.Clear();
         var me = services.Me().Id;
         var mine = services.Projects.Mine(me);
-        var todos = MyTodos();
+        var todos = MyTodosPart.MyTodos();
         var openTodos = todos.Count(t => !t.Done);
         MyCount = mine.Count + openTodos;
         var names = services.Projects.Projects().ToDictionary(p => p.Id, p => p.Name);
@@ -302,7 +314,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             }
         }
         MySummary = MyWork.Summary(mine.Count, openTodos);
-        MyMessage = "";
+        MyTodosPart.MyMessage = "";
         OnPropertyChanged(nameof(MyTasksEmpty));
     }
 
@@ -366,7 +378,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     [ObservableProperty] public partial Choice<ProjectStatus>? EditStatus { get; private set; }
     [ObservableProperty] public partial DateTime? EditDue { get; set; }
     [ObservableProperty] public partial string NewHeadingName { get; set; } = "";
-    [ObservableProperty] public partial string Message { get; private set; } = "";
+    [ObservableProperty] public partial string Message { get; internal set; } = "";
     [ObservableProperty] public partial string Summary { get; private set; } = "";
 
     public IReadOnlyList<Choice<Client?>> ClientChoices { get; private set; } = [];
@@ -449,6 +461,46 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     /// <summary>The board is showing, rather than the list.</summary>
     public bool IsBoard => Tab == ProjectTab.Board;
 
+    /// <summary>The Files tab is showing, rather than the list or the board.</summary>
+    public bool IsFiles => Tab == ProjectTab.Files;
+
+    public bool NoProjectFiles => IsFiles && FilesPart.ProjectFiles.Count == 0;
+
+    /// <summary>The Messages tab is showing.</summary>
+    public bool IsMessages => Tab == ProjectTab.Messages;
+
+    /// <summary>The Overview tab is showing.</summary>
+    public bool IsOverview => Tab == ProjectTab.Overview;
+
+    /// <summary>Add task, filter, sort and group belong to the tabs that show tasks.</summary>
+    public bool ShowsTaskTools => !IsOverview && !IsMessages;
+
+    [RelayCommand]
+    private void FilesView() => ShowOnly(ProjectTab.Files);
+
+    [RelayCommand]
+    private void MessagesView() => ShowOnly(ProjectTab.Messages);
+
+    [RelayCommand]
+    private void OverviewView() => ShowOnly(ProjectTab.Overview);
+
+    public bool IsTimeline => Tab == ProjectTab.Timeline;
+
+    public bool IsCalendar => Tab == ProjectTab.Calendar;
+
+    /// <summary>Sort and Group belong to the list and the board; Timeline and Calendar lay tasks out by date.</summary>
+    public bool ShowsSortGroup => !IsTimeline && !IsCalendar;
+
+    [RelayCommand]
+    private void TimelineView() => ShowOnly(ProjectTab.Timeline);
+
+    [RelayCommand]
+    private void CalendarView() => ShowOnly(ProjectTab.Calendar);
+
+    private static ProjectTab TabOf(ProjectLayout layout) =>
+        layout.Overview ? ProjectTab.Overview : layout.Messages ? ProjectTab.Messages : layout.Timeline ? ProjectTab.Timeline : layout.Calendar ? ProjectTab.Calendar
+        : layout.Files ? ProjectTab.Files : layout.Board ? ProjectTab.Board : ProjectTab.List;
+
     // A view that lists things of its own reads them as it is shown. Which view it is stays with the open project
     // only: another project opens the way it was left, a new one as a list.
     partial void OnTabChanged(ProjectTab value)
@@ -456,10 +508,10 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         switch (value)
         {
             case ProjectTab.Files:
-                ListFiles();
+                FilesPart.ListFiles();
                 break;
             case ProjectTab.Messages:
-                ListMessages();
+                MessagesPart.ListMessages();
                 break;
             case ProjectTab.Overview:
                 LoadOverview();
@@ -504,7 +556,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         OnPropertyChanged(nameof(SharedLabel));
     }
 
-    private void Show(Project project)
+    internal void Show(Project project)
     {
         if (Detail is { } shown && shown.Task.ProjectId != project.Id)
             CloseTask();
@@ -542,7 +594,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         OnPropertyChanged(nameof(Showing));
     }
 
-    private void ShowTasks()
+    internal void ShowTasks()
     {
         if (IsMyTasks)
         {
@@ -1029,7 +1081,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     /// <summary>Saves anything still being typed, e.g. before another project opens or the app closes.</summary>
     public void Keep() => SaveTyped();
 
-    private void SaveTyped()
+    internal void SaveTyped()
     {
         typing.Stop();
         var pending = typed.ToList();
@@ -1108,7 +1160,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     public void Dispose()
     {
-        LetPicturesGo();
+        FilesPart.LetPicturesGo();
         SaveTyped();
         typing.Stop();
         services.Projects.Changed -= ElsewhereChanged;
@@ -1205,7 +1257,7 @@ public sealed partial class TaskRow : ObservableObject
     public bool HasAttachments => Task.Attachments.Count > 0;
 
     /// <summary>Its cover picture, on top of its card on the board.</summary>
-    public AttachmentRow? Cover => cover ??= Attachments.Cover(Task) is { } picture ? page.CoverRow(Task, picture) : null;
+    public AttachmentRow? Cover => cover ??= Attachments.Cover(Task) is { } picture ? page.FilesPart.CoverRow(Task, picture) : null;
     private AttachmentRow? cover;
     public bool HasCover => Attachments.Cover(Task) is not null;
 

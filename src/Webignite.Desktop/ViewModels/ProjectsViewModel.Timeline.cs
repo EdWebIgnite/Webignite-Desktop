@@ -14,23 +14,6 @@ public sealed partial class ProjectsViewModel
     /// <summary>How wide a day is on the timeline, in pixels; the view snaps drags to it.</summary>
     public const double DayWidth = 36;
 
-    public bool IsTimeline => Tab == ProjectTab.Timeline;
-
-    public bool IsCalendar => Tab == ProjectTab.Calendar;
-
-    /// <summary>Sort and Group belong to the list and the board; Timeline and Calendar lay tasks out by date.</summary>
-    public bool ShowsSortGroup => !IsTimeline && !IsCalendar;
-
-    [RelayCommand]
-    private void TimelineView() => ShowOnly(ProjectTab.Timeline);
-
-    [RelayCommand]
-    private void CalendarView() => ShowOnly(ProjectTab.Calendar);
-
-    private static ProjectTab TabOf(ProjectLayout layout) =>
-        layout.Overview ? ProjectTab.Overview : layout.Messages ? ProjectTab.Messages : layout.Timeline ? ProjectTab.Timeline : layout.Calendar ? ProjectTab.Calendar
-        : layout.Files ? ProjectTab.Files : layout.Board ? ProjectTab.Board : ProjectTab.List;
-
     // Timeline
 
     public ObservableCollection<TimelineDay> TimelineDays { get; } = [];

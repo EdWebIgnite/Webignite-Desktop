@@ -12,15 +12,6 @@ public sealed partial class ProjectsViewModel
 {
     private static readonly object DescriptionTyped = new();
 
-    /// <summary>The Overview tab is showing.</summary>
-    public bool IsOverview => Tab == ProjectTab.Overview;
-
-    /// <summary>Add task, filter, sort and group belong to the tabs that show tasks.</summary>
-    public bool ShowsTaskTools => !IsOverview && !IsMessages;
-
-    [RelayCommand]
-    private void OverviewView() => ShowOnly(ProjectTab.Overview);
-
     [ObservableProperty] public partial Webignite.Core.Writing.RichDocument ProjectDescription { get; set; } = Webignite.Core.Writing.RichDocument.Empty();
 
     /// <summary>Goes up as the description is typed in, so it's saved a moment later; 0 when it was loaded.</summary>
