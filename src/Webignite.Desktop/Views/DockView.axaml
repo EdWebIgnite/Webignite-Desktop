@@ -59,6 +59,8 @@
                   <ContextMenu>
                     <MenuItem Header="Take off the dock" IsEnabled="{Binding CanTakeOff}"
                               Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).TakeOffDockCommand}" CommandParameter="{Binding}" />
+                    <MenuItem Header="Choose what is on the menu…"
+                              Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).EditMenuCommand}" />
                   </ContextMenu>
                 </Button.ContextMenu>
                 <Panel>

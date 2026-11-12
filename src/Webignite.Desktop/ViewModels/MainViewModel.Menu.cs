@@ -25,6 +25,11 @@ public sealed partial class MainViewModel
     /// <summary>The menu's columns, made each time it opens, so figures and the person's order are as they are now.</summary>
     public ObservableCollection<MenuColumn> MenuColumns { get; } = [];
 
+    /// <summary>While editing: what has been taken off the menus, to put back with a click.</summary>
+    public ObservableCollection<MenuEntry> MenuAvailable { get; } = [];
+
+    public bool NothingAvailable => MenuAvailable.Count == 0;
+
     /// <summary>The pages on the dock.</summary>
     public ObservableCollection<MenuEntry> Dock { get; } = [];
 
@@ -46,14 +51,91 @@ public sealed partial class MainViewModel
         IsMenuOpen = !IsMenuOpen;
     }
 
+    // However the menu is closed (Esc, a click beside it), editing ends with it.
+    partial void OnIsMenuOpenChanged(bool value)
+    {
+        if (!value)
+            IsMenuEditing = false;
+    }
+
     [RelayCommand]
-    private void CloseMenu() => IsMenuOpen = false;
+    private void CloseMenu()
+    {
+        IsMenuOpen = false;
+        IsMenuEditing = false;
+    }
+
+    // Choosing what is on the menus, as a phone's quick settings are edited: the menu opens with a minus on each
+    // entry, and what has been taken off waits under Available with a plus. It works from all three kinds of menu.
+
+    /// <summary>The open menu is being edited: a click takes an entry off or puts it back, and entries can be dragged.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMenuBrowsing))]
+    public partial bool IsMenuEditing { get; set; }
+
+    public bool IsMenuBrowsing => !IsMenuEditing;
+
+    /// <summary>True when something has been taken off, so Put everything back has something to do.</summary>
+    public bool HasMenuTakenOff => Sidebar.HasTakenOff;
+
+    [RelayCommand]
+    private void EditMenu()
+    {
+        IsMenuEditing = true;
+        FillMenu();
+        IsMenuOpen = true;
+    }
+
+    /// <summary>Done: back to the menu as it is used, or closed when it was only opened to edit (from the sidebar).</summary>
+    [RelayCommand]
+    private void DoneEditingMenu()
+    {
+        IsMenuEditing = false;
+        if (IsSidebarMenu)
+            IsMenuOpen = false;
+        else
+            FillMenu();
+    }
+
+    [RelayCommand]
+    private void PutAllBackOnMenu() => Sidebar.PutAllBack();
+
+    /// <summary>Drops an entry of the open menu beside another while editing; one that was off comes back on there.</summary>
+    public void MoveInMenu(MenuEntry entry, MenuEntry target, bool below)
+    {
+        if (!CanMoveInMenu(entry, target))
+            return;
+        if (entry.IsOff)
+            Sidebar.PutBack(entry.Item);
+        Sidebar.MoveTo(entry.Item, target.Item, below);
+    }
+
+    public bool CanMoveInMenu(MenuEntry entry, MenuEntry target) =>
+        IsMenuEditing && !ReferenceEquals(entry, target) && !target.IsOff && Sidebar.CanDrag(entry.Item) && Sidebar.CanDrag(target.Item)
+        && !(entry.Item is Module { InPlanner: true }) && !(target.Item is Module { InPlanner: true });
+
+    // What is on the menus changed: the dock drops what was taken off, and the open menu is drawn again.
+    private void MenusChanged()
+    {
+        OnPropertyChanged(nameof(HasMenuTakenOff));
+        FillDock();
+        if (IsMenuOpen)
+            FillMenu();
+    }
 
     [RelayCommand]
     private void PickFromMenu(MenuEntry? entry)
     {
         if (entry is null)
             return;
+        if (IsMenuEditing)
+        {
+            if (entry.IsOff)
+                Sidebar.PutBack(entry.Item);
+            else
+                Sidebar.TakeOff(entry.Item);
+            return;
+        }
         IsMenuOpen = false;
         // The Planner entry opens Planner's Home; its own pages are in the menu's Planner column.
         SelectedNav = entry.Item is SectionLink ? this[Page.Home] : entry.Item;
@@ -75,8 +157,9 @@ public sealed partial class MainViewModel
             FillMenu();
     }
 
+    // Pages taken off the menus are off the dock too.
     private IReadOnlyList<string> DockKeys() =>
-        DockPages.Shown(services.Settings.Appearance.Dock, [.. Modules.Select(m => m.Key.ToString())]);
+        DockPages.Shown(services.Settings.Appearance.Dock, [.. Modules.Where(m => !Sidebar.IsOff(m)).Select(m => m.Key.ToString())]);
 
     /// <summary>Makes the dock's entries; called when the menu kind, the dock's pages or the page on screen changes.</summary>
     private void FillDock()
@@ -118,7 +201,8 @@ public sealed partial class MainViewModel
         var dock = DockKeys();
         MenuColumns.Clear();
         var column = new MenuColumn("Start");
-        foreach (var item in Sidebar.Items)
+        // While editing, every entry on the menus shows, whether its group is folded in the sidebar or not.
+        foreach (var item in IsMenuEditing ? Sidebar.OnMenus() : Sidebar.Items)
         {
             if (item is NavGroup group)
             {
@@ -127,16 +211,25 @@ public sealed partial class MainViewModel
                 column = new MenuColumn(group.CanFold ? group.Name : "Webignite");
                 continue;
             }
-            if (Entry(item) is { } entry)
+            // Planner's own pages have a column of their own, below.
+            if (item is not Module { InPlanner: true } && Entry(item) is { } entry)
                 column.Entries.Add(entry);
         }
         Keep(column);
         // Planner's own pages and projects, which the sidebar shows in place of the main list.
         var planner = new MenuColumn("Planner");
         foreach (var item in Sidebar.PlannerItems)
-            if (item is Module or SubLink && Entry(item) is { } entry)
-                planner.Entries.Add(entry);
+            if (item is Module || (item is SubLink && !IsMenuEditing))
+                if (Entry(item) is { } entry)
+                    planner.Entries.Add(entry);
         Keep(planner);
+        // What has been taken off, waiting to be put back.
+        MenuAvailable.Clear();
+        if (IsMenuEditing)
+            foreach (var item in Sidebar.TakenOff())
+                if (Entry(item) is { } entry)
+                    MenuAvailable.Add(entry);
+        OnPropertyChanged(nameof(NothingAvailable));
 
         void Keep(MenuColumn made)
         {
@@ -144,7 +237,11 @@ public sealed partial class MainViewModel
                 MenuColumns.Add(made);
         }
 
-        MenuEntry? Entry(object item)
+        MenuEntry? Entry(object item) => Made(item) is { } made
+            ? made with { Editing = IsMenuEditing, IsOff = Sidebar.IsOff(item), CanTakeOffMenu = Sidebar.CanTakeOff(item) }
+            : null;
+
+        MenuEntry? Made(object item)
         {
             switch (item)
             {
@@ -183,12 +280,23 @@ public sealed class MenuColumn(string title)
 }
 
 /// <summary>One thing the menu or the dock opens: a page, a tool, a project or one of My pages.</summary>
-public sealed class MenuEntry(object item, string title, string icon)
+public sealed record MenuEntry(object Item, string Title, string Icon)
 {
-    /// <summary>What the sidebar would have picked: handed to SelectedNav.</summary>
-    public object Item { get; } = item;
-    public string Title { get; } = title;
-    public string Icon { get; } = icon;
+    /// <summary>The menu is being edited: a click takes it off or puts it back.</summary>
+    public bool Editing { get; init; }
+
+    /// <summary>It has been taken off the menus.</summary>
+    public bool IsOff { get; init; }
+
+    /// <summary>It may be taken off (Settings and Planner's Home may not).</summary>
+    public bool CanTakeOffMenu { get; init; }
+
+    public bool ShowsMinus => Editing && !IsOff && CanTakeOffMenu;
+    public bool ShowsPlus => Editing && IsOff;
+    public bool ShowsFigure => !Editing && HasFigure;
+
+    /// <summary>What a click does while editing, for the tip.</summary>
+    public string? EditTip => !Editing ? null : IsOff ? "Put it back on the menu" : CanTakeOffMenu ? "Take it off the menu" : "This one always stays";
 
     /// <summary>The page's name, when it is a page (only pages go on the dock).</summary>
     public string? PageKey { get; init; }

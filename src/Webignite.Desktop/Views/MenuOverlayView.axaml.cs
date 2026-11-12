@@ -11,6 +11,21 @@ public partial class MenuOverlayView : UserControl
     {
         InitializeComponent();
         Looks.Attach(this, "Menu");
+        // While the menu is being edited, an entry can be dragged beside another to change the order; one dragged
+        // out of Available comes back on where it is dropped. A plain click still takes off or puts back.
+        var rules = new Controls.DragRules
+        {
+            CanDrag = item => item is MenuEntry { Editing: true } entry && DataContext is MainViewModel main && main.Sidebar.CanDrag(entry.Item) && entry.Item is not Module { InPlanner: true },
+            CanDrop = (item, target, below) => item is MenuEntry entry && target is MenuEntry onto && DataContext is MainViewModel main && main.CanMoveInMenu(entry, onto),
+            Drop = (item, target, below) =>
+            {
+                if (item is MenuEntry entry && target is MenuEntry onto && DataContext is MainViewModel main)
+                    main.MoveInMenu(entry, onto, below);
+            },
+            Label = item => (item as MenuEntry)?.Title ?? "",
+        };
+        Controls.DragReorder.Attach(Columns, rules);
+        Controls.DragReorder.Attach(Available, rules);
     }
 
     // A click on the dimmed page behind the menu closes it; a click inside it doesn't reach the page.

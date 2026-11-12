@@ -115,6 +115,11 @@ public sealed class Navigator
     /// <summary>Opens the duplicate finder on a folder and starts looking.</summary>
     public void Duplicates(string folder) => DuplicatesAction?.Invoke(folder);
 
+    internal Action? EditMenuAction { get; set; }
+
+    /// <summary>Opens the menu to choose what is on it.</summary>
+    public void EditMenu() => EditMenuAction?.Invoke();
+
     internal Action? MainToFrontAction { get; set; }
 
     /// <summary>Brings the main window in front, e.g. of a tool window that just sent something to it.</summary>

@@ -52,11 +52,23 @@ public sealed partial class ToolLink(ToolKind kind, string title, string icon) :
 
     public IRelayCommand? ResetSidebarCommand => Sidebar?.ResetCommand;
 
+    /// <summary>It can be taken off the menus (everything but Settings and Planner's Home can).</summary>
+    public bool CanTakeOffMenu => Sidebar?.CanTakeOff(this) == true;
+
+    [RelayCommand(CanExecute = nameof(CanTakeOffMenu))]
+    private void TakeOffMenu() => Sidebar?.TakeOff(this);
+
+    /// <summary>Opens the menu to choose what is on it.</summary>
+    public IRelayCommand? EditMenuCommand => Sidebar?.EditCommand;
+
     internal void Changed()
     {
         OnPropertyChanged(nameof(CanMoveUp));
         OnPropertyChanged(nameof(CanMoveDown));
         OnPropertyChanged(nameof(ResetSidebarCommand));
+        OnPropertyChanged(nameof(EditMenuCommand));
+        OnPropertyChanged(nameof(CanTakeOffMenu));
+        TakeOffMenuCommand.NotifyCanExecuteChanged();
         MoveUpCommand.NotifyCanExecuteChanged();
         MoveDownCommand.NotifyCanExecuteChanged();
     }

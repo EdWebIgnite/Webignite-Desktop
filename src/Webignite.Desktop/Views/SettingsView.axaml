@@ -133,6 +133,11 @@
         </Border>
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="How you get to pages. Sidebar is the list down the left. Menu button leaves the page the whole width, and one button (or Ctrl+M) opens every page, tool and project over it, with how things stand beside each. Dock puts the pages you use most in a bar along the bottom, with the rest behind More; right-click a page in the menu to add it to the dock, or one on the dock to take it off." />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="quiet" Content="Choose what is on the menu…" Command="{Binding EditMenuCommand}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="420"
+                     Text="Take off the pages and tools you don't use, whichever menu you have. They stay a search (Ctrl+K) or a shortcut away, and can be put back." />
+        </StackPanel>
       </StackPanel>
     </Border>
 

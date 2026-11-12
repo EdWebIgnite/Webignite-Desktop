@@ -25,7 +25,8 @@ public partial class MainWindow
             DockHost.Content = main.IsDockMenu ? new DockView() : null;
         if (main.IsMenuOpen && MenuHost.Content is null)
             MenuHost.Content = new MenuOverlayView();
-        else if (main.IsSidebarMenu && MenuHost.Content is not null)
+        // With the sidebar, the menu is only ever opened to choose what is on it, and let go when that is done.
+        else if (main.IsSidebarMenu && !main.IsMenuOpen && MenuHost.Content is not null)
             MenuHost.Content = null;
     }
 }
