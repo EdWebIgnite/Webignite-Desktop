@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.BrowserView"
+             x:DataType="vm:PageCaptureToolViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.pagepane">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.nav">
+      <Setter Property="MinWidth" Value="36" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <DockPanel>
+    <!-- Back, forward, reload, the address, and the same page in the PC's normal browser -->
+    <DockPanel DockPanel.Dock="Top">
+      <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="4" Margin="0,0,8,0">
+        <Button Classes="quiet nav" Content="‹" Command="{Binding BackCommand}" ToolTip.Tip="Back (Alt+Left)" HotKey="Alt+Left" />
+        <Button Classes="quiet nav" Content="›" Command="{Binding ForwardCommand}" ToolTip.Tip="Forward (Alt+Right)" HotKey="Alt+Right" />
+        <Button Classes="quiet nav" Content="⟳" Command="{Binding ReloadCommand}" ToolTip.Tip="Load the page again (F5)" HotKey="F5" />
+      </StackPanel>
+      <Button DockPanel.Dock="Right" Classes="quiet" Content="Open in my browser" Margin="8,0,0,0" Command="{Binding OpenOutsideCommand}"
+              ToolTip.Tip="The same page in your normal browser, where your saved passwords and extensions are" />
+      <Button DockPanel.Dock="Right" Classes="primary" Content="Go" Margin="8,0,0,0" IsDefault="True" Command="{Binding BrowseCommand}" />
+      <TextBox x:Name="AddressBox" Text="{Binding CaptureAddress}" PlaceholderText="A web address, or words to search for" />
+    </DockPanel>
+
+    <!-- The size the page is shown at: one click each, every device in the list, and turned sideways -->
+    <WrapPanel DockPanel.Dock="Top" Margin="0,10,0,0" ItemSpacing="6" LineSpacing="6">
+      <ItemsControl ItemsSource="{Binding QuickSizes}" VerticalAlignment="Center">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:QuickSize">
+            <Button Classes.primary="{Binding IsOn}" Classes.quiet="{Binding IsOff}" Content="{Binding Label}" Command="{Binding PickCommand}" ToolTip.Tip="{Binding Tip}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <ComboBox ItemsSource="{Binding CaptureDevices}" SelectedItem="{Binding CaptureDevice}" Width="230" MaxDropDownHeight="520" VerticalAlignment="Center"
+                ToolTip.Tip="Every phone, tablet and screen size, or a size of your own" />
+      <TextBox Text="{Binding CustomWidth}" Width="76" PlaceholderText="Width" IsVisible="{Binding IsCustomDevice}" VerticalAlignment="Center" />
+      <TextBox Text="{Binding CustomHeight}" Width="76" PlaceholderText="Height" IsVisible="{Binding IsCustomDevice}" VerticalAlignment="Center" />
+      <CheckBox Content="Turned sideways" IsChecked="{Binding CaptureSideways}" IsEnabled="{Binding IsDeviceOn}" VerticalAlignment="Center" />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding DeviceSize}" VerticalAlignment="Center" />
+    </WrapPanel>
+
+    <!-- The page's name, or what went wrong -->
+    <TextBlock DockPanel.Dock="Top" Classes="muted" Classes.problem="{Binding CaptureProblem}" FontSize="{DynamicResource Text12}" Margin="0,8,0,0"
+               Text="{Binding CaptureNote}" TextTrimming="CharacterEllipsis" MinHeight="18" />
+
+    <!-- The page -->
+    <Border Classes="pagepane" Margin="0,6,0,0">
+      <Panel x:Name="Room">
+        <ContentControl Content="{Binding CaptureView}" IsVisible="{Binding HasCaptureView}"
+                        Width="{Binding PaneWidth}" Height="{Binding PaneHeight}" />
+        <StackPanel Spacing="12" MaxWidth="460" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    IsVisible="{Binding CaptureWithout, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+          <TextBlock Text="{Binding CaptureWithout}" TextWrapping="Wrap" TextAlignment="Center" />
+          <Button Classes="primary" Content="Get WebView2 from Microsoft" HorizontalAlignment="Center"
+                  Command="{Binding GetWebView2Command}" IsVisible="{Binding CaptureNeedsWebView2}" />
+        </StackPanel>
+      </Panel>
+    </Border>
+  </DockPanel>
+</UserControl>

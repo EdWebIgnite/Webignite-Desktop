@@ -88,4 +88,27 @@ public class MailTidyTests
         const string html = "<div dir=\"ltr\"><p>Hi Eddie,</p><blockquote style=\"margin:0 0 0 .8ex;border-left:1px solid #ccc\">Quoted</blockquote></div>";
         Assert.Equal(html, MailTidy.Tidy(html));
     }
+
+    [Fact]
+    public void A_link_dressed_as_a_button_becomes_one_the_viewer_can_draw()
+    {
+        var tidy = MailTidy.Tidy("<a href=\"https://example.com/q\" style=\"background-color:#4a0072;color:#ffffff;display:inline-block;height:48px;line-height:48px;padding:0 24px;text-decoration:none;border-radius:4px\">Review and approve</a>");
+        Assert.Equal("<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\"><tr><td align=\"center\" valign=\"middle\" height=\"48\" style=\"background-color:#4a0072;padding:0 24px;border-radius:4px\">"
+            + "<a href=\"https://example.com/q\" style=\"color:#ffffff;text-decoration:none\">Review and approve</a></td></tr></table>", tidy);
+    }
+
+    [Fact]
+    public void A_button_made_with_padding_alone_keeps_its_padding()
+    {
+        var tidy = MailTidy.Tidy("<a href=\"#\" style=\"background:#d67828;color:#fff;padding:12px 24px;display:inline-block\"><b>Pay now</b></a>");
+        Assert.Contains("<td align=\"center\" valign=\"middle\" style=\"background-color:#d67828;padding:12px 24px\">", tidy);
+        Assert.Contains("<a href=\"#\" style=\"color:#fff\"><b>Pay now</b></a>", tidy);
+    }
+
+    [Fact]
+    public void A_highlighted_link_and_a_plain_one_stay_links()
+    {
+        const string html = "<a href=\"#\" style=\"background-color:yellow\">note</a> and <a href=\"#\" style=\"color:#1a73e8\">site</a>";
+        Assert.Equal(html, MailTidy.Tidy(html));
+    }
 }
