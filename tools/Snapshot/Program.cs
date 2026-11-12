@@ -3128,6 +3128,29 @@ Save("site-check");
     window.Height = 860;
 }
 
+// Is a domain free? What the page shows for a name tried with the usual endings.
+{
+    Open(Page.SiteCheck);
+    vm.SiteCheck.WantedName = "Karoo Coffee";
+    foreach (var check in new Webignite.Core.Web.DomainCheck[]
+    {
+        new("karoocoffee.co.za", Webignite.Core.Web.DomainState.Taken, "Somebody has it: it has name servers. Its registry doesn't publish who or until when."),
+        new("karoocoffee.com", Webignite.Core.Web.DomainState.Taken, "Registered through GoDaddy.com, LLC until 14 March 2027 (122 days left)."),
+        new("karoocoffee.africa", Webignite.Core.Web.DomainState.Free, "The registry has no such name, so it can be registered."),
+        new("karoocoffee.org.za", Webignite.Core.Web.DomainState.LooksFree, "DNS has never heard of it, so it is almost certainly free. The registrar confirms when you order."),
+    })
+        vm.SiteCheck.FreeResults.Add(check);
+    vm.SiteCheck.FreeMessage = "2 of these are free.";
+    vm.SiteCheck.Refreshed();
+    Dispatcher.UIThread.RunJobs();
+    Check("A name is tried with .co.za first, then .com and the rest",
+        Webignite.Core.Web.DomainAvailability.Names("Karoo Coffee").Take(2).SequenceEqual(["karoocoffee.co.za", "karoocoffee.com"]) && vm.SiteCheck.HasFreeResults);
+    Save("site-domain-free");
+    vm.SiteCheck.FreeResults.Clear();
+    vm.SiteCheck.WantedName = vm.SiteCheck.FreeMessage = "";
+    vm.SiteCheck.Refreshed();
+}
+
 // The speed test out of Google's shared allowance: the reason, and where to put a free key of your own.
 {
     Open(Page.SiteCheck);

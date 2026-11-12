@@ -67,6 +67,65 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         OnPropertyChanged(nameof(HasDomain));
     }
 
+    // Is a domain free? A name is tried with each of the usual endings.
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(FindFreeCommand))]
+    public partial string WantedName { get; set; } = "";
+
+    [ObservableProperty] public partial string FreeMessage { get; set; } = "";
+    [ObservableProperty] public partial bool FreeWorking { get; set; }
+
+    public ObservableCollection<DomainCheck> FreeResults { get; } = [];
+    public bool HasFreeResults => FreeResults.Count > 0;
+
+    /// <summary>The list of names was changed from outside; the page shows it.</summary>
+    public void Refreshed() => OnPropertyChanged(nameof(HasFreeResults));
+
+    private bool CanFindFree() => !FreeWorking && WantedName.Trim().Length > 0;
+
+    [RelayCommand(CanExecute = nameof(CanFindFree))]
+    private async Task FindFree()
+    {
+        var names = DomainAvailability.Names(WantedName);
+        FreeResults.Clear();
+        OnPropertyChanged(nameof(HasFreeResults));
+        if (names.Count == 0)
+        {
+            FreeMessage = "Type a name using letters, digits and hyphens, such as karoocoffee.";
+            return;
+        }
+        FreeWorking = true;
+        FindFreeCommand.NotifyCanExecuteChanged();
+        FreeMessage = "Asking the registries…";
+        try
+        {
+            // All at once, shown in the order of the list.
+            var checks = await Task.WhenAll(names.Select(n => services.SiteChecker.AvailabilityAsync(n)));
+            foreach (var check in checks)
+                FreeResults.Add(check);
+            var free = checks.Count(c => c.CanBeHad);
+            FreeMessage = free == 0 ? "None of these is free." : free == 1 ? "1 of these is free." : $"{free} of these are free.";
+        }
+        finally
+        {
+            FreeWorking = false;
+            FindFreeCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(HasFreeResults));
+        }
+    }
+
+    /// <summary>Looks a taken name over in the main check above: who has it, where it points, its mail set-up.</summary>
+    [RelayCommand]
+    private async Task LookOver(DomainCheck? check)
+    {
+        if (check is null)
+            return;
+        Address = check.Domain;
+        if (CheckDomainCommand.CanExecute(null))
+            await CheckDomainCommand.ExecuteAsync(null);
+    }
+
     /// <summary>The box for a Google key is showing: a test ran out of allowance, or Use my own key was clicked.</summary>
     [ObservableProperty] public partial bool AsksForSpeedKey { get; set; }
 
