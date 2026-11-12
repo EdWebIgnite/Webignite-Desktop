@@ -423,7 +423,7 @@
           </ItemsControl>
         </StackPanel>
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding SpellNote}" />
-        <Button Content="Add a language in Windows" Command="{Binding OpenWindowsLanguagesCommand}" IsVisible="{Binding SpellLanguageMissing}"
+        <Button Classes="quiet" Content="Add a language in Windows" Command="{Binding OpenWindowsLanguagesCommand}" IsVisible="{Binding SpellLanguageMissing}"
                 HorizontalAlignment="Left" />
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="A wavy line marks a word Windows doesn't know. Right-click it for suggestions, to add it to the dictionary, or to ignore it." />
@@ -505,7 +505,7 @@
                          Text="It doesn't need a tunnel or a key. In the ChatGPT app choose Connect to a custom MCP, name it Webignite, set Type to STDIO, paste this into Command and leave the rest empty." />
               <SelectableTextBlock Text="{Binding ConnectorPath}" FontFamily="Consolas, Menlo, monospace" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" />
               <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button Content="Copy the connector's path" Command="{Binding CopyConnectorPathCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
+                <Button Classes="quiet" Content="Copy the connector's path" Command="{Binding CopyConnectorPathCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
                 <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ConnectorPathNote}" VerticalAlignment="Center" TextWrapping="Wrap" />
               </StackPanel>
             </StackPanel>
@@ -875,7 +875,7 @@
               <SelectableTextBlock Text="{Binding NewRecoveryKey}" FontSize="16" FontFamily="Consolas, Menlo, monospace" TextWrapping="Wrap" />
               <TextBlock Classes="muted" TextWrapping="Wrap"
                          Text="If you forget your password, this key and your email get you back in without losing anything synced. Nobody else has it, not even the server. Write it down or print it, and keep it away from this PC." />
-              <Button Content="I've kept it safe" Command="{Binding RecoveryKeyKeptCommand}" HorizontalAlignment="Left" />
+              <Button Classes="quiet" Content="I've kept it safe" Command="{Binding RecoveryKeyKeptCommand}" HorizontalAlignment="Left" />
             </StackPanel>
           </Border>
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="This PC has the workspace key, so it can unlock what's shared." IsVisible="{Binding HasWorkspaceKey}" />
@@ -889,7 +889,7 @@
           <TextBlock Classes="muted" TextWrapping="Wrap"
                      Text="Projects ticked Shared, with their sections, tasks, comments and activity, sync every 15 minutes while you're signed in, and when you click Sync now or close Webignite. Chat and your status go every minute. When you both change the same task, each field keeps whoever changed it last. Personal projects stay on this PC. Files attached to tasks go too (up to 25 MB each)." />
           <StackPanel Orientation="Horizontal" Spacing="12">
-            <Button Content="Sync now" Command="{Binding SyncNowCommand}" IsEnabled="{Binding !AccountBusy}" />
+            <Button Classes="quiet" Content="Sync now" Command="{Binding SyncNowCommand}" IsEnabled="{Binding !AccountBusy}" />
             <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" Text="{Binding LastSyncedText}" />
           </StackPanel>
 
@@ -898,7 +898,7 @@
                      Text="With two-factor on, signing in also needs a code from an authenticator app on your phone, so a stolen password isn't enough." />
           <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding TwoFactorOn}"
                      Text="Two-factor is on. To turn it off, type a code from your authenticator app." />
-          <Button Content="Turn on two-factor" Command="{Binding StartTwoFactorCommand}" IsVisible="{Binding TwoFactorOff}" IsEnabled="{Binding !AccountBusy}" HorizontalAlignment="Left" />
+          <Button Classes="quiet" Content="Turn on two-factor" Command="{Binding StartTwoFactorCommand}" IsVisible="{Binding TwoFactorOff}" IsEnabled="{Binding !AccountBusy}" HorizontalAlignment="Left" />
           <StackPanel Orientation="Horizontal" Spacing="16" IsVisible="{Binding SettingUpTwoFactor}">
             <Image Source="{Binding TwoFactorQr}" Width="180" Height="180" />
             <StackPanel Spacing="8" VerticalAlignment="Center">
@@ -925,7 +925,7 @@
             <TextBlock Classes="muted" TextWrapping="Wrap"
                        Text="Makes one message with everything your partner needs: the link to install Webignite, an invite code and the few steps. Send it only to them." />
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="Make an invite" Command="{Binding InvitePartnerCommand}" IsEnabled="{Binding !AccountBusy}" />
+              <Button Classes="quiet" Content="Make an invite" Command="{Binding InvitePartnerCommand}" IsEnabled="{Binding !AccountBusy}" />
               <Button Classes="link" Content="Copy the install link" Command="{Binding CopyInstallLinkCommand}" CommandParameter="{Binding $parent[TopLevel]}"
                       ToolTip.Tip="Always the newest Webignite for Windows" VerticalAlignment="Center" />
             </StackPanel>
@@ -934,14 +934,14 @@
                 <SelectableTextBlock Text="{Binding InviteMessage}" TextWrapping="Wrap" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <Button Classes="primary" Content="Copy the message" Command="{Binding CopyInviteCommand}" CommandParameter="{Binding $parent[TopLevel]}" />
-                  <Button Content="Send it by mail" Command="{Binding MailInviteCommand}" />
+                  <Button Classes="quiet" Content="Send it by mail" Command="{Binding MailInviteCommand}" />
                 </StackPanel>
               </StackPanel>
             </Border>
           </StackPanel>
 
           <TextBlock FontWeight="SemiBold" Text="Password and PCs" Margin="0,6,0,0" />
-          <Button Content="Change password" Command="{Binding StartChangeAccountPasswordCommand}" IsVisible="{Binding !ChangingAccountPassword}" HorizontalAlignment="Left" />
+          <Button Classes="quiet" Content="Change password" Command="{Binding StartChangeAccountPasswordCommand}" IsVisible="{Binding !ChangingAccountPassword}" HorizontalAlignment="Left" />
           <StackPanel Spacing="8" IsVisible="{Binding ChangingAccountPassword}" MaxWidth="360" HorizontalAlignment="Left">
             <TextBlock Classes="label" Text="Current password" />
             <TextBox Text="{Binding PasswordNow}" PasswordChar="•" />

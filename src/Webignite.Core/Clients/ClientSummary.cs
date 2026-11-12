@@ -37,6 +37,29 @@ public static class ClientDirectory
             events.Where(e => e.Date >= today && Matches(client, e.Customer)).OrderBy(e => e.Date).ThenBy(e => e.Start).ToList());
 
     /// <summary>
+    /// The same as <see cref="Summarise"/> for every client at once. Documents, tasks and events are sorted by name
+    /// once, so a long client list doesn't go through every document again for each client.
+    /// </summary>
+    public static IReadOnlyList<ClientSummary> SummariseAll(IEnumerable<Client> clients, IEnumerable<StoredDocument> documents,
+        IEnumerable<TaskItem> tasks, IEnumerable<CalendarEvent> events, DateOnly today)
+    {
+        var documentsBy = documents.ToLookup(d => Key(d.Document.Customer.Name));
+        var tasksBy = tasks.Where(t => !t.Done).ToLookup(t => Key(t.Customer));
+        var eventsBy = events.Where(e => e.Date >= today).ToLookup(e => Key(e.Customer));
+        return clients.Select(client =>
+        {
+            var key = Key(client.Name);
+            return key.Length == 0
+                ? new ClientSummary(client, [], [], [])
+                : new ClientSummary(
+                    client,
+                    documentsBy[key].OrderByDescending(d => d.Updated).ToList(),
+                    TaskGroups.Sort(tasksBy[key]).ToList(),
+                    eventsBy[key].OrderBy(e => e.Date).ThenBy(e => e.Start).ToList());
+        }).ToList();
+    }
+
+    /// <summary>
     /// The line under the Clients title: "6 clients, R 4 500.00 owed by 2, 1 new site underway". Parts with nothing
     /// to say are left out.
     /// </summary>

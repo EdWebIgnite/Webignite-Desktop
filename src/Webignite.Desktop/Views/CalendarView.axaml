@@ -108,10 +108,10 @@
         <Border Classes="card">
           <StackPanel Spacing="8">
             <TextBlock Classes="h2" Text="Add an event" />
-            <TextBox Text="{Binding NewTitle}" PlaceholderText="e.g. Meeting with Bosveld Builders" />
+            <TextBox Text="{Binding NewTitle}" PlaceholderText="What it is" />
             <Grid ColumnDefinitions="100,8,*">
               <TextBox Text="{Binding NewTime}" PlaceholderText="Time" ToolTip.Tip="e.g. 9:30 or 14:00. Empty means all day." />
-              <TextBox Grid.Column="2" Text="{Binding NewLocation}" PlaceholderText="Where (optional)" />
+              <TextBox Grid.Column="2" Text="{Binding NewLocation}" PlaceholderText="Where" />
             </Grid>
             <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding FormMessage}" TextWrapping="Wrap" />
             <Button Classes="primary" Content="Add to this day" Command="{Binding AddEventCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />

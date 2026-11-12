@@ -6,10 +6,10 @@
   <StackPanel Spacing="12">
     <TextBlock TextWrapping="Wrap"
                Text="The screen freezes. Drag over the words you want (in a picture, a video, a PDF that won't let you select) and they are copied as text. Windows reads them on this PC; nothing is sent anywhere." />
-    <StackPanel Orientation="Horizontal" Spacing="12">
-      <Button Classes="primary" Content="Pick an area" Command="{Binding ReadScreenCommand}" IsEnabled="{Binding CanReadScreen}" />
-      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ScreenTextHint}" VerticalAlignment="Center" />
-    </StackPanel>
+    <DockPanel>
+      <Button DockPanel.Dock="Left" Margin="0,0,12,0" Classes="primary" Content="Pick an area" Command="{Binding ReadScreenCommand}" IsEnabled="{Binding CanReadScreen}" />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ScreenTextHint}" VerticalAlignment="Center" TextWrapping="Wrap" />
+    </DockPanel>
     <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Reading text off the screen needs Windows." IsVisible="{Binding !CanReadScreen}" />
     <StackPanel Spacing="6" IsVisible="{Binding HasScreenText}">
       <DockPanel>

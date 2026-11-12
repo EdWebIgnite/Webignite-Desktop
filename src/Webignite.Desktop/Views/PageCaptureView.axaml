@@ -29,7 +29,7 @@
 
     <!-- What the page is, or what went wrong, with what was last saved -->
     <DockPanel DockPanel.Dock="Top" Margin="0,8,0,0" MinHeight="22">
-      <Button DockPanel.Dock="Right" Classes="link" Content="Show it in Files" Click="ShowInFiles"
+      <Button DockPanel.Dock="Right" Classes="link" Content="Show in Files" Click="ShowInFiles"
               IsVisible="{Binding HasCaptured}" Margin="12,0,0,0" />
       <ProgressBar DockPanel.Dock="Right" IsIndeterminate="True" Width="90" Margin="12,0,0,0" VerticalAlignment="Center"
                    IsVisible="{Binding CaptureWorking}" />
@@ -53,7 +53,7 @@
       <ComboBox ItemsSource="{Binding Papers}" SelectedItem="{Binding Paper}" Width="130" />
       <CheckBox Content="Sideways" IsChecked="{Binding PdfSideways}" />
       <CheckBox Content="Backgrounds" ToolTip.Tip="Keeps the page's background colours and pictures, as on screen. Untick to save ink when it will be printed." IsChecked="{Binding PdfBackgrounds}" />
-      <Button Content="Save as PDF" Command="{Binding SavePagePdfCommand}" CommandParameter="{Binding $self}" />
+      <Button Classes="quiet" Content="Save as PDF" Command="{Binding SavePagePdfCommand}" CommandParameter="{Binding $self}" />
     </WrapPanel>
 
     <!-- Pictures -->
@@ -72,7 +72,7 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
       <CheckBox Content="Whole page" ToolTip.Tip="From the top of the page to the bottom, not only what fits on the screen" IsChecked="{Binding CaptureWholePage}" />
-      <Button Content="Save pictures" Command="{Binding SavePagePicturesCommand}" CommandParameter="{Binding $self}" />
+      <Button Classes="quiet" Content="Save pictures" Command="{Binding SavePagePicturesCommand}" CommandParameter="{Binding $self}" />
       <Button Classes="quiet" Content="Open in Mark-up" Click="OpenInMarkup" IsEnabled="{Binding CaptureReady}"
               ToolTip.Tip="Takes a picture at the first ticked screen and opens it in Mark-up to draw on" />
     </WrapPanel>

@@ -145,8 +145,8 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork,
         var documents = services.Documents.List();
         var tasks = services.Store.ListTasks();
         var today = DateOnly.FromDateTime(DateTime.Today);
-        all = clients
-            .Select(c => new ClientRow(ClientDirectory.Summarise(c, documents, tasks, [], today)) { IsOpen = Detail?.ClientId == c.Id })
+        all = ClientDirectory.SummariseAll(clients, documents, tasks, [], today)
+            .Select(summary => new ClientRow(summary) { IsOpen = Detail?.ClientId == summary.Client.Id })
             .ToList();
         Headline = ClientDirectory.Headline(all.Select(r => r.Summary).ToList());
         Suggestions.Clear();

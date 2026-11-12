@@ -346,11 +346,11 @@ public sealed class AppServices : IDisposable
         using var working = Work.Start("Backing up");
         try
         {
-            var snapshot = Backups.Snapshot(Store);
             var key = VaultKeySource();
             var folder = BackupFolder;
             var version = typeof(AppServices).Assembly.GetName().Version?.ToString(3);
-            var file = await Task.Run(() => Backups.Seal(snapshot, key, password, folder, started, version));
+            // Copying the database takes seconds once it is big, so it is done off the screen's thread too.
+            var file = await Task.Run(() => Backups.Seal(Backups.Snapshot(Store), key, password, folder, started, version));
             Settings.Backups = Settings.Backups with { LastBackup = started, LastFile = file, LastProblem = null, LastProblemAt = null };
             return new(true);
         }

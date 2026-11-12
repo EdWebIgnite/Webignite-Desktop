@@ -21,7 +21,7 @@ public static class Backups
 
     private sealed record Info(DateTimeOffset Made, string? AppVersion);
 
-    /// <summary>A copy of the database taken while it's in use. Run it on the thread that uses the store.</summary>
+    /// <summary>A copy of the database taken while it's in use. Safe on a background thread: the store keeps a connection per thread.</summary>
     public static string Snapshot(LocalStore store)
     {
         var work = Path.Combine(Path.GetTempPath(), "webignite-backup-" + Guid.NewGuid().ToString("N"));
@@ -52,7 +52,8 @@ public static class Backups
                     try
                     {
                         using var zip = new ZipArchive(pipe, ZipArchiveMode.Create, leaveOpen: true);
-                        zip.CreateEntryFromFile(Path.Combine(snapshot, DatabaseEntry), DatabaseEntry, CompressionLevel.Optimal);
+                        // The records are encrypted, which doesn't compress, so only a quick pass is worth the time.
+                        zip.CreateEntryFromFile(Path.Combine(snapshot, DatabaseEntry), DatabaseEntry, CompressionLevel.Fastest);
                         using (var key = zip.CreateEntry(KeyEntry, CompressionLevel.NoCompression).Open())
                             key.Write(vaultKey);
                         using var info = zip.CreateEntry(InfoEntry).Open();

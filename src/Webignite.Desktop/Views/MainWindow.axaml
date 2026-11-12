@@ -537,8 +537,8 @@
           <TextBlock Classes="muted" TextWrapping="Wrap"
                      Text="A short guide takes you through joining, Xero and ChatGPT, then shows you round. Your password never leaves this PC, and what's shared is locked here first." />
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Join with an invite code" Command="{Binding WelcomeJoinCommand}" />
-          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Sign in" Command="{Binding WelcomeSignInCommand}" />
-          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Create an account" Command="{Binding WelcomeCreateCommand}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Sign in" Command="{Binding WelcomeSignInCommand}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Create an account" Command="{Binding WelcomeCreateCommand}" />
           <Button Classes="link" HorizontalAlignment="Center" Content="Not now: use it on this PC only" Command="{Binding WelcomeNotNowCommand}" />
         </StackPanel>
       </Border>

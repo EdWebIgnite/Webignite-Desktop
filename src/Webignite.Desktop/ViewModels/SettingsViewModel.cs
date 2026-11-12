@@ -8,7 +8,7 @@ using Webignite.Xero.Auth;
 
 namespace Webignite.Desktop.ViewModels;
 
-public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
+public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork, IDisposable
 {
     /// <summary>Settings stays once opened: it is small and may hold something half typed.</summary>
     public bool HoldsWork => true;
@@ -35,6 +35,19 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         NotifyNewMail = mailCheck.Notify;
         if (App.RestoredAtStart)
             BackupMessage = "The backup was restored. If mail or Xero ask, sign in again: passwords aren't kept in backups.";
+    }
+
+    /// <summary>Settings is let go when unused: stop listening to the look, and free the pictures it drew.</summary>
+    public void Dispose()
+    {
+        services.Settings.AppearanceChanged -= LookChanged;
+        var qr = TwoFactorQr;
+        TwoFactorQr = null;
+        qr?.Dispose();
+        var logo = BrandLogo;
+        BrandLogo = null;
+        logo?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // Price list

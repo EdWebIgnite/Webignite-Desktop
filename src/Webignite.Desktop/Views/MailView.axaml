@@ -598,7 +598,7 @@
           <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowMany}">
             <c:Icon Data="{StaticResource Icon.Mail}" Size="32" Foreground="{DynamicResource Muted}" HorizontalAlignment="Center" />
             <TextBlock Classes="h2" Text="{Binding ManyText}" HorizontalAlignment="Center" />
-            <TextBlock Classes="muted" Text="Use the buttons above, right-click, or drag them onto a folder or category." HorizontalAlignment="Center" />
+            <TextBlock Classes="muted" Text="Use the buttons above, right-click, or drag them onto a folder or category." HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
           </StackPanel>
           <Panel IsVisible="{Binding HasComposer}">
             <v:ComposeView DataContext="{Binding Composer}" />
