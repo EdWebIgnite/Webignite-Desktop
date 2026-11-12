@@ -868,14 +868,14 @@
                   <TextBlock Classes="overviewhead" Text="Project description" VerticalAlignment="Center" />
                 </DockPanel>
                 <Border Classes="description">
-                  <c:RichTextEditor x:Name="ProjectDescriptionEditor" Document="{Binding ProjectDescription}" Revision="{Binding ProjectDescriptionRevision}" PageColours="True"
+                  <c:RichTextEditor x:Name="ProjectDescriptionEditor" Document="{Binding OverviewPart.ProjectDescription}" Revision="{Binding OverviewPart.ProjectDescriptionRevision}" PageColours="True"
                                     Placeholder="What's this project about? The goal, what's in and out, who to talk to…" Padding="14,12" MinHeight="120" />
                 </Border>
               </StackPanel>
 
               <StackPanel Spacing="10">
                 <TextBlock Classes="overviewhead" Text="Project roles" />
-                <ItemsControl ItemsSource="{Binding Roles}">
+                <ItemsControl ItemsSource="{Binding OverviewPart.Roles}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate><WrapPanel ItemSpacing="24" LineSpacing="10" /></ItemsPanelTemplate>
                   </ItemsControl.ItemsPanel>
@@ -903,8 +903,8 @@
                   <TextBlock Classes="overviewhead" Text="Key resources" VerticalAlignment="Center" />
                 </DockPanel>
                 <TextBlock Classes="muted" Text="Links to the brief, the staging site or a shared folder, kept in one place."
-                           IsVisible="{Binding NoLinks}" TextWrapping="Wrap" />
-                <ItemsControl ItemsSource="{Binding Links}" Margin="0,0,-10,-10">
+                           IsVisible="{Binding OverviewPart.NoLinks}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding OverviewPart.Links}" Margin="0,0,-10,-10">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
                   </ItemsControl.ItemsPanel>
@@ -927,13 +927,13 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Border Classes="description" Padding="12" IsVisible="{Binding IsAddingLink}">
+                <Border Classes="description" Padding="12" IsVisible="{Binding OverviewPart.IsAddingLink}">
                   <StackPanel Spacing="8">
-                    <TextBox x:Name="LinkUrlBox" Text="{Binding NewLinkUrl}" PlaceholderText="Web address, e.g. staging.bosveld.co.za" KeyDown="LinkKey" />
-                    <TextBox Text="{Binding NewLinkTitle}" PlaceholderText="Name (optional), e.g. Staging site" KeyDown="LinkKey" />
+                    <TextBox x:Name="LinkUrlBox" Text="{Binding OverviewPart.NewLinkUrl}" PlaceholderText="Web address, e.g. staging.bosveld.co.za" KeyDown="LinkKey" />
+                    <TextBox Text="{Binding OverviewPart.NewLinkTitle}" PlaceholderText="Name (optional), e.g. Staging site" KeyDown="LinkKey" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                      <Button Classes="primary" Content="Add link" Command="{Binding AddLinkCommand}" />
-                      <Button Classes="quiet" Content="Cancel" Command="{Binding CancelLinkCommand}" />
+                      <Button Classes="primary" Content="Add link" Command="{Binding OverviewPart.AddLinkCommand}" />
+                      <Button Classes="quiet" Content="Cancel" Command="{Binding OverviewPart.CancelLinkCommand}" />
                     </StackPanel>
                   </StackPanel>
                 </Border>
@@ -942,8 +942,8 @@
               <StackPanel Spacing="8">
                 <TextBlock Classes="overviewhead" Text="Milestones" />
                 <TextBlock Classes="muted" Text="The moments that matter, like sign-off or going live. Right-click any task to make it one."
-                           IsVisible="{Binding NoMilestones}" TextWrapping="Wrap" />
-                <ItemsControl ItemsSource="{Binding Milestones}">
+                           IsVisible="{Binding OverviewPart.NoMilestones}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding OverviewPart.Milestones}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:TaskRow">
                       <Border Classes="taskrow" Opacity="{Binding Fade}" ContextRequested="TaskMenu">
@@ -964,9 +964,9 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBox Classes="inline addtaskbox" Text="{Binding NewMilestone}" PlaceholderText="Add a milestone, then Enter" KeyDown="MilestoneKey" />
+                <TextBox Classes="inline addtaskbox" Text="{Binding OverviewPart.NewMilestone}" PlaceholderText="Add a milestone, then Enter" KeyDown="MilestoneKey" />
               </StackPanel>
-              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MadeText}" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding OverviewPart.MadeText}" />
             </StackPanel>
 
             <StackPanel Grid.Column="2" Spacing="16">
@@ -975,36 +975,36 @@
                 <StackPanel Spacing="10">
                   <TextBlock Classes="overviewhead" Text="What's the status?" />
                   <StackPanel Orientation="Horizontal" Spacing="6">
-                    <Button Classes="quiet healthpick" Classes.on="{Binding UpdateOnTrack}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.OnTrack}">
+                    <Button Classes="quiet healthpick" Classes.on="{Binding OverviewPart.UpdateOnTrack}" Command="{Binding OverviewPart.StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.OnTrack}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.OnTrack}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
                         <TextBlock Text="On track" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
-                    <Button Classes="quiet healthpick" Classes.on="{Binding UpdateAtRisk}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.AtRisk}">
+                    <Button Classes="quiet healthpick" Classes.on="{Binding OverviewPart.UpdateAtRisk}" Command="{Binding OverviewPart.StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.AtRisk}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.AtRisk}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
                         <TextBlock Text="At risk" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
-                    <Button Classes="quiet healthpick" Classes.on="{Binding UpdateOffTrack}" Command="{Binding StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.OffTrack}">
+                    <Button Classes="quiet healthpick" Classes.on="{Binding OverviewPart.UpdateOffTrack}" Command="{Binding OverviewPart.StartUpdateCommand}" CommandParameter="{x:Static core:ProjectHealth.OffTrack}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <Ellipse Width="9" Height="9" Fill="{Binding Source={x:Static core:ProjectHealth.OffTrack}, Converter={x:Static c:ProjectColours.Health}}" VerticalAlignment="Center" />
                         <TextBlock Text="Off track" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
                   </StackPanel>
-                  <StackPanel Spacing="8" IsVisible="{Binding IsWritingUpdate}">
-                    <TextBox Text="{Binding UpdateText}" PlaceholderText="What's happened, what's next, anything in the way?" AcceptsReturn="True"
+                  <StackPanel Spacing="8" IsVisible="{Binding OverviewPart.IsWritingUpdate}">
+                    <TextBox Text="{Binding OverviewPart.UpdateText}" PlaceholderText="What's happened, what's next, anything in the way?" AcceptsReturn="True"
                              TextWrapping="Wrap" MinHeight="80" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                      <Button Classes="primary" Content="Post update" Command="{Binding PostUpdateCommand}" />
-                      <Button Classes="quiet" Content="Cancel" Command="{Binding CancelUpdateCommand}" />
+                      <Button Classes="primary" Content="Post update" Command="{Binding OverviewPart.PostUpdateCommand}" />
+                      <Button Classes="quiet" Content="Cancel" Command="{Binding OverviewPart.CancelUpdateCommand}" />
                     </StackPanel>
                   </StackPanel>
                   <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Pick one to write an update. The newest sets the status in the header."
-                             IsVisible="{Binding NoUpdates}" TextWrapping="Wrap" />
-                  <ItemsControl ItemsSource="{Binding Updates}">
+                             IsVisible="{Binding OverviewPart.NoUpdates}" TextWrapping="Wrap" />
+                  <ItemsControl ItemsSource="{Binding OverviewPart.Updates}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:UpdateRow">
                         <Border Classes="updaterow">
@@ -1026,9 +1026,9 @@
               <Border Classes="overviewcard">
                 <StackPanel Spacing="8">
                   <TextBlock Classes="overviewhead" Text="Progress" />
-                  <ProgressBar Value="{Binding ProgressShare}" Minimum="0" Maximum="100" Height="6" />
-                  <TextBlock Text="{Binding ProgressText}" />
-                  <TextBlock Classes="latetext" Text="{Binding LateText}" IsVisible="{Binding HasLate}" />
+                  <ProgressBar Value="{Binding OverviewPart.ProgressShare}" Minimum="0" Maximum="100" Height="6" />
+                  <TextBlock Text="{Binding OverviewPart.ProgressText}" />
+                  <TextBlock Classes="latetext" Text="{Binding OverviewPart.LateText}" IsVisible="{Binding OverviewPart.HasLate}" />
                 </StackPanel>
               </Border>
 
@@ -1065,7 +1065,7 @@
                 <Border Grid.Column="5" Classes="cellline prioritycell"><TextBlock Text="Priority" /></Border>
                 <!-- Custom fields, as Asana's: a column each, and + at the end to add one -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal" Classes="fieldcolumns">
-                  <ItemsControl ItemsSource="{Binding FieldHeaders}">
+                  <ItemsControl ItemsSource="{Binding FieldsPart.FieldHeaders}">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
@@ -1089,11 +1089,11 @@
                         <Flyout Placement="BottomEdgeAlignedRight">
                           <StackPanel Spacing="8" Width="260">
                             <TextBlock Classes="overviewhead" Text="Add a field" />
-                            <TextBox Text="{Binding NewFieldName}" PlaceholderText="Name, e.g. Stage, Hours, Sign-off" />
-                            <ComboBox ItemsSource="{x:Static vm:ProjectsViewModel.FieldKinds}" SelectedItem="{Binding NewFieldKind}" HorizontalAlignment="Stretch" />
-                            <TextBox Text="{Binding NewFieldOptions}" IsVisible="{Binding NewFieldIsChoice}" PlaceholderText="Options, split by commas: Not started, Doing, Done"
+                            <TextBox Text="{Binding FieldsPart.NewFieldName}" PlaceholderText="Name, e.g. Stage, Hours, Sign-off" />
+                            <ComboBox ItemsSource="{x:Static vm:ProjectFieldsPart.FieldKinds}" SelectedItem="{Binding FieldsPart.NewFieldKind}" HorizontalAlignment="Stretch" />
+                            <TextBox Text="{Binding FieldsPart.NewFieldOptions}" IsVisible="{Binding FieldsPart.NewFieldIsChoice}" PlaceholderText="Options, split by commas: Not started, Doing, Done"
                                      TextWrapping="Wrap" />
-                            <Button Classes="primary" Content="Add field" Command="{Binding AddFieldCommand}" HorizontalAlignment="Left" />
+                            <Button Classes="primary" Content="Add field" Command="{Binding FieldsPart.AddFieldCommand}" HorizontalAlignment="Left" />
                           </StackPanel>
                         </Flyout>
                       </Button.Flyout>
@@ -1242,9 +1242,9 @@
             <Border Classes="timelineframe">
               <Panel>
               <ScrollViewer x:Name="TimelineScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                <StackPanel Width="{Binding TimelineWidth}">
+                <StackPanel Width="{Binding TimelinePart.TimelineWidth}">
                   <!-- Month names and day numbers -->
-                  <ItemsControl ItemsSource="{Binding TimelineDays}">
+                  <ItemsControl ItemsSource="{Binding TimelinePart.TimelineDays}">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
@@ -1264,7 +1264,7 @@
                   </ItemsControl>
                   <Panel MinHeight="360">
                     <!-- Day columns under the bars: weekends shaded, and where a task with no date is dropped -->
-                    <ItemsControl x:Name="TimelineColumns" ItemsSource="{Binding TimelineDays}">
+                    <ItemsControl x:Name="TimelineColumns" ItemsSource="{Binding TimelinePart.TimelineDays}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
                       </ItemsControl.ItemsPanel>
@@ -1274,12 +1274,12 @@
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Border Classes="todayline" Margin="{Binding TodayPlace}" />
-                    <ItemsControl ItemsSource="{Binding TimelineLanes}" Margin="0,6,0,12">
+                    <Border Classes="todayline" Margin="{Binding TimelinePart.TodayPlace}" />
+                    <ItemsControl ItemsSource="{Binding TimelinePart.TimelineLanes}" Margin="0,6,0,12">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:TimelineLaneRow">
                           <StackPanel>
-                            <TextBlock Classes="timelinelane" Text="{Binding Title}" Margin="{Binding #Root.((vm:ProjectsViewModel)DataContext).LaneTitlePlace}" />
+                            <TextBlock Classes="timelinelane" Text="{Binding Title}" Margin="{Binding #Root.((vm:ProjectsViewModel)DataContext).TimelinePart.LaneTitlePlace}" />
                             <ItemsControl ItemsSource="{Binding Bars}">
                               <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:TimelineBarRow">
@@ -1308,7 +1308,7 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <TextBlock Classes="muted" Text="No task has a due date yet. Drag one from Unscheduled onto a day, or give it a date in the list."
-                               IsVisible="{Binding NoTimelineBars}" Margin="16,40" TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left" />
+                               IsVisible="{Binding TimelinePart.NoTimelineBars}" Margin="16,40" TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left" />
                     <!-- Arrows from a task to the ones waiting on it, as Asana's timeline draws them -->
                     <Canvas x:Name="TimelineArrows" IsHitTestVisible="False" />
                   </Panel>
@@ -1316,16 +1316,16 @@
               </ScrollViewer>
               <!-- The month of the first day in view, pinned top left over the scrolling days -->
               <Border Classes="pinnedmonth" HorizontalAlignment="Left" VerticalAlignment="Top">
-                <TextBlock Classes="timelinemonth" Text="{Binding VisibleMonth}" Margin="0" />
+                <TextBlock Classes="timelinemonth" Text="{Binding TimelinePart.VisibleMonth}" Margin="0" />
               </Border>
               </Panel>
             </Border>
             <Border Grid.Column="2" Classes="overviewcard" VerticalAlignment="Top">
               <StackPanel Spacing="8">
                 <TextBlock Classes="overviewhead" Text="Unscheduled" />
-                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Tasks with no due date. Drag one onto a day." TextWrapping="Wrap" IsVisible="{Binding !NoUnscheduled}" />
-                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Every task has a date." IsVisible="{Binding NoUnscheduled}" />
-                <ItemsControl x:Name="UnscheduledList" ItemsSource="{Binding Unscheduled}">
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Tasks with no due date. Drag one onto a day." TextWrapping="Wrap" IsVisible="{Binding !TimelinePart.NoUnscheduled}" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Every task has a date." IsVisible="{Binding TimelinePart.NoUnscheduled}" />
+                <ItemsControl x:Name="UnscheduledList" ItemsSource="{Binding TimelinePart.Unscheduled}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:TaskRow">
                       <Border Classes="unscheduled" Background="Transparent" ContextRequested="TaskMenu">
@@ -1346,13 +1346,13 @@
           <StackPanel Spacing="8" IsVisible="{Binding IsCalendar}">
             <DockPanel>
               <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="4">
-                <Button Classes="quiet listtool" Content="Today" Command="{Binding ThisMonthCommand}" />
-                <Button Classes="quiet coltool" Command="{Binding PreviousMonthCommand}" ToolTip.Tip="The month before"><c:Icon Data="{StaticResource Icon.ChevronLeft}" Size="14" /></Button>
-                <Button Classes="quiet coltool" Command="{Binding NextMonthCommand}" ToolTip.Tip="The month after"><c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" /></Button>
-                <TextBlock Classes="overviewhead" Text="{Binding CalendarTitle}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                <Button Classes="quiet listtool" Content="Today" Command="{Binding TimelinePart.ThisMonthCommand}" />
+                <Button Classes="quiet coltool" Command="{Binding TimelinePart.PreviousMonthCommand}" ToolTip.Tip="The month before"><c:Icon Data="{StaticResource Icon.ChevronLeft}" Size="14" /></Button>
+                <Button Classes="quiet coltool" Command="{Binding TimelinePart.NextMonthCommand}" ToolTip.Tip="The month after"><c:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" /></Button>
+                <TextBlock Classes="overviewhead" Text="{Binding TimelinePart.CalendarTitle}" VerticalAlignment="Center" Margin="8,0,0,0" />
               </StackPanel>
             </DockPanel>
-            <ItemsControl ItemsSource="{Binding WeekdayNames}">
+            <ItemsControl ItemsSource="{Binding TimelinePart.WeekdayNames}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
@@ -1362,7 +1362,7 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <ItemsControl x:Name="CalendarGrid" ItemsSource="{Binding CalendarCells}">
+            <ItemsControl x:Name="CalendarGrid" ItemsSource="{Binding TimelinePart.CalendarCells}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>

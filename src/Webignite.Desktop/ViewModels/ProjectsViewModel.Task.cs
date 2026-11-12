@@ -149,7 +149,7 @@ public sealed partial class TaskDetail : ObservableObject
 {
     private readonly ProjectsViewModel page;
     private readonly AppServices services;
-    private bool loading;
+    internal bool loading;
     private int searching;
 
     public TaskDetail(ProjectTask task, ProjectsViewModel page, AppServices services)

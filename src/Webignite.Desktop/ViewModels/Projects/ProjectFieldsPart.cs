@@ -8,7 +8,7 @@ namespace Webignite.Desktop.ViewModels;
 
 // Custom fields, as Asana's: a project adds its own fields to its tasks (a choice with coloured options, text, a
 // number or a date). They show as columns in the list, as pills on board cards, and as rows in the task pane.
-public sealed partial class ProjectsViewModel
+public sealed partial class ProjectFieldsPart(AppServices services, ProjectsViewModel page) : ViewModelBase
 {
     /// <summary>The open project's custom fields, as column headings in the list.</summary>
     public ObservableCollection<FieldHeader> FieldHeaders { get; } = [];
@@ -26,68 +26,68 @@ public sealed partial class ProjectsViewModel
 
     [ObservableProperty] public partial string NewFieldOptions { get; set; } = "";
 
-    private IReadOnlyList<CustomField> OpenFields => open?.CustomFields ?? [];
+    private IReadOnlyList<CustomField> OpenFields => page.open?.CustomFields ?? [];
 
-    private void LoadFieldHeaders()
+    internal void LoadFieldHeaders()
     {
         FieldHeaders.Clear();
         foreach (var field in OpenFields)
-            FieldHeaders.Add(new FieldHeader(field, this));
+            FieldHeaders.Add(new FieldHeader(field, page));
     }
 
     /// <summary>A row's cells for the project's fields, in their order.</summary>
-    private IReadOnlyList<FieldCell> CellsFor(ProjectTask task) =>
-        [.. OpenFields.Select(f => new FieldCell(f, task.Id, CustomFields.ValueOf(task, f.Id), this))];
+    internal IReadOnlyList<FieldCell> CellsFor(ProjectTask task) =>
+        [.. OpenFields.Select(f => new FieldCell(f, task.Id, CustomFields.ValueOf(task, f.Id), page))];
 
     /// <summary>Adds the field described in the form; a choice takes its options from a list split by commas.</summary>
     [RelayCommand]
     private void AddField()
     {
-        if (open is null)
+        if (page.open is null)
             return;
         var options = NewFieldOptions.Split([',', '\n'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        var (saved, problems) = Ours(() => services.Projects.AddField(open.Id, NewFieldName, NewFieldKind.Value, options));
-        Message = saved is null ? string.Join(" ", problems) : "";
+        var (saved, problems) = page.Ours(() => services.Projects.AddField(page.open.Id, NewFieldName, NewFieldKind.Value, options));
+        page.Message = saved is null ? string.Join(" ", problems) : "";
         if (saved is null)
             return;
-        open = saved;
+        page.open = saved;
         NewFieldName = "";
         NewFieldOptions = "";
         NewFieldKind = FieldKinds[0];
-        ShowTasks();
-        Detail?.Reload();
+        page.ShowTasks();
+        page.Detail?.Reload();
     }
 
     internal void RemoveField(FieldHeader header)
     {
-        if (open is null)
+        if (page.open is null)
             return;
         var field = header.Field;
-        var index = open.CustomFields.ToList().FindIndex(f => f.Id == field.Id);
-        var projectId = open.Id;
-        var (saved, _) = Ours(() => services.Projects.RemoveField(projectId, field.Id));
+        var index = page.open.CustomFields.ToList().FindIndex(f => f.Id == field.Id);
+        var projectId = page.open.Id;
+        var (saved, _) = page.Ours(() => services.Projects.RemoveField(projectId, field.Id));
         if (saved is null)
             return;
-        open = saved;
-        ShowTasks();
-        Detail?.Reload();
+        page.open = saved;
+        page.ShowTasks();
+        page.Detail?.Reload();
         // Undo puts back only this field, where it was; fields added or changed since stay as they are.
         services.OfferUndo($"Removed the field {header.Name}", () =>
         {
             services.Projects.Change(projectId, p => CustomFields.PutBack(p, field, index));
-            Refresh();
+            page.Refresh();
         });
     }
 
     /// <summary>A task's value for a field, from what's typed or picked; empty clears it.</summary>
     public void SetFieldValue(string taskId, string fieldId, string typed)
     {
-        var (saved, problems) = Ours(() => services.Projects.SetFieldValue(taskId, fieldId, typed, CultureInfo.CurrentCulture));
-        Message = saved is null ? string.Join(" ", problems) : "";
+        var (saved, problems) = page.Ours(() => services.Projects.SetFieldValue(taskId, fieldId, typed, CultureInfo.CurrentCulture));
+        page.Message = saved is null ? string.Join(" ", problems) : "";
         if (saved is null)
             return;
-        ShowTasks();
-        if (Detail is { } detail && detail.Task.Id == taskId)
+        page.ShowTasks();
+        if (page.Detail is { } detail && detail.Task.Id == taskId)
             detail.Reload();
     }
 }
@@ -100,7 +100,7 @@ public sealed partial class FieldHeader(CustomField field, ProjectsViewModel pag
     public string KindText => CustomFields.Label(Field.Kind);
 
     [RelayCommand]
-    private void Remove() => page.RemoveField(this);
+    private void Remove() => page.FieldsPart.RemoveField(this);
 }
 
 /// <summary>A task's value for one field, as a cell in the list or a pill on a card; a click changes it.</summary>
@@ -158,13 +158,13 @@ public sealed partial class FieldEditor : ObservableObject
     partial void OnPickedChanged(Choice<string?>? value)
     {
         if (!loading)
-            page.SetFieldValue(taskId, Field.Id, value?.Value ?? "");
+            page.FieldsPart.SetFieldValue(taskId, Field.Id, value?.Value ?? "");
     }
 
     partial void OnDateChanged(DateTime? value)
     {
         if (!loading)
-            page.SetFieldValue(taskId, Field.Id, value is { } d ? DateOnly.FromDateTime(d).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "");
+            page.FieldsPart.SetFieldValue(taskId, Field.Id, value is { } d ? DateOnly.FromDateTime(d).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "");
     }
 
     /// <summary>Saves what's typed, when the box is left or Enter is pressed.</summary>
@@ -172,7 +172,7 @@ public sealed partial class FieldEditor : ObservableObject
     private void Save()
     {
         if (Text != loadedText)
-            page.SetFieldValue(taskId, Field.Id, Text);
+            page.FieldsPart.SetFieldValue(taskId, Field.Id, Text);
     }
 }
 

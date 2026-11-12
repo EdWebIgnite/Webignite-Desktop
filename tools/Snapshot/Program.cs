@@ -3521,35 +3521,35 @@ SaveLooks("projects");
         projectsPage.OverviewViewCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
         Check("The Overview tab shows, and the task tools hide", projectsPage.IsOverview && !projectsPage.IsList && !projectsPage.ShowsTaskTools);
-        projectsPage.ProjectDescription = Webignite.Core.Writing.RichText.FromText("Six pages to start, with online booking for site visits in phase two. Pieter signs off each page before it goes live.");
-        projectsPage.ProjectDescriptionRevision++;
+        projectsPage.OverviewPart.ProjectDescription = Webignite.Core.Writing.RichText.FromText("Six pages to start, with online booking for site visits in phase two. Pieter signs off each page before it goes live.");
+        projectsPage.OverviewPart.ProjectDescriptionRevision++;
         projectsPage.Keep();
         Check("The project description is kept once typing stops", services.Projects.Get(site.Id)!.Notes.StartsWith("Six pages", StringComparison.Ordinal));
-        projectsPage.NewLinkUrl = "staging.bosveld.co.za";
-        projectsPage.NewLinkTitle = "Staging site";
-        projectsPage.AddLinkCommand.Execute(null);
-        projectsPage.NewLinkUrl = "figma.com/file/bosveld";
-        projectsPage.AddLinkCommand.Execute(null);
-        Check("Key resources are added, a bare address made whole and named after its site", projectsPage.Links.Count == 2
-            && projectsPage.Links[0].Url == "https://staging.bosveld.co.za" && projectsPage.Links[1].Title == "figma.com");
-        projectsPage.NewMilestone = "Client sign-off";
-        projectsPage.AddMilestoneCommand.Execute(null);
-        projectsPage.SetMilestone(projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Point the domain at the new site"), true);
+        projectsPage.OverviewPart.NewLinkUrl = "staging.bosveld.co.za";
+        projectsPage.OverviewPart.NewLinkTitle = "Staging site";
+        projectsPage.OverviewPart.AddLinkCommand.Execute(null);
+        projectsPage.OverviewPart.NewLinkUrl = "figma.com/file/bosveld";
+        projectsPage.OverviewPart.AddLinkCommand.Execute(null);
+        Check("Key resources are added, a bare address made whole and named after its site", projectsPage.OverviewPart.Links.Count == 2
+            && projectsPage.OverviewPart.Links[0].Url == "https://staging.bosveld.co.za" && projectsPage.OverviewPart.Links[1].Title == "figma.com");
+        projectsPage.OverviewPart.NewMilestone = "Client sign-off";
+        projectsPage.OverviewPart.AddMilestoneCommand.Execute(null);
+        projectsPage.OverviewPart.SetMilestone(projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Point the domain at the new site"), true);
         Check("Milestones show on the Overview, in their order when none has a date",
-            projectsPage.Milestones.Select(m => m.Title).SequenceEqual(["Point the domain at the new site", "Client sign-off"]));
+            projectsPage.OverviewPart.Milestones.Select(m => m.Title).SequenceEqual(["Point the domain at the new site", "Client sign-off"]));
         Check("A task marked as a milestone shows a diamond in the list", projectsPage.Rows.OfType<TaskRow>().Any(r => r.IsMilestone));
-        projectsPage.StartUpdateCommand.Execute(Webignite.Core.Projects.ProjectHealth.AtRisk);
-        projectsPage.UpdateText = "Home page is signed off. Waiting on photos from Pieter before the gallery can go in.";
-        projectsPage.PostUpdateCommand.Execute(null);
+        projectsPage.OverviewPart.StartUpdateCommand.Execute(Webignite.Core.Projects.ProjectHealth.AtRisk);
+        projectsPage.OverviewPart.UpdateText = "Home page is signed off. Waiting on photos from Pieter before the gallery can go in.";
+        projectsPage.OverviewPart.PostUpdateCommand.Execute(null);
         Check("A status update posted goes on the Overview and sets the header's status",
-            projectsPage.Updates.Count == 1 && projectsPage.EditHealth == Webignite.Core.Projects.ProjectHealth.AtRisk && !projectsPage.IsWritingUpdate);
+            projectsPage.OverviewPart.Updates.Count == 1 && projectsPage.EditHealth == Webignite.Core.Projects.ProjectHealth.AtRisk && !projectsPage.OverviewPart.IsWritingUpdate);
         window.Width = 1900;
         Dispatcher.UIThread.RunJobs();
         Save("projects-overview");
         window.Width = 1280;
         // Put the project back for the checks after.
-        services.Projects.DeleteTask(projectsPage.Milestones.First(m => m.Title == "Client sign-off").Task.Id);
-        services.Projects.ChangeTask(projectsPage.Milestones.First().Task.Id, t => t with { Milestone = false });
+        services.Projects.DeleteTask(projectsPage.OverviewPart.Milestones.First(m => m.Title == "Client sign-off").Task.Id);
+        services.Projects.ChangeTask(projectsPage.OverviewPart.Milestones.First().Task.Id, t => t with { Milestone = false });
         services.Projects.Change(site.Id, p => p with { Health = healthBefore, Updates = [], Links = [] });
         projectsPage.ListViewCommand.Execute(null);
         projectsPage.Refresh();
@@ -3564,20 +3564,20 @@ SaveLooks("projects");
         projectsPage.TimelineViewCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
         Check("The Timeline tab shows each heading's dated tasks as bars, and the rest under Unscheduled", projectsPage.IsTimeline
-            && projectsPage.TimelineLanes.Count > 0 && projectsPage.Unscheduled.Any(r => r.Title == "Point the domain at the new site")
-            && projectsPage.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages").Bar.Length == 9);
-        var fiveBar = projectsPage.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages");
+            && projectsPage.TimelinePart.TimelineLanes.Count > 0 && projectsPage.TimelinePart.Unscheduled.Any(r => r.Title == "Point the domain at the new site")
+            && projectsPage.TimelinePart.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages").Bar.Length == 9);
+        var fiveBar = projectsPage.TimelinePart.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages");
         var fiveDue = fiveBar.Bar.Task.Due!.Value;
-        projectsPage.DragBar(fiveBar, 2, BarEdge.Move);
+        projectsPage.TimelinePart.DragBar(fiveBar, 2, BarEdge.Move);
         Check("Dragging a bar moves its start and due date together", services.Projects.GetTask(fivePages.Id)!.Due == fiveDue.AddDays(2)
             && services.Projects.GetTask(fivePages.Id)!.Start == fiveDue.AddDays(-6));
-        projectsPage.DragBar(projectsPage.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages"), 3, BarEdge.End);
+        projectsPage.TimelinePart.DragBar(projectsPage.TimelinePart.TimelineLanes.SelectMany(l => l.Bars).First(b => b.Title == "Build the five pages"), 3, BarEdge.End);
         Check("Dragging a bar's end stretches it", services.Projects.GetTask(fivePages.Id)!.Due == fiveDue.AddDays(5));
-        var domainTask = projectsPage.Unscheduled.First(r => r.Title == "Point the domain at the new site");
-        var launchDay = projectsPage.TimelineDays.First(d => d.Day == fiveDue.AddDays(9));
-        projectsPage.Schedule(domainTask, launchDay);
+        var domainTask = projectsPage.TimelinePart.Unscheduled.First(r => r.Title == "Point the domain at the new site");
+        var launchDay = projectsPage.TimelinePart.TimelineDays.First(d => d.Day == fiveDue.AddDays(9));
+        projectsPage.TimelinePart.Schedule(domainTask, launchDay);
         Check("A task with no date dropped on a day of the timeline is due then", services.Projects.GetTask(domainTask.Task.Id)!.Due == launchDay.Day
-            && projectsPage.Unscheduled.All(r => r.Title != "Point the domain at the new site"));
+            && projectsPage.TimelinePart.Unscheduled.All(r => r.Title != "Point the domain at the new site"));
         window.Width = 1900;
         for (var tick = 0; tick < 10; tick++)
         {
@@ -3603,13 +3603,13 @@ SaveLooks("projects");
 
         // The Calendar tab, as Asana's: a month of weeks with each task on its due date.
         projectsPage.CalendarViewCommand.Execute(null);
-        while (projectsPage.CalendarMonth.Month != fiveDue.Month || projectsPage.CalendarMonth.Year != fiveDue.Year)
-            projectsPage.NextMonthCommand.Execute(null);
+        while (projectsPage.TimelinePart.CalendarMonth.Month != fiveDue.Month || projectsPage.TimelinePart.CalendarMonth.Year != fiveDue.Year)
+            projectsPage.TimelinePart.NextMonthCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
-        Check("The Calendar tab shows six weeks with tasks on their due dates", projectsPage.IsCalendar && projectsPage.CalendarCells.Count == 42
-            && projectsPage.CalendarCells.Any(c => c.Tasks.Any(t => t.Title == "Point the domain at the new site")));
-        var onCalendar = projectsPage.CalendarCells.SelectMany(c => c.Tasks).First(t => t.Title == "Point the domain at the new site");
-        projectsPage.MoveToDay(onCalendar, launchDay.Day.AddDays(1));
+        Check("The Calendar tab shows six weeks with tasks on their due dates", projectsPage.IsCalendar && projectsPage.TimelinePart.CalendarCells.Count == 42
+            && projectsPage.TimelinePart.CalendarCells.Any(c => c.Tasks.Any(t => t.Title == "Point the domain at the new site")));
+        var onCalendar = projectsPage.TimelinePart.CalendarCells.SelectMany(c => c.Tasks).First(t => t.Title == "Point the domain at the new site");
+        projectsPage.TimelinePart.MoveToDay(onCalendar, launchDay.Day.AddDays(1));
         Check("A task dragged to another day of the calendar is due then", services.Projects.GetTask(domainTask.Task.Id)!.Due == launchDay.Day.AddDays(1));
         Check("Sort and Group hide on Timeline and Calendar", !projectsPage.ShowsSortGroup);
         Dispatcher.UIThread.RunJobs();
@@ -3697,23 +3697,23 @@ SaveLooks("projects");
         projectsPage.Refresh();
 
         // Custom fields, as Asana's: a choice with coloured options and a number, as list columns, card pills and pane rows.
-        projectsPage.NewFieldName = "Stage";
-        projectsPage.NewFieldKind = ProjectsViewModel.FieldKinds.First(k => k.Value == Webignite.Core.Projects.FieldKind.Choice);
-        projectsPage.NewFieldOptions = "Not started, Doing, Waiting on client, Done";
-        projectsPage.AddFieldCommand.Execute(null);
-        projectsPage.NewFieldName = "Hours";
-        projectsPage.NewFieldKind = ProjectsViewModel.FieldKinds.First(k => k.Value == Webignite.Core.Projects.FieldKind.Number);
-        projectsPage.AddFieldCommand.Execute(null);
+        projectsPage.FieldsPart.NewFieldName = "Stage";
+        projectsPage.FieldsPart.NewFieldKind = ProjectFieldsPart.FieldKinds.First(k => k.Value == Webignite.Core.Projects.FieldKind.Choice);
+        projectsPage.FieldsPart.NewFieldOptions = "Not started, Doing, Waiting on client, Done";
+        projectsPage.FieldsPart.AddFieldCommand.Execute(null);
+        projectsPage.FieldsPart.NewFieldName = "Hours";
+        projectsPage.FieldsPart.NewFieldKind = ProjectFieldsPart.FieldKinds.First(k => k.Value == Webignite.Core.Projects.FieldKind.Number);
+        projectsPage.FieldsPart.AddFieldCommand.Execute(null);
         var stageField = services.Projects.Get(site.Id)!.CustomFields.First(f => f.Name == "Stage");
         var hoursField = services.Projects.Get(site.Id)!.CustomFields.First(f => f.Name == "Hours");
-        projectsPage.SetFieldValue(pages.Id, stageField.Id, "Doing");
-        projectsPage.SetFieldValue(pages.Id, hoursField.Id, "12.5");
-        projectsPage.SetFieldValue(colourTask.Id, stageField.Id, "Waiting on client");
-        projectsPage.SetFieldValue(colourTask.Id, hoursField.Id, "lots");
+        projectsPage.FieldsPart.SetFieldValue(pages.Id, stageField.Id, "Doing");
+        projectsPage.FieldsPart.SetFieldValue(pages.Id, hoursField.Id, "12.5");
+        projectsPage.FieldsPart.SetFieldValue(colourTask.Id, stageField.Id, "Waiting on client");
+        projectsPage.FieldsPart.SetFieldValue(colourTask.Id, hoursField.Id, "lots");
         Check("A number field turns down words and says why", projectsPage.Message.Contains("number", StringComparison.Ordinal));
-        projectsPage.SetFieldValue(colourTask.Id, hoursField.Id, "3");
+        projectsPage.FieldsPart.SetFieldValue(colourTask.Id, hoursField.Id, "3");
         Check("Custom fields show as list columns with each task's value, choices as coloured pills",
-            projectsPage.FieldHeaders.Select(h => h.Name).SequenceEqual(["Stage", "Hours"])
+            projectsPage.FieldsPart.FieldHeaders.Select(h => h.Name).SequenceEqual(["Stage", "Hours"])
             && projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == pages.Id).FieldCells is [{ IsPill: true, Text: "Doing" }, { Text: var hoursText }]
             && hoursText.Length > 0);
         window.Width = 1900;

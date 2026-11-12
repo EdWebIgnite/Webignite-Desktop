@@ -8,9 +8,9 @@ namespace Webignite.Desktop.ViewModels;
 
 // The Overview tab, as Asana's: what the project is about, who's on it, its key links and milestones on the left;
 // how it's going (status updates), its details and how far it has come on the right.
-public sealed partial class ProjectsViewModel
+public sealed partial class ProjectOverviewPart(AppServices services, ProjectsViewModel page) : ViewModelBase
 {
-    private static readonly object DescriptionTyped = new();
+    internal static readonly object DescriptionTyped = new();
 
     [ObservableProperty] public partial Webignite.Core.Writing.RichDocument ProjectDescription { get; set; } = Webignite.Core.Writing.RichDocument.Empty();
 
@@ -19,14 +19,14 @@ public sealed partial class ProjectsViewModel
 
     partial void OnProjectDescriptionRevisionChanged(int value)
     {
-        if (value > 0 && !loading)
-            Typed(DescriptionTyped);
+        if (value > 0 && !page.loading)
+            page.Typed(DescriptionTyped);
     }
 
-    private void SaveDescription()
+    internal void SaveDescription()
     {
         var description = ProjectDescription.Clone();
-        ChangeProject(p => ProjectOverview.WithDescription(p, description));
+        page.ChangeProject(p => ProjectOverview.WithDescription(p, description));
     }
 
     public ObservableCollection<RoleRow> Roles { get; } = [];
@@ -69,41 +69,41 @@ public sealed partial class ProjectsViewModel
         return services.Team().NameOf(id);
     }
 
-    private void LoadOverview()
+    internal void LoadOverview()
     {
-        if (open is null || !IsOverview)
+        if (page.open is null || !page.IsOverview)
             return;
-        var wasLoading = loading;
-        loading = true;
-        ProjectDescription = ProjectOverview.Description(open);
+        var wasLoading = page.loading;
+        page.loading = true;
+        ProjectDescription = ProjectOverview.Description(page.open);
         ProjectDescriptionRevision = 0;
-        loading = wasLoading;
+        page.loading = wasLoading;
 
         var team = services.Team();
         Roles.Clear();
         Roles.Add(new RoleRow(team.Me!.Name, "Project owner"));
-        if (open.Shared)
+        if (page.open.Shared)
             Roles.Add(new RoleRow(team.Partner!.Name, "Member"));
 
         Links.Clear();
-        foreach (var link in open.Links)
-            Links.Add(new LinkRow(link, this));
+        foreach (var link in page.open.Links)
+            Links.Add(new LinkRow(link, page));
 
-        var tasks = services.Projects.AllTasks(open.Id);
+        var tasks = services.Projects.AllTasks(page.open.Id);
         Milestones.Clear();
         foreach (var milestone in ProjectOverview.Milestones(tasks))
-            Milestones.Add(new TaskRow(milestone, null, "", People, this));
+            Milestones.Add(new TaskRow(milestone, null, "", page.People, page));
 
         var now = DateTimeOffset.Now;
         Updates.Clear();
-        foreach (var update in open.Updates)
+        foreach (var update in page.open.Updates)
             Updates.Add(new UpdateRow(update, NameOf(update.By), TaskTalk.When(update.At, now, TimeZoneInfo.Local, CultureInfo.CurrentCulture)));
 
         var progress = ProjectOverview.Progress(tasks, DateOnly.FromDateTime(DateTime.Today));
         ProgressShare = progress.Share * 100;
         ProgressText = progress.Total == 0 ? "No tasks yet" : $"{progress.Done} of {progress.Total} tasks done";
         LateText = progress.Late switch { 0 => "", 1 => "1 task is late", _ => $"{progress.Late} tasks are late" };
-        MadeText = $"Made by {NameOf(open.Created.By)} on {open.Created.At.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
+        MadeText = $"Made by {NameOf(page.open.Created.By)} on {page.open.Created.At.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
 
         OnPropertyChanged(nameof(NoLinks));
         OnPropertyChanged(nameof(NoMilestones));
@@ -124,17 +124,17 @@ public sealed partial class ProjectsViewModel
     [RelayCommand]
     private void PostUpdate()
     {
-        if (open is null)
+        if (page.open is null)
             return;
-        var (saved, problems) = Ours(() => services.Projects.PostStatus(open.Id, UpdateHealth, UpdateText));
+        var (saved, problems) = page.Ours(() => services.Projects.PostStatus(page.open.Id, UpdateHealth, UpdateText));
         if (saved is null)
         {
-            Message = string.Join(" ", problems);
+            page.Message = string.Join(" ", problems);
             return;
         }
-        open = saved;
-        Message = "";
-        EditHealth = saved.Health;
+        page.open = saved;
+        page.Message = "";
+        page.EditHealth = saved.Health;
         UpdateHealth = ProjectHealth.None;
         UpdateText = "";
         LoadOverview();
@@ -146,16 +146,16 @@ public sealed partial class ProjectsViewModel
     [RelayCommand]
     private void AddLink()
     {
-        if (open is null)
+        if (page.open is null)
             return;
-        var (saved, problems) = Ours(() => services.Projects.AddLink(open.Id, NewLinkTitle, NewLinkUrl));
+        var (saved, problems) = page.Ours(() => services.Projects.AddLink(page.open.Id, NewLinkTitle, NewLinkUrl));
         if (saved is null)
         {
-            Message = string.Join(" ", problems);
+            page.Message = string.Join(" ", problems);
             return;
         }
-        open = saved;
-        Message = "";
+        page.open = saved;
+        page.Message = "";
         NewLinkTitle = "";
         NewLinkUrl = "";
         IsAddingLink = false;
@@ -172,11 +172,11 @@ public sealed partial class ProjectsViewModel
 
     internal void RemoveLink(LinkRow row)
     {
-        if (open is null)
+        if (page.open is null)
             return;
-        var (saved, _) = Ours(() => services.Projects.RemoveLink(open.Id, row.Link.Id));
+        var (saved, _) = page.Ours(() => services.Projects.RemoveLink(page.open.Id, row.Link.Id));
         if (saved is not null)
-            open = saved;
+            page.open = saved;
         LoadOverview();
     }
 
@@ -184,24 +184,24 @@ public sealed partial class ProjectsViewModel
     [RelayCommand]
     private void AddMilestone()
     {
-        if (open is null || NewMilestone.Trim().Length == 0)
+        if (page.open is null || NewMilestone.Trim().Length == 0)
             return;
-        var (saved, problems) = Ours(() => services.Projects.AddTask(new ProjectTask
+        var (saved, problems) = page.Ours(() => services.Projects.AddTask(new ProjectTask
         {
-            Id = ProjectRules.NewId(), ProjectId = open.Id, Title = NewMilestone, Milestone = true,
+            Id = ProjectRules.NewId(), ProjectId = page.open.Id, Title = NewMilestone, Milestone = true,
         }));
-        Message = saved is null ? string.Join(" ", problems) : "";
+        page.Message = saved is null ? string.Join(" ", problems) : "";
         if (saved is null)
             return;
         NewMilestone = "";
-        ShowTasks();
+        page.ShowTasks();
     }
 
     /// <summary>Marks a task as a milestone, or a milestone as a task again, from its right-click menu.</summary>
     public void SetMilestone(TaskRow row, bool milestone)
     {
-        ChangeTask(row, t => t with { Milestone = milestone });
-        ShowTasks();
+        page.ChangeTask(row, t => t with { Milestone = milestone });
+        page.ShowTasks();
     }
 }
 
@@ -223,7 +223,7 @@ public sealed partial class LinkRow(Webignite.Core.Projects.ProjectLink link, Pr
     }
 
     [RelayCommand]
-    private void Remove() => page.RemoveLink(this);
+    private void Remove() => page.OverviewPart.RemoveLink(this);
 }
 
 /// <summary>A status update in the Overview's list: how it was going, what was said, who and when.</summary>

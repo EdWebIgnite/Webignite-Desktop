@@ -9,7 +9,7 @@ namespace Webignite.Desktop.ViewModels;
 // The Timeline and Calendar tabs, as Asana's. Timeline: each dated task is a bar from its start to its due date,
 // under its heading; drag a bar to move it, its ends to stretch it, and tasks with no date from the Unscheduled list
 // onto a day. Calendar: a month of weeks with each task on its due date; drag one to another day.
-public sealed partial class ProjectsViewModel
+public sealed partial class ProjectTimelinePart(AppServices services, ProjectsViewModel page) : ViewModelBase
 {
     /// <summary>How wide a day is on the timeline, in pixels; the view snaps drags to it.</summary>
     public const double DayWidth = 36;
@@ -43,12 +43,12 @@ public sealed partial class ProjectsViewModel
     public string VisibleMonth => TimelineDays.Count == 0 ? ""
         : timelineFrom.AddDays((int)(TimelineScrollX / DayWidth)).ToString("MMMM yyyy", CultureInfo.CurrentCulture);
 
-    private void LoadTimeline(IReadOnlyList<ProjectTask> tasks, IReadOnlyList<Heading> headings, Func<ProjectTask, TaskRow> row)
+    internal void LoadTimeline(IReadOnlyList<ProjectTask> tasks, IReadOnlyList<Heading> headings, Func<ProjectTask, TaskRow> row)
     {
         TimelineDays.Clear();
         TimelineLanes.Clear();
         Unscheduled.Clear();
-        if (!IsTimeline)
+        if (!page.IsTimeline)
             return;
         var today = DateOnly.FromDateTime(DateTime.Today);
         var (from, days) = ProjectTimeline.Range(tasks, today, CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek);
@@ -58,7 +58,7 @@ public sealed partial class ProjectsViewModel
         for (var i = 0; i < days; i++)
             TimelineDays.Add(new TimelineDay(from.AddDays(i), i == 0, today));
         foreach (var lane in ProjectTimeline.Lanes(headings, tasks, from))
-            TimelineLanes.Add(new TimelineLaneRow(lane.Title, [.. lane.Bars.Select(b => new TimelineBarRow(row(b.Task), b, this))], this));
+            TimelineLanes.Add(new TimelineLaneRow(lane.Title, [.. lane.Bars.Select(b => new TimelineBarRow(row(b.Task), b, page))], page));
         foreach (var task in ProjectTimeline.Unscheduled(tasks))
             Unscheduled.Add(row(task));
         OnPropertyChanged(nameof(VisibleMonth));
@@ -77,22 +77,22 @@ public sealed partial class ProjectsViewModel
             BarEdge.End => t => ProjectTimeline.StretchEnd(t, days),
             _ => t => ProjectTimeline.Shift(t, days),
         };
-        ChangeTask(bar.Row, change);
-        ShowTasks();
+        page.ChangeTask(bar.Row, change);
+        page.ShowTasks();
     }
 
     /// <summary>Takes a task's start and due date off, back to Unscheduled.</summary>
     public void ClearDates(TaskRow row)
     {
-        ChangeTask(row, t => t with { Start = null, Due = null });
-        ShowTasks();
+        page.ChangeTask(row, t => t with { Start = null, Due = null });
+        page.ShowTasks();
     }
 
     /// <summary>A task with no date dropped on a day of the timeline: due that day.</summary>
     public void Schedule(TaskRow row, TimelineDay day)
     {
-        ChangeTask(row, t => ProjectTimeline.DueOn(t, day.Day));
-        ShowTasks();
+        page.ChangeTask(row, t => ProjectTimeline.DueOn(t, day.Day));
+        page.ShowTasks();
     }
 
     // Calendar
@@ -119,31 +119,31 @@ public sealed partial class ProjectsViewModel
     private void PreviousMonth()
     {
         CalendarMonth = CalendarMonth.AddMonths(-1);
-        ShowTasks();
+        page.ShowTasks();
     }
 
     [RelayCommand]
     private void NextMonth()
     {
         CalendarMonth = CalendarMonth.AddMonths(1);
-        ShowTasks();
+        page.ShowTasks();
     }
 
     [RelayCommand]
     private void ThisMonth()
     {
         CalendarMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
-        ShowTasks();
+        page.ShowTasks();
     }
 
-    private void LoadCalendar(IReadOnlyList<ProjectTask> tasks, Func<ProjectTask, TaskRow> row)
+    internal void LoadCalendar(IReadOnlyList<ProjectTask> tasks, Func<ProjectTask, TaskRow> row)
     {
         CalendarCells.Clear();
-        if (!IsCalendar)
+        if (!page.IsCalendar)
             return;
         var today = DateOnly.FromDateTime(DateTime.Today);
         foreach (var cell in ProjectCalendar.Month(CalendarMonth.Year, CalendarMonth.Month, tasks, CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek))
-            CalendarCells.Add(new CalendarCellRow(cell, [.. cell.Tasks.Select(row)], cell.Day == today, this));
+            CalendarCells.Add(new CalendarCellRow(cell, [.. cell.Tasks.Select(row)], cell.Day == today, page));
     }
 
     /// <summary>A task dropped on another day of the calendar: due then, keeping how many days it spans.</summary>
@@ -151,22 +151,22 @@ public sealed partial class ProjectsViewModel
     {
         if (row.Task.Due == day)
             return;
-        ChangeTask(row, t => ProjectTimeline.DueOn(t, day));
-        ShowTasks();
+        page.ChangeTask(row, t => ProjectTimeline.DueOn(t, day));
+        page.ShowTasks();
     }
 
     /// <summary>A task typed on a day of the calendar: under no heading, due that day.</summary>
     internal void AddOnDay(DateOnly day, string title)
     {
-        if (open is null || title.Trim().Length == 0)
+        if (page.open is null || title.Trim().Length == 0)
             return;
-        var (saved, problems) = Ours(() => services.Projects.AddTask(ProjectRules.Filtered(new ProjectTask
+        var (saved, problems) = page.Ours(() => services.Projects.AddTask(ProjectRules.Filtered(new ProjectTask
         {
-            Id = ProjectRules.NewId(), ProjectId = open.Id, Title = title, Due = day,
-        }, FilterPriority?.Value, FilterTag?.Value)));
-        Message = saved is null ? string.Join(" ", problems) : "";
+            Id = ProjectRules.NewId(), ProjectId = page.open.Id, Title = title, Due = day,
+        }, page.FilterPriority?.Value, page.FilterTag?.Value)));
+        page.Message = saved is null ? string.Join(" ", problems) : "";
         if (saved is not null)
-            ShowTasks();
+            page.ShowTasks();
     }
 }
 
@@ -183,7 +183,7 @@ public sealed class TimelineDay(DateOnly day, bool first, DateOnly today)
     public bool HasMonth => Month.Length > 0;
     public bool IsWeekend => Day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
     public bool IsToday => Day == today;
-    public static double Width => ProjectsViewModel.DayWidth;
+    public static double Width => ProjectTimelinePart.DayWidth;
 }
 
 /// <summary>A heading on the timeline, with a row per dated task.</summary>
@@ -195,8 +195,8 @@ public sealed class TimelineBarRow(TaskRow row, TimelineBar bar, ProjectsViewMod
     public TaskRow Row { get; } = row;
     public TimelineBar Bar { get; } = bar;
     public ProjectsViewModel Page { get; } = page;
-    public double Left => Bar.Start * ProjectsViewModel.DayWidth + 2;
-    public double Width => Bar.Length * ProjectsViewModel.DayWidth - 4;
+    public double Left => Bar.Start * ProjectTimelinePart.DayWidth + 2;
+    public double Width => Bar.Length * ProjectTimelinePart.DayWidth - 4;
     public Avalonia.Thickness Place => new(Left, 0, 0, 0);
     public bool NameInside => Bar.Length >= 4;
     public bool NameBeside => !NameInside;
@@ -226,6 +226,6 @@ public sealed partial class CalendarCellRow(CalendarCell cell, IReadOnlyList<Tas
     {
         var title = NewTitle;
         NewTitle = "";
-        page.AddOnDay(Day, title);
+        page.TimelinePart.AddOnDay(Day, title);
     }
 }

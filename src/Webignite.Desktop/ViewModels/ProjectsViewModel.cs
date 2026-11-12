@@ -16,6 +16,9 @@ namespace Webignite.Desktop.ViewModels;
 public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHoldsWork, ITabTitle, IHasPanes, IDisposable
 {
     private readonly AppServices services;
+    public ProjectOverviewPart OverviewPart { get; }
+    public ProjectTimelinePart TimelinePart { get; }
+    public ProjectFieldsPart FieldsPart { get; }
 
     // Each view of a project with state of its own is its own part; the page holds them and the screen binds to them by name.
     public ProjectMessagesPart MessagesPart { get; }
@@ -26,11 +29,14 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     private readonly HashSet<object> typed = [];
     internal Project? open;
     private bool ours;
-    private bool loading;
+    internal bool loading;
 
     public ProjectsViewModel(AppServices services)
     {
         this.services = services;
+        OverviewPart = new(services, this);
+        TimelinePart = new(services, this);
+        FieldsPart = new(services, this);
         MessagesPart = new(services, this);
         FilesPart = new(services, this);
         GalleryPart = new(services, this);
@@ -332,7 +338,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HealthText), nameof(HasHealth))]
-    public partial ProjectHealth EditHealth { get; private set; }
+    public partial ProjectHealth EditHealth { get; internal set; }
 
     public string HealthText => ProjectLooks.Label(EditHealth);
     public bool HasHealth => EditHealth != ProjectHealth.None;
@@ -514,7 +520,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 MessagesPart.ListMessages();
                 break;
             case ProjectTab.Overview:
-                LoadOverview();
+                OverviewPart.LoadOverview();
                 break;
         }
         if (open is null)
@@ -627,9 +633,9 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             IsExpanded = expanded.Contains(task.Id),
             CommentCount = commentCounts.GetValueOrDefault(task.Id),
             WaitingTip = TaskDependencies.WaitingOn(task, tasks),
-            FieldCells = CellsFor(task),
+            FieldCells = FieldsPart.CellsFor(task),
         };
-        LoadFieldHeaders();
+        FieldsPart.LoadFieldHeaders();
         commentCounts = services.Projects.CommentCounts();
         // The board is always the project's headings; the list is grouped as picked, the same rows when by headings.
         var sections = ProjectList.Arrange(headings, shown, Layout with { Group = TaskGroup.Sections }, NameOf, today, System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek);
@@ -669,16 +675,16 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 Rows.Add(Columns.FirstOrDefault(c => c.Section == section)?.Add ?? new AddTaskRow(section, this));
         }
         OnPropertyChanged(nameof(CanReorder));
-        LoadOverview();
+        OverviewPart.LoadOverview();
         TaskRow Plain(ProjectTask task) => new(task, null, ProjectRules.SubtaskCount(tasks.Where(t => t.ParentId == task.Id)), People, this)
         {
             IsOpen = task.Id == Detail?.Task.Id,
             CommentCount = commentCounts.GetValueOrDefault(task.Id),
             WaitingTip = TaskDependencies.WaitingOn(task, tasks),
-            FieldCells = CellsFor(task),
+            FieldCells = FieldsPart.CellsFor(task),
         };
-        LoadTimeline(shown, headings, Plain);
-        LoadCalendar(shown, Plain);
+        TimelinePart.LoadTimeline(shown, headings, Plain);
+        TimelinePart.LoadCalendar(shown, Plain);
         Summary = SummaryOf(tasks);
         if (HasFilter)
             Summary += $". Showing {sections.Sum(x => x.Tasks.Count)} that match.";
@@ -724,7 +730,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         ChangeProject(p => p with { Status = choice.Value });
     }
 
-    private void ChangeProject(Func<Project, Project> change)
+    internal void ChangeProject(Func<Project, Project> change)
     {
         if (loading || open is null)
             return;
@@ -827,7 +833,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         if (open is { } project)
             Summary = SummaryOf(services.Projects.AllTasks(project.Id));
         if (IsOverview)
-            LoadOverview();
+            OverviewPart.LoadOverview();
         // A repeating task ticked off has made its next one.
         if (!wasDone && saved.Done && saved.Repeat != TaskRepeat.None)
         {
@@ -1102,8 +1108,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                 case TaskDetail detail when detail == Detail:
                     detail.SaveTyped();
                     break;
-                case var description when description == DescriptionTyped && open is not null:
-                    SaveDescription();
+                case var description when description == ProjectOverviewPart.DescriptionTyped && open is not null:
+                    OverviewPart.SaveDescription();
                     break;
                 case SectionRow { Heading: { } heading } section when section.Name.Trim().Length > 0:
                     Ours(() => services.Projects.ChangeHeading(heading.Id, h => h with { Name = section.Name }));
@@ -1229,7 +1235,7 @@ public sealed partial class SectionRow(ListGroup group, ProjectsViewModel page) 
 public sealed partial class TaskRow : ObservableObject
 {
     private readonly ProjectsViewModel page;
-    private bool loading;
+    internal bool loading;
 
     public TaskRow(ProjectTask task, SectionRow? section, string subtasks, IReadOnlyList<Choice<string?>> people, ProjectsViewModel page)
     {

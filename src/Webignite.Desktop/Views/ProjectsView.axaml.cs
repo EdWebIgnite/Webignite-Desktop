@@ -95,7 +95,7 @@ public partial class ProjectsView : FullBleedView
             Drop = (item, target, _) =>
             {
                 if (DayOf(target) is { } day)
-                    Projects?.MoveToDay((TaskRow)item, day);
+                    Projects?.TimelinePart.MoveToDay((TaskRow)item, day);
             },
             Label = item => (item as TaskRow)?.Title ?? "",
         });
@@ -107,16 +107,16 @@ public partial class ProjectsView : FullBleedView
             Label = item => (item as TaskRow)?.Title ?? "",
         });
         DropZones.Add(new DropZone(TimelineColumns, (item, target) => item is TaskRow && target is TimelineDay,
-            (item, target) => Projects?.Schedule((TaskRow)item, (TimelineDay)target)));
+            (item, target) => Projects?.TimelinePart.Schedule((TaskRow)item, (TimelineDay)target)));
 
         // The timeline's arrows are drawn once its bars are laid out: each time the bars are made again, when the
         // Timeline tab opens, and when this view is made again for a page already showing it (a tab switched back
         // to, a split, a window of its own).
         DataContextChanged += (_, _) =>
         {
-            arrowsFor?.TimelineLanes.CollectionChanged -= LanesChanged;
+            arrowsFor?.TimelinePart.TimelineLanes.CollectionChanged -= LanesChanged;
             arrowsFor = Projects;
-            arrowsFor?.TimelineLanes.CollectionChanged += LanesChanged;
+            arrowsFor?.TimelinePart.TimelineLanes.CollectionChanged += LanesChanged;
             RedrawArrows();
         };
         AttachedToVisualTree += (_, _) => RedrawArrows();
@@ -124,14 +124,14 @@ public partial class ProjectsView : FullBleedView
         TimelineScroll.ScrollChanged += (_, _) =>
         {
             if (Projects is { } projects)
-                projects.TimelineScrollX = TimelineScroll.Offset.X;
+                projects.TimelinePart.TimelineScrollX = TimelineScroll.Offset.X;
         };
         // The timeline opens with today near its left edge, a few days in.
         TimelineScroll.PropertyChanged += (_, e) =>
         {
             // Only when it's fresh: after a drag it stays where the person left it.
             if (e.Property == ScrollViewer.ExtentProperty && TimelineScroll.Offset.X == 0 && Projects is { IsTimeline: true } projects)
-                TimelineScroll.Offset = TimelineScroll.Offset.WithX(Math.Max(0, projects.TodayLeft - 4 * ProjectsViewModel.DayWidth));
+                TimelineScroll.Offset = TimelineScroll.Offset.WithX(Math.Max(0, projects.TimelinePart.TodayLeft - 4 * ProjectTimelinePart.DayWidth));
         };
 
         // Files dropped on the open task are attached to it.
@@ -693,7 +693,7 @@ public partial class ProjectsView : FullBleedView
     {
         if (Projects is not { } projects)
             return;
-        projects.IsAddingLink = true;
+        projects.OverviewPart.IsAddingLink = true;
         Avalonia.Threading.Dispatcher.UIThread.Post(() => LinkUrlBox.Focus());
     }
 
@@ -703,12 +703,12 @@ public partial class ProjectsView : FullBleedView
             return;
         if (e.Key == Key.Enter)
         {
-            projects.AddLinkCommand.Execute(null);
+            projects.OverviewPart.AddLinkCommand.Execute(null);
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)
         {
-            projects.CancelLinkCommand.Execute(null);
+            projects.OverviewPart.CancelLinkCommand.Execute(null);
             e.Handled = true;
         }
     }
@@ -717,7 +717,7 @@ public partial class ProjectsView : FullBleedView
     {
         if (e.Key == Key.Enter && Projects is { } projects)
         {
-            projects.AddMilestoneCommand.Execute(null);
+            projects.OverviewPart.AddMilestoneCommand.Execute(null);
             e.Handled = true;
         }
     }
@@ -776,7 +776,7 @@ public partial class ProjectsView : FullBleedView
         }
         move.IsEnabled = move.Items.Count > 0;
         var milestone = new MenuItem { Header = row.IsMilestone ? "Make it a task again" : "Mark as milestone" };
-        milestone.Click += (_, _) => projects.SetMilestone(row, !row.IsMilestone);
+        milestone.Click += (_, _) => projects.OverviewPart.SetMilestone(row, !row.IsMilestone);
         var delete = new MenuItem { Header = "Delete the task" };
         delete.Click += (_, _) => row.DeleteCommand.Execute(null);
         new ContextMenu { ItemsSource = new object[] { move, milestone, new Separator(), delete } }.Open(sender as Control);
@@ -830,7 +830,7 @@ public partial class ProjectsView : FullBleedView
         var dx = e.GetPosition(TimelineColumns).X - drag.StartX;
         if (Math.Abs(dx) > 3)
             drag.Moved = true;
-        var day = ProjectsViewModel.DayWidth;
+        var day = ProjectTimelinePart.DayWidth;
         var days = (int)Math.Round(dx / day);
         var least = day - 4;
         switch (drag.Edge)
@@ -867,7 +867,7 @@ public partial class ProjectsView : FullBleedView
         else if (drag.Days == 0)
             Restore(drag);
         else
-            Projects?.DragBar(drag.Row, drag.Days, drag.Edge);
+            Projects?.TimelinePart.DragBar(drag.Row, drag.Days, drag.Edge);
     }
 
     private void BarLost(object? sender, PointerCaptureLostEventArgs e)
@@ -892,7 +892,7 @@ public partial class ProjectsView : FullBleedView
         var open = new MenuItem { Header = "Open the task" };
         open.Click += (_, _) => projects.OpenTaskCommand.Execute(bar.Row);
         var clear = new MenuItem { Header = "Take its dates off" };
-        clear.Click += (_, _) => projects.ClearDates(bar.Row);
+        clear.Click += (_, _) => projects.TimelinePart.ClearDates(bar.Row);
         new ContextMenu { ItemsSource = new object[] { open, clear } }.Open(sender as Control);
         e.Handled = true;
     }
@@ -924,11 +924,11 @@ public partial class ProjectsView : FullBleedView
             foreach (var option in cell.Field.Options)
             {
                 var item = new MenuItem { Header = option.Name };
-                item.Click += (_, _) => cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id, option.Id);
+                item.Click += (_, _) => cell.Page.FieldsPart.SetFieldValue(cell.TaskId, cell.Field.Id, option.Id);
                 items.Add(item);
             }
             var clear = new MenuItem { Header = "Clear", IsEnabled = cell.HasValue };
-            clear.Click += (_, _) => cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id, "");
+            clear.Click += (_, _) => cell.Page.FieldsPart.SetFieldValue(cell.TaskId, cell.Field.Id, "");
             items.Add(new Separator());
             items.Add(clear);
             new ContextMenu { ItemsSource = items }.Open(button);
@@ -945,7 +945,7 @@ public partial class ProjectsView : FullBleedView
             picker.SelectedDatesChanged += (_, _) =>
             {
                 flyout.Hide();
-                cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id,
+                cell.Page.FieldsPart.SetFieldValue(cell.TaskId, cell.Field.Id,
                     picker.SelectedDate is { } d ? DateOnly.FromDateTime(d).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : "");
             };
             flyout.Content = picker;
@@ -962,7 +962,7 @@ public partial class ProjectsView : FullBleedView
                 k.Handled = true;
                 flyout.Hide();
                 if (k.Key == Key.Enter && (box.Text ?? "") != typed)
-                    cell.Page.SetFieldValue(cell.TaskId, cell.Field.Id, box.Text ?? "");
+                    cell.Page.FieldsPart.SetFieldValue(cell.TaskId, cell.Field.Id, box.Text ?? "");
             };
             flyout.Content = box;
             flyout.Opened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -1077,7 +1077,7 @@ public partial class ProjectsView : FullBleedView
             : [];
         foreach (var (id, box) in bars)
         {
-            if (Projects.TimelineLanes.SelectMany(l => l.Bars).FirstOrDefault(b => b.Row.Task.Id == id) is not { } row)
+            if (Projects.TimelinePart.TimelineLanes.SelectMany(l => l.Bars).FirstOrDefault(b => b.Row.Task.Id == id) is not { } row)
                 continue;
             foreach (var blocker in row.Row.Task.BlockedBy)
             {
@@ -1085,7 +1085,7 @@ public partial class ProjectsView : FullBleedView
                     continue;
                 var (x2, y2) = (box.Left - 2, box.Center.Y);
                 // A short bar has its name beside it, so the arrow leaves from underneath rather than through the name.
-                var shortBar = Projects.TimelineLanes.SelectMany(l => l.Bars).FirstOrDefault(b => b.Row.Task.Id == blocker) is { NameBeside: true };
+                var shortBar = Projects.TimelinePart.TimelineLanes.SelectMany(l => l.Bars).FirstOrDefault(b => b.Row.Task.Id == blocker) is { NameBeside: true };
                 var line = shortBar && Math.Abs(y2 - from.Center.Y) > from.Height
                     ? FormattableString.Invariant($"M {from.Center.X},{(y2 > from.Center.Y ? from.Bottom : from.Top)} V {y2} H {x2}")
                     : FormattableString.Invariant($"M {from.Right},{from.Center.Y} H {from.Right + 10} V {y2} H {x2}");
