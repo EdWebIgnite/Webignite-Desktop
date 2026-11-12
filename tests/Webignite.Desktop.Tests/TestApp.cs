@@ -12,11 +12,22 @@ public sealed class TestApp : IDisposable
 {
     private readonly string folder = Directory.CreateTempSubdirectory("webignite-desktop-tests-").FullName;
 
-    public TestApp()
+    /// <param name="xero">Stands in for Xero's web address: the app is then signed in to it as the organisation "t1".</param>
+    public TestApp(HttpMessageHandler? xero = null)
     {
+        // Files the app writes for itself (a PDF waiting to be mailed) go to the throwaway folder too.
+        Environment.SetEnvironmentVariable(DataPaths.EnvironmentVariable, folder);
         var key = RandomNumberGenerator.GetBytes(32);
         Store = new LocalStore(Path.Combine(folder, "test.db"), new Vault(key));
-        Services = new AppServices(Store) { TokenStore = new MemoryTokenStore(), VaultKeySource = () => key };
+        var tokens = new MemoryTokenStore();
+        Services = xero is null
+            ? new AppServices(Store) { TokenStore = tokens, VaultKeySource = () => key }
+            : new AppServices(Store) { TokenStore = tokens, VaultKeySource = () => key, XeroHttp = new HttpClient(xero) };
+        if (xero is not null)
+        {
+            tokens.WriteRefreshToken("refresh");
+            Services.Settings.Xero = new XeroSettings { ClientId = "abc", TenantId = "t1", TenantName = "Karoo Studio" };
+        }
         Services.Settings.Appearance = new AppearanceSettings { Motion = Motion.Off };
     }
 
@@ -41,6 +52,7 @@ public sealed class TestApp : IDisposable
     public void Dispose()
     {
         Services.Dispose();
+        Environment.SetEnvironmentVariable(DataPaths.EnvironmentVariable, null);
         try
         {
             Directory.Delete(folder, recursive: true);

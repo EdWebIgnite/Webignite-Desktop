@@ -39,4 +39,8 @@
     <ProjectReference Include="..\Webignite.Services\Webignite.Services.csproj" />
     <ProjectReference Include="..\Webignite.Tools\Webignite.Tools.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The app's own tests wire what the main window wires (where a prepared mail opens, say), which nothing else should. -->
+    <InternalsVisibleTo Include="Webignite.Desktop.Tests" />
+  </ItemGroup>
 </Project>
