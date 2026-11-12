@@ -11,7 +11,7 @@ public partial class MainWindow
     {
         main.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(MainViewModel.HasMenuBar) or nameof(MainViewModel.IsDockMenu) or nameof(MainViewModel.IsMenuOpen))
+            if (e.PropertyName is nameof(MainViewModel.HasMenuBar) or nameof(MainViewModel.IsDockMenu) or nameof(MainViewModel.IsMenuOpen) or nameof(MainViewModel.DockFloats))
                 ShowMenuParts(main);
         };
         ShowMenuParts(main);
@@ -22,11 +22,33 @@ public partial class MainWindow
         if (main.HasMenuBar != MenuBarHost.Content is MenuBarView)
             MenuBarHost.Content = main.HasMenuBar ? new MenuBarView() : null;
         if (main.IsDockMenu != DockHost.Content is DockView)
-            DockHost.Content = main.IsDockMenu ? new DockView() : null;
+        {
+            if (DockHost.Content is DockView old)
+                old.SizeChanged -= DockSized;
+            var dock = main.IsDockMenu ? new DockView() : null;
+            if (dock is not null)
+                dock.SizeChanged += DockSized;
+            DockHost.Content = dock;
+        }
+        PlaceDock(main);
         if (main.IsMenuOpen && MenuHost.Content is null)
             MenuHost.Content = new MenuOverlayView();
         // With the sidebar, the menu is only ever opened to choose what is on it, and let go when that is done.
         else if (main.IsSidebarMenu && !main.IsMenuOpen && MenuHost.Content is not null)
             MenuHost.Content = null;
+    }
+
+    private void DockSized(object? sender, Avalonia.Controls.SizeChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel main)
+            PlaceDock(main);
+    }
+
+    // Floating, the dock takes no room of its own: it is drawn up over the bottom of the page by its own height,
+    // so the page has the window's full height under it. Otherwise it has its strip below the page.
+    private void PlaceDock(MainViewModel main)
+    {
+        var height = main.IsDockMenu && main.DockFloats && DockHost.Content is DockView dock ? dock.Bounds.Height : 0;
+        DockHost.Margin = new Avalonia.Thickness(0, -height, 0, 0);
     }
 }

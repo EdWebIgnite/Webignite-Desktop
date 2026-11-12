@@ -16,6 +16,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     private readonly AppServices services;
 
     // Each part of Settings that stands on its own has its own view model; the page binds to them by name.
+    public SettingsDockViewModel Dock { get; }
     public SettingsFileTagsViewModel FileTags { get; }
     public SettingsPicturesViewModel Pictures { get; }
     public SettingsSpellingViewModel Spelling { get; }
@@ -27,6 +28,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     public SettingsViewModel(AppServices services)
     {
         this.services = services;
+        Dock = new(services);
         FileTags = new(services);
         Pictures = new(services);
         Spelling = new(services);
@@ -69,6 +71,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         Account.PropertyChanged -= Forward;
         ChatGpt.PropertyChanged -= Forward;
         Account.Dispose();
+        Dock.Dispose();
         MailBrand.Dispose();
         GC.SuppressFinalize(this);
     }

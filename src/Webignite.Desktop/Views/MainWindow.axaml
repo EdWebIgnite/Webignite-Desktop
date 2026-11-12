@@ -359,7 +359,7 @@
       <!-- Without the sidebar: a bar along the top (Views/MenuBarView), and the dock along the bottom (Views/DockView).
            Both are made only while their menu is the one picked (MainWindow.Menu.cs). -->
       <ContentControl x:Name="MenuBarHost" DockPanel.Dock="Top" />
-      <ContentControl x:Name="DockHost" DockPanel.Dock="Bottom" />
+      <ContentControl x:Name="DockHost" DockPanel.Dock="Bottom" ZIndex="5" />
       <Border DockPanel.Dock="Top" Classes="tabstrip" IsVisible="{Binding ShowTabs}">
         <DockPanel>
           <Button DockPanel.Dock="Right" Classes="tabplus" Command="{Binding NewTabCommand}" ToolTip.Tip="New tab (Ctrl+T)" VerticalAlignment="Center">

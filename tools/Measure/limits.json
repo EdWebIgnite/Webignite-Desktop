@@ -1,7 +1,7 @@
 {
-  "comment": "Measured on 4 Nov 2026 on Linux: start about 2 s and 30.6 MB, first round +2.9 MB, second round +0.0 MB. Raise a limit only on purpose, in the same pull request as the change that needs it, saying why. 11 Nov 2026: the start limit went from 36 to 37 MB. Giving the small text sizes names (Styles/Sizes.axaml), so a style can change them, costs about 0.7 MB at start (35.8 to 36.5 MB): each of the sidebar's and Overview's small texts now follows its name instead of holding a typed number. Pages opened later cost no more than before.",
+  "comment": "Measured on 4 Nov 2026 on Linux: start about 2 s and 30.6 MB, first round +2.9 MB, second round +0.0 MB. Raise a limit only on purpose, in the same pull request as the change that needs it, saying why. 11 Nov 2026: the start limit went from 36 to 37 MB. Giving the small text sizes names (Styles/Sizes.axaml), so a style can change them, costs about 0.7 MB at start (35.8 to 36.5 MB): each of the sidebar's and Overview's small texts now follows its name instead of holding a typed number. Pages opened later cost no more than before. 12 Nov 2026: the start limit went from 37 to 38 MB. A new install now shows the day, the timer, chat and a clock beside the dock, which costs about 0.9 MB at start (36.4 to 37.3 MB) after the dock's menus and group lists were made to build only when asked for; with nothing beside the dock it costs nothing.",
   "startMilliseconds": 6000,
-  "startManagedMegabytes": 37,
+  "startManagedMegabytes": 38,
   "firstRoundGrowthMegabytes": 6,
   "repeatGrowthMegabytes": 0.5
 }

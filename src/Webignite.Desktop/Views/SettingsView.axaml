@@ -134,6 +134,43 @@
         </Border>
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="How you get to pages. Dock, which the app starts with, puts the pages you use most in a bar along the bottom, with the rest behind More; right-click a page in the menu to add it to the dock, or one on the dock to take it off. Sidebar is the list down the left. Menu button leaves the page the whole width, and one button (or Ctrl+M) opens every page, tool and project over it, with how things stand beside each." />
+        <!-- The dock's own choices: a strip of its own or floating, and what sits beside it. -->
+        <StackPanel Spacing="10" IsVisible="{Binding IsMenuDock}">
+          <TextBlock Classes="label" Text="Where the dock sits" />
+          <Border Classes="segments" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="segment" Classes.on="{Binding Dock.DockHasStrip}" Content="In a strip of its own" Command="{Binding Dock.FloatCommand}" CommandParameter="no" />
+              <Button Classes="segment" Classes.on="{Binding Dock.DockFloats}" Content="Floating over the page" Command="{Binding Dock.FloatCommand}" CommandParameter="yes" />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                     Text="Floating gives the page the window's full height; the dock then covers the middle of the page's bottom edge." />
+          <TextBlock Classes="label" Text="Beside the dock" Margin="0,6,0,0" />
+          <ItemsControl ItemsSource="{Binding Dock.Rows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:BarChoiceRow">
+                <Grid ColumnDefinitions="150,Auto" Margin="0,0,0,6">
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                  <Border Grid.Column="1" Classes="segments">
+                    <StackPanel Orientation="Horizontal">
+                      <Button Classes="segment" Classes.on="{Binding IsLeft}" Content="Left"
+                              Command="{Binding #Root.((vm:SettingsViewModel)DataContext).Dock.PutLeftCommand}" CommandParameter="{Binding}" />
+                      <Button Classes="segment" Classes.on="{Binding IsRight}" Content="Right"
+                              Command="{Binding #Root.((vm:SettingsViewModel)DataContext).Dock.PutRightCommand}" CommandParameter="{Binding}" />
+                      <Button Classes="segment" Classes.on="{Binding IsOff}" Content="Off"
+                              Command="{Binding #Root.((vm:SettingsViewModel)DataContext).Dock.TakeOffCommand}" CommandParameter="{Binding}" />
+                    </StackPanel>
+                  </Border>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Classes="link" Content="Back to the usual ones" Command="{Binding Dock.UsualCommand}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="460"
+                       Text="Right-click one beside the dock to move it across or take it off. To put a tool or a whole group on the dock, right-click it in the menu behind More." />
+          </StackPanel>
+        </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="12">
           <Button Classes="quiet" Content="Choose what is on the menu…" Command="{Binding EditMenuCommand}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="420"
