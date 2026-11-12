@@ -2964,15 +2964,15 @@ Save("site-check");
         store.ListTasks().Any(t => t.Customer == "Bosveld Builders" && t.Notes?.Contains(vm.Markup.SavedPath!, StringComparison.Ordinal) == true));
 
     var shortcutSettings = (SettingsViewModel)vm[Page.Settings].Main.Page;
-    shortcutSettings.SetShortcut("Shift+S");
+    shortcutSettings.SetShortcut(Webignite.Core.Tools.GlobalShortcut.Screenshot, "Shift+S");
     Check("A shortcut that would fire while typing is refused", shortcutSettings.ShortcutProblem && services.Settings.Screenshots.Shortcut == "Ctrl+Alt+S");
-    shortcutSettings.SetShortcut("Ctrl+Alt+P");
+    shortcutSettings.SetShortcut(Webignite.Core.Tools.GlobalShortcut.Screenshot, "Ctrl+Alt+P");
     Check("Another shortcut is kept", services.Settings.Screenshots.Shortcut == "Ctrl+Alt+P" && !shortcutSettings.ShortcutProblem);
     shortcutSettings.Open("screenshots");
     Open(Page.Settings);
     Save("settings-screenshots");
-    shortcutSettings.ShortcutBackCommand.Execute(null);
-    shortcutSettings.SetRecordShortcut("Ctrl+Alt+S");
+    shortcutSettings.ShortcutBackCommand.Execute(Webignite.Core.Tools.GlobalShortcut.Screenshot);
+    shortcutSettings.SetShortcut(Webignite.Core.Tools.GlobalShortcut.Recording, "Ctrl+Alt+S");
     Check("The recording shortcut can't be the screenshot one", shortcutSettings.ShortcutProblem && services.Settings.Screenshots.RecordShortcut == "Ctrl+Alt+R");
     Open(Page.Markup);
 
@@ -4418,7 +4418,7 @@ SaveLooks("planner-home");
     notesSettings.Open("notes");
     Open(Page.Settings);
     Save("settings-notes");
-    notesSettings.SetQuickNoteShortcut("Ctrl+Alt+S");
+    notesSettings.SetShortcut(Webignite.Core.Tools.GlobalShortcut.QuickNote, "Ctrl+Alt+S");
     Check("The quick-note shortcut can't be the screenshot one", notesSettings.QuickNoteProblem && services.Settings.Notes.QuickShortcut == "Ctrl+Alt+N");
     Open(Page.Notes);
 }

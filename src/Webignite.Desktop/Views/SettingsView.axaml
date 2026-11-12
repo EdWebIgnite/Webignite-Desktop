@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:notes="using:Webignite.Core.Notes"
+             xmlns:tools="using:Webignite.Core.Tools"
              xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.SettingsView"
@@ -728,9 +729,9 @@
           <TextBlock Classes="label" Text="Shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox x:Name="ShortcutBox" Width="220" Text="{Binding ScreenshotShortcut, Mode=OneWay}" IsReadOnly="True"
-                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+S" />
-            <Button Classes="link" Content="Ctrl+Alt+S" Command="{Binding ShortcutBackCommand}" ToolTip.Tip="Go back to the usual shortcut" />
-            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" />
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.Screenshot}" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+S" />
+            <Button Classes="link" Content="Ctrl+Alt+S" Command="{Binding ShortcutBackCommand}" CommandParameter="{x:Static tools:GlobalShortcut.Screenshot}" ToolTip.Tip="Go back to the usual shortcut" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" CommandParameter="{x:Static tools:GlobalShortcut.Screenshot}" />
           </StackPanel>
           <TextBlock FontSize="{DynamicResource Text12}" Classes="muted" Classes.problem="{Binding ShortcutProblem}" Text="{Binding ShortcutMessage}" TextWrapping="Wrap" Margin="0,6,0,0"
                      IsVisible="{Binding ShortcutMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -739,7 +740,7 @@
           <TextBlock Classes="label" Text="Recording shortcut, to start and stop" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding RecordShortcut, Mode=OneWay}" IsReadOnly="True"
-                     PlaceholderText="Click, then press the keys" KeyDown="RecordShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+R" />
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.Recording}" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+R" />
             <CheckBox Content="Record my microphone too" IsChecked="{Binding RecordMicrophone}" VerticalAlignment="Center" />
           </StackPanel>
         </StackPanel>
@@ -747,8 +748,8 @@
           <TextBlock Classes="label" Text="Clipboard history shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding ClipboardShortcut, Mode=OneWay}" IsReadOnly="True"
-                     PlaceholderText="Click, then press the keys" KeyDown="ClipboardShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+V" />
-            <Button Classes="link" Content="Turn off" Command="{Binding ClipboardShortcutOffCommand}" />
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.ClipboardHistory}" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+V" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" CommandParameter="{x:Static tools:GlobalShortcut.ClipboardHistory}" />
           </StackPanel>
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="Opens the last things you copied, text and pictures, from any program." />
@@ -757,8 +758,8 @@
           <TextBlock Classes="label" Text="Colour picker shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding ColourShortcut, Mode=OneWay}" IsReadOnly="True"
-                     PlaceholderText="Click, then press the keys" KeyDown="ColourShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+C" />
-            <Button Classes="link" Content="Turn off" Command="{Binding ColourShortcutOffCommand}" />
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.ColourPicker}" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+C" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" CommandParameter="{x:Static tools:GlobalShortcut.ColourPicker}" />
           </StackPanel>
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="Freezes the screen; click any colour and its code is copied, e.g. #E8590C. Esc stops." />
@@ -767,8 +768,8 @@
           <TextBlock Classes="label" Text="Text snippets shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding SnippetShortcut, Mode=OneWay}" IsReadOnly="True"
-                     PlaceholderText="Click, then press the keys" KeyDown="SnippetShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+T" />
-            <Button Classes="link" Content="Turn off" Command="{Binding SnippetShortcutOffCommand}" />
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.Snippets}" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+T" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" CommandParameter="{x:Static tools:GlobalShortcut.Snippets}" />
           </StackPanel>
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="Opens your saved blocks of text from any program. Pick one and it is pasted where you were typing." />
@@ -777,8 +778,8 @@
           <TextBlock Classes="label" Text="Text from the screen shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding TextShortcut, Mode=OneWay}" IsReadOnly="True"
-                     PlaceholderText="Click, then press the keys" KeyDown="TextShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+X" />
-            <Button Classes="link" Content="Turn off" Command="{Binding TextShortcutOffCommand}" />
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.ScreenText}" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+X" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" CommandParameter="{x:Static tools:GlobalShortcut.ScreenText}" />
           </StackPanel>
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="Freezes the screen; drag over words in a picture, a video or a locked PDF and they are copied as text. Read on this PC by Windows." />
@@ -787,8 +788,8 @@
           <TextBlock Classes="label" Text="Screen ruler shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding RulerShortcut, Mode=OneWay}" IsReadOnly="True"
-                     PlaceholderText="Click, then press the keys" KeyDown="RulerShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+M" />
-            <Button Classes="link" Content="Turn off" Command="{Binding RulerShortcutOffCommand}" />
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.Ruler}" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+M" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" CommandParameter="{x:Static tools:GlobalShortcut.Ruler}" />
           </StackPanel>
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Margin="0,6,0,0"
                      Text="Freezes the screen; point at a gap or a block to measure it, or drag a box. A click copies the size, e.g. 480 × 270. Esc stops." />
@@ -1031,9 +1032,9 @@
           <TextBlock Classes="label" Text="Shortcut" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="220" Text="{Binding QuickNoteShortcut, Mode=OneWay}" IsReadOnly="True"
-                     PlaceholderText="Click, then press the keys" KeyDown="QuickNoteShortcutKeys" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+N" />
-            <Button Classes="link" Content="Ctrl+Alt+N" Command="{Binding QuickNoteBackCommand}" ToolTip.Tip="Go back to the usual shortcut" />
-            <Button Classes="link" Content="Turn off" Command="{Binding QuickNoteOffCommand}" />
+                     PlaceholderText="Click, then press the keys" KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.QuickNote}" ToolTip.Tip="Click here, then press the keys you want, e.g. Ctrl+Alt+N" />
+            <Button Classes="link" Content="Ctrl+Alt+N" Command="{Binding ShortcutBackCommand}" CommandParameter="{x:Static tools:GlobalShortcut.QuickNote}" ToolTip.Tip="Go back to the usual shortcut" />
+            <Button Classes="link" Content="Turn off" Command="{Binding ShortcutOffCommand}" CommandParameter="{x:Static tools:GlobalShortcut.QuickNote}" />
             <Button Classes="link" Content="Try it" Command="{Binding OpenQuickNoteCommand}" />
           </StackPanel>
           <TextBlock FontSize="{DynamicResource Text12}" Classes="muted" Classes.problem="{Binding QuickNoteProblem}" Text="{Binding QuickNoteMessage}" TextWrapping="Wrap" Margin="0,6,0,0"

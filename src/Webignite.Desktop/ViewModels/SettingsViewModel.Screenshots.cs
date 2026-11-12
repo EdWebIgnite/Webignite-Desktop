@@ -35,13 +35,8 @@ public partial class SettingsViewModel
 
     private void LoadScreenshots()
     {
-        ScreenshotShortcut = services.Settings.Screenshots.Shortcut is { Length: > 0 } keys ? keys : "Off";
-        RecordShortcut = services.Settings.Screenshots.RecordShortcut is { Length: > 0 } record ? record : "Off";
-        ColourShortcut = services.Settings.Screenshots.ColourShortcut is { Length: > 0 } colour ? colour : "Off";
-        ClipboardShortcut = services.Settings.Screenshots.ClipboardShortcut is { Length: > 0 } clips ? clips : "Off";
-        RulerShortcut = services.Settings.Screenshots.RulerShortcut is { Length: > 0 } ruler ? ruler : "Off";
-        SnippetShortcut = services.Settings.Screenshots.SnippetShortcut is { Length: > 0 } snippets ? snippets : "Off";
-        TextShortcut = services.Settings.Screenshots.TextShortcut is { Length: > 0 } text ? text : "Off";
+        foreach (var info in GlobalShortcuts.All.Where(i => i.Shortcut != GlobalShortcut.QuickNote))
+            ShowShortcut(info.Shortcut);
     }
 
     /// <summary>Why these keys can't be used for this shortcut, when another one has them.</summary>
@@ -50,202 +45,76 @@ public partial class SettingsViewModel
             ? GlobalShortcuts.Clash(taken, wanted)
             : null;
 
-    /// <summary>The keys pressed in the colour picker shortcut box.</summary>
-    public void SetColourShortcut(string keys)
+    /// <summary>
+    /// The keys pressed in a shortcut's box. Kept and taken from Windows straight away, or refused with why.
+    /// The same for every shortcut; what differs is in <see cref="GlobalShortcuts.All"/>.
+    /// </summary>
+    public void SetShortcut(GlobalShortcut which, string keys)
     {
         var (hotkey, problem) = Hotkey.Parse(keys);
         if (hotkey is null)
         {
-            Shortcut(problem!, true);
+            SayShortcut(which, problem!, true);
             return;
         }
-        if (Clash(hotkey, GlobalShortcut.ColourPicker) is { } clash)
+        if (Clash(hotkey, which) is { } clash)
         {
-            Shortcut(clash, true);
+            SayShortcut(which, clash, true);
             return;
         }
-        services.Settings.Screenshots = services.Settings.Screenshots with { ColourShortcut = hotkey.ToString() };
-        ColourShortcut = hotkey.ToString();
-        var taken = services.ApplyColourShortcut?.Invoke();
-        Shortcut(taken ?? $"Press {hotkey} in any program, then click a colour to copy its code.", taken is not null);
-    }
-
-    /// <summary>The keys pressed in the text-from-the-screen shortcut box.</summary>
-    public void SetTextShortcut(string keys)
-    {
-        var (hotkey, problem) = Hotkey.Parse(keys);
-        if (hotkey is null)
-        {
-            Shortcut(problem!, true);
-            return;
-        }
-        if (Clash(hotkey, GlobalShortcut.ScreenText) is { } clash)
-        {
-            Shortcut(clash, true);
-            return;
-        }
-        services.Settings.Screenshots = services.Settings.Screenshots with { TextShortcut = hotkey.ToString() };
-        TextShortcut = hotkey.ToString();
-        var taken = services.ApplyTextShortcut?.Invoke();
-        Shortcut(taken ?? $"Press {hotkey} in any program, then drag over the words to copy them.", taken is not null);
+        KeepShortcut(which, hotkey.ToString());
+        var taken = services.ApplyShortcut?.Invoke(which);
+        SayShortcut(which, taken ?? GlobalShortcuts.SetHint(which, hotkey), taken is not null);
     }
 
     [RelayCommand]
-    private void TextShortcutOff()
+    private void ShortcutOff(GlobalShortcut which)
     {
-        services.Settings.Screenshots = services.Settings.Screenshots with { TextShortcut = "" };
-        TextShortcut = "Off";
-        services.ApplyTextShortcut?.Invoke();
-        Shortcut("The text-from-the-screen shortcut is off. Use the Text from the screen tool.", false);
+        KeepShortcut(which, "");
+        services.ApplyShortcut?.Invoke(which);
+        SayShortcut(which, GlobalShortcuts.Info(which).OffHint, false);
     }
 
-    /// <summary>The keys pressed in the text snippets shortcut box.</summary>
-    public void SetSnippetShortcut(string keys)
-    {
-        var (hotkey, problem) = Hotkey.Parse(keys);
-        if (hotkey is null)
-        {
-            Shortcut(problem!, true);
-            return;
-        }
-        if (Clash(hotkey, GlobalShortcut.Snippets) is { } clash)
-        {
-            Shortcut(clash, true);
-            return;
-        }
-        services.Settings.Screenshots = services.Settings.Screenshots with { SnippetShortcut = hotkey.ToString() };
-        SnippetShortcut = hotkey.ToString();
-        var taken = services.ApplySnippetShortcut?.Invoke();
-        Shortcut(taken ?? $"Press {hotkey} in any program, pick a snippet, and it is pasted where you were typing.", taken is not null);
-    }
-
+    /// <summary>Back to the keys the shortcut came with.</summary>
     [RelayCommand]
-    private void SnippetShortcutOff()
+    private void ShortcutBack(GlobalShortcut which) => SetShortcut(which, GlobalShortcuts.Info(which).DefaultKeys);
+
+    private void KeepShortcut(GlobalShortcut which, string keys)
     {
-        services.Settings.Screenshots = services.Settings.Screenshots with { SnippetShortcut = "" };
-        SnippetShortcut = "Off";
-        services.ApplySnippetShortcut?.Invoke();
-        Shortcut("The text snippets shortcut is off. Open them from the sidebar under Computer.", false);
+        if (which == GlobalShortcut.QuickNote)
+            services.Settings.Notes = services.Settings.Notes with { QuickShortcut = keys };
+        else
+            services.Settings.Screenshots = GlobalShortcuts.With(services.Settings.Screenshots, which, keys);
+        ShowShortcut(which);
     }
 
-    /// <summary>The keys pressed in the screen ruler shortcut box.</summary>
-    public void SetRulerShortcut(string keys)
+    /// <summary>Puts a shortcut's saved keys, or "Off", in its box.</summary>
+    private void ShowShortcut(GlobalShortcut which)
     {
-        var (hotkey, problem) = Hotkey.Parse(keys);
-        if (hotkey is null)
+        var keys = GlobalShortcuts.Keys(which, services.Settings.Screenshots, services.Settings.Notes.QuickShortcut);
+        var shown = keys.Length > 0 ? keys : "Off";
+        switch (which)
         {
-            Shortcut(problem!, true);
-            return;
+            case GlobalShortcut.Screenshot: ScreenshotShortcut = shown; break;
+            case GlobalShortcut.Recording: RecordShortcut = shown; break;
+            case GlobalShortcut.QuickNote: QuickNoteShortcut = shown; break;
+            case GlobalShortcut.ColourPicker: ColourShortcut = shown; break;
+            case GlobalShortcut.ClipboardHistory: ClipboardShortcut = shown; break;
+            case GlobalShortcut.Ruler: RulerShortcut = shown; break;
+            case GlobalShortcut.Snippets: SnippetShortcut = shown; break;
+            case GlobalShortcut.ScreenText: TextShortcut = shown; break;
+            default: throw new ArgumentOutOfRangeException(nameof(which), which, null);
         }
-        if (Clash(hotkey, GlobalShortcut.Ruler) is { } clash)
-        {
-            Shortcut(clash, true);
-            return;
-        }
-        services.Settings.Screenshots = services.Settings.Screenshots with { RulerShortcut = hotkey.ToString() };
-        RulerShortcut = hotkey.ToString();
-        var taken = services.ApplyRulerShortcut?.Invoke();
-        Shortcut(taken ?? $"Press {hotkey} in any program, then point at something or drag a box to measure it.", taken is not null);
     }
 
-    [RelayCommand]
-    private void RulerShortcutOff()
+    // The quick note's box is in Settings, Notes, with its own line for messages.
+    private void SayShortcut(GlobalShortcut which, string message, bool problem)
     {
-        services.Settings.Screenshots = services.Settings.Screenshots with { RulerShortcut = "" };
-        RulerShortcut = "Off";
-        services.ApplyRulerShortcut?.Invoke();
-        Shortcut("The screen ruler shortcut is off. Measure from the Screen ruler tool.", false);
+        if (which == GlobalShortcut.QuickNote)
+            QuickNoteSay(message, problem);
+        else
+            Shortcut(message, problem);
     }
-
-    /// <summary>The keys pressed in the clipboard history shortcut box.</summary>
-    public void SetClipboardShortcut(string keys)
-    {
-        var (hotkey, problem) = Hotkey.Parse(keys);
-        if (hotkey is null)
-        {
-            Shortcut(problem!, true);
-            return;
-        }
-        if (Clash(hotkey, GlobalShortcut.ClipboardHistory) is { } clash)
-        {
-            Shortcut(clash, true);
-            return;
-        }
-        services.Settings.Screenshots = services.Settings.Screenshots with { ClipboardShortcut = hotkey.ToString() };
-        ClipboardShortcut = hotkey.ToString();
-        var taken = services.ApplyClipboardShortcut?.Invoke();
-        Shortcut(taken ?? $"Press {hotkey} in any program to see what you copied.", taken is not null);
-    }
-
-    [RelayCommand]
-    private void ClipboardShortcutOff()
-    {
-        services.Settings.Screenshots = services.Settings.Screenshots with { ClipboardShortcut = "" };
-        ClipboardShortcut = "Off";
-        services.ApplyClipboardShortcut?.Invoke();
-        Shortcut("The clipboard history shortcut is off. Open it from the sidebar under Computer.", false);
-    }
-
-    [RelayCommand]
-    private void ColourShortcutOff()
-    {
-        services.Settings.Screenshots = services.Settings.Screenshots with { ColourShortcut = "" };
-        ColourShortcut = "Off";
-        services.ApplyColourShortcut?.Invoke();
-        Shortcut("The colour picker shortcut is off. Pick colours from the Colours tool.", false);
-    }
-
-    /// <summary>The keys pressed in the recording shortcut box.</summary>
-    public void SetRecordShortcut(string keys)
-    {
-        var (hotkey, problem) = Hotkey.Parse(keys);
-        if (hotkey is null)
-        {
-            Shortcut(problem!, true);
-            return;
-        }
-        if (Clash(hotkey, GlobalShortcut.Recording) is { } clash)
-        {
-            Shortcut(clash, true);
-            return;
-        }
-        services.Settings.Screenshots = services.Settings.Screenshots with { RecordShortcut = hotkey.ToString() };
-        RecordShortcut = hotkey.ToString();
-        var taken = services.ApplyRecordShortcut?.Invoke();
-        Shortcut(taken ?? $"Press {hotkey} in any program to start recording, and again to stop.", taken is not null);
-    }
-
-    /// <summary>The keys pressed in the shortcut box. Kept and taken from Windows straight away, or refused with why.</summary>
-    public void SetShortcut(string keys)
-    {
-        var (hotkey, problem) = Hotkey.Parse(keys);
-        if (hotkey is null)
-        {
-            Shortcut(problem!, true);
-            return;
-        }
-        if (Clash(hotkey, GlobalShortcut.Screenshot) is { } clash)
-        {
-            Shortcut(clash, true);
-            return;
-        }
-        services.Settings.Screenshots = services.Settings.Screenshots with { Shortcut = hotkey.ToString() };
-        ScreenshotShortcut = hotkey.ToString();
-        var taken = services.ApplyScreenshotShortcut?.Invoke();
-        Shortcut(taken ?? $"Press {hotkey} in any program to take a screenshot.", taken is not null);
-    }
-
-    [RelayCommand]
-    private void ShortcutOff()
-    {
-        services.Settings.Screenshots = services.Settings.Screenshots with { Shortcut = "" };
-        ScreenshotShortcut = "Off";
-        services.ApplyScreenshotShortcut?.Invoke();
-        Shortcut("The shortcut is off. Take a screenshot from the Mark-up page.", false);
-    }
-
-    [RelayCommand]
-    private void ShortcutBack() => SetShortcut(ScreenshotSettings.DefaultShortcut);
 
     public void SetScreenshotFolder(string folder)
     {

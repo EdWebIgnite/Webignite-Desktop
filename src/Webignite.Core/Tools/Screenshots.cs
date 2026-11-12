@@ -50,58 +50,104 @@ public sealed record ScreenshotSettings
 /// <summary>The shortcuts that work from any program, so one can't be given keys another already has.</summary>
 public enum GlobalShortcut { Screenshot, Recording, QuickNote, ColourPicker, ClipboardHistory, Ruler, Snippets, ScreenText }
 
+/// <summary>
+/// Everything that differs between one global shortcut and the next, in one row: what Windows knows it by, what it
+/// is called in messages, its usual keys, where in Settings it is picked, and what Settings says when it is set or
+/// turned off. Adding a shortcut is a new name in <see cref="GlobalShortcut"/> and a row here.
+/// </summary>
+/// <param name="HotkeyId">The number Windows hands back when the keys are pressed. Never reuse or change one.</param>
+/// <param name="Name">As in "That's the {Name} shortcut already".</param>
+/// <param name="For">As in "Pick other keys for {For}".</param>
+/// <param name="Title">The note's heading when Windows won't hand the keys over at start-up.</param>
+/// <param name="Section">The part of Settings the keys are picked in, as its key.</param>
+/// <param name="Place">The same part of Settings, as the person reads it.</param>
+/// <param name="SetHint">What Settings says once the keys are taken; {0} is the keys.</param>
+/// <param name="OffHint">What Settings says once the shortcut is off, with where else to start it.</param>
+public sealed record GlobalShortcutInfo(GlobalShortcut Shortcut, int HotkeyId, string Name, string For, string Title,
+    string Section, string Place, string DefaultKeys, string SetHint, string OffHint);
+
 public static class GlobalShortcuts
 {
-    public static string Name(GlobalShortcut shortcut) => shortcut switch
+    public static readonly IReadOnlyList<GlobalShortcutInfo> All =
+    [
+        new(GlobalShortcut.Screenshot, 0x5747, "screenshot", "screenshots", "Screenshot shortcut not set", "screenshots", "Screenshots",
+            ScreenshotSettings.DefaultShortcut, "Press {0} in any program to take a screenshot.",
+            "The shortcut is off. Take a screenshot from the Mark-up page."),
+        new(GlobalShortcut.Recording, 0x5748, "recording", "recording", "Recording shortcut not set", "screenshots", "Screenshots",
+            ScreenshotSettings.DefaultRecordShortcut, "Press {0} in any program to start recording, and again to stop.",
+            "The recording shortcut is off. Start a recording from the Mark-up page."),
+        new(GlobalShortcut.QuickNote, 0x5749, "quick-note", "the quick note", "Quick note shortcut not set", "notes", "Notes",
+            Webignite.Core.Notes.NoteSettings.DefaultShortcut, "Press {0} in any program to jot down a quick note.",
+            "The shortcut is off. Write notes on the Notes page."),
+        new(GlobalShortcut.ColourPicker, 0x574A, "colour picker", "the colour picker", "Colour picker shortcut not set", "screenshots", "Screenshots",
+            ScreenshotSettings.DefaultColourShortcut, "Press {0} in any program, then click a colour to copy its code.",
+            "The colour picker shortcut is off. Pick colours from the Colours tool."),
+        new(GlobalShortcut.ClipboardHistory, 0x574B, "clipboard history", "clipboard history", "Clipboard history shortcut not set", "screenshots", "Screenshots",
+            ScreenshotSettings.DefaultClipboardShortcut, "Press {0} in any program to see what you copied.",
+            "The clipboard history shortcut is off. Open it from the sidebar under Computer."),
+        new(GlobalShortcut.Ruler, 0x574C, "screen ruler", "the screen ruler", "Screen ruler shortcut not set", "screenshots", "Screenshots",
+            ScreenshotSettings.DefaultRulerShortcut, "Press {0} in any program, then point at something or drag a box to measure it.",
+            "The screen ruler shortcut is off. Measure from the Screen ruler tool."),
+        new(GlobalShortcut.Snippets, 0x574D, "text snippets", "text snippets", "Text snippets shortcut not set", "screenshots", "Screenshots",
+            ScreenshotSettings.DefaultSnippetShortcut, "Press {0} in any program, pick a snippet, and it is pasted where you were typing.",
+            "The text snippets shortcut is off. Open them from the sidebar under Computer."),
+        new(GlobalShortcut.ScreenText, 0x574E, "text from the screen", "text from the screen", "Text from the screen shortcut not set", "screenshots", "Screenshots",
+            ScreenshotSettings.DefaultTextShortcut, "Press {0} in any program, then drag over the words to copy them.",
+            "The text-from-the-screen shortcut is off. Use the Text from the screen tool."),
+    ];
+
+    /// <summary>The row for a shortcut. One with no row is a mistake in the table, so it stops here and not in a wrong message.</summary>
+    public static GlobalShortcutInfo Info(GlobalShortcut shortcut) =>
+        All.FirstOrDefault(i => i.Shortcut == shortcut) ?? throw new ArgumentOutOfRangeException(nameof(shortcut), shortcut, "This shortcut has no row in GlobalShortcuts.All.");
+
+    public static string Name(GlobalShortcut shortcut) => Info(shortcut).Name;
+
+    /// <summary>The keys saved for a shortcut; empty when it is off. The quick note's are kept with the notes settings.</summary>
+    public static string Keys(GlobalShortcut shortcut, ScreenshotSettings shots, string quickNote) => shortcut switch
     {
-        GlobalShortcut.Screenshot => "screenshot",
-        GlobalShortcut.Recording => "recording",
-        GlobalShortcut.QuickNote => "quick-note",
-        GlobalShortcut.ClipboardHistory => "clipboard history",
-        GlobalShortcut.Ruler => "screen ruler",
-        GlobalShortcut.Snippets => "text snippets",
-        GlobalShortcut.ScreenText => "text from the screen",
-        _ => "colour picker",
+        GlobalShortcut.Screenshot => shots.Shortcut,
+        GlobalShortcut.Recording => shots.RecordShortcut,
+        GlobalShortcut.QuickNote => quickNote,
+        GlobalShortcut.ColourPicker => shots.ColourShortcut,
+        GlobalShortcut.ClipboardHistory => shots.ClipboardShortcut,
+        GlobalShortcut.Ruler => shots.RulerShortcut,
+        GlobalShortcut.Snippets => shots.SnippetShortcut,
+        GlobalShortcut.ScreenText => shots.TextShortcut,
+        _ => throw new ArgumentOutOfRangeException(nameof(shortcut), shortcut, null),
+    };
+
+    /// <summary>The settings with one shortcut's keys changed. Not for the quick note, whose keys are kept with the notes settings.</summary>
+    public static ScreenshotSettings With(ScreenshotSettings shots, GlobalShortcut shortcut, string keys) => shortcut switch
+    {
+        GlobalShortcut.Screenshot => shots with { Shortcut = keys },
+        GlobalShortcut.Recording => shots with { RecordShortcut = keys },
+        GlobalShortcut.ColourPicker => shots with { ColourShortcut = keys },
+        GlobalShortcut.ClipboardHistory => shots with { ClipboardShortcut = keys },
+        GlobalShortcut.Ruler => shots with { RulerShortcut = keys },
+        GlobalShortcut.Snippets => shots with { SnippetShortcut = keys },
+        GlobalShortcut.ScreenText => shots with { TextShortcut = keys },
+        _ => throw new ArgumentOutOfRangeException(nameof(shortcut), shortcut, null),
     };
 
     /// <summary>The other shortcut that has these keys already, or null when they're free.</summary>
     public static GlobalShortcut? TakenBy(Hotkey keys, ScreenshotSettings shots, string quickNote, GlobalShortcut self)
     {
         var wanted = keys.ToString();
-        var all = new (GlobalShortcut Shortcut, string Keys)[]
+        foreach (var info in All)
         {
-            (GlobalShortcut.Screenshot, shots.Shortcut),
-            (GlobalShortcut.Recording, shots.RecordShortcut),
-            (GlobalShortcut.QuickNote, quickNote),
-            (GlobalShortcut.ColourPicker, shots.ColourShortcut),
-            (GlobalShortcut.ClipboardHistory, shots.ClipboardShortcut),
-            (GlobalShortcut.Ruler, shots.RulerShortcut),
-            (GlobalShortcut.Snippets, shots.SnippetShortcut),
-            (GlobalShortcut.ScreenText, shots.TextShortcut),
-        };
-        foreach (var (shortcut, taken) in all)
-        {
-            if (shortcut != self && string.Equals(taken, wanted, StringComparison.OrdinalIgnoreCase))
-                return shortcut;
+            if (info.Shortcut != self && string.Equals(Keys(info.Shortcut, shots, quickNote), wanted, StringComparison.OrdinalIgnoreCase))
+                return info.Shortcut;
         }
         return null;
     }
 
     /// <summary>"That's the screenshot shortcut already. Pick other keys for recording."</summary>
     public static string Clash(GlobalShortcut taken, GlobalShortcut wanted) =>
-        $"That's the {Name(taken)} shortcut already. Pick other keys for {For(wanted)}.";
+        $"That's the {Name(taken)} shortcut already. Pick other keys for {Info(wanted).For}.";
 
-    private static string For(GlobalShortcut shortcut) => shortcut switch
-    {
-        GlobalShortcut.Screenshot => "screenshots",
-        GlobalShortcut.Recording => "recording",
-        GlobalShortcut.QuickNote => "the quick note",
-        GlobalShortcut.ClipboardHistory => "clipboard history",
-        GlobalShortcut.Ruler => "the screen ruler",
-        GlobalShortcut.Snippets => "text snippets",
-        GlobalShortcut.ScreenText => "text from the screen",
-        _ => "the colour picker",
-    };
+    /// <summary>What Settings says once the keys are taken.</summary>
+    public static string SetHint(GlobalShortcut shortcut, Hotkey keys) =>
+        string.Format(CultureInfo.InvariantCulture, Info(shortcut).SetHint, keys);
 }
 
 /// <summary>A key with Ctrl, Alt, Shift or the Windows key, for a shortcut that works from any program.</summary>

@@ -18,44 +18,12 @@ public partial class SettingsViewModel
 
     private void LoadNotes()
     {
-        QuickNoteShortcut = services.Settings.Notes.QuickShortcut is { Length: > 0 } keys ? keys : "Off";
+        ShowShortcut(GlobalShortcut.QuickNote);
         Notebooks.Clear();
         foreach (var notebook in services.Notes.Notebooks())
             Notebooks.Add(notebook);
         QuickNotebook = Notebooks.FirstOrDefault(n => n.Id == services.Settings.Notes.QuickNotebookId) ?? Notebooks.FirstOrDefault();
     }
-
-    /// <summary>The keys pressed in the quick-note shortcut box.</summary>
-    public void SetQuickNoteShortcut(string keys)
-    {
-        var (hotkey, problem) = Hotkey.Parse(keys);
-        if (hotkey is null)
-        {
-            QuickNoteSay(problem!, true);
-            return;
-        }
-        if (Clash(hotkey, GlobalShortcut.QuickNote) is { } clash)
-        {
-            QuickNoteSay(clash, true);
-            return;
-        }
-        services.Settings.Notes = services.Settings.Notes with { QuickShortcut = hotkey.ToString() };
-        QuickNoteShortcut = hotkey.ToString();
-        var taken = services.ApplyQuickNoteShortcut?.Invoke();
-        QuickNoteSay(taken ?? $"Press {hotkey} in any program to jot down a quick note.", taken is not null);
-    }
-
-    [RelayCommand]
-    private void QuickNoteOff()
-    {
-        services.Settings.Notes = services.Settings.Notes with { QuickShortcut = "" };
-        QuickNoteShortcut = "Off";
-        services.ApplyQuickNoteShortcut?.Invoke();
-        QuickNoteSay("The shortcut is off. Write notes on the Notes page.", false);
-    }
-
-    [RelayCommand]
-    private void QuickNoteBack() => SetQuickNoteShortcut(NoteSettings.DefaultShortcut);
 
     /// <summary>The notebook picked for quick notes; the list is one-way, so only a real pick counts.</summary>
     public void PickQuickNotebook(Notebook notebook)

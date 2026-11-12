@@ -13,38 +13,12 @@ namespace Webignite.Desktop.Views;
 /// </summary>
 public partial class MainWindow
 {
-    private GlobalHotkey? rulerKey;
     private bool measuring;
 
     private void WireRuler(AppServices services)
     {
         services.Go.MeasureScreenAction = measured => MeasureScreen(services, measured).Forget("Measuring the screen", tell: true);
-        services.ApplyRulerShortcut = () => ApplyRulerShortcut(services);
-        Opened += (_, _) =>
-        {
-            if (!OperatingSystem.IsWindows())
-                return;
-            rulerKey = new GlobalHotkey(this, 0x574C, () => services.Go.MeasureScreen(), "Screenshots");
-            if (ApplyRulerShortcut(services) is { } problem)
-                ShowNote("Screen ruler shortcut not set", problem, () => services.Go.Settings("screenshots"));
-        };
-        Closed += (_, _) =>
-        {
-            if (OperatingSystem.IsWindows())
-                rulerKey?.Release();
-            rulerKey = null;
-        };
-    }
-
-    private string? ApplyRulerShortcut(AppServices services)
-    {
-        if (!OperatingSystem.IsWindows() || rulerKey is null)
-            return null;
-        var shortcut = services.Settings.Screenshots.RulerShortcut;
-        if (string.IsNullOrWhiteSpace(shortcut))
-            return rulerKey.Set(null);
-        var (keys, problem) = Hotkey.Parse(shortcut);
-        return problem ?? rulerKey.Set(keys);
+        OnShortcut(Webignite.Core.Tools.GlobalShortcut.Ruler, () => services.Go.MeasureScreen());
     }
 
     private async Task MeasureScreen(AppServices services, Action<string>? measured)

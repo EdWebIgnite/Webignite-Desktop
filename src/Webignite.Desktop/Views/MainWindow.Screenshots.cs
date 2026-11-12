@@ -12,41 +12,15 @@ namespace Webignite.Desktop.Views;
 /// </summary>
 public partial class MainWindow
 {
-    private GlobalHotkey? screenshotKey;
     private bool grabbing;
 
     private void WireScreenshots(MainViewModel main, AppServices services)
     {
         services.Go.ScreenshotAction = hideApp => TakeScreenshot(main, hideApp).Forget("Taking a screenshot", tell: true);
-        services.ApplyScreenshotShortcut = () => ApplyShortcut(services);
-        Opened += (_, _) =>
-        {
-            if (!OperatingSystem.IsWindows())
-                return;
-            screenshotKey = new GlobalHotkey(this, 0x5747, () => services.Go.Screenshot(hideApp: false));
-            if (ApplyShortcut(services) is { } problem)
-                ShowNote("Screenshot shortcut not set", problem, () => services.Go.Settings("screenshots"));
-        };
-        Closed += (_, _) =>
-        {
-            if (OperatingSystem.IsWindows())
-                screenshotKey?.Release();
-            screenshotKey = null;
-        };
+        OnShortcut(Webignite.Core.Tools.GlobalShortcut.Screenshot, () => services.Go.Screenshot(hideApp: false));
     }
 
     /// <summary>Takes the keys in Settings for the shortcut. Returns why not, when it can't.</summary>
-    private string? ApplyShortcut(AppServices services)
-    {
-        if (!OperatingSystem.IsWindows() || screenshotKey is null)
-            return null;
-        var shortcut = services.Settings.Screenshots.Shortcut;
-        if (string.IsNullOrWhiteSpace(shortcut))
-            return screenshotKey.Set(null);
-        var (keys, problem) = Hotkey.Parse(shortcut);
-        return problem ?? screenshotKey.Set(keys);
-    }
-
     private async Task TakeScreenshot(MainViewModel main, bool hideApp)
     {
         if (!OperatingSystem.IsWindows() || grabbing)

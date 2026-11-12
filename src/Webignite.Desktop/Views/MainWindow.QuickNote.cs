@@ -12,40 +12,14 @@ namespace Webignite.Desktop.Views;
 /// </summary>
 public partial class MainWindow
 {
-    private GlobalHotkey? quickNoteKey;
     private QuickNoteWindow? quickNote;
 
     private void WireQuickNote(AppServices services)
     {
         services.Go.QuickNoteAction = () => ShowQuickNote(services);
-        services.ApplyQuickNoteShortcut = () => ApplyQuickNoteShortcut(services);
-        Opened += (_, _) =>
-        {
-            if (!OperatingSystem.IsWindows())
-                return;
-            quickNoteKey = new GlobalHotkey(this, 0x5749, () => services.Go.QuickNote(), "Notes");
-            if (ApplyQuickNoteShortcut(services) is { } problem)
-                ShowNote("Quick note shortcut not set", problem, () => services.Go.Settings("notes"));
-        };
+        OnShortcut(GlobalShortcut.QuickNote, () => services.Go.QuickNote());
         // The box closes (and keeps what was typed) before the app does.
         Closing += (_, _) => quickNote?.Close();
-        Closed += (_, _) =>
-        {
-            if (OperatingSystem.IsWindows())
-                quickNoteKey?.Release();
-            quickNoteKey = null;
-        };
-    }
-
-    private string? ApplyQuickNoteShortcut(AppServices services)
-    {
-        if (!OperatingSystem.IsWindows() || quickNoteKey is null)
-            return null;
-        var shortcut = services.Settings.Notes.QuickShortcut;
-        if (string.IsNullOrWhiteSpace(shortcut))
-            return quickNoteKey.Set(null);
-        var (keys, problem) = Hotkey.Parse(shortcut);
-        return problem ?? quickNoteKey.Set(keys);
     }
 
     private void ShowQuickNote(AppServices services)

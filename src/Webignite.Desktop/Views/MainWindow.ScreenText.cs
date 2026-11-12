@@ -14,38 +14,12 @@ namespace Webignite.Desktop.Views;
 /// </summary>
 public partial class MainWindow
 {
-    private GlobalHotkey? textKey;
     private bool readingScreen;
 
     private void WireScreenText(AppServices services)
     {
         services.Go.ReadScreenTextAction = read => ReadScreenText(services, read).Forget("Reading text off the screen", tell: true);
-        services.ApplyTextShortcut = () => ApplyTextShortcut(services);
-        Opened += (_, _) =>
-        {
-            if (!OperatingSystem.IsWindows())
-                return;
-            textKey = new GlobalHotkey(this, 0x574E, () => services.Go.ReadScreenText(), "Screenshots");
-            if (ApplyTextShortcut(services) is { } problem)
-                ShowNote("Text from the screen shortcut not set", problem, () => services.Go.Settings("screenshots"));
-        };
-        Closed += (_, _) =>
-        {
-            if (OperatingSystem.IsWindows())
-                textKey?.Release();
-            textKey = null;
-        };
-    }
-
-    private string? ApplyTextShortcut(AppServices services)
-    {
-        if (!OperatingSystem.IsWindows() || textKey is null)
-            return null;
-        var shortcut = services.Settings.Screenshots.TextShortcut;
-        if (string.IsNullOrWhiteSpace(shortcut))
-            return textKey.Set(null);
-        var (keys, problem) = Hotkey.Parse(shortcut);
-        return problem ?? textKey.Set(keys);
+        OnShortcut(Webignite.Core.Tools.GlobalShortcut.ScreenText, () => services.Go.ReadScreenText());
     }
 
     private async Task ReadScreenText(AppServices services, Action<string>? read)
