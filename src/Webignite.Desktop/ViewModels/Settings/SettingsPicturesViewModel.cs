@@ -5,8 +5,15 @@ using Webignite.Core.Files;
 namespace Webignite.Desktop.ViewModels;
 
 // Settings, Files, Pictures: offering Webignite to Windows for pictures, and opening Default apps to choose it.
-public partial class SettingsViewModel
+public sealed partial class SettingsPicturesViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public SettingsPicturesViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     public bool CanOfferForPictures => OperatingSystem.IsWindows();
 
     [ObservableProperty]
@@ -17,7 +24,7 @@ public partial class SettingsViewModel
 
     [ObservableProperty] public partial string PicturesMessage { get; private set; } = "";
 
-    private void LoadPictures() => OfferedForPictures = OperatingSystem.IsWindows() && Files.PictureDefault.IsOffered();
+    public void LoadPictures() => OfferedForPictures = OperatingSystem.IsWindows() && Files.PictureDefault.IsOffered();
 
     [RelayCommand]
     private void OfferForPictures()

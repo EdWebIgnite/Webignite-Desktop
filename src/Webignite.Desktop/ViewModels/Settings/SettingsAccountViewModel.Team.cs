@@ -5,7 +5,7 @@ using Webignite.Core.Projects;
 namespace Webignite.Desktop.ViewModels;
 
 // Settings, Projects: you and your partner. Names can change any time; who did what is kept by id.
-public partial class SettingsViewModel
+public sealed partial class SettingsAccountViewModel
 {
     [ObservableProperty] public partial string MyName { get; set; } = "";
     [ObservableProperty] public partial string PartnerName { get; set; } = "";
@@ -13,7 +13,7 @@ public partial class SettingsViewModel
     [ObservableProperty] public partial string TeamMessage { get; private set; } = "";
     [ObservableProperty] public partial bool TeamProblem { get; private set; }
 
-    private void LoadTeam()
+    public void LoadTeam()
     {
         var team = services.Team();
         MyName = team.Me!.Name;

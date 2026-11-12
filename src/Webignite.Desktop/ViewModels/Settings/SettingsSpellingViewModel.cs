@@ -8,8 +8,15 @@ namespace Webignite.Desktop.ViewModels;
 
 // Settings, Mail, Spelling: on or off, and which of Windows' languages to check in, several at once. British
 // English, South African English and Afrikaans are the usual three; the first ticked gives suggestions first.
-public partial class SettingsViewModel
+public sealed partial class SettingsSpellingViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public SettingsSpellingViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     [ObservableProperty] public partial bool SpellCheckOn { get; set; }
 
     /// <summary>A tick box per language: the usual three, then any other Windows has on this PC.</summary>
@@ -22,7 +29,7 @@ public partial class SettingsViewModel
 
     private bool loadingSpelling;
 
-    private void LoadSpelling()
+    public void LoadSpelling()
     {
         loadingSpelling = true;
         var settings = services.Settings.SpellCheck;
@@ -115,9 +122,9 @@ public partial class SettingsViewModel
 /// <summary>A language to check spelling in: ticked or not, and whether Windows has it on this PC.</summary>
 public sealed partial class SpellLanguageRow : ObservableObject
 {
-    private readonly SettingsViewModel owner;
+    private readonly SettingsSpellingViewModel owner;
 
-    public SpellLanguageRow(string tag, string name, bool onPc, bool on, SettingsViewModel owner)
+    public SpellLanguageRow(string tag, string name, bool onPc, bool on, SettingsSpellingViewModel owner)
     {
         this.owner = owner;
         Tag = tag;

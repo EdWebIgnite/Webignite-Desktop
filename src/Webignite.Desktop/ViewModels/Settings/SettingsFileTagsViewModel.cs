@@ -7,8 +7,15 @@ using Webignite.Core.Mail;
 namespace Webignite.Desktop.ViewModels;
 
 // Settings, Files: the tags for files and folders, named and coloured as you like.
-public partial class SettingsViewModel
+public sealed partial class SettingsFileTagsViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public SettingsFileTagsViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     public ObservableCollection<FileTagRow> FileTagRows { get; } = [];
 
     [ObservableProperty]
@@ -17,7 +24,7 @@ public partial class SettingsViewModel
 
     [ObservableProperty] public partial string FileTagMessage { get; set; } = "";
 
-    private void LoadFileTags()
+    public void LoadFileTags()
     {
         FileTagRows.Clear();
         foreach (var tag in services.FileTags.Tags)
@@ -68,7 +75,7 @@ public partial class SettingsViewModel
 }
 
 /// <summary>One tag in Settings: its name to type over, its colour to pick, and a way to remove it.</summary>
-public sealed partial class FileTagRow(FileTag tag, SettingsViewModel owner) : ViewModelBase
+public sealed partial class FileTagRow(FileTag tag, SettingsFileTagsViewModel owner) : ViewModelBase
 {
     public FileTag Tag => tag;
 

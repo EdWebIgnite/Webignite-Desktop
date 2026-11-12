@@ -7,8 +7,15 @@ namespace Webignite.Desktop.ViewModels;
 // Settings, Claude and ChatGPT: connecting ChatGPT through OpenAI's Secure MCP Tunnel, step by step. Webignite runs
 // OpenAI's tunnel program in the background; the person only makes a tunnel and a key on OpenAI's site and adds the
 // connector in ChatGPT.
-public partial class SettingsViewModel
+public sealed partial class SettingsChatGptViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public SettingsChatGptViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     [ObservableProperty] public partial string ChatGptTunnelId { get; set; } = "";
     [ObservableProperty] public partial string ChatGptKey { get; set; } = "";
     [ObservableProperty] public partial string ChatGptStatus { get; set; } = "";
@@ -29,7 +36,7 @@ public partial class SettingsViewModel
 
     public string ChatGptKeyHint => ChatGptHasKey ? "Kept safely on this PC. Paste a new one only to change it." : "sk-…";
 
-    private void LoadChatGpt()
+    public void LoadChatGpt()
     {
         var tunnel = services.Settings.ChatGptTunnel;
         ChatGptTunnelId = tunnel.TunnelId;
