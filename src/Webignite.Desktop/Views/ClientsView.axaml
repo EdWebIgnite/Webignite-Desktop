@@ -74,6 +74,12 @@
                   </Grid>
                 </Border>
                 <ItemsControl ItemsSource="{Binding Rows}">
+                  <!-- Only the rows in sight are built, so a list of thousands opens and filters at once. -->
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ClientRow">
                       <Button Classes="row" Classes.open="{Binding IsOpen}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"

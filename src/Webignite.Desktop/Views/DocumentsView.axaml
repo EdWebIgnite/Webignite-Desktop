@@ -69,6 +69,12 @@
             </Grid>
           </Border>
           <ItemsControl ItemsSource="{Binding Rows}">
+            <!-- Only the rows in sight are built, so a list of thousands opens and filters at once. -->
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <VirtualizingStackPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:DocumentRow">
                 <Button Classes="row" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"

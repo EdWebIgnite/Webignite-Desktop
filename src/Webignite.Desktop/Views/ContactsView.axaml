@@ -75,6 +75,12 @@
 
             <Border Classes="card" Padding="0" IsVisible="{Binding !NoMatches}">
               <ItemsControl ItemsSource="{Binding Rows}">
+                <!-- Only the rows in sight are built. -->
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ContactRow">
                     <Button Classes="row" Classes.open="{Binding IsOpen}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"

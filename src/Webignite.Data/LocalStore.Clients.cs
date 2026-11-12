@@ -35,6 +35,6 @@ public sealed partial class LocalStore
     public Client? GetClient(string id) => Find<Client>("clients", ClientContext, id);
 
     /// <summary>All clients, A to Z. Names are encrypted, so sorting happens after reading.</summary>
-    public IReadOnlyList<Client> ListClients() =>
-        ReadAll<Client>(ClientContext, "SELECT id, payload FROM clients").OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    public IReadOnlyList<Client> ListClients() => Remembered("clients", () =>
+        ReadAll<Client>(ClientContext, "SELECT id, payload FROM clients").OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList());
 }
