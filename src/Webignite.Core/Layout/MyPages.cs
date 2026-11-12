@@ -52,6 +52,12 @@ public sealed record Widget
     public string? Colour { get; init; }
 
     public WidgetTint Tint { get; init; }
+
+    /// <summary>
+    /// How strongly the colour shows, 10 to 100 (percent). 0 is a widget coloured before there was a choice: one of
+    /// the bright category colours as a faint wash.
+    /// </summary>
+    public int Strength { get; init; }
 }
 
 /// <summary>A page the person made: a name in the sidebar and the widgets on it.</summary>
@@ -160,10 +166,15 @@ public static class MyPages
         page with { Widgets = [.. page.Widgets.Where(w => w.Id != id)] };
 
     /// <summary>Puts the Files widget on another folder.</summary>
-    /// <summary>A widget's colour and how it wears it. A colour that isn't on the list, or none, makes it plain again.</summary>
-    public static MyPage SetLook(MyPage page, string id, string? colour, WidgetTint tint) => page with
+    /// <summary>
+    /// A widget's colour, how it wears it and how strongly. The colour is a pastel's code, any colour code typed in,
+    /// or one of the category colours by name; anything else, or none, makes the widget plain again.
+    /// </summary>
+    public static MyPage SetLook(MyPage page, string id, string? colour, WidgetTint tint, int strength = WidgetLooks.UsualStrength) => page with
     {
-        Widgets = [.. page.Widgets.Select(w => w.Id == id ? w with { Colour = WidgetLooks.Colours.Contains(colour ?? "") ? colour : null, Tint = tint } : w)],
+        Widgets = [.. page.Widgets.Select(w => w.Id == id
+            ? w with { Colour = WidgetLooks.Known(colour), Tint = tint, Strength = strength == 0 ? 0 : WidgetLooks.Strength(strength) }
+            : w)],
     };
 
     public static MyPage SetTarget(MyPage page, string id, string target) => page with
@@ -312,14 +323,42 @@ public sealed record OverviewParts
 /// <param name="Line">The line along its top.</param>
 public sealed record WidgetShade(double Body, double Head, double Edge, double Line);
 
+/// <summary>A pastel offered for widgets: its name and colour code.</summary>
+public sealed record Pastel(string Name, string Hex);
+
 /// <summary>
-/// Colour on the person's own widgets. The colours are the sixteen used for mail categories and file tags, but a
-/// widget never takes one at full strength: the colour is mixed into the surface in small amounts, so widgets read
-/// as soft pastels on a light look and as deep tints on a dark one, and the writing on them keeps its contrast.
+/// Colour on the person's own widgets. A widget takes one of the pastels offered, or any colour by its code, and
+/// wears it as a wash, on its heading only, or as a line along the top, as strongly as its intensity says. The
+/// colour is mixed into the look's own surface, so the same pastel is soft on a light look and a deep tint on a
+/// dark one; and however strong it is set, it is held back to where the writing on it can still be read.
 /// </summary>
 public static class WidgetLooks
 {
+    /// <summary>The bright category colours by name, which widgets coloured earlier may still have.</summary>
     public static IReadOnlyList<string> Colours => Webignite.Core.Mail.MailCategories.Colours;
+
+    /// <summary>
+    /// The pastels offered: light, low in strength of colour, and spread round the colour wheel, with three quiet
+    /// neutrals at the end. These are the colours a person picks for their own widgets, so they sit here with the
+    /// category colours' names and not in the palettes, which hold the app's own colours.
+    /// </summary>
+    public static IReadOnlyList<Pastel> Pastels { get; } =
+    [
+        new("Blush", "#F9D5DC"), new("Rose", "#F7C6D0"), new("Coral", "#FBCFC0"), new("Peach", "#FDDDBE"),
+        new("Apricot", "#FCE5B8"), new("Butter", "#FBF1B5"), new("Pistachio", "#E1EFC2"), new("Sage", "#CFE3CC"),
+        new("Mint", "#C5ECDB"), new("Aqua", "#C2EBEB"), new("Sky", "#C6E3F7"), new("Powder blue", "#CBD8F7"),
+        new("Periwinkle", "#D3D1F8"), new("Lavender", "#E2D2F5"), new("Lilac", "#EFD0EE"), new("Orchid", "#F5CDE3"),
+        new("Sand", "#EBDFCF"), new("Stone", "#DFDCD5"), new("Mist", "#D9E1E7"), new("Slate", "#CFD5DE"),
+    ];
+
+    /// <summary>The intensity a newly coloured widget starts at, the least and the most, and the step between.</summary>
+    public const int UsualStrength = 70;
+    public const int LeastStrength = 10;
+    public const int MostStrength = 100;
+    public const int StrengthStep = 10;
+
+    /// <summary>The least the writing may stand out from a widget's colour (the usual rule for body text).</summary>
+    public const double LeastContrast = 4.5;
 
     public static string Label(WidgetTint tint) => tint switch
     {
@@ -328,14 +367,65 @@ public static class WidgetLooks
         _ => "Top line",
     };
 
-    public static WidgetShade Shade(WidgetTint tint) => tint switch
+    /// <summary>A colour as it is kept: a category colour's name, or a code as #RRGGBB. Null for anything else.</summary>
+    public static string? Known(string? colour)
     {
-        WidgetTint.Wash => new(0.07, 0.15, 0.30, 0),
-        WidgetTint.Heading => new(0, 0.18, 0.24, 0),
-        _ => new(0, 0, 0, 1),
-    };
+        var text = (colour ?? "").Trim();
+        if (Colours.Contains(text))
+            return text;
+        // Only codes count here: "red" or "rgb(…)" typed in the box would be a guess at what was meant.
+        var code = text.TrimStart('#');
+        return code.Length is 3 or 6 && code.All(Uri.IsHexDigit) && Webignite.Core.Tools.Colours.Parse("#" + code) is { } rgb ? rgb.Hex : null;
+    }
+
+    /// <summary>The colour of a kept code; null for a name, which the palette of the look on screen gives.</summary>
+    public static Webignite.Core.Tools.Rgb? Code(string? colour) =>
+        colour is { Length: > 0 } && colour[0] == '#' ? Webignite.Core.Tools.Colours.Parse(colour) : null;
+
+    /// <summary>An intensity brought onto the scale: 10 to 100 in tens.</summary>
+    public static int Strength(int typed) =>
+        Math.Clamp((int)Math.Round(typed / (double)StrengthStep) * StrengthStep, LeastStrength, MostStrength);
+
+    /// <summary>
+    /// How much of the colour each part takes at an intensity. At full intensity a wash's heading is the colour
+    /// itself and its body a little under it; "heading only" leaves the body plain. An intensity of 0 is a widget
+    /// coloured before intensities, which keeps the faint wash of a bright colour it had.
+    /// </summary>
+    public static WidgetShade Shade(WidgetTint tint, int strength = 0)
+    {
+        if (strength <= 0)
+            return tint switch
+            {
+                WidgetTint.Wash => new(0.07, 0.15, 0.30, 0),
+                WidgetTint.Heading => new(0, 0.18, 0.24, 0),
+                _ => new(0, 0, 0, 1),
+            };
+        var s = Strength(strength) / 100.0;
+        return tint switch
+        {
+            WidgetTint.Wash => new(0.65 * s, s, s, 0),
+            WidgetTint.Heading => new(0, s, 0.8 * s, 0),
+            _ => new(0, 0, 0, 1),
+        };
+    }
 
     /// <summary>One colour channel (0 to 255) of a part: the surface's, moved towards the colour's by the share given.</summary>
     public static byte Mix(byte surface, byte colour, double share) =>
         (byte)Math.Round(surface + (colour - surface) * Math.Clamp(share, 0, 1));
+
+    public static Webignite.Core.Tools.Rgb Mix(Webignite.Core.Tools.Rgb surface, Webignite.Core.Tools.Rgb colour, double share) =>
+        new(Mix(surface.R, colour.R, share), Mix(surface.G, colour.G, share), Mix(surface.B, colour.B, share));
+
+    /// <summary>
+    /// The share of a colour a part may take and still be read on: the share asked for, or the most under it at
+    /// which the writing keeps its contrast. A dark colour typed in and set to full is held back to a tint of
+    /// itself, so no choice makes a widget unreadable.
+    /// </summary>
+    public static double Readable(Webignite.Core.Tools.Rgb surface, Webignite.Core.Tools.Rgb colour, Webignite.Core.Tools.Rgb writing, double share)
+    {
+        for (var tried = Math.Clamp(share, 0, 1); tried > 0.02; tried -= 0.04)
+            if (Webignite.Core.Tools.Colours.Contrast(Mix(surface, colour, tried), writing) >= LeastContrast)
+                return tried;
+        return 0.02;
+    }
 }

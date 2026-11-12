@@ -43,6 +43,11 @@ public sealed class CategoryDot : Border
         Width = Height = Size;
         CornerRadius = new CornerRadius(Size / 2);
         binding?.Dispose();
-        binding = Bind(BackgroundProperty, this.GetResourceObservable(ResourceKey(Colour)));
+        binding = null;
+        // A colour picked by its code (a widget's pastel) is that colour; a name is looked up in the palette.
+        if (Webignite.Core.Layout.WidgetLooks.Code(Colour) is { } code)
+            Background = new SolidColorBrush(Color.FromRgb(code.R, code.G, code.B));
+        else
+            binding = Bind(BackgroundProperty, this.GetResourceObservable(ResourceKey(Colour)));
     }
 }

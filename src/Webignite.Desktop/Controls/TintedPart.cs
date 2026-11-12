@@ -23,6 +23,7 @@ public sealed class TintedPart : Border
 {
     public static readonly StyledProperty<string?> ColourProperty = AvaloniaProperty.Register<TintedPart, string?>(nameof(Colour));
     public static readonly StyledProperty<WidgetTint> TintProperty = AvaloniaProperty.Register<TintedPart, WidgetTint>(nameof(Tint));
+    public static readonly StyledProperty<int> StrengthProperty = AvaloniaProperty.Register<TintedPart, int>(nameof(Strength));
     public static readonly StyledProperty<TintPart> PartProperty = AvaloniaProperty.Register<TintedPart, TintPart>(nameof(Part));
 
     protected override Type StyleKeyOverride => typeof(Border);
@@ -38,12 +39,13 @@ public sealed class TintedPart : Border
 
     public string? Colour { get => GetValue(ColourProperty); set => SetValue(ColourProperty, value); }
     public WidgetTint Tint { get => GetValue(TintProperty); set => SetValue(TintProperty, value); }
+    public int Strength { get => GetValue(StrengthProperty); set => SetValue(StrengthProperty, value); }
     public TintPart Part { get => GetValue(PartProperty); set => SetValue(PartProperty, value); }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == ColourProperty || change.Property == TintProperty || change.Property == PartProperty)
+        if (change.Property == ColourProperty || change.Property == TintProperty || change.Property == StrengthProperty || change.Property == PartProperty)
             Apply();
     }
 
@@ -55,17 +57,29 @@ public sealed class TintedPart : Border
 
     private void Apply()
     {
-        var shade = WidgetLooks.Shade(Tint);
-        var colour = Colour is null ? null : Found(CategoryDot.ResourceKey(Colour));
+        var shade = WidgetLooks.Shade(Tint, Strength);
+        // A code the person picked is its own colour in every look; a category colour's name is the look's own.
+        var colour = Colour is null ? null : WidgetLooks.Code(Colour) is { } code ? Color.FromRgb(code.R, code.G, code.B) : Found(CategoryDot.ResourceKey(Colour));
         var surface = Found("Surface");
-        IBrush? Mixed(double share) => colour is { } c && surface is { } s && share > 0
-            ? new SolidColorBrush(Color.FromRgb(WidgetLooks.Mix(s.R, c.R, share), WidgetLooks.Mix(s.G, c.G, share), WidgetLooks.Mix(s.B, c.B, share)))
-            : null;
+        // The faintest writing on a widget (times, second lines) is what must still be read, so that is what the
+        // colour is held back for; in a dark look that keeps a pastel to a deep tint of itself.
+        var writing = Found("Muted") ?? Found("Text");
+        IBrush? Mixed(double share, bool readOn = true)
+        {
+            if (colour is not { } c || surface is not { } s || share <= 0)
+                return null;
+            var (from, to) = (new Webignite.Core.Tools.Rgb(s.R, s.G, s.B), new Webignite.Core.Tools.Rgb(c.R, c.G, c.B));
+            // Where writing sits on it, the colour is held back to where the writing can still be read.
+            if (readOn && writing is { } w)
+                share = WidgetLooks.Readable(from, to, new Webignite.Core.Tools.Rgb(w.R, w.G, w.B), share);
+            var mixed = WidgetLooks.Mix(from, to, share);
+            return new SolidColorBrush(Color.FromRgb(mixed.R, mixed.G, mixed.B));
+        }
         switch (Part)
         {
             case TintPart.Card:
                 Set(BackgroundProperty, Mixed(shade.Body));
-                Set(BorderBrushProperty, Classes.Contains("arranging") ? null : Mixed(shade.Edge));
+                Set(BorderBrushProperty, Classes.Contains("arranging") ? null : Mixed(shade.Edge, readOn: false));
                 break;
             case TintPart.Head:
                 Set(BackgroundProperty, Mixed(shade.Head));
@@ -74,7 +88,7 @@ public sealed class TintedPart : Border
                 break;
             default:
                 IsVisible = colour is not null && shade.Line > 0;
-                Set(BackgroundProperty, IsVisible ? Mixed(shade.Line) : null);
+                Set(BackgroundProperty, IsVisible ? Mixed(shade.Line, readOn: false) : null);
                 break;
         }
     }

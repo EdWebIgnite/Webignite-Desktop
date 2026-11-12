@@ -377,12 +377,12 @@
         <DataTemplate x:DataType="vm:WidgetViewModel">
           <!-- A widget wears its colour softly: a faint wash, only its heading, or a line along the top (TintedPart). -->
           <c:TintedPart Classes="widget" Classes.arranging="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}"
-                        Part="Card" Colour="{Binding Colour}" Tint="{Binding Tint}">
+                        Part="Card" Colour="{Binding Colour}" Tint="{Binding Tint}" Strength="{Binding Strength}">
             <Panel>
               <DockPanel>
-                <c:TintedPart DockPanel.Dock="Top" Part="Line" Height="3" Colour="{Binding Colour}" Tint="{Binding Tint}" />
+                <c:TintedPart DockPanel.Dock="Top" Part="Line" Height="3" Colour="{Binding Colour}" Tint="{Binding Tint}" Strength="{Binding Strength}" />
                 <!-- The heading: drag it to move the widget while arranging; right-click it for the widget's colour -->
-                <c:TintedPart DockPanel.Dock="Top" Part="Head" Colour="{Binding Colour}" Tint="{Binding Tint}" Padding="16,12,16,8">
+                <c:TintedPart DockPanel.Dock="Top" Part="Head" Colour="{Binding Colour}" Tint="{Binding Tint}" Strength="{Binding Strength}" Padding="16,12,16,8">
                   <DockPanel Background="Transparent" PointerPressed="HeadingPressed" ContextRequested="ColourAsked"
                              Cursor="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing, Converter={x:Static v:MyPagesView.MoveCursor}}">
                     <Button DockPanel.Dock="Right" Classes="link" Padding="4,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Take this widget off the page"
