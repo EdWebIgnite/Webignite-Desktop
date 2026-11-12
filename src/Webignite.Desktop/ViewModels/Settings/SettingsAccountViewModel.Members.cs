@@ -7,7 +7,7 @@ using Webignite.Core.Chat;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>Who's in the workspace, taking someone out, signing out other PCs and a new password.</summary>
-public partial class SettingsViewModel
+public sealed partial class SettingsAccountViewModel
 {
     public ObservableCollection<MemberRowViewModel> Members { get; } = [];
 
@@ -119,7 +119,7 @@ public partial class SettingsViewModel
 }
 
 /// <summary>One person in the workspace: their initials, name, email, role and chat status.</summary>
-public sealed partial class MemberRowViewModel(string name, string email, string role, bool isMe, PresenceState shown, bool canRemove, SettingsViewModel page) : ViewModelBase
+public sealed partial class MemberRowViewModel(string name, string email, string role, bool isMe, PresenceState shown, bool canRemove, SettingsAccountViewModel page) : ViewModelBase
 {
     public string Name => name;
     public string Email => email;

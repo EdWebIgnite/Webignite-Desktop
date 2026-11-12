@@ -113,7 +113,7 @@ public sealed partial class MainViewModel
             settings.LoadShared(); // the Xero app may have arrived from the other PC since joining
             settings.Open(section);
             if (step.Check == SetupCheck.SignedIn && !services.Account.IsSignedIn)
-                settings.ShowAccountFormCommand.Execute(form ?? "join");
+                settings.Account.ShowAccountFormCommand.Execute(form ?? "join");
         }
         GuideStatusChanged();
     }
@@ -121,7 +121,7 @@ public sealed partial class MainViewModel
     // Signing in, connecting Xero or ChatGPT on the Settings page ticks the step off.
     private void SettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(SettingsViewModel.IsSignedIn) or nameof(SettingsViewModel.IsConnected) or nameof(SettingsViewModel.ChatGptConnected))
+        if (e.PropertyName is nameof(SettingsAccountViewModel.IsSignedIn) or nameof(SettingsViewModel.IsConnected) or nameof(SettingsChatGptViewModel.ChatGptConnected))
             GuideStatusChanged();
     }
 

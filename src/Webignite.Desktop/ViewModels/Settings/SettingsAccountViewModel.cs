@@ -7,8 +7,23 @@ namespace Webignite.Desktop.ViewModels;
 
 // Settings, Account and sync: the sync server, signing in or creating an account (or joining with an invite),
 // two-factor, and inviting your partner. Passwords are cleared from the screen as soon as they're used.
-public partial class SettingsViewModel
+public sealed partial class SettingsAccountViewModel : ViewModelBase, IDisposable
 {
+    private readonly AppServices services;
+
+    public SettingsAccountViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
+    /// <summary>Settings was let go: the picture drawn here is freed.</summary>
+    public void Dispose()
+    {
+        var qr = TwoFactorQr;
+        TwoFactorQr = null;
+        qr?.Dispose();
+    }
+
     [ObservableProperty] public partial string SyncServer { get; set; } = "";
 
     /// <summary>Whether the sync server's address can be typed: only when asked for, or when it isn't ours.</summary>
@@ -112,7 +127,7 @@ public partial class SettingsViewModel
     partial void OnRecoveryCodesTextChanged(string value) => OnPropertyChanged(nameof(HasRecoveryCodes));
     partial void OnInviteTextChanged(string value) => OnPropertyChanged(nameof(HasInvite));
 
-    private void LoadAccount()
+    public void LoadAccount()
     {
         var account = services.Account;
         SyncServer = SyncAddress.OrOurs(account.Settings.ServerAddress);

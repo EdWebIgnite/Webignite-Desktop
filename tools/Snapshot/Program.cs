@@ -463,46 +463,46 @@ Save("settings-backups");
 settingsPage.Open("emails");
 Save("settings-emails");
 // How quote and invoice mails look: the details for the branded layout, below the wording.
-settingsPage.BrandCompany = "Webignite (Pty) Ltd";
-settingsPage.BrandPhone = "021 555 0100";
-settingsPage.BrandEmail = "accounts@webignite.co.za";
-settingsPage.BrandWebsite = "www.webignite.co.za";
-settingsPage.BrandAddress = "1 Sample Street, Cape Town, 8001";
-settingsPage.BrandBank = "Sample Bank\nCheque account\nAccount number: 0000000000";
-settingsPage.BrandTerms = "https://webignite.co.za/terms/";
-settingsPage.SaveBrandCommand.Execute(null);
+settingsPage.MailBrand.BrandCompany = "Webignite (Pty) Ltd";
+settingsPage.MailBrand.BrandPhone = "021 555 0100";
+settingsPage.MailBrand.BrandEmail = "accounts@webignite.co.za";
+settingsPage.MailBrand.BrandWebsite = "www.webignite.co.za";
+settingsPage.MailBrand.BrandAddress = "1 Sample Street, Cape Town, 8001";
+settingsPage.MailBrand.BrandBank = "Sample Bank\nCheque account\nAccount number: 0000000000";
+settingsPage.MailBrand.BrandTerms = "https://webignite.co.za/terms/";
+settingsPage.MailBrand.SaveBrandCommand.Execute(null);
 Check("The mail layout's details are kept and shared", services.Settings.MailBrand.CompanyName == "Webignite (Pty) Ltd"
-    && Webignite.Core.Sync.SharedSettings.IsShared("mail-brand") && !settingsPage.BrandProblem);
+    && Webignite.Core.Sync.SharedSettings.IsShared("mail-brand") && !settingsPage.MailBrand.BrandProblem);
 window.Height = 2900;
 Dispatcher.UIThread.RunJobs();
 Save("settings-mail-brand");
 window.Height = 860;
 Dispatcher.UIThread.RunJobs();
 settingsPage.Open("mail");
-Check("Settings, Mail shows the spelling choices", settingsPage.SpellCheckOn && settingsPage.SpellLanguages.Count > 0 && settingsPage.SpellNote.Length > 0);
+Check("Settings, Mail shows the spelling choices", settingsPage.Spelling.SpellCheckOn && settingsPage.Spelling.SpellLanguages.Count > 0 && settingsPage.Spelling.SpellNote.Length > 0);
 Save("settings-mail");
 settingsPage.Open("organisation");
-settingsPage.PartnerName = "Jaco";
-settingsPage.SaveTeamCommand.Execute(null);
-Check("Settings, Your organisation names you and your partner", services.Team().Partner!.Name == "Jaco" && services.Team().Me!.Name == "Me" && !settingsPage.TeamProblem);
-settingsPage.PartnerName = "me";
-settingsPage.SaveTeamCommand.Execute(null);
-Check("Your partner can't have your name", settingsPage.TeamProblem && services.Team().Partner!.Name == "Jaco");
-settingsPage.PartnerName = "Jaco";
-settingsPage.SaveTeamCommand.Execute(null);
+settingsPage.Account.PartnerName = "Jaco";
+settingsPage.Account.SaveTeamCommand.Execute(null);
+Check("Settings, Your organisation names you and your partner", services.Team().Partner!.Name == "Jaco" && services.Team().Me!.Name == "Me" && !settingsPage.Account.TeamProblem);
+settingsPage.Account.PartnerName = "me";
+settingsPage.Account.SaveTeamCommand.Execute(null);
+Check("Your partner can't have your name", settingsPage.Account.TeamProblem && services.Team().Partner!.Name == "Jaco");
+settingsPage.Account.PartnerName = "Jaco";
+settingsPage.Account.SaveTeamCommand.Execute(null);
 Save("settings-organisation-names");
 // ChatGPT, step by step: a tunnel and a key from OpenAI, then Connect ChatGPT runs OpenAI's tunnel in the background.
 settingsPage.Open("assistants");
-settingsPage.ChatGptTunnelId = "tunnel_ABC";
-Wait(settingsPage.ConnectChatGptCommand.ExecuteAsync(null), "Connecting ChatGPT with a wrong tunnel id");
-Check("A wrong tunnel id is explained before anything is downloaded", settingsPage.ChatGptProblem && settingsPage.ChatGptStatus.Contains("tunnel_", StringComparison.Ordinal)
-    && !settingsPage.ChatGptConnected);
-settingsPage.ChatGptTunnelId = "tunnel_0123456789abcdef0123456789abcdef";
-settingsPage.ChatGptStatus = "Not connected yet.";
-settingsPage.ChatGptProblem = false;
+settingsPage.ChatGpt.ChatGptTunnelId = "tunnel_ABC";
+Wait(settingsPage.ChatGpt.ConnectChatGptCommand.ExecuteAsync(null), "Connecting ChatGPT with a wrong tunnel id");
+Check("A wrong tunnel id is explained before anything is downloaded", settingsPage.ChatGpt.ChatGptProblem && settingsPage.ChatGpt.ChatGptStatus.Contains("tunnel_", StringComparison.Ordinal)
+    && !settingsPage.ChatGpt.ChatGptConnected);
+settingsPage.ChatGpt.ChatGptTunnelId = "tunnel_0123456789abcdef0123456789abcdef";
+settingsPage.ChatGpt.ChatGptStatus = "Not connected yet.";
+settingsPage.ChatGpt.ChatGptProblem = false;
 Dispatcher.UIThread.RunJobs();
-Check("The ChatGPT desktop app's way shows the connector's full path to copy", settingsPage.ConnectorPath.Contains("Webignite.Connector", StringComparison.Ordinal)
-    && settingsPage.CopyConnectorPathCommand is not null);
+Check("The ChatGPT desktop app's way shows the connector's full path to copy", settingsPage.ChatGpt.ConnectorPath.Contains("Webignite.Connector", StringComparison.Ordinal)
+    && settingsPage.ChatGpt.CopyConnectorPathCommand is not null);
 window.Height = 1500;
 Dispatcher.UIThread.RunJobs();
 Save("settings-chatgpt");
@@ -510,75 +510,75 @@ window.Height = 860;
 Dispatcher.UIThread.RunJobs();
 settingsPage.Open("account");
 // Joining needs nothing but the invite: our own sync server is filled in, shown as a line with Change.
-settingsPage.ShowAccountFormCommand.Execute("join");
+settingsPage.Account.ShowAccountFormCommand.Execute("join");
 Dispatcher.UIThread.RunJobs();
-Check("Our own sync server is filled in and its box is folded away", settingsPage.SyncServer == SyncAddress.Ours && !settingsPage.ShowSyncServerBox);
+Check("Our own sync server is filled in and its box is folded away", settingsPage.Account.SyncServer == SyncAddress.Ours && !settingsPage.Account.ShowSyncServerBox);
 Save("settings-account-join");
-settingsPage.ChangeSyncServerCommand.Execute(null);
-Check("Change opens the sync server's box", settingsPage.ShowSyncServerBox);
-settingsPage.ShowAccountFormCommand.Execute("new");
-settingsPage.SyncServer = "http://sync.webignite.co.za";
-Wait(settingsPage.CreateAccountCommand.ExecuteAsync(null), "Creating an account against a plain-http server");
-Check("The sync server must be https", settingsPage.SyncProblem && settingsPage.SyncMessage.Contains("https://", StringComparison.Ordinal));
-settingsPage.SyncServer = "https://sync.webignite.co.za";
-settingsPage.AccountEmail = "eddie@webignite.co.za";
-settingsPage.NewWorkspaceName = "Webignite";
+settingsPage.Account.ChangeSyncServerCommand.Execute(null);
+Check("Change opens the sync server's box", settingsPage.Account.ShowSyncServerBox);
+settingsPage.Account.ShowAccountFormCommand.Execute("new");
+settingsPage.Account.SyncServer = "http://sync.webignite.co.za";
+Wait(settingsPage.Account.CreateAccountCommand.ExecuteAsync(null), "Creating an account against a plain-http server");
+Check("The sync server must be https", settingsPage.Account.SyncProblem && settingsPage.Account.SyncMessage.Contains("https://", StringComparison.Ordinal));
+settingsPage.Account.SyncServer = "https://sync.webignite.co.za";
+settingsPage.Account.AccountEmail = "eddie@webignite.co.za";
+settingsPage.Account.NewWorkspaceName = "Webignite";
 Dispatcher.UIThread.RunJobs();
 Save("settings-account");
-settingsPage.ShowAccountFormCommand.Execute("recover");
+settingsPage.Account.ShowAccountFormCommand.Execute("recover");
 Dispatcher.UIThread.RunJobs();
-Check("Forgot your password asks for the recovery key and a new password twice", settingsPage.IsRecoverForm && settingsPage.NeedsNewPassword);
+Check("Forgot your password asks for the recovery key and a new password twice", settingsPage.Account.IsRecoverForm && settingsPage.Account.NeedsNewPassword);
 Save("settings-account-recover");
-settingsPage.ShowAccountFormCommand.Execute("sign-in");
+settingsPage.Account.ShowAccountFormCommand.Execute("sign-in");
 // Signed in needs a running sync server, which the snapshot doesn't have: the screen is shown as it would be.
 void SetShown(string property, object value) =>
-    typeof(SettingsViewModel).GetProperty(property)!.SetValue(settingsPage, value);
-SetShown(nameof(SettingsViewModel.IsSignedIn), true);
-SetShown(nameof(SettingsViewModel.HasWorkspaceKey), true);
-SetShown(nameof(SettingsViewModel.IsWorkspaceOwner), true);
-SetShown(nameof(SettingsViewModel.SignedInAs), "Signed in as eddie@webignite.co.za, in the workspace Webignite.");
-SetShown(nameof(SettingsViewModel.LastSyncedText), $"Last synced {new DateTime(2026, 11, 8, 14, 32, 0):g}.");
+    typeof(SettingsAccountViewModel).GetProperty(property)!.SetValue(settingsPage.Account, value);
+SetShown(nameof(SettingsAccountViewModel.IsSignedIn), true);
+SetShown(nameof(SettingsAccountViewModel.HasWorkspaceKey), true);
+SetShown(nameof(SettingsAccountViewModel.IsWorkspaceOwner), true);
+SetShown(nameof(SettingsAccountViewModel.SignedInAs), "Signed in as eddie@webignite.co.za, in the workspace Webignite.");
+SetShown(nameof(SettingsAccountViewModel.LastSyncedText), $"Last synced {new DateTime(2026, 11, 8, 14, 32, 0):g}.");
 Dispatcher.UIThread.RunJobs();
-Check("Signed in shows Sync now and when it last synced", settingsPage.SyncNowCommand is not null && settingsPage.LastSyncedText.StartsWith("Last synced", StringComparison.Ordinal));
+Check("Signed in shows Sync now and when it last synced", settingsPage.Account.SyncNowCommand is not null && settingsPage.Account.LastSyncedText.StartsWith("Last synced", StringComparison.Ordinal));
 Save("settings-account-signed-in");
 // Your organisation: who's in the workspace with their names, emails, roles and status; the owner can take a partner out, after a yes.
 settingsPage.Open("organisation");
-SetShown(nameof(SettingsViewModel.OrganisationText), "Webignite: 2 people");
-settingsPage.Members.Clear();
-settingsPage.Members.Add(new MemberRowViewModel("Eddie", "eddie@webignite.co.za", "Owner", true, Webignite.Core.Chat.PresenceState.Available, false, settingsPage));
-settingsPage.Members.Add(new MemberRowViewModel("Jaco", "jaco@webignite.co.za", "Member", false, Webignite.Core.Chat.PresenceState.Away, true, settingsPage));
+SetShown(nameof(SettingsAccountViewModel.OrganisationText), "Webignite: 2 people");
+settingsPage.Account.Members.Clear();
+settingsPage.Account.Members.Add(new MemberRowViewModel("Eddie", "eddie@webignite.co.za", "Owner", true, Webignite.Core.Chat.PresenceState.Available, false, settingsPage.Account));
+settingsPage.Account.Members.Add(new MemberRowViewModel("Jaco", "jaco@webignite.co.za", "Member", false, Webignite.Core.Chat.PresenceState.Away, true, settingsPage.Account));
 Dispatcher.UIThread.RunJobs();
-Check("Your organisation lists everyone with their initials, email, role and status", settingsPage.ShowOrganisation && settingsPage.Members.Count == 2
-    && settingsPage.Members[1].ShownText == "Away" && settingsPage.Members[0].IsMe);
+Check("Your organisation lists everyone with their initials, email, role and status", settingsPage.ShowOrganisation && settingsPage.Account.Members.Count == 2
+    && settingsPage.Account.Members[1].ShownText == "Away" && settingsPage.Account.Members[0].IsMe);
 Save("settings-organisation");
-settingsPage.Members[1].RemoveCommand.Execute(null);
+settingsPage.Account.Members[1].RemoveCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
-Check("Taking a partner out asks first", settingsPage.ConfirmingRemove && settingsPage.RemoveQuestion.Contains("jaco@webignite.co.za", StringComparison.Ordinal));
+Check("Taking a partner out asks first", settingsPage.Account.ConfirmingRemove && settingsPage.Account.RemoveQuestion.Contains("jaco@webignite.co.za", StringComparison.Ordinal));
 Save("settings-organisation-take-out");
-settingsPage.KeepMemberCommand.Execute(null);
-settingsPage.Members.Clear();
+settingsPage.Account.KeepMemberCommand.Execute(null);
+settingsPage.Account.Members.Clear();
 // A new password, or other PCs signed out.
 settingsPage.Open("account");
-settingsPage.StartChangeAccountPasswordCommand.Execute(null);
+settingsPage.Account.StartChangeAccountPasswordCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
-Check("Change password asks for the current one and the new one twice", settingsPage.ChangingAccountPassword);
+Check("Change password asks for the current one and the new one twice", settingsPage.Account.ChangingAccountPassword);
 Save("settings-account-people-and-password");
-settingsPage.CancelChangeAccountPasswordCommand.Execute(null);
+settingsPage.Account.CancelChangeAccountPasswordCommand.Execute(null);
 // The invite: one message with the install link, the code and the steps, to copy or send by mail.
-SetShown(nameof(SettingsViewModel.InviteText), "K7QM-2XRT-9WDF-HB4N-PZ6C");
-SetShown(nameof(SettingsViewModel.InviteMessage), Webignite.Core.Accounts.InvitePackage.Message("K7QM-2XRT-9WDF-HB4N-PZ6C",
+SetShown(nameof(SettingsAccountViewModel.InviteText), "K7QM-2XRT-9WDF-HB4N-PZ6C");
+SetShown(nameof(SettingsAccountViewModel.InviteMessage), Webignite.Core.Accounts.InvitePackage.Message("K7QM-2XRT-9WDF-HB4N-PZ6C",
     new DateTimeOffset(2026, 11, 17, 12, 0, 0, TimeSpan.Zero), "Eddie", System.Globalization.CultureInfo.GetCultureInfo("en-ZA")));
 window.Height = 1500;
 Dispatcher.UIThread.RunJobs();
 Check("An invite shows the whole message with the install link and the code, to copy or mail",
-    settingsPage.HasInvite && settingsPage.InviteMessage.Contains(Webignite.Core.Accounts.InvitePackage.InstallLink, StringComparison.Ordinal)
-    && settingsPage.CopyInviteCommand is not null && settingsPage.MailInviteCommand is not null);
+    settingsPage.Account.HasInvite && settingsPage.Account.InviteMessage.Contains(Webignite.Core.Accounts.InvitePackage.InstallLink, StringComparison.Ordinal)
+    && settingsPage.Account.CopyInviteCommand is not null && settingsPage.Account.MailInviteCommand is not null);
 Save("settings-account-invite");
 window.Height = 860;
-SetShown(nameof(SettingsViewModel.InviteText), "");
-SetShown(nameof(SettingsViewModel.InviteMessage), "");
+SetShown(nameof(SettingsAccountViewModel.InviteText), "");
+SetShown(nameof(SettingsAccountViewModel.InviteMessage), "");
 Dispatcher.UIThread.RunJobs();
-SetShown(nameof(SettingsViewModel.IsSignedIn), false);
+SetShown(nameof(SettingsAccountViewModel.IsSignedIn), false);
 // The welcome screen: off while testing, so the app opens straight in; on, it asks to sign in when nobody has.
 Check("While testing, the app opens without asking to sign in", !vm.ShowingWelcome);
 MainViewModel.AskToSignInAtStart = true;
@@ -589,13 +589,13 @@ Save("welcome");
 vm.WelcomeCreateCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
 Check("Create an account carries on in Settings, Account and sync, on the new account form, with the guide above",
-    !vm.ShowingWelcome && vm.Selected.Key == Page.Settings && settingsPage.IsNewAccountForm && vm.ShowingGuide);
+    !vm.ShowingWelcome && vm.Selected.Key == Page.Settings && settingsPage.Account.IsNewAccountForm && vm.ShowingGuide);
 vm.EndGuideCommand.Execute(null);
 // The setup guide: joining, Xero and ChatGPT on the real Settings page, then a look round the main pages.
 vm.WelcomeJoinCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
 Check("Join with an invite code starts the guide on the join form; the step waits for signing in",
-    vm.ShowingGuide && vm.GuideStep.Key == "join" && vm.Selected.Key == Page.Settings && settingsPage.IsJoinForm
+    vm.ShowingGuide && vm.GuideStep.Key == "join" && vm.Selected.Key == Page.Settings && settingsPage.Account.IsJoinForm
     && !vm.GuideStepDone && vm.GuideNextLabel == "Skip for now" && !vm.GuideCanGoBack);
 Save("setup-guide-join");
 vm.GuideNextCommand.Execute(null);
@@ -620,7 +620,7 @@ vm.Welcome();
 Check("Opening again while signed out asks to sign in, but doesn't start the guide by itself", !vm.ShowingGuide && vm.ShowingWelcome);
 vm.WelcomeNotNowCommand.Execute(null);
 vm.Selected = vm[Page.Settings];
-settingsPage.ShowAccountFormCommand.Execute("sign-in");
+settingsPage.Account.ShowAccountFormCommand.Execute("sign-in");
 MainViewModel.AskToSignInAtStart = false;
 settingsPage.Open("xero");
 
@@ -1470,15 +1470,15 @@ Save("client-mail");
     Open(Page.Settings);
     var tagSettings = (SettingsViewModel)vm[Page.Settings].Main.Page;
     tagSettings.Open("files");
-    tagSettings.FileTagRows.First(r => r.Tag.Id == "needs-ok").Colours.First(c => c.Colour == "pink").PickCommand.Execute(null);
-    tagSettings.NewFileTag = "Logo files";
-    tagSettings.AddFileTagCommand.Execute(null);
+    tagSettings.FileTags.FileTagRows.First(r => r.Tag.Id == "needs-ok").Colours.First(c => c.Colour == "pink").PickCommand.Execute(null);
+    tagSettings.FileTags.NewFileTag = "Logo files";
+    tagSettings.FileTags.AddFileTagCommand.Execute(null);
     Check("A tag can be added and recoloured in Settings", services.FileTags.Tags.Any(t => t.Name == "Logo files")
         && services.FileTags.Tags.First(t => t.Id == "needs-ok").Colour == "pink");
     Save("settings-file-tags");
     Open(Page.Files);
     Check("Files shows a tag's new colour straight away", Row("Quote QU-0042.pdf").Tags.Any(t => t.Colour == "pink"));
-    tagSettings.FileTagRows.First(r => r.Tag.Id == "invoice-sent").RemoveCommand.Execute(null);
+    tagSettings.FileTags.FileTagRows.First(r => r.Tag.Id == "invoice-sent").RemoveCommand.Execute(null);
     Check("A removed tag leaves the side list", !files.Places.First(g => g.Title == "TAGS").Places.Any(p => p.Name == "Invoice sent"));
 
     // Finder extras: search as you type (and inside files), the details pane, Quick Look, column view,

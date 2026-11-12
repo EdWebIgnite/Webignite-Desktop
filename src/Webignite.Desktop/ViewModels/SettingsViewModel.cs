@@ -15,19 +15,38 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
 
     private readonly AppServices services;
 
+    // Each part of Settings that stands on its own has its own view model; the page binds to them by name.
+    public SettingsFileTagsViewModel FileTags { get; }
+    public SettingsPicturesViewModel Pictures { get; }
+    public SettingsSpellingViewModel Spelling { get; }
+    public SettingsMailBrandViewModel MailBrand { get; }
+    public SettingsChatGptViewModel ChatGpt { get; }
+    public SettingsAccountViewModel Account { get; }
+    public SettingsAssistantChangesViewModel AssistantChanges { get; }
+
     public SettingsViewModel(AppServices services)
     {
         this.services = services;
+        FileTags = new(services);
+        Pictures = new(services);
+        Spelling = new(services);
+        MailBrand = new(services);
+        ChatGpt = new(services);
+        Account = new(services);
+        AssistantChanges = new(services);
+        // The setup guide watches the page for these two, so the page says when its parts change them.
+        Account.PropertyChanged += Forward;
+        ChatGpt.PropertyChanged += Forward;
         LoadShared();
         UpdateAssistantStatus();
-        LoadChatGpt();
+        ChatGpt.LoadChatGpt();
         UpdateBackupStatus();
-        LoadFileTags();
+        FileTags.LoadFileTags();
         LoadScreenshots();
         LoadNotes();
-        LoadPictures();
-        LoadSpelling();
-        LoadTeam();
+        Pictures.LoadPictures();
+        Spelling.LoadSpelling();
+        Account.LoadTeam();
         MotionChoice = MotionChoices.First(c => c.Value == services.Settings.Appearance.Motion);
         services.Settings.AppearanceChanged += LookChanged;
         var mailCheck = services.Settings.MailCheck;
@@ -37,16 +56,20 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
             BackupMessage = "The backup was restored. If mail or Xero ask, sign in again: passwords aren't kept in backups.";
     }
 
+    private void Forward(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SettingsAccountViewModel.IsSignedIn) or nameof(SettingsChatGptViewModel.ChatGptConnected))
+            OnPropertyChanged(e.PropertyName);
+    }
+
     /// <summary>Settings is let go when unused: stop listening to the look, and free the pictures it drew.</summary>
     public void Dispose()
     {
         services.Settings.AppearanceChanged -= LookChanged;
-        var qr = TwoFactorQr;
-        TwoFactorQr = null;
-        qr?.Dispose();
-        var logo = BrandLogo;
-        BrandLogo = null;
-        logo?.Dispose();
+        Account.PropertyChanged -= Forward;
+        ChatGpt.PropertyChanged -= Forward;
+        Account.Dispose();
+        MailBrand.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -224,9 +247,9 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     {
         LoadShared();
         UpdateAssistantStatus();
-        LoadChatGpt();
-        LoadAssistantChanges();
-        LoadAccount();
+        ChatGpt.LoadChatGpt();
+        AssistantChanges.LoadAssistantChanges();
+        Account.LoadAccount();
         UpdateBackupStatus();
     }
 
@@ -243,7 +266,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         UpdateXeroStatus();
         LoadTemplates(services.Settings.EmailTemplates);
         LoadPrices();
-        LoadBrand();
+        MailBrand.LoadBrand();
     }
 
     private void UpdateBackupStatus()
@@ -465,7 +488,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
             if (!AssistantSetup.ConnectorInstalled())
             {
                 UpdateAssistantStatus();
-        LoadChatGpt();
+        ChatGpt.LoadChatGpt();
                 return;
             }
             var count = AssistantSetup.ConnectClaude();

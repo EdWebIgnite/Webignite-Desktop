@@ -95,7 +95,7 @@ public ThingSettings Thing
 }
 ```
 
-Records are `sealed record` types with `init` properties and sensible defaults, so an older database without the new field reads as the default. Removing or renaming a property is safe too: `StoredJson` skips what it doesn't know. The Settings page (`SettingsViewModel` and `SettingsView.axaml`) has a side menu of sections (`SettingsViewModel.Sections`) and one or more cards per section, each card with `IsVisible="{Binding ShowThing}"`. Add a row to the right card, or a new section: an entry in `Sections`, a `ShowThing` flag in `SettingsViewModel.Sections.cs`, and a card bound to it.
+Records are `sealed record` types with `init` properties and sensible defaults, so an older database without the new field reads as the default. Removing or renaming a property is safe too: `StoredJson` skips what it doesn't know. The Settings page (`SettingsViewModel` and `SettingsView.axaml`) has a side menu of sections (`SettingsViewModel.Sections`) and one or more cards per section, each card with `IsVisible="{Binding ShowThing}"`. Add a row to the right card, or a new section: an entry in `Sections`, a `ShowThing` flag in `SettingsViewModel.Sections.cs`, and a card bound to it. A part of Settings with its own state and commands is its own view model in `ViewModels/Settings` (`SettingsFileTagsViewModel`, `SettingsAccountViewModel` and so on), held as a property on `SettingsViewModel` and bound by name: `{Binding FileTags.NewFileTag}`. A new part goes the same way, never as more members on `SettingsViewModel`; if it holds a picture it is `IDisposable` and the page's `Dispose` calls it.
 
 ## A table in the database
 

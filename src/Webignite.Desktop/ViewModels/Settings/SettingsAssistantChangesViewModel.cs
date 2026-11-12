@@ -7,8 +7,15 @@ using Webignite.Services;
 namespace Webignite.Desktop.ViewModels;
 
 // Settings, Claude and ChatGPT: what they changed lately, newest first, with Put back for writing they replaced.
-public partial class SettingsViewModel
+public sealed partial class SettingsAssistantChangesViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public SettingsAssistantChangesViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     public const int ChangesShown = 40;
 
     public ObservableCollection<AssistantChangeRow> AssistantChanges { get; } = [];
@@ -17,7 +24,7 @@ public partial class SettingsViewModel
 
     [ObservableProperty] public partial string AssistantChangesMessage { get; private set; } = "";
 
-    private void LoadAssistantChanges()
+    public void LoadAssistantChanges()
     {
         AssistantChanges.Clear();
         foreach (var entry in AssistantLog.List(services.Store).Take(ChangesShown))
@@ -34,7 +41,7 @@ public partial class SettingsViewModel
 }
 
 /// <summary>One thing Claude or ChatGPT changed.</summary>
-public sealed partial class AssistantChangeRow(AssistantLog.Entry entry, SettingsViewModel page) : ObservableObject
+public sealed partial class AssistantChangeRow(AssistantLog.Entry entry, SettingsAssistantChangesViewModel page) : ObservableObject
 {
     public string What => entry.What;
     public string When => $"{entry.Who}, {entry.At.ToLocalTime():d MMM HH:mm}";

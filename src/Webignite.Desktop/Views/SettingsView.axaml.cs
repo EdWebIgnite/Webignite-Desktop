@@ -49,9 +49,9 @@ public partial class SettingsView : UserControl
 
     private void NewFileTagKeys(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && DataContext is SettingsViewModel settings && settings.AddFileTagCommand.CanExecute(null))
+        if (e.Key == Key.Enter && DataContext is SettingsViewModel settings && settings.FileTags.AddFileTagCommand.CanExecute(null))
         {
-            settings.AddFileTagCommand.Execute(null);
+            settings.FileTags.AddFileTagCommand.Execute(null);
             e.Handled = true;
         }
     }
@@ -122,7 +122,7 @@ public partial class SettingsView : UserControl
         if (DataContext is not SettingsViewModel settings)
             return;
         if (await Picker.Files(this, "Pick your logo (PNG or JPEG)", ["*.png", "*.jpg", "*.jpeg"], kindName: "Pictures") is [var path, ..])
-            settings.SetBrandLogo(path);
+            settings.MailBrand.SetBrandLogo(path);
     }
 
     private void ChooseRestoreFile(object? sender, RoutedEventArgs e) => ChooseRestoreFileAsync(sender, e).Forget("Choosing a backup to restore", tell: true);

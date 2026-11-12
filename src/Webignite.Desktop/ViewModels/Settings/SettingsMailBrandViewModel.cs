@@ -7,8 +7,23 @@ namespace Webignite.Desktop.ViewModels;
 
 // Settings, Email wording: how quote and invoice mails look (the branded layout around the words). Shared with the
 // other PC, like the wording; kept in settings rather than in the app, as it holds the bank account.
-public partial class SettingsViewModel
+public sealed partial class SettingsMailBrandViewModel : ViewModelBase, IDisposable
 {
+    private readonly AppServices services;
+
+    public SettingsMailBrandViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
+    /// <summary>Settings was let go: the picture drawn here is freed.</summary>
+    public void Dispose()
+    {
+        var logo = BrandLogo;
+        BrandLogo = null;
+        logo?.Dispose();
+    }
+
     [ObservableProperty] public partial string BrandCompany { get; set; } = "";
     [ObservableProperty] public partial string BrandAddress { get; set; } = "";
     [ObservableProperty] public partial string BrandPhone { get; set; } = "";
@@ -27,7 +42,7 @@ public partial class SettingsViewModel
 
     private (string Base64, string Type)? brandLogoData;
 
-    private void LoadBrand()
+    public void LoadBrand()
     {
         var brand = services.Settings.MailBrand;
         BrandCompany = brand.CompanyName;
