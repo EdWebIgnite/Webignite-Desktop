@@ -189,9 +189,9 @@
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
         <c:DateBox SelectedDate="{Binding OpenAt}" Width="160" ToolTip.Tip="Open the diary at a day" />
-        <Button Classes="quiet" Content="Today" Command="{Binding GoToTodayCommand}" />
-        <Button Classes="quiet" Content="‹" Command="{Binding PreviousPagesCommand}" ToolTip.Tip="Turn back a page (Alt+Left)" HotKey="Alt+Left" />
-        <Button Classes="quiet" Content="›" Command="{Binding NextPagesCommand}" ToolTip.Tip="Turn the page (Alt+Right)" HotKey="Alt+Right" />
+        <Button Classes="quiet" Content="Today" Click="TurnToToday" />
+        <Button Classes="quiet" Content="‹" Click="TurnBack" ToolTip.Tip="Turn back a page (Alt+Left)" HotKey="Alt+Left" />
+        <Button Classes="quiet" Content="›" Click="TurnOn" ToolTip.Tip="Turn the page (Alt+Right)" HotKey="Alt+Right" />
       </StackPanel>
       <StackPanel>
         <TextBlock Classes="h1" Text="Diary" />
@@ -201,11 +201,14 @@
 
     <Border Classes="diarycover">
       <Grid ColumnDefinitions="*,Auto,*">
-        <Border Grid.Column="0" Classes="diarypage left">
+        <!-- While a page turns, a picture of the page being left lies under or over the new one (DiaryView.axaml.cs). -->
+        <Image x:Name="OldLeft" Grid.Column="0" Stretch="Fill" IsVisible="False" IsHitTestVisible="False" />
+        <Image x:Name="OldRight" Grid.Column="2" Stretch="Fill" IsVisible="False" IsHitTestVisible="False" />
+        <Border x:Name="LeftPage" Grid.Column="0" Classes="diarypage left">
           <ContentControl Content="{Binding Left}" ContentTemplate="{StaticResource Page}" />
         </Border>
-        <Border Grid.Column="1" Classes="diaryspine" />
-        <Border Grid.Column="2" Classes="diarypage right">
+        <Border Grid.Column="1" Classes="diaryspine" ZIndex="3" />
+        <Border x:Name="RightPage" Grid.Column="2" Classes="diarypage right">
           <ContentControl Content="{Binding Right}" ContentTemplate="{StaticResource Page}" />
         </Border>
       </Grid>
