@@ -677,6 +677,30 @@ Save("planner");
     var was = diary.Left.Date;
     diary.NextPagesCommand.Execute(null);
     Check("Turning the page moves on two days", diary.Left.Date == was.AddDays(2));
+    // With full motion the page turns: caught here halfway, then checked to have settled with nothing left over.
+    {
+        var diaryView = window.GetVisualDescendants().OfType<DiaryView>().First();
+        var hadMotion = window.Classes.Contains("motion-full");
+        window.Classes.Set("motion-full", true);
+        var from = diary.Left.Date;
+        var turn = diaryView.Turn(-1);
+        var half = DateTime.UtcNow.AddMilliseconds(110);
+        while (DateTime.UtcNow < half)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(10);
+        }
+        Check("The pages change as the turn starts, so what is under the turning page is already the new one", diary.Left.Date == from.AddDays(-2) && !turn.IsCompleted);
+        Save("diary-turning");
+        Wait(turn, "The page finished turning");
+        Check("After the turn nothing of it is left on the pages",
+            diaryView.GetVisualDescendants().OfType<Avalonia.Controls.Image>().All(i => !i.IsVisible && i.Source is null)
+            && diaryView.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.Classes.Contains("diarypage")).All(b => b.RenderTransform is null && b.Opacity == 1));
+        window.Classes.Set("motion-full", false);
+        Wait(diaryView.Turn(1), "Without motion the pages simply change");
+        Check("With motion off the page changes at once", diary.Left.Date == from);
+        window.Classes.Set("motion-full", hadMotion);
+    }
     diary.GoToTodayCommand.Execute(null);
     foreach (var e in store.ListEvents(today, today).Where(e => e.Title == "Phone the printers" || e.Id == "e-teams"))
         store.DeleteEvent(e.Id);
