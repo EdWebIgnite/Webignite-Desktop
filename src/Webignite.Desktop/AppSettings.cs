@@ -277,6 +277,20 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("my-pages", value.ToList());
     }
 
+    /// <summary>The widgets the person put on Overview, under its own parts; null until they add one.</summary>
+    public MyPage? OverviewBoard
+    {
+        get => store.GetSetting<MyPage>("overview-board");
+        set => store.SetSetting("overview-board", value ?? OverviewParts.EmptyBoard());
+    }
+
+    /// <summary>Which of Overview's own parts show.</summary>
+    public OverviewParts OverviewParts
+    {
+        get => store.GetSetting<OverviewParts>("overview-parts") ?? new OverviewParts();
+        set => store.SetSetting("overview-parts", value);
+    }
+
     /// <summary>How quote and invoice mails look: logo, footer details, banking details and terms. Shared with the other PC.</summary>
     public MailBrand MailBrand
     {

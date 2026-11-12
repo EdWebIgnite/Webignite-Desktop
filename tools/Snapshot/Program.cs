@@ -1927,6 +1927,33 @@ Open(Page.Overview);
 Check("A test build hides Check for updates and says nothing about the update server", !vm.Updates.CanUpdate && vm.Updates.CheckNote.Length == 0);
 Save("overview");
 SaveLooks("overview");
+// Overview is the person's to arrange: its own parts can be taken off, and widgets of their own put under them.
+{
+    var overview = (OverviewViewModel)vm.Current.Page;
+    Check("Overview starts with all its own parts and no widgets, so it builds nothing extra",
+        overview.ShowFigures && overview.ShowToday && overview.NoBoard && services.Settings.OverviewBoard is null);
+    overview.ToggleFiguresCommand.Execute(null);
+    overview.AddWidgetsCommand.Execute(null);
+    overview.Board!.AddWidget(WidgetKind.Timer);
+    overview.Board.AddWidget(WidgetKind.Note);
+    overview.Board.AddWidget(WidgetKind.MyTasks);
+    overview.Board.IsEditing = false;
+    var (wasWide, wasTall) = (window.Width, window.Height);
+    window.Height = 1300;
+    Dispatcher.UIThread.RunJobs();
+    Check("A part taken off is gone, and widgets added sit under what is left and are saved on their own, not as one of My pages",
+        !overview.ShowFigures && overview.HasBoard && overview.Board.Widgets.Count == 3 && overview.Board.IsHome
+        && services.Settings.OverviewBoard is { Widgets.Count: 3 } && !services.Settings.OverviewParts.Figures
+        && services.Settings.MyPages.All(p => p.Id != OverviewParts.BoardId));
+    Save("overview-own-widgets");
+    // Back to how it came, for the screens that follow.
+    foreach (var widget in overview.Board.Widgets.ToList())
+        overview.Board.RemoveWidget(widget);
+    overview.ToggleFiguresCommand.Execute(null);
+    window.Height = wasTall;
+    Dispatcher.UIThread.RunJobs();
+    Check("The figures put back show again", overview.ShowFigures && services.Settings.OverviewBoard is { Widgets.Count: 0 });
+}
 // Not every mail needs a reply: the × waves one off, and Undo brings it back.
 {
     var overview = (OverviewViewModel)vm[Page.Overview].Main.Page;

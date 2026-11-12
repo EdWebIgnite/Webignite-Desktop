@@ -760,6 +760,9 @@ public partial class MainViewModel : ViewModelBase
             projects.Keep();
         foreach (var pages in Built<MyPagesViewModel>(Page.MyPages))
             pages.Keep();
+        // A note typed into a widget on Overview.
+        foreach (var overview in Built<OverviewViewModel>(Page.Overview))
+            overview.Board?.Keep();
         foreach (var home in Built<PlannerHomeViewModel>(Page.Home))
             home.KeepNotepad();
         string? problem = null;

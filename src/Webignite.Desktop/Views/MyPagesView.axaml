@@ -310,7 +310,7 @@
           </Button.Flyout>
         </Button>
         <Button Classes="quiet" Content="{Binding EditText}" Command="{Binding ToggleEditingCommand}" ToolTip.Tip="Drag widgets by their heading, size them from the corner, rename the page" />
-        <Button Classes="quiet" ToolTip.Tip="More">
+        <Button Classes="quiet" ToolTip.Tip="More" IsVisible="{Binding IsOwnPage}">
           <TextBlock Text="···" />
           <Button.Flyout>
             <MenuFlyout Placement="BottomEdgeAlignedRight">
@@ -333,8 +333,12 @@
         <TextBlock Classes="muted" TextWrapping="Wrap" Text="Pages you put together yourself, from the parts of the app you use most. Each one shows in the sidebar." />
       </StackPanel>
       <Panel IsVisible="{Binding IsPage}">
-        <TextBlock Classes="h1" Text="{Binding EditName}" IsVisible="{Binding !IsEditing}" TextTrimming="CharacterEllipsis" />
-        <TextBox Text="{Binding EditName}" IsVisible="{Binding IsEditing}" FontSize="22" MaxWidth="480" HorizontalAlignment="Left" PlaceholderText="Name this page" />
+        <Panel IsVisible="{Binding IsOwnPage}">
+          <TextBlock Classes="h1" Text="{Binding EditName}" IsVisible="{Binding !IsEditing}" TextTrimming="CharacterEllipsis" />
+          <TextBox Text="{Binding EditName}" IsVisible="{Binding IsEditing}" FontSize="22" MaxWidth="480" HorizontalAlignment="Left" PlaceholderText="Name this page" />
+        </Panel>
+        <!-- On Overview this is the person's own part of the page, under what Overview shows by itself. -->
+        <TextBlock Classes="h2" Text="Your widgets" IsVisible="{Binding IsHome}" VerticalAlignment="Center" />
       </Panel>
     </DockPanel>
 

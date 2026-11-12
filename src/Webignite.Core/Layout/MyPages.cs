@@ -260,3 +260,21 @@ public static class MyPages
     /// <summary>How many rows the page takes, for the height of its grid.</summary>
     public static int Rows(MyPage page) => page.Widgets.Count == 0 ? 0 : page.Widgets.Max(w => w.Row + w.Height);
 }
+
+/// <summary>
+/// Which of Overview's own parts show. The person can take any of them off and put widgets of their own under
+/// what is left, so the page they start the day on is theirs to arrange.
+/// </summary>
+public sealed record OverviewParts
+{
+    /// <summary>The four figures along the top: came in, owed, overdue, quotes out.</summary>
+    public bool Figures { get; init; } = true;
+    public bool NeedsYou { get; init; } = true;
+    public bool Today { get; init; } = true;
+
+    /// <summary>The name the page of the person's own widgets on Overview is saved under.</summary>
+    public const string BoardId = "overview";
+
+    /// <summary>Overview's own widgets before any have been added: an empty page.</summary>
+    public static MyPage EmptyBoard() => new() { Id = BoardId, Name = "Overview", Grid = MyPages.Columns };
+}
