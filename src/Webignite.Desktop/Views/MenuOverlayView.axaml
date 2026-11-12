@@ -110,7 +110,16 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:MenuColumn">
             <StackPanel Width="250">
-              <TextBlock Classes="label caps" Text="{Binding Title}" Margin="10,0,0,6" />
+              <DockPanel Margin="10,0,6,6">
+                <!-- A whole group can go on the dock, where a click opens a short list of what is in it. -->
+                <Button DockPanel.Dock="Right" Classes="link" FontSize="{DynamicResource Text11}" Content="Add to the dock" IsVisible="{Binding Heading.CanAdd, FallbackValue=False}"
+                        ToolTip.Tip="Puts the whole group on the dock; a click there opens a short list of what is in it"
+                        Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).AddToDockCommand}" CommandParameter="{Binding Heading}" />
+                <Button DockPanel.Dock="Right" Classes="link" FontSize="{DynamicResource Text11}" Content="Take off the dock" IsVisible="{Binding Heading.OnDock, FallbackValue=False}"
+                        IsEnabled="{Binding Heading.CanTakeOff, FallbackValue=False}"
+                        Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).TakeOffDockCommand}" CommandParameter="{Binding Heading}" />
+                <TextBlock Classes="label caps" Text="{Binding Title}" VerticalAlignment="Center" />
+              </DockPanel>
               <ItemsControl ItemsSource="{Binding Entries}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MenuEntry">

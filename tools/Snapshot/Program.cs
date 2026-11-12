@@ -2647,6 +2647,57 @@ Save("invoice-sum");
     Open(Page.Mail);
     Check("On another page the dock lights that one", vm.Dock.Single(e => e.IsCurrent).PageKey == "Mail");
     Save("menu-dock-mail");
+    // Beside the dock and on it: the person's own choice. A tool or a whole group can go on the dock, and the small
+    // things left and right of it (the day, the timer, chat, a clock) are moved, taken off and put back.
+    Check("A new install has the day and the timer left of the dock, chat and a clock right of it",
+        vm.BarLeft.Select(b => b.Widget).SequenceEqual(DockBar.Usual.Left) && vm.BarRight.Select(b => b.Widget).SequenceEqual(DockBar.Usual.Right)
+        && vm.ClockText.Length > 0 && vm.TodayText.Length > 0 && !vm.DockFloats);
+    vm.TakeOffDockCommand.Execute(vm.Dock.First(e => e.PageKey == "Money"));
+    vm.ToggleMenuCommand.Execute(null);
+    var webTools = vm.MenuColumns.First(c => c.Heading?.PageKey == DockKeys.Group("web-tools")).Heading!;
+    Check("A whole group can be added to the dock from the menu, but not the columns that aren't a group",
+        webTools.CanAdd && !webTools.OnDock && vm.MenuColumns.First().Heading is null);
+    vm.AddToDockCommand.Execute(webTools);
+    var calculator = vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == DockKeys.Tool("Calculator"));
+    Check("So can a tool", calculator.CanAdd && !calculator.OnDock);
+    vm.AddToDockCommand.Execute(calculator);
+    vm.CloseMenuCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    var dockGroup = vm.Dock.Single(e => e.IsGroup);
+    Check("The group on the dock holds what is in it, for the short list above the dock",
+        dockGroup.Title == "Web tools" && dockGroup.Inside.Count > 2 && dockGroup.Inside.All(e => !e.IsGroup));
+    Check("The tool is on the dock too, and both are saved",
+        vm.Dock.Any(e => e.PageKey == DockKeys.Tool("Calculator")) && services.Settings.Appearance.Dock!.Contains(DockKeys.Group("web-tools")));
+    Save("menu-dock-group-and-tool");
+    Open(dockGroup.Inside.Select(e => e.Item).OfType<Module>().First().Key);
+    Check("With a page of the group on screen, the group is the lit one", vm.Dock.Single(e => e.IsCurrent).IsGroup);
+    Open(Page.Mail);
+    vm.MoveBarAcrossCommand.Execute(vm.BarLeft.First(b => b.IsTimer));
+    vm.TakeOffBarCommand.Execute(vm.BarRight.First(b => b.IsClock));
+    vm.AddToBarLeftCommand.Execute(vm.BarAvailable.First(b => b.IsSearch));
+    Check("What is beside the dock is moved across, taken off and added",
+        vm.BarLeft.Select(b => b.Widget).SequenceEqual([BarWidget.Today, BarWidget.Search])
+        && vm.BarRight.Select(b => b.Widget).SequenceEqual([BarWidget.Chat, BarWidget.Timer]) && vm.BarAvailable.Any(b => b.IsClock));
+    services.Settings.Appearance = services.Settings.Appearance with { DockFloats = true };
+    Dispatcher.UIThread.RunJobs();
+    Check("The dock can float over the page", vm.DockFloats);
+    Save("menu-dock-floating");
+    // On a wide screen there is room for everything beside the dock; on a narrow one only what fits whole shows.
+    window.Width = 1900;
+    Dispatcher.UIThread.RunJobs();
+    Save("menu-dock-floating-wide");
+    services.Settings.Appearance = services.Settings.Appearance with { DockFloats = false };
+    Dispatcher.UIThread.RunJobs();
+    Save("menu-dock-wide");
+    window.Width = 1280;
+    Dispatcher.UIThread.RunJobs();
+    vm.UsualBarCommand.Execute(null);
+    services.Settings.Appearance = services.Settings.Appearance with { BarLeft = [], BarRight = [] };
+    Dispatcher.UIThread.RunJobs();
+    Check("With nothing beside it, the dock stands alone", !vm.HasBarLeft && !vm.HasBarRight);
+    services.Settings.Appearance = was with { Menu = MenuKind.Dock };
+    Dispatcher.UIThread.RunJobs();
+    Check("A group taken off the dock leaves it as it was", vm.Dock.Count == DockPages.Usual.Count && vm.Dock.All(e => !e.IsGroup) && !vm.DockFloats);
     Open(Page.Overview);
     services.Settings.Appearance = was with { Menu = MenuKind.Dock, Style = LookStyle.Airy, Sidebar = SidebarTone.Light };
     Dispatcher.UIThread.RunJobs();

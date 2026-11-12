@@ -141,4 +141,67 @@ public sealed class MenuRulesTests
         Assert.Equal("2 new sites", MenuFigures.For(new MenuFacts { Today = today, Clients = [building, building with { Id = "c" }] })["Clients"].Text);
         Assert.False(MenuFigures.For(new MenuFacts { Today = today, Clients = [settled] }).ContainsKey("Clients"));
     }
+
+    [Fact]
+    public void A_tool_and_a_group_on_the_dock_are_told_from_a_page_by_their_name()
+    {
+        Assert.Equal("Qr", DockKeys.AsTool(DockKeys.Tool("Qr")));
+        Assert.Equal("web-tools", DockKeys.AsGroup(DockKeys.Group("web-tools")));
+        Assert.Null(DockKeys.AsTool("Mail"));
+        Assert.Null(DockKeys.AsGroup("Mail"));
+        Assert.Null(DockKeys.AsGroup(DockKeys.Tool("Qr")));
+
+        // A dock saved before tools and groups could go on it reads as it did; one with them keeps what is still known.
+        string[] known = ["Mail", "Notes", DockKeys.Tool("Qr"), DockKeys.Group("web-tools")];
+        Assert.Equal(["Notes", "Mail"], DockPages.Shown(["Notes", "Mail"], known));
+        Assert.Equal([DockKeys.Group("web-tools"), "Mail", DockKeys.Tool("Qr")],
+            DockPages.Shown([DockKeys.Group("web-tools"), "Mail", DockKeys.Tool("Qr"), DockKeys.Tool("Gone"), DockKeys.Group("gone")], known));
+    }
+
+    [Fact]
+    public void Beside_the_dock_starts_with_the_usual_and_keeps_what_was_saved()
+    {
+        Assert.Same(DockBar.Usual, DockBar.Shown(null, null));
+        // Emptied on purpose stays empty: that is a bare dock.
+        var bare = DockBar.Shown([], []);
+        Assert.Empty(bare.All);
+
+        var saved = DockBar.Shown(["Clock", "Gone", "Chat"], ["Chat", "Timer", "Clock", "7"]);
+        Assert.Equal([BarWidget.Clock, BarWidget.Chat], saved.Left);
+        Assert.Equal([BarWidget.Timer], saved.Right); // one saved on both sides stays where it comes first
+
+        // Only one side saved: the other is empty, not the usual.
+        Assert.Empty(DockBar.Shown(["Clock"], null).Right);
+    }
+
+    [Fact]
+    public void Things_beside_the_dock_are_added_moved_across_and_taken_off()
+    {
+        var bar = DockBar.Usual;
+        Assert.Equal([BarWidget.Search, BarWidget.QuickNote], DockBar.Available(bar));
+
+        bar = DockBar.Add(bar, BarWidget.Search, BarSide.Right);
+        Assert.Equal([BarWidget.Chat, BarWidget.Clock, BarWidget.Search], bar.Right);
+
+        // Adding one already there moves it, so it is never on the bar twice.
+        bar = DockBar.Add(bar, BarWidget.Search, BarSide.Left);
+        Assert.Equal([BarWidget.Today, BarWidget.Timer, BarWidget.Search], bar.Left);
+        Assert.Equal([BarWidget.Chat, BarWidget.Clock], bar.Right);
+
+        bar = DockBar.Across(bar, BarWidget.Timer);
+        Assert.Equal([BarWidget.Today, BarWidget.Search], bar.Left);
+        Assert.Equal([BarWidget.Chat, BarWidget.Clock, BarWidget.Timer], bar.Right);
+        Assert.Equal(bar, DockBar.Across(bar, BarWidget.QuickNote)); // not on the bar: nothing to move
+
+        bar = DockBar.Remove(bar, BarWidget.Chat);
+        Assert.DoesNotContain(BarWidget.Chat, bar.All);
+        Assert.Equal(["Clock", "Timer"], DockBar.Saved(bar.Right));
+
+        // What is saved reads back the same.
+        var again = DockBar.Shown(DockBar.Saved(bar.Left), DockBar.Saved(bar.Right));
+        Assert.Equal(bar.Left, again.Left);
+        Assert.Equal(bar.Right, again.Right);
+
+        Assert.All(Enum.GetValues<BarWidget>(), widget => Assert.NotEmpty(DockBar.Name(widget)));
+    }
 }

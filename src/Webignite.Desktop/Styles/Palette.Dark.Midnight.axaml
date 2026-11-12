@@ -34,6 +34,9 @@
   <SolidColorBrush x:Key="Muted" Color="#8E9BB0" />
 
   <!-- Sidebar: a little darker than the page. -->
+  <!-- The see-through panels beside the dock: what is under them shows through. -->
+  <SolidColorBrush x:Key="Glass" Color="#33FFFFFF" />
+  <SolidColorBrush x:Key="GlassLine" Color="#33FFFFFF" />
   <SolidColorBrush x:Key="Nav" Color="#0A0F18" />
   <SolidColorBrush x:Key="NavHover" Color="#131B28" />
   <SolidColorBrush x:Key="NavSelected" Color="#1F2B3E" />

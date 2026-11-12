@@ -43,9 +43,133 @@
       <Setter Property="Background" Value="{DynamicResource NavText}" />
       <Setter Property="Foreground" Value="{DynamicResource Nav}" />
     </Style>
+    <!-- Beside the dock: a see-through panel each side, holding the small things the person picked. With a strip of
+         its own the panel fills its side; floating, it is only as wide as what is in it, so little of the page is covered. -->
+    <Style Selector="Border.glass">
+      <Setter Property="Background" Value="{DynamicResource Glass}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource GlassLine}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Border.glass.floating">
+      <Setter Property="BoxShadow" Value="{DynamicResource PopupShadow}" />
+    </Style>
+    <Style Selector="Border.glass.left.floating">
+      <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+    <Style Selector="Border.glass.right.floating">
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.baritem">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="CornerRadius" Value="13" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.baritem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource RowHover}" />
+    </Style>
+    <Style Selector="Border.barcount">
+      <Setter Property="Background" Value="{DynamicResource Primary}" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="MinWidth" Value="18" />
+      <Setter Property="Padding" Value="5,1" />
+    </Style>
+    <Style Selector="Border.barcount > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource OnPrimary}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <!-- A group's short list, opened just above the dock. -->
+    <Style Selector="Button.groupentry">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Button.groupentry:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource RowHover}" />
+    </Style>
+    <Style Selector="Button.groupentry.current">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
   </UserControl.Styles>
-  <Border Padding="0,6,0,12">
-    <Border Classes="dock" HorizontalAlignment="Center">
+  <UserControl.Resources>
+    <!-- The small things beside the dock: one way of drawing each, picked by what it is (Controls/BarTemplates). -->
+    <c:BarTemplates x:Key="BarItemTemplate">
+      <DataTemplate x:Key="Today" x:DataType="vm:BarItem">
+        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).OpenTodayCommand}" ToolTip.Tip="Today. Click to open Planner.">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Data="{StaticResource Icon.Calendar}" Size="15" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).TodayText}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </DataTemplate>
+      <DataTemplate x:Key="Clock" x:DataType="vm:BarItem">
+        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).OpenTodayCommand}" ToolTip.Tip="The time on this PC">
+          <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).ClockText}" FontFeatures="+tnum" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </Button>
+      </DataTemplate>
+      <DataTemplate x:Key="Timer" x:DataType="vm:BarItem">
+        <StackPanel Orientation="Horizontal">
+          <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).OpenTimeCommand}" ToolTip.Tip="The timer. Click to open Time.">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <c:Icon Data="{StaticResource Icon.Time}" Size="15" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).Timer.Clock}" FontFeatures="+tnum" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <Button Classes="baritem" Padding="9,8" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).ToggleTimerCommand}" ToolTip.Tip="Start the timer, or stop it and keep the time">
+            <Panel>
+              <c:Icon Data="{StaticResource Icon.Play}" Size="13" IsVisible="{Binding !$parent[UserControl].((vm:MainViewModel)DataContext).Timer.IsRunning}" />
+              <c:Icon Data="{StaticResource Icon.Stop}" Size="13" IsVisible="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).Timer.IsRunning}" />
+            </Panel>
+          </Button>
+        </StackPanel>
+      </DataTemplate>
+      <DataTemplate x:Key="Chat" x:DataType="vm:BarItem">
+        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).OpenChatCommand}" ToolTip.Tip="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).ChatPartnerTip}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Data="{StaticResource Icon.Chat}" Size="15" VerticalAlignment="Center" />
+            <TextBlock Text="Chat" VerticalAlignment="Center" />
+            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).ChatPartnerShown, Converter={x:Static c:PresenceColours.Brush}}" />
+            <Border Classes="barcount" VerticalAlignment="Center" IsVisible="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).HasChatUnread}">
+              <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).ChatUnread}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
+            </Border>
+          </StackPanel>
+        </Button>
+      </DataTemplate>
+      <DataTemplate x:Key="Search" x:DataType="vm:BarItem">
+        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).Search.ShowCommand}" ToolTip.Tip="Search everything (Ctrl+K)">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Data="{StaticResource Icon.Search}" Size="15" VerticalAlignment="Center" />
+            <TextBlock Text="Search" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </DataTemplate>
+      <DataTemplate x:Key="QuickNote" x:DataType="vm:BarItem">
+        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).QuickNoteCommand}" ToolTip.Tip="Jot down a quick note">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Data="{StaticResource Icon.Notes}" Size="15" VerticalAlignment="Center" />
+            <TextBlock Text="Note" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </DataTemplate>
+    </c:BarTemplates>
+  </UserControl.Resources>
+  <!-- Right-clicking anything here opens one menu, made as it is asked for (DockView.axaml.cs). -->
+  <Grid ColumnDefinitions="*,Auto,*" Margin="12,6,12,12" ContextRequested="Asked">
+    <Border Grid.Column="0" Classes="glass left" Classes.floating="{Binding DockFloats}" Margin="0,0,10,0" IsVisible="{Binding HasBarLeft}">
+      <ItemsControl ItemsSource="{Binding BarLeft}" ItemTemplate="{StaticResource BarItemTemplate}" HorizontalAlignment="Left">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><c:FitRowPanel Spacing="2" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+    </Border>
+    <Border Grid.Column="1" Classes="dock">
       <StackPanel Orientation="Horizontal" Spacing="4">
         <ItemsControl ItemsSource="{Binding Dock}">
           <ItemsControl.ItemsPanel>
@@ -53,23 +177,15 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:MenuEntry">
-              <Button Classes="dockitem" Classes.current="{Binding IsCurrent}" ToolTip.Tip="{Binding Title}"
-                      Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).PickFromMenuCommand}" CommandParameter="{Binding}">
-                <Button.ContextMenu>
-                  <ContextMenu>
-                    <MenuItem Header="Take off the dock" IsEnabled="{Binding CanTakeOff}"
-                              Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).TakeOffDockCommand}" CommandParameter="{Binding}" />
-                    <MenuItem Header="Choose what is on the menu…"
-                              Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).EditMenuCommand}" />
-                  </ContextMenu>
-                </Button.ContextMenu>
+              <!-- A page or a tool: a click goes there. A whole group: a click opens a short list of what is in it, just above the dock. -->
+              <Button Classes="dockitem" Classes.current="{Binding IsCurrent}" ToolTip.Tip="{Binding Title}" Click="DockClicked">
                 <Panel>
                   <StackPanel Spacing="4">
                     <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="20" HorizontalAlignment="Center" />
                     <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Text11}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
-                  <Border Classes="badge" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-5,0,0" MinWidth="18" Padding="5,1" IsVisible="{Binding Module.HasBadge}">
-                    <TextBlock Text="{Binding Module.Badge}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
+                  <Border Classes="badge" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-5,0,0" MinWidth="18" Padding="5,1" IsVisible="{Binding Module.HasBadge, FallbackValue=False}">
+                    <TextBlock Text="{Binding Module.Badge, FallbackValue=''}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
                   </Border>
                 </Panel>
               </Button>
@@ -85,5 +201,12 @@
         </Button>
       </StackPanel>
     </Border>
-  </Border>
+    <Border Grid.Column="2" Classes="glass right" Classes.floating="{Binding DockFloats}" Margin="10,0,0,0" IsVisible="{Binding HasBarRight}">
+      <ItemsControl ItemsSource="{Binding BarRight}" ItemTemplate="{StaticResource BarItemTemplate}" HorizontalAlignment="Right">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><c:FitRowPanel Spacing="2" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+    </Border>
+  </Grid>
 </UserControl>

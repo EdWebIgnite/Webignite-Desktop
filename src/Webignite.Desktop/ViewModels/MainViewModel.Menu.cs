@@ -36,9 +36,10 @@ public sealed partial class MainViewModel
     private void MenuKindChanged()
     {
         IsMenuOpen = false;
-        foreach (var name in new[] { nameof(Menu), nameof(IsSidebarMenu), nameof(IsButtonMenu), nameof(IsDockMenu), nameof(HasMenuBar) })
+        foreach (var name in new[] { nameof(Menu), nameof(IsSidebarMenu), nameof(IsButtonMenu), nameof(IsDockMenu), nameof(HasMenuBar), nameof(DockFloats) })
             OnPropertyChanged(name);
         FillDock();
+        FillBar();
     }
 
     [RelayCommand]
@@ -126,7 +127,8 @@ public sealed partial class MainViewModel
     [RelayCommand]
     private void PickFromMenu(MenuEntry? entry)
     {
-        if (entry is null)
+        // A group on the dock opens its own short list; there is nothing to go to.
+        if (entry is null || entry.Item is NavGroup)
             return;
         if (IsMenuEditing)
         {
@@ -151,38 +153,75 @@ public sealed partial class MainViewModel
     {
         if (entry?.PageKey is not { } key)
             return;
-        services.Settings.Appearance = services.Settings.Appearance with { Dock = change(DockKeys(), key) };
+        services.Settings.Appearance = services.Settings.Appearance with { Dock = change(DockNow(), key) };
         FillDock();
         if (IsMenuOpen)
             FillMenu();
     }
 
-    // Pages taken off the menus are off the dock too.
-    private IReadOnlyList<string> DockKeys() =>
-        DockPages.Shown(services.Settings.Appearance.Dock, [.. Modules.Where(m => !Sidebar.IsOff(m)).Select(m => m.Key.ToString())]);
+    // Pages and tools taken off the menus are off the dock too. A group stays while it has a name to show.
+    private IReadOnlyList<string> DockNow() => DockPages.Shown(services.Settings.Appearance.Dock,
+    [
+        .. Modules.Where(m => !Sidebar.IsOff(m)).Select(m => m.Key.ToString()),
+        .. Sidebar.OnMenus().OfType<ToolLink>().Select(t => DockKeys.Tool(t.Kind.ToString())),
+        .. Sidebar.OnMenus().OfType<NavGroup>().Where(g => g.CanFold).Select(g => DockKeys.Group(g.Key)),
+    ]);
 
-    /// <summary>Makes the dock's entries; called when the menu kind, the dock's pages or the page on screen changes.</summary>
+    /// <summary>Makes the dock's entries; called when the menu kind, what is on the dock or the page on screen changes.</summary>
     private void FillDock()
     {
         Dock.Clear();
         // While the app is still starting there is no page picked yet; the dock is filled once there is.
         if (!IsDockMenu || Selected is null)
             return;
-        foreach (var key in DockKeys())
+        var keys = DockNow();
+        var onMenus = Sidebar.OnMenus();
+        foreach (var key in keys)
         {
-            var module = Modules.First(m => m.Key.ToString() == key);
-            // Planner's Home stands for the whole of Planner on the dock, so it is named for it.
-            Dock.Add(new MenuEntry(module, module.Key == Page.Home ? "Planner" : module.Title, module.Icon)
+            var canTakeOff = DockPages.CanRemove(keys, key);
+            if (DockKeys.AsTool(key) is { } kind)
             {
-                PageKey = key,
-                // A Planner page on the dock stays lit for the whole of Planner, as the sidebar's Planner entry does.
-                IsCurrent = Selected == module || (module.Key == Page.Home && Selected.InPlanner && !DockKeys().Contains(Selected.Key.ToString())),
-                Module = module,
-                OnDock = true,
-                CanTakeOff = DockPages.CanRemove(DockKeys(), key),
-            });
+                var tool = onMenus.OfType<ToolLink>().First(t => t.Kind.ToString() == kind);
+                Dock.Add(new MenuEntry(tool, tool.Title, tool.Icon) { PageKey = key, OnDock = true, CanTakeOff = canTakeOff });
+            }
+            else if (DockKeys.AsGroup(key) is { } groupKey)
+            {
+                // A whole group: a click opens a short list of what is in it, just above the dock.
+                var group = onMenus.OfType<NavGroup>().First(g => g.Key == groupKey);
+                var inside = onMenus.SkipWhile(i => !ReferenceEquals(i, group)).Skip(1).TakeWhile(i => i is not NavGroup)
+                    .Select(i => Plain(i, keys)).OfType<MenuEntry>().ToList();
+                Dock.Add(new MenuEntry(group, group.Name, group.Icon)
+                {
+                    PageKey = key, OnDock = true, CanTakeOff = canTakeOff, Inside = inside, IsCurrent = inside.Any(e => e.IsCurrent),
+                });
+            }
+            else
+            {
+                var module = Modules.First(m => m.Key.ToString() == key);
+                // Planner's Home stands for the whole of Planner on the dock, so it is named for it.
+                Dock.Add(new MenuEntry(module, module.Key == Page.Home ? "Planner" : module.Title, module.Icon)
+                {
+                    PageKey = key,
+                    // A Planner page on the dock stays lit for the whole of Planner, as the sidebar's Planner entry does.
+                    IsCurrent = Selected == module || (module.Key == Page.Home && Selected.InPlanner && !keys.Contains(Selected.Key.ToString())),
+                    Module = module,
+                    OnDock = true,
+                    CanTakeOff = canTakeOff,
+                });
+            }
         }
     }
+
+    // An entry as a group's short list shows it: no figures, only what it is and whether it is on screen.
+    private MenuEntry? Plain(object item, IReadOnlyList<string> dock) => item switch
+    {
+        Module { InPlanner: false } module => new MenuEntry(module, module.Title, module.Icon)
+            { PageKey = module.Key.ToString(), Module = module, IsCurrent = Selected == module, OnDock = dock.Contains(module.Key.ToString()) },
+        ToolLink tool => new MenuEntry(tool, tool.Title, tool.Icon) { PageKey = DockKeys.Tool(tool.Kind.ToString()) },
+        SectionLink section => new MenuEntry(section, section.Title, section.Icon) { IsCurrent = Selected.InPlanner },
+        SubLink link => new MenuEntry(link, link.Title, link.Icon) { IsCurrent = ReferenceEquals(SelectedNav, link) },
+        _ => null,
+    };
 
     private void FillMenu()
     {
@@ -199,7 +238,7 @@ public sealed partial class MainViewModel
             ReceivedThisMonth = Webignite.Core.Finance.Ledger.Sum(services.Store.ListEntries(Webignite.Core.Dates.MonthStart(today), today), Webignite.Core.Finance.EntryKind.Received),
             Clients = services.Clients.List(),
         });
-        var dock = DockKeys();
+        var dock = DockNow();
         MenuColumns.Clear();
         var column = new MenuColumn("Start");
         // While editing, every entry on the menus shows, whether its group is folded in the sidebar or not.
@@ -210,6 +249,16 @@ public sealed partial class MainViewModel
                 Keep(column);
                 // The space above Settings has no name; what follows it is about the app itself.
                 column = new MenuColumn(group.CanFold ? group.Name : "Webignite");
+                // A named group can go on the dock whole, where it opens a short list of what is in it.
+                if (group.CanFold && IsDockMenu && !IsMenuEditing)
+                {
+                    var groupKey = DockKeys.Group(group.Key);
+                    column.Heading = new MenuEntry(group, group.Name, group.Icon)
+                    {
+                        PageKey = groupKey, OnDock = dock.Contains(groupKey),
+                        CanAdd = DockPages.CanAdd(dock, groupKey), CanTakeOff = DockPages.CanRemove(dock, groupKey),
+                    };
+                }
                 continue;
             }
             // Planner's own pages have a column of their own, below.
@@ -261,7 +310,14 @@ public sealed partial class MainViewModel
                         CanTakeOff = IsDockMenu && DockPages.CanRemove(dock, key),
                     };
                 case ToolLink tool:
-                    return new MenuEntry(tool, tool.Title, tool.Icon);
+                    var toolKey = DockKeys.Tool(tool.Kind.ToString());
+                    return new MenuEntry(tool, tool.Title, tool.Icon)
+                    {
+                        PageKey = toolKey,
+                        OnDock = dock.Contains(toolKey),
+                        CanAdd = IsDockMenu && DockPages.CanAdd(dock, toolKey),
+                        CanTakeOff = IsDockMenu && DockPages.CanRemove(dock, toolKey),
+                    };
                 case SectionLink section:
                     return new MenuEntry(section, section.Title, section.Icon) { IsCurrent = Selected.InPlanner };
                 case SubLink link:
@@ -278,6 +334,10 @@ public sealed class MenuColumn(string title)
 {
     public string Title { get; } = title;
     public ObservableCollection<MenuEntry> Entries { get; } = [];
+
+    /// <summary>The group itself, when it can go on the dock whole; null for the columns that aren't a group.</summary>
+    public MenuEntry? Heading { get; set; }
+    public bool CanGoOnDock => Heading is not null;
 }
 
 /// <summary>One thing the menu or the dock opens: a page, a tool, a project or one of My pages.</summary>
@@ -299,8 +359,16 @@ public sealed record MenuEntry(object Item, string Title, string Icon)
     /// <summary>What a click does while editing, for the tip.</summary>
     public string? EditTip => !Editing ? null : IsOff ? "Put it back on the menu" : CanTakeOffMenu ? "Take it off the menu" : "This one always stays";
 
-    /// <summary>The page's name, when it is a page (only pages go on the dock).</summary>
+    /// <summary>
+    /// What it goes by on the dock: a page's own name, or a tool's or a group's with what it is in front
+    /// (<see cref="Webignite.Core.Layout.DockKeys"/>). Null for what can't go on the dock (a project, one of My pages).
+    /// </summary>
     public string? PageKey { get; init; }
+
+    /// <summary>For a group on the dock: what is in it, shown in a short list above the dock when it is clicked.</summary>
+    public IReadOnlyList<MenuEntry> Inside { get; init; } = [];
+    public bool IsGroup => Item is NavGroup;
+    public bool IsNotGroup => !IsGroup;
 
     /// <summary>The page itself, for its live count (unread mail) on the dock.</summary>
     public Module? Module { get; init; }

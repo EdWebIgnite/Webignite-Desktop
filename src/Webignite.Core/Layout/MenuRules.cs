@@ -135,3 +135,90 @@ public static class DockPages
 
     public static IReadOnlyList<string> Remove(IReadOnlyList<string> dock, string page) => CanRemove(dock, page) ? [.. dock.Where(p => p != page)] : dock;
 }
+
+/// <summary>
+/// What a name on the dock stands for. A page goes by its own name ("Mail"), as it always has; a tool and a whole
+/// group of the menu carry what they are in front, so a saved dock from before still reads the same.
+/// </summary>
+public static class DockKeys
+{
+    private const string ToolMark = "tool:";
+    private const string GroupMark = "group:";
+
+    public static string Tool(string kind) => ToolMark + kind;
+
+    public static string Group(string key) => GroupMark + key;
+
+    /// <summary>The tool's kind, when the name is a tool's.</summary>
+    public static string? AsTool(string key) => key.StartsWith(ToolMark, StringComparison.Ordinal) ? key[ToolMark.Length..] : null;
+
+    /// <summary>The group's key, when the name is a group's. A group on the dock opens a short list of what is in it.</summary>
+    public static string? AsGroup(string key) => key.StartsWith(GroupMark, StringComparison.Ordinal) ? key[GroupMark.Length..] : null;
+}
+
+/// <summary>The small things that can sit beside the dock, in the space left and right of it.</summary>
+public enum BarWidget { Today, Clock, Timer, Chat, Search, QuickNote }
+
+/// <summary>Which side of the dock.</summary>
+public enum BarSide { Left, Right }
+
+/// <summary>What sits left and right of the dock, in order.</summary>
+public sealed record BarLayout(IReadOnlyList<BarWidget> Left, IReadOnlyList<BarWidget> Right)
+{
+    public IEnumerable<BarWidget> All => Left.Concat(Right);
+}
+
+/// <summary>What sits beside the dock. The person adds, moves and takes off their own.</summary>
+public static class DockBar
+{
+    /// <summary>What a new install shows: the day and the timer on the left, chat and the time on the right.</summary>
+    public static readonly BarLayout Usual = new([BarWidget.Today, BarWidget.Timer], [BarWidget.Chat, BarWidget.Clock]);
+
+    /// <summary>What each is called where the person picks them.</summary>
+    public static string Name(BarWidget widget) => widget switch
+    {
+        BarWidget.Today => "Today's date",
+        BarWidget.Clock => "Clock",
+        BarWidget.Timer => "Timer",
+        BarWidget.Chat => "Chat",
+        BarWidget.Search => "Search",
+        BarWidget.QuickNote => "Quick note",
+        _ => throw new ArgumentOutOfRangeException(nameof(widget), widget, null),
+    };
+
+    /// <summary>
+    /// The bar as saved, or the usual one when nothing is saved. Names this version doesn't know are left out, and
+    /// one saved on both sides stays only where it comes first. Both sides empty is allowed: that is a bare dock.
+    /// </summary>
+    public static BarLayout Shown(IReadOnlyList<string>? left, IReadOnlyList<string>? right)
+    {
+        if (left is null && right is null)
+            return Usual;
+        var seen = new HashSet<BarWidget>();
+        List<BarWidget> Read(IReadOnlyList<string>? saved) =>
+            [.. (saved ?? []).Select(name => Enum.TryParse<BarWidget>(name, out var widget) && Enum.IsDefined(widget) ? widget : (BarWidget?)null)
+                .Where(widget => widget is not null && seen.Add(widget.Value)).Select(widget => widget!.Value)];
+        var onLeft = Read(left);
+        return new(onLeft, Read(right));
+    }
+
+    /// <summary>What isn't on the bar yet, in the order of <see cref="BarWidget"/>.</summary>
+    public static IReadOnlyList<BarWidget> Available(BarLayout bar) => [.. Enum.GetValues<BarWidget>().Except(bar.All)];
+
+    /// <summary>Adds one at the end of a side. One already on the bar moves to that side.</summary>
+    public static BarLayout Add(BarLayout bar, BarWidget widget, BarSide side)
+    {
+        var without = Remove(bar, widget);
+        return side == BarSide.Left ? without with { Left = [.. without.Left, widget] } : without with { Right = [.. without.Right, widget] };
+    }
+
+    public static BarLayout Remove(BarLayout bar, BarWidget widget) =>
+        new([.. bar.Left.Where(w => w != widget)], [.. bar.Right.Where(w => w != widget)]);
+
+    /// <summary>Moves one to the other side of the dock, or leaves the bar as it is when it isn't on it.</summary>
+    public static BarLayout Across(BarLayout bar, BarWidget widget) =>
+        bar.Left.Contains(widget) ? Add(bar, widget, BarSide.Right) : bar.Right.Contains(widget) ? Add(bar, widget, BarSide.Left) : bar;
+
+    /// <summary>The names to save for a side.</summary>
+    public static IReadOnlyList<string> Saved(IReadOnlyList<BarWidget> side) => [.. side.Select(w => w.ToString())];
+}

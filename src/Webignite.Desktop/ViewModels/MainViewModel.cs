@@ -512,6 +512,7 @@ public partial class MainViewModel : ViewModelBase
         // The menu's kind and the dock's pages are part of the look; whichever is picked follows it at once.
         services.Settings.AppearanceChanged += _ => MenuKindChanged();
         FillDock();
+        FillBar();
     }
 
     /// <summary>The sidebar entry for a page.</summary>
