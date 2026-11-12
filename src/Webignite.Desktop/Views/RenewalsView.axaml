@@ -84,7 +84,7 @@
         <Grid ColumnDefinitions="*,12,*,12,*,12,*,12,*">
           <StackPanel Grid.Column="0">
             <TextBlock Classes="label" Text="Next renewal" />
-            <CalendarDatePicker SelectedDate="{Binding FormDate}" HorizontalAlignment="Stretch" SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
+            <c:DateBox SelectedDate="{Binding FormDate}" HorizontalAlignment="Stretch" />
           </StackPanel>
           <StackPanel Grid.Column="2">
             <TextBlock Classes="label" Text="Renews" />

@@ -13,26 +13,13 @@ public sealed partial class ProjectsViewModel
     private static readonly object DescriptionTyped = new();
 
     /// <summary>The Overview tab is showing.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsList), nameof(ShowsTaskTools))]
-    public partial bool IsOverview { get; set; }
+    public bool IsOverview => Tab == ProjectTab.Overview;
 
     /// <summary>Add task, filter, sort and group belong to the tabs that show tasks.</summary>
     public bool ShowsTaskTools => !IsOverview && !IsMessages;
 
-    partial void OnIsOverviewChanged(bool value)
-    {
-        if (value)
-        {
-            ShowOnly(ProjectTab.Overview);
-            LoadOverview();
-        }
-        if (open is not null && Layout.Overview != value)
-            SaveLayout(Layout with { Overview = value });
-    }
-
     [RelayCommand]
-    private void OverviewView() => IsOverview = true;
+    private void OverviewView() => ShowOnly(ProjectTab.Overview);
 
     [ObservableProperty] public partial Webignite.Core.Writing.RichDocument ProjectDescription { get; set; } = Webignite.Core.Writing.RichDocument.Empty();
 

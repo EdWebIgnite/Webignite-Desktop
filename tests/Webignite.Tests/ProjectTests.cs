@@ -678,6 +678,92 @@ public sealed class ProjectRepeatTemplateTests
         new() { Id = id, ProjectId = "p", Title = id, Repeat = repeat, Due = due, Start = start, Done = true, HeadingId = "h" };
 
     [Fact]
+    public void A_task_can_come_back_every_so_many_weeks_or_months()
+    {
+        var monday = new DateOnly(2026, 11, 2);
+        var fortnightly = ProjectRules.Next(Task("Backups", TaskRepeat.Weekly, monday) with { RepeatEvery = 2 }, monday, 1)!;
+        Assert.Equal(new DateOnly(2026, 11, 16), fortnightly.Due);
+        Assert.Equal(2, fortnightly.RepeatEvery); // the next one repeats the same way
+
+        var quarterly = ProjectRules.Next(Task("Report", TaskRepeat.Monthly, new DateOnly(2026, 11, 30)) with { RepeatEvery = 3 }, monday, 1)!;
+        Assert.Equal(new DateOnly(2027, 2, 28), quarterly.Due); // the 30th, in a month that stops at the 28th
+        // And the one after that is back on the 30th: it still counts from the first one.
+        var after = ProjectRules.Next(quarterly with { Done = true }, quarterly.Due!.Value, 1)!;
+        Assert.Equal(new DateOnly(2027, 5, 30), after.Due);
+
+        var everyThirdDay = ProjectRules.Next(Task("Water", TaskRepeat.Daily, monday) with { RepeatEvery = 3 }, monday, 1)!;
+        Assert.Equal(new DateOnly(2026, 11, 5), everyThirdDay.Due);
+
+        // Ticked off very late, it skips to the first one not already overdue, still on its own steps.
+        var late = ProjectRules.Next(Task("Backups", TaskRepeat.Weekly, monday) with { RepeatEvery = 2 }, new DateOnly(2026, 12, 20), 1)!;
+        Assert.Equal(new DateOnly(2026, 12, 28), late.Due);
+
+        // A count that makes no sense is every one, and a huge one is capped.
+        Assert.Equal(new DateOnly(2026, 11, 9), ProjectRules.Next(Task("x", TaskRepeat.Weekly, monday) with { RepeatEvery = 0 }, monday, 1)!.Due);
+        Assert.Equal(ProjectRules.MostRepeatEvery, ProjectRules.Every(500));
+    }
+
+    [Fact]
+    public void A_monthly_task_can_come_back_on_a_weekday_of_the_month()
+    {
+        // Monthly maintenance on the 1st Monday: 2 November 2026, then 7 December, then 4 January.
+        var firstMonday = new MonthDay(1, DayOfWeek.Monday);
+        var done = Task("Monthly website maintenance", TaskRepeat.Monthly, new DateOnly(2026, 11, 2)) with { RepeatOn = firstMonday };
+        var december = ProjectRules.Next(done, new DateOnly(2026, 11, 2), 1)!;
+        Assert.Equal(new DateOnly(2026, 12, 7), december.Due);
+        Assert.Equal(firstMonday, december.RepeatOn);
+        Assert.Equal(new DateOnly(2027, 1, 4), ProjectRules.Next(december with { Done = true }, new DateOnly(2026, 12, 7), 1)!.Due);
+
+        // Done a few days late or early, it is still next month's 1st Monday, not a month from the day it was done.
+        Assert.Equal(new DateOnly(2026, 12, 7), ProjectRules.Next(done with { Due = new DateOnly(2026, 11, 5) }, new DateOnly(2026, 11, 9), 1)!.Due);
+
+        // The last Friday, every second month.
+        var lastFriday = Task("Invoices out", TaskRepeat.Monthly, new DateOnly(2026, 11, 27)) with { RepeatOn = new MonthDay(-1, DayOfWeek.Friday), RepeatEvery = 2 };
+        Assert.Equal(new DateOnly(2027, 1, 29), ProjectRules.Next(lastFriday, new DateOnly(2026, 11, 27), 1)!.Due);
+
+        // Which weekday of its month a day is, and back again.
+        Assert.Equal(new MonthDay(1, DayOfWeek.Monday), ProjectRules.WeekdayOf(new DateOnly(2026, 11, 2)));
+        Assert.Equal(new MonthDay(2, DayOfWeek.Thursday), ProjectRules.WeekdayOf(new DateOnly(2026, 11, 12)));
+        Assert.Equal(new MonthDay(-1, DayOfWeek.Monday), ProjectRules.WeekdayOf(new DateOnly(2026, 11, 30))); // the 5th Monday is the last
+        Assert.Equal(new DateOnly(2026, 11, 12), ProjectRules.WeekdayIn(2026, 11, new MonthDay(2, DayOfWeek.Thursday)));
+        Assert.Equal(new DateOnly(2026, 11, 30), ProjectRules.WeekdayIn(2026, 11, new MonthDay(-1, DayOfWeek.Monday)));
+        Assert.Equal(new DateOnly(2027, 2, 26), ProjectRules.WeekdayIn(2027, 2, new MonthDay(-1, DayOfWeek.Friday)));
+    }
+
+    [Fact]
+    public void How_a_task_repeats_is_said_in_words()
+    {
+        Assert.Equal("Doesn't repeat", ProjectRules.Label(TaskRepeat.None, 3, null));
+        Assert.Equal("Every week", ProjectRules.Label(TaskRepeat.Weekly, 1, null));
+        Assert.Equal("Every 2 weeks", ProjectRules.Label(TaskRepeat.Weekly, 2, null));
+        Assert.Equal("Every 3 months", ProjectRules.Label(TaskRepeat.Monthly, 3, null));
+        Assert.Equal("Every month on the 1st Monday", ProjectRules.Label(TaskRepeat.Monthly, 1, new MonthDay(1, DayOfWeek.Monday)));
+        Assert.Equal("Every 2 months on the last Friday", ProjectRules.Label(TaskRepeat.Monthly, 2, new MonthDay(-1, DayOfWeek.Friday)));
+        // A weekday only means something for a monthly repeat.
+        Assert.Equal("Every week", ProjectRules.Label(TaskRepeat.Weekly, 1, new MonthDay(1, DayOfWeek.Monday)));
+    }
+
+    [Fact]
+    public void A_task_with_a_time_is_late_from_that_time_and_one_without_from_the_next_day()
+    {
+        var day = new DateOnly(2026, 11, 12);
+        var open = Task("Send proofs", due: day) with { Done = false };
+        Assert.False(ProjectRules.IsOverdue(open, new DateTime(2026, 11, 12, 23, 59, 0)));
+        Assert.True(ProjectRules.IsOverdue(open, new DateTime(2026, 11, 13, 0, 1, 0)));
+
+        var byTwo = open with { DueTime = new TimeOnly(14, 0) };
+        Assert.False(ProjectRules.IsOverdue(byTwo, new DateTime(2026, 11, 12, 13, 59, 0)));
+        Assert.True(ProjectRules.IsOverdue(byTwo, new DateTime(2026, 11, 12, 14, 1, 0)));
+
+        Assert.False(ProjectRules.IsOverdue(byTwo with { Done = true }, new DateTime(2026, 11, 20, 9, 0, 0)));
+        Assert.False(ProjectRules.IsOverdue(open with { Due = null }, new DateTime(2026, 11, 20, 9, 0, 0)));
+
+        // The next one of a repeating task keeps its time of day.
+        var next = ProjectRules.Next(byTwo with { Done = true, Repeat = TaskRepeat.Weekly }, day, 1)!;
+        Assert.Equal(new TimeOnly(14, 0), next.DueTime);
+    }
+
+    [Fact]
     public void A_repeating_task_ticked_off_comes_back_a_step_later()
     {
         var weekly = ProjectRules.Next(Task("Backups", TaskRepeat.Weekly, Today, Today.AddDays(-1)), Today, 2.5)!;

@@ -150,9 +150,9 @@ public static class RecordMerge
     private static readonly Dictionary<string, string[]> TaskMap = new(StringComparer.Ordinal)
     {
         ["project"] = ["ProjectId"], ["heading"] = ["HeadingId"], ["parent"] = ["ParentId"], ["title"] = ["Title"], ["notes"] = ["Notes"],
-        ["noteshtml"] = ["NotesHtml"], ["assigned"] = ["AssignedTo"], ["start"] = ["Start"], ["due"] = ["Due"], ["done"] = ["Done"],
+        ["noteshtml"] = ["NotesHtml"], ["assigned"] = ["AssignedTo"], ["start"] = ["Start"], ["due"] = ["Due", "DueTime"], ["done"] = ["Done"],
         ["order"] = ["Order"], ["client"] = ["ClientId"], ["document"] = ["DocumentId"], ["mail"] = ["Mail"], ["priority"] = ["Priority"],
-        ["tags"] = ["Tags"], ["repeat"] = ["Repeat"], ["attachments"] = ["Attachments"], ["cover"] = ["CoverId"], ["milestone"] = ["Milestone"],
+        ["tags"] = ["Tags"], ["repeat"] = ["Repeat", "RepeatEvery", "RepeatOn"], ["attachments"] = ["Attachments"], ["cover"] = ["CoverId"], ["milestone"] = ["Milestone"],
         ["blockedby"] = ["BlockedBy"], ["values"] = ["Values"], ["repeatof"] = ["RepeatOf"], ["repeatfrom"] = ["RepeatFrom"],
     };
 

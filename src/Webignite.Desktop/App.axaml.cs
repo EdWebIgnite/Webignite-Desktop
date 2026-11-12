@@ -15,18 +15,6 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
-        // A date box whose date is taken away (another project or task opened, a field cleared) keeps showing the
-        // old date's text; clear it once the change has landed.
-        Avalonia.Controls.CalendarDatePicker.SelectedDateProperty.Changed.AddClassHandler<Avalonia.Controls.CalendarDatePicker>((picker, e) =>
-        {
-            if (e.NewValue is null)
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    if (picker.SelectedDate is null)
-                        picker.Text = string.Empty;
-                });
-        });
-
         // A button that shows only an icon has no words for a screen reader, so its tooltip is read out as its name.
         Avalonia.Controls.ToolTip.TipProperty.Changed.AddClassHandler<Avalonia.Controls.Button>((button, e) =>
         {

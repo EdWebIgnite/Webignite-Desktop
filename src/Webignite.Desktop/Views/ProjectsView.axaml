@@ -544,7 +544,7 @@
               <TextBlock Classes="h2" Text="Use this template" />
               <StackPanel Orientation="Horizontal" Spacing="10">
                 <TextBox Text="{Binding PreviewName}" PlaceholderText="Project name" Width="320" />
-                <CalendarDatePicker SelectedDate="{Binding PreviewStart}" Watermark="Starts on" Width="160" ToolTip.Tip="Its tasks' dates count from this day" />
+                <c:DateBox SelectedDate="{Binding PreviewStart}" PlaceholderText="Starts on" Width="160" ToolTip.Tip="Its tasks' dates count from this day" />
                 <Button Classes="primary" Content="Use template" Command="{Binding UseTemplateCommand}" />
                 <Button Classes="link" Content="Remove the template" Command="{Binding RemovePreviewedCommand}" IsVisible="{Binding Previewing.IsMine, FallbackValue=False}"
                         VerticalAlignment="Center" />
@@ -1044,7 +1044,7 @@
                   <ComboBox x:Name="StatusBox" ItemsSource="{x:Static vm:ProjectsViewModel.Statuses}" SelectedItem="{Binding EditStatus, Mode=OneWay}"
                             SelectionChanged="StatusPicked" HorizontalAlignment="Stretch" />
                   <TextBlock Classes="label" Text="Due date" />
-                  <CalendarDatePicker SelectedDate="{Binding EditDue}" PlaceholderText="Due date" HorizontalAlignment="Stretch" ToolTip.Tip="When the whole project is due" />
+                  <c:DateBox SelectedDate="{Binding EditDue}" PlaceholderText="Due date" HorizontalAlignment="Stretch" ToolTip.Tip="When the whole project is due" />
                 </StackPanel>
               </Border>
             </StackPanel>
@@ -1665,9 +1665,35 @@
               </StackPanel>
               <TextBlock Grid.Row="1" Classes="field" Text="Due date" />
               <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,16,*">
-                <CalendarDatePicker SelectedDate="{Binding Start}" Watermark="Start" HorizontalAlignment="Stretch" ToolTip.Tip="When work on it starts (optional)" />
+                <c:DateBox SelectedDate="{Binding Start}" PlaceholderText="Start" HorizontalAlignment="Stretch" ToolTip.Tip="When work on it starts (optional)" />
                 <TextBlock Grid.Column="1" Text="–" Classes="muted" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                <CalendarDatePicker Grid.Column="2" SelectedDate="{Binding Due}" Watermark="Due" HorizontalAlignment="Stretch" />
+                <!-- The due date's pop-up also holds its time and how it repeats, so all of "when" is set in one place. -->
+                <c:DateBox Grid.Column="2" SelectedDate="{Binding Due}" PlaceholderText="Due" HorizontalAlignment="Stretch" Note="{Binding DueNote}">
+                  <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="70,*">
+                      <TextBlock Classes="field" Text="Time" VerticalAlignment="Center" />
+                      <TextBox Grid.Column="1" Text="{Binding DueTimeText}" PlaceholderText="Any time, or e.g. 14:00" IsEnabled="{Binding HasDue}" />
+                    </Grid>
+                    <TextBlock Classes="label problem" Text="{Binding DueTimeProblem}" IsVisible="{Binding DueTimeProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <Grid ColumnDefinitions="70,*">
+                      <TextBlock Classes="field" Text="Repeats" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding Repeats}" SelectedItem="{Binding Repeat}" HorizontalAlignment="Stretch" />
+                    </Grid>
+                    <Grid ColumnDefinitions="70,Auto,8,*" IsVisible="{Binding IsRepeating}">
+                      <TextBlock Classes="field" Text="Every" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding RepeatCounts}" SelectedItem="{Binding RepeatEvery}" MinWidth="70" />
+                      <TextBlock Grid.Column="3" Text="{Binding RepeatUnit}" VerticalAlignment="Center" />
+                    </Grid>
+                    <Border Classes="segments" HorizontalAlignment="Left" Margin="70,0,0,0" IsVisible="{Binding IsMonthlyRepeat}">
+                      <StackPanel Orientation="Horizontal">
+                        <Button Classes="segment" Classes.on="{Binding RepeatByDay}" Content="{Binding RepeatDayLabel}" Command="{Binding RepeatOnDayCommand}" />
+                        <Button Classes="segment" Classes.on="{Binding RepeatByWeekday}" Content="{Binding RepeatWeekdayLabel}" Command="{Binding RepeatOnWeekdayCommand}" />
+                      </StackPanel>
+                    </Border>
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding IsRepeating}"
+                               Text="{Binding RepeatWords, StringFormat='{}{0}. Ticking it off makes the next one.'}" />
+                  </StackPanel>
+                </c:DateBox>
               </Grid>
               <TextBlock Grid.Row="2" Classes="field" Text="Projects" />
               <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,8,*">
@@ -1736,7 +1762,7 @@
                     <TextBlock Classes="field" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                     <ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding Picked}" IsVisible="{Binding IsChoice}" MinWidth="180" HorizontalAlignment="Left" />
                     <TextBox Grid.Column="1" Text="{Binding Text}" IsVisible="{Binding IsTyped}" PlaceholderText="{Binding Hint}" LostFocus="FieldEditorLeft" KeyDown="FieldEditorKey" />
-                    <CalendarDatePicker Grid.Column="1" SelectedDate="{Binding Date}" IsVisible="{Binding IsDate}" PlaceholderText="Pick a date" HorizontalAlignment="Left" MinWidth="180" />
+                    <c:DateBox Grid.Column="1" SelectedDate="{Binding Date}" IsVisible="{Binding IsDate}" PlaceholderText="Pick a date" HorizontalAlignment="Left" MinWidth="180" />
                   </Grid>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

@@ -83,6 +83,10 @@ To keep a page calm, put its extra blocks in one card as folding rows rather tha
 3. Give the body a `DataTemplate` in `MyPagesView.axaml`. Keep it to what fits a small card; the full page stays a click away.
 4. Add it to the My pages part of the screenshot tool.
 
+## A date on a page
+
+Use `<c:DateBox SelectedDate="{Binding Day}" PlaceholderText="Due" />` (`Controls/DateBox.cs`), never Avalonia's own date pickers: it is the one calendar the app has, styled in `Styles/Controls.axaml` (`Button.datebox`, `Button.calday`). `Earliest` and `Latest` stop a day outside them being picked. What is put inside the tag is shown under the month in the pop-up (a task's time and how it repeats), and the pop-up then stays open after a day is picked. The pop-up is built when opened and let go when closed.
+
 ## A setting
 
 Settings are records saved as JSON under a name. Add a property to an existing settings record (`DocumentSettings`, `TaskSettings` and `BackupSettings` are in Core; `AppearanceSettings`, which is only about the app, is in `Desktop/Motion.cs`) or make a new record, then expose it on `AppSettings` (reached as `services.Settings`):

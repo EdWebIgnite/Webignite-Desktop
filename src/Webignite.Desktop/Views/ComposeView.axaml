@@ -169,8 +169,7 @@
         <Border Classes="card" Padding="12,8" IsVisible="{Binding PickingSendTime}">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Text="Send on" VerticalAlignment="Center" />
-            <CalendarDatePicker SelectedDate="{Binding SendDay}" DisplayDateStart="{x:Static sys:DateTime.Today}" Width="160"
-                                SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
+            <c:DateBox SelectedDate="{Binding SendDay}" Earliest="{x:Static sys:DateTime.Today}" Width="160" />
             <ComboBox ItemsSource="{x:Static vm:MailViewModel.SnoozeHours}" SelectedItem="{Binding SendHour}" Width="100">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="x:Int32">

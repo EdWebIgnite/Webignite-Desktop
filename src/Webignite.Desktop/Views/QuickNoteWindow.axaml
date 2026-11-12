@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:notes="using:Webignite.Core.Notes"
+        xmlns:c="using:Webignite.Desktop.Controls"
         x:Class="Webignite.Desktop.Views.QuickNoteWindow"
         Title="Quick note" Width="460" SizeToContent="Height" CanResize="False" Topmost="True"
         WindowStartupLocation="CenterScreen" Background="{DynamicResource Surface}">
@@ -25,7 +26,7 @@
 
     <!-- An event: the day and the time -->
     <Grid x:Name="EventPart" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" IsVisible="False">
-      <CalendarDatePicker x:Name="DayBox" Grid.Column="0" Width="170" Margin="0,0,8,0" />
+      <c:DateBox x:Name="DayBox" Grid.Column="0" Width="170" Margin="0,0,8,0" />
       <TextBox x:Name="TimeBox" Grid.Column="1" PlaceholderText="Time, e.g. 9:30 or 14:00-15:00" ToolTip.Tip="Leave it empty for all day" />
     </Grid>
 

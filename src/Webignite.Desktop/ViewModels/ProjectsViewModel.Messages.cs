@@ -11,9 +11,7 @@ namespace Webignite.Desktop.ViewModels;
 public sealed partial class ProjectsViewModel
 {
     /// <summary>The Messages tab is showing.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsList), nameof(ShowsTaskTools))]
-    public partial bool IsMessages { get; set; }
+    public bool IsMessages => Tab == ProjectTab.Messages;
 
     public ObservableCollection<MessageThreadRow> MessageThreads { get; } = [];
 
@@ -27,19 +25,8 @@ public sealed partial class ProjectsViewModel
 
     partial void OnMessageProblemChanged(string value) => OnPropertyChanged(nameof(HasMessageProblem));
 
-    partial void OnIsMessagesChanged(bool value)
-    {
-        if (value)
-        {
-            ShowOnly(ProjectTab.Messages);
-            ListMessages();
-        }
-        if (open is not null && Layout.Messages != value)
-            SaveLayout(Layout with { Messages = value });
-    }
-
     [RelayCommand]
-    private void MessagesView() => IsMessages = true;
+    private void MessagesView() => ShowOnly(ProjectTab.Messages);
 
     public string MyName => services.Me().Name;
 
