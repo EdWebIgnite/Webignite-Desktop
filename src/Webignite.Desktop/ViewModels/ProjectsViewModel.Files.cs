@@ -20,23 +20,10 @@ public sealed partial class ProjectsViewModel
     public bool NoProjectFiles => IsFiles && ProjectFiles.Count == 0;
 
     /// <summary>The Files tab is showing, rather than the list or the board.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsList), nameof(NoProjectFiles))]
-    public partial bool IsFiles { get; set; }
-
-    partial void OnIsFilesChanged(bool value)
-    {
-        if (value)
-        {
-            ShowOnly(ProjectTab.Files);
-            ListFiles();
-        }
-        if (open is not null && Layout.Files != value)
-            SaveLayout(Layout with { Files = value });
-    }
+    public bool IsFiles => Tab == ProjectTab.Files;
 
     [RelayCommand]
-    private void FilesView() => IsFiles = true;
+    private void FilesView() => ShowOnly(ProjectTab.Files);
 
     internal string PathOf(ProjectTask task, TaskAttachment attachment) => services.Projects.PathOf(task.Id, attachment);
 

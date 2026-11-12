@@ -28,7 +28,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         Panels = new PanelsViewModel(services.Settings, "projects", [("list", "Projects"), ("project", "Open project"), ("task", "Open task")]);
         typing.Tick += (_, _) => SaveTyped();
         services.Projects.Changed += ElsewhereChanged;
-        IsBoard = services.Settings.ProjectView.Board;
+        Tab = services.Settings.ProjectView.Board ? ProjectTab.Board : ProjectTab.List;
         // The task pane shows when a task is opened.
         if (Panels.CanHide("task"))
             Panels["task"].IsShown = false;
@@ -435,19 +435,53 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     /// <summary>Tags used in the open project, for the task pane to offer.</summary>
     public IReadOnlyList<string> ProjectTags { get; private set; } = [];
 
-    /// <summary>Board or list, kept for each project.</summary>
+    /// <summary>
+    /// Which view of the open project is showing. One thing says so, and each view's own flag reads it, so there is
+    /// never more than one showing or none.
+    /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsList))]
-    public partial bool IsBoard { get; set; }
+    [NotifyPropertyChangedFor(nameof(IsList), nameof(IsBoard), nameof(IsFiles), nameof(IsOverview), nameof(IsTimeline), nameof(IsCalendar),
+        nameof(IsMessages), nameof(NoProjectFiles), nameof(ShowsTaskTools), nameof(ShowsSortGroup))]
+    public partial ProjectTab Tab { get; private set; }
 
-    public bool IsList => !IsBoard && !IsFiles && !IsOverview && !IsTimeline && !IsCalendar && !IsMessages;
+    public bool IsList => Tab == ProjectTab.List;
 
-    // Kept with the open project only: another project opens the way it was left, a new one as a list.
-    partial void OnIsBoardChanged(bool value)
+    /// <summary>The board is showing, rather than the list.</summary>
+    public bool IsBoard => Tab == ProjectTab.Board;
+
+    // A view that lists things of its own reads them as it is shown. Which view it is stays with the open project
+    // only: another project opens the way it was left, a new one as a list.
+    partial void OnTabChanged(ProjectTab value)
     {
-        OnPropertyChanged(nameof(NoProjectFiles));
-        if (open is not null && Layout.Board != value)
-            SaveLayout(Layout with { Board = value });
+        switch (value)
+        {
+            case ProjectTab.Files:
+                ListFiles();
+                break;
+            case ProjectTab.Messages:
+                ListMessages();
+                break;
+            case ProjectTab.Overview:
+                LoadOverview();
+                break;
+        }
+        if (open is null)
+            return;
+        var layout = Layout with
+        {
+            Board = value == ProjectTab.Board, Files = value == ProjectTab.Files, Overview = value == ProjectTab.Overview,
+            Timeline = value == ProjectTab.Timeline, Calendar = value == ProjectTab.Calendar, Messages = value == ProjectTab.Messages,
+        };
+        if (layout != Layout)
+            SaveLayout(layout);
+    }
+
+    /// <summary>Shows one view; one that lays tasks out by date is laid out again each time it is asked for.</summary>
+    private void ShowOnly(ProjectTab tab)
+    {
+        Tab = tab;
+        if (tab is ProjectTab.Timeline or ProjectTab.Calendar && open is not null)
+            ShowTasks();
     }
 
     [RelayCommand]
@@ -1393,3 +1427,6 @@ public sealed partial class AddTaskRow(SectionRow section, ProjectsViewModel pag
             page.AddTask(Section, title, AtTop, keepTyping: true);
     }
 }
+
+/// <summary>The views of an open project: the list, the board, its files, the overview, the timeline, the calendar and its messages.</summary>
+public enum ProjectTab { List, Board, Files, Overview, Timeline, Calendar, Messages }

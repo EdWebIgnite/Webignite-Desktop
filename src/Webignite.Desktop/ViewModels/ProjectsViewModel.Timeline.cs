@@ -14,53 +14,18 @@ public sealed partial class ProjectsViewModel
     /// <summary>How wide a day is on the timeline, in pixels; the view snaps drags to it.</summary>
     public const double DayWidth = 36;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsList), nameof(ShowsSortGroup))]
-    public partial bool IsTimeline { get; set; }
+    public bool IsTimeline => Tab == ProjectTab.Timeline;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsList), nameof(ShowsSortGroup))]
-    public partial bool IsCalendar { get; set; }
+    public bool IsCalendar => Tab == ProjectTab.Calendar;
 
     /// <summary>Sort and Group belong to the list and the board; Timeline and Calendar lay tasks out by date.</summary>
     public bool ShowsSortGroup => !IsTimeline && !IsCalendar;
 
-    partial void OnIsTimelineChanged(bool value)
-    {
-        if (value)
-            ShowOnly(ProjectTab.Timeline);
-        if (open is not null && Layout.Timeline != value)
-            SaveLayout(Layout with { Timeline = value });
-    }
-
-    partial void OnIsCalendarChanged(bool value)
-    {
-        if (value)
-            ShowOnly(ProjectTab.Calendar);
-        if (open is not null && Layout.Calendar != value)
-            SaveLayout(Layout with { Calendar = value });
-    }
+    [RelayCommand]
+    private void TimelineView() => ShowOnly(ProjectTab.Timeline);
 
     [RelayCommand]
-    private void TimelineView() => IsTimeline = true;
-
-    [RelayCommand]
-    private void CalendarView() => IsCalendar = true;
-
-    private enum ProjectTab { List, Board, Files, Overview, Timeline, Calendar, Messages }
-
-    /// <summary>Shows one tab and hides the rest; switching to one that lays tasks out rebuilds it.</summary>
-    private void ShowOnly(ProjectTab tab)
-    {
-        IsBoard = tab == ProjectTab.Board;
-        IsFiles = tab == ProjectTab.Files;
-        IsOverview = tab == ProjectTab.Overview;
-        IsTimeline = tab == ProjectTab.Timeline;
-        IsCalendar = tab == ProjectTab.Calendar;
-        IsMessages = tab == ProjectTab.Messages;
-        if (tab is ProjectTab.Timeline or ProjectTab.Calendar && open is not null)
-            ShowTasks();
-    }
+    private void CalendarView() => ShowOnly(ProjectTab.Calendar);
 
     private static ProjectTab TabOf(ProjectLayout layout) =>
         layout.Overview ? ProjectTab.Overview : layout.Messages ? ProjectTab.Messages : layout.Timeline ? ProjectTab.Timeline : layout.Calendar ? ProjectTab.Calendar
