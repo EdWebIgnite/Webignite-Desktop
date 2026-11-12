@@ -42,6 +42,9 @@ public sealed record AppearanceSettings
     /// <summary>What sits left and right of the dock, by name, in order; both null until the person changes them (<see cref="Webignite.Core.Layout.DockBar"/>).</summary>
     public IReadOnlyList<string>? BarLeft { get; init; }
     public IReadOnlyList<string>? BarRight { get; init; }
+
+    /// <summary>The groups folded shut in the open menu, by name; null until the person folds one.</summary>
+    public IReadOnlyList<string>? MenuFolded { get; init; }
 }
 
 /// <summary>Light, dark, or whatever Windows is set to.</summary>
