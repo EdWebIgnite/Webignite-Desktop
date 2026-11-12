@@ -11,8 +11,8 @@ namespace Webignite.Desktop.Views;
 
 /// <summary>
 /// The dock: the pages, tools and groups used most in a bar along the bottom, with the rest behind More, and
-/// beside it the small things the person picked (the day, a clock, the timer, chat). A group opens a short list
-/// of what is in it just above the dock.
+/// beside it the small things the person picked (the day, a clock, the timer, chat). A group, and a page with
+/// pages of its own under it (Planner, All my pages), opens a short list of what is in it just above the dock.
 /// </summary>
 public partial class DockView : UserControl
 {
@@ -211,7 +211,8 @@ public partial class DockView : UserControl
     {
         if (sender is not Button { DataContext: MenuEntry entry } button)
             return;
-        if (!entry.IsGroup)
+        // A group, or a page with pages of its own under it, opens its list; anything else opens itself.
+        if (!entry.OpensList)
         {
             Main?.MenuPart.PickFromMenuCommand.Execute(entry);
             return;

@@ -207,7 +207,10 @@
         <Border x:Name="LeftPage" Grid.Column="0" Classes="diarypage left">
           <ContentControl Content="{Binding Left}" ContentTemplate="{StaticResource Page}" />
         </Border>
-        <Border Grid.Column="1" Classes="diaryspine" ZIndex="3" />
+        <Border Grid.Column="1" Classes="diaryspine" ZIndex="5" />
+        <!-- The shadow a turning page carries, darkest at the spine -->
+        <Border x:Name="ShadeLeft" Grid.Column="0" IsVisible="False" IsHitTestVisible="False" />
+        <Border x:Name="ShadeRight" Grid.Column="2" IsVisible="False" IsHitTestVisible="False" />
         <Border x:Name="RightPage" Grid.Column="2" Classes="diarypage right">
           <ContentControl Content="{Binding Right}" ContentTemplate="{StaticResource Page}" />
         </Border>
