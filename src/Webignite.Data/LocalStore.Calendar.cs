@@ -24,4 +24,18 @@ public sealed partial class LocalStore
     /// <summary>Events from one date to another, both included.</summary>
     public IReadOnlyList<CalendarEvent> ListEvents(DateOnly from, DateOnly to) =>
         ReadAll<CalendarEvent>(EventContext, "SELECT id, payload FROM events WHERE date BETWEEN $from AND $to", ("$from", Day(from)), ("$to", Day(to)));
+
+    private const string DiaryContext = "diary:";
+
+    /// <summary>What was written on a day's page of the diary; empty when nothing was.</summary>
+    public string DiaryNote(DateOnly day) => Find<DiaryNote>("diary_notes", DiaryContext, Day(day))?.Text ?? "";
+
+    /// <summary>Keeps what was written on a day's page; an emptied page leaves nothing behind.</summary>
+    public void SaveDiaryNote(DateOnly day, string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            Remove("diary_notes", Day(day));
+        else
+            Put("diary_notes", DiaryContext, Day(day), new DiaryNote { Date = day, Text = text.TrimEnd() });
+    }
 }

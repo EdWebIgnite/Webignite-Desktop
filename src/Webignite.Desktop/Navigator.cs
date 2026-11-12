@@ -15,6 +15,7 @@ public enum Page
     SiteCheck, Crawler, Markup, Pdf,
     Settings,
     Inbox,
+    Diary,
 }
 
 /// <summary>
@@ -46,6 +47,7 @@ public sealed class Navigator
     internal Action<string>? OpenNoteAction { get; set; }
     internal Action<string?, string?>? OpenPersonAction { get; set; }
     internal Action<string>? OpenProjectTaskAction { get; set; }
+    internal Action<DateOnly>? OpenDiaryAction { get; set; }
     internal Action<string>? OpenProjectAction { get; set; }
     internal Action<string>? OpenProjectMessagesAction { get; set; }
     internal Action? MyTasksAction { get; set; }
@@ -162,6 +164,9 @@ public sealed class Navigator
 
     /// <summary>Opens a person in Contacts.</summary>
     public void Person(string id) => OpenPersonAction?.Invoke(id, null);
+
+    /// <summary>Opens the diary at a day.</summary>
+    public void Diary(DateOnly day) => OpenDiaryAction?.Invoke(day);
 
     /// <summary>Opens a task on the Projects page, beside its project.</summary>
     public void ProjectTask(string id) => OpenProjectTaskAction?.Invoke(id);

@@ -39,7 +39,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Tells the open to-do, calendar, planner and overview pages that something was added from elsewhere.</summary>
     public void RefreshPlanning()
     {
-        foreach (var page in Built<IRefreshable>(Page.Calendar, Page.Planner, Page.Overview))
+        foreach (var page in Built<IRefreshable>(Page.Calendar, Page.Planner, Page.Diary, Page.Overview))
             page.Refresh();
     }
 
@@ -62,15 +62,15 @@ public partial class MainViewModel : ViewModelBase
             }
             pages.UnionWith(area switch
             {
-                "projects" => [Page.Calendar, Page.Planner, Page.Overview, Page.MyPages, Page.Inbox],
-                "todos" => [Page.Calendar, Page.Planner, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
+                "projects" => [Page.Calendar, Page.Planner, Page.Diary, Page.Overview, Page.MyPages, Page.Inbox],
+                "todos" => [Page.Calendar, Page.Planner, Page.Diary, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
                 "clients" => [Page.Clients, Page.Overview, Page.Retainers],
                 "documents" => [Page.Quotes, Page.Invoices, Page.Money, Page.Reports, Page.Approvals, Page.Overview],
                 "contacts" => [Page.Contacts],
                 "notes" => [Page.Notes],
-                "calendar" => [Page.Calendar, Page.Planner, Page.Overview, Page.Home],
+                "calendar" => [Page.Calendar, Page.Planner, Page.Diary, Page.Overview, Page.Home],
                 "time" => [Page.Time, Page.Overview],
-                "renewals" => [Page.Renewals, Page.Overview],
+                "renewals" => [Page.Renewals, Page.Diary, Page.Overview],
                 _ => [],
             });
         }
@@ -277,6 +277,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true) { InPlanner = true },
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
             new Module(Page.Planner, "Week", () => new PlannerViewModel(services), "Planner") { InPlanner = true },
+            new Module(Page.Diary, "Diary", () => new DiaryViewModel(services), "Diary") { InPlanner = true },
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time") { InPlanner = true },
             new NavGroup("computer", "COMPUTER") { Icon = "Tools" },
             new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
@@ -443,6 +444,11 @@ public partial class MainViewModel : ViewModelBase
         {
             Selected = this[Page.Projects];
             PageOf<ProjectsViewModel>(Page.Projects).OpenTaskById(id);
+        };
+        go.OpenDiaryAction = day =>
+        {
+            Selected = this[Page.Diary];
+            PageOf<DiaryViewModel>(Page.Diary).Show(day);
         };
         go.OpenProjectAction = id =>
         {
@@ -765,6 +771,8 @@ public partial class MainViewModel : ViewModelBase
             overview.Board?.Keep();
         foreach (var home in Built<PlannerHomeViewModel>(Page.Home))
             home.KeepNotepad();
+        foreach (var diary in Built<DiaryViewModel>(Page.Diary))
+            diary.Keep();
         string? problem = null;
         foreach (var contacts in Built<ContactsViewModel>(Page.Contacts))
         {

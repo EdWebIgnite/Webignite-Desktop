@@ -644,6 +644,46 @@ Open(Page.Calendar);
 Save("calendar");
 Open(Page.Planner);
 Save("planner");
+// The diary: today and its neighbour open like a book, written from the calendar, the to-dos and the money dates.
+{
+    store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e-teams", Title = "Karoo Coffee monthly catch-up", Date = today, Start = new TimeOnly(14, 0), End = new TimeOnly(14, 45),
+        Location = "Microsoft Teams", JoinLink = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_demo/0" });
+    store.SaveDiaryNote(today, "Ask Pieter about the new product photos.\nBank: check the Fynbos payment came through.");
+    Open(Page.Diary);
+    var diary = (DiaryViewModel)vm.Current.Page;
+    diary.Show(today);
+    Dispatcher.UIThread.RunJobs();
+    var page = diary.Left.Date == today ? diary.Left : diary.Right;
+    Check("The diary opens at today, a day to a page, with tomorrow or yesterday beside it",
+        diary.Right.Date == diary.Left.Date.AddDays(1) && page.IsToday && page.Lines.Count >= 12);
+    Check("An event sits on its hour, and a meeting from a mail has its Join link",
+        page.Lines.Single(l => l.Hour.Hour == 10).Entries.Any(e => e.Title.StartsWith("Kick-off", StringComparison.Ordinal)) && page.Lines.Single(l => l.Hour.Hour == 14).Entries.Single().CanJoin);
+    Check("To-dos due that day are on the page to tick off, and its notes are there", page.Untimed.Any(e => e.CanTick) && page.Notes.StartsWith("Ask Pieter", StringComparison.Ordinal));
+    var line = page.Lines.Single(l => l.Hour.Hour == 16);
+    line.NewText = "16:30 Phone the printers";
+    line.AddCommand.Execute(null);
+    page = diary.Left.Date == today ? diary.Left : diary.Right;
+    Check("Writing on an hour's line puts it in the calendar at the time said",
+        store.ListEvents(today, today).Any(e => e is { Title: "Phone the printers" } && e.Start == new TimeOnly(16, 30)) && page.Lines.Single(l => l.Hour.Hour == 16).Entries.Count == 1);
+    page.NewTodo = "Renew the SSL on bosveldbuilders.co.za";
+    page.AddTodoCommand.Execute(null);
+    page = diary.Left.Date == today ? diary.Left : diary.Right;
+    var added = page.Untimed.Single(e => e.Title.StartsWith("Renew the SSL", StringComparison.Ordinal));
+    Check("A to-do written on the page is a to-do for that day", store.ListTasks().Any(t => t.Title.StartsWith("Renew the SSL", StringComparison.Ordinal) && t.Due == today && !t.Done));
+    added.IsDone = true;
+    Check("Ticking it on the page ticks it off for good", store.ListTasks().Single(t => t.Title.StartsWith("Renew the SSL", StringComparison.Ordinal)).Done);
+    Dispatcher.UIThread.RunJobs();
+    Save("diary");
+    var was = diary.Left.Date;
+    diary.NextPagesCommand.Execute(null);
+    Check("Turning the page moves on two days", diary.Left.Date == was.AddDays(2));
+    diary.GoToTodayCommand.Execute(null);
+    foreach (var e in store.ListEvents(today, today).Where(e => e.Title == "Phone the printers" || e.Id == "e-teams"))
+        store.DeleteEvent(e.Id);
+    foreach (var t in store.ListTasks().Where(t => t.Title.StartsWith("Renew the SSL", StringComparison.Ordinal)))
+        store.DeleteTask(t.Id);
+    store.SaveDiaryNote(today, "");
+}
 store.SaveClient(new Webignite.Core.Clients.Client
 {
     Id = "c1", Name = "Bosveld Builders", ContactPerson = "Pieter van Wyk", Email = "pieter@bosveldbuilders.co.za",
@@ -1301,6 +1341,53 @@ Save("mail-panels-no-folders");
 vm.Mail.Panels.Move("reader", -1);
 Save("mail-panels-reader-left");
 vm.Mail.Panels.ResetCommand.Execute(null);
+// A Teams invite in a mail: a bar on the mail offers to add it to the calendar, with a Join link.
+{
+    var invite = new MimeKit.MimeMessage { Subject = "Website kick-off", MessageId = "kickoff@bosveldbuilders.co.za" };
+    invite.From.Add(new MimeKit.MailboxAddress("Pieter van Wyk", "pieter@bosveldbuilders.co.za"));
+    invite.To.Add(new MimeKit.MailboxAddress(null, "eddie@webignite.co.za"));
+    var meetingDay = today.AddDays(4);
+    var ics = "BEGIN:VCALENDAR\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nSUMMARY:Website kick-off\r\n"
+        + $"DTSTART:{meetingDay:yyyyMMdd}T100000\r\nDTEND:{meetingDay:yyyyMMdd}T104500\r\nLOCATION:Microsoft Teams Meeting\r\n"
+        + "X-MICROSOFT-SKYPETEAMSMEETINGURL:https://teams.microsoft.com/l/meetup-join/19%3ameeting_kickoff/0\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+    var forms = new MimeKit.MultipartAlternative
+    {
+        new MimeKit.TextPart("html") { Text = "<p>Hi Eddie,</p><p>Let's kick the new website off on Teams. Sipho from our side will join too.</p><p>Pieter</p>" },
+        new MimeKit.TextPart("calendar") { Text = ics },
+    };
+    invite.Body = forms;
+    using var raw = new MemoryStream();
+    invite.WriteTo(raw);
+    store.SaveMailSummaries([new Webignite.Core.Mail.MailSummary
+    {
+        AccountId = "m1", Folder = "INBOX.Clients", Uid = 70, Date = DateTimeOffset.Now.AddHours(-3), MessageId = "kickoff@bosveldbuilders.co.za",
+        From = new("Pieter van Wyk", "pieter@bosveldbuilders.co.za"), To = [new(null, "eddie@webignite.co.za")], Subject = "Website kick-off",
+        Preview = "Hi Eddie, let's kick the new website off on Teams.", Seen = true,
+    }]);
+    store.SaveMailBody("m1", "INBOX.Clients", 70, raw.ToArray());
+    vm.Mail.Open(vm.Mail.Mailboxes.SelectMany(m => m.Folders).First(f => f.IsRealFolder && f.Mailbox.Id == "m1" && f.Path == "INBOX.Clients"));
+    Dispatcher.UIThread.RunJobs();
+    Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 70)), "The invite opened");
+    var reader = vm.Mail.Reader!;
+    Check("A mail with a meeting invite offers to add it, with what the invite says filled in",
+        reader.HasMeeting && reader.MeetingCanBeAdded && reader.MeetingTitle == "Website kick-off" && reader.MeetingTime == "10:00"
+        && reader.MeetingDay == meetingDay.ToDateTime(TimeOnly.MinValue) && reader.CanJoinMeeting);
+    Save("mail-meeting");
+    reader.AddMeetingCommand.Execute(null);
+    var kept = store.ListEvents(meetingDay, meetingDay).SingleOrDefault(e => e.Title == "Website kick-off");
+    Check("Add to calendar writes it in once, with its Join link, its end and the client",
+        kept is { JoinLink: not null, Customer: "Bosveld Builders" } && kept.Start == new TimeOnly(10, 0) && kept.End == new TimeOnly(10, 45) && reader.MeetingAdded && !reader.MeetingCanBeAdded);
+    Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 70)), "The invite opened again");
+    Check("Opened again, the mail says it is in the calendar already", vm.Mail.Reader!.MeetingAdded && vm.Mail.Reader.MeetingLead.StartsWith("In your calendar", StringComparison.Ordinal));
+    Save("mail-meeting-added");
+    vm.Mail.Reader.ShowMeetingInDiaryCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Show in the diary opens the diary at the meeting's day",
+        vm.Selected.Key == Page.Diary && vm.Current.Page is DiaryViewModel at && (at.Left.Date == meetingDay || at.Right.Date == meetingDay));
+    if (kept is not null)
+        store.DeleteEvent(kept.Id);
+    Open(Page.Mail);
+}
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 Open(Page.Clients);
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));
@@ -4016,7 +4103,7 @@ SaveLooks("projects");
         var homePage = (PlannerHomeViewModel)vm.Current.Page;
         Check("Clicking Planner opens Home and swaps the sidebar for Planner's", vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Home
             && vm.Sidebar.PlannerItems.First() is SidebarBack
-            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Inbox", "Projects", "Calendar", "Week", "Time"])
+            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Inbox", "Projects", "Calendar", "Week", "Diary", "Time"])
             && vm.Sidebar.PlannerItems.OfType<ProjectLink>().Any(l => l.Kind == ProjectLinkKind.MyTasks));
         // Back to the main sidebar, then a real click on Planner again: it goes straight back in.
         vm.SelectedNav = vm.Sidebar.PlannerBack;

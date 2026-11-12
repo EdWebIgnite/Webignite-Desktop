@@ -60,6 +60,10 @@ public sealed partial class LocalStore : IDisposable
                 payload BLOB NOT NULL
             );
             CREATE INDEX IF NOT EXISTS events_date ON events (date);
+            CREATE TABLE IF NOT EXISTS diary_notes (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS clients (
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL

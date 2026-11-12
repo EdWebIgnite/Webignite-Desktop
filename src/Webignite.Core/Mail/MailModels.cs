@@ -74,6 +74,9 @@ public sealed record MailBody
     /// <summary>Whether the HTML asks for pictures from the internet, which stay blocked until you allow them.</summary>
     public bool HasRemoteImages { get; init; }
 
+    /// <summary>The calendar invite the mail carries (an .ics, as Outlook, Teams, Google and Zoom send), as text; null when it has none.</summary>
+    public string? Calendar { get; init; }
+
     /// <summary>Set on drafts saved by Claude or ChatGPT: who drafted it.</summary>
     public string? DraftedBy { get; init; }
 

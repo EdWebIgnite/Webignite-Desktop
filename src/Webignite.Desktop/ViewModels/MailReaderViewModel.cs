@@ -145,6 +145,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
         DraftedBy = body.DraftedBy is { Length: > 0 } who ? $"{who} drafted this. Read it through before you send it."
             : body.RepliesElsewhere is { } elsewhere ? $"Replies to this mail go to {elsewhere}, not the sender's own address. Check it's right before you answer."
             : "";
+        FindMeeting(body);
         Attachments.Clear();
         foreach (var attachment in body.Attachments)
             Attachments.Add(new AttachmentViewModel(attachment, this));

@@ -663,6 +663,27 @@
                 <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
               </Border>
 
+              <!-- A meeting in the mail (an invite, or a Teams, Zoom or Meet link): check it and add it to the calendar. -->
+              <Border Classes="card" Padding="12,10" IsVisible="{Binding HasMeeting}">
+                <StackPanel Spacing="8">
+                  <DockPanel>
+                    <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Calendar}" Size="16" Foreground="{DynamicResource Muted}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <Button DockPanel.Dock="Right" Classes="link" Content="Show in the diary" Command="{Binding ShowMeetingInDiaryCommand}" IsVisible="{Binding MeetingAdded}" Margin="8,0,0,0" />
+                    <Button DockPanel.Dock="Right" Classes="link" Content="Join" Command="{Binding JoinMeetingCommand}" IsVisible="{Binding CanJoinMeeting}" Margin="8,0,0,0"
+                            ToolTip.Tip="{Binding MeetingLink}" />
+                    <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding MeetingLead}" VerticalAlignment="Center" />
+                  </DockPanel>
+                  <WrapPanel ItemSpacing="8" LineSpacing="6" IsVisible="{Binding MeetingCanBeAdded}">
+                    <TextBox Text="{Binding MeetingTitle}" Width="260" PlaceholderText="What the meeting is" />
+                    <c:DateBox SelectedDate="{Binding MeetingDay}" Width="160" PlaceholderText="Day" />
+                    <TextBox Text="{Binding MeetingTime}" Width="90" PlaceholderText="Time" ToolTip.Tip="Like 9:30 or 14:00; leave empty for all day" />
+                    <Button Classes="primary" Content="Add to calendar" Command="{Binding AddMeetingCommand}" />
+                  </WrapPanel>
+                  <TextBlock Classes="short" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding MeetingMessage}"
+                             IsVisible="{Binding MeetingMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+              </Border>
+
               <Border Classes="card" Padding="12,8" IsVisible="{Binding CanShowImages}">
                 <DockPanel>
                   <Button DockPanel.Dock="Right" Classes="link" Content="Show pictures" Command="{Binding ShowImagesCommand}" />
