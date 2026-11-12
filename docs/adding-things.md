@@ -91,6 +91,10 @@ The largest pages are a main view model that holds parts, each a class of its ow
 
 Projects is one page with several views of the open project. Which one shows is one setting, `ProjectsViewModel.Tab` (a `ProjectTab`); every `IsX` flag reads it. A view with lists and commands of its own is a part in `ViewModels/Projects` (`ProjectMessagesPart`, `ProjectFilesPart`, `ProjectGalleryPart`, `ProjectMyTodosPart`, `ProjectOverviewPart`, `ProjectTimelinePart` for the timeline and the calendar, `ProjectFieldsPart` for custom fields): it is given the page, reaches the open project through it (`page.open`, `page.Ours(...)`), and the screen binds to it by name, `{Binding MessagesPart.NewMessageText}`. A new view goes the same way, never as more members on `ProjectsViewModel`.
 
+## Something in a pop-up
+
+What a pop-up shows is made when it opens, in code, not written into the view: the dock's group lists (`DockView.axaml.cs`), Overview's Customise (`OverviewView.axaml.cs`), the date box's month. Pages that are on screen at start-up count against the start-up memory limit, and a pop-up nobody has opened should cost nothing. Give the content the pop-ups' look with `Looks.PopUps(content)`, which reads `Styles/DockPop.axaml` the first time one opens.
+
 ## A date on a page
 
 Use `<c:DateBox SelectedDate="{Binding Day}" PlaceholderText="Due" />` (`Controls/DateBox.cs`), never Avalonia's own date pickers: it is the one calendar the app has, styled in `Styles/Controls.axaml` (`Button.datebox`, `Button.calday`). `Earliest` and `Latest` stop a day outside them being picked. What is put inside the tag is shown under the month in the pop-up (a task's time and how it repeats), and the pop-up then stays open after a day is picked. The pop-up is built when opened and let go when closed.

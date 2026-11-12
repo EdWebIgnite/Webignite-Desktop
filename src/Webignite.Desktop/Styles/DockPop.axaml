@@ -1,0 +1,81 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- The pop-ups above the dock and the small list of choices on Overview. Loaded the first time one is opened
+       (Looks.PopUps), as neither is on screen when the app starts. -->
+  <!-- A group's list, opened just above the dock: a white card with soft corners, each row an icon on a small
+       tile and its name. The row for what is on screen is tinted. -->
+  <Style Selector="Border.dockpopcard">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Padding" Value="8,10,8,8" />
+    <Setter Property="BoxShadow" Value="{DynamicResource OverlayShadow}" />
+  </Style>
+  <Style Selector="TextBlock.grouptitle">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Button.groupentry">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="6,5,10,5" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Margin" Value="0,1" />
+  </Style>
+  <Style Selector="Button.groupentry.sub">
+    <Setter Property="Padding" Value="20,3,10,3" />
+  </Style>
+  <Style Selector="Button.groupentry:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Button.groupentry.current">
+    <Setter Property="Background" Value="{DynamicResource TableHead}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Border.grouptile">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="Margin" Value="0,0,12,0" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Muted}" />
+  </Style>
+  <Style Selector="Button.groupentry.current Border.grouptile">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="Border.groupdot">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Margin" Value="0,0,12,0" />
+  </Style>
+  <Style Selector="Border.groupdot Ellipse">
+    <Setter Property="Fill" Value="{DynamicResource Muted}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- A row to tick in a small list of choices (what shows on Overview): a tick when it is on, plain when it is off. -->
+  <Style Selector="ToggleButton.pick">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ToggleButton.pick:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+  </Style>
+  <Style Selector="ToggleButton.pick:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TableHead}" />
+    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+</Styles>

@@ -20,12 +20,36 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
     private ToolsViewModel? tools;
     private bool nameTyped;
 
-    public MyPagesViewModel(AppServices services)
+    public MyPagesViewModel(AppServices services, bool home = false)
     {
         this.services = services;
+        IsHome = home;
         typing.Tick += (_, _) => KeepName();
         services.MyPagesChanged += ElsewhereChanged;
         ListPages();
+        // Overview's widgets are one page, always open: there is no list to pick from and no name to give it.
+        if (home)
+            Show(Saved[0]);
+    }
+
+    /// <summary>
+    /// This is the page of widgets on Overview and not one of My pages: one page, kept on its own, with no list,
+    /// name or Delete. Everything about adding, arranging and sizing widgets is the same.
+    /// </summary>
+    public bool IsHome { get; }
+    public bool IsOwnPage => !IsHome;
+
+    // Where the pages are kept: the person's own pages, or the single page that is Overview's.
+    private IReadOnlyList<MyPage> Saved
+    {
+        get => IsHome ? [services.Settings.OverviewBoard ?? OverviewParts.EmptyBoard()] : services.Settings.MyPages;
+        set
+        {
+            if (IsHome)
+                services.Settings.OverviewBoard = value.Count > 0 ? value[0] : OverviewParts.EmptyBoard();
+            else
+                services.Settings.MyPages = value;
+        }
     }
 
     /// <summary>One set of tools for the page's calculator, clipboard and colour widgets.</summary>
@@ -49,7 +73,7 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
     private void ListPages()
     {
         Cards.Clear();
-        foreach (var saved in services.Settings.MyPages)
+        foreach (var saved in Saved)
             Cards.Add(new PageCard(saved, this));
         OnPropertyChanged(nameof(NoPages));
     }
@@ -58,8 +82,8 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
     public void NewPage()
     {
         KeepAll();
-        var made = MyPages.NewPage(services.Settings.MyPages);
-        services.Settings.MyPages = [.. services.Settings.MyPages, made];
+        var made = MyPages.NewPage(Saved);
+        Saved = [.. Saved, made];
         services.ChangedMyPages(this);
         ListPages();
         Show(made);
@@ -69,7 +93,7 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
     public void OpenPage(string id)
     {
         KeepAll();
-        if (services.Settings.MyPages.FirstOrDefault(p => p.Id == id) is { } saved)
+        if (Saved.FirstOrDefault(p => p.Id == id) is { } saved)
             Show(saved);
     }
 
@@ -252,17 +276,17 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
         if (page is null)
             return;
         KeepAll();
-        var all = services.Settings.MyPages;
+        var all = Saved;
         var gone = all.FirstOrDefault(p => p.Id == page.Id) ?? page;
-        services.Settings.MyPages = [.. all.Where(p => p.Id != gone.Id)];
+        Saved = [.. all.Where(p => p.Id != gone.Id)];
         services.ChangedMyPages(this);
         ShowList();
         services.OfferUndo($"Deleted {gone.Name}", () =>
         {
-            var index = Math.Min(all.ToList().FindIndex(p => p.Id == gone.Id), services.Settings.MyPages.Count);
-            var restored = services.Settings.MyPages.ToList();
+            var index = Math.Min(all.ToList().FindIndex(p => p.Id == gone.Id), Saved.Count);
+            var restored = Saved.ToList();
             restored.Insert(Math.Max(0, index), gone);
-            services.Settings.MyPages = restored;
+            Saved = restored;
             services.ChangedMyPages(this);
             ListPages();
             Show(gone);
@@ -272,13 +296,13 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
     private void Save(MyPage changed)
     {
         page = changed;
-        var all = services.Settings.MyPages.ToList();
+        var all = Saved.ToList();
         var at = all.FindIndex(p => p.Id == changed.Id);
         if (at < 0)
             all.Add(changed);
         else
             all[at] = changed;
-        services.Settings.MyPages = all;
+        Saved = all;
         services.ChangedMyPages(this);
         OnPropertyChanged(nameof(TabTitle));
     }
@@ -294,7 +318,7 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
             return;
         }
         KeepAll();
-        if (services.Settings.MyPages.FirstOrDefault(p => p.Id == page.Id) is { } fresh)
+        if (Saved.FirstOrDefault(p => p.Id == page.Id) is { } fresh)
             Show(fresh);
         else
             ShowList();

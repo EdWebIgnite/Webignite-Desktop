@@ -678,7 +678,7 @@ public partial class MainViewModel : ViewModelBase
     public void UpdateChatPresence() => ChatPartnerShown = services.Chat.PartnerShown;
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
-    private void OpenChat() => services.Go.Chat();
+    private void OpenChat() => services.Go.ToggleChat();
 
     /// <summary>The sidebar itself: hidden or showing, and which groups are folded.</summary>
     public SidebarViewModel Sidebar { get; }
@@ -760,6 +760,9 @@ public partial class MainViewModel : ViewModelBase
             projects.Keep();
         foreach (var pages in Built<MyPagesViewModel>(Page.MyPages))
             pages.Keep();
+        // A note typed into a widget on Overview.
+        foreach (var overview in Built<OverviewViewModel>(Page.Overview))
+            overview.Board?.Keep();
         foreach (var home in Built<PlannerHomeViewModel>(Page.Home))
             home.KeepNotepad();
         string? problem = null;

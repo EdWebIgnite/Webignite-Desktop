@@ -136,7 +136,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
     private void PickFromMenu(MenuEntry? entry)
     {
         // A group on the dock opens its own short list; there is nothing to go to.
-        if (entry is null || entry.Item is NavGroup)
+        if (entry is null || entry.Item is NavGroup or NavHeading)
             return;
         if (IsMenuEditing)
         {
@@ -156,6 +156,35 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
 
     [RelayCommand]
     private void TakeOffDock(MenuEntry? entry) => ChangeDock(entry, DockPages.Remove);
+
+    /// <summary>Drags one along the dock, to just before or after another.</summary>
+    public void MoveOnDock(MenuEntry entry, MenuEntry beside, bool after)
+    {
+        if (entry.PageKey is not { } key || beside.PageKey is not { } target)
+            return;
+        var now = DockNow();
+        var moved = DockPages.Move(now, key, target, after);
+        if (!moved.SequenceEqual(now))
+            services.Settings.Appearance = services.Settings.Appearance with { Dock = moved };
+    }
+
+    /// <summary>
+    /// Drags a page or tool to another place inside a group's list on the dock. It is the same order the sidebar and
+    /// the menu behind More keep, so it changes there too.
+    /// </summary>
+    public void MoveInGroup(MenuEntry entry, MenuEntry beside, bool below)
+    {
+        if (CanMoveInGroup(entry, beside))
+            main.Sidebar.MoveTo(entry.Item, beside.Item, below);
+    }
+
+    public bool CanMoveInGroup(MenuEntry entry, MenuEntry beside) =>
+        !ReferenceEquals(entry, beside) && !entry.IsSection && !beside.IsSection && entry.Item is Module or ToolLink && beside.Item is Module or ToolLink
+        && main.Sidebar.CanDrag(entry.Item) && main.Sidebar.CanDrag(beside.Item)
+        && entry.Item is Module { InPlanner: true } == beside.Item is Module { InPlanner: true };
+
+    /// <summary>The entry on the dock by its name there, as it stands now; null when it has been taken off.</summary>
+    public MenuEntry? OnDock(string key) => Dock.FirstOrDefault(e => e.PageKey == key);
 
     private void ChangeDock(MenuEntry? entry, Func<IReadOnlyList<string>, string, IReadOnlyList<string>> change)
     {
@@ -206,9 +235,10 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
                 // Planner isn't a heading in the sidebar: its pages are what the sidebar shows once Planner is opened.
                 var isPlanner = groupKey == PlannerGroup.Key;
                 var group = isPlanner ? PlannerGroup : onMenus.OfType<NavGroup>().First(g => g.Key == groupKey);
+                // Planner's list is Planner's own menu, as its sidebar has it: Home and Inbox, the projects under
+                // Work, then the planning pages under Plan.
                 var inside = isPlanner
-                    ? main.Sidebar.PlannerItems.OfType<Module>().Where(m => !main.Sidebar.IsOff(m))
-                        .Select(m => new MenuEntry(m, m.Title, m.Icon) { PageKey = m.Key.ToString(), Module = m, IsCurrent = main.Selected == m }).ToList()
+                    ? main.Sidebar.PlannerItems.Select(PlannerEntry).OfType<MenuEntry>().ToList()
                     : main.Sidebar.Unfolded().SkipWhile(i => !ReferenceEquals(i, group)).Skip(1).TakeWhile(i => i is not NavGroup)
                         .Select(i => Plain(i, keys)).OfType<MenuEntry>().ToList();
                 Dock.Add(new MenuEntry(group, group.Name, group.Icon)
@@ -232,6 +262,15 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
             }
         }
     }
+
+    private MenuEntry? PlannerEntry(object item) => item switch
+    {
+        Module module when !main.Sidebar.IsOff(module) => new MenuEntry(module, module.Title, module.Icon)
+            { PageKey = module.Key.ToString(), Module = module, IsCurrent = main.Selected == module && main.SelectedNav is not SubLink },
+        SubLink link => new MenuEntry(link, link.Title, link.Icon) { IsCurrent = ReferenceEquals(main.SelectedNav, link) },
+        NavHeading { IsGap: false } heading => new MenuEntry(heading, heading.Title, ""),
+        _ => null,
+    };
 
     // An entry as a group's short list shows it: no figures, only what it is and whether it is on screen.
     private MenuEntry? Plain(object item, IReadOnlyList<string> dock) => item switch
@@ -405,6 +444,12 @@ public sealed record MenuEntry(object Item, string Title, string Icon)
     /// <summary>For a group on the dock: what is in it, shown in a short list above the dock when it is clicked.</summary>
     public IReadOnlyList<MenuEntry> Inside { get; init; } = [];
     public bool IsGroup => Item is NavGroup;
+
+    /// <summary>In a group's list: a small label over the entries that follow ("Work", "Plan"), not something to open.</summary>
+    public bool IsSection => Item is NavHeading;
+
+    /// <summary>In a group's list: a link under a page (a project under Projects), set in a little.</summary>
+    public bool IsLink => Item is SubLink;
     public bool IsNotGroup => !IsGroup;
 
     /// <summary>The page itself, for its live count (unread mail) on the dock.</summary>

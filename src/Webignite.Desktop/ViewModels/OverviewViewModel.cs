@@ -11,7 +11,7 @@ using Webignite.Core;
 
 namespace Webignite.Desktop.ViewModels;
 
-public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDisposable
+public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHoldsWork, IDisposable
 {
     private readonly AppServices services;
 
@@ -19,10 +19,65 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
     {
         this.services = services;
         services.RepliesChanged += Refresh;
+        // The person's own widgets are only built when there are some, so a plain Overview starts as light as before.
+        if (services.Settings.OverviewBoard is { Widgets.Count: > 0 })
+            Board = new MyPagesViewModel(services, home: true);
         Refresh();
     }
 
-    public void Dispose() => services.RepliesChanged -= Refresh;
+    public void Dispose()
+    {
+        services.RepliesChanged -= Refresh;
+        Board?.Keep();
+        Board?.Dispose();
+    }
+
+    // Overview is the person's to arrange: any of its own parts can be taken off, and widgets of their own (the
+    // same ones My pages has) put under what is left.
+
+    /// <summary>A note being typed into one of the person's widgets keeps the page from being let go.</summary>
+    public bool HoldsWork => Board?.HoldsWork == true;
+
+    private Webignite.Core.Layout.OverviewParts Parts => services.Settings.OverviewParts;
+
+    public bool ShowFigures => Parts.Figures;
+    public bool ShowNeedsYou => Parts.NeedsYou && HasSummary;
+    public bool ShowToday => Parts.Today;
+    public bool FiguresOn => Parts.Figures;
+    public bool NeedsYouOn => Parts.NeedsYou;
+    public bool TodayOn => Parts.Today;
+
+    /// <summary>The person's own widgets, under Overview's parts; null until they add one.</summary>
+    [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]
+    [CommunityToolkit.Mvvm.ComponentModel.NotifyPropertyChangedFor(nameof(HasBoard), nameof(NoBoard))]
+    public partial MyPagesViewModel? Board { get; private set; }
+
+    public bool HasBoard => Board is not null;
+    public bool NoBoard => Board is null;
+
+    private void KeepParts(Webignite.Core.Layout.OverviewParts parts)
+    {
+        services.Settings.OverviewParts = parts;
+        foreach (var name in new[] { nameof(ShowFigures), nameof(ShowNeedsYou), nameof(ShowToday), nameof(FiguresOn), nameof(NeedsYouOn), nameof(TodayOn) })
+            OnPropertyChanged(name);
+    }
+
+    [RelayCommand]
+    private void ToggleFigures() => KeepParts(Parts with { Figures = !Parts.Figures });
+
+    [RelayCommand]
+    private void ToggleNeedsYou() => KeepParts(Parts with { NeedsYou = !Parts.NeedsYou });
+
+    [RelayCommand]
+    private void ToggleToday() => KeepParts(Parts with { Today = !Parts.Today });
+
+    /// <summary>Starts the person's own part of the page, ready to add the first widget to.</summary>
+    [RelayCommand]
+    private void AddWidgets()
+    {
+        Board ??= new MyPagesViewModel(services, home: true);
+        Board.IsEditing = true;
+    }
 
     public string Greeting
     {
@@ -64,6 +119,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
         foreach (var line in showAllSummary ? allSummary : allSummary.Take(FirstShown))
             Summary.Add(line);
         OnPropertyChanged(nameof(HasSummary));
+        OnPropertyChanged(nameof(ShowNeedsYou));
         OnPropertyChanged(nameof(MoreSummaryText));
         OnPropertyChanged(nameof(HasMoreSummary));
     }
@@ -118,6 +174,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IDi
 
     public void Refresh()
     {
+        Board?.Refresh();
         var today = DateOnly.FromDateTime(DateTime.Today);
         services.Store.RaiseAutomaticTasks(services.Settings.Tasks, today);
         var tasks = services.Store.ListTasks();

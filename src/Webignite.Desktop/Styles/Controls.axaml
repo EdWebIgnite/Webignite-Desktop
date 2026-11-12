@@ -416,6 +416,13 @@
   <Style Selector="Border.paper:focus-within">
     <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
   </Style>
+  <!-- A pop-up above the dock: the frame is see-through, as the card inside it carries the look (Styles/DockPop.axaml). -->
+  <Style Selector="FlyoutPresenter.dockpop">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="14" />
+    <Setter Property="MaxHeight" Value="660" />
+  </Style>
   <!-- The date box (Controls/DateBox): it looks like the text boxes beside it, and opens a small calendar. -->
   <Style Selector="Button.datebox">
     <Setter Property="Background" Value="{DynamicResource Surface}" />

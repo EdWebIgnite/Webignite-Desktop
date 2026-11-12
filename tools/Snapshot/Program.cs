@@ -1927,6 +1927,33 @@ Open(Page.Overview);
 Check("A test build hides Check for updates and says nothing about the update server", !vm.Updates.CanUpdate && vm.Updates.CheckNote.Length == 0);
 Save("overview");
 SaveLooks("overview");
+// Overview is the person's to arrange: its own parts can be taken off, and widgets of their own put under them.
+{
+    var overview = (OverviewViewModel)vm.Current.Page;
+    Check("Overview starts with all its own parts and no widgets, so it builds nothing extra",
+        overview.ShowFigures && overview.ShowToday && overview.NoBoard && services.Settings.OverviewBoard is null);
+    overview.ToggleFiguresCommand.Execute(null);
+    overview.AddWidgetsCommand.Execute(null);
+    overview.Board!.AddWidget(WidgetKind.Timer);
+    overview.Board.AddWidget(WidgetKind.Note);
+    overview.Board.AddWidget(WidgetKind.MyTasks);
+    overview.Board.IsEditing = false;
+    var (wasWide, wasTall) = (window.Width, window.Height);
+    window.Height = 1300;
+    Dispatcher.UIThread.RunJobs();
+    Check("A part taken off is gone, and widgets added sit under what is left and are saved on their own, not as one of My pages",
+        !overview.ShowFigures && overview.HasBoard && overview.Board.Widgets.Count == 3 && overview.Board.IsHome
+        && services.Settings.OverviewBoard is { Widgets.Count: 3 } && !services.Settings.OverviewParts.Figures
+        && services.Settings.MyPages.All(p => p.Id != OverviewParts.BoardId));
+    Save("overview-own-widgets");
+    // Back to how it came, for the screens that follow.
+    foreach (var widget in overview.Board.Widgets.ToList())
+        overview.Board.RemoveWidget(widget);
+    overview.ToggleFiguresCommand.Execute(null);
+    window.Height = wasTall;
+    Dispatcher.UIThread.RunJobs();
+    Check("The figures put back show again", overview.ShowFigures && services.Settings.OverviewBoard is { Widgets.Count: 0 });
+}
 // Not every mail needs a reply: the × waves one off, and Undo brings it back.
 {
     var overview = (OverviewViewModel)vm[Page.Overview].Main.Page;
@@ -2505,6 +2532,14 @@ Check("Closing the window stops it following the history and lets the pictures g
         && fileMenu.Items.OfType<Avalonia.Controls.MenuItem>().Select(i => i.Header as string).SequenceEqual(["Open", "Copy picture", "Save a copy…"]));
     fileButton.ContextMenu?.Close();
     chatWindow.Close();
+    // The Chat button opens the chat, and a second click closes it again.
+    Dispatcher.UIThread.RunJobs();
+    vm.OpenChatCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    var chatOpened = services.ChatOpen;
+    vm.OpenChatCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The Chat button opens the chat, and clicked again closes it", chatOpened && !services.ChatOpen);
     Dispatcher.UIThread.RunJobs();
     Check("Closing the chat goes back to looking every minute", !services.ChatOpen);
     services.Secrets.Delete("webignite-sync-refresh");
@@ -2699,6 +2734,33 @@ Save("invoice-sum");
         vm.MenuPart.AddToDockCommand.Execute(plannerHead);
         Dispatcher.UIThread.RunJobs();
         Save("menu-dock-more");
+        // What the pop-ups above the dock hold: Planner's own menu with the projects, and a group of tools.
+        {
+            var dockView = window.GetVisualDescendants().OfType<DockView>().First();
+            foreach (var (name, key) in new[] { ("dock-pop-planner", DockKeys.Group("planner")), ("dock-pop-web-tools", DockKeys.Group("web-tools")) })
+            {
+                var pop = new Avalonia.Controls.Window
+                {
+                    Width = 320, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(16),
+                    Content = dockView.GroupPicture(vm.MenuPart.OnDock(key)!),
+                };
+                pop.Show();
+                SaveWindow(pop, name);
+                pop.Close();
+            }
+            var plannerList = vm.MenuPart.OnDock(DockKeys.Group("planner"))!.Inside;
+            Check("Planner's pop-up is Planner's own menu: its pages, the projects under Work, the planning pages under Plan",
+                plannerList.Any(e => e.IsSection && e.Title == "WORK") && plannerList.Any(e => e.IsLink)
+                && plannerList.First().PageKey == "Home" && plannerList.Any(e => e.PageKey == "Calendar"));
+            var order = vm.MenuPart.Dock.Select(e => e.PageKey).ToList();
+            vm.MenuPart.MoveOnDock(vm.MenuPart.Dock[^1], vm.MenuPart.Dock[0], false);
+            Dispatcher.UIThread.RunJobs();
+            Check("Dragging something along the dock moves it there, and it stays",
+                vm.MenuPart.Dock[0].PageKey == order[^1] && vm.MenuPart.Dock[1].PageKey == order[0] && services.Settings.Appearance.Dock![0] == order[^1]);
+            vm.MenuPart.MoveOnDock(vm.MenuPart.Dock[0], vm.MenuPart.Dock[^1], true);
+            Dispatcher.UIThread.RunJobs();
+            Check("Dragged back, the dock is as it was", vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(order));
+        }
         Check("Adding to the dock leaves the menu open, and Planner as a group takes the place of its own button",
             vm.MenuPart.IsMenuOpen && vm.MenuPart.Dock.Count(e => e.Title == "Planner") == 1);
         vm.MenuPart.CloseMenuCommand.Execute(null);

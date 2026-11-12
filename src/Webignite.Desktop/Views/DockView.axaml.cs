@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -25,6 +26,19 @@ public partial class DockView : UserControl
         clock.Tick += (_, _) => Main?.DockBarPart.TickClock();
         // As in the sidebar: a page with Ctrl held, or with the middle button, opens in a tab of its own.
         AddHandler(PointerPressedEvent, NewTabPressed, RoutingStrategies.Tunnel);
+        // Anything on the dock can be dragged along it to another place.
+        Controls.DragReorder.Attach(DockItems, new Controls.DragRules
+        {
+            CanDrag = item => item is MenuEntry { PageKey: not null },
+            CanDrop = (item, target, _) => item is MenuEntry && target is MenuEntry { PageKey: not null } && !ReferenceEquals(item, target),
+            Drop = (item, target, after) =>
+            {
+                if (item is MenuEntry entry && target is MenuEntry beside)
+                    Main?.MenuPart.MoveOnDock(entry, beside, after);
+            },
+            Across = _ => true,
+            Label = item => (item as MenuEntry)?.Title ?? "",
+        });
     }
 
     private MainViewModel? Main => DataContext as MainViewModel;
@@ -74,6 +88,107 @@ public partial class DockView : UserControl
         e.Handled = true;
     }
 
+    // A group's list is made when it is asked for and let go when it closes: its name, then what is in it, each a
+    // row to click. Rows can be dragged to another place in the group, which is the order the menu keeps everywhere.
+    private void ShowGroup(Button button, MenuEntry group)
+    {
+        var flyout = new Flyout { Placement = PlacementMode.Top, VerticalOffset = -2 };
+        flyout.FlyoutPresenterClasses.Add("dockpop");
+        if (GroupCard(group, flyout.Hide) is not { } card)
+            return;
+        flyout.Content = card;
+        flyout.ShowAt(button);
+    }
+
+    /// <summary>What a group's pop-up shows: a white card with its name and what is in it. Also for the screenshot tool, which can't draw pop-ups.</summary>
+    public Control? GroupPicture(MenuEntry group) => GroupCard(group, () => { });
+
+    private Border? GroupCard(MenuEntry group, Action picked)
+    {
+        if (GroupList(group, picked) is not { } list)
+            return null;
+        var card = new Border { Child = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
+        card.Classes.Add("dockpopcard");
+        Looks.PopUps(card);
+        return card;
+    }
+
+    private StackPanel? GroupList(MenuEntry group, Action picked)
+    {
+        if (Main is not { } main || group.PageKey is not { } key)
+            return null;
+        var rows = new ItemsControl { ItemTemplate = new FuncDataTemplate<MenuEntry>((entry, _) => Row(entry), supportsRecycling: false) };
+        var title = new TextBlock { Text = group.Title, Margin = new Thickness(10, 4, 10, 8) };
+        title.Classes.Add("grouptitle");
+        void Fill() => rows.ItemsSource = main.MenuPart.OnDock(key)?.Inside ?? [];
+        Fill();
+        rows.AddHandler(Button.ClickEvent, (_, e) =>
+        {
+            if ((e.Source as StyledElement)?.DataContext is not MenuEntry { IsSection: false } entry)
+                return;
+            picked();
+            main.MenuPart.PickFromMenuCommand.Execute(entry);
+        });
+        Controls.DragReorder.Attach(rows, new Controls.DragRules
+        {
+            CanDrag = item => item is MenuEntry { IsSection: false, Item: Module or ToolLink },
+            CanDrop = (item, target, _) => item is MenuEntry entry && target is MenuEntry beside && main.MenuPart.CanMoveInGroup(entry, beside),
+            Drop = (item, target, below) =>
+            {
+                if (item is MenuEntry entry && target is MenuEntry beside)
+                    main.MenuPart.MoveInGroup(entry, beside, below);
+                Fill();
+            },
+            Label = item => (item as MenuEntry)?.Title ?? "",
+        });
+        return new StackPanel { MinWidth = 264, Children = { title, rows } };
+    }
+
+    private Control Row(MenuEntry? entry)
+    {
+        if (entry is null)
+            return new Border();
+        if (entry.IsSection)
+        {
+            var label = new TextBlock { Text = entry.Title, Margin = new Thickness(10, 10, 10, 4) };
+            label.Classes.Add("label");
+            label.Classes.Add("caps");
+            return label;
+        }
+        Control mark;
+        if (entry.Icon.Length > 0)
+        {
+            var icon = new Controls.Icon { Size = 16, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+            icon.Bind(Controls.Icon.DataProperty, new Avalonia.Data.Binding { Source = entry.Icon, Converter = Controls.IconConverter.Instance });
+            mark = new Border { Child = icon };
+            mark.Classes.Add("grouptile");
+        }
+        else
+        {
+            // A project with no picture of its own: a dot, as the sidebar gives it.
+            mark = new Border { Child = new Avalonia.Controls.Shapes.Ellipse { Width = 6, Height = 6 } };
+            mark.Classes.Add("groupdot");
+        }
+        var words = new TextBlock { Text = entry.Title, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis };
+        var line = new DockPanel { Children = { mark } };
+        DockPanel.SetDock(mark, Dock.Left);
+        // A page's live count, such as unread mail, at the end of its row.
+        if (entry.Module is { HasBadge: true } counted)
+        {
+            var count = new TextBlock { Text = counted.Badge.ToString(System.Globalization.CultureInfo.CurrentCulture), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Margin = new Thickness(10, 0, 2, 0) };
+            count.Classes.Add("muted");
+            DockPanel.SetDock(count, Dock.Right);
+            line.Children.Add(count);
+        }
+        line.Children.Add(words);
+        var row = new Button { Content = line };
+        row.Classes.Add("groupentry");
+        row.Classes.Set("current", entry.IsCurrent);
+        // A project sits in under Projects; a link with a picture of its own (My tasks, Templates) reads as a page.
+        row.Classes.Set("sub", entry.Item is SubLink { HasIcon: false });
+        return row;
+    }
+
     private void NewTabPressed(object? sender, PointerPressedEventArgs e)
     {
         var point = e.GetCurrentPoint(this).Properties;
@@ -101,36 +216,6 @@ public partial class DockView : UserControl
             Main?.MenuPart.PickFromMenuCommand.Execute(entry);
             return;
         }
-        // A group's short list is made when it is asked for and let go when it closes.
-        var list = new StackPanel { MinWidth = 230, Margin = new Thickness(-4) };
-        var heading = new TextBlock { Text = entry.Title, Margin = new Thickness(10, 2, 0, 6) };
-        heading.Classes.Add("label");
-        heading.Classes.Add("caps");
-        list.Children.Add(heading);
-        var flyout = new Flyout { Placement = PlacementMode.Top, VerticalOffset = -10, Content = list };
-        foreach (var inside in entry.Inside)
-        {
-            var icon = new Controls.Icon { Size = 17, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
-            icon.Bind(Controls.Icon.DataProperty, new Avalonia.Data.Binding { Source = inside.Icon, Converter = Controls.IconConverter.Instance });
-            icon.Bind(Controls.Icon.ForegroundProperty, this.GetResourceObservable("Muted"));
-            var row = new Button
-            {
-                Content = new StackPanel
-                {
-                    Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 11,
-                    Children = { icon, new TextBlock { Text = inside.Title, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center } },
-                },
-            };
-            row.Classes.Add("groupentry");
-            if (inside.IsCurrent)
-                row.Classes.Add("current");
-            row.Click += (_, _) =>
-            {
-                flyout.Hide();
-                Main?.MenuPart.PickFromMenuCommand.Execute(inside);
-            };
-            list.Children.Add(row);
-        }
-        flyout.ShowAt(button);
+        ShowGroup(button, entry);
     }
 }

@@ -134,6 +134,19 @@ public static class DockPages
     public static bool CanRemove(IReadOnlyList<string> dock, string page) => dock.Contains(page) && dock.Count > 1;
 
     public static IReadOnlyList<string> Remove(IReadOnlyList<string> dock, string page) => CanRemove(dock, page) ? [.. dock.Where(p => p != page)] : dock;
+
+    /// <summary>
+    /// Moves one along the dock, to just before or just after another. The dock is left as it is when either isn't
+    /// on it, or when one is moved onto itself.
+    /// </summary>
+    public static IReadOnlyList<string> Move(IReadOnlyList<string> dock, string page, string beside, bool after)
+    {
+        if (page == beside || !dock.Contains(page) || !dock.Contains(beside))
+            return dock;
+        var moved = dock.Where(p => p != page).ToList();
+        moved.Insert(moved.IndexOf(beside) + (after ? 1 : 0), page);
+        return moved;
+    }
 }
 
 /// <summary>
