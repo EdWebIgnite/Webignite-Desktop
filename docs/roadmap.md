@@ -43,7 +43,7 @@ The app is getting more than one style to try side by side, so we can see what w
 
 - **Airy** covers the whole app: Classic's soft grey page (a white page was tried and was too bright), flat cards, soft boxes, light borderless toolbars, taller sidebar rows, and its own touches on Mail, writing a mail, the Projects list and board, and Chat. Every screen has been drawn in it and looked over. The client page's folding rows, Files' side list and rows, and Settings' side menu have had their own pass too. What's left is whatever shows up in daily use.
 - **Light sidebar** works with every style and palette.
-- **The menu is a choice too**: the sidebar, a Menu button that opens every page over the one on screen, or a dock along the bottom. All three stay; the point is to try them.
+- **The menu is a choice too**: a dock along the bottom, which a new install starts with, the sidebar, or a Menu button that opens every page over the one on screen. All three stay.
 - Still to build: **Compact** (dense, small corners, thin lines) and **Soft** (rounder, pill buttons, tinted panels).
 - Later, if styles aren't enough: a density choice, and bigger layout changes such as a top bar.
 - Small text sizes now have names every page uses, and Airy makes each a size bigger. Body text and headings are unchanged.

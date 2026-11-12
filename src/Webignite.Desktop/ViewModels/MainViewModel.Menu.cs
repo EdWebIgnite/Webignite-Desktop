@@ -165,7 +165,8 @@ public sealed partial class MainViewModel
     private void FillDock()
     {
         Dock.Clear();
-        if (!IsDockMenu)
+        // While the app is still starting there is no page picked yet; the dock is filled once there is.
+        if (!IsDockMenu || Selected is null)
             return;
         foreach (var key in DockKeys())
         {
