@@ -1070,6 +1070,17 @@ moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Bars);
 Save("income-bars");
 moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Filled);
 Save("income-filled");
+// The whole Money page at once, wide and tall, to see that nothing runs under anything else.
+{
+    var (wide, tall) = (window.Width, window.Height);
+    window.Width = 1700;
+    window.Height = 2100;
+    Dispatcher.UIThread.RunJobs();
+    Save("money-whole");
+    window.Width = wide;
+    window.Height = tall;
+    Dispatcher.UIThread.RunJobs();
+}
 moneyPage.ShowChartCommand.Execute(Webignite.Core.Finance.ChartStyle.Lines);
 Save("income-lines");
 moneyPage.UseManualCommand.Execute(null);

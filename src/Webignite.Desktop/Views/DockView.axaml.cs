@@ -23,6 +23,8 @@ public partial class DockView : UserControl
         InitializeComponent();
         Looks.Attach(this, "Menu");
         clock.Tick += (_, _) => Main?.TickClock();
+        // As in the sidebar: a page with Ctrl held, or with the middle button, opens in a tab of its own.
+        AddHandler(PointerPressedEvent, NewTabPressed, RoutingStrategies.Tunnel);
     }
 
     private MainViewModel? Main => DataContext as MainViewModel;
@@ -49,7 +51,16 @@ public partial class DockView : UserControl
         var clicked = (e.Source as StyledElement)?.DataContext;
         var items = new List<object>();
         if (clicked is MenuEntry entry)
+        {
+            // A page can be opened beside what is on screen, or in a window of its own to put on another screen.
+            if (entry.Item is Module page)
+            {
+                items.Add(Item("Open in a new tab", () => main.OpenInNewTab(page)));
+                items.Add(Item("Open in a new window", () => main.OpenInWindow(page)));
+                items.Add(new Separator());
+            }
             items.Add(Item("Take off the dock", () => main.TakeOffDockCommand.Execute(entry), entry.CanTakeOff));
+        }
         if (clicked is BarItem bar)
         {
             items.Add(Item("Move to the other side", () => main.MoveBarAcrossCommand.Execute(bar)));
@@ -61,6 +72,17 @@ public partial class DockView : UserControl
         items.Add(Item("Choose what is beside the dock…", () => main.ChooseBarCommand.Execute(null)));
         new ContextMenu { ItemsSource = items }.Open(this);
         e.Handled = true;
+    }
+
+    private void NewTabPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(this).Properties;
+        if ((e.Source as StyledElement)?.DataContext is MenuEntry { Item: Module page } && Main is { } main
+            && (point.IsMiddleButtonPressed || (point.IsLeftButtonPressed && e.KeyModifiers.HasFlag(KeyModifiers.Control))))
+        {
+            main.OpenInNewTab(page);
+            e.Handled = true;
+        }
     }
 
     private static MenuItem Item(string header, Action picked, bool enabled = true)

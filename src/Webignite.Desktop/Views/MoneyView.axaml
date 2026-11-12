@@ -6,6 +6,12 @@
              xmlns:xero="using:Webignite.Core.Xero"
              x:Class="Webignite.Desktop.Views.MoneyView"
              x:DataType="vm:MoneyViewModel">
+  <UserControl.Styles>
+    <!-- Rows in this page's cards start where the card's heading and boxes do. -->
+    <Style Selector="Border.taskrow">
+      <Setter Property="Padding" Value="20,8,16,8" />
+    </Style>
+  </UserControl.Styles>
   <StackPanel Spacing="18">
     <DockPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
@@ -178,28 +184,37 @@
       <Border Grid.Column="0" Classes="card" Padding="0" VerticalAlignment="Top">
         <StackPanel>
           <TextBlock Classes="h2" Text="Month by month" Margin="20,16,20,10" />
-          <Border Classes="stickyhead" Padding="16,0,8,0">
-            <Grid ColumnDefinitions="90,*,*,*">
-              <TextBlock Grid.Column="0" Classes="label tablehead" Text="Month" />
-              <TextBlock Grid.Column="1" Classes="label tablehead" Text="Expected" HorizontalAlignment="Right" />
-              <TextBlock Grid.Column="2" Classes="label tablehead" Text="Came in" HorizontalAlignment="Right" />
-              <TextBlock Grid.Column="3" Classes="label tablehead" Text="Difference" HorizontalAlignment="Right" />
+          <!-- Each column has a faint line on its left and the same padding in the heading and the rows, so a figure
+               sits under its heading and the last column doesn't drift off on a wide window. -->
+          <Border Classes="stickyhead">
+            <Grid ColumnDefinitions="130,*,*,1.2*">
+              <TextBlock Grid.Column="0" Classes="label" Text="Month" Margin="20,0,12,0" VerticalAlignment="Center" />
+              <Border Grid.Column="1" Classes="colline"><TextBlock Classes="label" Text="Expected" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
+              <Border Grid.Column="2" Classes="colline"><TextBlock Classes="label" Text="Came in" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
+              <Border Grid.Column="3" Classes="colline"><TextBlock Classes="label" Text="Difference" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
             </Grid>
           </Border>
           <ItemsControl ItemsSource="{Binding IncomeRows}" Margin="0,0,0,8">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:IncomeMonthRow">
-                <Border Classes="taskrow">
-                  <Grid ColumnDefinitions="90,*,*,*">
+                <Border Classes="taskrow" Padding="0" MinHeight="38">
+                  <Grid ColumnDefinitions="130,*,*,1.2*">
                     <TextBlock Grid.Column="0" Text="{Binding Title}" FontWeight="{Binding IsCurrent, Converter={x:Static vm:MoneyViewModel.BoldIf}}"
-                               Classes.muted="{Binding IsFuture}" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" Classes="amount" Text="{Binding Expected}" IsVisible="{Binding IsAuto}"
-                               HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    <TextBox Grid.Column="1" Text="{Binding ManualText}" IsVisible="{Binding IsManual}" PlaceholderText="Amount"
-                             HorizontalAlignment="Right" Width="120" TextAlignment="Right" Padding="8,2" MinHeight="26" />
-                    <TextBlock Grid.Column="2" Classes="amount" Text="{Binding CameIn}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="3" Classes="muted" Classes.short="{Binding IsShort}" FontSize="{DynamicResource Text12}" Text="{Binding Gap}"
-                               HorizontalAlignment="Right" VerticalAlignment="Center" />
+                               Classes.muted="{Binding IsFuture}" Margin="20,0,12,0" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Classes="colline">
+                      <Panel>
+                        <TextBlock Classes="amount" Text="{Binding Expected}" IsVisible="{Binding IsAuto}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding ManualText}" IsVisible="{Binding IsManual}" PlaceholderText="Amount"
+                                 HorizontalAlignment="Right" Width="120" TextAlignment="Right" Padding="8,2" MinHeight="26" VerticalAlignment="Center" />
+                      </Panel>
+                    </Border>
+                    <Border Grid.Column="2" Classes="colline">
+                      <TextBlock Classes="amount" Text="{Binding CameIn}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="3" Classes="colline">
+                      <TextBlock Classes="muted" Classes.short="{Binding IsShort}" FontSize="{DynamicResource Text12}" Text="{Binding Gap}"
+                                 HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </Border>
                   </Grid>
                 </Border>
               </DataTemplate>
@@ -337,7 +352,7 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Grid ColumnDefinitions="*,8,130,8,80,8,200,8,Auto" Margin="20,12,20,8">
+        <Grid ColumnDefinitions="*,8,130,8,Auto,12,200,8,Auto" Margin="20,12,20,8">
           <TextBox Grid.Column="0" Text="{Binding RecName}" PlaceholderText="What it is, e.g. xneelo server" />
           <TextBox Grid.Column="2" Text="{Binding RecAmount}" PlaceholderText="Amount" />
           <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6">
