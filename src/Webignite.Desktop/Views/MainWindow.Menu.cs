@@ -11,7 +11,7 @@ public partial class MainWindow
     {
         main.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(MainViewModel.HasMenuBar) or nameof(MainViewModel.IsDockMenu) or nameof(MainViewModel.IsMenuOpen) or nameof(MainViewModel.DockFloats))
+            if (e.PropertyName is nameof(MainViewModel.MenuPart.HasMenuBar) or nameof(MainViewModel.MenuPart.IsDockMenu) or nameof(MainViewModel.MenuPart.IsMenuOpen) or nameof(MainViewModel.DockBarPart.DockFloats))
                 ShowMenuParts(main);
         };
         ShowMenuParts(main);
@@ -19,22 +19,22 @@ public partial class MainWindow
 
     private void ShowMenuParts(MainViewModel main)
     {
-        if (main.HasMenuBar != MenuBarHost.Content is MenuBarView)
-            MenuBarHost.Content = main.HasMenuBar ? new MenuBarView() : null;
-        if (main.IsDockMenu != DockHost.Content is DockView)
+        if (main.MenuPart.HasMenuBar != MenuBarHost.Content is MenuBarView)
+            MenuBarHost.Content = main.MenuPart.HasMenuBar ? new MenuBarView() : null;
+        if (main.MenuPart.IsDockMenu != DockHost.Content is DockView)
         {
             if (DockHost.Content is DockView old)
                 old.SizeChanged -= DockSized;
-            var dock = main.IsDockMenu ? new DockView() : null;
+            var dock = main.MenuPart.IsDockMenu ? new DockView() : null;
             if (dock is not null)
                 dock.SizeChanged += DockSized;
             DockHost.Content = dock;
         }
         PlaceDock(main);
-        if (main.IsMenuOpen && MenuHost.Content is null)
+        if (main.MenuPart.IsMenuOpen && MenuHost.Content is null)
             MenuHost.Content = new MenuOverlayView();
         // With the sidebar, the menu is only ever opened to choose what is on it, and let go when that is done.
-        else if (main.IsSidebarMenu && !main.IsMenuOpen && MenuHost.Content is not null)
+        else if (main.MenuPart.IsSidebarMenu && !main.MenuPart.IsMenuOpen && MenuHost.Content is not null)
             MenuHost.Content = null;
     }
 
@@ -48,7 +48,7 @@ public partial class MainWindow
     // so the page has the window's full height under it. Otherwise it has its strip below the page.
     private void PlaceDock(MainViewModel main)
     {
-        var height = main.IsDockMenu && main.DockFloats && DockHost.Content is DockView dock ? dock.Bounds.Height : 0;
+        var height = main.MenuPart.IsDockMenu && main.DockBarPart.DockFloats && DockHost.Content is DockView dock ? dock.Bounds.Height : 0;
         DockHost.Margin = new Avalonia.Thickness(0, -height, 0, 0);
     }
 }

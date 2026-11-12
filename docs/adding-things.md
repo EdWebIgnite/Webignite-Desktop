@@ -83,6 +83,10 @@ To keep a page calm, put its extra blocks in one card as folding rows rather tha
 3. Give the body a `DataTemplate` in `MyPagesView.axaml`. Keep it to what fits a small card; the full page stays a click away.
 4. Add it to the My pages part of the screenshot tool.
 
+## A part of a big page with state of its own
+
+The largest pages are a main view model that holds parts, each a class of its own in a folder named for the page: `ViewModels/Projects`, `ViewModels/Mail` (sending and undo, snooze, the folder and category editors, rules), `ViewModels/Main` (the menu and dock, what sits beside the dock, the welcome screen and setup guide), `ViewModels/Settings` and `ViewModels/Tools`. A part is given the page (`page`, or `main` for the window's own view model), reaches what it shares through it, and the screen binds to it by name: `{Binding SnoozePart.SnoozeDay}`. Something new with its own state and commands goes in a part, new or existing, never as more members on the main class. What only one part needs stays private to it; what the page must reach is `internal`.
+
 ## A view of a project with state of its own
 
 Projects is one page with several views of the open project. Which one shows is one setting, `ProjectsViewModel.Tab` (a `ProjectTab`); every `IsX` flag reads it. A view with lists and commands of its own is a part in `ViewModels/Projects` (`ProjectMessagesPart`, `ProjectFilesPart`, `ProjectGalleryPart`, `ProjectMyTodosPart`, `ProjectOverviewPart`, `ProjectTimelinePart` for the timeline and the calendar, `ProjectFieldsPart` for custom fields): it is given the page, reaches the open project through it (`page.open`, `page.Ours(...)`), and the screen binds to it by name, `{Binding MessagesPart.NewMessageText}`. A new view goes the same way, never as more members on `ProjectsViewModel`.

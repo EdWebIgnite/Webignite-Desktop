@@ -289,9 +289,9 @@ public partial class MainWindow : Window
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && DataContext is MainViewModel { IsMenuOpen: true } menu)
+        if (e.Key == Key.Escape && DataContext is MainViewModel { MenuPart.IsMenuOpen: true } menu)
         {
-            menu.IsMenuOpen = false;
+            menu.MenuPart.IsMenuOpen = false;
             e.Handled = true;
             return;
         }

@@ -22,7 +22,7 @@ public partial class DockView : UserControl
     {
         InitializeComponent();
         Looks.Attach(this, "Menu");
-        clock.Tick += (_, _) => Main?.TickClock();
+        clock.Tick += (_, _) => Main?.DockBarPart.TickClock();
         // As in the sidebar: a page with Ctrl held, or with the middle button, opens in a tab of its own.
         AddHandler(PointerPressedEvent, NewTabPressed, RoutingStrategies.Tunnel);
     }
@@ -32,7 +32,7 @@ public partial class DockView : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        Main?.TickClock();
+        Main?.DockBarPart.TickClock();
         clock.Start();
     }
 
@@ -59,17 +59,17 @@ public partial class DockView : UserControl
                 items.Add(Item("Open in a new window", () => main.OpenInWindow(page)));
                 items.Add(new Separator());
             }
-            items.Add(Item("Take off the dock", () => main.TakeOffDockCommand.Execute(entry), entry.CanTakeOff));
+            items.Add(Item("Take off the dock", () => main.MenuPart.TakeOffDockCommand.Execute(entry), entry.CanTakeOff));
         }
         if (clicked is BarItem bar)
         {
-            items.Add(Item("Move to the other side", () => main.MoveBarAcrossCommand.Execute(bar)));
-            items.Add(Item("Take it off", () => main.TakeOffBarCommand.Execute(bar)));
+            items.Add(Item("Move to the other side", () => main.DockBarPart.MoveBarAcrossCommand.Execute(bar)));
+            items.Add(Item("Take it off", () => main.DockBarPart.TakeOffBarCommand.Execute(bar)));
         }
         if (items.Count > 0)
             items.Add(new Separator());
-        items.Add(Item("Choose what is on the menu…", () => main.EditMenuCommand.Execute(null)));
-        items.Add(Item("Choose what is beside the dock…", () => main.ChooseBarCommand.Execute(null)));
+        items.Add(Item("Choose what is on the menu…", () => main.MenuPart.EditMenuCommand.Execute(null)));
+        items.Add(Item("Choose what is beside the dock…", () => main.DockBarPart.ChooseBarCommand.Execute(null)));
         new ContextMenu { ItemsSource = items }.Open(this);
         e.Handled = true;
     }
@@ -98,7 +98,7 @@ public partial class DockView : UserControl
             return;
         if (!entry.IsGroup)
         {
-            Main?.PickFromMenuCommand.Execute(entry);
+            Main?.MenuPart.PickFromMenuCommand.Execute(entry);
             return;
         }
         // A group's short list is made when it is asked for and let go when it closes.
@@ -127,7 +127,7 @@ public partial class DockView : UserControl
             row.Click += (_, _) =>
             {
                 flyout.Hide();
-                Main?.PickFromMenuCommand.Execute(inside);
+                Main?.MenuPart.PickFromMenuCommand.Execute(inside);
             };
             list.Children.Add(row);
         }

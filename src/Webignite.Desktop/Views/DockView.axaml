@@ -102,16 +102,16 @@
     <!-- The small things beside the dock: one way of drawing each, picked by what it is (Controls/BarTemplates). -->
     <c:BarTemplates x:Key="BarItemTemplate">
       <DataTemplate x:Key="Today" x:DataType="vm:BarItem">
-        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).OpenTodayCommand}" ToolTip.Tip="Today. Click to open Planner.">
+        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).DockBarPart.OpenTodayCommand}" ToolTip.Tip="Today. Click to open Planner.">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <c:Icon Data="{StaticResource Icon.Calendar}" Size="15" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).TodayText}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).DockBarPart.TodayText}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
       </DataTemplate>
       <DataTemplate x:Key="Clock" x:DataType="vm:BarItem">
-        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).OpenTodayCommand}" ToolTip.Tip="The time on this PC">
-          <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).ClockText}" FontFeatures="+tnum" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).DockBarPart.OpenTodayCommand}" ToolTip.Tip="The time on this PC">
+          <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).DockBarPart.ClockText}" FontFeatures="+tnum" FontWeight="SemiBold" VerticalAlignment="Center" />
         </Button>
       </DataTemplate>
       <DataTemplate x:Key="Timer" x:DataType="vm:BarItem">
@@ -122,7 +122,7 @@
               <TextBlock Text="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).Timer.Clock}" FontFeatures="+tnum" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
-          <Button Classes="baritem" Padding="9,8" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).ToggleTimerCommand}" ToolTip.Tip="Start the timer, or stop it and keep the time">
+          <Button Classes="baritem" Padding="9,8" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).DockBarPart.ToggleTimerCommand}" ToolTip.Tip="Start the timer, or stop it and keep the time">
             <Panel>
               <c:Icon Data="{StaticResource Icon.Play}" Size="13" IsVisible="{Binding !$parent[UserControl].((vm:MainViewModel)DataContext).Timer.IsRunning}" />
               <c:Icon Data="{StaticResource Icon.Stop}" Size="13" IsVisible="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).Timer.IsRunning}" />
@@ -151,7 +151,7 @@
         </Button>
       </DataTemplate>
       <DataTemplate x:Key="QuickNote" x:DataType="vm:BarItem">
-        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).QuickNoteCommand}" ToolTip.Tip="Jot down a quick note">
+        <Button Classes="baritem" Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).DockBarPart.QuickNoteCommand}" ToolTip.Tip="Jot down a quick note">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <c:Icon Data="{StaticResource Icon.Notes}" Size="15" VerticalAlignment="Center" />
             <TextBlock Text="Note" VerticalAlignment="Center" />
@@ -162,8 +162,8 @@
   </UserControl.Resources>
   <!-- Right-clicking anything here opens one menu, made as it is asked for (DockView.axaml.cs). -->
   <Grid ColumnDefinitions="*,Auto,*" Margin="12,6,12,12" ContextRequested="Asked">
-    <Border Grid.Column="0" Classes="glass left" Classes.floating="{Binding DockFloats}" Margin="0,0,10,0" IsVisible="{Binding HasBarLeft}">
-      <ItemsControl ItemsSource="{Binding BarLeft}" ItemTemplate="{StaticResource BarItemTemplate}" HorizontalAlignment="Left">
+    <Border Grid.Column="0" Classes="glass left" Classes.floating="{Binding DockBarPart.DockFloats}" Margin="0,0,10,0" IsVisible="{Binding DockBarPart.HasBarLeft}">
+      <ItemsControl ItemsSource="{Binding DockBarPart.BarLeft}" ItemTemplate="{StaticResource BarItemTemplate}" HorizontalAlignment="Left">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate><c:FitRowPanel Spacing="2" /></ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
@@ -171,7 +171,7 @@
     </Border>
     <Border Grid.Column="1" Classes="dock">
       <StackPanel Orientation="Horizontal" Spacing="4">
-        <ItemsControl ItemsSource="{Binding Dock}">
+        <ItemsControl ItemsSource="{Binding MenuPart.Dock}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="4" /></ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
@@ -193,7 +193,7 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <Border Width="1" Margin="4,10" Background="{DynamicResource NavSelected}" />
-        <Button Classes="dockitem" Command="{Binding ToggleMenuCommand}" ToolTip.Tip="Every page, tool and project (Ctrl+M)">
+        <Button Classes="dockitem" Command="{Binding MenuPart.ToggleMenuCommand}" ToolTip.Tip="Every page, tool and project (Ctrl+M)">
           <StackPanel Spacing="4">
             <c:Icon Data="{StaticResource Icon.Tiles}" Size="20" HorizontalAlignment="Center" />
             <TextBlock Text="More" FontSize="{DynamicResource Text11}" HorizontalAlignment="Center" />
@@ -201,8 +201,8 @@
         </Button>
       </StackPanel>
     </Border>
-    <Border Grid.Column="2" Classes="glass right" Classes.floating="{Binding DockFloats}" Margin="10,0,0,0" IsVisible="{Binding HasBarRight}">
-      <ItemsControl ItemsSource="{Binding BarRight}" ItemTemplate="{StaticResource BarItemTemplate}" HorizontalAlignment="Right">
+    <Border Grid.Column="2" Classes="glass right" Classes.floating="{Binding DockBarPart.DockFloats}" Margin="10,0,0,0" IsVisible="{Binding DockBarPart.HasBarRight}">
+      <ItemsControl ItemsSource="{Binding DockBarPart.BarRight}" ItemTemplate="{StaticResource BarItemTemplate}" HorizontalAlignment="Right">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate><c:FitRowPanel Spacing="2" /></ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>

@@ -46,7 +46,7 @@
   </UserControl.Styles>
   <Border Classes="menubar">
     <DockPanel>
-      <Button DockPanel.Dock="Left" Classes="menubutton" Command="{Binding ToggleMenuCommand}" IsVisible="{Binding IsButtonMenu}" Margin="0,0,14,0"
+      <Button DockPanel.Dock="Left" Classes="menubutton" Command="{Binding MenuPart.ToggleMenuCommand}" IsVisible="{Binding MenuPart.IsButtonMenu}" Margin="0,0,14,0"
               ToolTip.Tip="Every page, tool and project (Ctrl+M)">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <c:Icon Data="{StaticResource Icon.Tiles}" Size="15" VerticalAlignment="Center" />

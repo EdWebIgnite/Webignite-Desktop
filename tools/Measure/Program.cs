@@ -59,7 +59,7 @@ Check("Only Overview is built at start", vm.Open.Where(h => h.IsBuilt).Select(h 
 // A new install has the dock as its menu, so this is the app as most people start it. Starting with the dock once
 // crashed, as the dock was filled before a page was picked; this would have caught it.
 Check("The app starts with the dock, holding the usual pages with Overview lit",
-    vm.IsDockMenu && vm.Dock.Count == Webignite.Core.Layout.DockPages.Usual.Count && vm.Dock.Single(e => e.IsCurrent).PageKey == "Overview");
+    vm.MenuPart.IsDockMenu && vm.MenuPart.Dock.Count == Webignite.Core.Layout.DockPages.Usual.Count && vm.MenuPart.Dock.Single(e => e.IsCurrent).PageKey == "Overview");
 
 // Every page in turn: open it, draw it, leave it, let it go, and check it is really gone. The first round also
 // pays one-off costs (screens compiled, styles and fonts read); a second round shows whether anything is left
