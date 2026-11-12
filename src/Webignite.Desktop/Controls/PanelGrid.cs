@@ -220,7 +220,7 @@ public sealed class PanelGrid : Grid
                     new LayoutTransformControl
                     {
                         LayoutTransform = new Avalonia.Media.RotateTransform(90),
-                        Child = new TextBlock { Text = title, FontSize = 12, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center },
+                        Child = new TextBlock { Text = title, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center }.Sized("Text12"),
                     },
                 },
             },
