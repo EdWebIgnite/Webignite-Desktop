@@ -30,6 +30,7 @@ public sealed class ToolWindow : Window
             ToolKind.WebHelpers => 720,
             ToolKind.Dns => 760,
             ToolKind.PageCapture => 1180,
+            ToolKind.Browser => 1280,
             ToolKind.Ruler => 440,
             ToolKind.Snippets => 480,
             ToolKind.ScreenText => 520,
@@ -64,6 +65,7 @@ public sealed class ToolWindow : Window
             ToolKind.WebHelpers => new WebHelpersView(),
             ToolKind.Dns => new DnsView(),
             ToolKind.PageCapture => new PageCaptureView(),
+            ToolKind.Browser => new BrowserView(),
             ToolKind.Ruler => new RulerView(),
             ToolKind.Snippets => new SnippetsView(),
             ToolKind.ScreenText => new ScreenTextView(),
@@ -84,7 +86,7 @@ public sealed class ToolWindow : Window
     public Control View { get; }
 
     /// <summary>True for a tool that needs room (a web page, two files side by side, a long list): it fills a big window that stands on its own.</summary>
-    public bool Fills => Kind is ToolKind.PageCapture or ToolKind.Compare or ToolKind.Duplicates;
+    public bool Fills => Kind is ToolKind.PageCapture or ToolKind.Browser or ToolKind.Compare or ToolKind.Duplicates;
 
     public ToolsViewModel Tools { get; }
 
@@ -98,6 +100,7 @@ public sealed class ToolWindow : Window
         ToolKind.WebHelpers => "Web helpers",
         ToolKind.Dns => "DNS records",
         ToolKind.PageCapture => "Page to PDF or picture",
+        ToolKind.Browser => "Browser and responsive preview",
         ToolKind.Ruler => "Screen ruler",
         ToolKind.Snippets => "Text snippets",
         ToolKind.ScreenText => "Text from the screen",

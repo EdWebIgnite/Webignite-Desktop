@@ -2084,7 +2084,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
 }
 Check("A new install opens with the dock as its menu", startsWithDock);
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2268,6 +2268,36 @@ SaveWindow(captureWindow, "tools-page-capture");
 }
 captureWindow.Close();
 Check("Closing the page tool's window shuts its browser down", standInBrowser!.Disposed && !capture.PageCapture.HasCaptureView);
+// The Browser tool: a site to click through, at the window's size or a device's, one click each.
+{
+    var browserWindow = window.ShowTool(ToolKind.Browser, services);
+    var browsing = browserWindow.Tools.Browser;
+    Check("The Browser tool starts its own browser when its window opens", Until(() => standInBrowser is { Started: true, Disposed: false } && browsing.HasCaptureView));
+    var engine = standInBrowser!;
+    browsing.CaptureAddress = "karoocoffee.co.za/menu";
+    browsing.BrowseCommand.Execute(null);
+    Check("An address typed in the Browser opens", browsing.CaptureAddress == "https://karoocoffee.co.za/menu" && browsing.CaptureNote == "Menu | Karoo Coffee");
+    browsing.CaptureAddress = "karoo coffee menu";
+    browsing.BrowseCommand.Execute(null);
+    Check("Words typed in the Browser are searched for", browsing.CaptureAddress.StartsWith("https://www.google.com/search?q=karoo%20coffee%20menu", StringComparison.Ordinal) && !browsing.CaptureProblem);
+    engine.Calls.Clear();
+    browsing.QuickSizes.First(q => q.Label == "Phone").PickCommand.Execute(null);
+    Check("One click shows the page as a phone, and the button says which size is on",
+        Until(() => engine.Calls.Contains("Emulation.setDeviceMetricsOverride")) && browsing.IsDeviceOn && browsing.DeviceSize.StartsWith("390 × 844", StringComparison.Ordinal)
+        && browsing.QuickSizes.Single(q => q.IsOn).Label == "Phone");
+    SaveWindow(browserWindow, "tools-browser-phone");
+    browsing.QuickSizes.First(q => q.Label == "Tablet").PickCommand.Execute(null);
+    SaveWindow(browserWindow, "tools-browser-tablet");
+    browsing.QuickSizes.First(q => q.Label == "Fit window").PickCommand.Execute(null);
+    Check("Fit window fills the window again", !browsing.IsDeviceOn && double.IsNaN(browsing.PaneWidth) && browsing.QuickSizes.Single(q => q.IsOn).Label == "Fit window");
+    engine.Calls.Clear();
+    Wait(browsing.BackCommand.ExecuteAsync(null), "Back was asked for");
+    Wait(browsing.ReloadCommand.ExecuteAsync(null), "Reload was asked for");
+    Check("Back asks the browser where it has been, and reload loads the page again", engine.Calls.Contains("Page.getNavigationHistory") && engine.Calls.Contains("Page.reload"));
+    SaveWindow(browserWindow, "tools-browser");
+    browserWindow.Close();
+    Check("Closing the Browser's window shuts its browser down", engine.Disposed && !browsing.HasCaptureView);
+}
 // Text snippets: none yet, one saved, found by its code and copied with today's date filled in.
 var snippetWindow = window.ShowTool(ToolKind.Snippets, services);
 var snippets = snippetWindow.Tools;

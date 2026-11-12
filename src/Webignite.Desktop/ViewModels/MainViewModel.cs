@@ -301,6 +301,7 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Qr, "QR code", "Qr"),
             new ToolLink(ToolKind.WebHelpers, "Web helpers", "Code"),
             new ToolLink(ToolKind.Dns, "DNS records", "Dns"),
+            new ToolLink(ToolKind.Browser, "Browser and phone preview", "Browser"),
             new ToolLink(ToolKind.PageCapture, "Page to PDF or picture", "PageCapture"),
             new ToolLink(ToolKind.Ruler, "Screen ruler", "Ruler"),
             new NavGroup("end", ""),

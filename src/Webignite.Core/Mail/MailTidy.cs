@@ -13,7 +13,8 @@ namespace Webignite.Core.Mail;
 /// - pictures and tables wider than the reading pane, which ran off the side: a wide picture now shrinks to fit,
 ///   keeping its shape, and a table made 600 wide for a browser takes the width there is, up to its own;
 /// - Word's own tags (&lt;o:p&gt;) and its notes to Outlook (&lt;!--[if mso]&gt;), which swallowed blank lines or
-///   showed as stray text.
+///   showed as stray text;
+/// - links dressed as buttons ("Pay now", "Review and approve"), which lost their padding and height, or vanished.
 /// </summary>
 public static partial class MailTidy
 {
@@ -60,6 +61,7 @@ public static partial class MailTidy
         tidy = ConditionMarks().Replace(tidy, "");
         tidy = WordParagraphMarks().Replace(tidy, "");
         tidy = BlankParagraphs().Replace(tidy, "${open}<br>${close}");
+        tidy = ButtonLinks().Replace(tidy, AsButton);
         // Which of the tables we are inside were made to give way, innermost last: their cells give way with them.
         var tables = new Stack<bool>();
         return SizedTags().Replace(tidy, m =>
@@ -77,6 +79,44 @@ public static partial class MailTidy
                 tables.Push(gaveWay);
             return before + "<" + m.Groups["tag"].Value + attributes + ">" + after;
         });
+    }
+
+    [GeneratedRegex(@"<a\b(?<attrs>[^>]*)>(?<inner>(?:(?!</?a\b|<table\b|<div\b|<p\b).)*?)</a\s*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex ButtonLinks();
+
+    [GeneratedRegex(@"^(#[0-9a-f]{3,8}|rgba?\([^)]*\)|[a-z]+)$", RegexOptions.IgnoreCase)]
+    private static partial Regex PlainColour();
+
+    // A link made to look like a button (a background colour, with padding or a height) is how most senders write
+    // "Pay now" and "Review and approve". The viewer gives a link no padding or height, so the words sat jammed in
+    // a strip, or the button vanished. A one-cell table of the same colour and size is something it draws properly.
+    private static string AsButton(Match link)
+    {
+        var attributes = link.Groups["attrs"].Value;
+        if (StyleAttribute().Match(attributes) is not { Success: true } styled)
+            return link.Value;
+        var parts = styled.Groups["v"].Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(d => d.Split(':', 2)).Where(d => d.Length == 2).Select(d => (Name: d[0].Trim().ToLowerInvariant(), Value: d[1].Trim())).ToList();
+        string? Value(params string[] names) => parts.LastOrDefault(d => names.Contains(d.Name)).Value;
+        var colour = Value("background-color", "background")?.Replace("!important", "", StringComparison.OrdinalIgnoreCase).Trim();
+        if (colour is null || !PlainColour().IsMatch(colour) || colour.ToLowerInvariant() is "transparent" or "none" or "inherit" or "initial")
+            return link.Value;
+        var padding = Value("padding");
+        var height = PixelsOf(Value("height")) ?? PixelsOf(Value("line-height"));
+        if (padding is null && height is not >= 24 && !parts.Any(d => d.Name.StartsWith("padding-", StringComparison.Ordinal)))
+            return link.Value; // a highlighted word, not a button
+
+        string[] boxOnly = ["background", "background-color", "padding", "display", "height", "line-height", "width", "min-width", "max-width", "border", "border-radius", "box-sizing", "margin"];
+        var cell = new List<string> { "background-color:" + colour };
+        cell.Add("padding:" + (padding ?? (height >= 24 ? "0 20px" : "10px 20px")));
+        cell.AddRange(parts.Where(d => d.Name.StartsWith("padding-", StringComparison.Ordinal) || d.Name is "border" or "border-radius").Select(d => d.Name + ":" + d.Value));
+        var text = string.Join(";", parts.Where(d => !boxOnly.Contains(d.Name) && !d.Name.StartsWith("padding-", StringComparison.Ordinal) && !d.Name.StartsWith("margin-", StringComparison.Ordinal))
+            .Select(d => d.Name + ":" + d.Value));
+        var size = (height >= 24 ? $" height=\"{Math.Round(height.Value).ToString(CultureInfo.InvariantCulture)}\"" : "")
+            + (PixelsOf(Value("width")) is >= 24 and var width ? $" width=\"{Math.Round(width).ToString(CultureInfo.InvariantCulture)}\"" : "");
+        var rest = StyleAttribute().Replace(attributes, "").TrimEnd();
+        return $"<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\"><tr><td align=\"center\" valign=\"middle\"{size} style=\"{string.Join(";", cell).Replace("\"", "'", StringComparison.Ordinal)}\">"
+            + $"<a{rest}{(text.Length > 0 ? " style=\"" + text.Replace("\"", "'", StringComparison.Ordinal) + "\"" : "")}>{link.Groups["inner"].Value}</a></td></tr></table>";
     }
 
     /// <summary>A length in the units Word uses, as pixels: 2.5in is 240.</summary>

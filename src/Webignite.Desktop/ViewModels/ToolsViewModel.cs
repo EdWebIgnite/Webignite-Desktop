@@ -16,6 +16,7 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
     private WebHelpersToolViewModel? webHelpers;
     private DnsToolViewModel? dns;
     private PageCaptureToolViewModel? pageCapture;
+    private PageCaptureToolViewModel? browser;
     private RulerToolViewModel? ruler;
     private SnippetsToolViewModel? snippets;
     private ScreenTextToolViewModel? screenText;
@@ -33,6 +34,9 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
     public WebHelpersToolViewModel WebHelpers => webHelpers ??= new();
     public DnsToolViewModel Dns => dns ??= new(services);
     public PageCaptureToolViewModel PageCapture => pageCapture ??= new(services);
+
+    /// <summary>The Browser tool: the same page view, for looking at a site and trying it at device sizes.</summary>
+    public PageCaptureToolViewModel Browser => browser ??= new(services) { Browses = true };
     public RulerToolViewModel Ruler => ruler ??= new(services);
     public SnippetsToolViewModel Snippets => snippets ??= new(services);
     public ScreenTextToolViewModel ScreenText => screenText ??= new(services);
@@ -52,6 +56,7 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
         ToolKind.WebHelpers => WebHelpers,
         ToolKind.Dns => Dns,
         ToolKind.PageCapture => PageCapture,
+        ToolKind.Browser => Browser,
         ToolKind.Ruler => Ruler,
         ToolKind.Snippets => Snippets,
         ToolKind.ScreenText => ScreenText,
@@ -69,6 +74,7 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
         clipboard?.Dispose();
         qr?.Dispose();
         pageCapture?.Dispose();
+        browser?.Dispose();
         compare?.Dispose();
         duplicates?.Dispose();
         logos?.Dispose();
