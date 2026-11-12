@@ -1,3 +1,4 @@
+using Webignite.Desktop.Controls;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -38,7 +39,7 @@ public sealed class RecordingBar : Window
             {
                 new Avalonia.Controls.Shapes.Ellipse { Width = 10, Height = 10, Fill = Brush("Attention", Colors.Red), VerticalAlignment = VerticalAlignment.Center },
                 time,
-                new TextBlock { Text = sound ? "Microphone on" : "No sound", Foreground = Brush("NavMuted", Colors.Gray), FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
+                new TextBlock { Text = sound ? "Microphone on" : "No sound", Foreground = Brush("NavMuted", Colors.Gray), VerticalAlignment = VerticalAlignment.Center }.Sized("Text12"),
                 stopButton,
             },
         };

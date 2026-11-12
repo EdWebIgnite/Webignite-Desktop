@@ -145,4 +145,45 @@ public sealed class EverydayToolsTests
         Assert.Equal(GlobalShortcut.ClipboardHistory, GlobalShortcuts.TakenBy(keys!, shots, "Ctrl+Alt+N", GlobalShortcut.Screenshot));
         Assert.Null(GlobalShortcuts.TakenBy(keys!, shots, "Ctrl+Alt+N", GlobalShortcut.ClipboardHistory));
     }
+
+    [Fact]
+    public void Every_global_shortcut_has_one_row_with_its_own_number_and_keys()
+    {
+        var all = Enum.GetValues<GlobalShortcut>();
+        Assert.Equal(all, GlobalShortcuts.All.Select(i => i.Shortcut));
+        Assert.Equal(all.Length, GlobalShortcuts.All.Select(i => i.HotkeyId).Distinct().Count());
+        Assert.Equal(all.Length, GlobalShortcuts.All.Select(i => i.DefaultKeys).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(all.Length, GlobalShortcuts.All.Select(i => i.Name).Distinct().Count());
+        foreach (var info in GlobalShortcuts.All)
+        {
+            var (keys, problem) = Hotkey.Parse(info.DefaultKeys);
+            Assert.Null(problem);
+            Assert.Contains(info.DefaultKeys, GlobalShortcuts.SetHint(info.Shortcut, keys!), StringComparison.Ordinal);
+            Assert.Contains("{0}", info.SetHint, StringComparison.Ordinal);
+            Assert.EndsWith("shortcut not set", info.Title, StringComparison.Ordinal);
+            Assert.NotEmpty(info.OffHint);
+        }
+        // The numbers Windows knows them by never change, or keys taken by an older version would not be given back.
+        Assert.Equal(0x5747, GlobalShortcuts.Info(GlobalShortcut.Screenshot).HotkeyId);
+        Assert.Equal(0x574E, GlobalShortcuts.Info(GlobalShortcut.ScreenText).HotkeyId);
+    }
+
+    [Fact]
+    public void A_shortcuts_keys_are_read_and_changed_by_its_name()
+    {
+        var shots = new ScreenshotSettings();
+        foreach (var info in GlobalShortcuts.All)
+        {
+            // A new install has every shortcut on its usual keys.
+            Assert.Equal(info.DefaultKeys, GlobalShortcuts.Keys(info.Shortcut, shots, Webignite.Core.Notes.NoteSettings.DefaultShortcut));
+            if (info.Shortcut == GlobalShortcut.QuickNote)
+                continue;
+            var changed = GlobalShortcuts.With(shots, info.Shortcut, "F9");
+            Assert.Equal("F9", GlobalShortcuts.Keys(info.Shortcut, changed, "Ctrl+Alt+N"));
+            // Only that one changed.
+            Assert.All(GlobalShortcuts.All.Where(o => o.Shortcut != info.Shortcut && o.Shortcut != GlobalShortcut.QuickNote),
+                other => Assert.Equal(other.DefaultKeys, GlobalShortcuts.Keys(other.Shortcut, changed, "Ctrl+Alt+N")));
+        }
+        Assert.Throws<ArgumentOutOfRangeException>(() => GlobalShortcuts.With(shots, GlobalShortcut.QuickNote, "F9"));
+    }
 }

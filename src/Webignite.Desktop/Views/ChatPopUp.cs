@@ -1,3 +1,4 @@
+using Webignite.Desktop.Controls;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -43,7 +44,7 @@ public sealed class ChatPopUp : Window
                 {
                     heading,
                     words,
-                    new TextBlock { Text = "Click to open the chat", FontSize = 11, Foreground = Brush("Muted", Colors.Gray), Margin = new Thickness(0, 4, 0, 0) },
+                    new TextBlock { Text = "Click to open the chat", Foreground = Brush("Muted", Colors.Gray), Margin = new Thickness(0, 4, 0, 0) }.Sized("Text11"),
                 },
             },
         };

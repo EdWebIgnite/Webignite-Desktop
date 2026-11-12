@@ -56,53 +56,11 @@ public partial class SettingsView : UserControl
         }
     }
 
-    // The shortcut boxes: whatever keys are pressed in one become its shortcut.
+    // The shortcut boxes: whatever keys are pressed in one become its shortcut. Each box names its shortcut in its Tag.
     private void ShortcutKeys(object? sender, KeyEventArgs e)
     {
-        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
-            settings.SetShortcut(keys);
-    }
-
-    private void RecordShortcutKeys(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
-            settings.SetRecordShortcut(keys);
-    }
-
-    private void ClipboardShortcutKeys(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
-            settings.SetClipboardShortcut(keys);
-    }
-
-    private void TextShortcutKeys(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
-            settings.SetTextShortcut(keys);
-    }
-
-    private void SnippetShortcutKeys(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
-            settings.SetSnippetShortcut(keys);
-    }
-
-    private void RulerShortcutKeys(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
-            settings.SetRulerShortcut(keys);
-    }
-
-    private void ColourShortcutKeys(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
-            settings.SetColourShortcut(keys);
-    }
-
-    private void QuickNoteShortcutKeys(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is SettingsViewModel settings && Pressed(e) is { } keys)
-            settings.SetQuickNoteShortcut(keys);
+        if (DataContext is SettingsViewModel settings && (sender as Control)?.Tag is Webignite.Core.Tools.GlobalShortcut which && Pressed(e) is { } keys)
+            settings.SetShortcut(which, keys);
     }
 
     private void QuickNotebookPicked(object? sender, SelectionChangedEventArgs e)

@@ -12,38 +12,12 @@ namespace Webignite.Desktop.Views;
 /// </summary>
 public partial class MainWindow
 {
-    private GlobalHotkey? colourKey;
     private bool pickingColour;
 
     private void WireColourPicker(AppServices services)
     {
         services.Go.PickColourAction = picked => PickColour(services, picked).Forget("Picking a colour", tell: true);
-        services.ApplyColourShortcut = () => ApplyColourShortcut(services);
-        Opened += (_, _) =>
-        {
-            if (!OperatingSystem.IsWindows())
-                return;
-            colourKey = new GlobalHotkey(this, 0x574A, () => services.Go.PickColour(), "Screenshots");
-            if (ApplyColourShortcut(services) is { } problem)
-                ShowNote("Colour picker shortcut not set", problem, () => services.Go.Settings("screenshots"));
-        };
-        Closed += (_, _) =>
-        {
-            if (OperatingSystem.IsWindows())
-                colourKey?.Release();
-            colourKey = null;
-        };
-    }
-
-    private string? ApplyColourShortcut(AppServices services)
-    {
-        if (!OperatingSystem.IsWindows() || colourKey is null)
-            return null;
-        var shortcut = services.Settings.Screenshots.ColourShortcut;
-        if (string.IsNullOrWhiteSpace(shortcut))
-            return colourKey.Set(null);
-        var (keys, problem) = Hotkey.Parse(shortcut);
-        return problem ?? colourKey.Set(keys);
+        OnShortcut(Webignite.Core.Tools.GlobalShortcut.ColourPicker, () => services.Go.PickColour());
     }
 
     private async Task PickColour(AppServices services, Action<string>? picked)

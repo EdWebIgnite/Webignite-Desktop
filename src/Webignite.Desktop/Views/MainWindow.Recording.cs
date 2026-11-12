@@ -13,7 +13,6 @@ namespace Webignite.Desktop.Views;
 /// </summary>
 public partial class MainWindow
 {
-    private GlobalHotkey? recordKey;
     private RecordingSession? recording;
 
     private sealed record RecordingSession(Webignite.Tools.Recording.ScreenRecorder Recorder, RecordingBar Bar, string Path);
@@ -25,32 +24,7 @@ public partial class MainWindow
             if (OperatingSystem.IsWindows())
                 (recording is null ? StartRecording(services, hideApp) : StopRecording(main, services)).Forget("Recording the screen", tell: true);
         };
-        services.ApplyRecordShortcut = () => ApplyRecordShortcut(services);
-        Opened += (_, _) =>
-        {
-            if (!OperatingSystem.IsWindows())
-                return;
-            recordKey = new GlobalHotkey(this, 0x5748, () => services.Go.Record(hideApp: false));
-            if (ApplyRecordShortcut(services) is { } problem)
-                ShowNote("Recording shortcut not set", problem, () => services.Go.Settings("screenshots"));
-        };
-        Closed += (_, _) =>
-        {
-            if (OperatingSystem.IsWindows())
-                recordKey?.Release();
-            recordKey = null;
-        };
-    }
-
-    private string? ApplyRecordShortcut(AppServices services)
-    {
-        if (!OperatingSystem.IsWindows() || recordKey is null)
-            return null;
-        var shortcut = services.Settings.Screenshots.RecordShortcut;
-        if (string.IsNullOrWhiteSpace(shortcut))
-            return recordKey.Set(null);
-        var (keys, problem) = Hotkey.Parse(shortcut);
-        return problem ?? recordKey.Set(keys);
+        OnShortcut(Webignite.Core.Tools.GlobalShortcut.Recording, () => services.Go.Record(hideApp: false));
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]

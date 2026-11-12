@@ -45,6 +45,14 @@ Small tools (the calculator, QR codes) aren't pages. Add a value to `ToolKind` (
 
 A tool that needs a web page drawn (and only such a tool) asks `services.NewBrowser()` for an `IWebEngine` once its view is in its window, shows the engine's `View`, and disposes it when the view leaves the window, as `PageCaptureView` and `ToolsViewModel.Capture.cs` do. Never keep one in a field on `AppServices` or start one before the window is open. `NewBrowser()` gives null where there is no WebView2 to use, and the tool then says so. What it asks of the browser's developer tools goes in `Core/Web` as plain JSON with tests (`PageCapture`), so it can be tried without a browser; add the tool to `ToolWindow.Fills` so its window is big and stands on its own, and give the screenshot tool's `StandInBrowser` the answers it needs.
 
+## A shortcut that works from any program
+
+1. Add its name to `GlobalShortcut` and a row to `GlobalShortcuts.All` (`Core/Tools/Screenshots.cs`): a new number for Windows (never reuse one), its names, its usual keys and what Settings says when it is set or off. Add where its keys are kept to `Keys` and `With` there.
+2. In the window, say what it does: `OnShortcut(GlobalShortcut.Yours, () => ...)` in the `Wire...` method of the part it belongs to. `MainWindow.Shortcuts.cs` takes the keys, takes them again when Settings changes them and gives them back at close.
+3. In Settings, add its box: `KeyDown="ShortcutKeys" Tag="{x:Static tools:GlobalShortcut.Yours}"`, a Turn off button on `ShortcutOffCommand` with the same name as its parameter, a property for the box's text and its line in `SettingsViewModel.ShowShortcut`.
+
+The tests check every shortcut has a row with its own number and keys.
+
 ## Panes the person can drag, move and hide
 
 With `Panels` bound, each divider has a small minimise handle for the pane to its left, a minimised pane leaves a slim strip with its name where it was (a click brings it back), and the page's minimised panes show as chips under its name in the sidebar (`MainViewModel.HiddenPanes`) to bring them back too. The divider's right-click menu hides either pane or puts them back. A pane's own minimise button binds to `Panels[key].MinimiseCommand`; a menu tick binds `IsShown` with `Mode=TwoWay` (a menu item's tick is one-way otherwise, so nothing would happen). Make the page's view model `IHasPanes` so Ctrl+Shift+1 to 4 show and hide its panes. Mail, Clients, Notes and Files are built this way.
@@ -135,5 +143,7 @@ dotnet run --project tools/Measure -c Release
 ```
 
 Measure fails when start-up time or memory passes `tools/Measure/limits.json`, or when a page or its screen is still in memory after it is let go. A screen that puts a handler on the window (or anything else that outlives it) keeps the window holding the screen; remember what it was put on and take it off when the screen is taken off screen, as `MarkupView` does. A new tool that opens and closes (a viewer, the file explorer) gets the same open-and-let-go check there. Raise a limit only on purpose, in the PR that needs it, saying why.
+
+The house rules that can be checked by reading the source are tests (`HouseRulesTests`): no `async void` or dropped tasks, small text sized by name, colours only in the palettes, no em dashes, Core standing alone and told the time, pages changing documents and clients through the services, heavy libraries only in Tools. A new rule of that kind goes there, with a message that says what to do instead.
 
 Warnings are errors and the .NET code analysers run at "recommended", so the build is the lint. A rule that doesn't fit is switched off in `.editorconfig` with the reason, or for one line with a `#pragma` and a comment saying why. Look at the screenshots for any screen you touched. One PR per feature, branched from `main`.

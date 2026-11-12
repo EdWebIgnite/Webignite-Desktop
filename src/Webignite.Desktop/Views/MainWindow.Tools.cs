@@ -9,37 +9,11 @@ namespace Webignite.Desktop.Views;
 public partial class MainWindow
 {
     private readonly Dictionary<ToolKind, ToolWindow> toolWindows = [];
-    private Files.GlobalHotkey? clipboardKey;
-
-    private string? ApplyClipboardShortcut(AppServices services)
-    {
-        if (!OperatingSystem.IsWindows() || clipboardKey is null)
-            return null;
-        var shortcut = services.Settings.Screenshots.ClipboardShortcut;
-        if (string.IsNullOrWhiteSpace(shortcut))
-            return clipboardKey.Set(null);
-        var (keys, problem) = Webignite.Core.Tools.Hotkey.Parse(shortcut);
-        return problem ?? clipboardKey.Set(keys);
-    }
-
     // From another program: with Webignite minimised, the tool shows on its own rather than hidden with the main window.
     private void ShowClipboardFromAnywhere(AppServices services)
     {
         var window = ShowTool(ToolKind.Clipboard, services, owned: WindowState != Avalonia.Controls.WindowState.Minimized);
         window.Activate();
-    }
-
-    private Files.GlobalHotkey? snippetKey;
-
-    private string? ApplySnippetShortcut(AppServices services)
-    {
-        if (!OperatingSystem.IsWindows() || snippetKey is null)
-            return null;
-        var shortcut = services.Settings.Screenshots.SnippetShortcut;
-        if (string.IsNullOrWhiteSpace(shortcut))
-            return snippetKey.Set(null);
-        var (keys, problem) = Webignite.Core.Tools.Hotkey.Parse(shortcut);
-        return problem ?? snippetKey.Set(keys);
     }
 
     // From another program: the window that was in front is remembered, so the snippet picked is pasted there.
@@ -61,21 +35,7 @@ public partial class MainWindow
         services.Go.CompareAction = (left, right) => ShowTool(ToolKind.Compare, services).Tools.StartCompare(left, right);
         services.Go.DuplicatesAction = folder => ShowTool(ToolKind.Duplicates, services).Tools.StartDuplicates(folder);
         services.Go.MainToFrontAction = Activate;
-        services.ApplySnippetShortcut = () => ApplySnippetShortcut(services);
-        Opened += (_, _) =>
-        {
-            if (!OperatingSystem.IsWindows())
-                return;
-            snippetKey = new Files.GlobalHotkey(this, 0x574D, () => ShowSnippetsFromAnywhere(services), "Screenshots");
-            if (ApplySnippetShortcut(services) is { } problem)
-                ShowNote("Text snippets shortcut not set", problem, () => services.Go.Settings("screenshots"));
-        };
-        Closed += (_, _) =>
-        {
-            if (OperatingSystem.IsWindows())
-                snippetKey?.Release();
-            snippetKey = null;
-        };
+        OnShortcut(Webignite.Core.Tools.GlobalShortcut.Snippets, () => ShowSnippetsFromAnywhere(services));
         services.Go.OpenToolAction = kind => ShowTool(kind, services);
         // Clipboard history listens from the start, so what's copied before the tool is opened is there too.
         Opened += (_, _) => services.Clipboard.Watch(this);
@@ -85,21 +45,7 @@ public partial class MainWindow
                 open.Close();
         };
         Closed += (_, _) => services.Clipboard.Stop();
-        services.ApplyClipboardShortcut = () => ApplyClipboardShortcut(services);
-        Opened += (_, _) =>
-        {
-            if (!OperatingSystem.IsWindows())
-                return;
-            clipboardKey = new Files.GlobalHotkey(this, 0x574B, () => ShowClipboardFromAnywhere(services), "Screenshots");
-            if (ApplyClipboardShortcut(services) is { } problem)
-                ShowNote("Clipboard history shortcut not set", problem, () => services.Go.Settings("screenshots"));
-        };
-        Closed += (_, _) =>
-        {
-            if (OperatingSystem.IsWindows())
-                clipboardKey?.Release();
-            clipboardKey = null;
-        };
+        OnShortcut(Webignite.Core.Tools.GlobalShortcut.ClipboardHistory, () => ShowClipboardFromAnywhere(services));
     }
 
     /// <summary>Opens a tool, or brings its window forward. Returns the window, for the screenshot tool.</summary>

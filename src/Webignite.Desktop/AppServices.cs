@@ -383,21 +383,6 @@ public sealed class AppServices : IDisposable
     /// <summary>Files copied or cut in Files, waiting to be pasted, in any Files tab or window.</summary>
     public Files.FileClipboard FileClipboard { get; } = new();
 
-    /// <summary>Set by the main window: takes the screenshot shortcut from Settings again. Returns why not, when it can't.</summary>
-    public Func<string?>? ApplyScreenshotShortcut { get; set; }
-
-    /// <summary>Set by the main window: takes the recording shortcut from Settings again. Returns why not, when it can't.</summary>
-    public Func<string?>? ApplyRecordShortcut { get; set; }
-
-    /// <summary>Set by the main window: takes the clipboard history shortcut from Settings again. Returns why not, when it can't.</summary>
-    public Func<string?>? ApplyClipboardShortcut { get; set; }
-
-    /// <summary>Set by the main window: takes the colour picker shortcut from Settings again. Returns why not, when it can't.</summary>
-    public Func<string?>? ApplyColourShortcut { get; set; }
-
-    /// <summary>Sets the text-from-the-screen shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
-    public Func<string?>? ApplyTextShortcut { get; set; }
-
     /// <summary>
     /// Reads the words in a picture (BGRA pixels, width, height) with Windows' own text reading. Gives null when
     /// Windows has no reader for the person's languages. Null itself where there is no such thing (not Windows).
@@ -407,11 +392,11 @@ public sealed class AppServices : IDisposable
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static Task<string?> ReadWithWindows(byte[] pixels, int width, int height) => Webignite.Tools.WindowsOcr.ReadAsync(pixels, width, height);
 
-    /// <summary>Sets the text snippets shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
-    public Func<string?>? ApplySnippetShortcut { get; set; }
-
-    /// <summary>Sets the screen ruler's shortcut from Settings; gives why when Windows won't hand the keys over.</summary>
-    public Func<string?>? ApplyRulerShortcut { get; set; }
+    /// <summary>
+    /// Set by the main window: takes a global shortcut's keys from Settings again, after they were changed.
+    /// Returns why not when Windows won't hand them over, as another program has them.
+    /// </summary>
+    public Func<Webignite.Core.Tools.GlobalShortcut, string?>? ApplyShortcut { get; set; }
 
     /// <summary>A colour picked from the screen or a picture goes to the top of the recent colours.</summary>
     public void RememberColour(string hex)
@@ -433,9 +418,6 @@ public sealed class AppServices : IDisposable
 
     /// <summary>The last things copied while the app is open, in memory only.</summary>
     public Files.ClipboardKeeper Clipboard { get; } = new();
-
-    /// <summary>Settings asks the window to take up a new quick-note shortcut; returns a problem or null.</summary>
-    public Func<string?>? ApplyQuickNoteShortcut { get; set; }
 
     /// <summary>A screen recording is under way, so closing the app should stop it properly first.</summary>
     public bool Recording { get; set; }
