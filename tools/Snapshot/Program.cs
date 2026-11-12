@@ -1224,9 +1224,9 @@ Check("Mail in the sidebar counts the same as the inboxes as soon as a mail is r
 Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41)), "The booking mail opened");
 
 // Snooze until a picked day: the small form above the list.
-Wait(vm.Mail.SnoozeMenu().Last().Run!(), "The snooze form opened");
+Wait(vm.Mail.SnoozePart.SnoozeMenu().Last().Run!(), "The snooze form opened");
 Save("mail-snooze-pick");
-vm.Mail.CancelSnoozePickCommand.Execute(null);
+vm.Mail.SnoozePart.CancelSnoozePickCommand.Execute(null);
 
 // Mail rules: two rules, then the page with the form.
 {
@@ -1239,10 +1239,10 @@ vm.Mail.CancelSnoozePickCommand.Execute(null);
             new() { Id = "r2", Match = Webignite.Core.Mail.RuleMatch.Subject, Text = "Proof of payment", Category = "accounts", MarkImportant = true },
         ],
     };
-    vm.Mail.ManageRulesCommand.Execute(null);
-    vm.Mail.RulesPage.Text = "fnb.co.za";
+    vm.Mail.RulesPart.ManageRulesCommand.Execute(null);
+    vm.Mail.RulesPart.RulesPage.Text = "fnb.co.za";
     Save("mail-rules");
-    vm.Mail.RulesPage.CloseCommand.Execute(null);
+    vm.Mail.RulesPart.RulesPage.CloseCommand.Execute(null);
     services.Settings.MailRules = new Webignite.Core.Mail.MailRuleSettings();
 }
 vm.Mail.Reader!.ReplyCommand.Execute(null);
@@ -1270,7 +1270,7 @@ vm.Mail.Composer.CancelSaveReplyCommand.Execute(null);
 // Send: the mail waits ten seconds with Undo. The headless clock doesn't tick, so it waits until Undo here.
 vm.Mail.Composer.SendCommand.Execute(null);
 Save("mail-undo-send");
-vm.Mail.UndoSendCommand.Execute(null);
+vm.Mail.SendingPart.UndoSendCommand.Execute(null);
 vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Status = "";
@@ -1286,13 +1286,13 @@ vm.Mail.Selection.Clear();
 vm.Mail.Filter = Webignite.Core.Mail.MailFilter.Unread;
 Save("mail-filter-unread");
 vm.Mail.Filter = Webignite.Core.Mail.MailFilter.All;
-vm.Mail.StartNewCategory([]);
-vm.Mail.CategoryEditor!.Name = "Later";
+vm.Mail.EditorsPart.StartNewCategory([]);
+vm.Mail.EditorsPart.CategoryEditor!.Name = "Later";
 Save("mail-new-category");
 vm.Mail.Mailboxes[1].NewFolderCommand.Execute(null);
-vm.Mail.FolderEditor!.Name = "Banking";
+vm.Mail.EditorsPart.FolderEditor!.Name = "Banking";
 Save("mail-new-folder");
-vm.Mail.FolderEditor.CancelCommand.Execute(null);
+vm.Mail.EditorsPart.FolderEditor.CancelCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Panels.Show("folders", false);
 vm.Mail.Panels.Resized("messages", 460);

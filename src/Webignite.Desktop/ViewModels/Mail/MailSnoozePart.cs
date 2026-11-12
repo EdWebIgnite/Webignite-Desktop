@@ -9,12 +9,12 @@ namespace Webignite.Desktop.ViewModels;
 /// Snooze: the picked mail moves to a hidden Snoozed folder on the server until its time, then comes back to the
 /// folder it came from, unread and at the top of the list. The rules for when are in Core.Mail.Snooze.
 /// </summary>
-public partial class MailViewModel
+public sealed partial class MailSnoozePart(AppServices services, MailViewModel page) : ViewModelBase
 {
     /// <summary>The quick snooze times, then "Pick a date", for the toolbar button and the right-click menu.</summary>
     public IReadOnlyList<MailMenuItem> SnoozeMenu()
     {
-        var mail = Targets();
+        var mail = page.Targets();
         var items = Snooze.Choices(DateTimeOffset.Now)
             .Select(c => new MailMenuItem(c.Label, () => SnoozeUntil(c.When, mail)) { IsEnabled = mail.Count > 0 })
             .ToList();
@@ -37,7 +37,7 @@ public partial class MailViewModel
 
     private void StartPickSnooze()
     {
-        snoozePicking = Targets();
+        snoozePicking = page.Targets();
         SnoozeDay = DateTime.Today.AddDays(2);
         SnoozeHour = 8;
         PickingSnooze = true;
@@ -50,7 +50,7 @@ public partial class MailViewModel
             return;
         if (Snooze.At(DateOnly.FromDateTime(day), SnoozeHour, DateTimeOffset.Now) is not { } when)
         {
-            SetStatus("That time has already passed. Pick a later one.", true);
+            page.SetStatus("That time has already passed. Pick a later one.", true);
             return;
         }
         PickingSnooze = false;
@@ -67,9 +67,9 @@ public partial class MailViewModel
         var skipped = mail.Count - withId.Count;
         var snoozed = new List<SnoozedMail>();
         var moved = new List<MailSummary>();
-        foreach (var (account, list) in ByMailbox(withId))
+        foreach (var (account, list) in page.ByMailbox(withId))
         {
-            var ok = await Run(async () =>
+            var ok = await page.Run(async () =>
             {
                 var folder = services.Store.ListMailFolders(account.Id).FirstOrDefault(Snooze.IsSnoozeFolder)
                     ?? await services.Mail.CreateFolderAsync(account, null, Snooze.FolderName);
@@ -87,16 +87,16 @@ public partial class MailViewModel
         {
             var settings = services.Settings.Snooze;
             services.Settings.Snooze = settings with { Snoozed = [.. settings.Snoozed, .. snoozed] };
-            RemovedAndReload(moved);
-            SetStatus($"Snoozed {Count(moved.Count)} {Snooze.Until(until, DateTimeOffset.Now)}."
-                + (skipped > 0 ? $" {Count(skipped)} couldn't be snoozed, as the mail server gave no ID to find it again by." : ""), false);
+            page.RemovedAndReload(moved);
+            page.SetStatus($"Snoozed {MailViewModel.Count(moved.Count)} {Snooze.Until(until, DateTimeOffset.Now)}."
+                + (skipped > 0 ? $" {MailViewModel.Count(skipped)} couldn't be snoozed, as the mail server gave no ID to find it again by." : ""), false);
         }
         else if (skipped > 0)
-            SetStatus("This mail can't be snoozed: the mail server gave no ID to find it again by.", true);
+            page.SetStatus("This mail can't be snoozed: the mail server gave no ID to find it again by.", true);
     }
 
     /// <summary>When a mail counts as arriving for the list's order: mail back from snooze counts from when it came back.</summary>
-    private Func<MailSummary, DateTimeOffset> Arrival()
+    internal Func<MailSummary, DateTimeOffset> Arrival()
     {
         var woken = services.Settings.Snooze.Woken;
         var now = DateTimeOffset.Now;

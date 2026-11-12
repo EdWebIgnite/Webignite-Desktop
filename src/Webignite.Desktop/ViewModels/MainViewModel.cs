@@ -766,7 +766,7 @@ public partial class MainViewModel : ViewModelBase
                 problem ??= $"{client.Title} has something to fix before it can be saved.";
         }
         foreach (var mail in Built<MailViewModel>(Page.Mail))
-            problem = await mail.PrepareToCloseAsync() ?? problem;
+            problem = await mail.SendingPart.PrepareToCloseAsync() ?? problem;
         // What changed since the last full sync goes to your partner now, waiting a few seconds at most.
         if (problem is null && services.MaySync)
             await Task.WhenAny(services.SyncNowAsync(full: true), Task.Delay(TimeSpan.FromSeconds(5)));

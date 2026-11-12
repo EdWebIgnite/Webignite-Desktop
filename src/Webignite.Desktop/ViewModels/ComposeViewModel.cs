@@ -212,7 +212,7 @@ public partial class ComposeViewModel : ViewModelBase
     {
         if (IsWorking || Ready(checkAttachment) is not { } mail)
             return Task.CompletedTask;
-        owner.QueueSend(this, Recipients.Short(mail.To.Concat(mail.Cc).Concat(mail.Bcc).ToList()), () => Deliver(mail));
+        owner.SendingPart.QueueSend(this, Recipients.Short(mail.To.Concat(mail.Cc).Concat(mail.Bcc).ToList()), () => Deliver(mail));
         return Task.CompletedTask;
     }
 
@@ -254,7 +254,7 @@ public partial class ComposeViewModel : ViewModelBase
                 }
                 catch (Exception e) when (e is Webignite.Xero.XeroException or HttpRequestException or InvalidOperationException or TaskCanceledException)
                 {
-                    owner.Reopen(this);
+                    owner.SendingPart.Reopen(this);
                     Say("Not sent: " + e.Message, true);
                     return;
                 }
@@ -276,12 +276,12 @@ public partial class ComposeViewModel : ViewModelBase
         }
         catch (MailException e)
         {
-            owner.Reopen(this);
+            owner.SendingPart.Reopen(this);
             Say("Not sent: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""), true);
         }
         catch (IOException e)
         {
-            owner.Reopen(this);
+            owner.SendingPart.Reopen(this);
             Say("Not sent. Couldn't read an attachment: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""), true);
         }
         finally

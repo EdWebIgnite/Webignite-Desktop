@@ -100,7 +100,7 @@ public partial class MailView : FullBleedView
     private void SnoozeFlyoutOpening(object? sender, EventArgs e)
     {
         if (Mail is { } mail && sender is MenuFlyout flyout)
-            Fill(flyout.Items, mail.SnoozeMenu());
+            Fill(flyout.Items, mail.SnoozePart.SnoozeMenu());
     }
 
     private void MoveFlyoutOpening(object? sender, EventArgs e)

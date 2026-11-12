@@ -51,8 +51,8 @@ public partial class MailRulesViewModel(MailViewModel owner) : ViewModelBase
     public bool CanMove => Mailbox?.Value is not null;
 
     /// <summary>"Run the rules on Inbox now", for the folder open behind this page.</summary>
-    public string RunLabel => owner.RulesTarget is { } target ? $"Run the rules on {target} now" : "";
-    public bool CanRun => owner.RulesTarget is not null && Rules.Count > 0;
+    public string RunLabel => owner.RulesPart.RulesTarget is { } target ? $"Run the rules on {target} now" : "";
+    public bool CanRun => owner.RulesPart.RulesTarget is not null && Rules.Count > 0;
 
     partial void OnMatchChanged(Choice<RuleMatch> value) => OnPropertyChanged(nameof(Placeholder));
 
@@ -146,10 +146,10 @@ public partial class MailRulesViewModel(MailViewModel owner) : ViewModelBase
     [RelayCommand]
     private async Task RunNow()
     {
-        if (owner.RulesTarget is not { } target)
+        if (owner.RulesPart.RulesTarget is not { } target)
             return;
         Message = $"Running the rules on {target}...";
-        var changed = await owner.RunRulesNow();
+        var changed = await owner.RulesPart.RunRulesNow();
         owner.Reload();
         Message = changed switch
         {
@@ -160,7 +160,7 @@ public partial class MailRulesViewModel(MailViewModel owner) : ViewModelBase
     }
 
     [RelayCommand]
-    private void Close() => owner.CloseRules();
+    private void Close() => owner.RulesPart.CloseRules();
 }
 
 /// <summary>One rule in the list: its sentence, an on/off switch and Remove.</summary>

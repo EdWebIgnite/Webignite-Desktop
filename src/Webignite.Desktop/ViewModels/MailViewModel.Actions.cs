@@ -32,13 +32,13 @@ public partial class MailViewModel
         return picked.Count > 0 ? picked : Reader is { } reader ? [reader.Summary] : [];
     }
 
-    private IEnumerable<(MailAccount Account, List<MailSummary> Mail)> ByMailbox(IEnumerable<MailSummary> mail) =>
+    internal IEnumerable<(MailAccount Account, List<MailSummary> Mail)> ByMailbox(IEnumerable<MailSummary> mail) =>
         mail.GroupBy(m => m.AccountId)
             .Select(g => (Account: accounts.FirstOrDefault(a => a.Id == g.Key), Mail: g.ToList()))
             .Where(g => g.Account is not null)
             .Select(g => (g.Account!, g.Mail));
 
-    private static string Count(int n) => n == 1 ? "1 message" : $"{n} messages";
+    internal static string Count(int n) => n == 1 ? "1 message" : $"{n} messages";
 
 
     [RelayCommand]
@@ -129,7 +129,7 @@ public partial class MailViewModel
     }
 
     /// <summary>Takes the mail off the list. In views that gather mail from many folders, the list is read again.</summary>
-    private void RemovedAndReload(IReadOnlyCollection<MailSummary> gone)
+    internal void RemovedAndReload(IReadOnlyCollection<MailSummary> gone)
     {
         Removed(gone);
     }
@@ -195,7 +195,7 @@ public partial class MailViewModel
         items.Add(new(important ? "Not important" : "Mark important", () => Mark(MailMark.Important, !important)) { Icon = "Flag", Gesture = "I" });
         items.Add(new("Categories") { Icon = "Tag", Items = CategoryMenu() });
         items.Add(new("Move to") { Icon = "FolderMove", Items = MoveMenu() });
-        items.Add(new("Snooze") { Icon = "Snooze", Items = SnoozeMenu() });
+        items.Add(new("Snooze") { Icon = "Snooze", Items = SnoozePart.SnoozeMenu() });
         items.Add(new("Archive", () => Do(ArchiveCommand)) { Icon = "Archive", Gesture = "E" });
         // One row picked (a conversation counts as one): these act on the mail open from it.
         var one = Selection.SelectedItems.Count <= 1 && Reader is { } open ? open.Summary : mail.Count == 1 ? mail[0] : null;
@@ -227,7 +227,7 @@ public partial class MailViewModel
             items.Add(MailMenuItem.Separator);
         items.Add(new("New category…", () =>
         {
-            StartNewCategory(mail);
+            EditorsPart.StartNewCategory(mail);
             return Task.CompletedTask;
         }));
         return items;

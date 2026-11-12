@@ -85,7 +85,7 @@ public partial class MailboxNodeViewModel : ViewModelBase
     private void NewFolder()
     {
         if (Account is not null)
-            owner.StartNewFolder(Account, null);
+            owner.EditorsPart.StartNewFolder(Account, null);
     }
 }
 
@@ -189,21 +189,21 @@ public partial class FolderNodeViewModel : ViewModelBase
     private void NewFolder()
     {
         if (Kind == FolderKind.Folder)
-            owner.StartNewFolder(Mailbox, this);
+            owner.EditorsPart.StartNewFolder(Mailbox, this);
     }
 
     [RelayCommand]
     private void Rename()
     {
         if (CanChange)
-            owner.StartRenameFolder(this);
+            owner.EditorsPart.StartRenameFolder(this);
     }
 
     [RelayCommand]
     private void Remove()
     {
         if (CanChange)
-            owner.StartRemoveFolder(this);
+            owner.EditorsPart.StartRemoveFolder(this);
     }
 }
 
@@ -223,5 +223,5 @@ public partial class CategoryNodeViewModel(MailCategory category, MailViewModel 
     private void Open() => owner.Open(this);
 
     [RelayCommand]
-    private void Edit() => owner.StartEditCategory(category);
+    private void Edit() => owner.EditorsPart.StartEditCategory(category);
 }
