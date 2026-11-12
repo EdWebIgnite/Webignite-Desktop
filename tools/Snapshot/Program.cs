@@ -2682,6 +2682,34 @@ Save("invoice-sum");
     Check("The tool is on the dock too, and both are saved",
         vm.MenuPart.Dock.Any(e => e.PageKey == DockKeys.Tool("Calculator")) && services.Settings.Appearance.Dock!.Contains(DockKeys.Group("web-tools")));
     Save("menu-dock-group-and-tool");
+    // Groups folded in the sidebar still show in the menu behind More: there is nowhere to unfold them there.
+    {
+        var folded = vm.Sidebar.OnMenus().OfType<NavGroup>().Where(g => g.Key is "billing" or "client-work").ToList();
+        foreach (var heading in folded)
+            if (heading.IsOpen) heading.Toggle();
+        vm.MenuPart.ToggleMenuCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        var titles = vm.MenuPart.MenuColumns.Select(c => c.Title).ToList();
+        Check("A group folded in the sidebar is still in the menu, with everything in it",
+            titles.Contains("Billing") && titles.Contains("Client work") && titles.Contains("Web tools") && titles.Contains("My pages")
+            && vm.MenuPart.MenuColumns.First(c => c.Title == "Billing").Entries.Any(e => e.PageKey == "Invoices"));
+        var plannerHead = vm.MenuPart.MenuColumns.First(c => c.Title == "Planner").Heading;
+        Check("Planner's heading can go on the dock, and the columns that aren't a group can't",
+            plannerHead is { CanAdd: true, OnDock: false } && vm.MenuPart.MenuColumns.First(c => c.Title == "Start").Heading is null);
+        vm.MenuPart.AddToDockCommand.Execute(plannerHead);
+        Dispatcher.UIThread.RunJobs();
+        Save("menu-dock-more");
+        Check("Adding to the dock leaves the menu open, and Planner as a group takes the place of its own button",
+            vm.MenuPart.IsMenuOpen && vm.MenuPart.Dock.Count(e => e.Title == "Planner") == 1);
+        vm.MenuPart.CloseMenuCommand.Execute(null);
+        var plannerOnDock = vm.MenuPart.Dock.First(e => e.PageKey == DockKeys.Group("planner"));
+        Check("Planner on the dock opens a list of Planner's pages",
+            plannerOnDock.IsGroup && plannerOnDock.Inside.Any(e => e.PageKey == "Projects") && plannerOnDock.Inside.Any(e => e.PageKey == "Calendar"));
+        vm.MenuPart.TakeOffDockCommand.Execute(plannerOnDock);
+        foreach (var heading in folded)
+            if (!heading.IsOpen) heading.Toggle();
+        Dispatcher.UIThread.RunJobs();
+    }
     Open(dockGroup.Inside.Select(e => e.Item).OfType<Module>().First().Key);
     Check("With a page of the group on screen, the group is the lit one", vm.MenuPart.Dock.Single(e => e.IsCurrent).IsGroup);
     Open(Page.Mail);

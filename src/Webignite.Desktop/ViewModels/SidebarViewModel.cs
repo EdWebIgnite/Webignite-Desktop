@@ -201,6 +201,29 @@ public sealed partial class SidebarViewModel : ObservableObject
     /// <summary>Every entry that is on the menus, headings too, in the person's order, whether its group is folded or not.</summary>
     public IReadOnlyList<object> OnMenus() => [.. Sidebar.Shown(layout, defaults).Select(key => byKey[key])];
 
+    /// <summary>
+    /// Everything on the menus as the sidebar lists it with every group open: headings, pages, tools and the links
+    /// that sit beside a page (each of My pages). The Menu button's menu and the dock's More show this, as a group
+    /// folded in the sidebar has nowhere to be unfolded there.
+    /// </summary>
+    public IReadOnlyList<object> Unfolded()
+    {
+        var all = new List<object>();
+        foreach (var item in OnMenus())
+        {
+            if (item is Module { InPlanner: false } module)
+            {
+                var (above, below) = links.GetValueOrDefault(module.Key, ([], []));
+                all.AddRange(above);
+                all.Add(module);
+                all.AddRange(below);
+            }
+            else
+                all.Add(item);
+        }
+        return all;
+    }
+
     /// <summary>What has been taken off, in the app's own order.</summary>
     public IReadOnlyList<object> TakenOff() => [.. Sidebar.TakenOff(layout, defaults).Select(key => byKey[key])];
 

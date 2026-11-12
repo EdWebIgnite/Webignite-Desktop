@@ -24,6 +24,8 @@ public partial class MenuOverlayView : UserControl
             },
             Label = item => (item as MenuEntry)?.Title ?? "",
         };
+        // Groups run down a column for as far as the window has room, then start the next one.
+        SizeChanged += (_, e) => Columns.MaxHeight = Math.Max(280, e.NewSize.Height - 330);
         Controls.DragReorder.Attach(Columns, rules);
         Controls.DragReorder.Attach(Available, rules);
     }
