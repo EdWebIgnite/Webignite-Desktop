@@ -54,7 +54,7 @@
       </StackPanel>
 
       <c:EmptyState IsVisible="{Binding NoMatches}" Icon="{StaticResource Icon.Search}" Title="Nothing matches"
-                    Text="Try fewer words, or pick Everything and Any date." ActionText="Clear the filters" Command="{Binding ClearFiltersCommand}" />
+                    Text="Try fewer words, or pick All and Any date." ActionText="Clear the filters" Command="{Binding ClearFiltersCommand}" />
 
       <Border Classes="card" Padding="0" IsVisible="{Binding ShowTable}">
         <StackPanel>

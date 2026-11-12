@@ -6,10 +6,10 @@
   <StackPanel Spacing="12">
     <TextBlock TextWrapping="Wrap"
                Text="The screen freezes. Point at a gap or a block and its width and height show; drag to measure a box. A click copies the size." />
-    <StackPanel Orientation="Horizontal" Spacing="12">
-      <Button Classes="primary" Content="Measure the screen" Command="{Binding MeasureScreenCommand}" IsEnabled="{Binding CanMeasureScreen}" />
-      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding RulerHint}" VerticalAlignment="Center" />
-    </StackPanel>
+    <DockPanel>
+      <Button DockPanel.Dock="Left" Margin="0,0,12,0" Classes="primary" Content="Measure the screen" Command="{Binding MeasureScreenCommand}" IsEnabled="{Binding CanMeasureScreen}" />
+      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding RulerHint}" VerticalAlignment="Center" TextWrapping="Wrap" />
+    </DockPanel>
     <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Measuring the screen needs Windows." IsVisible="{Binding !CanMeasureScreen}" />
     <ItemsControl ItemsSource="{Binding Measurements}" IsVisible="{Binding HasMeasurements}">
       <ItemsControl.ItemTemplate>

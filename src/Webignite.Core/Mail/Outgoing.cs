@@ -158,8 +158,6 @@ public static class Recipients
 
 public static class Replies
 {
-    private static readonly CultureInfo SouthAfrica = CultureInfo.GetCultureInfo("en-ZA");
-
     /// <summary>
     /// Who a reply goes to. A reply goes to the Reply-To address if the sender set one, otherwise the
     /// sender. Reply all adds everyone else on the mail, leaving out your own mailboxes.
@@ -184,12 +182,12 @@ public static class Replies
     }
 
     public static string Header(MailPerson? from, DateTimeOffset date) =>
-        $"On {date.ToLocalTime().ToString("dddd, d MMMM yyyy 'at' HH:mm", SouthAfrica)}, {from?.Display ?? "someone"} wrote:";
+        $"On {date.ToLocalTime().ToString("dddd, d MMMM yyyy 'at' HH:mm", CultureInfo.InvariantCulture)}, {from?.Display ?? "someone"} wrote:";
 
     public static string ForwardHeader(MailPerson? from, IReadOnlyList<MailPerson> to, DateTimeOffset date, string subject) =>
         "---------- Forwarded message ----------\n"
         + $"From: {from}\n"
-        + $"Date: {date.ToLocalTime().ToString("dddd, d MMMM yyyy 'at' HH:mm", SouthAfrica)}\n"
+        + $"Date: {date.ToLocalTime().ToString("dddd, d MMMM yyyy 'at' HH:mm", CultureInfo.InvariantCulture)}\n"
         + $"Subject: {subject}\n"
         + $"To: {string.Join(", ", to.Select(p => p.ToString()))}";
 

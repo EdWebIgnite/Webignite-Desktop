@@ -453,7 +453,7 @@
                         Padding="0,2" HorizontalAlignment="Left" ToolTip.Tip="Open it in Files" />
                 <WrapPanel>
                   <Button Classes="quiet" Content="Yes, that's it" Command="{Binding ConfirmFolderCommand}" IsVisible="{Binding FolderIsGuess}" Margin="0,0,8,8" />
-                  <Button Classes="quiet" Content="Open in Files" Command="{Binding OpenFolderCommand}" IsVisible="{Binding HasFolder}" Margin="0,0,8,8" />
+                  <Button Classes="quiet" Content="Show in Files" Command="{Binding OpenFolderCommand}" IsVisible="{Binding HasFolder}" Margin="0,0,8,8" />
                   <Button Classes="quiet" Content="Make their folder" Command="{Binding MakeFolderCommand}" IsVisible="{Binding CanMakeFolder}" Margin="0,0,8,8" />
                   <Button Classes="quiet" Content="Pick another" Click="PickFolder" IsVisible="{Binding HasFolder}" Margin="0,0,8,8" />
                   <Button Classes="quiet" Content="Pick a folder" Click="PickFolder" IsVisible="{Binding NoFolder}" Margin="0,0,8,8" />

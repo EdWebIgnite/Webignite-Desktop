@@ -136,7 +136,7 @@ public static class Uptime
             var left = expiryDay.DayNumber - today.DayNumber;
             if (left <= DomainReport.CertificateWarnDays && site.CertificateAlerted != expiryDay)
             {
-                alert = new(domain, $"Certificate on {domain} runs out soon", CertificateText(left), Problem: true);
+                alert = new(domain, left < 0 ? $"Certificate on {domain} has run out" : $"Certificate on {domain} runs out soon", CertificateText(left), Problem: true);
                 updated = updated with { CertificateAlerted = expiryDay };
             }
         }

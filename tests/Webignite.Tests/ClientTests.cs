@@ -50,6 +50,38 @@ public sealed class ClientTests : IDisposable
     }
 
     [Fact]
+    public void Summarising_every_client_at_once_gives_what_one_at_a_time_gives()
+    {
+        var fynbos = new Client { Id = "c2", Name = "Fynbos  Physio" };
+        var nameless = new Client { Id = "c3", Name = " " };
+        StoredDocument[] documents = [Doc("Karoo Coffee Roasters"), Doc("karoo coffee roasters", DocumentStatus.Draft), Doc("fynbos physio"), Doc(" ")];
+        TaskItem[] tasks =
+        [
+            new() { Id = "t1", Title = "Call", Customer = "Karoo Coffee Roasters" },
+            new() { Id = "t2", Title = "Done already", Customer = "Karoo Coffee Roasters", Done = true },
+            new() { Id = "t3", Title = "Nobody's" },
+        ];
+        CalendarEvent[] events =
+        [
+            new() { Id = "e1", Title = "Visit", Date = Today.AddDays(2), Customer = "FYNBOS PHYSIO" },
+            new() { Id = "e2", Title = "Past", Date = Today.AddDays(-2), Customer = "Fynbos Physio" },
+        ];
+
+        var together = ClientDirectory.SummariseAll([Karoo, fynbos, nameless], documents, tasks, events, Today);
+
+        Assert.Equal(3, together.Count);
+        foreach (var summary in together)
+        {
+            var alone = ClientDirectory.Summarise(summary.Client, documents, tasks, events, Today);
+            Assert.Equal(alone.Documents.Select(d => d.Id), summary.Documents.Select(d => d.Id));
+            Assert.Equal(alone.OpenTasks.Select(t => t.Id), summary.OpenTasks.Select(t => t.Id));
+            Assert.Equal(alone.UpcomingEvents.Select(e => e.Id), summary.UpcomingEvents.Select(e => e.Id));
+        }
+        Assert.Equal(2, together[0].Documents.Count);
+        Assert.Empty(together[2].Documents);
+    }
+
+    [Fact]
     public void Customers_on_documents_without_a_client_page_are_offered()
     {
         var names = ClientDirectory.UnsavedNames([Karoo], [Doc("Karoo Coffee Roasters"), Doc("Fynbos Physio"), Doc("fynbos physio"), Doc(" ")]);

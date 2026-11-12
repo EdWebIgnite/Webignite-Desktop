@@ -1436,7 +1436,7 @@
                         </ItemsControl.ItemsPanel>
                       </ItemsControl>
                       <DockPanel Margin="20,0,0,0">
-                        <Button DockPanel.Dock="Right" Content="Reply" Command="{Binding ReplyCommand}" Margin="8,0,0,0" VerticalAlignment="Top" />
+                        <Button Classes="quiet" DockPanel.Dock="Right" Content="Reply" Command="{Binding ReplyCommand}" Margin="8,0,0,0" VerticalAlignment="Top" />
                         <TextBox Text="{Binding ReplyText}" AcceptsReturn="True" TextWrapping="Wrap" PlaceholderText="Reply" />
                       </DockPanel>
                     </StackPanel>

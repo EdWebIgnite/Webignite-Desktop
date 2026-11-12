@@ -26,6 +26,16 @@ public partial class App : Application
                         picker.Text = string.Empty;
                 });
         });
+
+        // A button that shows only an icon has no words for a screen reader, so its tooltip is read out as its name.
+        Avalonia.Controls.ToolTip.TipProperty.Changed.AddClassHandler<Avalonia.Controls.Button>((button, e) =>
+        {
+            if (e.NewValue is not string tip || tip.Length == 0 || button.Content is string)
+                return;
+            var name = Avalonia.Automation.AutomationProperties.GetName(button);
+            if (string.IsNullOrEmpty(name) || name == e.OldValue as string)
+                Avalonia.Automation.AutomationProperties.SetName(button, tip);
+        });
     }
 
     public override void OnFrameworkInitializationCompleted()

@@ -42,7 +42,7 @@
         <TextBlock Classes="h2" Text="Logo pack" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
                    Text="Every version a client gets asked for, in one zip: colour, all white and all black; see-through PNG and WebP, and JPG; from 250 to 2000 pixels wide, with a note on which to use where." />
-        <Button Content="Save the logo pack…" HorizontalAlignment="Left" Click="SavePack" IsEnabled="{Binding !LogoBusy}" />
+        <Button Classes="quiet" Content="Save the logo pack…" HorizontalAlignment="Left" Click="SavePack" IsEnabled="{Binding !LogoBusy}" />
       </StackPanel>
     </Border>
 
@@ -62,7 +62,7 @@
             <TextBox Text="{Binding FaviconTheme}" ToolTip.Tip="Android tints the top of the browser with this. Usually the brand's main colour." />
           </StackPanel>
         </Grid>
-        <Button Content="Save the favicon set…" HorizontalAlignment="Left" Click="SaveFavicons" IsEnabled="{Binding !LogoBusy}" />
+        <Button Classes="quiet" Content="Save the favicon set…" HorizontalAlignment="Left" Click="SaveFavicons" IsEnabled="{Binding !LogoBusy}" />
         <StackPanel Spacing="6" IsVisible="{Binding HasFaviconHtml}">
           <DockPanel>
             <Button DockPanel.Dock="Right" Classes="quiet" Content="Copy" Padding="10,3" Click="CopyHtml" />
@@ -116,12 +116,12 @@
           <TextBlock Classes="label" Text="Prepared by (the line at the foot)" />
           <TextBox Text="{Binding BrandPreparedBy}" />
         </StackPanel>
-        <Button Content="Save the brand sheet…" HorizontalAlignment="Left" Click="SaveBrandSheet" IsEnabled="{Binding !LogoBusy}" />
+        <Button Classes="quiet" Content="Save the brand sheet…" HorizontalAlignment="Left" Click="SaveBrandSheet" IsEnabled="{Binding !LogoBusy}" />
       </StackPanel>
     </Border>
 
     <DockPanel IsVisible="{Binding LogoMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-      <Button DockPanel.Dock="Right" Classes="link" Content="Show it in Files" Command="{Binding ShowLogoMadeCommand}" IsVisible="{Binding HasLogoMade}" Margin="12,0,0,0" />
+      <Button DockPanel.Dock="Right" Classes="link" Content="Show in Files" Command="{Binding ShowLogoMadeCommand}" IsVisible="{Binding HasLogoMade}" Margin="12,0,0,0" />
       <TextBlock Classes="muted" Classes.problem="{Binding LogoProblem}" Text="{Binding LogoMessage}" TextWrapping="Wrap" />
     </DockPanel>
   </StackPanel>

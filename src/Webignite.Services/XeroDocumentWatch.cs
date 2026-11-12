@@ -61,10 +61,14 @@ public sealed class XeroDocumentWatch(LocalStore store, Func<CancellationToken, 
             var rows = await reading;
             var plan = XeroDocuments.Plan(store.List(), rows, started);
             var added = 0;
+            // Looked for again, in case Webignite linked the same one while Xero was being read. Read once, not per
+            // document: a first import can bring thousands.
+            var linked = plan.ToAdd.Count == 0
+                ? []
+                : store.List().Select(d => d.Xero.Id).OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var document in plan.ToAdd)
             {
-                // Looked for again, in case Webignite linked the same one while Xero was being read.
-                if (store.List(document.Document.Kind).Any(d => string.Equals(d.Xero.Id, document.Xero.Id, StringComparison.OrdinalIgnoreCase)))
+                if (document.Xero.Id is { } id && !linked.Add(id))
                     continue;
                 store.Save(document);
                 added++;
