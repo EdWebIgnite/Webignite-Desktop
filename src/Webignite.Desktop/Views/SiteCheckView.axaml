@@ -26,6 +26,37 @@
       </DockPanel>
     </Border>
 
+    <!-- Is a domain free? A name is tried with .co.za, .com and the other usual endings -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding FreeMessage}" VerticalAlignment="Center" Margin="12,0,0,0" />
+          <TextBlock Classes="h2" Text="Is a domain free?" />
+        </DockPanel>
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="quiet" Content="Check names" Command="{Binding FindFreeCommand}" Margin="12,0,0,0" />
+          <TextBox Text="{Binding WantedName}" PlaceholderText="A name to look for, e.g. karoocoffee or karoocoffee.com">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding FindFreeCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding FreeResults}" IsVisible="{Binding HasFreeResults}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="web:DomainCheck">
+              <Grid ColumnDefinitions="240,100,*,Auto" Margin="0,5">
+                <TextBlock Grid.Column="0" Text="{Binding Domain}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Top" />
+                <TextBlock Grid.Column="1" Text="{Binding Verdict}" Classes.muted="{Binding !CanBeHad}" FontWeight="SemiBold" VerticalAlignment="Top" />
+                <TextBlock Grid.Column="2" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,2,0,0" />
+                <Button Grid.Column="3" Classes="link" Content="Look it over" IsVisible="{Binding !CanBeHad}" VerticalAlignment="Top" Margin="12,0,0,0"
+                        Command="{Binding $parent[UserControl].((vm:SiteCheckViewModel)DataContext).LookOverCommand}" CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding DomainTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
       <StackPanel Spacing="10">
         <DockPanel>

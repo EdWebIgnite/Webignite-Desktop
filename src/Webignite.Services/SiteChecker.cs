@@ -95,6 +95,64 @@ public sealed class SiteChecker(HttpClient http)
         throw new HttpRequestException("Couldn't look up the domain. Check the internet connection.");
     }
 
+    /// <summary>
+    /// Whether a domain name is still free. DNS is asked for its name servers and the registry for its record, at
+    /// the same time; <see cref="DomainAvailability.Judge"/> makes the call. Nothing is registered by asking.
+    /// </summary>
+    public async Task<DomainCheck> AvailabilityAsync(string domain, CancellationToken cancel = default)
+    {
+        var dns = NameServerAnswerAsync(domain, cancel);
+        var registry = RegistryRecordAsync(domain, cancel);
+        await Task.WhenAll(dns, registry);
+        return DomainAvailability.Judge(new DomainFacts
+        {
+            Domain = domain,
+            Today = DateOnly.FromDateTime(DateTime.Today),
+            DnsStatus = dns.Result.Status,
+            HasNameServers = dns.Result.HasNameServers,
+            RegistryJson = registry.Result.Json,
+            RegistrySaysNone = registry.Result.SaysNone,
+        });
+    }
+
+    private async Task<(int? Status, bool HasNameServers)> NameServerAnswerAsync(string domain, CancellationToken cancel)
+    {
+        foreach (var server in new[] { "https://dns.google/resolve", "https://cloudflare-dns.com/dns-query" })
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"{server}?name={Uri.EscapeDataString(domain)}&type=NS");
+                request.Headers.Accept.ParseAdd("application/dns-json");
+                using var response = await http.SendAsync(request, cancel);
+                if (response.IsSuccessStatusCode && DomainAvailability.Dns(await response.Content.ReadAsStringAsync(cancel)) is { Status: not null } answer)
+                    return answer;
+            }
+            catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+            {
+                // Try the next server.
+            }
+        }
+        return (null, false);
+    }
+
+    // rdap.org passes the question on to the ending's own registry. "Not found" from that registry means the name
+    // is free; "not found" from rdap.org itself only means the ending's registry takes no such questions (.co.za).
+    private async Task<(string? Json, bool SaysNone)> RegistryRecordAsync(string domain, CancellationToken cancel)
+    {
+        try
+        {
+            using var response = await http.GetAsync("https://rdap.org/domain/" + Uri.EscapeDataString(domain), cancel);
+            if (response.IsSuccessStatusCode)
+                return (await response.Content.ReadAsStringAsync(cancel), false);
+            var passedOn = response.RequestMessage?.RequestUri?.Host is { } host && !host.Equals("rdap.org", StringComparison.OrdinalIgnoreCase);
+            return (null, response.StatusCode == HttpStatusCode.NotFound && passedOn);
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            return (null, false);
+        }
+    }
+
     private async Task<(string? Json, string? Problem)> RdapAsync(string domain, CancellationToken cancel)
     {
         try

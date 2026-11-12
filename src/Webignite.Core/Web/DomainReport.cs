@@ -168,6 +168,19 @@ public static class DomainReport
     private static string? KeyValue(string record) =>
         record.Split(';').Select(p => p.Trim()).FirstOrDefault(p => p.StartsWith("p=", StringComparison.OrdinalIgnoreCase))?[2..].Trim();
 
+    /// <summary>What the registry's record says of a registered name: "Registered through xneelo until 31 May 2027 (200 days left)."</summary>
+    public static string RegistrationLine(string rdapJson, DateOnly today)
+    {
+        try
+        {
+            return Registration(new DomainLookup { Domain = "", Today = today, RdapJson = rdapJson }).First().Value;
+        }
+        catch (Exception e) when (e is JsonException or InvalidOperationException)
+        {
+            return "Registered. The registry's record couldn't be read.";
+        }
+    }
+
     private static IEnumerable<DomainFinding> Registration(DomainLookup look)
     {
         if (look.RdapJson is null)
