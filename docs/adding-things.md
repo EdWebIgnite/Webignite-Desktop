@@ -85,7 +85,7 @@ To keep a page calm, put its extra blocks in one card as folding rows rather tha
 
 ## A view of a project with state of its own
 
-Projects is one page with several views of the open project. Which one shows is one setting, `ProjectsViewModel.Tab` (a `ProjectTab`); every `IsX` flag reads it. A view with lists and commands of its own is a part in `ViewModels/Projects` (`ProjectMessagesPart`, `ProjectFilesPart`, `ProjectGalleryPart`, `ProjectMyTodosPart`): it is given the page, reaches the open project through it (`page.open`, `page.Ours(...)`), and the screen binds to it by name, `{Binding MessagesPart.NewMessageText}`. A new view goes the same way, never as more members on `ProjectsViewModel`.
+Projects is one page with several views of the open project. Which one shows is one setting, `ProjectsViewModel.Tab` (a `ProjectTab`); every `IsX` flag reads it. A view with lists and commands of its own is a part in `ViewModels/Projects` (`ProjectMessagesPart`, `ProjectFilesPart`, `ProjectGalleryPart`, `ProjectMyTodosPart`, `ProjectOverviewPart`, `ProjectTimelinePart` for the timeline and the calendar, `ProjectFieldsPart` for custom fields): it is given the page, reaches the open project through it (`page.open`, `page.Ours(...)`), and the screen binds to it by name, `{Binding MessagesPart.NewMessageText}`. A new view goes the same way, never as more members on `ProjectsViewModel`.
 
 ## A date on a page
 
