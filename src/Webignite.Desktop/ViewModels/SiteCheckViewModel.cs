@@ -67,6 +67,37 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         OnPropertyChanged(nameof(HasDomain));
     }
 
+    /// <summary>The box for a Google key is showing: a test ran out of allowance, or Use my own key was clicked.</summary>
+    [ObservableProperty] public partial bool AsksForSpeedKey { get; set; }
+
+    [ObservableProperty] public partial string SpeedKeyTyped { get; set; } = "";
+
+    public bool HasSpeedKey => services.Settings.SpeedKey.Length > 0;
+    public string SpeedKeyLink => HasSpeedKey ? "Change the Google key" : "Use my own Google key";
+
+    [RelayCommand]
+    private void AskForSpeedKey()
+    {
+        SpeedKeyTyped = services.Settings.SpeedKey;
+        AsksForSpeedKey = !AsksForSpeedKey;
+    }
+
+    /// <summary>Keeps the key (an empty box takes it away) and runs the test again with it.</summary>
+    [RelayCommand]
+    private async Task SaveSpeedKey()
+    {
+        services.Settings.SpeedKey = SpeedKeyTyped;
+        AsksForSpeedKey = false;
+        OnPropertyChanged(nameof(HasSpeedKey));
+        OnPropertyChanged(nameof(SpeedKeyLink));
+        if (SpeedMessageProblem && TestSpeedCommand.CanExecute(null))
+            await TestSpeedCommand.ExecuteAsync(null);
+    }
+
+    [RelayCommand]
+    private static void GetSpeedKey() =>
+        AppServices.OpenInBrowser(new Uri("https://developers.google.com/speed/docs/insights/v5/get-started#APIKey")).Forget("Opening Google's page for a key", tell: true);
+
     [RelayCommand(CanExecute = nameof(CanCheck))]
     private async Task TestSpeed()
     {
@@ -79,7 +110,7 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         SpeedMessageProblem = false;
         try
         {
-            var report = await services.SiteChecker.SpeedAsync(address);
+            var report = await services.SiteChecker.SpeedAsync(address, services.Settings.SpeedKey);
             Remember(address, report);
             Speed = report;
             SpeedMessage = "";
@@ -88,6 +119,9 @@ public sealed partial class SiteCheckViewModel(AppServices services) : ViewModel
         {
             SpeedMessage = e is HttpRequestException ? e.Message : "Google's test didn't finish. Try again in a minute.";
             SpeedMessageProblem = true;
+            // Out of allowance, or the key was refused: the place to put a key in is shown with the reason.
+            if (e is Webignite.Services.SpeedQuotaException or Webignite.Services.SpeedKeyException)
+                AsksForSpeedKey = true;
         }
         OnPropertyChanged(nameof(HasFixes));
     }
