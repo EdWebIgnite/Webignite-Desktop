@@ -71,6 +71,7 @@ flowchart BT
     connector["Webignite.Connector<br/>MCP tools"]
     desktop["Webignite.Desktop<br/>windows, pages, view models"]
     tests["tests/Webignite.Tests"]
+    desktoptests["tests/Webignite.Desktop.Tests"]
     snapshot["tools/Snapshot<br/>screenshots, headless"]
 
     data --> core
@@ -95,6 +96,7 @@ flowchart BT
     tests --> mail
     tests --> services
     snapshot --> desktop
+    desktoptests --> desktop
 ```
 
 | Project | Holds | Outside packages |
@@ -109,6 +111,7 @@ flowchart BT
 | `Webignite.Desktop` | The app: `AppServices`, `AppSettings`, `Navigator`, `MailDrafts`, `BackgroundJobs`, `MailCheck` (plus `MailWatch` in Mail: a second connection per mailbox waits on the inbox with IMAP IDLE, rules in `MailWatchRules`, and asks for a check the moment mail lands; started by the app with `MainViewModel.WatchMail`), `TimerClock`, pages (view models and views), controls, styles. | Avalonia, CommunityToolkit.Mvvm, HtmlRenderer, Velopack |
 | `Webignite.Tools` | The heavier tools: screen recording to MP4 (`Recording/`: `ScreenRecorder`, `VideoWriter`, `VideoFile`, through Windows' Media Foundation and WASAPI), PDF pages (`PdfPages`), PDF text and page counts (`PdfText`), putting files into one PDF (`PdfMaker`), building PDFs page by page with turns, words and a signature (`PdfEdit`, through PDFium), turning pictures and reading their size (`PictureTools`), picture shrinking (`ImageShrinker`), QR codes (`QrCodes`), pictures decoded for the picture viewer (`PictureTools.ForViewing`), reading the words in a picture with Windows' own text reading (`WindowsOcr`), logo packs and favicon sets (`LogoMaker`), pictures cut for social networks (`SocialImages`), and the browser for the web tools (`Web/WebView2Core`: the WebView2 Windows already has, started, asked for a PDF or its developer tools, and closed). Only read from disk when a tool is first used. | PDFium (bblanchon.PDFium, called directly in `Pdfium.cs`), QRCoder, Avalonia.Skia, Svg.Skia (draws SVG logos with the same Skia), Microsoft.Web.WebView2 (only its wrapper and loader, no browser) |
 | `tests/Webignite.Tests` | xUnit v3 tests, one file per area. | xunit.v3 |
+| `tests/Webignite.Desktop.Tests` | Tests for the app itself: view models made and used on a screen thread with no window (`Ui.Run`), each over its own throwaway database (`TestApp`). What a page shows, what a command does, and that a page let go is freed. | xunit.v3, Avalonia.Headless |
 | `tools/Measure` | Opens the app on a year of made-up work and measures start-up time and memory, then opens and lets go of every page twice, checking each page and its screen are freed and nothing is left behind. Fails past `limits.json`; CI runs it and puts the numbers in the run's summary. | Avalonia.Headless |
 | `tools/Snapshot` | Builds sample data in a throwaway database, saves a screenshot of each screen and runs checks along the way (a failed check fails the run). CI runs it on every pull request and keeps the pictures. | Avalonia.Headless |
 

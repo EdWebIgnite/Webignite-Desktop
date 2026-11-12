@@ -58,6 +58,7 @@ To add a page, a setting, a table, a background check, an assistant tool or a te
 | `src/Webignite.Desktop` | The Avalonia app. View models under `ViewModels`, views under `Views`, custom controls under `Controls`, colours and styles under `Styles`. Each sidebar entry is a `Module`. |
 | `src/Webignite.Connector` | The MCP server Claude Desktop and ChatGPT start. Talks over stdin and stdout; logs go to stderr. |
 | `tests/Webignite.Tests` | xUnit tests for Core, Data, Xero, Mail and Services. Xero and mail are tested against fake HTTP handlers. |
+| `tests/Webignite.Desktop.Tests` | xUnit tests for the app's own view models, with no window shown. |
 | `tools/Snapshot` | Renders every screen to PNG without opening a window, using a throwaway database with sample data. |
 
 Colours live in `src/Webignite.Desktop/Styles/Palette.axaml`, `Palette.Light.Asana.axaml` and the four `Palette.Dark.*.axaml` files, which all hold the same names. The only other colours are inside mail itself: mail is shown on white paper in every look, so its base text colour is written into the mail's own HTML.
