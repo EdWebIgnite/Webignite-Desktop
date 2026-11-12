@@ -12,7 +12,8 @@ public static class MailReader
         return MimeMessage.Load(stream);
     }
 
-    public static MailBody Read(byte[] mime, bool allowRemoteImages)
+    /// <param name="forViewer">Tidied to fit the app's viewer (<see cref="MailTidy"/>); off for what a reply or forward quotes, which stays as sent.</param>
+    public static MailBody Read(byte[] mime, bool allowRemoteImages, bool forViewer = false)
     {
         var message = Parse(mime);
         var attachments = Attachments(message);
@@ -36,7 +37,7 @@ public static class MailReader
         html = InlineImages(message, html);
         return new MailBody
         {
-            Html = MailHtml.Sanitise(html, allowRemoteImages),
+            Html = forViewer ? MailTidy.Tidy(MailHtml.Sanitise(html, allowRemoteImages)) : MailHtml.Sanitise(html, allowRemoteImages),
             Text = string.IsNullOrWhiteSpace(text) ? MailHtml.ToText(html) : text,
             Attachments = attachments,
             HasRemoteImages = MailHtml.HasRemoteImages(html),
