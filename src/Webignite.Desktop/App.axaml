@@ -38,6 +38,7 @@
     <DataTemplate DataType="vm:TimeViewModel"><v:TimeView /></DataTemplate>
     <DataTemplate DataType="vm:CalendarViewModel"><v:CalendarView /></DataTemplate>
     <DataTemplate DataType="vm:PlannerViewModel"><v:PlannerView /></DataTemplate>
+    <DataTemplate DataType="vm:DiaryViewModel"><v:DiaryView /></DataTemplate>
     <DataTemplate DataType="vm:MyPagesViewModel"><v:MyPagesView /></DataTemplate>
     <DataTemplate DataType="vm:PlannerHomeViewModel"><v:PlannerHomeView /></DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>

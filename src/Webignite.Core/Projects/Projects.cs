@@ -594,7 +594,7 @@ public static class ProjectRules
     public static IReadOnlyList<Webignite.Core.Calendar.AgendaItem> Agenda(DateOnly from, DateOnly to, IEnumerable<ProjectTask> mine, IReadOnlyDictionary<string, string> projectNames) =>
         [.. mine.Where(t => t.Due is { } due && due >= from && due <= to)
             .Select(t => new Webignite.Core.Calendar.AgendaItem(t.Due!.Value, Webignite.Core.Calendar.AgendaKind.ProjectTask,
-                projectNames.TryGetValue(t.ProjectId, out var name) ? $"{t.Title} ({name})" : t.Title, null, t.Id, t.Done))];
+                projectNames.TryGetValue(t.ProjectId, out var name) ? $"{t.Title} ({name})" : t.Title, t.DueTime, t.Id, t.Done))];
 
     /// <summary>A task made from a mail: its subject as the title, the mail linked, given to me.</summary>
     public static ProjectTask FromMail(Webignite.Core.Mail.MailSummary mail, string projectId, string meId, string? clientId) => new()

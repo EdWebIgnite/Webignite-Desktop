@@ -10,6 +10,12 @@ public enum AgendaKind
     QuoteExpires,
     InvoiceDue,
     ProjectTask,
+
+    /// <summary>A domain, hosting or licence falling due; only the diary lists these.</summary>
+    Renewal,
+
+    /// <summary>The day a retainer's invoice is drafted; only the diary lists these.</summary>
+    Retainer,
 }
 
 /// <summary>One thing on a day: an event, a task, or a date from a quote or invoice.</summary>

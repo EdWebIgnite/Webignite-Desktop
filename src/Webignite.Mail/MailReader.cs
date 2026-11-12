@@ -19,6 +19,7 @@ public static class MailReader
         var text = message.TextBody;
         var html = message.HtmlBody;
 
+        var calendar = Calendar(message);
         var draftedBy = message.Headers[MailComposer.DraftedByHeader];
         var repliesElsewhere = RepliesElsewhere(message);
         if (html is null)
@@ -27,6 +28,7 @@ public static class MailReader
                 Html = MailHtml.FromText(text ?? ""),
                 Text = text ?? "",
                 Attachments = attachments,
+                Calendar = calendar,
                 DraftedBy = draftedBy,
                 RepliesElsewhere = repliesElsewhere,
             };
@@ -38,9 +40,32 @@ public static class MailReader
             Text = string.IsNullOrWhiteSpace(text) ? MailHtml.ToText(html) : text,
             Attachments = attachments,
             HasRemoteImages = MailHtml.HasRemoteImages(html),
+            Calendar = calendar,
             DraftedBy = draftedBy,
             RepliesElsewhere = repliesElsewhere,
         };
+    }
+
+    /// <summary>
+    /// The calendar invite in a message, as text. Outlook and Teams send it as another form of the body
+    /// (text/calendar); others attach an .ics file. Null when there is none, or it is too big to be an invite.
+    /// </summary>
+    public static string? Calendar(MimeMessage message)
+    {
+        foreach (var part in message.BodyParts.OfType<MimePart>())
+        {
+            var isCalendar = part.ContentType.IsMimeType("text", "calendar") || part.ContentType.IsMimeType("application", "ics")
+                || (part.FileName ?? "").EndsWith(".ics", StringComparison.OrdinalIgnoreCase);
+            if (!isCalendar || part.Content is null)
+                continue;
+            if (part is TextPart text)
+                return text.Text;
+            using var bytes = new MemoryStream();
+            part.Content.DecodeTo(bytes);
+            if (bytes.Length <= 512 * 1024)
+                return System.Text.Encoding.UTF8.GetString(bytes.ToArray());
+        }
+        return null;
     }
 
     // The Reply-To addresses whose domain isn't the sender's, or null when replies go back where the mail came from.

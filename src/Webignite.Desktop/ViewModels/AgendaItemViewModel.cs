@@ -22,6 +22,8 @@ public sealed class AgendaItemViewModel(AgendaItem item, Action<AgendaItemViewMo
         AgendaKind.Task => "To-do",
         AgendaKind.ProjectTask => "Project task",
         AgendaKind.QuoteExpires => "Quote",
+        AgendaKind.Renewal => "Renewal",
+        AgendaKind.Retainer => "Retainer",
         _ => "Invoice",
     };
 

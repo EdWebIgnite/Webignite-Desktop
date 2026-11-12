@@ -1,0 +1,214 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.DiaryView"
+             x:DataType="vm:DiaryViewModel">
+  <UserControl.Styles>
+    <!-- The book: a cover the two pages lie on, each page ruled, with the spine between them. Pages are paper in
+         every look, light or dark, so what is on them uses the Paper colours. -->
+    <Style Selector="Border.diarycover">
+      <Setter Property="Background" Value="{DynamicResource PaperText}" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="7,7,7,9" />
+      <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
+    </Style>
+    <Style Selector="Border.diarypage">
+      <Setter Property="Background" Value="{DynamicResource Paper}" />
+      <Setter Property="Padding" Value="26,22,26,26" />
+      <Setter Property="TextElement.Foreground" Value="{DynamicResource PaperText}" />
+    </Style>
+    <Style Selector="Border.diarypage.left">
+      <Setter Property="CornerRadius" Value="8,0,0,8" />
+    </Style>
+    <Style Selector="Border.diarypage.right">
+      <Setter Property="CornerRadius" Value="0,8,8,0" />
+    </Style>
+    <Style Selector="Border.diaryspine">
+      <Setter Property="Width" Value="12" />
+      <Setter Property="Background" Value="{DynamicResource PaperLine}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource PaperShade}" />
+      <Setter Property="BorderThickness" Value="4,0" />
+    </Style>
+    <Style Selector="Border.diaryrule">
+      <Setter Property="BorderBrush" Value="{DynamicResource PaperLine}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="MinHeight" Value="38" />
+      <Setter Property="Padding" Value="0,3" />
+    </Style>
+    <Style Selector="TextBlock.diaryhour">
+      <Setter Property="Foreground" Value="{DynamicResource PaperMuted}" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12}" />
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Margin" Value="0,7,0,0" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="TextBlock.onpaper">
+      <Setter Property="Foreground" Value="{DynamicResource PaperText}" />
+    </Style>
+    <Style Selector="TextBlock.onpaper.faint">
+      <Setter Property="Foreground" Value="{DynamicResource PaperMuted}" />
+    </Style>
+    <Style Selector="TextBlock.onpaper.done">
+      <Setter Property="TextDecorations" Value="Strikethrough" />
+      <Setter Property="Foreground" Value="{DynamicResource PaperMuted}" />
+    </Style>
+    <!-- Writing straight onto the page: no box, and the hint only shows when the pointer or the caret is on the line. -->
+    <Style Selector="TextBox.diarywrite">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource PaperText}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource PaperText}" />
+      <Setter Property="PlaceholderForeground" Value="Transparent" />
+      <Setter Property="Padding" Value="2,5" />
+      <Setter Property="MinHeight" Value="30" />
+    </Style>
+    <Style Selector="TextBox.diarywrite:pointerover, TextBox.diarywrite:focus, TextBox.diarywrite.shown">
+      <Setter Property="PlaceholderForeground" Value="{DynamicResource PaperMuted}" />
+    </Style>
+    <Style Selector="TextBox.diarywrite /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.diaryentry">
+      <Setter Property="Background" Value="{DynamicResource PaperShade}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource PaperLine}" />
+      <Setter Property="BorderThickness" Value="2,0,0,0" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="Margin" Value="0,2" />
+    </Style>
+    <Style Selector="CheckBox.onpaper">
+      <Setter Property="Foreground" Value="{DynamicResource PaperText}" />
+    </Style>
+    <Style Selector="Button.paperlink">
+      <Setter Property="Foreground" Value="{DynamicResource PaperLink}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="FontSize" Value="{DynamicResource Text12}" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.daymark">
+      <Setter Property="Background" Value="{DynamicResource PaperText}" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="6,1" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <!-- One page: the day at the top, what has no time, the hours, then free lines for notes. -->
+    <DataTemplate x:Key="Page" x:DataType="vm:DiaryPageViewModel">
+      <StackPanel>
+        <DockPanel Margin="0,0,0,10">
+          <TextBlock DockPanel.Dock="Left" Classes="onpaper" Text="{Binding DayNumber}" FontSize="44" FontWeight="SemiBold" LineHeight="46" Margin="0,0,12,0" VerticalAlignment="Bottom" />
+          <Border DockPanel.Dock="Right" Classes="daymark" IsVisible="{Binding IsToday}">
+            <TextBlock Text="Today" Foreground="{DynamicResource Paper}" FontSize="{DynamicResource Text11}" FontWeight="SemiBold" />
+          </Border>
+          <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,4">
+            <TextBlock Classes="onpaper" Text="{Binding DayName}" FontSize="17" FontWeight="SemiBold" />
+            <TextBlock Classes="onpaper faint" Text="{Binding MonthYear}" FontSize="{DynamicResource Text12}" />
+          </StackPanel>
+        </DockPanel>
+        <Border BorderBrush="{DynamicResource PaperText}" BorderThickness="0,0,0,2" Margin="0,0,0,8" />
+
+        <!-- To do and due on the day, with no time -->
+        <ItemsControl ItemsSource="{Binding Untimed}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DiaryEntryViewModel">
+              <DockPanel Margin="0,1">
+                <TextBlock DockPanel.Dock="Right" Classes="onpaper faint" FontSize="{DynamicResource Text11}" Text="{Binding KindLabel}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                <CheckBox DockPanel.Dock="Left" Classes="onpaper" IsChecked="{Binding IsDone}" IsVisible="{Binding CanTick}" MinWidth="0" Margin="0,0,6,0" VerticalAlignment="Center"
+                          ToolTip.Tip="Tick it off; it is ticked off where it lives too" />
+                <TextBlock DockPanel.Dock="Left" Classes="onpaper faint" Text="•" Width="26" TextAlignment="Center" IsVisible="{Binding IsPlain}" VerticalAlignment="Center" />
+                <Button Classes="paperlink" DockPanel.Dock="Right" Content="Open" Command="{Binding OpenCommand}" IsVisible="{Binding CanOpen}" VerticalAlignment="Center" />
+                <TextBlock Classes="onpaper" Classes.done="{Binding IsDone}" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Classes="diaryrule" MinHeight="0" Padding="0">
+          <TextBox Classes="diarywrite shown" Text="{Binding NewTodo}" PlaceholderText="Add a to-do for this day" Margin="24,0,0,0">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding AddTodoCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+        </Border>
+        <TextBlock Classes="short" FontSize="{DynamicResource Text12}" Text="{Binding Message}" TextWrapping="Wrap" Margin="0,6,0,0"
+                   IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+        <!-- The hours -->
+        <ItemsControl ItemsSource="{Binding Lines}" Margin="0,10,0,0">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DiaryLineViewModel">
+              <Border Classes="diaryrule">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Left" Classes="diaryhour" Text="{Binding HourText}" />
+                  <StackPanel>
+                    <ItemsControl ItemsSource="{Binding Entries}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DiaryEntryViewModel">
+                          <Border Classes="diaryentry">
+                            <DockPanel>
+                              <Button DockPanel.Dock="Right" Classes="paperlink" Content="Remove" Command="{Binding DeleteCommand}" IsVisible="{Binding IsEvent}" VerticalAlignment="Center" />
+                              <Button DockPanel.Dock="Right" Classes="paperlink" Content="Open" Command="{Binding OpenCommand}" IsVisible="{Binding CanOpen}" VerticalAlignment="Center" />
+                              <Button DockPanel.Dock="Right" Classes="paperlink" Content="Join" FontWeight="SemiBold" Command="{Binding JoinCommand}" IsVisible="{Binding CanJoin}" VerticalAlignment="Center"
+                                      ToolTip.Tip="{Binding JoinLink}" />
+                              <CheckBox DockPanel.Dock="Left" Classes="onpaper" IsChecked="{Binding IsDone}" IsVisible="{Binding CanTick}" MinWidth="0" Margin="0,0,6,0" VerticalAlignment="Center" />
+                              <TextBlock DockPanel.Dock="Left" Classes="onpaper" Text="{Binding Time}" FontWeight="SemiBold" Margin="0,0,8,0" VerticalAlignment="Center" />
+                              <StackPanel VerticalAlignment="Center">
+                                <TextBlock Classes="onpaper" Classes.done="{Binding IsDone}" Text="{Binding Title}" TextWrapping="Wrap" />
+                                <TextBlock Classes="onpaper faint" FontSize="{DynamicResource Text11}" Text="{Binding Place}" IsVisible="{Binding HasPlace}" TextTrimming="CharacterEllipsis" />
+                              </StackPanel>
+                            </DockPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBox Classes="diarywrite" Text="{Binding NewText}" PlaceholderText="{Binding WriteHint}">
+                      <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding AddCommand}" />
+                      </TextBox.KeyBindings>
+                    </TextBox>
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Notes: free lines kept with the day -->
+        <TextBlock Classes="onpaper faint" Text="NOTES" FontSize="{DynamicResource Text11}" FontWeight="SemiBold" Margin="0,18,0,2" />
+        <TextBox Classes="diarywrite shown" Text="{Binding Notes}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" LineHeight="26"
+                 PlaceholderText="Anything to remember about this day" LostFocus="KeepNotes" />
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <StackPanel Spacing="18">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <c:DateBox SelectedDate="{Binding OpenAt}" Width="160" ToolTip.Tip="Open the diary at a day" />
+        <Button Classes="quiet" Content="Today" Command="{Binding GoToTodayCommand}" />
+        <Button Classes="quiet" Content="‹" Command="{Binding PreviousPagesCommand}" ToolTip.Tip="Turn back a page (Alt+Left)" HotKey="Alt+Left" />
+        <Button Classes="quiet" Content="›" Command="{Binding NextPagesCommand}" ToolTip.Tip="Turn the page (Alt+Right)" HotKey="Alt+Right" />
+      </StackPanel>
+      <StackPanel>
+        <TextBlock Classes="h1" Text="Diary" />
+        <TextBlock Classes="muted" Text="{Binding Title}" />
+      </StackPanel>
+    </DockPanel>
+
+    <Border Classes="diarycover">
+      <Grid ColumnDefinitions="*,Auto,*">
+        <Border Grid.Column="0" Classes="diarypage left">
+          <ContentControl Content="{Binding Left}" ContentTemplate="{StaticResource Page}" />
+        </Border>
+        <Border Grid.Column="1" Classes="diaryspine" />
+        <Border Grid.Column="2" Classes="diarypage right">
+          <ContentControl Content="{Binding Right}" ContentTemplate="{StaticResource Page}" />
+        </Border>
+      </Grid>
+    </Border>
+  </StackPanel>
+</UserControl>
