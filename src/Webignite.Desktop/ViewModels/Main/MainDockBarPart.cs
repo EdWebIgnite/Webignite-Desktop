@@ -46,6 +46,8 @@ public sealed partial class MainDockBarPart(AppServices services, MainViewModel 
                 BarAvailable.Add(new BarItem(widget));
             TickClock();
         }
+        // The look may have changed where the dock sits, too.
+        OnPropertyChanged(nameof(DockFloats));
         OnPropertyChanged(nameof(HasBarLeft));
         OnPropertyChanged(nameof(HasBarRight));
         OnPropertyChanged(nameof(HasBarAvailable));

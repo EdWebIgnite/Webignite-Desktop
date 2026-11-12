@@ -2646,6 +2646,8 @@ Save("invoice-sum");
     services.Settings.Appearance = was with { Menu = MenuKind.Dock };
     Dispatcher.UIThread.RunJobs();
     Check("The dock holds the usual pages, with the one on screen lit", vm.MenuPart.IsDockMenu && vm.MenuPart.Dock.Count == DockPages.Usual.Count && vm.MenuPart.Dock.Single(e => e.IsCurrent).PageKey == "Overview");
+    Check("Picking the dock in Settings puts the dock and the top bar on screen at once",
+        window.GetVisualDescendants().OfType<DockView>().Any() && window.GetVisualDescendants().OfType<MenuBarView>().Any());
     Save("menu-dock");
     vm.MenuPart.ToggleMenuCommand.Execute(null);
     var notes = vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Notes");
@@ -2692,6 +2694,8 @@ Save("invoice-sum");
     services.Settings.Appearance = services.Settings.Appearance with { DockFloats = true };
     Dispatcher.UIThread.RunJobs();
     Check("The dock can float over the page", vm.DockBarPart.DockFloats);
+    Check("Floating, the dock takes no room of its own under the page",
+        window.GetVisualDescendants().OfType<DockView>().FirstOrDefault()?.Parent is Avalonia.Controls.ContentControl { Margin.Top: < 0 });
     Save("menu-dock-floating");
     // On a wide screen there is room for everything beside the dock; on a narrow one only what fits whole shows.
     window.Width = 1900;

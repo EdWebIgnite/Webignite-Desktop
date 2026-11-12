@@ -36,7 +36,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
     internal void MenuKindChanged()
     {
         IsMenuOpen = false;
-        foreach (var name in new[] { nameof(Menu), nameof(IsSidebarMenu), nameof(IsButtonMenu), nameof(IsDockMenu), nameof(HasMenuBar), nameof(main.DockBarPart.DockFloats) })
+        foreach (var name in new[] { nameof(Menu), nameof(IsSidebarMenu), nameof(IsButtonMenu), nameof(IsDockMenu), nameof(HasMenuBar) })
             OnPropertyChanged(name);
         FillDock();
         main.DockBarPart.FillBar();

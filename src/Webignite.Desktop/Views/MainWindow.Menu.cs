@@ -9,9 +9,15 @@ public partial class MainWindow
 {
     private void FollowMenu(MainViewModel main)
     {
-        main.PropertyChanged += (_, e) =>
+        // The menu and the dock say for themselves when their kind, the open menu or the dock's place changes.
+        main.MenuPart.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(MainViewModel.MenuPart.HasMenuBar) or nameof(MainViewModel.MenuPart.IsDockMenu) or nameof(MainViewModel.MenuPart.IsMenuOpen) or nameof(MainViewModel.DockBarPart.DockFloats))
+            if (e.PropertyName is nameof(MainMenuPart.HasMenuBar) or nameof(MainMenuPart.IsDockMenu) or nameof(MainMenuPart.IsMenuOpen))
+                ShowMenuParts(main);
+        };
+        main.DockBarPart.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainDockBarPart.DockFloats))
                 ShowMenuParts(main);
         };
         ShowMenuParts(main);
