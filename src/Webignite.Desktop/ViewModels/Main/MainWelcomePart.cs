@@ -10,7 +10,7 @@ namespace Webignite.Desktop.ViewModels;
 // the person through joining, Xero and ChatGPT on the real Settings page, then round the main pages. Once signed in,
 // the app remembers you (the kept sign-in is refreshed on every sync), so it doesn't ask again. Not now opens the app
 // as it is.
-public sealed partial class MainViewModel
+public sealed partial class MainWelcomePart(AppServices services, MainViewModel main) : ViewModelBase
 {
     /// <summary>
     /// Whether the welcome screen is used at all. The app switches it on as it starts; tests and the screenshot tool
@@ -99,10 +99,10 @@ public sealed partial class MainViewModel
         GuideAt = at;
         var step = GuideStep;
         services.Settings.SetupGuide = new SetupProgress(step.Key, Finished: false);
-        Selected = this[Enum.Parse<Page>(step.Page)];
+        main.Selected = main[Enum.Parse<Page>(step.Page)];
         if (step.Section is { } section)
         {
-            var settings = PageOf<SettingsViewModel>(Page.Settings);
+            var settings = main.PageOf<SettingsViewModel>(Page.Settings);
             if (watched != settings)
             {
                 if (watched is not null)

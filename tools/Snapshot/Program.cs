@@ -580,48 +580,48 @@ SetShown(nameof(SettingsAccountViewModel.InviteMessage), "");
 Dispatcher.UIThread.RunJobs();
 SetShown(nameof(SettingsAccountViewModel.IsSignedIn), false);
 // The welcome screen: off while testing, so the app opens straight in; on, it asks to sign in when nobody has.
-Check("While testing, the app opens without asking to sign in", !vm.ShowingWelcome);
-MainViewModel.AskToSignInAtStart = true;
-vm.Welcome();
+Check("While testing, the app opens without asking to sign in", !vm.WelcomePart.ShowingWelcome);
+MainWelcomePart.AskToSignInAtStart = true;
+vm.WelcomePart.Welcome();
 Dispatcher.UIThread.RunJobs();
-Check("Switched on, the welcome screen shows when nobody is signed in", vm.ShowingWelcome);
+Check("Switched on, the welcome screen shows when nobody is signed in", vm.WelcomePart.ShowingWelcome);
 Save("welcome");
-vm.WelcomeCreateCommand.Execute(null);
+vm.WelcomePart.WelcomeCreateCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
 Check("Create an account carries on in Settings, Account and sync, on the new account form, with the guide above",
-    !vm.ShowingWelcome && vm.Selected.Key == Page.Settings && settingsPage.Account.IsNewAccountForm && vm.ShowingGuide);
-vm.EndGuideCommand.Execute(null);
+    !vm.WelcomePart.ShowingWelcome && vm.Selected.Key == Page.Settings && settingsPage.Account.IsNewAccountForm && vm.WelcomePart.ShowingGuide);
+vm.WelcomePart.EndGuideCommand.Execute(null);
 // The setup guide: joining, Xero and ChatGPT on the real Settings page, then a look round the main pages.
-vm.WelcomeJoinCommand.Execute(null);
+vm.WelcomePart.WelcomeJoinCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
 Check("Join with an invite code starts the guide on the join form; the step waits for signing in",
-    vm.ShowingGuide && vm.GuideStep.Key == "join" && vm.Selected.Key == Page.Settings && settingsPage.Account.IsJoinForm
-    && !vm.GuideStepDone && vm.GuideNextLabel == "Skip for now" && !vm.GuideCanGoBack);
+    vm.WelcomePart.ShowingGuide && vm.WelcomePart.GuideStep.Key == "join" && vm.Selected.Key == Page.Settings && settingsPage.Account.IsJoinForm
+    && !vm.WelcomePart.GuideStepDone && vm.WelcomePart.GuideNextLabel == "Skip for now" && !vm.WelcomePart.GuideCanGoBack);
 Save("setup-guide-join");
-vm.GuideNextCommand.Execute(null);
+vm.WelcomePart.GuideNextCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
-Check("Then Xero, on its own Settings section", vm.GuideStep.Key == "xero" && settingsPage.ShowXero && vm.GuideCanGoBack);
+Check("Then Xero, on its own Settings section", vm.WelcomePart.GuideStep.Key == "xero" && settingsPage.ShowXero && vm.WelcomePart.GuideCanGoBack);
 Save("setup-guide-xero");
-vm.GuideNextCommand.Execute(null);
+vm.WelcomePart.GuideNextCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
-Check("Then ChatGPT", vm.GuideStep.Key == "chatgpt" && settingsPage.ShowAssistants);
+Check("Then ChatGPT", vm.WelcomePart.GuideStep.Key == "chatgpt" && settingsPage.ShowAssistants);
 Save("setup-guide-chatgpt");
-vm.GuideNextCommand.Execute(null);
-vm.GuideNextCommand.Execute(null);
+vm.WelcomePart.GuideNextCommand.Execute(null);
+vm.WelcomePart.GuideNextCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
-Check("The look round shows the real pages: To approve", vm.GuideStep.Key == "approvals" && vm.Selected.Key == Page.Approvals && vm.GuideNextLabel == "Next");
+Check("The look round shows the real pages: To approve", vm.WelcomePart.GuideStep.Key == "approvals" && vm.Selected.Key == Page.Approvals && vm.WelcomePart.GuideNextLabel == "Next");
 Save("setup-guide-approvals");
-while (vm.GuideStep.Key != "done")
-    vm.GuideNextCommand.Execute(null);
-Check("The last step finishes", vm.GuideNextLabel == "Finish");
-vm.GuideNextCommand.Execute(null);
-Check("Finished, the guide goes and doesn't come back on its own", !vm.ShowingGuide && services.Settings.SetupGuide is { Finished: true });
-vm.Welcome();
-Check("Opening again while signed out asks to sign in, but doesn't start the guide by itself", !vm.ShowingGuide && vm.ShowingWelcome);
-vm.WelcomeNotNowCommand.Execute(null);
+while (vm.WelcomePart.GuideStep.Key != "done")
+    vm.WelcomePart.GuideNextCommand.Execute(null);
+Check("The last step finishes", vm.WelcomePart.GuideNextLabel == "Finish");
+vm.WelcomePart.GuideNextCommand.Execute(null);
+Check("Finished, the guide goes and doesn't come back on its own", !vm.WelcomePart.ShowingGuide && services.Settings.SetupGuide is { Finished: true });
+vm.WelcomePart.Welcome();
+Check("Opening again while signed out asks to sign in, but doesn't start the guide by itself", !vm.WelcomePart.ShowingGuide && vm.WelcomePart.ShowingWelcome);
+vm.WelcomePart.WelcomeNotNowCommand.Execute(null);
 vm.Selected = vm[Page.Settings];
 settingsPage.Account.ShowAccountFormCommand.Execute("sign-in");
-MainViewModel.AskToSignInAtStart = false;
+MainWelcomePart.AskToSignInAtStart = false;
 settingsPage.Open("xero");
 
 var today = DateOnly.FromDateTime(DateTime.Today);
@@ -1224,9 +1224,9 @@ Check("Mail in the sidebar counts the same as the inboxes as soon as a mail is r
 Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 41)), "The booking mail opened");
 
 // Snooze until a picked day: the small form above the list.
-Wait(vm.Mail.SnoozeMenu().Last().Run!(), "The snooze form opened");
+Wait(vm.Mail.SnoozePart.SnoozeMenu().Last().Run!(), "The snooze form opened");
 Save("mail-snooze-pick");
-vm.Mail.CancelSnoozePickCommand.Execute(null);
+vm.Mail.SnoozePart.CancelSnoozePickCommand.Execute(null);
 
 // Mail rules: two rules, then the page with the form.
 {
@@ -1239,10 +1239,10 @@ vm.Mail.CancelSnoozePickCommand.Execute(null);
             new() { Id = "r2", Match = Webignite.Core.Mail.RuleMatch.Subject, Text = "Proof of payment", Category = "accounts", MarkImportant = true },
         ],
     };
-    vm.Mail.ManageRulesCommand.Execute(null);
-    vm.Mail.RulesPage.Text = "fnb.co.za";
+    vm.Mail.RulesPart.ManageRulesCommand.Execute(null);
+    vm.Mail.RulesPart.RulesPage.Text = "fnb.co.za";
     Save("mail-rules");
-    vm.Mail.RulesPage.CloseCommand.Execute(null);
+    vm.Mail.RulesPart.RulesPage.CloseCommand.Execute(null);
     services.Settings.MailRules = new Webignite.Core.Mail.MailRuleSettings();
 }
 vm.Mail.Reader!.ReplyCommand.Execute(null);
@@ -1270,7 +1270,7 @@ vm.Mail.Composer.CancelSaveReplyCommand.Execute(null);
 // Send: the mail waits ten seconds with Undo. The headless clock doesn't tick, so it waits until Undo here.
 vm.Mail.Composer.SendCommand.Execute(null);
 Save("mail-undo-send");
-vm.Mail.UndoSendCommand.Execute(null);
+vm.Mail.SendingPart.UndoSendCommand.Execute(null);
 vm.Mail.Composer.DiscardCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Status = "";
@@ -1286,13 +1286,13 @@ vm.Mail.Selection.Clear();
 vm.Mail.Filter = Webignite.Core.Mail.MailFilter.Unread;
 Save("mail-filter-unread");
 vm.Mail.Filter = Webignite.Core.Mail.MailFilter.All;
-vm.Mail.StartNewCategory([]);
-vm.Mail.CategoryEditor!.Name = "Later";
+vm.Mail.EditorsPart.StartNewCategory([]);
+vm.Mail.EditorsPart.CategoryEditor!.Name = "Later";
 Save("mail-new-category");
 vm.Mail.Mailboxes[1].NewFolderCommand.Execute(null);
-vm.Mail.FolderEditor!.Name = "Banking";
+vm.Mail.EditorsPart.FolderEditor!.Name = "Banking";
 Save("mail-new-folder");
-vm.Mail.FolderEditor.CancelCommand.Execute(null);
+vm.Mail.EditorsPart.FolderEditor.CancelCommand.Execute(null);
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 vm.Mail.Panels.Show("folders", false);
 vm.Mail.Panels.Resized("messages", 460);
@@ -2626,72 +2626,104 @@ Save("invoice-sum");
     Open(Page.Overview);
     services.Settings.Appearance = was with { Menu = MenuKind.Button };
     Dispatcher.UIThread.RunJobs();
-    Check("With the Menu button the sidebar is gone and a bar along the top takes its place", vm.IsButtonMenu && vm.HasMenuBar && !vm.IsSidebarMenu && !vm.IsMenuOpen);
+    Check("With the Menu button the sidebar is gone and a bar along the top takes its place", vm.MenuPart.IsButtonMenu && vm.MenuPart.HasMenuBar && !vm.MenuPart.IsSidebarMenu && !vm.MenuPart.IsMenuOpen);
     Save("menu-button");
-    vm.ToggleMenuCommand.Execute(null);
+    vm.MenuPart.ToggleMenuCommand.Execute(null);
     Check("The menu lists every group the sidebar has, and Planner's own pages",
-        vm.IsMenuOpen && vm.MenuColumns.Count >= 6 && vm.MenuColumns[0].Title == "Start" && vm.MenuColumns.Any(c => c.Title == "Planner")
-        && vm.MenuColumns.SelectMany(c => c.Entries).Count(e => e.IsCurrent) == 1);
-    Check("The menu says how things stand beside its pages", vm.MenuColumns.SelectMany(c => c.Entries).Any(e => e.HasFigure));
+        vm.MenuPart.IsMenuOpen && vm.MenuPart.MenuColumns.Count >= 6 && vm.MenuPart.MenuColumns[0].Title == "Start" && vm.MenuPart.MenuColumns.Any(c => c.Title == "Planner")
+        && vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.IsCurrent) == 1);
+    Check("The menu says how things stand beside its pages", vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Any(e => e.HasFigure));
     Check("Retainers, domains, money and clients have their figures too",
-        vm.MenuColumns.SelectMany(c => c.Entries).Count(e => e.HasFigure && e.PageKey is "Retainers" or "Renewals" or "Money" or "Clients") == 4);
+        vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.HasFigure && e.PageKey is "Retainers" or "Renewals" or "Money" or "Clients") == 4);
     Save("menu-button-open");
-    vm.PickFromMenuCommand.Execute(vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Invoices"));
-    Check("Picking a page from the menu opens it and closes the menu", !vm.IsMenuOpen && vm.Selected.Key == Page.Invoices);
-    vm.ToggleMenuCommand.Execute(null);
-    vm.PickFromMenuCommand.Execute(vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.Item is ToolLink { Kind: ToolKind.Calculator }));
-    Check("Picking a tool from the menu opens its window and leaves the page", !vm.IsMenuOpen && vm.Selected.Key == Page.Invoices);
+    vm.MenuPart.PickFromMenuCommand.Execute(vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Invoices"));
+    Check("Picking a page from the menu opens it and closes the menu", !vm.MenuPart.IsMenuOpen && vm.Selected.Key == Page.Invoices);
+    vm.MenuPart.ToggleMenuCommand.Execute(null);
+    vm.MenuPart.PickFromMenuCommand.Execute(vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).First(e => e.Item is ToolLink { Kind: ToolKind.Calculator }));
+    Check("Picking a tool from the menu opens its window and leaves the page", !vm.MenuPart.IsMenuOpen && vm.Selected.Key == Page.Invoices);
     Open(Page.Overview);
 
     services.Settings.Appearance = was with { Menu = MenuKind.Dock };
     Dispatcher.UIThread.RunJobs();
-    Check("The dock holds the usual pages, with the one on screen lit", vm.IsDockMenu && vm.Dock.Count == DockPages.Usual.Count && vm.Dock.Single(e => e.IsCurrent).PageKey == "Overview");
+    Check("The dock holds the usual pages, with the one on screen lit", vm.MenuPart.IsDockMenu && vm.MenuPart.Dock.Count == DockPages.Usual.Count && vm.MenuPart.Dock.Single(e => e.IsCurrent).PageKey == "Overview");
+    Check("Picking the dock in Settings puts the dock and the top bar on screen at once",
+        window.GetVisualDescendants().OfType<DockView>().Any() && window.GetVisualDescendants().OfType<MenuBarView>().Any());
     Save("menu-dock");
-    vm.ToggleMenuCommand.Execute(null);
-    var notes = vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Notes");
+    vm.MenuPart.ToggleMenuCommand.Execute(null);
+    var notes = vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Notes");
     Check("A page not on the dock can be added from the menu", notes.CanAdd && !notes.OnDock);
-    vm.AddToDockCommand.Execute(notes);
-    Check("Added, it is on the dock and stays there", vm.Dock.Any(e => e.PageKey == "Notes") && services.Settings.Appearance.Dock!.Contains("Notes"));
-    vm.CloseMenuCommand.Execute(null);
-    vm.TakeOffDockCommand.Execute(vm.Dock.First(e => e.PageKey == "Notes"));
-    Check("Taken off, it is gone again", vm.Dock.All(e => e.PageKey != "Notes"));
+    vm.MenuPart.AddToDockCommand.Execute(notes);
+    Check("Added, it is on the dock and stays there", vm.MenuPart.Dock.Any(e => e.PageKey == "Notes") && services.Settings.Appearance.Dock!.Contains("Notes"));
+    vm.MenuPart.CloseMenuCommand.Execute(null);
+    vm.MenuPart.TakeOffDockCommand.Execute(vm.MenuPart.Dock.First(e => e.PageKey == "Notes"));
+    Check("Taken off, it is gone again", vm.MenuPart.Dock.All(e => e.PageKey != "Notes"));
     Open(Page.Mail);
-    Check("On another page the dock lights that one", vm.Dock.Single(e => e.IsCurrent).PageKey == "Mail");
+    Check("On another page the dock lights that one", vm.MenuPart.Dock.Single(e => e.IsCurrent).PageKey == "Mail");
     Save("menu-dock-mail");
     // Beside the dock and on it: the person's own choice. A tool or a whole group can go on the dock, and the small
     // things left and right of it (the day, the timer, chat, a clock) are moved, taken off and put back.
     Check("A new install has the day and the timer left of the dock, chat and a clock right of it",
-        vm.BarLeft.Select(b => b.Widget).SequenceEqual(DockBar.Usual.Left) && vm.BarRight.Select(b => b.Widget).SequenceEqual(DockBar.Usual.Right)
-        && vm.ClockText.Length > 0 && vm.TodayText.Length > 0 && !vm.DockFloats);
-    vm.TakeOffDockCommand.Execute(vm.Dock.First(e => e.PageKey == "Money"));
-    vm.ToggleMenuCommand.Execute(null);
-    var webTools = vm.MenuColumns.First(c => c.Heading?.PageKey == DockKeys.Group("web-tools")).Heading!;
+        vm.DockBarPart.BarLeft.Select(b => b.Widget).SequenceEqual(DockBar.Usual.Left) && vm.DockBarPart.BarRight.Select(b => b.Widget).SequenceEqual(DockBar.Usual.Right)
+        && vm.DockBarPart.ClockText.Length > 0 && vm.DockBarPart.TodayText.Length > 0 && !vm.DockBarPart.DockFloats);
+    vm.MenuPart.TakeOffDockCommand.Execute(vm.MenuPart.Dock.First(e => e.PageKey == "Money"));
+    vm.MenuPart.ToggleMenuCommand.Execute(null);
+    var webTools = vm.MenuPart.MenuColumns.First(c => c.Heading?.PageKey == DockKeys.Group("web-tools")).Heading!;
     Check("A whole group can be added to the dock from the menu, but not the columns that aren't a group",
-        webTools.CanAdd && !webTools.OnDock && vm.MenuColumns.First().Heading is null);
-    vm.AddToDockCommand.Execute(webTools);
-    var calculator = vm.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == DockKeys.Tool("Calculator"));
+        webTools.CanAdd && !webTools.OnDock && vm.MenuPart.MenuColumns.First().Heading is null);
+    vm.MenuPart.AddToDockCommand.Execute(webTools);
+    var calculator = vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == DockKeys.Tool("Calculator"));
     Check("So can a tool", calculator.CanAdd && !calculator.OnDock);
-    vm.AddToDockCommand.Execute(calculator);
-    vm.CloseMenuCommand.Execute(null);
+    vm.MenuPart.AddToDockCommand.Execute(calculator);
+    vm.MenuPart.CloseMenuCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
-    var dockGroup = vm.Dock.Single(e => e.IsGroup);
+    var dockGroup = vm.MenuPart.Dock.Single(e => e.IsGroup);
     Check("The group on the dock holds what is in it, for the short list above the dock",
         dockGroup.Title == "Web tools" && dockGroup.Inside.Count > 2 && dockGroup.Inside.All(e => !e.IsGroup));
     Check("The tool is on the dock too, and both are saved",
-        vm.Dock.Any(e => e.PageKey == DockKeys.Tool("Calculator")) && services.Settings.Appearance.Dock!.Contains(DockKeys.Group("web-tools")));
+        vm.MenuPart.Dock.Any(e => e.PageKey == DockKeys.Tool("Calculator")) && services.Settings.Appearance.Dock!.Contains(DockKeys.Group("web-tools")));
     Save("menu-dock-group-and-tool");
+    // Groups folded in the sidebar still show in the menu behind More: there is nowhere to unfold them there.
+    {
+        var folded = vm.Sidebar.OnMenus().OfType<NavGroup>().Where(g => g.Key is "billing" or "client-work").ToList();
+        foreach (var heading in folded)
+            if (heading.IsOpen) heading.Toggle();
+        vm.MenuPart.ToggleMenuCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        var titles = vm.MenuPart.MenuColumns.Select(c => c.Title).ToList();
+        Check("A group folded in the sidebar is still in the menu, with everything in it",
+            titles.Contains("Billing") && titles.Contains("Client work") && titles.Contains("Web tools") && titles.Contains("My pages")
+            && vm.MenuPart.MenuColumns.First(c => c.Title == "Billing").Entries.Any(e => e.PageKey == "Invoices"));
+        var plannerHead = vm.MenuPart.MenuColumns.First(c => c.Title == "Planner").Heading;
+        Check("Planner's heading can go on the dock, and the columns that aren't a group can't",
+            plannerHead is { CanAdd: true, OnDock: false } && vm.MenuPart.MenuColumns.First(c => c.Title == "Start").Heading is null);
+        vm.MenuPart.AddToDockCommand.Execute(plannerHead);
+        Dispatcher.UIThread.RunJobs();
+        Save("menu-dock-more");
+        Check("Adding to the dock leaves the menu open, and Planner as a group takes the place of its own button",
+            vm.MenuPart.IsMenuOpen && vm.MenuPart.Dock.Count(e => e.Title == "Planner") == 1);
+        vm.MenuPart.CloseMenuCommand.Execute(null);
+        var plannerOnDock = vm.MenuPart.Dock.First(e => e.PageKey == DockKeys.Group("planner"));
+        Check("Planner on the dock opens a list of Planner's pages",
+            plannerOnDock.IsGroup && plannerOnDock.Inside.Any(e => e.PageKey == "Projects") && plannerOnDock.Inside.Any(e => e.PageKey == "Calendar"));
+        vm.MenuPart.TakeOffDockCommand.Execute(plannerOnDock);
+        foreach (var heading in folded)
+            if (!heading.IsOpen) heading.Toggle();
+        Dispatcher.UIThread.RunJobs();
+    }
     Open(dockGroup.Inside.Select(e => e.Item).OfType<Module>().First().Key);
-    Check("With a page of the group on screen, the group is the lit one", vm.Dock.Single(e => e.IsCurrent).IsGroup);
+    Check("With a page of the group on screen, the group is the lit one", vm.MenuPart.Dock.Single(e => e.IsCurrent).IsGroup);
     Open(Page.Mail);
-    vm.MoveBarAcrossCommand.Execute(vm.BarLeft.First(b => b.IsTimer));
-    vm.TakeOffBarCommand.Execute(vm.BarRight.First(b => b.IsClock));
-    vm.AddToBarLeftCommand.Execute(vm.BarAvailable.First(b => b.IsSearch));
+    vm.DockBarPart.MoveBarAcrossCommand.Execute(vm.DockBarPart.BarLeft.First(b => b.IsTimer));
+    vm.DockBarPart.TakeOffBarCommand.Execute(vm.DockBarPart.BarRight.First(b => b.IsClock));
+    vm.DockBarPart.AddToBarLeftCommand.Execute(vm.DockBarPart.BarAvailable.First(b => b.IsSearch));
     Check("What is beside the dock is moved across, taken off and added",
-        vm.BarLeft.Select(b => b.Widget).SequenceEqual([BarWidget.Today, BarWidget.Search])
-        && vm.BarRight.Select(b => b.Widget).SequenceEqual([BarWidget.Chat, BarWidget.Timer]) && vm.BarAvailable.Any(b => b.IsClock));
+        vm.DockBarPart.BarLeft.Select(b => b.Widget).SequenceEqual([BarWidget.Today, BarWidget.Search])
+        && vm.DockBarPart.BarRight.Select(b => b.Widget).SequenceEqual([BarWidget.Chat, BarWidget.Timer]) && vm.DockBarPart.BarAvailable.Any(b => b.IsClock));
     services.Settings.Appearance = services.Settings.Appearance with { DockFloats = true };
     Dispatcher.UIThread.RunJobs();
-    Check("The dock can float over the page", vm.DockFloats);
+    Check("The dock can float over the page", vm.DockBarPart.DockFloats);
+    Check("Floating, the dock takes no room of its own under the page",
+        window.GetVisualDescendants().OfType<DockView>().FirstOrDefault()?.Parent is Avalonia.Controls.ContentControl { Margin.Top: < 0 });
     Save("menu-dock-floating");
     // On a wide screen there is room for everything beside the dock; on a narrow one only what fits whole shows.
     window.Width = 1900;
@@ -2702,25 +2734,25 @@ Save("invoice-sum");
     Save("menu-dock-wide");
     window.Width = 1280;
     Dispatcher.UIThread.RunJobs();
-    vm.UsualBarCommand.Execute(null);
+    vm.DockBarPart.UsualBarCommand.Execute(null);
     services.Settings.Appearance = services.Settings.Appearance with { BarLeft = [], BarRight = [] };
     Dispatcher.UIThread.RunJobs();
-    Check("With nothing beside it, the dock stands alone", !vm.HasBarLeft && !vm.HasBarRight);
+    Check("With nothing beside it, the dock stands alone", !vm.DockBarPart.HasBarLeft && !vm.DockBarPart.HasBarRight);
     services.Settings.Appearance = was with { Menu = MenuKind.Dock };
     Dispatcher.UIThread.RunJobs();
-    Check("A group taken off the dock leaves it as it was", vm.Dock.Count == DockPages.Usual.Count && vm.Dock.All(e => !e.IsGroup) && !vm.DockFloats);
+    Check("A group taken off the dock leaves it as it was", vm.MenuPart.Dock.Count == DockPages.Usual.Count && vm.MenuPart.Dock.All(e => !e.IsGroup) && !vm.DockBarPart.DockFloats);
     Open(Page.Overview);
     services.Settings.Appearance = was with { Menu = MenuKind.Dock, Style = LookStyle.Airy, Sidebar = SidebarTone.Light };
     Dispatcher.UIThread.RunJobs();
     Save("menu-dock-airy");
     services.Settings.Appearance = was with { Menu = MenuKind.Button, Style = LookStyle.Airy };
-    vm.ToggleMenuCommand.Execute(null);
+    vm.MenuPart.ToggleMenuCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
     Save("menu-button-open-airy");
-    vm.CloseMenuCommand.Execute(null);
+    vm.MenuPart.CloseMenuCommand.Execute(null);
     services.Settings.Appearance = was;
     Dispatcher.UIThread.RunJobs();
-    Check("Back on the sidebar, the bar and the dock are gone", vm.IsSidebarMenu && !vm.HasMenuBar && vm.Dock.Count == 0);
+    Check("Back on the sidebar, the bar and the dock are gone", vm.MenuPart.IsSidebarMenu && !vm.MenuPart.HasMenuBar && vm.MenuPart.Dock.Count == 0);
 }
 // Choosing what is on the menus: from the sidebar the menu opens to edit; an entry taken off is gone from every
 // menu and waits under Available; Settings can't go; what is off is still found by search.
@@ -2732,45 +2764,45 @@ Save("invoice-sum");
     vm.Sidebar.EditCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
     Check("From the sidebar, the menu opens to choose what is on it, with nothing under Available yet",
-        vm.IsMenuOpen && vm.IsMenuEditing && vm.IsSidebarMenu && vm.MenuAvailable.Count == 0 && vm.NothingAvailable && !vm.HasMenuTakenOff);
-    MenuEntry InMenu(object item) => vm.MenuColumns.SelectMany(c => c.Entries).Concat(vm.MenuAvailable).First(e => ReferenceEquals(e.Item, item));
-    Check("Each entry is listed once while editing", vm.MenuColumns.SelectMany(c => c.Entries).GroupBy(e => e.Item).All(g => g.Count() == 1));
-    vm.PickFromMenuCommand.Execute(InMenu(calculator));
-    vm.PickFromMenuCommand.Execute(InMenu(retainers));
+        vm.MenuPart.IsMenuOpen && vm.MenuPart.IsMenuEditing && vm.MenuPart.IsSidebarMenu && vm.MenuPart.MenuAvailable.Count == 0 && vm.MenuPart.NothingAvailable && !vm.MenuPart.HasMenuTakenOff);
+    MenuEntry InMenu(object item) => vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Concat(vm.MenuPart.MenuAvailable).First(e => ReferenceEquals(e.Item, item));
+    Check("Each entry is listed once while editing", vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).GroupBy(e => e.Item).All(g => g.Count() == 1));
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(calculator));
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(retainers));
     Dispatcher.UIThread.RunJobs();
     Check("A click takes an entry off: it moves to Available, and the page on screen stays",
-        vm.MenuAvailable.Select(e => e.Title).SequenceEqual(["Retainers", "Calculator"]) && vm.Selected.Key != Page.Retainers && vm.IsMenuOpen && vm.HasMenuTakenOff
+        vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Retainers", "Calculator"]) && vm.Selected.Key != Page.Retainers && vm.MenuPart.IsMenuOpen && vm.MenuPart.HasMenuTakenOff
         && vm.Sidebar.IsOff(calculator) && vm.Sidebar.IsOff(retainers));
     var settingsEntry = InMenu(vm[Page.Settings]);
-    vm.PickFromMenuCommand.Execute(settingsEntry);
+    vm.MenuPart.PickFromMenuCommand.Execute(settingsEntry);
     Check("Settings always stays", !settingsEntry.ShowsMinus && !vm.Sidebar.IsOff(vm[Page.Settings]) && settingsEntry.EditTip == "This one always stays");
     Save("menu-edit");
-    vm.DoneEditingMenuCommand.Execute(null);
+    vm.MenuPart.DoneEditingMenuCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
     Check("Done closes it, and the sidebar no longer lists what was taken off",
-        !vm.IsMenuOpen && !vm.IsMenuEditing && vm.Sidebar.Items.Count == before - 2 && !vm.Sidebar.Items.Contains(calculator) && !vm.Sidebar.Items.Contains(retainers));
+        !vm.MenuPart.IsMenuOpen && !vm.MenuPart.IsMenuEditing && vm.Sidebar.Items.Count == before - 2 && !vm.Sidebar.Items.Contains(calculator) && !vm.Sidebar.Items.Contains(retainers));
     Save("menu-edit-sidebar");
     Check("A page taken off is still there to open, by search or a link", vm.Modules.Contains(retainers));
     services.Settings.Appearance = was with { Menu = MenuKind.Dock, Dock = ["Overview", "Retainers", "Clients"] };
     Dispatcher.UIThread.RunJobs();
-    Check("It is off the dock too", vm.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Clients"]));
-    vm.ToggleMenuCommand.Execute(null);
-    Check("And off the open menu, which offers to edit", vm.IsMenuOpen && vm.IsMenuBrowsing && vm.MenuColumns.SelectMany(c => c.Entries).All(e => e.Title is not ("Retainers" or "Calculator")) && vm.MenuAvailable.Count == 0);
-    vm.EditMenuCommand.Execute(null);
-    vm.PickFromMenuCommand.Execute(InMenu(retainers));
+    Check("It is off the dock too", vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Clients"]));
+    vm.MenuPart.ToggleMenuCommand.Execute(null);
+    Check("And off the open menu, which offers to edit", vm.MenuPart.IsMenuOpen && vm.MenuPart.IsMenuBrowsing && vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).All(e => e.Title is not ("Retainers" or "Calculator")) && vm.MenuPart.MenuAvailable.Count == 0);
+    vm.MenuPart.EditMenuCommand.Execute(null);
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(retainers));
     Dispatcher.UIThread.RunJobs();
     Check("Clicking it under Available puts it back where it was, on the dock as well",
-        !vm.Sidebar.IsOff(retainers) && vm.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Retainers", "Clients"]) && vm.MenuAvailable.Count == 1);
+        !vm.Sidebar.IsOff(retainers) && vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Retainers", "Clients"]) && vm.MenuPart.MenuAvailable.Count == 1);
     // Dragging the calculator out of Available onto another tool puts it back just there.
     var passwords = vm.Sidebar.OnMenus().OfType<ToolLink>().First(t => t.Kind == ToolKind.Passwords);
-    vm.MoveInMenu(InMenu(calculator), InMenu(passwords), below: true);
+    vm.MenuPart.MoveInMenu(InMenu(calculator), InMenu(passwords), below: true);
     var tools = vm.Sidebar.OnMenus().OfType<ToolLink>().ToList();
-    Check("An entry dragged out of Available lands where it is dropped", !vm.Sidebar.IsOff(calculator) && tools.IndexOf(calculator) == tools.IndexOf(passwords) + 1 && !vm.HasMenuTakenOff);
-    vm.PickFromMenuCommand.Execute(InMenu(calculator));
-    vm.PutAllBackOnMenuCommand.Execute(null);
-    Check("Put everything back empties Available", !vm.HasMenuTakenOff && vm.MenuAvailable.Count == 0);
-    vm.CloseMenuCommand.Execute(null);
-    Check("Closing the menu ends the editing", !vm.IsMenuOpen && !vm.IsMenuEditing);
+    Check("An entry dragged out of Available lands where it is dropped", !vm.Sidebar.IsOff(calculator) && tools.IndexOf(calculator) == tools.IndexOf(passwords) + 1 && !vm.MenuPart.HasMenuTakenOff);
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(calculator));
+    vm.MenuPart.PutAllBackOnMenuCommand.Execute(null);
+    Check("Put everything back empties Available", !vm.MenuPart.HasMenuTakenOff && vm.MenuPart.MenuAvailable.Count == 0);
+    vm.MenuPart.CloseMenuCommand.Execute(null);
+    Check("Closing the menu ends the editing", !vm.MenuPart.IsMenuOpen && !vm.MenuPart.IsMenuEditing);
     vm.Sidebar.ResetCommand.Execute(null);
     services.Settings.Appearance = was;
     Dispatcher.UIThread.RunJobs();

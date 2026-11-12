@@ -257,8 +257,8 @@
 
   <Grid>
     <!-- Mail rules, and adding or changing a mailbox, each on a page of its own -->
-    <Panel IsVisible="{Binding ShowRules}">
-      <v:MailRulesView DataContext="{Binding RulesPage}" />
+    <Panel IsVisible="{Binding RulesPart.ShowRules}">
+      <v:MailRulesView DataContext="{Binding RulesPart.RulesPage}" />
     </Panel>
     <Panel IsVisible="{Binding ShowSetup}">
       <v:MailSetupView DataContext="{Binding Setup}" />
@@ -271,8 +271,8 @@
         <DockPanel>
           <StackPanel DockPanel.Dock="Bottom" Margin="12" Spacing="10">
             <!-- A new or renamed folder -->
-            <Border Classes="card editor" IsVisible="{Binding HasFolderEditor}">
-              <StackPanel Spacing="8" DataContext="{Binding FolderEditor}" x:DataType="vm:FolderEditorViewModel">
+            <Border Classes="card editor" IsVisible="{Binding EditorsPart.HasFolderEditor}">
+              <StackPanel Spacing="8" DataContext="{Binding EditorsPart.FolderEditor}" x:DataType="vm:FolderEditorViewModel">
                 <TextBlock FontWeight="SemiBold" Text="{Binding Heading}" TextWrapping="Wrap" />
                 <TextBox Text="{Binding Name}" PlaceholderText="Folder name" IsVisible="{Binding AsksName}" x:Name="FolderName" />
                 <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Note}" TextWrapping="Wrap" />
@@ -284,8 +284,8 @@
               </StackPanel>
             </Border>
             <!-- A new or changed category -->
-            <Border Classes="card editor" IsVisible="{Binding HasCategoryEditor}">
-              <StackPanel Spacing="8" DataContext="{Binding CategoryEditor}" x:DataType="vm:CategoryEditorViewModel">
+            <Border Classes="card editor" IsVisible="{Binding EditorsPart.HasCategoryEditor}">
+              <StackPanel Spacing="8" DataContext="{Binding EditorsPart.CategoryEditor}" x:DataType="vm:CategoryEditorViewModel">
                 <TextBlock FontWeight="SemiBold" Text="{Binding Heading}" TextWrapping="Wrap" />
                 <TextBox Text="{Binding Name}" PlaceholderText="e.g. Waiting on client" x:Name="CategoryName" />
                 <ItemsControl ItemsSource="{Binding Colours}">
@@ -318,7 +318,7 @@
             </Border>
             <StackPanel Orientation="Horizontal" Spacing="14">
               <Button Classes="link" Content="Manage mailboxes" Command="{Binding ManageMailboxesCommand}" />
-              <Button Classes="link" Content="Rules" Command="{Binding ManageRulesCommand}" ToolTip.Tip="Sort new mail by sender, domain or subject" />
+              <Button Classes="link" Content="Rules" Command="{Binding RulesPart.ManageRulesCommand}" ToolTip.Tip="Sort new mail by sender, domain or subject" />
             </StackPanel>
           </StackPanel>
           <ScrollViewer>
@@ -381,7 +381,7 @@
 
               <!-- Categories: your own, each with its colour dot -->
               <DockPanel Margin="10,0,4,4">
-                <Button DockPanel.Dock="Right" Classes="link" FontSize="{DynamicResource Text12}" Content="New" Command="{Binding NewCategoryCommand}" ToolTip.Tip="Make a category" />
+                <Button DockPanel.Dock="Right" Classes="link" FontSize="{DynamicResource Text12}" Content="New" Command="{Binding EditorsPart.NewCategoryCommand}" ToolTip.Tip="Make a category" />
                 <TextBlock FontWeight="SemiBold" Text="Categories" />
               </DockPanel>
               <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Margin="10,0,8,6" TextWrapping="Wrap" IsVisible="{Binding !HasCategories}"
@@ -466,19 +466,19 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
             <!-- A mail just sent, still waiting a few seconds so it can be taken back -->
-            <Border Classes="pending" IsVisible="{Binding HasPendingSend}" Padding="10,6">
+            <Border Classes="pending" IsVisible="{Binding SendingPart.HasPendingSend}" Padding="10,6">
               <DockPanel>
-                <Button DockPanel.Dock="Right" Classes="quiet" Content="Undo" Command="{Binding UndoSendCommand}" Margin="8,0,0,0" />
-                <TextBlock Text="{Binding PendingSendText}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="Undo" Command="{Binding SendingPart.UndoSendCommand}" Margin="8,0,0,0" />
+                <TextBlock Text="{Binding SendingPart.PendingSendText}" VerticalAlignment="Center" TextWrapping="Wrap" />
               </DockPanel>
             </Border>
             <!-- Snooze until a picked day and hour -->
-            <Border Classes="pending" IsVisible="{Binding PickingSnooze}" Padding="10">
+            <Border Classes="pending" IsVisible="{Binding SnoozePart.PickingSnooze}" Padding="10">
               <StackPanel Spacing="8">
                 <TextBlock FontWeight="SemiBold" Text="Snooze until" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <c:DateBox SelectedDate="{Binding SnoozeDay}" Earliest="{x:Static sys:DateTime.Today}" Width="160" />
-                  <ComboBox ItemsSource="{x:Static vm:MailViewModel.SnoozeHours}" SelectedItem="{Binding SnoozeHour}" Width="100">
+                  <c:DateBox SelectedDate="{Binding SnoozePart.SnoozeDay}" Earliest="{x:Static sys:DateTime.Today}" Width="160" />
+                  <ComboBox ItemsSource="{x:Static vm:MailSnoozePart.SnoozeHours}" SelectedItem="{Binding SnoozePart.SnoozeHour}" Width="100">
                     <ComboBox.ItemTemplate>
                       <DataTemplate x:DataType="x:Int32">
                         <TextBlock Text="{Binding StringFormat='{}{0:00}:00'}" />
@@ -487,8 +487,8 @@
                   </ComboBox>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <Button Classes="primary" Content="Snooze" Command="{Binding ConfirmSnoozePickCommand}" />
-                  <Button Classes="link" Content="Cancel" Command="{Binding CancelSnoozePickCommand}" />
+                  <Button Classes="primary" Content="Snooze" Command="{Binding SnoozePart.ConfirmSnoozePickCommand}" />
+                  <Button Classes="link" Content="Cancel" Command="{Binding SnoozePart.CancelSnoozePickCommand}" />
                 </StackPanel>
               </StackPanel>
             </Border>

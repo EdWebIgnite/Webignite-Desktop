@@ -16,7 +16,7 @@
     <KeyBinding Gesture="F5" Command="{Binding RefreshPageCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding ToggleShortcutsCommand}" />
     <KeyBinding Gesture="Ctrl+B" Command="{Binding Sidebar.ToggleCommand}" />
-    <KeyBinding Gesture="Ctrl+M" Command="{Binding ToggleMenuCommand}" />
+    <KeyBinding Gesture="Ctrl+M" Command="{Binding MenuPart.ToggleMenuCommand}" />
     <KeyBinding Gesture="Ctrl+T" Command="{Binding NewTabCommand}" />
     <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseThisTabCommand}" />
     <KeyBinding Gesture="Ctrl+Tab" Command="{Binding NextTabCommand}" CommandParameter="1" />
@@ -39,7 +39,7 @@
   <Grid ColumnDefinitions="Auto,*">
 
     <!-- The sidebar, in its three widths. Not shown at all when the menu is the Menu button or the dock. -->
-    <Panel Grid.Column="0" IsVisible="{Binding IsSidebarMenu}">
+    <Panel Grid.Column="0" IsVisible="{Binding MenuPart.IsSidebarMenu}">
     <!-- The sidebar tucked away: a thin strip with the button that brings it back (or Ctrl+B). -->
     <Border Grid.Column="0" Width="44" Background="{DynamicResource Nav}" Padding="6,18" IsVisible="{Binding Sidebar.IsHidden}">
       <Button Classes="navtoggle" VerticalAlignment="Top" HorizontalAlignment="Center" Command="{Binding Sidebar.ToggleCommand}"
@@ -401,23 +401,23 @@
         </DockPanel>
       </Border>
       <!-- The setup guide: which step, what to do, Back and Next. The real page is beneath it, so nothing is set up twice. -->
-      <Border DockPanel.Dock="Top" IsVisible="{Binding ShowingGuide}" Background="{DynamicResource InvoiceSoft}"
+      <Border DockPanel.Dock="Top" IsVisible="{Binding WelcomePart.ShowingGuide}" Background="{DynamicResource InvoiceSoft}"
               BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="28,14">
         <DockPanel>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="24,0,0,0">
-            <Button Classes="link" Content="Close the guide" Command="{Binding EndGuideCommand}" VerticalAlignment="Center" />
-            <Button Classes="quiet" Content="Back" Command="{Binding GuideBackCommand}" IsVisible="{Binding GuideCanGoBack}" />
-            <Button Classes="primary" Content="{Binding GuideNextLabel}" Command="{Binding GuideNextCommand}" />
+            <Button Classes="link" Content="Close the guide" Command="{Binding WelcomePart.EndGuideCommand}" VerticalAlignment="Center" />
+            <Button Classes="quiet" Content="Back" Command="{Binding WelcomePart.GuideBackCommand}" IsVisible="{Binding WelcomePart.GuideCanGoBack}" />
+            <Button Classes="primary" Content="{Binding WelcomePart.GuideNextLabel}" Command="{Binding WelcomePart.GuideNextCommand}" />
           </StackPanel>
           <StackPanel Spacing="6" MaxWidth="780" HorizontalAlignment="Left">
             <StackPanel Orientation="Horizontal" Spacing="10">
-              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding GuideProgress}" VerticalAlignment="Center" />
-              <ProgressBar Value="{Binding GuideFraction}" Minimum="0" Maximum="100" Width="140" Height="4" MinHeight="4" VerticalAlignment="Center" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding WelcomePart.GuideProgress}" VerticalAlignment="Center" />
+              <ProgressBar Value="{Binding WelcomePart.GuideFraction}" Minimum="0" Maximum="100" Width="140" Height="4" MinHeight="4" VerticalAlignment="Center" />
             </StackPanel>
-            <TextBlock Classes="h2" Text="{Binding GuideStep.Title}" />
-            <TextBlock TextWrapping="Wrap" Text="{Binding GuideStep.Text}" />
-            <Border Classes="ready" IsVisible="{Binding GuideStepDone}" HorizontalAlignment="Left">
-              <TextBlock TextWrapping="Wrap" Text="{Binding GuideStep.DoneText}" />
+            <TextBlock Classes="h2" Text="{Binding WelcomePart.GuideStep.Title}" />
+            <TextBlock TextWrapping="Wrap" Text="{Binding WelcomePart.GuideStep.Text}" />
+            <Border Classes="ready" IsVisible="{Binding WelcomePart.GuideStepDone}" HorizontalAlignment="Left">
+              <TextBlock TextWrapping="Wrap" Text="{Binding WelcomePart.GuideStep.DoneText}" />
             </Border>
           </StackPanel>
         </DockPanel>
@@ -498,7 +498,7 @@
     </DockPanel>
 
     <!-- The whole menu, over the page (Views/MenuOverlayView), made the first time it is opened. -->
-    <ContentControl x:Name="MenuHost" Grid.ColumnSpan="2" IsVisible="{Binding IsMenuOpen}" />
+    <ContentControl x:Name="MenuHost" Grid.ColumnSpan="2" IsVisible="{Binding MenuPart.IsMenuOpen}" />
 
     <!-- Ctrl+K search, over everything -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding Search.IsOpen}" Background="{DynamicResource Scrim}" PointerPressed="CloseSearch">
@@ -529,17 +529,17 @@
       </Border>
     </Grid>
     <!-- The welcome screen: sign in, a new account or an invite, when nobody is signed in (switched off while testing). -->
-    <Grid Grid.ColumnSpan="2" IsVisible="{Binding ShowingWelcome}" Background="{DynamicResource Scrim}">
+    <Grid Grid.ColumnSpan="2" IsVisible="{Binding WelcomePart.ShowingWelcome}" Background="{DynamicResource Scrim}">
       <Border Classes="card" Width="460" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="32" BoxShadow="{DynamicResource OverlayShadow}">
         <StackPanel Spacing="14">
           <Image Source="/Assets/icon.png" Height="48" HorizontalAlignment="Left" />
           <TextBlock Classes="h1" Text="Welcome to Webignite" />
           <TextBlock Classes="muted" TextWrapping="Wrap"
                      Text="A short guide takes you through joining, Xero and ChatGPT, then shows you round. Your password never leaves this PC, and what's shared is locked here first." />
-          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Join with an invite code" Command="{Binding WelcomeJoinCommand}" />
-          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Sign in" Command="{Binding WelcomeSignInCommand}" />
-          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Create an account" Command="{Binding WelcomeCreateCommand}" />
-          <Button Classes="link" HorizontalAlignment="Center" Content="Not now: use it on this PC only" Command="{Binding WelcomeNotNowCommand}" />
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Join with an invite code" Command="{Binding WelcomePart.WelcomeJoinCommand}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Sign in" Command="{Binding WelcomePart.WelcomeSignInCommand}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Create an account" Command="{Binding WelcomePart.WelcomeCreateCommand}" />
+          <Button Classes="link" HorizontalAlignment="Center" Content="Not now: use it on this PC only" Command="{Binding WelcomePart.WelcomeNotNowCommand}" />
         </StackPanel>
       </Border>
     </Grid>

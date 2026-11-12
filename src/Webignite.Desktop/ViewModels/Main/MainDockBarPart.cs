@@ -9,7 +9,7 @@ namespace Webignite.Desktop.ViewModels;
 // Beside the dock: small things the person picks for the space left and right of it (the day, a clock, the timer,
 // chat, search, a quick note). Which ones, on which side and in what order are theirs to choose (DockBar in Core);
 // so is whether the dock has a strip of its own under the page or floats over the bottom of it.
-public sealed partial class MainViewModel
+public sealed partial class MainDockBarPart(AppServices services, MainViewModel main) : ViewModelBase
 {
     public ObservableCollection<BarItem> BarLeft { get; } = [];
     public ObservableCollection<BarItem> BarRight { get; } = [];
@@ -30,12 +30,12 @@ public sealed partial class MainViewModel
 
     private BarLayout Bar => DockBar.Shown(services.Settings.Appearance.BarLeft, services.Settings.Appearance.BarRight);
 
-    private void FillBar()
+    internal void FillBar()
     {
         BarLeft.Clear();
         BarRight.Clear();
         BarAvailable.Clear();
-        if (IsDockMenu)
+        if (main.MenuPart.IsDockMenu)
         {
             var bar = Bar;
             foreach (var widget in bar.Left)
@@ -46,6 +46,8 @@ public sealed partial class MainViewModel
                 BarAvailable.Add(new BarItem(widget));
             TickClock();
         }
+        // The look may have changed where the dock sits, too.
+        OnPropertyChanged(nameof(DockFloats));
         OnPropertyChanged(nameof(HasBarLeft));
         OnPropertyChanged(nameof(HasBarRight));
         OnPropertyChanged(nameof(HasBarAvailable));
@@ -101,10 +103,10 @@ public sealed partial class MainViewModel
     [RelayCommand]
     private void ToggleTimer()
     {
-        if (Timer.IsRunning)
-            Timer.StopAndKeep("");
+        if (main.Timer.IsRunning)
+            main.Timer.StopAndKeep("");
         else
-            Timer.Start(new Webignite.Core.Time.RunningTimer { Started = DateTimeOffset.Now, Note = "" });
+            main.Timer.Start(new Webignite.Core.Time.RunningTimer { Started = DateTimeOffset.Now, Note = "" });
     }
 
     /// <summary>Settings, Look and feel, where what sits beside the dock is chosen.</summary>
@@ -112,7 +114,7 @@ public sealed partial class MainViewModel
     private void ChooseBar() => services.Go.Settings("look");
 
     [RelayCommand]
-    private void OpenToday() => Selected = this[Page.Home];
+    private void OpenToday() => main.Selected = main[Page.Home];
 
     [RelayCommand]
     private void QuickNote() => services.Go.QuickNote();

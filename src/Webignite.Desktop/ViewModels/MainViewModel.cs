@@ -8,6 +8,11 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly AppServices services;
 
+    // Each part with state of its own is its own class; this holds them and the screen binds to them by name.
+    public MainWelcomePart WelcomePart { get; }
+    public MainDockBarPart DockBarPart { get; }
+    public MainMenuPart MenuPart { get; }
+
     /// <summary>A page nobody has looked at for this long is let go, and built again when next opened.</summary>
     public static readonly TimeSpan PageIdle = TimeSpan.FromMinutes(10);
 
@@ -233,6 +238,9 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel(AppServices services)
     {
         this.services = services;
+        WelcomePart = new(services, this);
+        DockBarPart = new(services, this);
+        MenuPart = new(services, this);
         services.CatchUp();
         Updates.BeforeRestart = () =>
         {
@@ -306,9 +314,9 @@ public partial class MainViewModel : ViewModelBase
                 module.Group = group;
         }
         Modules = [.. nav.OfType<Module>()];
-        Sidebar = new SidebarViewModel(services.Settings, nav) { EditAsked = () => EditMenuCommand.Execute(null) };
-        Sidebar.LayoutChanged += MenusChanged;
-        services.Go.EditMenuAction = () => EditMenuCommand.Execute(null);
+        Sidebar = new SidebarViewModel(services.Settings, nav) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        Sidebar.LayoutChanged += MenuPart.MenusChanged;
+        services.Go.EditMenuAction = () => MenuPart.EditMenuCommand.Execute(null);
         Open = [.. Modules.Select(m => m.Main)];
         Current = Modules[0].Main;
         Selected = Modules[0];
@@ -353,7 +361,7 @@ public partial class MainViewModel : ViewModelBase
         Jobs.Start();
         if (OperatingSystem.IsWindows() && services.Settings.ChatGptTunnel.On)
             services.ChatGpt.KeepRunning();
-        Welcome();
+        WelcomePart.Welcome();
         UpdateInboxBadgeAsync().Forget("Counting what's new in Inbox");
 
         // How other pages get here. Each one lands on the right page first, then opens the thing.
@@ -464,7 +472,7 @@ public partial class MainViewModel : ViewModelBase
             Selected = this[Page.Notes];
             PageOf<NotesViewModel>(Page.Notes).ShowClient(id, name);
         };
-        go.SetupGuideAction = () => StartGuide();
+        go.SetupGuideAction = () => WelcomePart.StartGuide();
         go.OpenSettingsAction = section =>
         {
             Selected = this[Page.Settings];
@@ -510,9 +518,9 @@ public partial class MainViewModel : ViewModelBase
         };
         Search = new QuickSearchViewModel(services, OpenHit);
         // The menu's kind and the dock's pages are part of the look; whichever is picked follows it at once.
-        services.Settings.AppearanceChanged += _ => MenuKindChanged();
-        FillDock();
-        FillBar();
+        services.Settings.AppearanceChanged += _ => MenuPart.MenuKindChanged();
+        MenuPart.FillDock();
+        DockBarPart.FillBar();
     }
 
     /// <summary>The sidebar entry for a page.</summary>
@@ -550,7 +558,7 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>A page, built now if it hasn't been: the copy on screen, or the one used last.</summary>
-    private T PageOf<T>(Page key) where T : ViewModelBase => (T)LastUsed(this[key]).Page;
+    internal T PageOf<T>(Page key) where T : ViewModelBase => (T)LastUsed(this[key]).Page;
 
     /// <summary>Every built copy of these pages, for telling open pages something changed.</summary>
     private IEnumerable<T> Built<T>(params Page[] keys) => Open.Where(h => keys.Contains(h.Key) && h.IsBuilt).Select(h => h.Page).OfType<T>();
@@ -766,7 +774,7 @@ public partial class MainViewModel : ViewModelBase
                 problem ??= $"{client.Title} has something to fix before it can be saved.";
         }
         foreach (var mail in Built<MailViewModel>(Page.Mail))
-            problem = await mail.PrepareToCloseAsync() ?? problem;
+            problem = await mail.SendingPart.PrepareToCloseAsync() ?? problem;
         // What changed since the last full sync goes to your partner now, waiting a few seconds at most.
         if (problem is null && services.MaySync)
             await Task.WhenAny(services.SyncNowAsync(full: true), Task.Delay(TimeSpan.FromSeconds(5)));
@@ -796,7 +804,7 @@ public partial class MainViewModel : ViewModelBase
     partial void OnCurrentChanged(PageHost value)
     {
         KeepInTabs(value);
-        FillDock();
+        MenuPart.FillDock();
         WatchPanes(value);
         WatchProjects(value);
         WatchMyPages(value);

@@ -5,7 +5,7 @@ using Webignite.Core.Mail;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>Making, renaming and removing your own folders and categories. The editor shows at the foot of the folder list.</summary>
-public partial class MailViewModel
+public sealed partial class MailEditorsPart(AppServices services, MailViewModel page) : ViewModelBase
 {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasCategoryEditor))]
@@ -25,76 +25,76 @@ public partial class MailViewModel
     public void StartNewCategory(IReadOnlyList<MailSummary> applyTo)
     {
         FolderEditor = null;
-        CategoryEditor = new CategoryEditorViewModel(this, null, MailCategories.NextColour(categories), applyTo);
+        CategoryEditor = new CategoryEditorViewModel(page, null, MailCategories.NextColour(page.CategoryList), applyTo);
     }
 
     public void StartEditCategory(MailCategory category)
     {
         FolderEditor = null;
-        CategoryEditor = new CategoryEditorViewModel(this, category, category.Colour, []);
+        CategoryEditor = new CategoryEditorViewModel(page, category, category.Colour, []);
     }
 
     internal async Task SaveCategory(CategoryEditorViewModel editor)
     {
-        if (MailCategories.Check(categories, editor.Name, editor.Editing?.Keyword) is { } problem)
+        if (MailCategories.Check(page.CategoryList, editor.Name, editor.Editing?.Keyword) is { } problem)
         {
             editor.Problem = problem;
             return;
         }
         var saved = editor.Editing is { } old
-            ? MailCategories.Change(categories, old.Keyword, editor.Name, editor.Colour)
-            : MailCategories.Add(categories, editor.Name, editor.Colour);
+            ? MailCategories.Change(page.CategoryList, old.Keyword, editor.Name, editor.Colour)
+            : MailCategories.Add(page.CategoryList, editor.Name, editor.Colour);
         services.Settings.MailCategories = saved;
         var keyword = editor.Editing?.Keyword ?? saved[^1].Keyword;
         CategoryEditor = null;
         CategoriesChanged(keyword);
         if (editor.ApplyTo.Count > 0)
-            await SetCategory(keyword, true, editor.ApplyTo);
+            await page.SetCategory(keyword, true, editor.ApplyTo);
     }
 
     internal void RemoveCategory(CategoryEditorViewModel editor)
     {
         if (editor.Editing is not { } old)
             return;
-        services.Settings.MailCategories = MailCategories.Remove(categories, old.Keyword);
+        services.Settings.MailCategories = MailCategories.Remove(page.CategoryList, old.Keyword);
         CategoryEditor = null;
-        if (CurrentCategory?.Keyword == old.Keyword)
-            CurrentCategory = null;
+        if (page.CurrentCategory?.Keyword == old.Keyword)
+            page.CurrentCategory = null;
         CategoriesChanged(null);
-        if (CurrentCategory is null && CurrentFolder is null)
-            Reload();
-        SetStatus($"Removed the category {old.Name}. The mail in it is still where it was.", false);
+        if (page.CurrentCategory is null && page.CurrentFolder is null)
+            page.Reload();
+        page.SetStatus($"Removed the category {old.Name}. The mail in it is still where it was.", false);
     }
 
     private void CategoriesChanged(string? keepOpen)
     {
-        var current = CurrentCategory?.Keyword ?? keepOpen;
-        var showing = CurrentCategory is not null;
-        LoadCategories();
-        CurrentCategory = showing ? Categories.FirstOrDefault(c => c.Keyword == current) : null;
-        MarkCurrent();
-        foreach (var row in Messages)
+        var current = page.CurrentCategory?.Keyword ?? keepOpen;
+        var showing = page.CurrentCategory is not null;
+        page.LoadCategories();
+        page.CurrentCategory = showing ? page.Categories.FirstOrDefault(c => c.Keyword == current) : null;
+        page.MarkCurrent();
+        foreach (var row in page.Messages)
             row.RefreshDots();
-        Reader?.RefreshCategories();
-        OnPropertyChanged(nameof(ListTitle));
+        page.Reader?.RefreshCategories();
+        OnPropertyChanged(nameof(page.ListTitle));
     }
 
     public void StartNewFolder(MailAccount mailbox, FolderNodeViewModel? parent)
     {
         CategoryEditor = null;
-        FolderEditor = new FolderEditorViewModel(this, FolderEditorMode.New, mailbox, parent);
+        FolderEditor = new FolderEditorViewModel(page, FolderEditorMode.New, mailbox, parent);
     }
 
     public void StartRenameFolder(FolderNodeViewModel folder)
     {
         CategoryEditor = null;
-        FolderEditor = new FolderEditorViewModel(this, FolderEditorMode.Rename, folder.Mailbox, folder);
+        FolderEditor = new FolderEditorViewModel(page, FolderEditorMode.Rename, folder.Mailbox, folder);
     }
 
     public void StartRemoveFolder(FolderNodeViewModel folder)
     {
         CategoryEditor = null;
-        FolderEditor = new FolderEditorViewModel(this, FolderEditorMode.Remove, folder.Mailbox, folder);
+        FolderEditor = new FolderEditorViewModel(page, FolderEditorMode.Remove, folder.Mailbox, folder);
     }
 
     internal async Task SaveFolder(FolderEditorViewModel editor)
@@ -112,13 +112,13 @@ public partial class MailViewModel
                     return;
                 }
                 MailFolder? made = null;
-                var ok = await Run(async () => made = await services.Mail.CreateFolderAsync(account, editor.Folder?.Path, editor.Name),
+                var ok = await page.Run(async () => made = await services.Mail.CreateFolderAsync(account, editor.Folder?.Path, editor.Name),
                     quiet: true, onError: e => editor.Problem = e);
                 if (!ok || made is null)
                     return;
                 FolderEditor = null;
-                Reload();
-                SetStatus($"Made the folder {made.Name}.", false);
+                page.Reload();
+                page.SetStatus($"Made the folder {made.Name}.", false);
                 break;
             }
             case FolderEditorMode.Rename when editor.Folder is { } folder:
@@ -134,22 +134,22 @@ public partial class MailViewModel
                     FolderEditor = null;
                     return;
                 }
-                if (!await Run(() => services.Mail.RenameFolderAsync(account, folder.Path, editor.Name), quiet: true, onError: e => editor.Problem = e))
+                if (!await page.Run(() => services.Mail.RenameFolderAsync(account, folder.Path, editor.Name), quiet: true, onError: e => editor.Problem = e))
                     return;
                 FolderEditor = null;
-                Reload();
-                SetStatus($"Renamed {folder.Name} to {editor.Name.Trim()}.", false);
+                page.Reload();
+                page.SetStatus($"Renamed {folder.Name} to {editor.Name.Trim()}.", false);
                 break;
             }
             case FolderEditorMode.Remove when editor.Folder is { } folder:
             {
-                if (!await Run(() => services.Mail.DeleteFolderAsync(account, folder.Path), quiet: true, onError: e => editor.Problem = e))
+                if (!await page.Run(() => services.Mail.DeleteFolderAsync(account, folder.Path), quiet: true, onError: e => editor.Problem = e))
                     return;
                 FolderEditor = null;
-                if (CurrentFolder?.Key == folder.Key)
-                    CurrentFolder = null;
-                Reload();
-                SetStatus($"Removed the folder {folder.Name}.", false);
+                if (page.CurrentFolder?.Key == folder.Key)
+                    page.CurrentFolder = null;
+                page.Reload();
+                page.SetStatus($"Removed the folder {folder.Name}.", false);
                 break;
             }
         }
@@ -209,10 +209,10 @@ public partial class CategoryEditorViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private Task Save() => owner.SaveCategory(this);
+    private Task Save() => owner.EditorsPart.SaveCategory(this);
 
     [RelayCommand]
-    private void Cancel() => owner.CloseEditors();
+    private void Cancel() => owner.EditorsPart.CloseEditors();
 
     [RelayCommand]
     private void AskRemove() => ConfirmingRemove = true;
@@ -221,7 +221,7 @@ public partial class CategoryEditorViewModel : ViewModelBase
     private void KeepIt() => ConfirmingRemove = false;
 
     [RelayCommand]
-    private void Remove() => owner.RemoveCategory(this);
+    private void Remove() => owner.EditorsPart.RemoveCategory(this);
 }
 
 public partial class ColourChoiceViewModel(string colour, CategoryEditorViewModel editor) : ViewModelBase
@@ -284,8 +284,8 @@ public partial class FolderEditorViewModel(MailViewModel owner, FolderEditorMode
     partial void OnNameChanged(string value) => Problem = "";
 
     [RelayCommand]
-    private Task Save() => owner.SaveFolder(this);
+    private Task Save() => owner.EditorsPart.SaveFolder(this);
 
     [RelayCommand]
-    private void Cancel() => owner.CloseEditors();
+    private void Cancel() => owner.EditorsPart.CloseEditors();
 }

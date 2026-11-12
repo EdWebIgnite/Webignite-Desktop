@@ -15,9 +15,15 @@ namespace Webignite.Desktop.ViewModels;
 /// </summary>
 public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
 {
-    public bool HoldsWork => Composer is not null || HasPendingSend;
+    public bool HoldsWork => Composer is not null || SendingPart.HasPendingSend;
 
     private readonly AppServices services;
+
+    // Each part with state of its own is its own class; this holds them and the screen binds to them by name.
+    public MailSendingPart SendingPart { get; }
+    public MailSnoozePart SnoozePart { get; }
+    public MailEditorsPart EditorsPart { get; }
+    public MailRulesPart RulesPart { get; }
     private IReadOnlyList<MailAccount> accounts = [];
     private IReadOnlyList<MailCategory> categories = [];
     private bool syncing;
@@ -26,6 +32,10 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
     public MailViewModel(AppServices services)
     {
         this.services = services;
+        SendingPart = new(services, this);
+        SnoozePart = new(services, this);
+        EditorsPart = new(services, this);
+        RulesPart = new(services, this);
         Setup = new MailSetupViewModel(services, OnSetupDone);
         Panels = new PanelsViewModel(services.Settings, "mail",
             [("folders", "Folders"), ("messages", "Messages"), ("reader", "Reading pane")]);
@@ -112,7 +122,9 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
     [NotifyPropertyChangedFor(nameof(ShowMail))]
     public partial bool ShowSetup { get; set; }
 
-    public bool ShowMail => !ShowSetup && !ShowRules;
+    public bool ShowMail => !ShowSetup && !RulesPart.ShowRules;
+
+    internal void RulesShownChanged() => OnPropertyChanged(nameof(ShowMail));
     public bool HasReader => Reader is not null;
     public bool NoMessages => Messages.Count == 0;
     public bool HasCategories => Categories.Count > 0;
@@ -233,7 +245,7 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
         ShowMessages();
     }
 
-    private void LoadCategories()
+    internal void LoadCategories()
     {
         categories = services.Settings.MailCategories;
         Categories.Clear();
@@ -242,7 +254,7 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
         OnPropertyChanged(nameof(HasCategories));
     }
 
-    private void MarkCurrent()
+    internal void MarkCurrent()
     {
         foreach (var f in Mailboxes.SelectMany(m => m.Folders))
             f.IsCurrent = CurrentCategory is null && f == CurrentFolder;
@@ -323,7 +335,7 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
             kept = kept.Where(theirs.Matches);
         }
         var clientOf = ClientMail.Finder(services.Clients.List());
-        var arrival = Arrival();
+        var arrival = SnoozePart.Arrival();
         var threads = Conversations ? MailThreads.Group(kept, arrival) : MailThreads.Single(kept, arrival);
         rebuilding = true;
         try

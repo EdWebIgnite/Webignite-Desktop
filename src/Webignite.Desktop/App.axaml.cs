@@ -35,7 +35,7 @@ public partial class App : Application
                 ApplyRestoredBackup();
                 Services = new AppServices(LocalStore.OpenDefault());
             }
-            MainViewModel.AskToSignInAtStart = true;
+            MainWelcomePart.AskToSignInAtStart = true;
             var main = new MainViewModel(Services);
             var window = new MainWindow { DataContext = main };
             main.WatchMail();

@@ -198,7 +198,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
             return;
         // Saving the edited draft makes a new one, so a send set for this one would find nothing: it is taken off.
         if (Scheduled is not null)
-            owner.Unschedule(account.Id, Summary.Uid);
+            owner.SendingPart.Unschedule(account.Id, Summary.Uid);
         owner.Compose(MailComposer.FromDraft(mime, account, Summary.Uid), source: mime);
     }
 
@@ -210,7 +210,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     [RelayCommand]
     private void DontSend()
     {
-        owner.Unschedule(account.Id, Summary.Uid);
+        owner.SendingPart.Unschedule(account.Id, Summary.Uid);
         OnPropertyChanged(nameof(Scheduled));
         OnPropertyChanged(nameof(IsScheduled));
         OnPropertyChanged(nameof(ScheduledText));

@@ -117,7 +117,7 @@ public static class MenuFigures
 public static class DockPages
 {
     /// <summary>More than this and the dock no longer fits a small window.</summary>
-    public const int Most = 10;
+    public const int Most = 12;
 
     /// <summary>What the dock holds until the person changes it.</summary>
     public static readonly IReadOnlyList<string> Usual = ["Overview", "Approvals", "Mail", "Home", "Clients", "Invoices", "Quotes", "Money", "Files"];

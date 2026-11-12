@@ -9,8 +9,11 @@ namespace Webignite.Desktop.ViewModels;
 // the whole menu over the page, or a dock of the pages used most along the bottom with the rest behind More. Both
 // list what the sidebar lists, in the person's own order, and pick through SelectedNav as the sidebar does, so a
 // page, a tool, a project or one of My pages opens the same way from any of the three.
-public sealed partial class MainViewModel
+public sealed partial class MainMenuPart(AppServices services, MainViewModel main) : ViewModelBase
 {
+    /// <summary>Planner as a group for the dock. It has no heading in the sidebar, so it is made here.</summary>
+    private static readonly NavGroup PlannerGroup = new("planner", "PLANNER") { Icon = "Home" };
+
     public MenuKind Menu => services.Settings.Appearance.Menu;
     public bool IsSidebarMenu => Menu == MenuKind.Sidebar;
     public bool IsButtonMenu => Menu == MenuKind.Button;
@@ -33,13 +36,18 @@ public sealed partial class MainViewModel
     /// <summary>The pages on the dock.</summary>
     public ObservableCollection<MenuEntry> Dock { get; } = [];
 
-    private void MenuKindChanged()
+    private MenuKind? lastKind;
+
+    /// <summary>The look changed. Only a change of the menu's own kind closes the open menu; adding to the dock leaves it open.</summary>
+    internal void MenuKindChanged()
     {
-        IsMenuOpen = false;
-        foreach (var name in new[] { nameof(Menu), nameof(IsSidebarMenu), nameof(IsButtonMenu), nameof(IsDockMenu), nameof(HasMenuBar), nameof(DockFloats) })
+        if (lastKind is { } was && was != Menu)
+            IsMenuOpen = false;
+        lastKind = Menu;
+        foreach (var name in new[] { nameof(Menu), nameof(IsSidebarMenu), nameof(IsButtonMenu), nameof(IsDockMenu), nameof(HasMenuBar) })
             OnPropertyChanged(name);
         FillDock();
-        FillBar();
+        main.DockBarPart.FillBar();
     }
 
     [RelayCommand]
@@ -77,7 +85,7 @@ public sealed partial class MainViewModel
     public bool IsMenuBrowsing => !IsMenuEditing;
 
     /// <summary>True when something has been taken off, so Put everything back has something to do.</summary>
-    public bool HasMenuTakenOff => Sidebar.HasTakenOff;
+    public bool HasMenuTakenOff => main.Sidebar.HasTakenOff;
 
     [RelayCommand]
     private void EditMenu()
@@ -99,7 +107,7 @@ public sealed partial class MainViewModel
     }
 
     [RelayCommand]
-    private void PutAllBackOnMenu() => Sidebar.PutAllBack();
+    private void PutAllBackOnMenu() => main.Sidebar.PutAllBack();
 
     /// <summary>Drops an entry of the open menu beside another while editing; one that was off comes back on there.</summary>
     public void MoveInMenu(MenuEntry entry, MenuEntry target, bool below)
@@ -107,16 +115,16 @@ public sealed partial class MainViewModel
         if (!CanMoveInMenu(entry, target))
             return;
         if (entry.IsOff)
-            Sidebar.PutBack(entry.Item);
-        Sidebar.MoveTo(entry.Item, target.Item, below);
+            main.Sidebar.PutBack(entry.Item);
+        main.Sidebar.MoveTo(entry.Item, target.Item, below);
     }
 
     public bool CanMoveInMenu(MenuEntry entry, MenuEntry target) =>
-        IsMenuEditing && !ReferenceEquals(entry, target) && !target.IsOff && Sidebar.CanDrag(entry.Item) && Sidebar.CanDrag(target.Item)
+        IsMenuEditing && !ReferenceEquals(entry, target) && !target.IsOff && main.Sidebar.CanDrag(entry.Item) && main.Sidebar.CanDrag(target.Item)
         && !(entry.Item is Module { InPlanner: true }) && !(target.Item is Module { InPlanner: true });
 
     // What is on the menus changed: the dock drops what was taken off, and the open menu is drawn again.
-    private void MenusChanged()
+    internal void MenusChanged()
     {
         OnPropertyChanged(nameof(HasMenuTakenOff));
         FillDock();
@@ -133,14 +141,14 @@ public sealed partial class MainViewModel
         if (IsMenuEditing)
         {
             if (entry.IsOff)
-                Sidebar.PutBack(entry.Item);
+                main.Sidebar.PutBack(entry.Item);
             else
-                Sidebar.TakeOff(entry.Item);
+                main.Sidebar.TakeOff(entry.Item);
             return;
         }
         IsMenuOpen = false;
         // The Planner entry opens Planner's Home; its own pages are in the menu's Planner column.
-        SelectedNav = entry.Item is SectionLink ? this[Page.Home] : entry.Item;
+        main.SelectedNav = entry.Item is SectionLink ? main[Page.Home] : entry.Item;
     }
 
     [RelayCommand]
@@ -153,7 +161,13 @@ public sealed partial class MainViewModel
     {
         if (entry?.PageKey is not { } key)
             return;
-        services.Settings.Appearance = services.Settings.Appearance with { Dock = change(DockNow(), key) };
+        var now = DockNow();
+        var changed = change(now, key);
+        // Planner as a group takes the place of Planner's own button, which only opened its Home: one Planner, not two.
+        var home = Page.Home.ToString();
+        if (key == DockKeys.Group(PlannerGroup.Key) && !now.Contains(key) && now.Contains(home))
+            changed = [.. now.Select(k => k == home ? key : k)];
+        services.Settings.Appearance = services.Settings.Appearance with { Dock = changed };
         FillDock();
         if (IsMenuOpen)
             FillMenu();
@@ -162,20 +176,22 @@ public sealed partial class MainViewModel
     // Pages and tools taken off the menus are off the dock too. A group stays while it has a name to show.
     private IReadOnlyList<string> DockNow() => DockPages.Shown(services.Settings.Appearance.Dock,
     [
-        .. Modules.Where(m => !Sidebar.IsOff(m)).Select(m => m.Key.ToString()),
-        .. Sidebar.OnMenus().OfType<ToolLink>().Select(t => DockKeys.Tool(t.Kind.ToString())),
-        .. Sidebar.OnMenus().OfType<NavGroup>().Where(g => g.CanFold).Select(g => DockKeys.Group(g.Key)),
+        .. main.Modules.Where(m => !main.Sidebar.IsOff(m)).Select(m => m.Key.ToString()),
+        .. main.Sidebar.OnMenus().OfType<ToolLink>().Select(t => DockKeys.Tool(t.Kind.ToString())),
+        .. main.Sidebar.OnMenus().OfType<NavGroup>().Where(g => g.CanFold).Select(g => DockKeys.Group(g.Key)),
+        DockKeys.Group(PlannerGroup.Key),
     ]);
 
     /// <summary>Makes the dock's entries; called when the menu kind, what is on the dock or the page on screen changes.</summary>
-    private void FillDock()
+    internal void FillDock()
     {
+        lastKind ??= Menu; // the kind the app started with, so the first change of kind is seen as one
         Dock.Clear();
         // While the app is still starting there is no page picked yet; the dock is filled once there is.
-        if (!IsDockMenu || Selected is null)
+        if (!IsDockMenu || main.Selected is null)
             return;
         var keys = DockNow();
-        var onMenus = Sidebar.OnMenus();
+        var onMenus = main.Sidebar.OnMenus();
         foreach (var key in keys)
         {
             var canTakeOff = DockPages.CanRemove(keys, key);
@@ -187,9 +203,14 @@ public sealed partial class MainViewModel
             else if (DockKeys.AsGroup(key) is { } groupKey)
             {
                 // A whole group: a click opens a short list of what is in it, just above the dock.
-                var group = onMenus.OfType<NavGroup>().First(g => g.Key == groupKey);
-                var inside = onMenus.SkipWhile(i => !ReferenceEquals(i, group)).Skip(1).TakeWhile(i => i is not NavGroup)
-                    .Select(i => Plain(i, keys)).OfType<MenuEntry>().ToList();
+                // Planner isn't a heading in the sidebar: its pages are what the sidebar shows once Planner is opened.
+                var isPlanner = groupKey == PlannerGroup.Key;
+                var group = isPlanner ? PlannerGroup : onMenus.OfType<NavGroup>().First(g => g.Key == groupKey);
+                var inside = isPlanner
+                    ? main.Sidebar.PlannerItems.OfType<Module>().Where(m => !main.Sidebar.IsOff(m))
+                        .Select(m => new MenuEntry(m, m.Title, m.Icon) { PageKey = m.Key.ToString(), Module = m, IsCurrent = main.Selected == m }).ToList()
+                    : main.Sidebar.Unfolded().SkipWhile(i => !ReferenceEquals(i, group)).Skip(1).TakeWhile(i => i is not NavGroup)
+                        .Select(i => Plain(i, keys)).OfType<MenuEntry>().ToList();
                 Dock.Add(new MenuEntry(group, group.Name, group.Icon)
                 {
                     PageKey = key, OnDock = true, CanTakeOff = canTakeOff, Inside = inside, IsCurrent = inside.Any(e => e.IsCurrent),
@@ -197,13 +218,13 @@ public sealed partial class MainViewModel
             }
             else
             {
-                var module = Modules.First(m => m.Key.ToString() == key);
+                var module = main.Modules.First(m => m.Key.ToString() == key);
                 // Planner's Home stands for the whole of Planner on the dock, so it is named for it.
                 Dock.Add(new MenuEntry(module, module.Key == Page.Home ? "Planner" : module.Title, module.Icon)
                 {
                     PageKey = key,
                     // A Planner page on the dock stays lit for the whole of Planner, as the sidebar's Planner entry does.
-                    IsCurrent = Selected == module || (module.Key == Page.Home && Selected.InPlanner && !keys.Contains(Selected.Key.ToString())),
+                    IsCurrent = main.Selected == module || (module.Key == Page.Home && main.Selected.InPlanner && !keys.Contains(main.Selected.Key.ToString())),
                     Module = module,
                     OnDock = true,
                     CanTakeOff = canTakeOff,
@@ -216,10 +237,10 @@ public sealed partial class MainViewModel
     private MenuEntry? Plain(object item, IReadOnlyList<string> dock) => item switch
     {
         Module { InPlanner: false } module => new MenuEntry(module, module.Title, module.Icon)
-            { PageKey = module.Key.ToString(), Module = module, IsCurrent = Selected == module, OnDock = dock.Contains(module.Key.ToString()) },
+            { PageKey = module.Key.ToString(), Module = module, IsCurrent = main.Selected == module, OnDock = dock.Contains(module.Key.ToString()) },
         ToolLink tool => new MenuEntry(tool, tool.Title, tool.Icon) { PageKey = DockKeys.Tool(tool.Kind.ToString()) },
-        SectionLink section => new MenuEntry(section, section.Title, section.Icon) { IsCurrent = Selected.InPlanner },
-        SubLink link => new MenuEntry(link, link.Title, link.Icon) { IsCurrent = ReferenceEquals(SelectedNav, link) },
+        SectionLink section => new MenuEntry(section, section.Title, section.Icon) { IsCurrent = main.Selected.InPlanner },
+        SubLink link => new MenuEntry(link, link.Title, link.Icon) { IsCurrent = ReferenceEquals(main.SelectedNav, link) },
         _ => null,
     };
 
@@ -231,7 +252,7 @@ public sealed partial class MainViewModel
         {
             Today = today,
             Documents = services.Documents.List(),
-            UnreadMail = this[Page.Mail].Badge,
+            UnreadMail = main[Page.Mail].Badge,
             Renewals = services.Store.ListRenewals(),
             Retainers = services.Store.ListRetainers(),
             Drafted = services.Store.DraftsMade().Keys.ToHashSet(),
@@ -241,8 +262,9 @@ public sealed partial class MainViewModel
         var dock = DockNow();
         MenuColumns.Clear();
         var column = new MenuColumn("Start");
-        // While editing, every entry on the menus shows, whether its group is folded in the sidebar or not.
-        foreach (var item in IsMenuEditing ? Sidebar.OnMenus() : Sidebar.Items)
+        // Every group shows, whether it is folded in the sidebar or not: there is nowhere to unfold one here. While
+        // editing, only what can be taken off or moved is listed, so not the links that come and go with a page.
+        foreach (var item in IsMenuEditing ? main.Sidebar.OnMenus() : main.Sidebar.Unfolded())
         {
             if (item is NavGroup group)
             {
@@ -268,7 +290,17 @@ public sealed partial class MainViewModel
         Keep(column);
         // Planner's own pages and projects, which the sidebar shows in place of the main list.
         var planner = new MenuColumn("Planner");
-        foreach (var item in Sidebar.PlannerItems)
+        // Planner can go on the dock whole as well, opening a short list of its pages.
+        if (IsDockMenu && !IsMenuEditing)
+        {
+            var plannerKey = DockKeys.Group(PlannerGroup.Key);
+            planner.Heading = new MenuEntry(PlannerGroup, PlannerGroup.Name, PlannerGroup.Icon)
+            {
+                PageKey = plannerKey, OnDock = dock.Contains(plannerKey),
+                CanAdd = DockPages.CanAdd(dock, plannerKey), CanTakeOff = DockPages.CanRemove(dock, plannerKey),
+            };
+        }
+        foreach (var item in main.Sidebar.PlannerItems)
             if (item is Module || (item is SubLink && !IsMenuEditing))
                 if (Entry(item) is { } entry)
                     planner.Entries.Add(entry);
@@ -276,7 +308,7 @@ public sealed partial class MainViewModel
         // What has been taken off, waiting to be put back.
         MenuAvailable.Clear();
         if (IsMenuEditing)
-            foreach (var item in Sidebar.TakenOff())
+            foreach (var item in main.Sidebar.TakenOff())
                 if (Entry(item) is { } entry)
                     MenuAvailable.Add(entry);
         OnPropertyChanged(nameof(NothingAvailable));
@@ -288,7 +320,7 @@ public sealed partial class MainViewModel
         }
 
         MenuEntry? Entry(object item) => Made(item) is { } made
-            ? made with { Editing = IsMenuEditing, IsOff = Sidebar.IsOff(item), CanTakeOffMenu = Sidebar.CanTakeOff(item) }
+            ? made with { Editing = IsMenuEditing, IsOff = main.Sidebar.IsOff(item), CanTakeOffMenu = main.Sidebar.CanTakeOff(item) }
             : null;
 
         MenuEntry? Made(object item)
@@ -303,7 +335,7 @@ public sealed partial class MainViewModel
                         PageKey = key,
                         Figure = figure?.Text ?? (module.HasBadge ? module.Badge.ToString(System.Globalization.CultureInfo.CurrentCulture) : ""),
                         Late = figure?.Late ?? false,
-                        IsCurrent = Selected == module,
+                        IsCurrent = main.Selected == module,
                         Module = module,
                         OnDock = dock.Contains(key),
                         CanAdd = IsDockMenu && DockPages.CanAdd(dock, key),
@@ -319,9 +351,9 @@ public sealed partial class MainViewModel
                         CanTakeOff = IsDockMenu && DockPages.CanRemove(dock, toolKey),
                     };
                 case SectionLink section:
-                    return new MenuEntry(section, section.Title, section.Icon) { IsCurrent = Selected.InPlanner };
+                    return new MenuEntry(section, section.Title, section.Icon) { IsCurrent = main.Selected.InPlanner };
                 case SubLink link:
-                    return new MenuEntry(link, link.Title, link.Icon) { IsCurrent = ReferenceEquals(SelectedNav, link) };
+                    return new MenuEntry(link, link.Title, link.Icon) { IsCurrent = ReferenceEquals(main.SelectedNav, link) };
                 default:
                     return null;
             }
@@ -338,6 +370,11 @@ public sealed class MenuColumn(string title)
     /// <summary>The group itself, when it can go on the dock whole; null for the columns that aren't a group.</summary>
     public MenuEntry? Heading { get; set; }
     public bool CanGoOnDock => Heading is not null;
+
+    /// <summary>The group isn't on the dock and the dock has no room left.</summary>
+    public bool DockIsFull => Heading is { OnDock: false, CanAdd: false };
+
+    public string? HeadingTip => Heading is null ? null : Heading.OnDock ? "On the dock. Right-click to take it off." : "Right-click to put this whole group on the dock.";
 }
 
 /// <summary>One thing the menu or the dock opens: a page, a tool, a project or one of My pages.</summary>

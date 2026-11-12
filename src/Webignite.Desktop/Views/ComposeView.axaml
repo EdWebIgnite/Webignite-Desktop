@@ -170,7 +170,7 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Text="Send on" VerticalAlignment="Center" />
             <c:DateBox SelectedDate="{Binding SendDay}" Earliest="{x:Static sys:DateTime.Today}" Width="160" />
-            <ComboBox ItemsSource="{x:Static vm:MailViewModel.SnoozeHours}" SelectedItem="{Binding SendHour}" Width="100">
+            <ComboBox ItemsSource="{x:Static vm:MailSnoozePart.SnoozeHours}" SelectedItem="{Binding SendHour}" Width="100">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="x:Int32">
                   <TextBlock Text="{Binding StringFormat='{}{0:00}:00'}" />

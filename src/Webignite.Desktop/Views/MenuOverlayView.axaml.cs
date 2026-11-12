@@ -16,14 +16,16 @@ public partial class MenuOverlayView : UserControl
         var rules = new Controls.DragRules
         {
             CanDrag = item => item is MenuEntry { Editing: true } entry && DataContext is MainViewModel main && main.Sidebar.CanDrag(entry.Item) && entry.Item is not Module { InPlanner: true },
-            CanDrop = (item, target, below) => item is MenuEntry entry && target is MenuEntry onto && DataContext is MainViewModel main && main.CanMoveInMenu(entry, onto),
+            CanDrop = (item, target, below) => item is MenuEntry entry && target is MenuEntry onto && DataContext is MainViewModel main && main.MenuPart.CanMoveInMenu(entry, onto),
             Drop = (item, target, below) =>
             {
                 if (item is MenuEntry entry && target is MenuEntry onto && DataContext is MainViewModel main)
-                    main.MoveInMenu(entry, onto, below);
+                    main.MenuPart.MoveInMenu(entry, onto, below);
             },
             Label = item => (item as MenuEntry)?.Title ?? "",
         };
+        // Groups run down a column for as far as the window has room, then start the next one.
+        SizeChanged += (_, e) => Columns.MaxHeight = Math.Max(280, e.NewSize.Height - 330);
         Controls.DragReorder.Attach(Columns, rules);
         Controls.DragReorder.Attach(Available, rules);
     }
@@ -32,7 +34,7 @@ public partial class MenuOverlayView : UserControl
     private void CloseMenu(object? sender, PointerPressedEventArgs e)
     {
         if (DataContext is MainViewModel main)
-            main.IsMenuOpen = false;
+            main.MenuPart.IsMenuOpen = false;
     }
 
     private void KeepMenuOpen(object? sender, PointerPressedEventArgs e) => e.Handled = true;

@@ -11,7 +11,7 @@ namespace Webignite.Desktop.ViewModels;
 /// Sending: after Send a mail waits a few seconds so it can be taken back, and mail set to send later goes out
 /// at the first mail check after its time.
 /// </summary>
-public partial class MailViewModel
+public sealed partial class MailSendingPart(AppServices services, MailViewModel page) : ViewModelBase
 {
     private (ComposeViewModel Composer, Func<Task> Send, string To)? pending;
     private DispatcherTimer? countdown;
@@ -27,7 +27,7 @@ public partial class MailViewModel
         if (pending is { } earlier)
             Release(earlier.Send);
         pending = (composer, send, to);
-        CloseComposer(composer);
+        page.CloseComposer(composer);
         secondsLeft = SendLater.UndoSeconds;
         PendingSendText = SendLater.Countdown(to, secondsLeft);
         OnPropertyChanged(nameof(HasPendingSend));
@@ -77,7 +77,7 @@ public partial class MailViewModel
             OnPropertyChanged(nameof(HasPendingSend));
             await waiting.Send(); // a refused mail comes back in the editor, which is saved below
         }
-        if (Composer is { } open && !await open.KeepAsync())
+        if (page.Composer is { } open && !await open.KeepAsync())
             return $"The mail you're writing couldn't be saved to Drafts. {open.Message}".TrimEnd();
         return null;
     }
@@ -93,11 +93,11 @@ public partial class MailViewModel
         PendingSendText = "";
         OnPropertyChanged(nameof(HasPendingSend));
         Reopen(waiting.Composer);
-        SetStatus("Not sent. The mail is back in the editor.", false);
+        page.SetStatus("Not sent. The mail is back in the editor.", false);
     }
 
     /// <summary>Opens an editor again, e.g. after Undo or when the server refused the mail.</summary>
-    internal void Reopen(ComposeViewModel composer) => Composer = composer;
+    internal void Reopen(ComposeViewModel composer) => page.Composer = composer;
 
     /// <summary>Takes a draft off the send-later list, e.g. when it is opened to edit or Don't send is clicked.</summary>
     internal void Unschedule(string accountId, uint draftUid)
