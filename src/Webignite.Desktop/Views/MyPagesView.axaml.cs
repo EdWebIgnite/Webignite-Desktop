@@ -176,8 +176,9 @@ public partial class MyPagesView : UserControl
     /// <summary>What the colour pop-up shows for a widget. Also for the screenshot tool, which can't draw pop-ups.</summary>
     public Control ColourPicture(WidgetViewModel widget) => ColourPicker(widget, () => { }, () => { });
 
-    private static StackPanel ColourPicker(WidgetViewModel widget, Action changed, Action done)
+    private StackPanel ColourPicker(WidgetViewModel widget, Action changed, Action done)
     {
+        const double wide = 10 * 30 + 9 * 2;
         TextBlock Label(string text)
         {
             var label = new TextBlock { Text = text };
@@ -185,20 +186,57 @@ public partial class MyPagesView : UserControl
             label.Classes.Add("caps");
             return label;
         }
-        var colours = new WrapPanel { MaxWidth = 8 * 34, ItemSpacing = 2, LineSpacing = 2 };
-        foreach (var colour in WidgetLooks.Colours)
+        void Wear(string? colour)
         {
-            var pick = new Button { Content = new Controls.CategoryDot { Colour = colour, Size = 18 }, Padding = new Thickness(7), Width = 32, Height = 32 };
-            pick.Classes.Add(widget.Colour == colour ? "primary" : "quiet");
-            ToolTip.SetTip(pick, char.ToUpper(colour[0], System.Globalization.CultureInfo.CurrentCulture) + colour[1..]);
-            pick.Click += (_, _) =>
-            {
-                widget.Wear(colour, widget.Tint);
-                changed();
-            };
-            colours.Children.Add(pick);
+            widget.Wear(colour, widget.Tint);
+            changed();
         }
-        var tints = new WrapPanel { MaxWidth = 8 * 34, ItemSpacing = 6, LineSpacing = 6 };
+
+        // The pastels: ten to a row, each a swatch of itself.
+        var pastels = new WrapPanel { Width = wide, ItemSpacing = 2, LineSpacing = 2 };
+        foreach (var pastel in WidgetLooks.Pastels)
+        {
+            var swatch = new Border { Width = 20, Height = 20, CornerRadius = new CornerRadius(5), Child = new Controls.CategoryDot { Colour = pastel.Hex, Size = 20 } };
+            var pick = new Button { Content = swatch, Padding = new Thickness(4), Width = 30, Height = 30 };
+            pick.Classes.Add(string.Equals(widget.Colour, pastel.Hex, StringComparison.OrdinalIgnoreCase) ? "primary" : "quiet");
+            ToolTip.SetTip(pick, pastel.Name);
+            pick.Click += (_, _) => Wear(pastel.Hex);
+            pastels.Children.Add(pick);
+        }
+
+        // Any colour by its code, typed or picked off the screen.
+        var code = new TextBox { Text = WidgetLooks.Code(widget.Colour) is null ? "" : widget.Colour, PlaceholderText = "#C6E3F7", Width = 110 };
+        var wrong = new TextBlock { Text = "Type a colour code such as #C6E3F7.", IsVisible = false, TextWrapping = TextWrapping.Wrap, MaxWidth = wide }.Sized("Text12");
+        wrong.Classes.Add("short");
+        void UseCode()
+        {
+            if (WidgetLooks.Known(code.Text) is { } known && WidgetLooks.Code(known) is not null)
+                Wear(known);
+            else
+                wrong.IsVisible = true;
+        }
+        code.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Enter)
+            {
+                UseCode();
+                e.Handled = true;
+            }
+        };
+        var use = new Button { Content = "Use it" };
+        use.Classes.Add("quiet");
+        use.Click += (_, _) => UseCode();
+        var fromScreen = new Button { Content = "From the screen" };
+        fromScreen.Classes.Add("quiet");
+        ToolTip.SetTip(fromScreen, "Click any colour on the screen, such as one from a client's logo");
+        fromScreen.Click += (_, _) =>
+        {
+            done();
+            Pages?.PickFromScreen(picked => widget.Wear(picked, widget.Tint));
+        };
+        var own = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6, Children = { code, use, fromScreen } };
+
+        var tints = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6 };
         foreach (var tint in Enum.GetValues<WidgetTint>())
         {
             var pick = new Button { Content = WidgetLooks.Label(tint), IsEnabled = widget.HasColour };
@@ -210,6 +248,28 @@ public partial class MyPagesView : UserControl
             };
             tints.Children.Add(pick);
         }
+
+        // Intensity: how strongly the colour shows, changed as the slider moves so the widget behind shows it.
+        var shown = widget.Strength == 0 ? WidgetLooks.UsualStrength : widget.Strength;
+        var percent = new TextBlock { Text = widget.Strength == 0 ? "Faint" : $"{widget.Strength}%", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Width = 44, TextAlignment = TextAlignment.Right };
+        percent.Classes.Add("muted");
+        var slider = new Slider
+        {
+            Minimum = WidgetLooks.LeastStrength, Maximum = WidgetLooks.MostStrength, Value = shown, Width = wide - 54,
+            TickFrequency = WidgetLooks.StrengthStep, IsSnapToTickEnabled = true, IsEnabled = widget.HasColour && widget.Tint != WidgetTint.Line,
+        };
+        slider.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != Slider.ValueProperty || !widget.HasColour)
+                return;
+            var strength = WidgetLooks.Strength((int)Math.Round(slider.Value));
+            if (strength == widget.Strength)
+                return;
+            widget.Wear(widget.Colour, widget.Tint, strength);
+            percent.Text = $"{strength}%";
+        };
+        var intensity = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 10, Children = { slider, percent } };
+
         var none = new Button { Content = "No colour", IsEnabled = widget.HasColour, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, Padding = new Thickness(0) };
         none.Classes.Add("link");
         none.Click += (_, _) =>
@@ -217,7 +277,11 @@ public partial class MyPagesView : UserControl
             widget.Wear(null, widget.Tint);
             done();
         };
-        return new StackPanel { Spacing = 10, Margin = new Thickness(4), Children = { Label("Colour"), colours, Label("Worn as"), tints, none } };
+        return new StackPanel
+        {
+            Spacing = 10, Margin = new Thickness(4),
+            Children = { Label("Pastels"), pastels, Label("Your own colour"), own, wrong, Label("Worn as"), tints, Label("Intensity"), intensity, none },
+        };
     }
 
     // The Files widget

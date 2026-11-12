@@ -229,12 +229,15 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
             Save(MyPages.SetText(page, widgetId, text));
     }
 
-    /// <summary>A widget's colour and how it wears it, kept with the page.</summary>
-    public void SetLook(string widgetId, string? colour, WidgetTint tint)
+    /// <summary>A widget's colour, how it wears it and how strongly, kept with the page.</summary>
+    public void SetLook(string widgetId, string? colour, WidgetTint tint, int strength)
     {
         if (page is not null)
-            Save(MyPages.SetLook(page, widgetId, colour, tint));
+            Save(MyPages.SetLook(page, widgetId, colour, tint, strength));
     }
+
+    /// <summary>Freezes the screen to pick a colour off it with the eyedropper, and hands its code over.</summary>
+    public void PickFromScreen(Action<string> picked) => services.Go.PickColour(picked);
 
     /// <summary>The Files widget's folder, kept with the page.</summary>
     public void SetTarget(string widgetId, string target)
@@ -408,21 +411,28 @@ public sealed partial class WidgetViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial int Width { get; private set; }
     [ObservableProperty] public partial int Height { get; private set; }
 
-    /// <summary>The widget's colour by name, or null when it is plain.</summary>
+    /// <summary>The widget's colour (a code such as #C6E3F7, or a category colour's name), or null when it is plain.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasColour))]
     public partial string? Colour { get; private set; }
 
     [ObservableProperty] public partial WidgetTint Tint { get; private set; }
 
+    /// <summary>How strongly the colour shows, 10 to 100; 0 for a widget coloured before intensities.</summary>
+    [ObservableProperty] public partial int Strength { get; private set; }
+
     public bool HasColour => Colour is not null;
 
-    /// <summary>Gives the widget a colour (null takes it away) and keeps it with the page.</summary>
-    public void Wear(string? colour, WidgetTint tint)
+    /// <summary>Gives the widget a colour (null takes it away), a way of wearing it and an intensity, and keeps them with the page.</summary>
+    public void Wear(string? colour, WidgetTint tint, int? strength = null)
     {
-        Colour = colour is not null && WidgetLooks.Colours.Contains(colour) ? colour : null;
+        var known = WidgetLooks.Known(colour);
+        // A newly picked colour starts at the usual intensity; changing only how it is worn keeps what it had.
+        var wanted = strength ?? (known == Colour && Colour is not null ? Strength : WidgetLooks.UsualStrength);
+        Colour = known;
         Tint = tint;
-        page.SetLook(Id, Colour, Tint);
+        Strength = wanted == 0 ? 0 : WidgetLooks.Strength(wanted);
+        page.SetLook(Id, Colour, Tint, Strength);
     }
 
     public void Place(Widget widget)
@@ -433,6 +443,7 @@ public sealed partial class WidgetViewModel : ObservableObject, IDisposable
         Height = widget.Height;
         Colour = widget.Colour;
         Tint = widget.Tint;
+        Strength = widget.Strength;
     }
 
     [RelayCommand]

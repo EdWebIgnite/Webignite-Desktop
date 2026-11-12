@@ -4799,20 +4799,34 @@ SaveLooks("planner-home");
             Check("A client's mail widget lists the mail to and from that client only, wherever it is filed",
                 clientMail.IsForClient && clientMail.Lines.Count > 0 && clientMail.Lines.All(l => l.From.Contains("Lerato", StringComparison.Ordinal) || l.From.Contains("Eddie", StringComparison.Ordinal))
                 && clientMail.Title!.StartsWith("Mail, Fynbos Physio", StringComparison.Ordinal));
-            Of(WidgetKind.NeedsYou).Wear("orange", WidgetTint.Wash);
-            Of(WidgetKind.Mail).Wear("blue", WidgetTint.Heading);
-            Of(WidgetKind.MyTasks).Wear("purple", WidgetTint.Line);
-            Of(WidgetKind.ClientMail).Wear("teal", WidgetTint.Wash);
+            Of(WidgetKind.NeedsYou).Wear("#FDDDBE", WidgetTint.Wash);
+            Of(WidgetKind.Mail).Wear("#C6E3F7", WidgetTint.Heading);
+            Of(WidgetKind.MyTasks).Wear("#E2D2F5", WidgetTint.Line);
+            Of(WidgetKind.ClientMail).Wear("#C5ECDB", WidgetTint.Wash, 100);
             Dispatcher.UIThread.RunJobs();
             var kept = services.Settings.MyPages.Single(p => p.Name == "Morning").Widgets;
-            Check("A widget's colour and how it wears it are kept with the page",
-                kept.Single(w => w.Kind == WidgetKind.Mail) is { Colour: "blue", Tint: WidgetTint.Heading } && kept.Single(w => w.Kind == WidgetKind.ClientMail) is { Colour: "teal", Tint: WidgetTint.Wash });
+            Check("A widget's colour, how it wears it and its intensity are kept with the page",
+                kept.Single(w => w.Kind == WidgetKind.Mail) is { Colour: "#C6E3F7", Tint: WidgetTint.Heading, Strength: WidgetLooks.UsualStrength }
+                && kept.Single(w => w.Kind == WidgetKind.ClientMail) is { Colour: "#C5ECDB", Tint: WidgetTint.Wash, Strength: 100 });
             var parts = window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.TintedPart>().ToList();
             Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Surface", window.ActualThemeVariant, out var surfaceBrush);
             var surface = ((Avalonia.Media.ISolidColorBrush)surfaceBrush!).Color;
-            Check("A washed widget is close to the surface's own colour, never the full colour",
-                parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Card && t.Colour == "orange").All(t => t.Background is Avalonia.Media.ISolidColorBrush b
-                    && b.Color != surface && Math.Abs(b.Color.R - surface.R) + Math.Abs(b.Color.G - surface.G) + Math.Abs(b.Color.B - surface.B) < 60));
+            // Even the faintest writing on a widget must still be read, whatever colour and intensity were picked.
+            bool Readable(Avalonia.Media.Color on)
+            {
+                Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Muted", window.ActualThemeVariant, out var textBrush);
+                var text = ((Avalonia.Media.ISolidColorBrush)textBrush!).Color;
+                return Webignite.Core.Tools.Colours.Contrast(new(on.R, on.G, on.B), new(text.R, text.G, text.B)) >= WidgetLooks.LeastContrast;
+            }
+            var washed = parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Card && t.Colour == "#FDDDBE").ToList();
+            Check("A washed widget takes its pastel and the writing on it can still be read",
+                washed.Count == 1 && washed.All(t => t.Background is Avalonia.Media.ISolidColorBrush b && b.Color != surface && Readable(b.Color)));
+            Of(WidgetKind.NeedsYou).Wear("#2B1A66", WidgetTint.Wash, 100);
+            Dispatcher.UIThread.RunJobs();
+            Check("A dark colour set to full is held back to a tint the writing can be read on",
+                parts.Where(t => t.Colour == "#2B1A66" && t.Part != Webignite.Desktop.Controls.TintPart.Line).All(t => t.Background is Avalonia.Media.ISolidColorBrush b && Readable(b.Color)));
+            Of(WidgetKind.NeedsYou).Wear("#FDDDBE", WidgetTint.Wash);
+            Dispatcher.UIThread.RunJobs();
             Save("my-pages-colours");
             // The same page in a dark look: the tints are mixed into the dark surface, so they stay quiet there too.
             {
@@ -4821,15 +4835,15 @@ SaveLooks("planner-home");
                 Dispatcher.UIThread.RunJobs();
                 Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Surface", window.ActualThemeVariant, out var darkBrush);
                 var dark = ((Avalonia.Media.ISolidColorBrush)darkBrush!).Color;
-                Check("In a dark look the wash follows the dark surface",
-                    dark != surface && parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Card && t.Colour == "orange").All(t => t.Background is Avalonia.Media.ISolidColorBrush b
-                        && Math.Abs(b.Color.R - dark.R) + Math.Abs(b.Color.G - dark.G) + Math.Abs(b.Color.B - dark.B) < 60));
+                Check("In a dark look the same pastel is a deep tint the writing can be read on",
+                    parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Card && t.Colour == "#FDDDBE").All(t => t.Background is Avalonia.Media.ISolidColorBrush b
+                        && b.Color != surface && Readable(b.Color)));
                 Save("my-pages-colours-dark");
                 services.Settings.Appearance = light;
                 Dispatcher.UIThread.RunJobs();
             }
             var view = window.GetVisualDescendants().OfType<MyPagesView>().First();
-            var picker = new Avalonia.Controls.Window { Width = 330, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(14), Content = view.ColourPicture(Of(WidgetKind.Mail)) };
+            var picker = new Avalonia.Controls.Window { Width = 360, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(14), Content = view.ColourPicture(Of(WidgetKind.Mail)) };
             picker.Show();
             SaveWindow(picker, "my-pages-colour-picker");
             picker.Close();
