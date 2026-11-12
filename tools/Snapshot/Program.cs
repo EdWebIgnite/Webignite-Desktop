@@ -3128,6 +3128,26 @@ Save("site-check");
     window.Height = 860;
 }
 
+// The speed test out of Google's shared allowance: the reason, and where to put a free key of your own.
+{
+    Open(Page.SiteCheck);
+    vm.SiteCheck.SpeedTitle = "https://www.webignite.co.za/";
+    vm.SiteCheck.SpeedMessage = "Google only allows a few tests without a key, shared between everyone, and they are used up. Add a free key of your own below and it will work every time.";
+    vm.SiteCheck.SpeedMessageProblem = true;
+    vm.SiteCheck.AsksForSpeedKey = true;
+    Dispatcher.UIThread.RunJobs();
+    Check("Out of Google's allowance, the speed test asks for a key and offers where to get one",
+        vm.SiteCheck.AsksForSpeedKey && !vm.SiteCheck.HasSpeedKey && vm.SiteCheck.SpeedKeyLink == "Use my own Google key");
+    Save("site-speed-key");
+    vm.SiteCheck.SpeedKeyTyped = " AIzaExample ";
+    vm.SiteCheck.AsksForSpeedKey = false;
+    services.Settings.SpeedKey = vm.SiteCheck.SpeedKeyTyped;
+    Check("A saved key is kept trimmed", services.Settings.SpeedKey == "AIzaExample");
+    services.Settings.SpeedKey = "";
+    vm.SiteCheck.SpeedTitle = vm.SiteCheck.SpeedMessage = "";
+    vm.SiteCheck.SpeedMessageProblem = false;
+}
+
 // Mark-up: a made-up client home page with notes on it
 {
     const int w = 1440, h = 900;

@@ -162,20 +162,42 @@ public sealed class ServicesTests : IDisposable
     public async Task When_Google_is_busy_the_speed_test_says_so_in_plain_words()
     {
         var checker = new SiteChecker(new HttpClient(new FakeDns { SpeedStatus = HttpStatusCode.TooManyRequests }));
-        var error = await Assert.ThrowsAsync<HttpRequestException>(() => checker.SpeedAsync("https://karoocoffee.co.za", TestContext.Current.CancellationToken));
-        Assert.Equal("Google is busy with too many tests. Try again in a minute.", error.Message);
+        var error = await Assert.ThrowsAsync<SpeedQuotaException>(() => checker.SpeedAsync("https://karoocoffee.co.za", cancel: TestContext.Current.CancellationToken));
+        Assert.StartsWith("Google only allows a few tests without a key", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_key_of_the_persons_own_is_sent_with_the_speed_test()
+    {
+        var google = new FakeDns { SpeedStatus = HttpStatusCode.TooManyRequests };
+        var error = await Assert.ThrowsAsync<SpeedQuotaException>(() => new SiteChecker(new HttpClient(google)).SpeedAsync("https://karoocoffee.co.za", " AIzaTest ", TestContext.Current.CancellationToken));
+        Assert.StartsWith("Your Google key has used up its tests", error.Message, StringComparison.Ordinal);
+        Assert.EndsWith("&key=AIzaTest", google.SpeedAsked, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_key_Google_refuses_is_said_to_be_wrong()
+    {
+        var google = new FakeDns { SpeedStatus = HttpStatusCode.BadRequest, SpeedBody = """{"error":{"code":400,"message":"API key not valid. Please pass a valid API key."}}""" };
+        var error = await Assert.ThrowsAsync<SpeedKeyException>(() => new SiteChecker(new HttpClient(google)).SpeedAsync("https://karoocoffee.co.za", "wrong", TestContext.Current.CancellationToken));
+        Assert.StartsWith("Google doesn't accept that key", error.Message, StringComparison.Ordinal);
     }
 
     private sealed class FakeDns : HttpMessageHandler
     {
         public List<string> Asked { get; } = [];
         public HttpStatusCode SpeedStatus { get; init; } = HttpStatusCode.OK;
+        public string SpeedBody { get; init; } = "{}";
+        public string SpeedAsked { get; private set; } = "";
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancel)
         {
             var uri = request.RequestUri!;
             if (uri.Host == "www.googleapis.com")
-                return Task.FromResult(new HttpResponseMessage(SpeedStatus) { Content = new StringContent("{}") });
+            {
+                SpeedAsked = uri.Query;
+                return Task.FromResult(new HttpResponseMessage(SpeedStatus) { Content = new StringContent(SpeedBody) });
+            }
             if (uri.Host == "rdap.org")
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
             Asked.Add(uri.Query);

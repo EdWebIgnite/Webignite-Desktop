@@ -206,6 +206,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("speed-history", value.ToDictionary(h => h.Key, h => h.Value.ToList()));
     }
 
+    /// <summary>The person's own Google key for PageSpeed tests (free from Google); empty to test without one.</summary>
+    public string SpeedKey
+    {
+        get => store.GetSetting<string>("speed-key") ?? "";
+        set => store.SetSetting("speed-key", value.Trim());
+    }
+
     /// <summary>Which websites are watched for being down or an expiring certificate, and what was found.</summary>
     public UptimeSettings Uptime
     {

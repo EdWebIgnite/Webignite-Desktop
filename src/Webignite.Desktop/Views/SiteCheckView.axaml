@@ -53,6 +53,19 @@
         </DockPanel>
         <TextBlock Classes="muted" Classes.problem="{Binding SpeedMessageProblem}" Text="{Binding SpeedMessage}" TextWrapping="Wrap"
                    IsVisible="{Binding SpeedMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <!-- A Google key of the person's own: without one the test shares a small allowance that is nearly always used up -->
+        <Border Classes="card" Padding="12,10" Background="{DynamicResource Surface2}" IsVisible="{Binding AsksForSpeedKey}">
+          <StackPanel Spacing="8">
+            <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                       Text="Google gives everyone a free key for these tests (25 000 a day). Click Get a free key, sign in with a Google account, press Get a Key, then paste it here. It is kept on this PC only." />
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="primary" Content="Save and test" Command="{Binding SaveSpeedKeyCommand}" Margin="8,0,0,0" />
+              <Button DockPanel.Dock="Right" Classes="quiet" Content="Get a free key" Command="{Binding GetSpeedKeyCommand}" Margin="8,0,0,0" />
+              <TextBox Text="{Binding SpeedKeyTyped}" PlaceholderText="Paste the key from Google (starts with AIza)" />
+            </DockPanel>
+          </StackPanel>
+        </Border>
+        <Button Classes="link" HorizontalAlignment="Left" Content="{Binding SpeedKeyLink}" Command="{Binding AskForSpeedKeyCommand}" />
         <Grid ColumnDefinitions="140,24,*" IsVisible="{Binding HasSpeed}">
           <StackPanel Grid.Column="0" Spacing="2">
             <TextBlock Text="{Binding SpeedScore}" FontSize="48" FontWeight="Bold" Classes.problem="{Binding SpeedIsProblem}" />

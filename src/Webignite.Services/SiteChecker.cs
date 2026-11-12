@@ -148,13 +148,29 @@ public sealed class SiteChecker(HttpClient http)
         }
     }
 
-    /// <summary>Google's PageSpeed test, as a phone on mobile data sees the site. Takes up to a minute.</summary>
-    public async Task<SpeedReport> SpeedAsync(string address, CancellationToken cancel = default)
+    /// <summary>
+    /// Google's PageSpeed test, as a phone on mobile data sees the site. Takes up to a minute. Without a key the
+    /// test draws on an allowance Google shares between everyone who has none, which is nearly always used up,
+    /// so a key of the person's own (free from Google) is sent when there is one.
+    /// </summary>
+    public async Task<SpeedReport> SpeedAsync(string address, string? key = null, CancellationToken cancel = default)
     {
         var url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?strategy=mobile&category=performance&url=" + Uri.EscapeDataString(address);
+        var hasKey = !string.IsNullOrWhiteSpace(key);
+        if (hasKey)
+            url += "&key=" + Uri.EscapeDataString(key!.Trim());
         using var response = await http.GetAsync(url, cancel);
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
-            throw new HttpRequestException("Google is busy with too many tests. Try again in a minute.");
+            throw new SpeedQuotaException(hasKey
+                ? "Your Google key has used up its tests for now. Try again in a minute; the daily allowance starts again overnight."
+                : "Google only allows a few tests without a key, shared between everyone, and they are used up. Add a free key of your own below and it will work every time.");
+        if (hasKey && response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Forbidden
+            && (await response.Content.ReadAsStringAsync(cancel)) is var why
+            && (why.Contains("API key", StringComparison.OrdinalIgnoreCase) || why.Contains("API_KEY", StringComparison.Ordinal) || why.Contains("has not been used in project", StringComparison.OrdinalIgnoreCase)
+                || why.Contains("SERVICE_DISABLED", StringComparison.Ordinal)))
+            throw new SpeedKeyException(why.Contains("API key not valid", StringComparison.OrdinalIgnoreCase) || why.Contains("API_KEY_INVALID", StringComparison.Ordinal)
+                ? "Google doesn't accept that key. Check it was copied whole, then save it again."
+                : "Google has the key, but PageSpeed Insights isn't switched on for it. In Google Cloud, enable the PageSpeed Insights API for the key's project.");
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException(response.StatusCode == HttpStatusCode.BadRequest || (int)response.StatusCode == 500
                 ? "Google couldn't load the site. Check the address, and that the site is up."
@@ -217,3 +233,9 @@ public sealed class SiteChecker(HttpClient http)
         }
     }
 }
+
+/// <summary>Google refused the speed test for want of allowance: with no key that is the usual case, and a key fixes it.</summary>
+public sealed class SpeedQuotaException(string message) : HttpRequestException(message);
+
+/// <summary>The person's Google key was refused, or isn't allowed to run PageSpeed tests.</summary>
+public sealed class SpeedKeyException(string message) : HttpRequestException(message);
