@@ -15,7 +15,8 @@ public sealed class ToolWindow : Window
     {
         Kind = kind;
         Tools = tools;
-        DataContext = tools;
+        // The window shows one tool, so that tool is all it builds.
+        DataContext = tools.For(kind);
         // Closing lets go of the tool and everything it held, whichever tool this was.
         Closed += (_, _) => tools.Dispose();
         Title = TitleOf(kind);

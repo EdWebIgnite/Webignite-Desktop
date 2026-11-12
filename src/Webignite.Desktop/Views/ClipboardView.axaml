@@ -3,7 +3,7 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.ClipboardView"
-             x:DataType="vm:ToolsViewModel">
+             x:DataType="vm:ClipboardToolViewModel">
   <StackPanel Spacing="10">
     <DockPanel>
       <Button DockPanel.Dock="Right" Classes="link" Content="Clear all" Command="{Binding ClearClipsCommand}" IsVisible="{Binding HasClips}" />

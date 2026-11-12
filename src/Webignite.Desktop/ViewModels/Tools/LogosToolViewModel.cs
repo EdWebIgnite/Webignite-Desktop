@@ -11,8 +11,21 @@ namespace Webignite.Desktop.ViewModels;
 
 // Logo pack and favicons: one master logo in; every version a client is asked for out as a zip, and the full
 // favicon set for a website with the lines to paste.
-public sealed partial class ToolsViewModel
+public sealed partial class LogosToolViewModel : ViewModelBase, IDisposable
 {
+    private readonly AppServices services;
+
+    public LogosToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
+    /// <summary>The tool's window closed: what it started is stopped and what it held is freed.</summary>
+    public void Dispose()
+    {
+        ClearLogoPreviews();
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasLogo))]
     [NotifyCanExecuteChangedFor(nameof(SaveLogoPackToCommand), nameof(SaveFaviconsToCommand))]

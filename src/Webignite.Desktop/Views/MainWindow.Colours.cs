@@ -77,7 +77,7 @@ public partial class MainWindow
             }
             ShowNote("Colour copied", $"{colour.Hex} is on the clipboard. Click to see it in Colours.", () =>
             {
-                ShowTool(ToolKind.Colours, services).Tools.ColourInput = colour.Hex;
+                ShowTool(ToolKind.Colours, services).Tools.Colours.ColourInput = colour.Hex;
             });
         }
         finally

@@ -6,8 +6,22 @@ using Webignite.Core.Tools;
 namespace Webignite.Desktop.ViewModels;
 
 // QR codes for links, Wi-Fi, email and phone numbers, saved as PNG for print or SVG for the web.
-public sealed partial class ToolsViewModel
+public sealed partial class QrToolViewModel : ViewModelBase, IDisposable
 {
+    public QrToolViewModel()
+    {
+        QrKindChoice = QrKinds[0];
+        WifiKindChoice = WifiKinds[0];
+    }
+
+    /// <summary>The tool's window closed: what it started is stopped and what it held is freed.</summary>
+    public void Dispose()
+    {
+        var qr = QrImage;
+        QrImage = null;
+        qr?.Dispose();
+    }
+
     public IReadOnlyList<QrChoice> QrKinds { get; } =
     [
         new(QrKind.Link, "Web address"), new(QrKind.Wifi, "Wi-Fi"), new(QrKind.Email, "Email"),

@@ -14,6 +14,6 @@ public partial class RulerView : UserControl
     {
         var words = (sender as Control)?.Tag as string ?? "";
         var plain = words.Split(" px", 2)[0];
-        ((DataContext as ToolsViewModel)?.CopyWebAsync(TopLevel.GetTopLevel(this), plain, "Size") ?? Task.CompletedTask).Forget("Copying a size", tell: true);
+        ToolClipboard.CopyAsync(TopLevel.GetTopLevel(this), plain).Forget("Copying a size", tell: true);
     }
 }

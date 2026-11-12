@@ -3,7 +3,7 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:tools="using:Webignite.Core.Tools"
              x:Class="Webignite.Desktop.Views.WebHelpersView"
-             x:DataType="vm:ToolsViewModel">
+             x:DataType="vm:WebHelpersToolViewModel">
   <UserControl.Styles>
     <Style Selector="TextBox.code">
       <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />

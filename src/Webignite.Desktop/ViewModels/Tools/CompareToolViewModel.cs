@@ -7,8 +7,14 @@ using Webignite.Services;
 namespace Webignite.Desktop.ViewModels;
 
 // Compare: two files side by side, line by line, or two folders file by file. Read-only.
-public sealed partial class ToolsViewModel
+public sealed partial class CompareToolViewModel : ViewModelBase, IDisposable
 {
+    /// <summary>The tool's window closed: what it started is stopped and what it held is freed.</summary>
+    public void Dispose()
+    {
+        stopCompare?.Invoke();
+    }
+
     private Action? stopCompare;
 
     [ObservableProperty]
@@ -192,7 +198,7 @@ public sealed class DiffRowView(DiffRow row)
 }
 
 /// <summary>A file in two folders being compared.</summary>
-public sealed partial class FolderRowView(FolderRow row, ToolsViewModel tools)
+public sealed partial class FolderRowView(FolderRow row, CompareToolViewModel tools)
 {
     public string Path => row.Path;
     public string Words => FolderCompare.Words(row.Kind);

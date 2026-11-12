@@ -22,7 +22,7 @@ public partial class CalculatorView : UserControl
         AttachedToVisualTree += (_, _) => Dispatcher.UIThread.Post(() => SumBox.Focus());
     }
 
-    private ToolsViewModel? Tools => DataContext as ToolsViewModel;
+    private CalculatorToolViewModel? Tools => DataContext as CalculatorToolViewModel;
 
     private void KeyClicked(object? sender, RoutedEventArgs e)
     {

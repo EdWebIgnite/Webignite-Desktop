@@ -14,7 +14,7 @@ public partial class WebHelpersView : UserControl
 {
     public WebHelpersView() => InitializeComponent();
 
-    private ToolsViewModel? Tools => DataContext as ToolsViewModel;
+    private WebHelpersToolViewModel? Tools => DataContext as WebHelpersToolViewModel;
 
     private void Copy(string? text, string what) =>
         (Tools?.CopyWebAsync(TopLevel.GetTopLevel(this), text, what) ?? Task.CompletedTask).Forget("Copying from Web helpers", tell: true);

@@ -8,8 +8,21 @@ namespace Webignite.Desktop.ViewModels;
 
 // Social images: one picture cut to the shapes Facebook, Instagram, LinkedIn, WhatsApp and link previews want,
 // shown before saving, then saved in one go.
-public sealed partial class ToolsViewModel
+public sealed partial class SocialToolViewModel : ViewModelBase, IDisposable
 {
+    private readonly AppServices services;
+
+    public SocialToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
+    /// <summary>The tool's window closed: what it started is stopped and what it held is freed.</summary>
+    public void Dispose()
+    {
+        ClearSocialPreviews();
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSocialPicture))]
     [NotifyCanExecuteChangedFor(nameof(SaveSocialToCommand))]
@@ -166,7 +179,7 @@ public sealed partial class ToolsViewModel
     }
 }
 
-public sealed partial class SocialChoice(SocialSize size, ToolsViewModel tools) : ObservableObject
+public sealed partial class SocialChoice(SocialSize size, SocialToolViewModel tools) : ObservableObject
 {
     public SocialSize Size { get; } = size;
     public string Label => $"{Size.Label} ({Size.Pixels})";

@@ -9,14 +9,14 @@ namespace Webignite.Desktop.Views;
 /// <summary>Duplicate files: the copies under a folder, in sets. A search still running stops when the window closes.</summary>
 public partial class DuplicatesView : UserControl
 {
-    private ToolsViewModel? tools;
+    private DuplicatesToolViewModel? tools;
 
     public DuplicatesView() => InitializeComponent();
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        tools = DataContext as ToolsViewModel;
+        tools = DataContext as DuplicatesToolViewModel;
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -30,7 +30,7 @@ public partial class DuplicatesView : UserControl
 
     private async Task PickAsync()
     {
-        if (await Picker.Folder(this, "The folder to look through") is { } folder && DataContext is ToolsViewModel model)
+        if (await Picker.Folder(this, "The folder to look through") is { } folder && DataContext is DuplicatesToolViewModel model)
             model.DuplicateFolder = folder;
     }
 }

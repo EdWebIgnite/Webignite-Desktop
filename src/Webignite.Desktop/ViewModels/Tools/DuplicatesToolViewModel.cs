@@ -9,8 +9,21 @@ namespace Webignite.Desktop.ViewModels;
 
 // Duplicate files: the files under a folder that are byte for byte the same, in sets, to tick the extra copies
 // and send them to the Recycle Bin. Nothing goes without a tick, and one copy of each always stays.
-public sealed partial class ToolsViewModel
+public sealed partial class DuplicatesToolViewModel : ViewModelBase, IDisposable
 {
+    private readonly AppServices services;
+
+    public DuplicatesToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
+    /// <summary>The tool's window closed: what it started is stopped and what it held is freed.</summary>
+    public void Dispose()
+    {
+        LeaveDuplicates();
+    }
+
     // Stops the search that is running, when there is one.
     private Action? stopDuplicates;
 
@@ -174,7 +187,7 @@ public sealed partial class ToolsViewModel
 
 public sealed class DuplicateSetView
 {
-    public DuplicateSetView(DuplicateSet set, ToolsViewModel tools)
+    public DuplicateSetView(DuplicateSet set, DuplicatesToolViewModel tools)
     {
         Set = set;
         Files = [.. set.Paths.Select(p => new DuplicateFileView(p, tools))];
@@ -186,7 +199,7 @@ public sealed class DuplicateSetView
     public string Title { get; }
 }
 
-public sealed partial class DuplicateFileView(string path, ToolsViewModel tools) : ObservableObject
+public sealed partial class DuplicateFileView(string path, DuplicatesToolViewModel tools) : ObservableObject
 {
     public string Path { get; } = path;
     public string Name => System.IO.Path.GetFileName(Path);

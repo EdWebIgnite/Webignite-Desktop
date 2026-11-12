@@ -10,7 +10,7 @@ public partial class CompareView : UserControl
 {
     public CompareView() => InitializeComponent();
 
-    private ToolsViewModel? Tools => DataContext as ToolsViewModel;
+    private CompareToolViewModel? Tools => DataContext as CompareToolViewModel;
 
     private void BrowseLeftFile(object? sender, RoutedEventArgs e) => PickAsync(folder: false, left: true).Forget("Picking a file to compare", tell: true);
 
