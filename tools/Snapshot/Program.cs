@@ -1388,6 +1388,20 @@ vm.Mail.Panels.ResetCommand.Execute(null);
         store.DeleteEvent(kept.Id);
     Open(Page.Mail);
 }
+// Mail as Outlook, Gmail and a newsletter write it, each drawn in the reading pane.
+foreach (var (name, html) in MailSamples.All)
+{
+    var sample = new MimeKit.MimeMessage { Subject = "Sample: " + name };
+    sample.From.Add(new MimeKit.MailboxAddress("Pieter van Wyk", "pieter@bosveldbuilders.co.za"));
+    sample.Body = new MimeKit.TextPart("html") { Text = html };
+    using var raw = new MemoryStream();
+    sample.WriteTo(raw);
+    store.SaveMailBody("m1", "INBOX.Clients", 70, raw.ToArray());
+    Wait(vm.Mail.Select(vm.Mail.Messages.First(m => m.Summary.Uid == 70)), "A sample mail opened");
+    vm.Mail.Reader!.ShowImagesCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Save("mail-html-" + name);
+}
 vm.Mail.Open(vm.Mail.Mailboxes[0].Folders[0]);
 Open(Page.Clients);
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Name == "Fynbos Physio"));

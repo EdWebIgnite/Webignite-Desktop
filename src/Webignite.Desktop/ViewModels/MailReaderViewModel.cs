@@ -138,7 +138,7 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     {
         if (mime is null)
             return;
-        var body = MailReader.Read(mime, allowImages);
+        var body = MailReader.Read(mime, allowImages, forViewer: true);
         ImagesAllowed = allowImages;
         Html = MailStyle.Wrap(body.Html ?? "");
         CanShowImages = body.HasRemoteImages && !allowImages;
