@@ -67,5 +67,5 @@ public sealed partial class DependencyRow(ProjectTask task, TaskDetail detail) :
     private void Remove() => detail.RemoveDependency(this);
 
     [RelayCommand]
-    private void Show() => detail.OpenTask(Task.Id);
+    internal void Show() => detail.OpenTask(Task.Id);
 }

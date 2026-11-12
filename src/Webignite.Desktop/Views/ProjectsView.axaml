@@ -472,9 +472,9 @@
         <c:EmptyState IsVisible="{Binding IsClosed}" Icon="{StaticResource Icon.Projects}" Title="Pick a project"
                       Text="Its headings and tasks show here. Give tasks to yourself or your partner and set when they're due." VerticalAlignment="Top" />
         <!-- The template gallery, as Asana's: categories along the top, a card per template, a blank project -->
-        <StackPanel Spacing="18" IsVisible="{Binding IsGallery}">
+        <StackPanel Spacing="18" IsVisible="{Binding GalleryPart.IsGallery}">
           <DockPanel>
-            <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding BlankProjectCommand}" VerticalAlignment="Center">
+            <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding GalleryPart.BlankProjectCommand}" VerticalAlignment="Center">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <c:Icon Data="{StaticResource Icon.Plus}" Size="14" VerticalAlignment="Center" />
                 <TextBlock Text="Blank project" VerticalAlignment="Center" />
@@ -485,7 +485,7 @@
               <TextBlock Classes="muted" TextWrapping="Wrap" Text="Start a project with headings and tasks already in place, or a blank one." />
             </StackPanel>
           </DockPanel>
-          <ItemsControl ItemsSource="{Binding GalleryChips}">
+          <ItemsControl ItemsSource="{Binding GalleryPart.GalleryChips}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
@@ -495,9 +495,9 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <c:EmptyState IsVisible="{Binding GalleryEmpty}" Icon="{StaticResource Icon.Tiles}" Title="No templates of your own yet"
+          <c:EmptyState IsVisible="{Binding GalleryPart.GalleryEmpty}" Icon="{StaticResource Icon.Tiles}" Title="No templates of your own yet"
                         Text="Open a project and click Save as template in the menu next to its name. It shows here, ready to start the next one from." />
-          <ItemsControl ItemsSource="{Binding GalleryCards}">
+          <ItemsControl ItemsSource="{Binding GalleryPart.GalleryCards}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate><WrapPanel ItemSpacing="12" LineSpacing="12" /></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
@@ -521,37 +521,37 @@
           </ItemsControl>
         </StackPanel>
         <!-- A template opened: what's in it, and a name and start date to use it -->
-        <StackPanel Spacing="16" IsVisible="{Binding IsPreviewing}">
-          <Button Classes="link" Command="{Binding BackToGalleryCommand}" HorizontalAlignment="Left">
+        <StackPanel Spacing="16" IsVisible="{Binding GalleryPart.IsPreviewing}">
+          <Button Classes="link" Command="{Binding GalleryPart.BackToGalleryCommand}" HorizontalAlignment="Left">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <c:Icon Data="{StaticResource Icon.ChevronLeft}" Size="14" VerticalAlignment="Center" />
               <TextBlock Text="Template gallery" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
           <StackPanel Orientation="Horizontal" Spacing="14">
-            <Border Width="48" Height="48" CornerRadius="10" Background="{Binding Previewing.TileColour, Converter={x:Static c:ProjectColours.Brush}, FallbackValue={x:Null}}">
-              <c:Icon Data="{Binding Previewing.TileIcon, Converter={x:Static c:ProjectColours.Icon}, FallbackValue={x:Null}}" Size="24" Foreground="{DynamicResource OnProject}"
+            <Border Width="48" Height="48" CornerRadius="10" Background="{Binding GalleryPart.Previewing.TileColour, Converter={x:Static c:ProjectColours.Brush}, FallbackValue={x:Null}}">
+              <c:Icon Data="{Binding GalleryPart.Previewing.TileIcon, Converter={x:Static c:ProjectColours.Icon}, FallbackValue={x:Null}}" Size="24" Foreground="{DynamicResource OnProject}"
                       HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <StackPanel Spacing="2" VerticalAlignment="Center">
-              <TextBlock Classes="h1" Text="{Binding Previewing.Name, FallbackValue=''}" />
-              <TextBlock Classes="muted" Text="{Binding Previewing.About, FallbackValue=''}" />
+              <TextBlock Classes="h1" Text="{Binding GalleryPart.Previewing.Name, FallbackValue=''}" />
+              <TextBlock Classes="muted" Text="{Binding GalleryPart.Previewing.About, FallbackValue=''}" />
             </StackPanel>
           </StackPanel>
-          <TextBlock TextWrapping="Wrap" Text="{Binding Previewing.Description, FallbackValue=''}" MaxWidth="640" HorizontalAlignment="Left" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding GalleryPart.Previewing.Description, FallbackValue=''}" MaxWidth="640" HorizontalAlignment="Left" />
           <Border Classes="card" Padding="16">
             <StackPanel Spacing="12">
               <TextBlock Classes="h2" Text="Use this template" />
               <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBox Text="{Binding PreviewName}" PlaceholderText="Project name" Width="320" />
-                <c:DateBox SelectedDate="{Binding PreviewStart}" PlaceholderText="Starts on" Width="160" ToolTip.Tip="Its tasks' dates count from this day" />
-                <Button Classes="primary" Content="Use template" Command="{Binding UseTemplateCommand}" />
-                <Button Classes="link" Content="Remove the template" Command="{Binding RemovePreviewedCommand}" IsVisible="{Binding Previewing.IsMine, FallbackValue=False}"
+                <TextBox Text="{Binding GalleryPart.PreviewName}" PlaceholderText="Project name" Width="320" />
+                <c:DateBox SelectedDate="{Binding GalleryPart.PreviewStart}" PlaceholderText="Starts on" Width="160" ToolTip.Tip="Its tasks' dates count from this day" />
+                <Button Classes="primary" Content="Use template" Command="{Binding GalleryPart.UseTemplateCommand}" />
+                <Button Classes="link" Content="Remove the template" Command="{Binding GalleryPart.RemovePreviewedCommand}" IsVisible="{Binding GalleryPart.Previewing.IsMine, FallbackValue=False}"
                         VerticalAlignment="Center" />
               </StackPanel>
             </StackPanel>
           </Border>
-          <ItemsControl ItemsSource="{Binding PreviewHeadings}">
+          <ItemsControl ItemsSource="{Binding GalleryPart.PreviewHeadings}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:GalleryHeading">
                 <StackPanel Spacing="4" Margin="0,0,0,14">
@@ -580,10 +580,10 @@
             <TextBlock Classes="muted" Text="{Binding MySummary}" />
           </StackPanel>
           <DockPanel>
-            <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding AddTodoCommand}" Margin="8,0,0,0" />
-            <TextBox Text="{Binding NewTodo}" PlaceholderText="Add a to-do of your own, then Enter" KeyDown="TodoKey" />
+            <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding MyTodosPart.AddTodoCommand}" Margin="8,0,0,0" />
+            <TextBox Text="{Binding MyTodosPart.NewTodo}" PlaceholderText="Add a to-do of your own, then Enter" KeyDown="TodoKey" />
           </DockPanel>
-          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MyMessage}" IsVisible="{Binding HasMyMessage}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MyTodosPart.MyMessage}" IsVisible="{Binding MyTodosPart.HasMyMessage}" />
           <c:EmptyState IsVisible="{Binding MyTasksEmpty}" Icon="{StaticResource Icon.Check}" Title="All clear"
                         Text="Tasks given to you in any project and your own to-dos show here, soonest first. Ones with a due date show in Week and Calendar too." />
           <ItemsControl ItemsSource="{Binding MyRows}">
@@ -651,12 +651,12 @@
                   <StackPanel Spacing="12" Width="320">
                     <TextBlock FontWeight="SemiBold" Text="Share this project" />
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                      <c:Monogram Text="{Binding MyName}" Size="28" />
-                      <TextBlock Text="{Binding MyName}" VerticalAlignment="Center" />
+                      <c:Monogram Text="{Binding MessagesPart.MyName}" Size="28" />
+                      <TextBlock Text="{Binding MessagesPart.MyName}" VerticalAlignment="Center" />
                       <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="(you)" VerticalAlignment="Center" />
                     </StackPanel>
                     <CheckBox IsChecked="{Binding EditShared}" Content="{Binding SharedLabel}" />
-                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding ShareNote}" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding MessagesPart.ShareNote}" />
                   </StackPanel>
                 </Flyout>
               </Button.Flyout>
@@ -1410,16 +1410,16 @@
           <StackPanel Spacing="14" IsVisible="{Binding IsMessages}" MaxWidth="820" HorizontalAlignment="Left">
             <Border Classes="card" Padding="16">
               <StackPanel Spacing="8">
-                <TextBox Text="{Binding NewMessageSubject}" PlaceholderText="Subject" FontWeight="SemiBold" />
-                <TextBox Text="{Binding NewMessageText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
+                <TextBox Text="{Binding MessagesPart.NewMessageSubject}" PlaceholderText="Subject" FontWeight="SemiBold" />
+                <TextBox Text="{Binding MessagesPart.NewMessageText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
                          PlaceholderText="Write a message to everyone on the project (@ to mention)" />
-                <TextBlock Classes="problem" Text="{Binding MessageProblem}" IsVisible="{Binding HasMessageProblem}" TextWrapping="Wrap" />
-                <Button Classes="primary" Content="Post" Command="{Binding PostMessageCommand}" HorizontalAlignment="Right" />
+                <TextBlock Classes="problem" Text="{Binding MessagesPart.MessageProblem}" IsVisible="{Binding MessagesPart.HasMessageProblem}" TextWrapping="Wrap" />
+                <Button Classes="primary" Content="Post" Command="{Binding MessagesPart.PostMessageCommand}" HorizontalAlignment="Right" />
               </StackPanel>
             </Border>
-            <c:EmptyState IsVisible="{Binding NoMessages}" Icon="{StaticResource Icon.Mail}" Title="No messages yet"
+            <c:EmptyState IsVisible="{Binding MessagesPart.NoMessages}" Icon="{StaticResource Icon.Mail}" Title="No messages yet"
                           Text="Messages are for the whole project: a kick-off note, a decision, an update for your partner. Replies stay with them." />
-            <ItemsControl ItemsSource="{Binding MessageThreads}">
+            <ItemsControl ItemsSource="{Binding MessagesPart.MessageThreads}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><StackPanel Spacing="12" /></ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
@@ -1450,7 +1450,7 @@
           <StackPanel Spacing="10" IsVisible="{Binding IsFiles}">
             <c:EmptyState IsVisible="{Binding NoProjectFiles}" Icon="{StaticResource Icon.Paperclip}" Title="No files yet"
                           Text="Open a task and attach files, or drop them on it. They show here, with the task they're on." />
-            <ItemsControl ItemsSource="{Binding ProjectFiles}">
+            <ItemsControl ItemsSource="{Binding FilesPart.ProjectFiles}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><WrapPanel ItemSpacing="12" LineSpacing="12" /></ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>

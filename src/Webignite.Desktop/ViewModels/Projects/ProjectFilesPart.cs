@@ -10,34 +10,26 @@ namespace Webignite.Desktop.ViewModels;
 // Attachments, as Asana's: files on a task (kept on this PC), a picture as the card's cover on the board, and a
 // Files tab with every file in the project. Pictures are shrunk to small copies, made off the screen's thread and
 // kept while the page is open; closing the page lets them go.
-public sealed partial class ProjectsViewModel
+public sealed partial class ProjectFilesPart(AppServices services, ProjectsViewModel page) : ViewModelBase
 {
     private readonly Dictionary<(string Path, int Width), Bitmap> thumbnails = [];
 
     /// <summary>The Files tab: every file on the open project's tasks, the newest first.</summary>
     public ObservableCollection<AttachmentRow> ProjectFiles { get; } = [];
 
-    public bool NoProjectFiles => IsFiles && ProjectFiles.Count == 0;
-
-    /// <summary>The Files tab is showing, rather than the list or the board.</summary>
-    public bool IsFiles => Tab == ProjectTab.Files;
-
-    [RelayCommand]
-    private void FilesView() => ShowOnly(ProjectTab.Files);
-
     internal string PathOf(ProjectTask task, TaskAttachment attachment) => services.Projects.PathOf(task.Id, attachment);
 
-    internal AttachmentRow CoverRow(ProjectTask task, TaskAttachment picture) => new(task, picture, this, 252);
+    internal AttachmentRow CoverRow(ProjectTask task, TaskAttachment picture) => new(task, picture, page, 252);
 
-    private void ListFiles()
+    internal void ListFiles()
     {
         ProjectFiles.Clear();
-        if (open is not null)
+        if (page.open is not null)
         {
-            foreach (var file in Attachments.Of(services.Projects.AllTasks(open.Id)))
-                ProjectFiles.Add(new AttachmentRow(file.Task, file.Attachment, this, 168));
+            foreach (var file in Attachments.Of(services.Projects.AllTasks(page.open.Id)))
+                ProjectFiles.Add(new AttachmentRow(file.Task, file.Attachment, page, 168));
         }
-        OnPropertyChanged(nameof(NoProjectFiles));
+        OnPropertyChanged(nameof(page.NoProjectFiles));
     }
 
     /// <summary>Attaches files to a task, as picked or dropped on it; says which couldn't be.</summary>
@@ -46,11 +38,11 @@ public sealed partial class ProjectsViewModel
         var problems = new List<string>();
         foreach (var path in paths)
         {
-            var (_, problem) = Ours(() => services.Projects.Attach(taskId, path));
+            var (_, problem) = page.Ours(() => services.Projects.Attach(taskId, path));
             if (problem is not null)
                 problems.Add(problem);
         }
-        Message = string.Join(" ", problems);
+        page.Message = string.Join(" ", problems);
         AfterFilesChanged(taskId);
     }
 
@@ -58,28 +50,28 @@ public sealed partial class ProjectsViewModel
     public void AttachTo(TaskRow row, IReadOnlyList<string> paths)
     {
         Attach(row.Task.Id, paths);
-        if (Message.Length == 0 && paths.Count > 0)
-            Message = paths.Count == 1 ? $"Attached {Path.GetFileName(paths[0])} to {row.Task.Title}." : $"Attached {paths.Count} files to {row.Task.Title}.";
+        if (page.Message.Length == 0 && paths.Count > 0)
+            page.Message = paths.Count == 1 ? $"Attached {Path.GetFileName(paths[0])} to {row.Task.Title}." : $"Attached {paths.Count} files to {row.Task.Title}.";
     }
 
     internal void Detach(AttachmentRow row)
     {
-        Ours(() => services.Projects.Detach(row.Task.Id, row.Attachment.Id));
+        page.Ours(() => services.Projects.Detach(row.Task.Id, row.Attachment.Id));
         AfterFilesChanged(row.Task.Id);
     }
 
     internal void SetCover(AttachmentRow row, bool cover)
     {
-        Ours(() => services.Projects.ChangeTask(row.Task.Id, t => Attachments.SetCover(t, cover ? row.Attachment.Id : null)));
+        page.Ours(() => services.Projects.ChangeTask(row.Task.Id, t => Attachments.SetCover(t, cover ? row.Attachment.Id : null)));
         AfterFilesChanged(row.Task.Id);
     }
 
     private void AfterFilesChanged(string taskId)
     {
-        ShowTasks();
-        if (Detail is { } detail && detail.Task.Id == taskId)
+        page.ShowTasks();
+        if (page.Detail is { } detail && detail.Task.Id == taskId)
             detail.Reload();
-        if (IsFiles)
+        if (page.IsFiles)
             ListFiles();
     }
 
@@ -122,7 +114,7 @@ public sealed partial class ProjectsViewModel
 
     private bool disposed;
 
-    private void LetPicturesGo()
+    internal void LetPicturesGo()
     {
         disposed = true;
         ProjectFiles.Clear();
@@ -142,10 +134,10 @@ public sealed partial class AttachmentRow : ObservableObject
         this.page = page;
         Task = task;
         Attachment = attachment;
-        Path = page.PathOf(task, attachment);
+        Path = page.FilesPart.PathOf(task, attachment);
         if (attachment.IsPicture)
         {
-            Picture = page.Thumbnail(Path, pictureWidth);
+            Picture = page.FilesPart.Thumbnail(Path, pictureWidth);
             if (Picture is null)
                 LoadPicture(pictureWidth).Forget("Showing an attached picture");
         }
@@ -173,7 +165,7 @@ public sealed partial class AttachmentRow : ObservableObject
     public bool HasPicture => Picture is not null;
     public bool ShowsIcon => Picture is null;
 
-    private async Task LoadPicture(int width) => Picture = await page.ThumbnailAsync(Path, width);
+    private async Task LoadPicture(int width) => Picture = await page.FilesPart.ThumbnailAsync(Path, width);
 
     [RelayCommand]
     private void Open()
@@ -200,11 +192,11 @@ public sealed partial class AttachmentRow : ObservableObject
     private void OpenTask() => page.OpenTaskById(Task.Id);
 
     [RelayCommand]
-    private void MakeCover() => page.SetCover(this, true);
+    private void MakeCover() => page.FilesPart.SetCover(this, true);
 
     [RelayCommand]
-    private void RemoveCover() => page.SetCover(this, false);
+    private void RemoveCover() => page.FilesPart.SetCover(this, false);
 
     [RelayCommand]
-    private void Remove() => page.Detach(this);
+    private void Remove() => page.FilesPart.Detach(this);
 }

@@ -8,11 +8,8 @@ namespace Webignite.Desktop.ViewModels;
 
 // The Messages tab, as Asana's: conversations about the whole project rather than one task, each with replies,
 // @mentions and likes. In a shared project they sync and show in your partner's Inbox.
-public sealed partial class ProjectsViewModel
+public sealed partial class ProjectMessagesPart(AppServices services, ProjectsViewModel page) : ViewModelBase
 {
-    /// <summary>The Messages tab is showing.</summary>
-    public bool IsMessages => Tab == ProjectTab.Messages;
-
     public ObservableCollection<MessageThreadRow> MessageThreads { get; } = [];
 
     public bool NoMessages => MessageThreads.Count == 0;
@@ -25,9 +22,6 @@ public sealed partial class ProjectsViewModel
 
     partial void OnMessageProblemChanged(string value) => OnPropertyChanged(nameof(HasMessageProblem));
 
-    [RelayCommand]
-    private void MessagesView() => ShowOnly(ProjectTab.Messages);
-
     public string MyName => services.Me().Name;
 
     /// <summary>Under Share: how sharing reaches your partner, or what's needed first.</summary>
@@ -38,14 +32,14 @@ public sealed partial class ProjectsViewModel
     internal void ListMessages()
     {
         MessageThreads.Clear();
-        if (open is null)
+        if (page.open is null)
             return;
         var team = services.Team();
         var now = DateTimeOffset.Now;
         MessageRow Row(ProjectMessage m) => new(m, team.NameOf(m.Created.By), TaskTalk.When(m.Created.At, now, TimeZoneInfo.Local, CultureInfo.CurrentCulture),
-            m.Created.By == team.Me!.Id || Actors.IsAssistant(m.Created.By), m.LikedBy.Contains(team.Me.Id), this);
-        foreach (var thread in services.Projects.Messages(open.Id))
-            MessageThreads.Add(new MessageThreadRow(Row(thread.Start), [.. thread.Replies.Select(Row)], this));
+            m.Created.By == team.Me!.Id || Actors.IsAssistant(m.Created.By), m.LikedBy.Contains(team.Me.Id), page);
+        foreach (var thread in services.Projects.Messages(page.open.Id))
+            MessageThreads.Add(new MessageThreadRow(Row(thread.Start), [.. thread.Replies.Select(Row)], page));
         OnPropertyChanged(nameof(NoMessages));
     }
 
@@ -53,9 +47,9 @@ public sealed partial class ProjectsViewModel
     [RelayCommand]
     private void PostMessage()
     {
-        if (open is null)
+        if (page.open is null)
             return;
-        var (saved, problem) = Ours(() => services.Projects.PostMessage(open.Id, NewMessageSubject, NewMessageText));
+        var (saved, problem) = page.Ours(() => services.Projects.PostMessage(page.open.Id, NewMessageSubject, NewMessageText));
         MessageProblem = problem ?? "";
         if (saved is null)
             return;
@@ -65,9 +59,9 @@ public sealed partial class ProjectsViewModel
 
     internal void Reply(MessageThreadRow thread)
     {
-        if (open is null)
+        if (page.open is null)
             return;
-        var (saved, problem) = Ours(() => services.Projects.PostMessage(open.Id, "", thread.ReplyText, thread.Start.Message.Id));
+        var (saved, problem) = page.Ours(() => services.Projects.PostMessage(page.open.Id, "", thread.ReplyText, thread.Start.Message.Id));
         MessageProblem = problem ?? "";
         if (saved is not null)
             ListMessages();
@@ -75,13 +69,13 @@ public sealed partial class ProjectsViewModel
 
     internal void LikeMessage(MessageRow row)
     {
-        if (Ours(() => services.Projects.LikeMessage(row.Message.Id, !row.ILikeIt)) is not null)
+        if (page.Ours(() => services.Projects.LikeMessage(row.Message.Id, !row.ILikeIt)) is not null)
             ListMessages();
     }
 
     internal void DeleteMessage(MessageRow row)
     {
-        if (Ours(() => services.Projects.DeleteMessage(row.Message.Id)) is not { } gone)
+        if (page.Ours(() => services.Projects.DeleteMessage(row.Message.Id)) is not { } gone)
             return;
         ListMessages();
         services.OfferUndo(gone.ReplyTo is null ? "Message deleted" : "Reply deleted", () =>
@@ -103,7 +97,7 @@ public sealed partial class MessageThreadRow(MessageRow start, IReadOnlyList<Mes
     [ObservableProperty] public partial string ReplyText { get; set; } = "";
 
     [RelayCommand]
-    private void Reply() => page.Reply(this);
+    private void Reply() => page.MessagesPart.Reply(this);
 }
 
 /// <summary>One message or reply: who, when, what, and its likes. My own can be deleted.</summary>
@@ -118,8 +112,8 @@ public sealed partial class MessageRow(ProjectMessage message, string who, strin
     public string LikeCount => Message.LikedBy.Count > 0 ? Message.LikedBy.Count.ToString(CultureInfo.CurrentCulture) : "";
 
     [RelayCommand]
-    private void ToggleLike() => page.LikeMessage(this);
+    private void ToggleLike() => page.MessagesPart.LikeMessage(this);
 
     [RelayCommand]
-    private void Delete() => page.DeleteMessage(this);
+    private void Delete() => page.MessagesPart.DeleteMessage(this);
 }

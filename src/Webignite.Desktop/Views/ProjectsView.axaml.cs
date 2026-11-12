@@ -140,7 +140,7 @@ public partial class ProjectsView : FullBleedView
         TaskPane.AddHandler(DragDrop.DropEvent, (_, e) =>
         {
             if (Projects is { Detail: { } task } projects && e.DataTransfer.TryGetFiles() is { } files)
-                projects.Attach(task.Task.Id, files.Select(f => f.TryGetLocalPath()).OfType<string>());
+                projects.FilesPart.Attach(task.Task.Id, files.Select(f => f.TryGetLocalPath()).OfType<string>());
         });
 
         // A picture or files pasted into the comment box are attached to the task; words paste as words.
@@ -566,7 +566,7 @@ public partial class ProjectsView : FullBleedView
         if (on?.DataContext is not TaskRow row || Projects is not { } projects || e.DataTransfer.TryGetFiles() is not { } files)
             return;
         e.Handled = true;
-        projects.AttachTo(row, files.Select(f => f.TryGetLocalPath()).OfType<string>().ToList());
+        projects.FilesPart.AttachTo(row, files.Select(f => f.TryGetLocalPath()).OfType<string>().ToList());
     }
 
     private void CommentPasting(object? sender, RoutedEventArgs e)
@@ -585,7 +585,7 @@ public partial class ProjectsView : FullBleedView
         {
             case Webignite.Core.Chat.ChatPaste.Files:
                 if (await clipboard.TryGetFilesAsync() is { } items)
-                    projects.Attach(task.Task.Id, items.Select(i => i.TryGetLocalPath()).OfType<string>().ToList());
+                    projects.FilesPart.Attach(task.Task.Id, items.Select(i => i.TryGetLocalPath()).OfType<string>().ToList());
                 break;
             case Webignite.Core.Chat.ChatPaste.Picture:
                 if (await clipboard.TryGetBitmapAsync() is { } bitmap)
@@ -595,7 +595,7 @@ public partial class ProjectsView : FullBleedView
                     using (bitmap)
                     using (var file = File.Create(path))
                         bitmap.Save(file, Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
-                    projects.Attach(task.Task.Id, [path]);
+                    projects.FilesPart.Attach(task.Task.Id, [path]);
                     File.Delete(path);
                 }
                 break;
@@ -614,7 +614,7 @@ public partial class ProjectsView : FullBleedView
             return;
         var paths = await Webignite.Desktop.Files.Picker.Files(this, "Attach files", many: true);
         if (paths.Count > 0)
-            Projects?.Attach(task.Task.Id, paths);
+            Projects?.FilesPart.Attach(task.Task.Id, paths);
     }
 
     // An attached file's right-click menu: open it, show it in its folder, the task it's on, the cover, remove it.
@@ -995,7 +995,7 @@ public partial class ProjectsView : FullBleedView
     {
         if (e.Key == Key.Enter && Projects is { } projects)
         {
-            projects.AddTodoCommand.Execute(null);
+            projects.MyTodosPart.AddTodoCommand.Execute(null);
             e.Handled = true;
         }
     }

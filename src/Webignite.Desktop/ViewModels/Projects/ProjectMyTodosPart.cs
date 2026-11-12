@@ -9,7 +9,7 @@ namespace Webignite.Desktop.ViewModels;
 // My to-dos in My tasks, as Asana's: to-dos are my own tasks in no project, listed with the tasks given to me by
 // when they're due. They stay in their own list, so automatic reminders, the client page and Claude or ChatGPT
 // keep working as before; one moved into a project becomes a task there.
-public sealed partial class ProjectsViewModel
+public sealed partial class ProjectMyTodosPart(AppServices services, ProjectsViewModel page) : ViewModelBase
 {
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddTodoCommand))]
@@ -23,10 +23,10 @@ public sealed partial class ProjectsViewModel
     {
         services.Store.SaveTask(new TaskItem { Id = TaskItem.NewId(), Title = NewTodo.Trim(), Created = DateTimeOffset.UtcNow });
         NewTodo = "";
-        ShowMyTasks();
+        page.ShowMyTasks();
     }
 
-    private IReadOnlyList<TaskItem> MyTodos()
+    internal IReadOnlyList<TaskItem> MyTodos()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         services.Store.RaiseAutomaticTasks(services.Settings.Tasks, today);
@@ -36,23 +36,23 @@ public sealed partial class ProjectsViewModel
     internal void TickTodo(TaskItem todo, bool done)
     {
         services.Store.ChangeTask(todo.Id, t => t with { Done = done, DoneAt = done ? DateTimeOffset.UtcNow : null });
-        Feedback.After(done ? Feedback.DoneTime(services.Settings.Appearance.Motion) : TimeSpan.Zero, ShowMyTasks);
+        Feedback.After(done ? Feedback.DoneTime(services.Settings.Appearance.Motion) : TimeSpan.Zero, page.ShowMyTasks);
     }
 
     internal void SetTodoDue(TaskItem todo, DateOnly? due)
     {
         services.Store.ChangeTask(todo.Id, t => t with { Due = due });
-        ShowMyTasks();
+        page.ShowMyTasks();
     }
 
     internal void DeleteTodo(TaskItem todo)
     {
         services.Store.DeleteTask(todo.Id);
-        ShowMyTasks();
+        page.ShowMyTasks();
         services.OfferUndo($"Removed \"{todo.Title}\"", () =>
         {
             services.Store.SaveTask(todo);
-            ShowMyTasks();
+            page.ShowMyTasks();
         });
     }
 
@@ -75,21 +75,21 @@ public sealed partial class ProjectsViewModel
     {
         todo = services.Store.ListTasks().FirstOrDefault(t => t.Id == todo.Id) ?? todo;
         var task = MyWork.ToTask(todo, project.Id, services.Me().Id, services.Clients.Find(todo.Customer)?.Id, ProjectRules.NewId());
-        var (saved, problems) = Ours(() => services.Projects.AddTask(task));
+        var (saved, problems) = page.Ours(() => services.Projects.AddTask(task));
         if (saved is null)
         {
             MyMessage = string.Join(" ", problems);
             return;
         }
         services.Store.DeleteTask(todo.Id);
-        ShowMyTasks();
+        page.ShowMyTasks();
         MyMessage = $"Moved \"{todo.Title}\" to {project.Name}.";
     }
 
     /// <summary>A word about the last thing done to a to-do in My tasks, shown under its heading.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMyMessage))]
-    public partial string MyMessage { get; private set; } = "";
+    public partial string MyMessage { get; internal set; } = "";
 
     public bool HasMyMessage => MyMessage.Length > 0;
 }
@@ -129,22 +129,22 @@ public sealed partial class TodoRow : ObservableObject
     partial void OnDoneChanged(bool value)
     {
         if (!loading)
-            page.TickTodo(Todo, value);
+            page.MyTodosPart.TickTodo(Todo, value);
     }
 
-    public void SetDue(DateOnly? due) => page.SetTodoDue(Todo, due);
+    public void SetDue(DateOnly? due) => page.MyTodosPart.SetTodoDue(Todo, due);
 
-    public bool HasAbout => page.TodoHasAbout(Todo);
-
-    [RelayCommand]
-    private void OpenAbout() => page.OpenTodoAbout(Todo);
+    public bool HasAbout => page.MyTodosPart.TodoHasAbout(Todo);
 
     [RelayCommand]
-    private void Delete() => page.DeleteTodo(Todo);
+    private void OpenAbout() => page.MyTodosPart.OpenTodoAbout(Todo);
 
-    public IReadOnlyList<Project> Projects => page.ProjectsToMoveInto();
+    [RelayCommand]
+    private void Delete() => page.MyTodosPart.DeleteTodo(Todo);
 
-    public void MoveInto(Project project) => page.MoveTodoInto(Todo, project);
+    public IReadOnlyList<Project> Projects => page.MyTodosPart.ProjectsToMoveInto();
+
+    public void MoveInto(Project project) => page.MyTodosPart.MoveTodoInto(Todo, project);
 
     public string Tip => Todo.Notes is { Length: > 0 } notes ? notes : Title;
 

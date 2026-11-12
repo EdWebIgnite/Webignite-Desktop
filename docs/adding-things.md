@@ -83,6 +83,10 @@ To keep a page calm, put its extra blocks in one card as folding rows rather tha
 3. Give the body a `DataTemplate` in `MyPagesView.axaml`. Keep it to what fits a small card; the full page stays a click away.
 4. Add it to the My pages part of the screenshot tool.
 
+## A view of a project with state of its own
+
+Projects is one page with several views of the open project. Which one shows is one setting, `ProjectsViewModel.Tab` (a `ProjectTab`); every `IsX` flag reads it. A view with lists and commands of its own is a part in `ViewModels/Projects` (`ProjectMessagesPart`, `ProjectFilesPart`, `ProjectGalleryPart`, `ProjectMyTodosPart`): it is given the page, reaches the open project through it (`page.open`, `page.Ours(...)`), and the screen binds to it by name, `{Binding MessagesPart.NewMessageText}`. A new view goes the same way, never as more members on `ProjectsViewModel`.
+
 ## A date on a page
 
 Use `<c:DateBox SelectedDate="{Binding Day}" PlaceholderText="Due" />` (`Controls/DateBox.cs`), never Avalonia's own date pickers: it is the one calendar the app has, styled in `Styles/Controls.axaml` (`Button.datebox`, `Button.calday`). `Earliest` and `Latest` stop a day outside them being picked. What is put inside the tag is shown under the month in the pop-up (a task's time and how it repeats), and the pop-up then stays open after a day is picked. The pop-up is built when opened and let go when closed.

@@ -3783,8 +3783,8 @@ SaveLooks("projects");
         services.Timer.Stop();
         // My own to-dos show in My tasks with what's given to me, as Asana's; the box adds one.
         projectsPage.CloseTaskCommand.Execute(null);
-        projectsPage.NewTodo = "Renew the Karoo Coffee domain";
-        projectsPage.AddTodoCommand.Execute(null);
+        projectsPage.MyTodosPart.NewTodo = "Renew the Karoo Coffee domain";
+        projectsPage.MyTodosPart.AddTodoCommand.Execute(null);
         Check("My tasks lists my to-dos with the tasks given to me, and the box adds one",
             projectsPage.MyRows.OfType<TodoRow>().Any(r => r.Title == "Renew the Karoo Coffee domain")
             && projectsPage.MySummary.Contains("of your own", StringComparison.Ordinal));
@@ -3863,24 +3863,24 @@ SaveLooks("projects");
         Check("My tasks in the sidebar shows my tasks", projectsPage.IsMyTasks && vm.SelectedNav is ProjectLink { Kind: ProjectLinkKind.MyTasks });
         vm.SelectedNav = links.First(l => l.Kind == ProjectLinkKind.Templates);
         Dispatcher.UIThread.RunJobs();
-        Check("Templates in the sidebar opens the gallery: my templates and the ones that come with the app", projectsPage.IsGallery
-            && projectsPage.GalleryCards.Count == projectsPage.Templates.Count + Webignite.Core.Projects.BuiltInTemplates.All.Count
+        Check("Templates in the sidebar opens the gallery: my templates and the ones that come with the app", projectsPage.GalleryPart.IsGallery
+            && projectsPage.GalleryPart.GalleryCards.Count == projectsPage.Templates.Count + Webignite.Core.Projects.BuiltInTemplates.All.Count
             && vm.SelectedNav is ProjectLink { Kind: ProjectLinkKind.Templates });
         window.Width = 1920;
         window.Height = 1080;
         Dispatcher.UIThread.RunJobs();
         Save("template-gallery");
-        projectsPage.ShowCategory(Webignite.Core.Projects.BuiltInTemplates.Marketing);
-        Check("A category shows only its templates, its chip picked", projectsPage.GalleryCards.All(c => c.Category == "Marketing")
-            && projectsPage.GalleryChips.Single(c => c.IsOn).Name == "Marketing");
-        projectsPage.ShowCategory(ProjectsViewModel.AllTemplates);
-        projectsPage.GalleryCards.First(c => c.Name == "Web design process").OpenCommand.Execute(null);
+        projectsPage.GalleryPart.ShowCategory(Webignite.Core.Projects.BuiltInTemplates.Marketing);
+        Check("A category shows only its templates, its chip picked", projectsPage.GalleryPart.GalleryCards.All(c => c.Category == "Marketing")
+            && projectsPage.GalleryPart.GalleryChips.Single(c => c.IsOn).Name == "Marketing");
+        projectsPage.GalleryPart.ShowCategory(ProjectGalleryPart.AllTemplates);
+        projectsPage.GalleryPart.GalleryCards.First(c => c.Name == "Web design process").OpenCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
-        Check("A template opens to show its headings and tasks, ready to name", projectsPage.IsPreviewing && projectsPage.PreviewHeadings.Count == 5
-            && projectsPage.PreviewName == "Web design process");
+        Check("A template opens to show its headings and tasks, ready to name", projectsPage.GalleryPart.IsPreviewing && projectsPage.GalleryPart.PreviewHeadings.Count == 5
+            && projectsPage.GalleryPart.PreviewName == "Web design process");
         Save("template-preview");
-        projectsPage.PreviewName = "Fynbos Physio website";
-        projectsPage.UseTemplateCommand.Execute(null);
+        projectsPage.GalleryPart.PreviewName = "Fynbos Physio website";
+        projectsPage.GalleryPart.UseTemplateCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
         var fromGallery = services.Projects.Projects().First(p => p.Name == "Fynbos Physio website");
         Check("Use template makes the project with its headings, tasks, colour and icon, and opens it", projectsPage.EditName == "Fynbos Physio website"
@@ -4227,7 +4227,7 @@ SaveLooks("planner-home");
             File.WriteAllBytes(briefPath, new byte[12_000]);
             var coloursTask = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title == "Colours and fonts");
             projectsPage.OpenTaskById(coloursTask.Task.Id);
-            projectsPage.Attach(coloursTask.Task.Id, [shotPath, briefPath]);
+            projectsPage.FilesPart.Attach(coloursTask.Task.Id, [shotPath, briefPath]);
             var attachedUntil = DateTime.UtcNow.AddSeconds(5);
             while (projectsPage.Detail!.Attachments.Any(a => a.IsPicture && !a.HasPicture) && DateTime.UtcNow < attachedUntil)
             {
@@ -4252,11 +4252,11 @@ SaveLooks("planner-home");
             projectsPage.FilesViewCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
             Check("The Files tab lists every file in the project, with its task", projectsPage.IsFiles && !projectsPage.IsList && !projectsPage.IsBoard
-                && projectsPage.ProjectFiles.Count == 2 && projectsPage.ProjectFiles.All(f => f.TaskTitle == "Colours and fonts"));
+                && projectsPage.FilesPart.ProjectFiles.Count == 2 && projectsPage.FilesPart.ProjectFiles.All(f => f.TaskTitle == "Colours and fonts"));
             Save("project-files");
-            var pdfRow = projectsPage.ProjectFiles.First(f => !f.IsPicture);
+            var pdfRow = projectsPage.FilesPart.ProjectFiles.First(f => !f.IsPicture);
             pdfRow.RemoveCommand.Execute(null);
-            Check("Removing a file takes it off the task and out of Files", projectsPage.ProjectFiles.Count == 1
+            Check("Removing a file takes it off the task and out of Files", projectsPage.FilesPart.ProjectFiles.Count == 1
                 && services.Projects.GetTask(coloursTask.Task.Id)!.Attachments.Count == 1);
             // Files dropped from Windows on a task's row: it lights up while they're over it, and they're attached to it.
             projectsPage.ListViewCommand.Execute(null);
@@ -4267,7 +4267,7 @@ SaveLooks("planner-home");
             dropBorder.Classes.Add("filedrop");
             Save("list-file-drop");
             dropBorder.Classes.Remove("filedrop");
-            projectsPage.AttachTo(dropRow, [briefPath]);
+            projectsPage.FilesPart.AttachTo(dropRow, [briefPath]);
             var dropped = services.Projects.GetTask(dropRow.Task.Id)!;
             Check("Files dropped on a task's row are attached to it, and it says so", dropped.Attachments.Count == 1
                 && projectsPage.Message == "Attached Brief.pdf to Build the five pages.");
@@ -4795,18 +4795,18 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     services.Go.ProjectMessages(project.Id);
     Dispatcher.UIThread.RunJobs();
     var projectsPage = (ProjectsViewModel)vm[Page.Projects].Main.Page;
-    Check("Messages opens on its own tab with no task tools", projectsPage.IsMessages && !projectsPage.ShowsTaskTools && projectsPage.NoMessages);
-    projectsPage.NewMessageSubject = "Kick-off";
-    projectsPage.NewMessageText = "Site map and the first wireframes are in the shared folder. Launch is planned for the 20th.";
-    projectsPage.PostMessageCommand.Execute(null);
+    Check("Messages opens on its own tab with no task tools", projectsPage.IsMessages && !projectsPage.ShowsTaskTools && projectsPage.MessagesPart.NoMessages);
+    projectsPage.MessagesPart.NewMessageSubject = "Kick-off";
+    projectsPage.MessagesPart.NewMessageText = "Site map and the first wireframes are in the shared folder. Launch is planned for the 20th.";
+    projectsPage.MessagesPart.PostMessageCommand.Execute(null);
     var kickOff = services.Projects.Messages(project.Id)[0].Start;
     asPartner.PostMessage(project.Id, "", $"@{services.Me().Name} the 20th works for me. I'll have the copy done by the 14th.", kickOff.Id);
     asPartner.LikeMessage(kickOff.Id, true);
     projectsPage.Refresh();
     Dispatcher.UIThread.RunJobs();
-    Check("A message posted shows with my partner's reply and like", projectsPage.MessageThreads.Count == 1
-        && projectsPage.MessageThreads[0].Replies.Count == 1 && projectsPage.MessageThreads[0].Start.LikeCount == "1"
-        && projectsPage.NewMessageSubject.Length == 0);
+    Check("A message posted shows with my partner's reply and like", projectsPage.MessagesPart.MessageThreads.Count == 1
+        && projectsPage.MessagesPart.MessageThreads[0].Replies.Count == 1 && projectsPage.MessagesPart.MessageThreads[0].Start.LikeCount == "1"
+        && projectsPage.MessagesPart.NewMessageSubject.Length == 0);
     Save("project-messages");
     projectsPage.ListViewCommand.Execute(null);
     Open(Page.Overview);
