@@ -229,6 +229,13 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
             Save(MyPages.SetText(page, widgetId, text));
     }
 
+    /// <summary>A widget's colour and how it wears it, kept with the page.</summary>
+    public void SetLook(string widgetId, string? colour, WidgetTint tint)
+    {
+        if (page is not null)
+            Save(MyPages.SetLook(page, widgetId, colour, tint));
+    }
+
     /// <summary>The Files widget's folder, kept with the page.</summary>
     public void SetTarget(string widgetId, string target)
     {
@@ -401,12 +408,31 @@ public sealed partial class WidgetViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial int Width { get; private set; }
     [ObservableProperty] public partial int Height { get; private set; }
 
+    /// <summary>The widget's colour by name, or null when it is plain.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasColour))]
+    public partial string? Colour { get; private set; }
+
+    [ObservableProperty] public partial WidgetTint Tint { get; private set; }
+
+    public bool HasColour => Colour is not null;
+
+    /// <summary>Gives the widget a colour (null takes it away) and keeps it with the page.</summary>
+    public void Wear(string? colour, WidgetTint tint)
+    {
+        Colour = colour is not null && WidgetLooks.Colours.Contains(colour) ? colour : null;
+        Tint = tint;
+        page.SetLook(Id, Colour, Tint);
+    }
+
     public void Place(Widget widget)
     {
         Column = widget.Column;
         Row = widget.Row;
         Width = widget.Width;
         Height = widget.Height;
+        Colour = widget.Colour;
+        Tint = widget.Tint;
     }
 
     [RelayCommand]

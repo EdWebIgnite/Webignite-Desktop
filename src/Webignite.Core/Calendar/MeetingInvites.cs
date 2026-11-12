@@ -24,7 +24,7 @@ public sealed record MeetingInvite
 /// </summary>
 public static partial class MeetingInvites
 {
-    [GeneratedRegex(@"https://(?:teams\.microsoft\.com/(?:l/meetup-join|meet)/|teams\.live\.com/meet/|[\w.-]*zoom\.us/(?:j|my|w|s)/|meet\.google\.com/|[\w.-]*\.webex\.com/)[^\s""'<>)\]]+", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"https://(?:teams\.microsoft\.com/(?:l/meetup-join|meet)/|teams\.live\.com/meet/|[\w.-]*zoom\.us/(?:j|my|w|s)/|meet\.google\.com/|[\w.-]*\.webex\.com/|(?:[\w-]+\.)?whereby\.com/|meet\.jit\.si/|meet\.goto\.com/|(?:global\.)?gotomeeting\.com/join/|gotomeet\.me/|meet\.zoho\.[a-z.]+/|[\w.-]*bluejeans\.com/|chime\.aws/|calendly\.com/events/)[^\s""'<>)\]]+", RegexOptions.IgnoreCase)]
     private static partial Regex Links();
 
     [GeneratedRegex(@"\b(?<h>[01]?\d|2[0-3])\s?[:h]\s?(?<m>[0-5]\d)\s*(?<ap>am|pm)?\b|\b(?<h>1[0-2]|0?[1-9])\s?(?<ap>am|pm)\b", RegexOptions.IgnoreCase)]
@@ -34,6 +34,17 @@ public static partial class MeetingInvites
     private static partial Regex DatesIn();
 
     private static readonly string[] Months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+    /// <summary>A link typed or pasted by the person for a meeting, tidied: any web address will do, since they chose it. Null when it isn't one.</summary>
+    public static string? TypedLink(string? typed)
+    {
+        var text = (typed ?? "").Trim();
+        if (text.Length == 0)
+            return null;
+        if (!text.Contains("://", StringComparison.Ordinal))
+            text = "https://" + text;
+        return Uri.TryCreate(text, UriKind.Absolute, out var url) && url.Scheme is "https" or "http" && url.Host.Contains('.') ? url.AbsoluteUri : null;
+    }
 
     /// <summary>The first link to an online meeting in some text or HTML, or null.</summary>
     public static string? JoinLink(string? text)

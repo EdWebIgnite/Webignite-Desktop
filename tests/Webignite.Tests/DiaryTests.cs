@@ -127,4 +127,21 @@ public class DiaryTests
     [Fact]
     public void A_meet_link_in_html_is_found_with_its_ampersands_put_right() =>
         Assert.Equal("https://meet.google.com/abc-defg-hij?authuser=0&hs=1", MeetingInvites.JoinLink("<a href=\"https://meet.google.com/abc-defg-hij?authuser=0&amp;hs=1\">Join</a>"));
+
+    [Theory]
+    [InlineData("https://whereby.com/webignite-room")]
+    [InlineData("https://meet.jit.si/WebigniteStandup")]
+    [InlineData("https://teams.live.com/meet/9361234567890?p=abc")]
+    public void Other_meeting_services_are_known_too(string link) => Assert.Equal(link, MeetingInvites.JoinLink("Join us at " + link + " tomorrow"));
+
+    [Theory]
+    [InlineData("meet.google.com/abc-defg-hij", "https://meet.google.com/abc-defg-hij")]
+    [InlineData(" https://example.co.za/room/12 ", "https://example.co.za/room/12")]
+    public void A_link_the_person_pastes_is_kept_whatever_service_it_is(string typed, string kept) => Assert.Equal(kept, MeetingInvites.TypedLink(typed));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("the boardroom")]
+    [InlineData("ftp://example.co.za/file")]
+    public void What_isnt_a_web_address_is_not_a_meeting_link(string typed) => Assert.Null(MeetingInvites.TypedLink(typed));
 }

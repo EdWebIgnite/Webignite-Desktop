@@ -14,6 +14,9 @@ public partial class MailReaderViewModel
     private CalendarEvent? addedMeeting;
 
     public bool HasMeeting => meeting is not null;
+
+    /// <summary>Nothing in the mail looked like a meeting, so the bar is offered by a link instead of shown by itself.</summary>
+    public bool CanOfferMeeting => meeting is null && IsNotDraft && CanWrite;
     public bool MeetingAdded => addedMeeting is not null;
     public bool MeetingCanBeAdded => HasMeeting && !MeetingAdded;
     public string? MeetingLink => addedMeeting?.JoinLink ?? meeting?.JoinLink;
@@ -22,12 +25,18 @@ public partial class MailReaderViewModel
     public string MeetingLead => addedMeeting is { } added
         ? $"In your calendar for {When(added.Date, added.Start)}."
         : meeting is { FromInvite: true } ? "This mail is a meeting invite."
+        : meeting is { JoinLink: null } ? "Add this mail to your calendar. Give it a day, a time and, for an online meeting, its link."
         : "This mail has a link to an online meeting. The day and time were read from its words, so check them.";
 
     [ObservableProperty] public partial string MeetingTitle { get; set; } = "";
     [ObservableProperty] public partial DateTime? MeetingDay { get; set; }
     [ObservableProperty] public partial string MeetingTime { get; set; } = "";
     [ObservableProperty] public partial string MeetingMessage { get; set; } = "";
+
+    /// <summary>The link to join the meeting, as found in the mail; it can be corrected or pasted in before adding.</summary>
+    [ObservableProperty] public partial string MeetingLinkTyped { get; set; } = "";
+
+    private string bodyText = "";
 
     private static string When(DateOnly day, TimeOnly? time) =>
         day.ToString("dddd, d MMMM", CultureInfo.CurrentCulture) + (time is { } t ? " at " + t.ToString("HH:mm", CultureInfo.InvariantCulture) : "");
@@ -38,6 +47,7 @@ public partial class MailReaderViewModel
     private void FindMeeting(Webignite.Core.Mail.MailBody body)
     {
         var received = DateOnly.FromDateTime(Summary.Date.LocalDateTime);
+        bodyText = body.Text;
         meeting = IsDraft ? null : MeetingInvites.InMail(Summary.Subject, body.Text, body.Html, body.Calendar, received, TimeZoneInfo.Local);
         addedMeeting = null;
         if (meeting is not null)
@@ -49,6 +59,7 @@ public partial class MailReaderViewModel
             MeetingTitle = meeting.Title;
             MeetingDay = meeting.Date?.ToDateTime(TimeOnly.MinValue);
             MeetingTime = meeting.Start?.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "";
+            MeetingLinkTyped = meeting.JoinLink ?? "";
         }
         MeetingMessage = "";
         MeetingChanged();
@@ -56,7 +67,7 @@ public partial class MailReaderViewModel
 
     private void MeetingChanged()
     {
-        foreach (var name in new[] { nameof(HasMeeting), nameof(MeetingAdded), nameof(MeetingCanBeAdded), nameof(MeetingLink), nameof(CanJoinMeeting), nameof(MeetingLead) })
+        foreach (var name in new[] { nameof(HasMeeting), nameof(CanOfferMeeting), nameof(MeetingAdded), nameof(MeetingCanBeAdded), nameof(MeetingLink), nameof(CanJoinMeeting), nameof(MeetingLead) })
             OnPropertyChanged(name);
     }
 
@@ -85,6 +96,12 @@ public partial class MailReaderViewModel
             }
             start = typed;
         }
+        string? link = null;
+        if (!string.IsNullOrWhiteSpace(MeetingLinkTyped) && (link = MeetingInvites.TypedLink(MeetingLinkTyped)) is null)
+        {
+            MeetingMessage = "That meeting link isn't a web address. Paste the whole link, or leave it empty.";
+            return;
+        }
         // The invite's own end when its start was kept; otherwise an hour.
         var end = start is null ? (TimeOnly?)null : start == meeting.Start && meeting.End is { } said ? said : start.Value.AddHours(1);
         addedMeeting = services.Store.SaveEvent(new CalendarEvent
@@ -95,7 +112,7 @@ public partial class MailReaderViewModel
             Start = start,
             End = end,
             Location = meeting.Location,
-            JoinLink = meeting.JoinLink,
+            JoinLink = link,
             MailId = MeetingKey,
             Customer = ClientMail.For(services.Clients.List(), Summary.From?.Address)?.Name,
         });
@@ -103,6 +120,23 @@ public partial class MailReaderViewModel
         MeetingChanged();
         // The calendar, week and diary pages that are open show it straight away.
         services.AreasChanged?.Invoke(["calendar"]);
+    }
+
+    /// <summary>
+    /// Any mail can go into the calendar, not only one that looked like a meeting: the bar opens with the mail's
+    /// subject, and whatever day and time its words give, to fill in.
+    /// </summary>
+    [RelayCommand]
+    private void OfferMeeting()
+    {
+        if (meeting is not null)
+            return;
+        var received = DateOnly.FromDateTime(Summary.Date.LocalDateTime);
+        meeting = new MeetingInvite { Title = string.IsNullOrWhiteSpace(Summary.Subject) ? "Meeting" : Summary.Subject.Trim(), Date = MeetingInvites.DateIn(bodyText, received) };
+        MeetingTitle = meeting.Title;
+        MeetingDay = meeting.Date?.ToDateTime(TimeOnly.MinValue);
+        MeetingTime = MeetingLinkTyped = MeetingMessage = "";
+        MeetingChanged();
     }
 
     [RelayCommand]

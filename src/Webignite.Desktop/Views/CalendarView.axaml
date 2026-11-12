@@ -91,6 +91,8 @@
                               IsVisible="{Binding CanDelete}" Command="{Binding Delete}" Padding="4,0">
                         <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
                       </Button>
+                      <Button DockPanel.Dock="Right" Classes="link" Content="Join" FontWeight="SemiBold" IsVisible="{Binding CanJoin}" Command="{Binding Join}" Padding="4,0"
+                              ToolTip.Tip="{Binding JoinLink}" />
                       <StackPanel>
                         <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
                         <TextBlock Classes="muted" FontSize="{DynamicResource Text11}">
@@ -113,6 +115,7 @@
               <TextBox Text="{Binding NewTime}" PlaceholderText="Time" ToolTip.Tip="e.g. 9:30 or 14:00. Empty means all day." />
               <TextBox Grid.Column="2" Text="{Binding NewLocation}" PlaceholderText="Where" />
             </Grid>
+            <TextBox Text="{Binding NewLink}" PlaceholderText="Link to join, if it is online" />
             <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding FormMessage}" TextWrapping="Wrap" />
             <Button Classes="primary" Content="Add to this day" Command="{Binding AddEventCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
           </StackPanel>

@@ -62,6 +62,10 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     [ObservableProperty]
     public partial string NewLocation { get; set; } = "";
 
+    /// <summary>The link to join, when the event being added is an online meeting.</summary>
+    [ObservableProperty]
+    public partial string NewLink { get; set; } = "";
+
     [ObservableProperty]
     public partial string FormMessage { get; set; } = "";
 
@@ -105,16 +109,23 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
             }
             start = parsed;
         }
+        string? link = null;
+        if (!string.IsNullOrWhiteSpace(NewLink) && (link = MeetingInvites.TypedLink(NewLink)) is null)
+        {
+            FormMessage = "That meeting link isn't a web address. Paste the whole link, or leave it empty.";
+            return;
+        }
         services.Store.SaveEvent(new CalendarEvent
         {
             Id = CalendarEvent.NewId(),
             Title = NewTitle.Trim(),
+            JoinLink = link,
             Date = SelectedDate,
             Start = start,
             End = start?.AddHours(1),
             Location = string.IsNullOrWhiteSpace(NewLocation) ? null : NewLocation.Trim(),
         });
-        NewTitle = NewTime = NewLocation = FormMessage = "";
+        NewTitle = NewTime = NewLocation = NewLink = FormMessage = "";
         Refresh();
     }
 
@@ -155,7 +166,7 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
             : Agenda.Build(SelectedDate, SelectedDate, services.Store.ListEvents(SelectedDate, SelectedDate), services.Store.ListTasks(), services.Documents.List(),
                 services.Projects.Agenda(SelectedDate, SelectedDate, services.Me().Id));
         foreach (var item in selected)
-            SelectedItems.Add(new AgendaItemViewModel(item, DeleteEvent));
+            SelectedItems.Add(new AgendaItemViewModel(item, DeleteEvent, item.Kind == AgendaKind.Event ? services.Store.GetEvent(item.SourceId)?.JoinLink : null));
         OnPropertyChanged(nameof(SelectedIsEmpty));
     }
 

@@ -16,6 +16,20 @@ public enum WidgetKind
     Clipboard,
     Colours,
     Files,
+    ClientMail,
+}
+
+/// <summary>How a widget wears its colour. None is a solid fill: a page of solid blocks is as tiring as a page of white ones.</summary>
+public enum WidgetTint
+{
+    /// <summary>The whole widget in a faint wash of the colour, its heading a little deeper.</summary>
+    Wash,
+
+    /// <summary>A plain widget with only its heading in the colour.</summary>
+    Heading,
+
+    /// <summary>A plain widget with a line of the colour along its top.</summary>
+    Line,
 }
 
 /// <summary>
@@ -33,6 +47,11 @@ public sealed record Widget
     public int Height { get; init; } = 16;
     public string? Target { get; init; }
     public string? Text { get; init; }
+
+    /// <summary>One of <see cref="WidgetLooks.Colours"/>, or null for a plain widget.</summary>
+    public string? Colour { get; init; }
+
+    public WidgetTint Tint { get; init; }
 }
 
 /// <summary>A page the person made: a name in the sidebar and the widgets on it.</summary>
@@ -77,11 +96,12 @@ public static class MyPages
         WidgetKind.Timer => "Timer",
         WidgetKind.Clipboard => "Clipboard history",
         WidgetKind.Files => "Files",
+        WidgetKind.ClientMail => "A client's mail",
         _ => "Colours",
     };
 
     /// <summary>Widgets that show one project or one client, picked when added.</summary>
-    public static bool NeedsTarget(WidgetKind kind) => kind is WidgetKind.Project or WidgetKind.Client;
+    public static bool NeedsTarget(WidgetKind kind) => kind is WidgetKind.Project or WidgetKind.Client or WidgetKind.ClientMail;
 
     /// <summary>The size a widget starts at, in fine columns and rows.</summary>
     public static (int Width, int Height) StartSize(WidgetKind kind)
@@ -89,7 +109,7 @@ public static class MyPages
         var (width, height) = kind switch
         {
             WidgetKind.Project or WidgetKind.Month or WidgetKind.Files => (6, 5),
-            WidgetKind.NeedsYou or WidgetKind.Mail => (6, 4),
+            WidgetKind.NeedsYou or WidgetKind.Mail or WidgetKind.ClientMail => (6, 4),
             WidgetKind.Calculator => (3, 6),
             WidgetKind.Timer => (3, 2),
             WidgetKind.Note => (3, 3),
@@ -140,6 +160,12 @@ public static class MyPages
         page with { Widgets = [.. page.Widgets.Where(w => w.Id != id)] };
 
     /// <summary>Puts the Files widget on another folder.</summary>
+    /// <summary>A widget's colour and how it wears it. A colour that isn't on the list, or none, makes it plain again.</summary>
+    public static MyPage SetLook(MyPage page, string id, string? colour, WidgetTint tint) => page with
+    {
+        Widgets = [.. page.Widgets.Select(w => w.Id == id ? w with { Colour = WidgetLooks.Colours.Contains(colour ?? "") ? colour : null, Tint = tint } : w)],
+    };
+
     public static MyPage SetTarget(MyPage page, string id, string target) => page with
     {
         Widgets = [.. page.Widgets.Select(w => w.Id == id ? w with { Target = target } : w)],
@@ -277,4 +303,39 @@ public sealed record OverviewParts
 
     /// <summary>Overview's own widgets before any have been added: an empty page.</summary>
     public static MyPage EmptyBoard() => new() { Id = BoardId, Name = "Overview", Grid = MyPages.Columns };
+}
+
+/// <summary>How much of its colour each part of a widget takes, from none (0) to all of it (1), mixed into the page's own surface.</summary>
+/// <param name="Body">The widget's background.</param>
+/// <param name="Head">The band behind its heading.</param>
+/// <param name="Edge">Its outline.</param>
+/// <param name="Line">The line along its top.</param>
+public sealed record WidgetShade(double Body, double Head, double Edge, double Line);
+
+/// <summary>
+/// Colour on the person's own widgets. The colours are the sixteen used for mail categories and file tags, but a
+/// widget never takes one at full strength: the colour is mixed into the surface in small amounts, so widgets read
+/// as soft pastels on a light look and as deep tints on a dark one, and the writing on them keeps its contrast.
+/// </summary>
+public static class WidgetLooks
+{
+    public static IReadOnlyList<string> Colours => Webignite.Core.Mail.MailCategories.Colours;
+
+    public static string Label(WidgetTint tint) => tint switch
+    {
+        WidgetTint.Wash => "Soft wash",
+        WidgetTint.Heading => "Heading only",
+        _ => "Top line",
+    };
+
+    public static WidgetShade Shade(WidgetTint tint) => tint switch
+    {
+        WidgetTint.Wash => new(0.07, 0.15, 0.30, 0),
+        WidgetTint.Heading => new(0, 0.18, 0.24, 0),
+        _ => new(0, 0, 0, 1),
+    };
+
+    /// <summary>One colour channel (0 to 255) of a part: the surface's, moved towards the colour's by the share given.</summary>
+    public static byte Mix(byte surface, byte colour, double share) =>
+        (byte)Math.Round(surface + (colour - surface) * Math.Clamp(share, 0, 1));
 }

@@ -128,7 +128,7 @@ public partial class MyPagesView : UserControl
                 }
                 item.IsEnabled = item.Items.Count > 0;
             }
-            else if (kind == WidgetKind.Client)
+            else if (kind is WidgetKind.Client or WidgetKind.ClientMail)
             {
                 foreach (var (id, name) in pages.ClientChoices())
                 {
@@ -143,7 +143,81 @@ public partial class MyPagesView : UserControl
             flyout.Items.Add(item);
             if (kind is WidgetKind.Client or WidgetKind.Note)
                 flyout.Items.Add(new Separator());
+
         }
+    }
+
+    // A widget's colour: picked from a small pop-up, opened from the dot shown while arranging or by a right-click
+    // on the widget's heading at any time. It is made when asked for and let go when it closes.
+
+    private void ColourClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: WidgetViewModel widget } from)
+            ShowColours(from, widget);
+    }
+
+    private void ColourAsked(object? sender, ContextRequestedEventArgs e)
+    {
+        if (sender is not Control { DataContext: WidgetViewModel widget } from)
+            return;
+        ShowColours(from, widget);
+        e.Handled = true;
+    }
+
+    private void ShowColours(Control from, WidgetViewModel widget)
+    {
+        var flyout = new Flyout { Placement = PlacementMode.BottomEdgeAlignedLeft };
+        // Picking a colour or a way of wearing it leaves the pop-up open, showing the new choice, to try another.
+        void Fill() => flyout.Content = ColourPicker(widget, Fill, flyout.Hide);
+        Fill();
+        flyout.ShowAt(from);
+    }
+
+    /// <summary>What the colour pop-up shows for a widget. Also for the screenshot tool, which can't draw pop-ups.</summary>
+    public Control ColourPicture(WidgetViewModel widget) => ColourPicker(widget, () => { }, () => { });
+
+    private static StackPanel ColourPicker(WidgetViewModel widget, Action changed, Action done)
+    {
+        TextBlock Label(string text)
+        {
+            var label = new TextBlock { Text = text };
+            label.Classes.Add("label");
+            label.Classes.Add("caps");
+            return label;
+        }
+        var colours = new WrapPanel { MaxWidth = 8 * 34, ItemSpacing = 2, LineSpacing = 2 };
+        foreach (var colour in WidgetLooks.Colours)
+        {
+            var pick = new Button { Content = new Controls.CategoryDot { Colour = colour, Size = 18 }, Padding = new Thickness(7), Width = 32, Height = 32 };
+            pick.Classes.Add(widget.Colour == colour ? "primary" : "quiet");
+            ToolTip.SetTip(pick, char.ToUpper(colour[0], System.Globalization.CultureInfo.CurrentCulture) + colour[1..]);
+            pick.Click += (_, _) =>
+            {
+                widget.Wear(colour, widget.Tint);
+                changed();
+            };
+            colours.Children.Add(pick);
+        }
+        var tints = new WrapPanel { MaxWidth = 8 * 34, ItemSpacing = 6, LineSpacing = 6 };
+        foreach (var tint in Enum.GetValues<WidgetTint>())
+        {
+            var pick = new Button { Content = WidgetLooks.Label(tint), IsEnabled = widget.HasColour };
+            pick.Classes.Add(widget.HasColour && widget.Tint == tint ? "primary" : "quiet");
+            pick.Click += (_, _) =>
+            {
+                widget.Wear(widget.Colour, tint);
+                changed();
+            };
+            tints.Children.Add(pick);
+        }
+        var none = new Button { Content = "No colour", IsEnabled = widget.HasColour, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, Padding = new Thickness(0) };
+        none.Classes.Add("link");
+        none.Click += (_, _) =>
+        {
+            widget.Wear(null, widget.Tint);
+            done();
+        };
+        return new StackPanel { Spacing = 10, Margin = new Thickness(4), Children = { Label("Colour"), colours, Label("Worn as"), tints, none } };
     }
 
     // The Files widget

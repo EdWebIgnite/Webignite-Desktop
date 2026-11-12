@@ -46,6 +46,7 @@ public abstract partial class WidgetBody : ObservableObject, IDisposable
         WidgetKind.Client => new ClientBody(services, widget.Target),
         WidgetKind.NeedsYou => new NeedsYouBody(services),
         WidgetKind.Mail => new MailBody(services),
+        WidgetKind.ClientMail => new MailBody(services, widget.Target),
         WidgetKind.Files => new FilesBody(widget, services, page),
         _ => new SoonBody(),
     };
@@ -432,15 +433,25 @@ public sealed partial class MailLine(Webignite.Core.Mail.MailSummary mail, AppSe
     private void Open() => services.Go.Mail(mail);
 }
 
-/// <summary>The newest mail across every inbox, unread in bold.</summary>
+/// <summary>The newest mail across every inbox, unread in bold; or, given a client, the newest mail to and from that client in any folder.</summary>
 public sealed partial class MailBody : WidgetBody
 {
     private const int Shown = 30;
     private readonly AppServices services;
+    private readonly string? clientId;
+    private readonly bool forClient;
 
     public MailBody(AppServices services)
     {
         this.services = services;
+        Refresh();
+    }
+
+    public MailBody(AppServices services, string? clientId)
+    {
+        this.services = services;
+        this.clientId = clientId;
+        forClient = true;
         Refresh();
     }
 
@@ -449,22 +460,72 @@ public sealed partial class MailBody : WidgetBody
     [ObservableProperty] public partial string Heading { get; private set; } = "Mail inbox";
     [ObservableProperty] public partial bool IsEmpty { get; private set; }
 
+    /// <summary>What to say when there is nothing to list.</summary>
+    [ObservableProperty] public partial string EmptyText { get; private set; } = "No mail here yet. Add a mailbox under Mail.";
+
+    /// <summary>The client whose mail this is; null for the inbox widget, or when the client has gone.</summary>
+    public Client? Client { get; private set; }
+    public bool IsForClient => forClient;
+    public bool CanWrite => Client is { Email.Length: > 0 };
+    public string OpenText => forClient ? "Open the client" : "Open Mail";
+
     public override string? Title => Heading;
 
     public override void Refresh()
     {
-        var inbox = Summaries.Inbox(services, Shown);
         Lines.Clear();
-        foreach (var mail in inbox.OrderByDescending(m => m.Date).Take(Shown))
-            Lines.Add(new MailLine(mail, services));
-        var unread = inbox.Count(m => !m.Seen);
-        Heading = unread == 0 ? "Mail inbox" : $"Mail inbox, {unread} unread";
+        if (forClient)
+            ShowClient();
+        else
+        {
+            var inbox = Summaries.Inbox(services, Shown);
+            foreach (var mail in inbox.OrderByDescending(m => m.Date).Take(Shown))
+                Lines.Add(new MailLine(mail, services));
+            var unread = inbox.Count(m => !m.Seen);
+            Heading = unread == 0 ? "Mail inbox" : $"Mail inbox, {unread} unread";
+        }
         IsEmpty = Lines.Count == 0;
         OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(CanWrite));
+    }
+
+    // Mail to or from the client's own addresses and domain, wherever it was filed, newest first.
+    private void ShowClient()
+    {
+        Client = clientId is null ? null : services.Clients.List().FirstOrDefault(c => c.Id == clientId);
+        if (Client is not { } client)
+        {
+            Heading = "A client's mail";
+            EmptyText = "This client is no longer in the app.";
+            return;
+        }
+        var theirs = new Webignite.Core.Mail.ClientMail(client);
+        var found = theirs.IsEmpty ? [] : services.Store.FindMail(services.Store.ListMailAccounts().Select(a => a.Id), theirs.Matches, Shown);
+        foreach (var mail in found.OrderByDescending(m => m.Date).Take(Shown))
+            Lines.Add(new MailLine(mail, services));
+        var unread = found.Count(m => !m.Seen);
+        Heading = unread == 0 ? $"Mail, {client.Name}" : $"Mail, {client.Name}, {unread} unread";
+        EmptyText = theirs.IsEmpty
+            ? "This client has no email address or website yet, so their mail can't be told apart. Add one on the client."
+            : "No mail to or from this client yet.";
     }
 
     [RelayCommand]
-    private void OpenMail() => services.Go.To(Page.Mail);
+    private void OpenMail()
+    {
+        if (!forClient)
+            services.Go.To(Page.Mail);
+        else if (Client is { } client)
+            services.Go.Client(client);
+    }
+
+    /// <summary>A new mail to the client. Nothing is sent until Send is clicked.</summary>
+    [RelayCommand]
+    private void Write()
+    {
+        if (Client is { Email: { Length: > 0 } email } client)
+            services.Go.WriteMail([new Webignite.Core.Mail.MailPerson(client.ContactPerson ?? client.Name, email)]);
+    }
 }
 
 /// <summary>
