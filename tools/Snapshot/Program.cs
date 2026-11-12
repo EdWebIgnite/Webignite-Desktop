@@ -2699,6 +2699,33 @@ Save("invoice-sum");
         vm.MenuPart.AddToDockCommand.Execute(plannerHead);
         Dispatcher.UIThread.RunJobs();
         Save("menu-dock-more");
+        // What the pop-ups above the dock hold: Planner's own menu with the projects, and a group of tools.
+        {
+            var dockView = window.GetVisualDescendants().OfType<DockView>().First();
+            foreach (var (name, key) in new[] { ("dock-pop-planner", DockKeys.Group("planner")), ("dock-pop-web-tools", DockKeys.Group("web-tools")) })
+            {
+                var pop = new Avalonia.Controls.Window
+                {
+                    Width = 320, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(16),
+                    Content = dockView.GroupPicture(vm.MenuPart.OnDock(key)!),
+                };
+                pop.Show();
+                SaveWindow(pop, name);
+                pop.Close();
+            }
+            var plannerList = vm.MenuPart.OnDock(DockKeys.Group("planner"))!.Inside;
+            Check("Planner's pop-up is Planner's own menu: its pages, the projects under Work, the planning pages under Plan",
+                plannerList.Any(e => e.IsSection && e.Title == "WORK") && plannerList.Any(e => e.IsLink)
+                && plannerList.First().PageKey == "Home" && plannerList.Any(e => e.PageKey == "Calendar"));
+            var order = vm.MenuPart.Dock.Select(e => e.PageKey).ToList();
+            vm.MenuPart.MoveOnDock(vm.MenuPart.Dock[^1], vm.MenuPart.Dock[0], false);
+            Dispatcher.UIThread.RunJobs();
+            Check("Dragging something along the dock moves it there, and it stays",
+                vm.MenuPart.Dock[0].PageKey == order[^1] && vm.MenuPart.Dock[1].PageKey == order[0] && services.Settings.Appearance.Dock![0] == order[^1]);
+            vm.MenuPart.MoveOnDock(vm.MenuPart.Dock[0], vm.MenuPart.Dock[^1], true);
+            Dispatcher.UIThread.RunJobs();
+            Check("Dragged back, the dock is as it was", vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(order));
+        }
         Check("Adding to the dock leaves the menu open, and Planner as a group takes the place of its own button",
             vm.MenuPart.IsMenuOpen && vm.MenuPart.Dock.Count(e => e.Title == "Planner") == 1);
         vm.MenuPart.CloseMenuCommand.Execute(null);

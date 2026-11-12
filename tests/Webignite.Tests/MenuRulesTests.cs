@@ -204,4 +204,18 @@ public sealed class MenuRulesTests
 
         Assert.All(Enum.GetValues<BarWidget>(), widget => Assert.NotEmpty(DockBar.Name(widget)));
     }
+
+    [Fact]
+    public void Something_on_the_dock_is_moved_to_just_before_or_after_another()
+    {
+        string[] dock = ["Overview", "Mail", "Clients", "Files"];
+        Assert.Equal(["Files", "Overview", "Mail", "Clients"], DockPages.Move(dock, "Files", "Overview", after: false));
+        Assert.Equal(["Overview", "Files", "Mail", "Clients"], DockPages.Move(dock, "Files", "Overview", after: true));
+        Assert.Equal(["Mail", "Clients", "Overview", "Files"], DockPages.Move(dock, "Overview", "Clients", after: true));
+        Assert.Equal(["Mail", "Overview", "Clients", "Files"], DockPages.Move(dock, "Overview", "Clients", after: false));
+        // Onto itself, or with one not on the dock: nothing moves.
+        Assert.Same(dock, DockPages.Move(dock, "Mail", "Mail", after: true));
+        Assert.Same(dock, DockPages.Move(dock, "Notes", "Mail", after: true));
+        Assert.Same(dock, DockPages.Move(dock, "Mail", "Notes", after: true));
+    }
 }
