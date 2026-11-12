@@ -207,6 +207,98 @@ public sealed partial class TaskDetail : ObservableObject
     [ObservableProperty] public partial Choice<TaskRepeat>? Repeat { get; set; }
 
     public IReadOnlyList<Choice<TaskRepeat>> Repeats => ProjectsViewModel.Repeats;
+
+    // How it repeats beyond every one: every so many, and for a monthly one by the day of the month or by its
+    // weekday ("the 1st Monday"), which is read from the due date so the two can never disagree.
+
+    /// <summary>1 to 12: every week, every 2 weeks, every 3 months.</summary>
+    public IReadOnlyList<int> RepeatCounts { get; } = [.. Enumerable.Range(1, ProjectRules.MostRepeatEvery)];
+
+    [ObservableProperty] public partial int RepeatEvery { get; set; } = 1;
+    [ObservableProperty] public partial bool RepeatByWeekday { get; set; }
+
+    public bool HasDue => Due is not null;
+    public bool IsRepeating => Repeat is { Value: not TaskRepeat.None };
+    public bool IsMonthlyRepeat => Repeat is { Value: TaskRepeat.Monthly } && Due is not null;
+    public bool RepeatByDay => !RepeatByWeekday;
+
+    /// <summary>"days", "weeks", "months" or "years", after the count.</summary>
+    public string RepeatUnit => (Repeat?.Value ?? TaskRepeat.None) switch
+    {
+        TaskRepeat.Daily => RepeatEvery == 1 ? "day" : "days",
+        TaskRepeat.Weekly => RepeatEvery == 1 ? "week" : "weeks",
+        TaskRepeat.Monthly => RepeatEvery == 1 ? "month" : "months",
+        _ => RepeatEvery == 1 ? "year" : "years",
+    };
+
+    public string RepeatDayLabel => Due is { } due ? $"On day {due.Day}" : "On the same day";
+
+    public string RepeatWeekdayLabel => Due is { } due && ProjectRules.WeekdayOf(DateOnly.FromDateTime(due)) is var on
+        ? $"On the {ProjectRules.NthWord(on.Nth)} {on.Day}"
+        : "On the same weekday";
+
+    /// <summary>How it repeats, in words, under the choices: "Every 2 months on the 1st Monday".</summary>
+    public string RepeatWords => ProjectRules.Label(Task);
+
+    /// <summary>The time it is due by, as typed: "14:00". Empty for any time that day.</summary>
+    [ObservableProperty] public partial string DueTimeText { get; set; } = "";
+    [ObservableProperty] public partial string DueTimeProblem { get; private set; } = "";
+
+    /// <summary>After the date in the due box: its time, and how it repeats.</summary>
+    public string DueNote => string.Join(", ", new[]
+    {
+        Task.DueTime is { } time ? time.ToString("t", System.Globalization.CultureInfo.CurrentCulture) : "",
+        Task.Repeat == TaskRepeat.None ? "" : ProjectRules.Label(Task).ToLowerInvariant(),
+    }.Where(part => part.Length > 0));
+
+    private void ShowRepeat()
+    {
+        foreach (var name in new[] { nameof(HasDue), nameof(IsRepeating), nameof(IsMonthlyRepeat), nameof(RepeatByDay), nameof(RepeatUnit), nameof(RepeatDayLabel), nameof(RepeatWeekdayLabel), nameof(RepeatWords), nameof(DueNote) })
+            OnPropertyChanged(name);
+    }
+
+    partial void OnRepeatEveryChanged(int value)
+    {
+        Change(t => t with { RepeatEvery = ProjectRules.Every(value) });
+        ShowRepeat();
+    }
+
+    partial void OnRepeatByWeekdayChanged(bool value)
+    {
+        Change(t => t with { RepeatOn = value && t.Due is { } due ? ProjectRules.WeekdayOf(due) : null });
+        ShowRepeat();
+    }
+
+    [RelayCommand]
+    private void RepeatOnDay() => RepeatByWeekday = false;
+
+    [RelayCommand]
+    private void RepeatOnWeekday() => RepeatByWeekday = true;
+
+    partial void OnDueTimeTextChanged(string value)
+    {
+        if (loading)
+            return;
+        var text = value.Trim();
+        if (text.Length == 0)
+        {
+            DueTimeProblem = "";
+            Change(t => t with { DueTime = null });
+        }
+        else if (TimeOnly.TryParse(text, System.Globalization.CultureInfo.CurrentCulture, out var time)
+                 || TimeOnly.TryParse(text, System.Globalization.CultureInfo.InvariantCulture, out time))
+        {
+            DueTimeProblem = "";
+            Change(t => t with { DueTime = time });
+        }
+        else
+        {
+            // Left as typed: half a time ("14:") is on its way to being one.
+            DueTimeProblem = "A time like 14:00.";
+            return;
+        }
+        ShowRepeat();
+    }
     [ObservableProperty] public partial string TagsText { get; set; } = "";
 
     public IReadOnlyList<Choice<TaskPriority>> Priorities => ProjectsViewModel.Priorities;
@@ -250,6 +342,10 @@ public sealed partial class TaskDetail : ObservableObject
         Due = Task.Due?.ToDateTime(TimeOnly.MinValue);
         Priority = ProjectsViewModel.Priorities.First(p => p.Value == Task.Priority);
         Repeat = ProjectsViewModel.Repeats.First(r => r.Value == Task.Repeat);
+        RepeatEvery = ProjectRules.Every(Task.RepeatEvery);
+        RepeatByWeekday = Task.RepeatOn is not null;
+        DueTimeText = Task.DueTime is { } time ? time.ToString("t", System.Globalization.CultureInfo.CurrentCulture) : "";
+        DueTimeProblem = "";
         TagsText = string.Join(", ", Task.Tags);
         ShowOtherTags();
         Headings = page.HeadingChoices(Task.ProjectId);
@@ -259,6 +355,7 @@ public sealed partial class TaskDetail : ObservableObject
         Client = Clients.FirstOrDefault(c => c.Value?.Id == Task.ClientId) ?? Clients.FirstOrDefault();
         LoadDocuments();
         loading = false;
+        ShowRepeat();
         ShowLinksAndHistory();
         LoadSubtasks();
         LoadDependencies();
@@ -381,6 +478,7 @@ public sealed partial class TaskDetail : ObservableObject
     {
         if (value is { } picked)
             Change(t => t with { Repeat = picked.Value });
+        ShowRepeat();
     }
 
     partial void OnPriorityChanged(Choice<TaskPriority>? value)
@@ -435,7 +533,16 @@ public sealed partial class TaskDetail : ObservableObject
         Change(t => t with { AssignedTo = value?.Value });
     }
     partial void OnStartChanged(DateTime? value) => Change(t => t with { Start = value is { } d ? DateOnly.FromDateTime(d) : null });
-    partial void OnDueChanged(DateTime? value) => Change(t => t with { Due = value is { } d ? DateOnly.FromDateTime(d) : null });
+    partial void OnDueChanged(DateTime? value)
+    {
+        // A monthly repeat that goes by weekday follows the due date: moved to a Tuesday, it repeats on that Tuesday.
+        Change(t =>
+        {
+            var due = value is { } d ? DateOnly.FromDateTime(d) : (DateOnly?)null;
+            return t with { Due = due, RepeatOn = t.RepeatOn is not null && due is { } on ? ProjectRules.WeekdayOf(on) : null, DueTime = due is null ? null : t.DueTime };
+        });
+        ShowRepeat();
+    }
 
     private void Change(Func<ProjectTask, ProjectTask> change)
     {

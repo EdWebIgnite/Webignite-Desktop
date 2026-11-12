@@ -3431,6 +3431,45 @@ SaveLooks("projects");
         }
         Dispatcher.UIThread.RunJobs();
         Save("projects-task");
+        // The due date's pop-up: a month to pick from, its time, and how it repeats. Drawn in a window of its own,
+        // as pop-ups can't be drawn here.
+        {
+            taskPage.Due = new DateTime(2026, 11, 2);
+            taskPage.Repeat = taskPage.Repeats.First(r => r.Value == Webignite.Core.Projects.TaskRepeat.Monthly);
+            taskPage.RepeatOnWeekdayCommand.Execute(null);
+            taskPage.DueTimeText = "14:00";
+            Dispatcher.UIThread.RunJobs();
+            var maintenance = services.Projects.GetTask(wire.Id)!;
+            Check("A task can repeat on a weekday of the month, with a time, set from its due date",
+                maintenance.Repeat == Webignite.Core.Projects.TaskRepeat.Monthly && maintenance.RepeatOn == new Webignite.Core.Projects.MonthDay(1, DayOfWeek.Monday)
+                && maintenance.DueTime == new TimeOnly(14, 0) && taskPage.RepeatWords == "Every month on the 1st Monday" && taskPage.DueNote.Contains("every month on the 1st monday", StringComparison.Ordinal));
+            taskPage.RepeatEvery = 2;
+            Check("And every so many: every 2 months", services.Projects.GetTask(wire.Id)!.RepeatEvery == 2 && taskPage.RepeatUnit == "months");
+            taskPage.Due = new DateTime(2026, 11, 12);
+            Check("Moved to another day, a weekday repeat follows it", services.Projects.GetTask(wire.Id)!.RepeatOn == new Webignite.Core.Projects.MonthDay(2, DayOfWeek.Thursday));
+            taskPage.RepeatEvery = 1;
+            taskPage.Due = new DateTime(2026, 11, 2);
+            Dispatcher.UIThread.RunJobs();
+            var dueBox = window.GetVisualDescendants().OfType<DateBox>().First(b => b.Extra is not null && b.IsEffectivelyVisible);
+            var popUp = new Avalonia.Controls.Window
+            {
+                Width = 320, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(16),
+                Content = dueBox.Picture(),
+            };
+            popUp.Show();
+            SaveWindow(popUp, "date-pop-up-task");
+            popUp.Content = null;
+            popUp.Close();
+            var plain = new DateBox { SelectedDate = new DateTime(2026, 11, 12), Earliest = new DateTime(2026, 11, 5) };
+            var plainWindow = new Avalonia.Controls.Window { Width = 320, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(16), Content = plain.Picture() };
+            plainWindow.Show();
+            SaveWindow(plainWindow, "date-pop-up");
+            plainWindow.Close();
+            Save("projects-task-repeating");
+            taskPage.Repeat = taskPage.Repeats.First(r => r.Value == Webignite.Core.Projects.TaskRepeat.None);
+            taskPage.DueTimeText = "";
+            Dispatcher.UIThread.RunJobs();
+        }
         projectsPage.CloseTaskCommand.Execute(null);
         Check("Closing the task hides its pane", !projectsPage.HasTask && !projectsPage.Panels["task"].IsShown);
 

@@ -73,13 +73,13 @@
             </DockPanel>
             <Grid ColumnDefinitions="2*,12,*,12,150,12,150" RowDefinitions="Auto,Auto,8,Auto,Auto">
               <TextBlock Classes="label" Text="FROM" />
-              <TextBox Grid.Row="1" Text="{Binding BillSupplier}" Watermark="Supplier" />
+              <TextBox Grid.Row="1" Text="{Binding BillSupplier}" PlaceholderText="Supplier" />
               <TextBlock Grid.Column="2" Classes="label" Text="THEIR NUMBER" />
               <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding BillNumber}" />
               <TextBlock Grid.Column="4" Classes="label" Text="DATE" />
-              <CalendarDatePicker Grid.Row="1" Grid.Column="4" SelectedDate="{Binding BillDate}" HorizontalAlignment="Stretch" />
+              <c:DateBox Grid.Row="1" Grid.Column="4" SelectedDate="{Binding BillDate}" HorizontalAlignment="Stretch" />
               <TextBlock Grid.Column="6" Classes="label" Text="DUE" />
-              <CalendarDatePicker Grid.Row="1" Grid.Column="6" SelectedDate="{Binding BillDue}" HorizontalAlignment="Stretch" />
+              <c:DateBox Grid.Row="1" Grid.Column="6" SelectedDate="{Binding BillDue}" HorizontalAlignment="Stretch" />
               <TextBlock Grid.Row="3" Classes="label" Text="WHAT IT'S FOR" />
               <TextBox Grid.Row="4" Text="{Binding BillDescription}" />
               <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="EXPENSE ACCOUNT" />
@@ -252,8 +252,7 @@
         <StackPanel>
           <TextBlock Classes="h2" Text="Money received" Margin="20,16,20,12" />
           <Grid ColumnDefinitions="140,8,*" RowDefinitions="Auto,8,Auto,8,Auto" Margin="20,0,20,12">
-            <CalendarDatePicker Grid.Row="0" Grid.Column="0" SelectedDate="{Binding InDate}" HorizontalAlignment="Stretch"
-                                SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
+            <c:DateBox Grid.Row="0" Grid.Column="0" SelectedDate="{Binding InDate}" HorizontalAlignment="Stretch" />
             <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding InAmount}" PlaceholderText="Amount, e.g. 2800" />
             <AutoCompleteBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding InFrom}" ItemsSource="{Binding ClientNames}"
                              FilterMode="ContainsOrdinal" PlaceholderText="From which client" />
@@ -291,8 +290,7 @@
         <StackPanel>
           <TextBlock Classes="h2" Text="Expenses" Margin="20,16,20,12" />
           <Grid ColumnDefinitions="140,8,*" RowDefinitions="Auto,8,Auto,8,Auto" Margin="20,0,20,12">
-            <CalendarDatePicker Grid.Row="0" Grid.Column="0" SelectedDate="{Binding OutDate}" HorizontalAlignment="Stretch"
-                                SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
+            <c:DateBox Grid.Row="0" Grid.Column="0" SelectedDate="{Binding OutDate}" HorizontalAlignment="Stretch" />
             <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding OutAmount}" PlaceholderText="Amount, e.g. 349.99" />
             <TextBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding OutTo}" PlaceholderText="Paid to, e.g. Takealot" />
             <DockPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3">

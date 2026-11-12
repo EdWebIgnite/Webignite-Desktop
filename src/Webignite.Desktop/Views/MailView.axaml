@@ -477,8 +477,7 @@
               <StackPanel Spacing="8">
                 <TextBlock FontWeight="SemiBold" Text="Snooze until" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <CalendarDatePicker SelectedDate="{Binding SnoozeDay}" DisplayDateStart="{x:Static sys:DateTime.Today}" Width="160"
-                                      SelectedDateFormat="Custom" CustomDateFormatString="d MMM yyyy" />
+                  <c:DateBox SelectedDate="{Binding SnoozeDay}" Earliest="{x:Static sys:DateTime.Today}" Width="160" />
                   <ComboBox ItemsSource="{x:Static vm:MailViewModel.SnoozeHours}" SelectedItem="{Binding SnoozeHour}" Width="100">
                     <ComboBox.ItemTemplate>
                       <DataTemplate x:DataType="x:Int32">

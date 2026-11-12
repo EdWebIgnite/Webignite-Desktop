@@ -1238,7 +1238,7 @@ public sealed partial class TaskRow : ObservableObject
     /// <summary>Tags or a repeat to show under the name in the list, where priority has a column of its own.</summary>
     public bool HasListMarks => Task.Tags.Count > 0 || Task.Repeat != TaskRepeat.None;
     public bool Repeats => Task.Repeat != TaskRepeat.None;
-    public string RepeatLabel => ProjectRules.Label(Task.Repeat);
+    public string RepeatLabel => ProjectRules.Label(Task);
 
     /// <summary>The line under a card's title on the board: who it's for, when it's due, its subtasks.</summary>
     public string CardLine => string.Join(" · ", new[]
@@ -1258,9 +1258,12 @@ public sealed partial class TaskRow : ObservableObject
     public bool HasWho => AssignedTo?.Value is not null;
 
     /// <summary>When it's due, as the list shows it ("Tomorrow", "12 Nov"), or "Due date" when it has none.</summary>
-    public string DueText => Due is { } due ? ProjectRules.DueLabel(DateOnly.FromDateTime(due), DateOnly.FromDateTime(DateTime.Today)) : "Due date";
+    public string DueText => Due is { } due
+        ? ProjectRules.DueLabel(DateOnly.FromDateTime(due), DateOnly.FromDateTime(DateTime.Today))
+          + (Task.DueTime is { } time ? ", " + time.ToString("t", System.Globalization.CultureInfo.CurrentCulture) : "")
+        : "Due date";
     public bool HasDue => Due is not null;
-    public bool IsLate => Due is { } due && !Done && DateOnly.FromDateTime(due) < DateOnly.FromDateTime(DateTime.Today);
+    public bool IsLate => ProjectRules.IsOverdue(Task with { Done = Done, Due = Due is { } due ? DateOnly.FromDateTime(due) : null }, DateTime.Now);
 
     [ObservableProperty] public partial Choice<string?>? AssignedTo { get; set; }
     [ObservableProperty] public partial DateTime? Due { get; set; }

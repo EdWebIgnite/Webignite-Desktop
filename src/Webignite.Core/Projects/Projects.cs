@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Collections;
 
 namespace Webignite.Core.Projects;
@@ -78,6 +79,12 @@ public enum ProjectHealth { None, OnTrack, AtRisk, OffTrack }
 public enum TaskRepeat { None, Daily, Weekly, Monthly, Yearly }
 
 /// <summary>
+/// A weekday by its place in a month, for a task that comes back "on the 1st Monday" or "on the last Friday".
+/// <see cref="Nth"/> is 1 to 4, or -1 for the last one of the month.
+/// </summary>
+public sealed record MonthDay(int Nth, DayOfWeek Day);
+
+/// <summary>
 /// A project kept to start others from: its headings and tasks, with subtasks, and each task's dates as days
 /// after the project starts. Nobody is given anything in a template; that's decided per project.
 /// </summary>
@@ -118,6 +125,8 @@ public sealed record TemplateTask
     public TaskPriority Priority { get; init; }
     public IReadOnlyList<string> Tags { get; init; } = [];
     public TaskRepeat Repeat { get; init; }
+    public int RepeatEvery { get; init; } = 1;
+    public MonthDay? RepeatOn { get; init; }
     public int? StartDay { get; init; }
     public int? DueDay { get; init; }
     public IReadOnlyList<string> Subtasks { get; init; } = [];
@@ -293,8 +302,20 @@ public sealed record ProjectTask : ITracked
     /// <summary>Words to group and find tasks by, such as Hosting or SEO.</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
 
+    /// <summary>
+    /// A time of day it is due by, when the day alone isn't enough ("by 14:00"). Null means any time that day.
+    /// It is the time on the clock where the task is read: nothing here changes it between time zones.
+    /// </summary>
+    public TimeOnly? DueTime { get; init; }
+
     /// <summary>Ticking it off makes the next one, due a day, week, month or year later.</summary>
     public TaskRepeat Repeat { get; init; }
+
+    /// <summary>How many days, weeks, months or years between one and the next: 2 with Weekly is every second week. 1 unless set.</summary>
+    public int RepeatEvery { get; init; } = 1;
+
+    /// <summary>For a monthly repeat that goes by weekday ("the 1st Monday") and not by the day of the month. Null goes by the day.</summary>
+    public MonthDay? RepeatOn { get; init; }
 
     /// <summary>Files attached to it, kept on this PC.</summary>
     public IReadOnlyList<TaskAttachment> Attachments { get; init; } = [];
@@ -599,6 +620,54 @@ public static class ProjectRules
         _ => "Doesn't repeat",
     };
 
+    /// <summary>How a task repeats, in words: "Every 2 weeks", "Every month on the 1st Monday", "Every 3 months".</summary>
+    public static string Label(ProjectTask task) => Label(task.Repeat, task.RepeatEvery, task.RepeatOn);
+
+    public static string Label(TaskRepeat repeat, int every, MonthDay? on)
+    {
+        if (repeat == TaskRepeat.None)
+            return Label(repeat);
+        var unit = repeat switch { TaskRepeat.Daily => "day", TaskRepeat.Weekly => "week", TaskRepeat.Monthly => "month", _ => "year" };
+        var words = every <= 1 ? $"Every {unit}" : string.Create(CultureInfo.InvariantCulture, $"Every {every} {unit}s");
+        return repeat == TaskRepeat.Monthly && on is not null ? $"{words} on the {NthWord(on.Nth)} {on.Day}" : words;
+    }
+
+    /// <summary>"1st", "2nd", "3rd", "4th" or "last".</summary>
+    public static string NthWord(int nth) => nth switch { 1 => "1st", 2 => "2nd", 3 => "3rd", 4 => "4th", _ => "last" };
+
+    /// <summary>The most a repeat can skip: every 12 of anything is already a year of months.</summary>
+    public const int MostRepeatEvery = 12;
+
+    /// <summary>The count between repeats as it is used: at least 1, at most <see cref="MostRepeatEvery"/>.</summary>
+    public static int Every(int every) => Math.Clamp(every, 1, MostRepeatEvery);
+
+    /// <summary>Which weekday of its month a day is: the 12th of November 2026 is the 2nd Thursday. The 5th of a kind counts as the last.</summary>
+    public static MonthDay WeekdayOf(DateOnly day)
+    {
+        var nth = (day.Day - 1) / 7 + 1;
+        return new(nth > 4 ? -1 : nth, day.DayOfWeek);
+    }
+
+    /// <summary>The day a month's Nth weekday falls on: the 1st Monday, or the last Friday.</summary>
+    public static DateOnly WeekdayIn(int year, int month, MonthDay on)
+    {
+        if (on.Nth < 0)
+        {
+            var last = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+            return last.AddDays(-(((int)last.DayOfWeek - (int)on.Day + 7) % 7));
+        }
+        var first = new DateOnly(year, month, 1);
+        var day = first.AddDays(((int)on.Day - (int)first.DayOfWeek + 7) % 7);
+        return day.AddDays(7 * (Math.Clamp(on.Nth, 1, 4) - 1));
+    }
+
+    /// <summary>
+    /// A task's due day and time as one moment, for telling whether it is late. With no time it is due by the end
+    /// of its day.
+    /// </summary>
+    public static bool IsOverdue(ProjectTask task, DateTime now) =>
+        !task.Done && task.Due is { } due && (task.DueTime is { } time ? due.ToDateTime(time) < now : due < DateOnly.FromDateTime(now));
+
     /// <summary>
     /// The next one of a repeating task just ticked off: a fresh copy, due a step after it was due (or after today
     /// when it had no date), its start moved by as much, under the same heading, straight after it. It notes which
@@ -669,30 +738,45 @@ public static class ProjectRules
     {
         if (done.Repeat == TaskRepeat.None)
             return null;
+        var every = Every(done.RepeatEvery);
         var from = done.Due ?? today;
+        if (done.Repeat == TaskRepeat.Monthly && done.RepeatOn is { } on)
+        {
+            // By weekday: the same weekday of the month, so many months on. Nothing to count from but the month.
+            var month = new DateOnly(from.Year, from.Month, 1);
+            DateOnly next;
+            do
+            {
+                month = month.AddMonths(every);
+                next = WeekdayIn(month.Year, month.Month, on);
+            }
+            while (next < today); // ticked off late: skip ahead so the next one isn't already overdue
+            return (next, null);
+        }
         var anchor = done.RepeatFrom is { } kept && Steps(kept, from, done.Repeat) is not null ? kept : from;
-        var due = StepAfter(anchor, from, done.Repeat);
+        var due = StepAfter(anchor, from, done.Repeat, every);
         // Ticked off late: skip ahead so the next one isn't already overdue.
         while (due < today)
-            due = StepAfter(anchor, due, done.Repeat);
+            due = StepAfter(anchor, due, done.Repeat, every);
         return (due, done.Repeat is TaskRepeat.Monthly or TaskRepeat.Yearly ? anchor : null);
     }
 
-    // The first step from the anchor that's after a day: a day or a week on, or the anchor's day in a later month
-    // or year (the month's last day when it's shorter).
-    private static DateOnly StepAfter(DateOnly anchor, DateOnly after, TaskRepeat repeat)
+    // The step from the anchor that comes so many after a day: days or weeks on, or the anchor's day so many
+    // months or years later (the month's last day when it's shorter).
+    private static DateOnly StepAfter(DateOnly anchor, DateOnly after, TaskRepeat repeat, int every)
     {
         switch (repeat)
         {
             case TaskRepeat.Daily:
-                return after.AddDays(1);
+                return after.AddDays(every);
             case TaskRepeat.Weekly:
-                return after.AddDays(7);
+                return after.AddDays(7 * every);
             default:
-                var count = Steps(anchor, after, repeat) ?? Math.Max(-1, Distance(anchor, after, repeat) - 1);
+                // The day is on a step from the anchor (it is the anchor itself otherwise), so count on from there.
+                var count = Steps(anchor, after, repeat) ?? Distance(anchor, after, repeat);
                 DateOnly next;
                 do
-                    next = Step(anchor, ++count, repeat);
+                    next = Step(anchor, count += every, repeat);
                 while (next <= after);
                 return next;
         }
@@ -748,6 +832,8 @@ public static class ProjectRules
                 Priority = t.Priority,
                 Tags = t.Tags,
                 Repeat = t.Repeat,
+                RepeatEvery = t.RepeatEvery,
+                RepeatOn = t.RepeatOn,
                 StartDay = Day(t.Start),
                 DueDay = Day(t.Due),
                 Subtasks = [.. SubtasksOf(t).Select(s => s.Title)],
@@ -800,6 +886,8 @@ public static class ProjectRules
                 Priority = t.Priority,
                 Tags = t.Tags,
                 Repeat = t.Repeat,
+                RepeatEvery = t.RepeatEvery,
+                RepeatOn = t.RepeatOn,
                 Start = t.StartDay is { } s ? start.AddDays(s) : null,
                 Due = t.DueDay is { } d ? start.AddDays(d) : null,
                 Order = ++place,

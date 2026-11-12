@@ -34,7 +34,11 @@ public partial class QuickNoteWindow : Window
         DayBox.SelectedDate = DateTime.Today;
         // A problem with the time or day goes as soon as either is changed.
         TimeBox.TextChanged += (_, _) => Say(null);
-        DayBox.SelectedDateChanged += (_, _) => Say(null);
+        DayBox.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Controls.DateBox.SelectedDateProperty)
+                Say(null);
+        };
         Show(CaptureKind.Note);
         AddHandler(KeyDownEvent, Keys, RoutingStrategies.Tunnel);
         Opened += (_, _) => Dispatcher.UIThread.Post(() =>

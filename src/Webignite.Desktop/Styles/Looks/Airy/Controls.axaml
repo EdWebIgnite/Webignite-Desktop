@@ -31,7 +31,7 @@
   </Style>
 
   <!-- Typing boxes: taller, softly filled, with no edge until pointed at or typed in. -->
-  <Style Selector="Window.look-airy TextBox, Window.look-airy ComboBox, Window.look-airy NumericUpDown, Window.look-airy DatePicker, Window.look-airy TimePicker, Window.look-airy CalendarDatePicker, Window.look-airy AutoCompleteBox">
+  <Style Selector="Window.look-airy TextBox, Window.look-airy ComboBox, Window.look-airy NumericUpDown, Window.look-airy DatePicker, Window.look-airy TimePicker, Window.look-airy CalendarDatePicker, Window.look-airy Button.datebox, Window.look-airy AutoCompleteBox">
     <Setter Property="CornerRadius" Value="9" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
