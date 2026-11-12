@@ -678,7 +678,7 @@ public partial class MainViewModel : ViewModelBase
     public void UpdateChatPresence() => ChatPartnerShown = services.Chat.PartnerShown;
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
-    private void OpenChat() => services.Go.Chat();
+    private void OpenChat() => services.Go.ToggleChat();
 
     /// <summary>The sidebar itself: hidden or showing, and which groups are folded.</summary>
     public SidebarViewModel Sidebar { get; }

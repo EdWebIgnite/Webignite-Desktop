@@ -10,6 +10,7 @@ public partial class MainWindow
     private void WireChat(AppServices services, MainViewModel main)
     {
         services.Go.OpenChatAction = () => ShowChat(services);
+        services.Go.ToggleChatAction = () => ToggleChat(services);
         services.ChatArrived = () =>
         {
             chatWindow?.Arrived();
@@ -51,6 +52,23 @@ public partial class MainWindow
         IdleClock.Chime();
         if (!IsActive)
             Flash();
+    }
+
+    /// <summary>
+    /// The Chat button: a second click closes the chat the first one opened. One that was minimised is brought
+    /// back instead, as it wasn't on screen to close. Returns whether the chat is open afterwards.
+    /// </summary>
+    public bool ToggleChat(AppServices services)
+    {
+        if (chatWindow is { WindowState: not Avalonia.Controls.WindowState.Minimized } open)
+        {
+            open.Close();
+            return false;
+        }
+        if (chatWindow is { } hidden)
+            hidden.WindowState = Avalonia.Controls.WindowState.Normal;
+        ShowChat(services);
+        return true;
     }
 
     /// <summary>Opens the chat, or brings it forward. Returns the window, for the screenshot tool.</summary>

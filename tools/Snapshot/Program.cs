@@ -2532,6 +2532,14 @@ Check("Closing the window stops it following the history and lets the pictures g
         && fileMenu.Items.OfType<Avalonia.Controls.MenuItem>().Select(i => i.Header as string).SequenceEqual(["Open", "Copy picture", "Save a copy…"]));
     fileButton.ContextMenu?.Close();
     chatWindow.Close();
+    // The Chat button opens the chat, and a second click closes it again.
+    Dispatcher.UIThread.RunJobs();
+    vm.OpenChatCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    var chatOpened = services.ChatOpen;
+    vm.OpenChatCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The Chat button opens the chat, and clicked again closes it", chatOpened && !services.ChatOpen);
     Dispatcher.UIThread.RunJobs();
     Check("Closing the chat goes back to looking every minute", !services.ChatOpen);
     services.Secrets.Delete("webignite-sync-refresh");

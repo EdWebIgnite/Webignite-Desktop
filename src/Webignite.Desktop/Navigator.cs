@@ -192,6 +192,11 @@ public sealed class Navigator
     /// <summary>Opens the chat with your partner, or brings it forward.</summary>
     public void Chat() => OpenChatAction?.Invoke();
 
+    internal Action? ToggleChatAction { get; set; }
+
+    /// <summary>The Chat button: opens the chat, and closes it again when it is already open.</summary>
+    public void ToggleChat() => ToggleChatAction?.Invoke();
+
     /// <summary>The small quick-note box, as from the shortcut.</summary>
     public void QuickNote() => QuickNoteAction?.Invoke();
 
