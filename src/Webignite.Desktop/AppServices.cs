@@ -464,12 +464,15 @@ public sealed class AppServices : IDisposable
 
     public ITokenStore TokenStore { get; init; } = OperatingSystem.IsWindows() ? new WindowsCredentialStore() : new MemoryTokenStore();
 
+    /// <summary>What Xero is reached through. The app's own connection unless a test stands in for Xero.</summary>
+    public HttpClient XeroHttp { get; init; } = Http;
+
     public XeroSession? Xero =>
-        xero ??= Settings.Xero.ClientId is { Length: > 0 } id ? new XeroSession(new XeroOptions { ClientId = id }, Http, TokenStore) : null;
+        xero ??= Settings.Xero.ClientId is { Length: > 0 } id ? new XeroSession(new XeroOptions { ClientId = id }, XeroHttp, TokenStore) : null;
 
     /// <summary>Xero's accounting API for the connected organisation, or null when Xero isn't connected.</summary>
     public Webignite.Xero.XeroApi? XeroApi =>
-        Xero is { HasSavedSignIn: true } session && Settings.Xero.TenantId is { Length: > 0 } tenant ? new Webignite.Xero.XeroApi(session, Http, tenant) : null;
+        Xero is { HasSavedSignIn: true } session && Settings.Xero.TenantId is { Length: > 0 } tenant ? new Webignite.Xero.XeroApi(session, XeroHttp, tenant) : null;
 
     /// <summary>Creates Xero drafts, saving each step to this PC as it goes.</summary>
     public Webignite.Xero.XeroDrafts? XeroDrafts =>
