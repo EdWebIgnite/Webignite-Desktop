@@ -57,3 +57,45 @@ public sealed class LettingGoTests
         }
     }
 }
+
+/// <summary>The small tools share one view model; closing a tool's window lets all of it go.</summary>
+public sealed class ToolsLettingGoTests
+{
+    [Fact]
+    public Task Closing_a_tool_that_was_never_used_is_safe_and_can_happen_twice() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var tools = new ToolsViewModel(app.Services);
+
+        tools.Dispose();
+        tools.Dispose();
+
+        Assert.Null(tools.QrImage);
+        Assert.Empty(tools.LogoPreviews);
+        Assert.Empty(tools.SocialPreviews);
+    });
+
+    [Fact]
+    public async Task A_closed_tool_no_longer_listens_to_the_clipboard_or_the_recent_colours()
+    {
+        using var app = new TestApp();
+        WeakReference? weak = null;
+        await Ui.Run(() =>
+        {
+            var tools = new ToolsViewModel(app.Services);
+            tools.WatchClipboard();
+            tools.WatchColours();
+            weak = new WeakReference(tools);
+            tools.Dispose();
+        });
+        await Ui.Settle();
+
+        for (var round = 0; round < 3; round++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        Assert.False(weak!.IsAlive, "The tools are still in memory after their window closed: the clipboard or the colours still hold them.");
+    }
+}

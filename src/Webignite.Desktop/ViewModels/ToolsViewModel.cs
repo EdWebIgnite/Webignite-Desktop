@@ -7,7 +7,7 @@ using Webignite.Core.Tools;
 namespace Webignite.Desktop.ViewModels;
 
 /// <summary>Small everyday tools in one place: calculator, passwords, QR codes and colours.</summary>
-public sealed partial class ToolsViewModel : ViewModelBase
+public sealed partial class ToolsViewModel : ViewModelBase, IDisposable
 {
     private readonly AppServices services;
 
@@ -21,6 +21,24 @@ public sealed partial class ToolsViewModel : ViewModelBase
         ImageResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasImageResults));
         NewPassword();
         OnColourInputChanged(ColourInput);
+    }
+
+    /// <summary>
+    /// The window closed (or My pages was let go): everything any tool here started or holds is stopped and freed,
+    /// whichever tool it was. Each tool's own stop is safe to call when that tool was never opened.
+    /// </summary>
+    public void Dispose()
+    {
+        StopCapture();
+        StopClipboard();
+        StopColours();
+        LeaveDuplicates();
+        stopCompare?.Invoke();
+        ClearLogoPreviews();
+        ClearSocialPreviews();
+        var qr = QrImage;
+        QrImage = null;
+        qr?.Dispose();
     }
 
     // Calculator

@@ -326,6 +326,8 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
         foreach (var widget in Widgets)
             widget.Dispose();
         Widgets.Clear();
+        tools?.Dispose();
+        tools = null;
     }
 }
 
