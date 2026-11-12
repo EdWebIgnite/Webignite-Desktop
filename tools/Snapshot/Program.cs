@@ -99,7 +99,11 @@ services.Settings.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "
     "Monthly SEO", [new Line { Description = "Monthly SEO", Quantity = 1, UnitPrice = 2800m }]),
     "Hosting, yearly", [new Line { Description = "Website hosting, 12 months", Quantity = 1, UnitPrice = 2400m }]);
 // Pages change at once here: the script doesn't wait for fades to finish.
-services.Settings.Appearance = new AppearanceSettings { Motion = Motion.Off };
+// A new install opens with the dock. The screens here were drawn with the sidebar, which has the most on it, so this
+// run picks the sidebar; the dock and the Menu button get their own screens further down, and the memory check
+// (tools/Measure) starts the app as a new install does, with the dock.
+var startsWithDock = new AppearanceSettings().Menu == Webignite.Core.Layout.MenuKind.Dock;
+services.Settings.Appearance = new AppearanceSettings { Motion = Motion.Off, Menu = Webignite.Core.Layout.MenuKind.Sidebar };
 // WEBIGNITE_SNAPSHOT_STYLE=Airy (and WEBIGNITE_SNAPSHOT_SIDEBAR=Light) draws every screen in that style, to go
 // through a style page by page. Left unset, as in CI, the screens are Classic.
 if (Enum.TryParse<LookStyle>(Environment.GetEnvironmentVariable("WEBIGNITE_SNAPSHOT_STYLE"), out var wholeRunStyle))
@@ -1939,6 +1943,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     frame?.Save(file, new PngBitmapEncoderOptions());
     Console.WriteLine("Saved " + name);
 }
+Check("A new install opens with the dock as its menu", startsWithDock);
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
     vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
