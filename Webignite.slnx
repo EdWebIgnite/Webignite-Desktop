@@ -11,6 +11,7 @@
     <Project Path="src/Webignite.Xero/Webignite.Xero.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Webignite.Desktop.Tests/Webignite.Desktop.Tests.csproj" />
     <Project Path="tests/Webignite.Tests/Webignite.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">

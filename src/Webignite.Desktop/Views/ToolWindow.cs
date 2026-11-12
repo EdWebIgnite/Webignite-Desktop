@@ -16,6 +16,8 @@ public sealed class ToolWindow : Window
         Kind = kind;
         Tools = tools;
         DataContext = tools;
+        // Closing lets go of the tool and everything it held, whichever tool this was.
+        Closed += (_, _) => tools.Dispose();
         Title = TitleOf(kind);
         Width = kind switch
         {

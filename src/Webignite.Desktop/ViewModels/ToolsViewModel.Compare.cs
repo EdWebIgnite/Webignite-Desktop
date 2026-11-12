@@ -9,6 +9,8 @@ namespace Webignite.Desktop.ViewModels;
 // Compare: two files side by side, line by line, or two folders file by file. Read-only.
 public sealed partial class ToolsViewModel
 {
+    private Action? stopCompare;
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RunCompareCommand))]
     public partial string CompareLeft { get; set; } = "";
@@ -68,6 +70,10 @@ public sealed partial class ToolsViewModel
             CompareSaid("One is a file and the other a folder. Pick two files, or two folders.", problem: true);
             return;
         }
+        // Two big folders can take minutes to read; closing the window stops it.
+        using var source = new CancellationTokenSource();
+        stopCompare = source.Cancel;
+        var stop = source.Token;
         CompareBusy = true;
         CompareSaid(leftIsFolder ? "Reading the two folders…" : "Reading the two files…", problem: false);
         var ignoreSpaces = CompareIgnoreSpaces;
@@ -75,7 +81,7 @@ public sealed partial class ToolsViewModel
         {
             if (leftIsFolder)
             {
-                var (rows, summary) = await Task.Run(() => FileComparer.Folders(left, right));
+                var (rows, summary) = await Task.Run(() => FileComparer.Folders(left, right, stop), stop);
                 comparedFolders = (left, right);
                 CanGoBackToFolders = false;
                 compared = [];
@@ -95,12 +101,17 @@ public sealed partial class ToolsViewModel
                 CompareSaid(result.Summary, problem: false);
             }
         }
+        catch (OperationCanceledException)
+        {
+            CompareSaid("Stopped.", problem: false);
+        }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             CompareSaid("That couldn't be read: " + e.Message, problem: true);
         }
         finally
         {
+            stopCompare = null;
             CompareBusy = false;
             OnPropertyChanged(nameof(HasCompareFolderRows));
         }
