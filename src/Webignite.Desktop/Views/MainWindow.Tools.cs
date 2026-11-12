@@ -25,15 +25,15 @@ public partial class MainWindow
         var window = ShowTool(ToolKind.Snippets, services, owned: false);
         if (window.View is SnippetsView view)
             view.PasteInto = typingIn;
-        window.Tools.SnippetsPaste = typingIn != IntPtr.Zero;
+        window.Tools.Snippets.SnippetsPaste = typingIn != IntPtr.Zero;
         window.Topmost = true;
         window.Activate();
     }
 
     private void WireTools(AppServices services)
     {
-        services.Go.CompareAction = (left, right) => ShowTool(ToolKind.Compare, services).Tools.StartCompare(left, right);
-        services.Go.DuplicatesAction = folder => ShowTool(ToolKind.Duplicates, services).Tools.StartDuplicates(folder);
+        services.Go.CompareAction = (left, right) => ShowTool(ToolKind.Compare, services).Tools.Compare.StartCompare(left, right);
+        services.Go.DuplicatesAction = folder => ShowTool(ToolKind.Duplicates, services).Tools.Duplicates.StartDuplicates(folder);
         services.Go.MainToFrontAction = Activate;
         OnShortcut(Webignite.Core.Tools.GlobalShortcut.Snippets, () => ShowSnippetsFromAnywhere(services));
         services.Go.OpenToolAction = kind => ShowTool(kind, services);

@@ -3,7 +3,7 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.DuplicatesView"
-             x:DataType="vm:ToolsViewModel">
+             x:DataType="vm:DuplicatesToolViewModel">
   <DockPanel>
     <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Classes="primary" Content="Find copies" Margin="8,0,0,0" IsDefault="True"

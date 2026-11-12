@@ -8,8 +8,22 @@ using Webignite.Core.Tools;
 namespace Webignite.Desktop.ViewModels;
 
 // Colour picker: type a colour or pick one off the screen, then copy it as hex, RGB or HSL.
-public sealed partial class ToolsViewModel
+public sealed partial class ColoursToolViewModel : ViewModelBase, IDisposable
 {
+    private readonly AppServices services;
+
+    public ColoursToolViewModel(AppServices services)
+    {
+        this.services = services;
+        OnColourInputChanged(ColourInput);
+    }
+
+    /// <summary>The tool's window closed: what it started is stopped and what it held is freed.</summary>
+    public void Dispose()
+    {
+        StopColours();
+    }
+
     [ObservableProperty] public partial string ColourInput { get; set; } = "#E8590C";
 
     [ObservableProperty]
@@ -186,14 +200,14 @@ public sealed partial class ToolsViewModel
     [RelayCommand]
     private async Task CopyPaletteCss(Avalonia.Controls.TopLevel? top)
     {
-        await CopyWebAsync(top, ColourPalettes.CssVariables(PaletteNow), "CSS variables");
+        await ToolClipboard.CopyAsync(top, ColourPalettes.CssVariables(PaletteNow));
         PaletteMessage = "Copied as CSS variables. Paste them at the top of the stylesheet.";
     }
 
     [RelayCommand]
     private async Task CopyPaletteList(Avalonia.Controls.TopLevel? top)
     {
-        await CopyWebAsync(top, ColourPalettes.Listed(PaletteNow), "The palette");
+        await ToolClipboard.CopyAsync(top, ColourPalettes.Listed(PaletteNow));
         PaletteMessage = "Copied as a list of names and codes.";
     }
 
@@ -285,7 +299,7 @@ public sealed record ShadeRow(Rgb Colour, string Label = "")
 }
 
 /// <summary>A named colour in the palette. Its name is saved as it is typed.</summary>
-public sealed partial class SwatchRow(string name, Rgb colour, ToolsViewModel tools) : ObservableObject
+public sealed partial class SwatchRow(string name, Rgb colour, ColoursToolViewModel tools) : ObservableObject
 {
     public Rgb Colour { get; } = colour;
     public string Hex => Colour.Hex;

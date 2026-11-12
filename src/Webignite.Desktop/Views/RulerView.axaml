@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.RulerView"
-             x:DataType="vm:ToolsViewModel">
+             x:DataType="vm:RulerToolViewModel">
   <StackPanel Spacing="12">
     <TextBlock TextWrapping="Wrap"
                Text="The screen freezes. Point at a gap or a block and its width and height show; drag to measure a box. A click copies the size." />

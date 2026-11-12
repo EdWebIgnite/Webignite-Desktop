@@ -1,120 +1,77 @@
-using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Webignite.Core.Documents;
-using Webignite.Core.Tools;
-
 namespace Webignite.Desktop.ViewModels;
 
-/// <summary>Small everyday tools in one place: calculator, passwords, QR codes and colours.</summary>
-public sealed partial class ToolsViewModel : ViewModelBase, IDisposable
+/// <summary>
+/// The small everyday tools. Each tool is its own view model (in ViewModels/Tools), made the first time it is
+/// asked for, so a window showing the calculator builds only the calculator. Closing the window (or letting My
+/// pages go) frees whatever the tools that were made still hold.
+/// </summary>
+public sealed class ToolsViewModel(AppServices services) : IDisposable
 {
-    private readonly AppServices services;
+    private CalculatorToolViewModel? calculator;
+    private PasswordsToolViewModel? passwords;
+    private ColoursToolViewModel? colours;
+    private ClipboardToolViewModel? clipboard;
+    private QrToolViewModel? qr;
+    private ImagesToolViewModel? images;
+    private WebHelpersToolViewModel? webHelpers;
+    private DnsToolViewModel? dns;
+    private PageCaptureToolViewModel? pageCapture;
+    private RulerToolViewModel? ruler;
+    private SnippetsToolViewModel? snippets;
+    private ScreenTextToolViewModel? screenText;
+    private CompareToolViewModel? compare;
+    private DuplicatesToolViewModel? duplicates;
+    private LogosToolViewModel? logos;
+    private SocialToolViewModel? social;
 
-    public ToolsViewModel(AppServices services)
+    public CalculatorToolViewModel Calculator => calculator ??= new(services);
+    public PasswordsToolViewModel Passwords => passwords ??= new();
+    public ColoursToolViewModel Colours => colours ??= new(services);
+    public ClipboardToolViewModel Clipboard => clipboard ??= new(services);
+    public QrToolViewModel Qr => qr ??= new();
+    public ImagesToolViewModel Images => images ??= new(services);
+    public WebHelpersToolViewModel WebHelpers => webHelpers ??= new();
+    public DnsToolViewModel Dns => dns ??= new(services);
+    public PageCaptureToolViewModel PageCapture => pageCapture ??= new(services);
+    public RulerToolViewModel Ruler => ruler ??= new(services);
+    public SnippetsToolViewModel Snippets => snippets ??= new(services);
+    public ScreenTextToolViewModel ScreenText => screenText ??= new(services);
+    public CompareToolViewModel Compare => compare ??= new();
+    public DuplicatesToolViewModel Duplicates => duplicates ??= new(services);
+    public LogosToolViewModel Logos => logos ??= new(services);
+    public SocialToolViewModel Social => social ??= new(services);
+
+    /// <summary>The view model behind a tool's screen.</summary>
+    public ViewModelBase For(ToolKind kind) => kind switch
     {
-        this.services = services;
-        QrKindChoice = QrKinds[0];
-        WifiKindChoice = WifiKinds[0];
-        ImageWidth = ImageWidths[1];
-        ImageFormatChoice = ImageFormats[0];
-        ImageResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasImageResults));
-        NewPassword();
-        OnColourInputChanged(ColourInput);
-    }
+        ToolKind.Calculator => Calculator,
+        ToolKind.Passwords => Passwords,
+        ToolKind.Colours => Colours,
+        ToolKind.Clipboard => Clipboard,
+        ToolKind.Qr => Qr,
+        ToolKind.WebHelpers => WebHelpers,
+        ToolKind.Dns => Dns,
+        ToolKind.PageCapture => PageCapture,
+        ToolKind.Ruler => Ruler,
+        ToolKind.Snippets => Snippets,
+        ToolKind.ScreenText => ScreenText,
+        ToolKind.Compare => Compare,
+        ToolKind.Duplicates => Duplicates,
+        ToolKind.Logos => Logos,
+        ToolKind.Social => Social,
+        ToolKind.Images => Images,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "This tool has no view model in ToolsViewModel.For."),
+    };
 
-    /// <summary>
-    /// The window closed (or My pages was let go): everything any tool here started or holds is stopped and freed,
-    /// whichever tool it was. Each tool's own stop is safe to call when that tool was never opened.
-    /// </summary>
     public void Dispose()
     {
-        StopCapture();
-        StopClipboard();
-        StopColours();
-        LeaveDuplicates();
-        stopCompare?.Invoke();
-        ClearLogoPreviews();
-        ClearSocialPreviews();
-        var qr = QrImage;
-        QrImage = null;
+        colours?.Dispose();
+        clipboard?.Dispose();
         qr?.Dispose();
+        pageCapture?.Dispose();
+        compare?.Dispose();
+        duplicates?.Dispose();
+        logos?.Dispose();
+        social?.Dispose();
     }
-
-    // Calculator
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasAnswer))]
-    public partial decimal? Answer { get; set; }
-
-    [ObservableProperty] public partial string Sum { get; set; } = "";
-    [ObservableProperty] public partial string AnswerText { get; set; } = "";
-    [ObservableProperty] public partial string CalcMessage { get; set; } = "";
-    [ObservableProperty] public partial bool CalcProblem { get; set; }
-    [ObservableProperty] public partial string LineDescription { get; set; } = "";
-
-    public bool HasAnswer => Answer is not null;
-
-    /// <summary>Earlier sums, newest first, so a figure can be picked up again.</summary>
-    public ObservableCollection<CalcTapeRow> Tape { get; } = [];
-
-    // The answer shows as you type; nothing is added to the tape until Enter.
-    partial void OnSumChanged(string value)
-    {
-        var result = Calculator.Evaluate(value);
-        Answer = result.Value;
-        AnswerText = result.Value is { } v ? "= " + Money.Rand(v) : "";
-        CalcMessage = "";
-        CalcProblem = false;
-    }
-
-    [RelayCommand]
-    private void WorkOut()
-    {
-        var result = Calculator.Evaluate(Sum);
-        if (!result.Ok)
-        {
-            CalcMessage = result.Problem!;
-            CalcProblem = true;
-            return;
-        }
-        Tape.Insert(0, new CalcTapeRow(Sum.Trim(), result.Value!.Value));
-        while (Tape.Count > 20)
-            Tape.RemoveAt(Tape.Count - 1);
-        // Carry on from the answer, like a desk calculator.
-        Sum = Calculator.Plain(result.Value.Value);
-    }
-
-    [RelayCommand]
-    private void UseTape(CalcTapeRow row) => Sum = Calculator.Plain(row.Answer);
-
-    [RelayCommand]
-    private void ClearSum() => Sum = "";
-
-    [RelayCommand]
-    private async Task CopyAnswer(Avalonia.Controls.TopLevel? top)
-    {
-        if (Answer is not { } answer || top?.Clipboard is not { } clipboard)
-            return;
-        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, Calculator.Plain(Money.Cents(answer)));
-        CalcMessage = "Copied.";
-        CalcProblem = false;
-    }
-
-    [RelayCommand]
-    private void AddToInvoice()
-    {
-        if (Answer is not { } answer)
-            return;
-        var problem = services.Go.AddToInvoice(answer, LineDescription.Trim());
-        CalcMessage = problem ?? "";
-        CalcProblem = problem is not null;
-        if (problem is null)
-            LineDescription = "";
-    }
-}
-
-public sealed record CalcTapeRow(string Sum, decimal Answer)
-{
-    public string AnswerText => Money.Rand(Answer);
 }

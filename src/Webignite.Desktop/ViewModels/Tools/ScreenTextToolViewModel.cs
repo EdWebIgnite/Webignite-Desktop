@@ -5,8 +5,15 @@ namespace Webignite.Desktop.ViewModels;
 
 // Text from the screen: drag over words anywhere on the screen (a picture, a video, a PDF that won't let you
 // select) and they come back as text, read on this PC by Windows.
-public sealed partial class ToolsViewModel
+public sealed partial class ScreenTextToolViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public ScreenTextToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     public bool CanReadScreen => OperatingSystem.IsWindows() && services.ReadPictureText is not null;
 
     public string ScreenTextHint => services.Settings.Screenshots.TextShortcut is { Length: > 0 } keys

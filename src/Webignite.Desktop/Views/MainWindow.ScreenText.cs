@@ -65,7 +65,7 @@ public partial class MainWindow
             if (read is not null)
                 read(text);
             else
-                ShowNote("Text copied", ScreenText.Summary(text) + " Click to see it all.", () => ShowTool(ToolKind.ScreenText, services).Tools.ScreenTextRead = text);
+                ShowNote("Text copied", ScreenText.Summary(text) + " Click to see it all.", () => ShowTool(ToolKind.ScreenText, services).Tools.ScreenText.ScreenTextRead = text);
         }
         finally
         {

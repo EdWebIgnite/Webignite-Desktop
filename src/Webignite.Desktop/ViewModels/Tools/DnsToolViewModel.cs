@@ -16,8 +16,15 @@ public enum DnsPart
 // DNS records: look up any record, see whether a change has spread, and build the SPF and DMARC records that
 // decide whether a domain's mail is trusted. Read-only: nothing is changed at any host. The rules are in Core
 // (DnsMessage, DnsSpread, MailRecords) and the asking in Services (DnsClient).
-public sealed partial class ToolsViewModel
+public sealed partial class DnsToolViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public DnsToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDnsLookup), nameof(IsDnsSpread), nameof(IsDnsMail))]
     public partial DnsPart DnsPart { get; set; }
@@ -42,6 +49,16 @@ public sealed partial class ToolsViewModel
     public partial bool DnsBusy { get; set; }
 
     [ObservableProperty] public partial string DnsNote { get; set; } = "";
+
+    /// <summary>"The record copied.", under whichever part it was copied from.</summary>
+    [ObservableProperty] public partial string CopiedMessage { get; set; } = "";
+
+    /// <summary>Copies a record or an answer; the button passes the text and the view its window.</summary>
+    public async Task CopyAsync(Avalonia.Controls.TopLevel? top, string? text, string what)
+    {
+        if (await ToolClipboard.CopyAsync(top, text))
+            CopiedMessage = what + " copied.";
+    }
     [ObservableProperty] public partial bool DnsProblem { get; set; }
     [ObservableProperty] public partial string SpreadVerdict { get; set; } = "";
 

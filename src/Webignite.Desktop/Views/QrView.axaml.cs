@@ -15,7 +15,7 @@ public partial class QrView : UserControl
 {
     public QrView() => InitializeComponent();
 
-    private ToolsViewModel? Tools => DataContext as ToolsViewModel;
+    private QrToolViewModel? Tools => DataContext as QrToolViewModel;
 
     private void SaveQrPng(object? sender, RoutedEventArgs e) => SaveQrPngAsync(sender, e).Forget("Saving the QR code", tell: true);
 

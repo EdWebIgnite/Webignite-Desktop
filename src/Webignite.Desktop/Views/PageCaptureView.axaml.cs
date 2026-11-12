@@ -16,19 +16,19 @@ public partial class PageCaptureView : UserControl
     {
         InitializeComponent();
         // A device's screen is shrunk to fit the room there is, so the view model is told how much that is.
-        Room.SizeChanged += (_, e) => (DataContext as ToolsViewModel)?.SetCaptureRoom(e.NewSize.Width - 24, e.NewSize.Height - 24);
+        Room.SizeChanged += (_, e) => (DataContext as PageCaptureToolViewModel)?.SetCaptureRoom(e.NewSize.Width - 24, e.NewSize.Height - 24);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        (DataContext as ToolsViewModel)?.StartCaptureAsync().Forget("Starting the browser", tell: true);
+        (DataContext as PageCaptureToolViewModel)?.StartCaptureAsync().Forget("Starting the browser", tell: true);
         AddressBox.Focus();
     }
 
     private void ShowInFiles(object? sender, RoutedEventArgs e)
     {
-        (DataContext as ToolsViewModel)?.ShowCapturedCommand.Execute(null);
+        (DataContext as PageCaptureToolViewModel)?.ShowCapturedCommand.Execute(null);
         MainToFront();
     }
 
@@ -36,7 +36,7 @@ public partial class PageCaptureView : UserControl
 
     private async Task MarkUpAsync()
     {
-        if (DataContext is not ToolsViewModel tools)
+        if (DataContext is not PageCaptureToolViewModel tools)
             return;
         await tools.MarkUpPageCommand.ExecuteAsync(null);
         if (!tools.CaptureProblem)
@@ -52,7 +52,7 @@ public partial class PageCaptureView : UserControl
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        (DataContext as ToolsViewModel)?.StopCapture();
+        (DataContext as PageCaptureToolViewModel)?.StopCapture();
         base.OnDetachedFromVisualTree(e);
     }
 }

@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.ColourView"
-             x:DataType="vm:ToolsViewModel">
+             x:DataType="vm:ColoursToolViewModel">
   <UserControl.Styles>
     <!-- A rule that is met is done; one that isn't is a problem. -->
     <Style Selector="TextBlock.ok">
@@ -52,7 +52,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ShadeRow">
                   <Button Classes="shade" Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Tip}"
-                          Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
+                          Command="{Binding $parent[ItemsControl].((vm:ColoursToolViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
                     <Border Height="28" CornerRadius="4" Background="{Binding Brush}" />
                   </Button>
                 </DataTemplate>
@@ -68,7 +68,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ShadeRow">
                   <Button Classes="shade" Padding="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding Tip}"
-                          Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
+                          Command="{Binding $parent[ItemsControl].((vm:ColoursToolViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
                     <Border Height="28" CornerRadius="4" Background="{Binding Brush}" />
                   </Button>
                 </DataTemplate>
@@ -84,7 +84,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ShadeRow">
                   <Button Classes="shade" Padding="0" ToolTip.Tip="{Binding Hex}"
-                          Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
+                          Command="{Binding $parent[ItemsControl].((vm:ColoursToolViewModel)DataContext).UseShadeCommand}" CommandParameter="{Binding}">
                     <Border Width="28" Height="28" CornerRadius="4" Background="{Binding Brush}" />
                   </Button>
                 </DataTemplate>

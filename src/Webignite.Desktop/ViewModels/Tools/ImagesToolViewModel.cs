@@ -7,8 +7,18 @@ using Webignite.Core.Tools;
 namespace Webignite.Desktop.ViewModels;
 
 // Website images: resize, compress and convert a batch, saved to a "web" folder beside the originals.
-public sealed partial class ToolsViewModel
+public sealed partial class ImagesToolViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public ImagesToolViewModel(AppServices services)
+    {
+        this.services = services;
+        ImageWidth = ImageWidths[1];
+        ImageFormatChoice = ImageFormats[0];
+        ImageResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasImageResults));
+    }
+
     public IReadOnlyList<WidthChoice> ImageWidths { get; } =
         [.. ImageRules.WidthChoices.Select(w => new WidthChoice(w, $"{w} px wide" + (w == 1920 ? " (full-width banners)" : w == 1200 ? " (blog and content)" : w == 400 ? " (thumbnails)" : ""))),
          new WidthChoice(0, "Keep the size")];

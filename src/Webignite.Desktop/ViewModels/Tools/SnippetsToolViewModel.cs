@@ -7,8 +7,15 @@ namespace Webignite.Desktop.ViewModels;
 
 // Text snippets: saved blocks of text, found by name or a short code, and pasted where the person was typing
 // (when opened by its shortcut from another program) or copied.
-public sealed partial class ToolsViewModel
+public sealed partial class SnippetsToolViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public SnippetsToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     public ObservableCollection<SnippetRow> SnippetRows { get; } = [];
 
     [ObservableProperty] public partial string SnippetSearch { get; set; } = "";
@@ -132,7 +139,7 @@ public sealed partial class ToolsViewModel
     }
 }
 
-public sealed partial class SnippetRow(Snippet snippet, ToolsViewModel tools)
+public sealed partial class SnippetRow(Snippet snippet, SnippetsToolViewModel tools)
 {
     public Snippet Snippet { get; } = snippet;
     public string Name => Snippet.Name;

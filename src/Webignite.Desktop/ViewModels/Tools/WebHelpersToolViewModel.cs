@@ -24,7 +24,7 @@ public enum WebHelper
 
 // Web helpers: filler text, placeholder pictures, px and rem, smaller CSS and JavaScript, tidy JSON, slugs and
 // campaign links. Nothing is saved; each answer is there to copy. The rules are in Core (WebHelpers.cs).
-public sealed partial class ToolsViewModel
+public sealed partial class WebHelpersToolViewModel : ViewModelBase
 {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLorem), nameof(IsPlaceholder), nameof(IsUnits), nameof(IsMinify), nameof(IsJson), nameof(IsCases), nameof(IsUtm))]
@@ -48,10 +48,8 @@ public sealed partial class ToolsViewModel
     /// <summary>Copies one of the answers; the button passes the text and the view its window.</summary>
     public async Task CopyWebAsync(TopLevel? top, string? text, string what)
     {
-        if (string.IsNullOrEmpty(text) || top?.Clipboard is not { } clipboard)
-            return;
-        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, text);
-        WebMessage = what + " copied.";
+        if (await ToolClipboard.CopyAsync(top, text))
+            WebMessage = what + " copied.";
     }
 
     // Filler text

@@ -5,8 +5,13 @@ using Webignite.Core.Tools;
 namespace Webignite.Desktop.ViewModels;
 
 // Password generator: made on this PC, shown once, never saved.
-public sealed partial class ToolsViewModel
+public sealed partial class PasswordsToolViewModel : ViewModelBase
 {
+    public PasswordsToolViewModel()
+    {
+        NewPassword();
+    }
+
     [ObservableProperty] public partial double PasswordLength { get; set; } = 20;
     [ObservableProperty] public partial bool PasswordNumbers { get; set; } = true;
     [ObservableProperty] public partial bool PasswordSymbols { get; set; } = true;

@@ -3,7 +3,7 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:web="using:Webignite.Core.Web"
              x:Class="Webignite.Desktop.Views.DnsView"
-             x:DataType="vm:ToolsViewModel">
+             x:DataType="vm:DnsToolViewModel">
   <UserControl.Styles>
     <Style Selector="SelectableTextBlock.record">
       <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
@@ -191,7 +191,7 @@
       </StackPanel>
     </StackPanel>
 
-    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding WebMessage}" TextWrapping="Wrap"
-               IsVisible="{Binding WebMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding CopiedMessage}" TextWrapping="Wrap"
+               IsVisible="{Binding CopiedMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
   </StackPanel>
 </UserControl>

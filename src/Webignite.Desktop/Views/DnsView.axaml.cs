@@ -12,10 +12,10 @@ public partial class DnsView : UserControl
 {
     public DnsView() => InitializeComponent();
 
-    private ToolsViewModel? Tools => DataContext as ToolsViewModel;
+    private DnsToolViewModel? Tools => DataContext as DnsToolViewModel;
 
     private void Copy(string? text, string what) =>
-        (Tools?.CopyWebAsync(TopLevel.GetTopLevel(this), text, what) ?? Task.CompletedTask).Forget("Copying from DNS records", tell: true);
+        (Tools?.CopyAsync(TopLevel.GetTopLevel(this), text, what) ?? Task.CompletedTask).Forget("Copying from DNS records", tell: true);
 
     private void CopyRow(object? sender, RoutedEventArgs e) => Copy((sender as Control)?.Tag as string, "Record");
 

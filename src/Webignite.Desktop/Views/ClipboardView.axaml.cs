@@ -7,14 +7,14 @@ namespace Webignite.Desktop.Views;
 /// <summary>Clipboard history in its tool window. It follows the history only while it's showing.</summary>
 public partial class ClipboardView : UserControl
 {
-    private ToolsViewModel? watching;
+    private ClipboardToolViewModel? watching;
 
     public ClipboardView() => InitializeComponent();
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        if (DataContext is not ToolsViewModel tools)
+        if (DataContext is not ClipboardToolViewModel tools)
             return;
         watching = tools;
         tools.CopyClip = async clip =>

@@ -20,7 +20,7 @@ public partial class ImagesView : UserControl
         ImageDrop.AddHandler(DragDrop.DropEvent, ImagesDropped);
     }
 
-    private ToolsViewModel? Tools => DataContext as ToolsViewModel;
+    private ImagesToolViewModel? Tools => DataContext as ImagesToolViewModel;
 
     private void ChooseImages(object? sender, RoutedEventArgs e) => ChooseImagesAsync(sender, e).Forget("Making the images smaller", tell: true);
 

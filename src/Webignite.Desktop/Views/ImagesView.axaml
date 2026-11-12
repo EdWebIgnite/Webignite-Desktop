@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.ImagesView"
-             x:DataType="vm:ToolsViewModel">
+             x:DataType="vm:ImagesToolViewModel">
   <Border x:Name="ImageDrop" Background="Transparent" DragDrop.AllowDrop="True">
     <StackPanel Spacing="12">
         <TextBlock Classes="muted" TextWrapping="Wrap"

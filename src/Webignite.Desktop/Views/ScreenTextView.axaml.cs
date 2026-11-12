@@ -11,7 +11,7 @@ public partial class ScreenTextView : UserControl
 
     private void CopyAll(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is ToolsViewModel tools)
-            tools.CopyWebAsync(TopLevel.GetTopLevel(this), tools.ScreenTextRead, "Text").Forget("Copying text read off the screen", tell: true);
+        if (DataContext is ScreenTextToolViewModel tools)
+            ToolClipboard.CopyAsync(TopLevel.GetTopLevel(this), tools.ScreenTextRead).Forget("Copying text read off the screen", tell: true);
     }
 }

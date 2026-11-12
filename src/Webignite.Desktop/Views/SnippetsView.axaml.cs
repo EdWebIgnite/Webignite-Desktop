@@ -12,7 +12,7 @@ namespace Webignite.Desktop.Views;
 /// </summary>
 public partial class SnippetsView : UserControl
 {
-    private ToolsViewModel? tools;
+    private SnippetsToolViewModel? tools;
 
     public SnippetsView() => InitializeComponent();
 
@@ -22,7 +22,7 @@ public partial class SnippetsView : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        if (DataContext is not ToolsViewModel model)
+        if (DataContext is not SnippetsToolViewModel model)
             return;
         tools = model;
         model.SendSnippet = SendAsync;

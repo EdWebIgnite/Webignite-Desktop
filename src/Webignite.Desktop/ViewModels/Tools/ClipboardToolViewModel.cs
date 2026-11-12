@@ -8,8 +8,21 @@ namespace Webignite.Desktop.ViewModels;
 
 // Clipboard history: what was copied while Webignite is open, text and pictures, newest first. Click one to copy
 // it again; the search box finds a copy by its words.
-public sealed partial class ToolsViewModel
+public sealed partial class ClipboardToolViewModel : ViewModelBase, IDisposable
 {
+    private readonly AppServices services;
+
+    public ClipboardToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
+    /// <summary>The tool's window closed: what it started is stopped and what it held is freed.</summary>
+    public void Dispose()
+    {
+        StopClipboard();
+    }
+
     public ObservableCollection<ClipRow> Clips { get; } = [];
 
     public bool HasClips => services.Clipboard.Items.Count > 0;
@@ -81,9 +94,9 @@ public sealed partial class ToolsViewModel
 /// <summary>One thing copied: a line of its text, or a small picture.</summary>
 public sealed partial class ClipRow : IDisposable
 {
-    private readonly ToolsViewModel tools;
+    private readonly ClipboardToolViewModel tools;
 
-    public ClipRow(Clip clip, ToolsViewModel tools)
+    public ClipRow(Clip clip, ClipboardToolViewModel tools)
     {
         this.tools = tools;
         Clip = clip;

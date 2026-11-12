@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              x:Class="Webignite.Desktop.Views.CalculatorView"
-             x:DataType="vm:ToolsViewModel">
+             x:DataType="vm:CalculatorToolViewModel">
   <UserControl.Styles>
     <!-- The keys: big enough to click, and the same height so the pad lines up. -->
     <Style Selector="Button.key">
@@ -85,7 +85,7 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:CalcTapeRow">
             <Button Classes="link" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,3"
-                    Command="{Binding $parent[ItemsControl].((vm:ToolsViewModel)DataContext).UseTapeCommand}" CommandParameter="{Binding}"
+                    Command="{Binding $parent[ItemsControl].((vm:CalculatorToolViewModel)DataContext).UseTapeCommand}" CommandParameter="{Binding}"
                     ToolTip.Tip="Use this answer">
               <DockPanel>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding AnswerText}" FontWeight="SemiBold" Margin="8,0,0,0" />

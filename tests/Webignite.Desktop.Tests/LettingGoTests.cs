@@ -70,9 +70,9 @@ public sealed class ToolsLettingGoTests
         tools.Dispose();
         tools.Dispose();
 
-        Assert.Null(tools.QrImage);
-        Assert.Empty(tools.LogoPreviews);
-        Assert.Empty(tools.SocialPreviews);
+        Assert.Null(tools.Qr.QrImage);
+        Assert.Empty(tools.Logos.LogoPreviews);
+        Assert.Empty(tools.Social.SocialPreviews);
     });
 
     [Fact]
@@ -83,8 +83,8 @@ public sealed class ToolsLettingGoTests
         await Ui.Run(() =>
         {
             var tools = new ToolsViewModel(app.Services);
-            tools.WatchClipboard();
-            tools.WatchColours();
+            tools.Clipboard.WatchClipboard();
+            tools.Colours.WatchColours();
             weak = new WeakReference(tools);
             tools.Dispose();
         });

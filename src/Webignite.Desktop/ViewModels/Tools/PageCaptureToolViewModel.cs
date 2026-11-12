@@ -10,8 +10,21 @@ namespace Webignite.Desktop.ViewModels;
 
 // Page to PDF or picture: a web page drawn by the browser Windows already has, saved as a PDF or pictured at
 // phone, tablet and desktop widths. The browser starts when this window opens and is shut down when it closes.
-public sealed partial class ToolsViewModel
+public sealed partial class PageCaptureToolViewModel : ViewModelBase, IDisposable
 {
+    private readonly AppServices services;
+
+    public PageCaptureToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
+    /// <summary>The tool's window closed: what it started is stopped and what it held is freed.</summary>
+    public void Dispose()
+    {
+        StopCapture();
+    }
+
     private IWebEngine? browser;
     private Uri? capturePage;
 

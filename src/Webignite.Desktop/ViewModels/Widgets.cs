@@ -298,19 +298,19 @@ public sealed partial class NoteBody : WidgetBody
 /// <summary>The calculator, as in its own window.</summary>
 public sealed class CalculatorBody(ToolsViewModel tools) : WidgetBody
 {
-    public ToolsViewModel Tools { get; } = tools;
+    public CalculatorToolViewModel Tools { get; } = tools.Calculator;
 }
 
 /// <summary>The clipboard history, as in its own window.</summary>
 public sealed class ClipboardBody(ToolsViewModel tools) : WidgetBody
 {
-    public ToolsViewModel Tools { get; } = tools;
+    public ClipboardToolViewModel Tools { get; } = tools.Clipboard;
 }
 
 /// <summary>The colours tool, as in its own window.</summary>
 public sealed class ColoursBody(ToolsViewModel tools) : WidgetBody
 {
-    public ToolsViewModel Tools { get; } = tools;
+    public ColoursToolViewModel Tools { get; } = tools.Colours;
 }
 
 /// <summary>The time timer: start it with a note, stop it to keep the time, as on the Time page.</summary>

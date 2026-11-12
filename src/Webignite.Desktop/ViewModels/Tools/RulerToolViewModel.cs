@@ -5,8 +5,15 @@ namespace Webignite.Desktop.ViewModels;
 
 // Screen ruler: measure anything on the screen, from any program. This window starts it and keeps what was
 // measured while it is open.
-public sealed partial class ToolsViewModel
+public sealed partial class RulerToolViewModel : ViewModelBase
 {
+    private readonly AppServices services;
+
+    public RulerToolViewModel(AppServices services)
+    {
+        this.services = services;
+    }
+
     public bool CanMeasureScreen => OperatingSystem.IsWindows();
 
     /// <summary>The shortcut as set in Settings, or how to set one.</summary>
