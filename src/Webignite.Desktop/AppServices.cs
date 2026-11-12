@@ -160,7 +160,8 @@ public sealed class AppServices : IDisposable
             await Task.Run(() => Account.RefreshLicenceAsync(byHand ? TimeSpan.Zero : TimeSpan.FromHours(12), DateTimeOffset.UtcNow));
         if (result.Changed > 0)
         {
-            AreasChanged?.Invoke(["projects", "documents", "clients", "contacts", "chat", "settings"]);
+            // Only the pages that show what came in read again; one chat message doesn't refresh Invoices.
+            AreasChanged?.Invoke(Webignite.Core.Sync.SyncKinds.Areas(result.Kinds));
             ChatArrived?.Invoke();
             AnnounceChat(await Task.Run(Chat.NewlyArrived));
             AnnounceInbox(await Task.Run(Inbox.NewlyArrived));

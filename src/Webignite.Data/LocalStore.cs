@@ -320,6 +320,8 @@ public sealed partial class LocalStore : IDisposable
         foreach (var opened in connections.Values)
             opened.Dispose();
         connections.Dispose();
+        lastLook.Dispose();
+        inOneGo.Dispose();
     }
 
     private byte[] Seal<T>(string context, T value) =>

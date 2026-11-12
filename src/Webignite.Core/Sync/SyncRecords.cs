@@ -38,6 +38,32 @@ public static class SyncKinds
     /// <summary>Settings that belong to the business rather than the PC (<see cref="SharedSettings"/>).</summary>
     public const string Setting = "setting";
 
+    /// <summary>Every part of the app, as pages are told what to read again.</summary>
+    public static readonly IReadOnlyList<string> AllAreas = ["projects", "documents", "clients", "contacts", "chat", "settings"];
+
+    /// <summary>
+    /// The parts of the app that show a kind of record, so only those read again when one comes in: a chat message
+    /// doesn't make Invoices read every invoice. The team changes ids everywhere, and a kind not known here could
+    /// be shown anywhere, so both mean everything.
+    /// </summary>
+    public static IReadOnlyList<string> Areas(string kind) => kind switch
+    {
+        Project or Heading or Task or Comment or Activity or Message or Person or AttachPart => ["projects"],
+        Document => ["documents", "clients"], // a client's page shows what they owe
+        Client => ["clients"],
+        Contact => ["contacts"],
+        Chat or ChatPart or Presence => ["chat"],
+        Setting => ["settings"],
+        _ => AllAreas,
+    };
+
+    /// <summary>The areas to read again after these kinds came in, each once, in the usual order.</summary>
+    public static IReadOnlyList<string> Areas(IEnumerable<string> kinds)
+    {
+        var areas = kinds.SelectMany(Areas).ToHashSet(StringComparer.Ordinal);
+        return AllAreas.Where(areas.Contains).ToList();
+    }
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
         { Project, Heading, Task, Comment, Activity, Team, Message, Document, Client, Contact, Chat, ChatPart, Setting, Presence, Person, AttachPart };
 }

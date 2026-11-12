@@ -22,6 +22,9 @@ public sealed record SyncResult(int Changed = 0, int Sent = 0, string? Problem =
 {
     public bool Worked => Problem is null && !Skipped;
 
+    /// <summary>The kinds of record that came in changed, so only the pages that show them read again.</summary>
+    public IReadOnlyCollection<string> Kinds { get; init; } = [];
+
     /// <summary>What to tell the person after they asked to sync now.</summary>
     public string Summary()
     {
@@ -120,12 +123,13 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
 
         // In first: what your partner changed, merged with what's here.
         var changed = 0;
+        var kinds = new HashSet<string>(StringComparer.Ordinal);
         var unreadable = 0;
         for (var page = 0; page < PagesAtMost; page++)
         {
             var reply = await account.PullAsync(state.Cursor, cancel);
             if (reply.Value is not { } pulled)
-                return new SyncResult(changed, Problem: reply.Problem, Unreadable: unreadable);
+                return new SyncResult(changed, Problem: reply.Problem, Unreadable: unreadable) { Kinds = kinds };
             var sent = new List<(string, string, string)>();
             var sentBefore = store.SentFingerprints();
             // The team first, so ids are changed over before the records that use them are merged.
@@ -133,7 +137,10 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
             {
                 switch (TakeIn(record, key, owner, sentBefore, ref state, sent))
                 {
-                    case Taken.Changed: changed++; break;
+                    case Taken.Changed:
+                        changed++;
+                        kinds.Add(record.Kind);
+                        break;
                     case Taken.Unreadable: unreadable++; break;
                 }
             }
@@ -149,7 +156,7 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
         if (!owner && state.Team is null)
         {
             Keep(state with { LastSynced = clock.GetUtcNow() });
-            return new SyncResult(changed, Unreadable: unreadable, WaitingForOwner: true);
+            return new SyncResult(changed, Unreadable: unreadable, WaitingForOwner: true) { Kinds = kinds };
         }
         TeamRecord? teamSent = null;
         var outgoing = quick ? OutgoingQuick() : Outgoing(owner && state.Team is null, out teamSent);
@@ -167,7 +174,7 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
             var locked = batch.Select(r => new SyncRecord(r.Kind, r.Id, RecordLock.Seal(r.Kind, r.Id, r.Json, key))).ToList();
             var reply = await account.PushAsync(locked, cancel);
             if (!reply.Worked)
-                return new SyncResult(changed, count, reply.Problem, unreadable, TooBig: tooBig);
+                return new SyncResult(changed, count, reply.Problem, unreadable, TooBig: tooBig) { Kinds = kinds };
             store.MarkSent(batch.Select(r => (r.Kind, r.Id, takenBack.Contains(r) ? TakenBackMark + r.Fingerprint : r.Fingerprint)));
             count += batch.Count;
             if (teamSent is not null && batch.Any(r => r.Kind == SyncKinds.Team))
@@ -177,7 +184,7 @@ public sealed partial class SyncService(LocalStore store, AccountClient account,
             }
         }
         Keep(state with { LastSynced = clock.GetUtcNow() });
-        return new SyncResult(changed, count, Unreadable: unreadable, TooBig: tooBig);
+        return new SyncResult(changed, count, Unreadable: unreadable, TooBig: tooBig) { Kinds = kinds };
     }
 
     private enum Taken { Same, Changed, Unreadable }

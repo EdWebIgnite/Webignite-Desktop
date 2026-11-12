@@ -131,6 +131,8 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
             lastBackupLook = now;
             services.BackUpAsync().Forget("Backing up");
         }
+        // Lists kept unlocked for quick reading are let go once nothing has asked for them for a few minutes.
+        services.Store.LetGoOfUnused(TimeSpan.FromMinutes(3));
         EveryMinute?.Invoke();
     }
 

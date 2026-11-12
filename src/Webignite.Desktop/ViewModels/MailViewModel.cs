@@ -310,7 +310,8 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
                     .SelectMany(f => services.Store.ListMailSummaries(a.Id, f.Path)))
                 .OrderByDescending(s => s.Date).Take(500);
         else if (CurrentFolder is { } folder)
-            list = services.Store.ListMailSummaries(folder.Mailbox.Id, folder.Path);
+            list = services.Store.ListMailSummaries(folder.Mailbox.Id, folder.Path,
+                olderIn == (folder.Mailbox.Id, folder.Path) ? MailShown + olderShown : MailShown);
         else
             list = [];
 
@@ -510,10 +511,24 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
         }
     }
 
+    private const int MailShown = 500;
+    private const int OlderStep = 300; // what one Load older fetches
+
+    // A folder lists its newest 500. Each Load older lets that folder show 300 more, so the mail just fetched is
+    // seen; moving to another folder starts again at 500.
+    private (string AccountId, string Path) olderIn;
+    private int olderShown;
+
     [RelayCommand]
-    private Task LoadOlder() => CurrentFolder is { Kind: FolderKind.Folder } folder && CurrentCategory is null
-        ? Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path, older: true))
-        : Task.CompletedTask;
+    private Task LoadOlder()
+    {
+        if (CurrentFolder is not { Kind: FolderKind.Folder } folder || CurrentCategory is not null)
+            return Task.CompletedTask;
+        var key = (folder.Mailbox.Id, folder.Path);
+        olderShown = olderIn == key ? olderShown + OlderStep : OlderStep;
+        olderIn = key;
+        return Run(() => services.Mail.SyncFolderAsync(folder.Mailbox, folder.Path, older: true));
+    }
 
     [RelayCommand]
     private void ManageMailboxes()

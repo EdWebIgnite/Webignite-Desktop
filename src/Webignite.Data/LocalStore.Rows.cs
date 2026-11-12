@@ -70,6 +70,7 @@ public sealed partial class LocalStore
     private T InOneGo<T>(Func<T> work)
     {
         Execute("BEGIN IMMEDIATE");
+        inOneGo.Value++;
         try
         {
             var result = work();
@@ -80,6 +81,10 @@ public sealed partial class LocalStore
         {
             Execute("ROLLBACK");
             throw;
+        }
+        finally
+        {
+            inOneGo.Value--;
         }
     }
 

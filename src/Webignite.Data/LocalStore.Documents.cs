@@ -60,7 +60,9 @@ public sealed partial class LocalStore
     }
 
     /// <summary>Newest first.</summary>
-    public IReadOnlyList<StoredDocument> List(DocumentKind? kind = null) => kind is null
-        ? ReadAll<StoredDocument>(DocumentContext, "SELECT id, payload FROM documents ORDER BY updated DESC")
-        : ReadAll<StoredDocument>(DocumentContext, "SELECT id, payload FROM documents WHERE kind = $kind ORDER BY updated DESC", ("$kind", kind.Value.ToString()));
+    public IReadOnlyList<StoredDocument> List(DocumentKind? kind = null)
+    {
+        var all = Remembered("documents", () => ReadAll<StoredDocument>(DocumentContext, "SELECT id, payload FROM documents ORDER BY updated DESC"));
+        return kind is null ? all : all.Where(d => d.Document.Kind == kind).ToList();
+    }
 }

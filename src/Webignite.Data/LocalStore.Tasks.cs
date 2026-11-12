@@ -42,7 +42,8 @@ public sealed partial class LocalStore
             SaveTask(task with { Done = true, DoneAt = now });
     }
 
-    public IReadOnlyList<TaskItem> ListTasks() => ReadAll<TaskItem>(TaskContext, "SELECT id, payload FROM tasks WHERE deleted = 0");
+    public IReadOnlyList<TaskItem> ListTasks() =>
+        Remembered("tasks", () => ReadAll<TaskItem>(TaskContext, "SELECT id, payload FROM tasks WHERE deleted = 0"));
 
     /// <summary>Every automatic-task key ever raised, including ticked-off and deleted ones.</summary>
     public IReadOnlySet<string> AutoTaskKeys() => ReadKeys("SELECT auto_key FROM tasks WHERE auto_key IS NOT NULL");
