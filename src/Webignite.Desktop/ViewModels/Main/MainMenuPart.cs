@@ -283,6 +283,23 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
         _ => null,
     };
 
+    private const string AboutTheApp = "Webignite";
+
+    /// <summary>Folds a group of the open menu shut, or opens it again; kept, so the menu opens as it was left.</summary>
+    [RelayCommand]
+    private void FoldInMenu(MenuColumn? column)
+    {
+        if (column is not { CanFold: true } || IsMenuEditing)
+            return;
+        var folded = services.Settings.Appearance.MenuFolded ?? [];
+        services.Settings.Appearance = services.Settings.Appearance with
+        {
+            MenuFolded = folded.Contains(column.Key) ? [.. folded.Where(k => k != column.Key)] : [.. folded, column.Key],
+        };
+        if (IsMenuOpen)
+            FillMenu();
+    }
+
     private void FillMenu()
     {
         // Read when the menu opens, so what it says is as things stand now.
@@ -300,7 +317,8 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
         });
         var dock = DockNow();
         MenuColumns.Clear();
-        var column = new MenuColumn("Start");
+        var folded = services.Settings.Appearance.MenuFolded ?? [];
+        var column = Column("Start", "start");
         // Every group shows, whether it is folded in the sidebar or not: there is nowhere to unfold one here. While
         // editing, only what can be taken off or moved is listed, so not the links that come and go with a page.
         foreach (var item in IsMenuEditing ? main.Sidebar.OnMenus() : main.Sidebar.Unfolded())
@@ -309,7 +327,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
             {
                 Keep(column);
                 // The space above Settings has no name; what follows it is about the app itself.
-                column = new MenuColumn(group.CanFold ? group.Name : "Webignite");
+                column = group.CanFold ? Column(group.Name, group.Key) : new MenuColumn(AboutTheApp);
                 // A named group can go on the dock whole, where it opens a short list of what is in it.
                 if (group.CanFold && IsDockMenu && !IsMenuEditing)
                 {
@@ -328,7 +346,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
         }
         Keep(column);
         // Planner's own pages and projects, which the sidebar shows in place of the main list.
-        var planner = new MenuColumn("Planner");
+        var planner = Column("Planner", PlannerGroup.Key);
         // Planner can go on the dock whole as well, opening a short list of its pages.
         if (IsDockMenu && !IsMenuEditing)
         {
@@ -344,6 +362,9 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
                 if (Entry(item) is { } entry)
                     planner.Entries.Add(entry);
         Keep(planner);
+        // Settings comes last, after everything the person works in.
+        if (MenuColumns.FirstOrDefault(c => c.Title == AboutTheApp) is { } about)
+            MenuColumns.Move(MenuColumns.IndexOf(about), MenuColumns.Count - 1);
         // What has been taken off, waiting to be put back.
         MenuAvailable.Clear();
         if (IsMenuEditing)
@@ -351,6 +372,9 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
                 if (Entry(item) is { } entry)
                     MenuAvailable.Add(entry);
         OnPropertyChanged(nameof(NothingAvailable));
+
+        // A group folds shut with a click on its heading, and stays so; while editing all are open to work in.
+        MenuColumn Column(string title, string key) => new(title) { Key = key, IsFolded = !IsMenuEditing && folded.Contains(key) };
 
         void Keep(MenuColumn made)
         {
@@ -406,6 +430,13 @@ public sealed class MenuColumn(string title)
     public string Title { get; } = title;
     public ObservableCollection<MenuEntry> Entries { get; } = [];
 
+    /// <summary>The name its folded state is kept under; empty for the one that can't be folded (Settings).</summary>
+    public string Key { get; init; } = "";
+    public bool CanFold => Key.Length > 0;
+    public bool IsFolded { get; init; }
+    public bool IsOpen => !IsFolded;
+    public bool ShowsOpenMark => CanFold && IsOpen;
+
     /// <summary>The group itself, when it can go on the dock whole; null for the columns that aren't a group.</summary>
     public MenuEntry? Heading { get; set; }
     public bool CanGoOnDock => Heading is not null;
@@ -413,7 +444,9 @@ public sealed class MenuColumn(string title)
     /// <summary>The group isn't on the dock and the dock has no room left.</summary>
     public bool DockIsFull => Heading is { OnDock: false, CanAdd: false };
 
-    public string? HeadingTip => Heading is null ? null : Heading.OnDock ? "On the dock. Right-click to take it off." : "Right-click to put this whole group on the dock.";
+    public string? HeadingTip => !CanFold ? null
+        : (IsFolded ? "Click to open this group." : "Click to fold this group shut.")
+          + (Heading is null ? "" : Heading.OnDock ? " On the dock: right-click to take it off." : " Right-click to put the whole group on the dock.");
 }
 
 /// <summary>One thing the menu or the dock opens: a page, a tool, a project or one of My pages.</summary>

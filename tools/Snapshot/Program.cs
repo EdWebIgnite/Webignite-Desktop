@@ -2671,6 +2671,24 @@ Save("invoice-sum");
     Check("Retainers, domains, money and clients have their figures too",
         vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.HasFigure && e.PageKey is "Retainers" or "Renewals" or "Money" or "Clients") == 4);
     Save("menu-button-open");
+    Check("Settings comes last in the menu", vm.MenuPart.MenuColumns[^1].Entries.Any(e => e.PageKey == "Settings") && !vm.MenuPart.MenuColumns[^1].CanFold);
+    {
+        var tools = vm.MenuPart.MenuColumns.First(c => c.Title == "Web tools");
+        vm.MenuPart.FoldInMenuCommand.Execute(tools);
+        vm.MenuPart.FoldInMenuCommand.Execute(vm.MenuPart.MenuColumns.First(c => c.Title == "Computer"));
+        Dispatcher.UIThread.RunJobs();
+        Check("A click on a group's heading folds it shut, and the menu stays open",
+            vm.MenuPart.IsMenuOpen && vm.MenuPart.MenuColumns.First(c => c.Title == "Web tools") is { IsFolded: true, Entries.Count: > 0 }
+            && services.Settings.Appearance.MenuFolded is { Count: 2 });
+        Save("menu-button-open-folded");
+        vm.MenuPart.ToggleMenuCommand.Execute(null);
+        vm.MenuPart.ToggleMenuCommand.Execute(null);
+        Check("It opens as it was left", vm.MenuPart.MenuColumns.First(c => c.Title == "Computer").IsFolded);
+        vm.MenuPart.FoldInMenuCommand.Execute(vm.MenuPart.MenuColumns.First(c => c.Title == "Web tools"));
+        vm.MenuPart.FoldInMenuCommand.Execute(vm.MenuPart.MenuColumns.First(c => c.Title == "Computer"));
+        Dispatcher.UIThread.RunJobs();
+        Check("Another click opens it again", vm.MenuPart.MenuColumns.All(c => !c.IsFolded) && services.Settings.Appearance.MenuFolded is { Count: 0 });
+    }
     vm.MenuPart.PickFromMenuCommand.Execute(vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).First(e => e.PageKey == "Invoices"));
     Check("Picking a page from the menu opens it and closes the menu", !vm.MenuPart.IsMenuOpen && vm.Selected.Key == Page.Invoices);
     vm.MenuPart.ToggleMenuCommand.Execute(null);

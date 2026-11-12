@@ -24,8 +24,8 @@ public partial class MenuOverlayView : UserControl
             },
             Label = item => (item as MenuEntry)?.Title ?? "",
         };
-        // Groups run down a column for as far as the window has room, then start the next one.
-        SizeChanged += (_, e) => Columns.MaxHeight = Math.Max(280, e.NewSize.Height - 330);
+        // The menu is as wide as the window allows; when even that leaves it too tall, it scrolls.
+        SizeChanged += (_, e) => Scroller.MaxHeight = Math.Max(280, e.NewSize.Height - 330);
         Controls.DragReorder.Attach(Columns, rules);
         Controls.DragReorder.Attach(Available, rules);
     }
@@ -35,6 +35,13 @@ public partial class MenuOverlayView : UserControl
     {
         if (DataContext is MainViewModel main)
             main.MenuPart.IsMenuOpen = false;
+    }
+
+    // A click on a group's heading folds it shut or opens it; right-click is the dock's.
+    private void FoldGroup(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton == MouseButton.Left && sender is Control { DataContext: MenuColumn column } && DataContext is MainViewModel main)
+            main.MenuPart.FoldInMenuCommand.Execute(column);
     }
 
     private void KeepMenuOpen(object? sender, PointerPressedEventArgs e) => e.Handled = true;

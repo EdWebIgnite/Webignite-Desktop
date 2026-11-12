@@ -29,6 +29,12 @@
       <Setter Property="Padding" Value="10,0,6,7" />
       <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
+    <Style Selector="Border.menuhead.folds">
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.menuhead.folded">
+      <Setter Property="Margin" Value="0" />
+    </Style>
     <Style Selector="Button.menuentry">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Foreground" Value="{DynamicResource Text}" />
@@ -118,19 +124,20 @@
           </ScrollViewer>
         </StackPanel>
       </Border>
-    <!-- Groups run down a column and then start the next, so short groups share a column and long ones have their
-         own; the height they run to follows the window (MenuOverlayView.axaml.cs). -->
-    <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto">
+    <!-- Groups spread over as many columns as the window is wide enough for, kept as low as that allows, so a big
+         screen gets a wide, low menu; short groups share a column. On a small window it scrolls
+         (MenuOverlayView.axaml.cs sets how tall it may be). -->
+    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
       <ItemsControl x:Name="Columns" ItemsSource="{Binding MenuPart.MenuColumns}">
         <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate><WrapPanel Orientation="Vertical" ItemSpacing="18" LineSpacing="12" /></ItemsPanelTemplate>
+          <ItemsPanelTemplate><c:ColumnsPanel ColumnWidth="220" ColumnSpacing="12" ItemSpacing="18" /></ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:MenuColumn">
             <StackPanel Width="220">
               <!-- The group's heading. With the dock, right-click it to put the whole group on the dock, where a
                    click opens a short list of what is in it. -->
-              <Border Classes="menuhead" ToolTip.Tip="{Binding HeadingTip}">
+              <Border Classes="menuhead" Classes.folds="{Binding CanFold}" Classes.folded="{Binding IsFolded}" ToolTip.Tip="{Binding HeadingTip}" PointerReleased="FoldGroup">
                 <Border.ContextMenu>
                   <ContextMenu IsVisible="{Binding CanGoOnDock}">
                     <MenuItem Header="Add to the dock" IsVisible="{Binding Heading.CanAdd, FallbackValue=False}"
@@ -141,12 +148,16 @@
                   </ContextMenu>
                 </Border.ContextMenu>
                 <DockPanel>
+                  <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.ChevronDown}" Size="12" Foreground="{DynamicResource Muted}"
+                          VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding ShowsOpenMark}" />
+                  <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.ChevronRight}" Size="12" Foreground="{DynamicResource Muted}"
+                          VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding IsFolded}" />
                   <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text11}" Text="On the dock" VerticalAlignment="Center"
                              IsVisible="{Binding Heading.OnDock, FallbackValue=False}" />
                   <TextBlock Classes="label caps" Text="{Binding Title}" VerticalAlignment="Center" />
                 </DockPanel>
               </Border>
-              <ItemsControl ItemsSource="{Binding Entries}">
+              <ItemsControl ItemsSource="{Binding Entries}" IsVisible="{Binding IsOpen}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MenuEntry">
                     <Button Classes="menuentry" Classes.current="{Binding IsCurrent}" Classes.off="{Binding IsOff}" ToolTip.Tip="{Binding EditTip}"
