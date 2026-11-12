@@ -213,7 +213,8 @@
                     <MenuItem Header="Move group up" Command="{Binding MoveUpCommand}" />
                     <MenuItem Header="Move group down" Command="{Binding MoveDownCommand}" />
                     <Separator />
-                    <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
+                    <MenuItem Header="Choose what is on the menu…" Command="{Binding EditMenuCommand}" />
+                    <MenuItem Header="Put the sidebar's order back" Command="{Binding ResetSidebarCommand}" />
                   </ContextMenu>
                 </DockPanel.ContextMenu>
                 <Panel DockPanel.Dock="Right" IsVisible="{Binding CanFold}" VerticalAlignment="Center">
@@ -248,7 +249,9 @@
                     <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" />
                     <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" />
                     <Separator />
-                    <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
+                    <MenuItem Header="Take off the menu" Command="{Binding TakeOffMenuCommand}" />
+                    <MenuItem Header="Choose what is on the menu…" Command="{Binding EditMenuCommand}" />
+                    <MenuItem Header="Put the sidebar's order back" Command="{Binding ResetSidebarCommand}" />
                   </ContextMenu>
                 </DockPanel.ContextMenu>
                 <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.ChevronRight}" Size="14" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" />
@@ -264,7 +267,9 @@
                     <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" />
                     <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" />
                     <Separator />
-                    <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
+                    <MenuItem Header="Take off the menu" Command="{Binding TakeOffMenuCommand}" />
+                    <MenuItem Header="Choose what is on the menu…" Command="{Binding EditMenuCommand}" />
+                    <MenuItem Header="Put the sidebar's order back" Command="{Binding ResetSidebarCommand}" />
                   </ContextMenu>
                 </DockPanel.ContextMenu>
                 <c:Icon Classes="navicon" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
@@ -311,7 +316,9 @@
                     <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" />
                     <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" />
                     <Separator />
-                    <MenuItem Header="Put the sidebar back" Command="{Binding ResetSidebarCommand}" />
+                    <MenuItem Header="Take off the menu" Command="{Binding TakeOffMenuCommand}" />
+                    <MenuItem Header="Choose what is on the menu…" Command="{Binding EditMenuCommand}" />
+                    <MenuItem Header="Put the sidebar's order back" Command="{Binding ResetSidebarCommand}" />
                   </ContextMenu>
                 </DockPanel.ContextMenu>
                 <!-- The page's minimised panes, under its name while it's on screen: click one to bring it back. -->

@@ -2655,6 +2655,59 @@ Save("invoice-sum");
     Dispatcher.UIThread.RunJobs();
     Check("Back on the sidebar, the bar and the dock are gone", vm.IsSidebarMenu && !vm.HasMenuBar && vm.Dock.Count == 0);
 }
+// Choosing what is on the menus: from the sidebar the menu opens to edit; an entry taken off is gone from every
+// menu and waits under Available; Settings can't go; what is off is still found by search.
+{
+    var was = services.Settings.Appearance;
+    var calculator = vm.Sidebar.OnMenus().OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
+    var retainers = vm[Page.Retainers];
+    var before = vm.Sidebar.Items.Count;
+    vm.Sidebar.EditCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("From the sidebar, the menu opens to choose what is on it, with nothing under Available yet",
+        vm.IsMenuOpen && vm.IsMenuEditing && vm.IsSidebarMenu && vm.MenuAvailable.Count == 0 && vm.NothingAvailable && !vm.HasMenuTakenOff);
+    MenuEntry InMenu(object item) => vm.MenuColumns.SelectMany(c => c.Entries).Concat(vm.MenuAvailable).First(e => ReferenceEquals(e.Item, item));
+    Check("Each entry is listed once while editing", vm.MenuColumns.SelectMany(c => c.Entries).GroupBy(e => e.Item).All(g => g.Count() == 1));
+    vm.PickFromMenuCommand.Execute(InMenu(calculator));
+    vm.PickFromMenuCommand.Execute(InMenu(retainers));
+    Dispatcher.UIThread.RunJobs();
+    Check("A click takes an entry off: it moves to Available, and the page on screen stays",
+        vm.MenuAvailable.Select(e => e.Title).SequenceEqual(["Retainers", "Calculator"]) && vm.Selected.Key != Page.Retainers && vm.IsMenuOpen && vm.HasMenuTakenOff
+        && vm.Sidebar.IsOff(calculator) && vm.Sidebar.IsOff(retainers));
+    var settingsEntry = InMenu(vm[Page.Settings]);
+    vm.PickFromMenuCommand.Execute(settingsEntry);
+    Check("Settings always stays", !settingsEntry.ShowsMinus && !vm.Sidebar.IsOff(vm[Page.Settings]) && settingsEntry.EditTip == "This one always stays");
+    Save("menu-edit");
+    vm.DoneEditingMenuCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Done closes it, and the sidebar no longer lists what was taken off",
+        !vm.IsMenuOpen && !vm.IsMenuEditing && vm.Sidebar.Items.Count == before - 2 && !vm.Sidebar.Items.Contains(calculator) && !vm.Sidebar.Items.Contains(retainers));
+    Save("menu-edit-sidebar");
+    Check("A page taken off is still there to open, by search or a link", vm.Modules.Contains(retainers));
+    services.Settings.Appearance = was with { Menu = MenuKind.Dock, Dock = ["Overview", "Retainers", "Clients"] };
+    Dispatcher.UIThread.RunJobs();
+    Check("It is off the dock too", vm.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Clients"]));
+    vm.ToggleMenuCommand.Execute(null);
+    Check("And off the open menu, which offers to edit", vm.IsMenuOpen && vm.IsMenuBrowsing && vm.MenuColumns.SelectMany(c => c.Entries).All(e => e.Title is not ("Retainers" or "Calculator")) && vm.MenuAvailable.Count == 0);
+    vm.EditMenuCommand.Execute(null);
+    vm.PickFromMenuCommand.Execute(InMenu(retainers));
+    Dispatcher.UIThread.RunJobs();
+    Check("Clicking it under Available puts it back where it was, on the dock as well",
+        !vm.Sidebar.IsOff(retainers) && vm.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Retainers", "Clients"]) && vm.MenuAvailable.Count == 1);
+    // Dragging the calculator out of Available onto another tool puts it back just there.
+    var passwords = vm.Sidebar.OnMenus().OfType<ToolLink>().First(t => t.Kind == ToolKind.Passwords);
+    vm.MoveInMenu(InMenu(calculator), InMenu(passwords), below: true);
+    var tools = vm.Sidebar.OnMenus().OfType<ToolLink>().ToList();
+    Check("An entry dragged out of Available lands where it is dropped", !vm.Sidebar.IsOff(calculator) && tools.IndexOf(calculator) == tools.IndexOf(passwords) + 1 && !vm.HasMenuTakenOff);
+    vm.PickFromMenuCommand.Execute(InMenu(calculator));
+    vm.PutAllBackOnMenuCommand.Execute(null);
+    Check("Put everything back empties Available", !vm.HasMenuTakenOff && vm.MenuAvailable.Count == 0);
+    vm.CloseMenuCommand.Execute(null);
+    Check("Closing the menu ends the editing", !vm.IsMenuOpen && !vm.IsMenuEditing);
+    vm.Sidebar.ResetCommand.Execute(null);
+    services.Settings.Appearance = was;
+    Dispatcher.UIThread.RunJobs();
+}
 Open(Page.Crawler);
 {
     var crawler = (CrawlerViewModel)vm[Page.Crawler].Main.Page;

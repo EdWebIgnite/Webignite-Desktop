@@ -306,7 +306,9 @@ public partial class MainViewModel : ViewModelBase
                 module.Group = group;
         }
         Modules = [.. nav.OfType<Module>()];
-        Sidebar = new SidebarViewModel(services.Settings, nav);
+        Sidebar = new SidebarViewModel(services.Settings, nav) { EditAsked = () => EditMenuCommand.Execute(null) };
+        Sidebar.LayoutChanged += MenusChanged;
+        services.Go.EditMenuAction = () => EditMenuCommand.Execute(null);
         Open = [.. Modules.Select(m => m.Main)];
         Current = Modules[0].Main;
         Selected = Modules[0];

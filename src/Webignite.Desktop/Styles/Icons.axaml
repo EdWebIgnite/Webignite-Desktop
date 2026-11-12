@@ -53,6 +53,7 @@
   <StreamGeometry x:Key="Icon.More">M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Milestone">M12 2.5l9.5 9.5l-9.5 9.5l-9.5 -9.5z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Blocked">M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0 -18z M5.7 5.7l12.6 12.6</StreamGeometry>
+  <StreamGeometry x:Key="Icon.Minus">M5 12h14</StreamGeometry>
   <StreamGeometry x:Key="Icon.Plus">M5 12h14 M12 5v14</StreamGeometry>
   <StreamGeometry x:Key="Icon.Alert">M12 8v4 M12 16h.01 M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Bell">M10.268 21a2 2 0 0 0 3.464 0 M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326</StreamGeometry>

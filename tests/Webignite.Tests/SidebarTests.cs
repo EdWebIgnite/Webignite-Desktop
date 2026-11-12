@@ -171,4 +171,50 @@ public sealed class SidebarOrderTests
         Assert.True(reset.Hidden);
         Assert.Equal(Defaults, Sidebar.Resolve(reset, Defaults));
     }
+
+    private static readonly string[] Menu = ["Overview", "#work", "Clients", "Retainers", "#tools", "tool-Calculator", "tool-Qr", "#end", "Settings"];
+
+    [Fact]
+    public void An_entry_taken_off_is_gone_from_the_menus_and_keeps_its_place_for_when_it_comes_back()
+    {
+        var layout = Sidebar.TakeOff(new SidebarLayout(), "Retainers");
+        Assert.Equal(["Overview", "#work", "Clients", "#tools", "tool-Calculator", "tool-Qr", "#end", "Settings"], Sidebar.Shown(layout, Menu));
+        Assert.Equal(["Retainers"], Sidebar.TakenOff(layout, Menu));
+        Assert.Equal(Menu, Sidebar.Shown(Sidebar.PutBack(layout, "Retainers"), Menu));
+        // Taking it off twice, or putting back what isn't off, changes nothing.
+        Assert.Same(layout, Sidebar.TakeOff(layout, "Retainers"));
+        Assert.Same(layout, Sidebar.PutBack(layout, "Clients"));
+    }
+
+    [Fact]
+    public void A_group_with_nothing_left_on_it_goes_too_but_the_space_above_settings_stays()
+    {
+        var layout = Sidebar.TakeOff(Sidebar.TakeOff(new SidebarLayout(), "tool-Calculator"), "tool-Qr");
+        Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#end", "Settings"], Sidebar.Shown(layout, Menu));
+        Assert.Equal(["tool-Calculator", "tool-Qr"], Sidebar.TakenOff(layout, Menu));
+        Assert.Equal(Menu, Sidebar.Shown(Sidebar.PutAllBack(layout), Menu));
+    }
+
+    [Fact]
+    public void Settings_planners_home_and_headings_always_stay()
+    {
+        Assert.False(Sidebar.CanTakeOff("Settings"));
+        Assert.False(Sidebar.CanTakeOff("Home"));
+        Assert.False(Sidebar.CanTakeOff("#work"));
+        Assert.True(Sidebar.CanTakeOff("Clients"));
+        Assert.True(Sidebar.CanTakeOff("tool-Qr"));
+        var layout = new SidebarLayout();
+        Assert.Same(layout, Sidebar.TakeOff(layout, "Settings"));
+    }
+
+    [Fact]
+    public void What_is_off_stays_off_when_the_order_is_changed_or_put_back()
+    {
+        var layout = Sidebar.TakeOff(new SidebarLayout(), "Retainers");
+        layout = Sidebar.Move(layout, Menu, "tool-Qr", -1);
+        Assert.Equal(["Overview", "#work", "Clients", "#tools", "tool-Qr", "tool-Calculator", "#end", "Settings"], Sidebar.Shown(layout, Menu));
+        Assert.True(Sidebar.Reset(layout).IsOff("Retainers"));
+        // A layout saved before this existed has nothing off.
+        Assert.Empty(JsonSerializer.Deserialize<SidebarLayout>("""{"hidden":false}""", DocumentJson.Options)!.Off);
+    }
 }

@@ -25,6 +25,24 @@
       <Setter Property="Background" Value="{DynamicResource Surface2}" />
       <Setter Property="Foreground" Value="{DynamicResource Ink}" />
     </Style>
+    <!-- While editing: what has been taken off is drawn fainter, in a dashed box, waiting to be put back. -->
+    <Style Selector="Button.menuentry.off">
+      <Setter Property="Opacity" Value="0.75" />
+    </Style>
+    <Style Selector="Border.available">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="8,10" />
+      <Setter Property="Margin" Value="0,14,0,0" />
+    </Style>
+    <Style Selector="Border.editmark">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="10,0,0,0" />
+    </Style>
     <Style Selector="Button.menuentry.current">
       <Setter Property="Background" Value="{DynamicResource TableHead}" />
       <Setter Property="FontWeight" Value="SemiBold" />
@@ -32,8 +50,60 @@
   </UserControl.Styles>
 <Grid Background="{DynamicResource Scrim}" PointerPressed="CloseMenu">
   <Border Classes="megamenu" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="24,58,24,24" PointerPressed="KeepMenuOpen">
+    <DockPanel>
+      <!-- Edit, or while editing: what to do, and Done -->
+      <DockPanel DockPanel.Dock="Top" Margin="10,0,0,14">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+          <Button Classes="quiet" Content="Edit the menu" Command="{Binding EditMenuCommand}" IsVisible="{Binding IsMenuBrowsing}"
+                  ToolTip.Tip="Choose what is on the menu, and in what order" />
+          <Button Classes="link" Content="Put everything back" Command="{Binding PutAllBackOnMenuCommand}">
+            <Button.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="IsMenuEditing" />
+                <Binding Path="HasMenuTakenOff" />
+              </MultiBinding>
+            </Button.IsVisible>
+          </Button>
+          <Button Classes="primary" Content="Done" Command="{Binding DoneEditingMenuCommand}" IsVisible="{Binding IsMenuEditing}" />
+        </StackPanel>
+        <StackPanel IsVisible="{Binding IsMenuEditing}" VerticalAlignment="Center" Margin="0,0,16,0">
+          <TextBlock Classes="h2" Text="Choose what is on the menu" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                     Text="Click one to take it off; click one under Available to put it back. Drag to change the order. What is off can still be found with search (Ctrl+K), and shortcuts still work." />
+        </StackPanel>
+      </DockPanel>
+      <!-- What has been taken off, always in view while editing, to put back with a click or a drag -->
+      <Border DockPanel.Dock="Bottom" Classes="available" IsVisible="{Binding IsMenuEditing}">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="label caps" Text="Available" Margin="10,0,0,2" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Margin="10,0,10,4" IsVisible="{Binding NothingAvailable}"
+                     Text="Nothing has been taken off. Click anything above to move it here." />
+          <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl x:Name="Available" ItemsSource="{Binding MenuAvailable}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="2" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MenuEntry">
+                  <Button Classes="menuentry off" Width="250" ToolTip.Tip="{Binding EditTip}"
+                          Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).PickFromMenuCommand}" CommandParameter="{Binding}">
+                    <DockPanel>
+                      <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="17"
+                              Foreground="{DynamicResource Muted}" Margin="0,0,11,0" VerticalAlignment="Center" />
+                      <Border DockPanel.Dock="Right" Classes="editmark">
+                        <c:Icon Data="{StaticResource Icon.Plus}" Size="12" Foreground="{DynamicResource Ink}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+      </Border>
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <ItemsControl ItemsSource="{Binding MenuColumns}">
+      <ItemsControl x:Name="Columns" ItemsSource="{Binding MenuColumns}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate><WrapPanel ItemSpacing="18" LineSpacing="20" /></ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
@@ -44,7 +114,7 @@
               <ItemsControl ItemsSource="{Binding Entries}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MenuEntry">
-                    <Button Classes="menuentry" Classes.current="{Binding IsCurrent}"
+                    <Button Classes="menuentry" Classes.current="{Binding IsCurrent}" Classes.off="{Binding IsOff}" ToolTip.Tip="{Binding EditTip}"
                             Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).PickFromMenuCommand}" CommandParameter="{Binding}">
                       <Button.ContextMenu>
                         <ContextMenu IsVisible="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).IsDockMenu}">
@@ -58,7 +128,13 @@
                         <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="17"
                                 Foreground="{DynamicResource Muted}" Margin="0,0,11,0" VerticalAlignment="Center" />
                         <TextBlock DockPanel.Dock="Right" Classes="muted" Classes.short="{Binding Late}" FontSize="{DynamicResource Text12}" Text="{Binding Figure}"
-                                   IsVisible="{Binding HasFigure}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                   IsVisible="{Binding ShowsFigure}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                        <Border DockPanel.Dock="Right" Classes="editmark" IsVisible="{Binding ShowsMinus}">
+                          <c:Icon Data="{StaticResource Icon.Minus}" Size="12" Foreground="{DynamicResource Ink}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border DockPanel.Dock="Right" Classes="editmark" IsVisible="{Binding ShowsPlus}">
+                          <c:Icon Data="{StaticResource Icon.Plus}" Size="12" Foreground="{DynamicResource Ink}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
                         <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                       </DockPanel>
                     </Button>
@@ -70,6 +146,7 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
     </ScrollViewer>
+    </DockPanel>
   </Border>
 </Grid>
 </UserControl>

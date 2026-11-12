@@ -109,6 +109,9 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     }
 
     [RelayCommand]
+    private void EditMenu() => services.Go.EditMenu();
+
+    [RelayCommand]
     private void UseStyle(string style)
     {
         if (Enum.TryParse<LookStyle>(style, out var value))

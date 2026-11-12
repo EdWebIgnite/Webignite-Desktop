@@ -166,6 +166,44 @@ public sealed partial class SidebarViewModel : ObservableObject
             Change(Sidebar.MoveTo(layout, defaults, Key(item), Key(target), below));
     }
 
+    // Choosing what is on the menus. What is taken off is off the sidebar, the Menu button and the dock alike.
+
+    /// <summary>Set by the main window's view model: opens the menu to choose what is on it.</summary>
+    public Action? EditAsked { get; set; }
+
+    [RelayCommand]
+    private void Edit() => EditAsked?.Invoke();
+
+    /// <summary>Raised when what is on the menus, or its order, changes, so the dock and the open menu follow.</summary>
+    public event Action? LayoutChanged;
+
+    public bool CanTakeOff(object item) => item is Module or ToolLink or SectionLink && byKey.ContainsKey(Key(item)) && Sidebar.CanTakeOff(Key(item));
+
+    public bool IsOff(object item) => item is Module or ToolLink or SectionLink && layout.IsOff(Key(item));
+
+    public void TakeOff(object item)
+    {
+        if (CanTakeOff(item))
+            Change(Sidebar.TakeOff(layout, Key(item)));
+    }
+
+    public void PutBack(object item)
+    {
+        if (item is Module or ToolLink or SectionLink)
+            Change(Sidebar.PutBack(layout, Key(item)));
+    }
+
+    public void PutAllBack() => Change(Sidebar.PutAllBack(layout));
+
+    /// <summary>True when something has been taken off the menus.</summary>
+    public bool HasTakenOff => Sidebar.TakenOff(layout, defaults).Count > 0;
+
+    /// <summary>Every entry that is on the menus, headings too, in the person's order, whether its group is folded or not.</summary>
+    public IReadOnlyList<object> OnMenus() => [.. Sidebar.Shown(layout, defaults).Select(key => byKey[key])];
+
+    /// <summary>What has been taken off, in the app's own order.</summary>
+    public IReadOnlyList<object> TakenOff() => [.. Sidebar.TakenOff(layout, defaults).Select(key => byKey[key])];
+
     private void Change(SidebarLayout changed)
     {
         if (changed == layout)
@@ -174,11 +212,13 @@ public sealed partial class SidebarViewModel : ObservableObject
         settings.Sidebar = layout;
         ShowMode(layout.Mode);
         Apply();
+        LayoutChanged?.Invoke();
     }
 
     private void Apply()
     {
-        var order = Sidebar.Resolve(layout, defaults);
+        // Only what is on the menus: entries taken off are left out, and a group left with nothing goes with them.
+        var order = Sidebar.Shown(layout, defaults);
         var wanted = new List<object>();
         var icons = new List<object>();
         var entries = new Dictionary<NavGroup, List<GroupEntry>>();

@@ -23,7 +23,15 @@ public sealed record SidebarLayout
     /// </summary>
     public IReadOnlyList<string> Order { get; init; } = [];
 
+    /// <summary>
+    /// Pages and tools taken off the menus: the sidebar, the Menu button and the dock alike. They keep their
+    /// place in <see cref="Order"/>, so one put back returns to where it was. Search and shortcuts still reach them.
+    /// </summary>
+    public IReadOnlyList<string> Off { get; init; } = [];
+
     public bool IsOpen(string group) => !Folded.Contains(group, StringComparer.Ordinal);
+
+    public bool IsOff(string key) => Off.Contains(key, StringComparer.Ordinal);
 }
 
 /// <summary>The three ways the sidebar can be: open with names, folded to icons, or tucked away.</summary>
@@ -64,6 +72,42 @@ public static class Sidebar
             return layout.IsOpen(group) ? layout : layout with { Folded = layout.Folded.Where(g => g != group).ToList() };
         return layout.IsOpen(group) ? layout with { Folded = [.. layout.Folded, group] } : layout;
     }
+
+    /// <summary>
+    /// Whether an entry may be taken off the menus. Headings can't (a group with nothing showing goes by itself),
+    /// nor Settings, which is the way back, nor Planner's Home, which Planner opens on.
+    /// </summary>
+    public static bool CanTakeOff(string key) => !IsHeading(key) && key is not ("Settings" or "Home");
+
+    /// <summary>Takes an entry off every menu. It keeps its place for when it is put back.</summary>
+    public static SidebarLayout TakeOff(SidebarLayout layout, string key) =>
+        !CanTakeOff(key) || layout.IsOff(key) ? layout : layout with { Off = [.. layout.Off, key] };
+
+    /// <summary>Puts an entry back on the menus, where it was.</summary>
+    public static SidebarLayout PutBack(SidebarLayout layout, string key) =>
+        layout.IsOff(key) ? layout with { Off = [.. layout.Off.Where(k => k != key)] } : layout;
+
+    /// <summary>Everything back on the menus.</summary>
+    public static SidebarLayout PutAllBack(SidebarLayout layout) => layout.Off.Count == 0 ? layout : layout with { Off = [] };
+
+    /// <summary>
+    /// What the menus show, top to bottom: the entries in the person's order without those taken off, and
+    /// without a heading left with nothing under it. The last heading stays: it is the space above Settings.
+    /// </summary>
+    public static List<string> Shown(SidebarLayout layout, IReadOnlyList<string> defaults)
+    {
+        var order = Resolve(layout, defaults).Where(key => !layout.IsOff(key)).ToList();
+        var last = order.FindLastIndex(IsHeading);
+        for (var i = order.Count - 1; i >= 0; i--)
+        {
+            if (i != last && IsHeading(order[i]) && (i == order.Count - 1 || IsHeading(order[i + 1])))
+                order.RemoveAt(i);
+        }
+        return order;
+    }
+
+    /// <summary>The entries taken off that still exist, in the app's own order, for the list of what can be added.</summary>
+    public static List<string> TakenOff(SidebarLayout layout, IReadOnlyList<string> defaults) => [.. defaults.Where(layout.IsOff)];
 
     /// <summary>Back to the app's own order with every group open. Hidden or showing stays as it is.</summary>
     public static SidebarLayout Reset(SidebarLayout layout) => layout with { Order = [], Folded = [] };
