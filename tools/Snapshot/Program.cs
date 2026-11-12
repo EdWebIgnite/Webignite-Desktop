@@ -1399,7 +1399,8 @@ vm.Mail.Panels.ResetCommand.Execute(null);
     var reader = vm.Mail.Reader!;
     Check("A mail with a meeting invite offers to add it, with what the invite says filled in",
         reader.HasMeeting && reader.MeetingCanBeAdded && reader.MeetingTitle == "Website kick-off" && reader.MeetingTime == "10:00"
-        && reader.MeetingDay == meetingDay.ToDateTime(TimeOnly.MinValue) && reader.CanJoinMeeting);
+        && reader.MeetingDay == meetingDay.ToDateTime(TimeOnly.MinValue) && reader.CanJoinMeeting
+        && reader.MeetingLinkTyped.StartsWith("https://teams.microsoft.com/l/meetup-join/", StringComparison.Ordinal) && !reader.CanOfferMeeting);
     Save("mail-meeting");
     reader.AddMeetingCommand.Execute(null);
     var kept = store.ListEvents(meetingDay, meetingDay).SingleOrDefault(e => e.Title == "Website kick-off");
@@ -4790,6 +4791,53 @@ SaveLooks("planner-home");
         Dispatcher.UIThread.RunJobs();
         Check("A second page shows in the sidebar under its name", vm.Sidebar.Items.OfType<MyPageLink>().Select(l => l.Title).Take(2).SequenceEqual(["Monday", "Morning"]));
         Save("my-pages-morning");
+        // Widgets wear a colour softly, each in one of three ways, and one client's mail has a widget of its own.
+        {
+            myPages.AddWidget(WidgetKind.ClientMail, services.Clients.List().First(c => c.Name == "Fynbos Physio").Id);
+            WidgetViewModel Of(WidgetKind kind) => myPages.Widgets.Single(w => w.Kind == kind);
+            var clientMail = (MailBody)Of(WidgetKind.ClientMail).Body;
+            Check("A client's mail widget lists the mail to and from that client only, wherever it is filed",
+                clientMail.IsForClient && clientMail.Lines.Count > 0 && clientMail.Lines.All(l => l.From.Contains("Lerato", StringComparison.Ordinal) || l.From.Contains("Eddie", StringComparison.Ordinal))
+                && clientMail.Title!.StartsWith("Mail, Fynbos Physio", StringComparison.Ordinal));
+            Of(WidgetKind.NeedsYou).Wear("orange", WidgetTint.Wash);
+            Of(WidgetKind.Mail).Wear("blue", WidgetTint.Heading);
+            Of(WidgetKind.MyTasks).Wear("purple", WidgetTint.Line);
+            Of(WidgetKind.ClientMail).Wear("teal", WidgetTint.Wash);
+            Dispatcher.UIThread.RunJobs();
+            var kept = services.Settings.MyPages.Single(p => p.Name == "Morning").Widgets;
+            Check("A widget's colour and how it wears it are kept with the page",
+                kept.Single(w => w.Kind == WidgetKind.Mail) is { Colour: "blue", Tint: WidgetTint.Heading } && kept.Single(w => w.Kind == WidgetKind.ClientMail) is { Colour: "teal", Tint: WidgetTint.Wash });
+            var parts = window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.TintedPart>().ToList();
+            Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Surface", window.ActualThemeVariant, out var surfaceBrush);
+            var surface = ((Avalonia.Media.ISolidColorBrush)surfaceBrush!).Color;
+            Check("A washed widget is close to the surface's own colour, never the full colour",
+                parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Card && t.Colour == "orange").All(t => t.Background is Avalonia.Media.ISolidColorBrush b
+                    && b.Color != surface && Math.Abs(b.Color.R - surface.R) + Math.Abs(b.Color.G - surface.G) + Math.Abs(b.Color.B - surface.B) < 60));
+            Save("my-pages-colours");
+            // The same page in a dark look: the tints are mixed into the dark surface, so they stay quiet there too.
+            {
+                var light = services.Settings.Appearance;
+                services.Settings.Appearance = light with { Theme = Theme.Dark };
+                Dispatcher.UIThread.RunJobs();
+                Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Surface", window.ActualThemeVariant, out var darkBrush);
+                var dark = ((Avalonia.Media.ISolidColorBrush)darkBrush!).Color;
+                Check("In a dark look the wash follows the dark surface",
+                    dark != surface && parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Card && t.Colour == "orange").All(t => t.Background is Avalonia.Media.ISolidColorBrush b
+                        && Math.Abs(b.Color.R - dark.R) + Math.Abs(b.Color.G - dark.G) + Math.Abs(b.Color.B - dark.B) < 60));
+                Save("my-pages-colours-dark");
+                services.Settings.Appearance = light;
+                Dispatcher.UIThread.RunJobs();
+            }
+            var view = window.GetVisualDescendants().OfType<MyPagesView>().First();
+            var picker = new Avalonia.Controls.Window { Width = 330, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(14), Content = view.ColourPicture(Of(WidgetKind.Mail)) };
+            picker.Show();
+            SaveWindow(picker, "my-pages-colour-picker");
+            picker.Close();
+            Of(WidgetKind.Mail).Wear(null, WidgetTint.Wash);
+            Dispatcher.UIThread.RunJobs();
+            Check("No colour makes a widget plain again", parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Head && t.DataContext == Of(WidgetKind.Mail)).All(t => !t.IsSet(Avalonia.Controls.Border.BackgroundProperty))
+                && services.Settings.MyPages.Single(p => p.Name == "Morning").Widgets.Single(w => w.Kind == WidgetKind.Mail).Colour is null);
+        }
         window.Width = 1280;
         window.Height = 860;
         Open(Page.Overview);

@@ -663,6 +663,8 @@
                 <TextBlock FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding DraftedBy}" />
               </Border>
 
+              <Button Classes="link" Content="Add to calendar" Command="{Binding OfferMeetingCommand}" IsVisible="{Binding CanOfferMeeting}" HorizontalAlignment="Left" Padding="0"
+                      ToolTip.Tip="Put this mail in your calendar as a meeting or appointment" />
               <!-- A meeting in the mail (an invite, or a Teams, Zoom or Meet link): check it and add it to the calendar. -->
               <Border Classes="card" Padding="12,10" IsVisible="{Binding HasMeeting}">
                 <StackPanel Spacing="8">
@@ -677,6 +679,8 @@
                     <TextBox Text="{Binding MeetingTitle}" Width="260" PlaceholderText="What the meeting is" />
                     <c:DateBox SelectedDate="{Binding MeetingDay}" Width="160" PlaceholderText="Day" />
                     <TextBox Text="{Binding MeetingTime}" Width="90" PlaceholderText="Time" ToolTip.Tip="Like 9:30 or 14:00; leave empty for all day" />
+                    <TextBox Text="{Binding MeetingLinkTyped}" Width="340" PlaceholderText="Link to join (Teams, Zoom, Meet), if it is online"
+                             ToolTip.Tip="Kept on the event, so Join in the calendar and the diary opens the meeting" />
                     <Button Classes="primary" Content="Add to calendar" Command="{Binding AddMeetingCommand}" />
                   </WrapPanel>
                   <TextBlock Classes="short" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding MeetingMessage}"

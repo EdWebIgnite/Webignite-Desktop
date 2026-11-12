@@ -222,9 +222,12 @@
     <!-- The newest mail across the inboxes -->
     <DataTemplate DataType="vm:MailBody">
       <DockPanel>
-        <Button DockPanel.Dock="Bottom" Classes="link" Content="Open Mail" Command="{Binding OpenMailCommand}" HorizontalAlignment="Left" Padding="0" Margin="0,8,0,0" />
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="14" Margin="0,8,0,0">
+          <Button Classes="link" Content="{Binding OpenText}" Command="{Binding OpenMailCommand}" Padding="0" />
+          <Button Classes="link" Content="Write to them" Command="{Binding WriteCommand}" Padding="0" IsVisible="{Binding CanWrite}" />
+        </StackPanel>
         <Panel>
-          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="No mail here yet. Add a mailbox under Mail." IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding EmptyText}" IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
           <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Lines}" Margin="0,0,12,0">
               <ItemsControl.ItemTemplate>
@@ -372,21 +375,30 @@
       </ItemsControl.ItemsPanel>
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:WidgetViewModel">
-          <Border Classes="widget" Classes.arranging="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
+          <!-- A widget wears its colour softly: a faint wash, only its heading, or a line along the top (TintedPart). -->
+          <c:TintedPart Classes="widget" Classes.arranging="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}"
+                        Part="Card" Colour="{Binding Colour}" Tint="{Binding Tint}">
             <Panel>
-              <DockPanel Margin="16,12,16,14">
-                <!-- The heading: drag it to move the widget while arranging -->
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" Background="Transparent" PointerPressed="HeadingPressed"
-                           Cursor="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing, Converter={x:Static v:MyPagesView.MoveCursor}}">
-                  <Button DockPanel.Dock="Right" Classes="link" Padding="4,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Take this widget off the page"
-                          IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
-                    <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
-                  </Button>
-                  <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" Margin="0,0,6,0"
-                          VerticalAlignment="Center" IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}" />
-                  <TextBlock Classes="h2" FontSize="14" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                </DockPanel>
-                <ContentControl Content="{Binding Body}" IsHitTestVisible="{Binding !#Root.((vm:MyPagesViewModel)DataContext).IsEditing}" />
+              <DockPanel>
+                <c:TintedPart DockPanel.Dock="Top" Part="Line" Height="3" Colour="{Binding Colour}" Tint="{Binding Tint}" />
+                <!-- The heading: drag it to move the widget while arranging; right-click it for the widget's colour -->
+                <c:TintedPart DockPanel.Dock="Top" Part="Head" Colour="{Binding Colour}" Tint="{Binding Tint}" Padding="16,12,16,8">
+                  <DockPanel Background="Transparent" PointerPressed="HeadingPressed" ContextRequested="ColourAsked"
+                             Cursor="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing, Converter={x:Static v:MyPagesView.MoveCursor}}">
+                    <Button DockPanel.Dock="Right" Classes="link" Padding="4,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Take this widget off the page"
+                            IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
+                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                    </Button>
+                    <Button DockPanel.Dock="Right" Classes="link" Padding="4,0" Click="ColourClicked" ToolTip.Tip="Give this widget a colour"
+                            IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
+                      <c:CategoryDot Colour="{Binding Colour}" Size="12" />
+                    </Button>
+                    <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Grip}" Size="14" Foreground="{DynamicResource Muted}" Margin="0,0,6,0"
+                            VerticalAlignment="Center" IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}" />
+                    <TextBlock Classes="h2" FontSize="14" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  </DockPanel>
+                </c:TintedPart>
+                <ContentControl Content="{Binding Body}" Margin="16,0,16,14" IsHitTestVisible="{Binding !#Root.((vm:MyPagesViewModel)DataContext).IsEditing}" />
               </DockPanel>
               <!-- The corner: drag it to size the widget while arranging -->
               <Border Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" Cursor="BottomRightCorner"
@@ -395,7 +407,7 @@
                 <Path Data="M 14,4 L 4,14 M 14,9 L 9,14" Stroke="{DynamicResource Muted}" StrokeThickness="1.4" />
               </Border>
             </Panel>
-          </Border>
+          </c:TintedPart>
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
