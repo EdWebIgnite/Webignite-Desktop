@@ -124,6 +124,12 @@
     <Setter Property="Background" Value="{DynamicResource TableHead}" />
     <Setter Property="Height" Value="36" />
   </Style>
+  <!-- A table cell with a faint line down its left, for tables of figures: the heading's and the rows' cells share it. -->
+  <Style Selector="Border.colline">
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="1,0,0,0" />
+    <Setter Property="Padding" Value="16,0,20,0" />
+  </Style>
   <Style Selector="Border.stickyhead:stuck">
     <Setter Property="BoxShadow" Value="{DynamicResource HeadShadow}" />
   </Style>
