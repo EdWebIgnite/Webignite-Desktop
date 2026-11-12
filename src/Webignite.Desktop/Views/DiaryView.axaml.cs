@@ -11,8 +11,8 @@ namespace Webignite.Desktop.Views;
 /// <summary>The diary: two pages open like a book, a day to a page.</summary>
 public partial class DiaryView : UserControl
 {
-    // How long each half of a page turn takes: the page lifting to the spine, then coming down on the other side.
-    private static readonly TimeSpan HalfTurn = TimeSpan.FromMilliseconds(190);
+    // How long a page takes to turn, from lying flat on one side to lying flat on the other.
+    private static readonly TimeSpan TurnTime = TimeSpan.FromMilliseconds(850);
 
     private bool turning;
 
@@ -38,10 +38,18 @@ public partial class DiaryView : UserControl
     // Shows the next two pages (1), the last two (-1) or today's (0 when already there). With full motion the page
     // turns: the one being left folds up to the spine and the new one comes down on the other side. With reduced
     // motion or none, the pages simply change.
-    /// <summary>Turns the page: 1 forward, -1 back. Done when the page has settled.</summary>
-    public Task Turn(int direction) => TurnAsync(direction);
+    /// <summary>
+    /// Turns the page: 1 forward, -1 back. Done when the page has settled. With <paramref name="holdAt"/> (0 to 1)
+    /// the page stops that far through its turn until <see cref="LetGo"/>, which is how the screenshot tool draws it.
+    /// </summary>
+    public Task Turn(int direction, double? holdAt = null) => TurnAsync(direction, holdAt: holdAt);
 
-    private async Task TurnAsync(int direction, bool toToday = false)
+    /// <summary>Lets a page held mid-turn settle.</summary>
+    public void LetGo() => held?.TrySetResult();
+
+    private TaskCompletionSource? held;
+
+    private async Task TurnAsync(int direction, bool toToday = false, double? holdAt = null)
     {
         if (Diary is not { } diary || turning)
             return;
@@ -70,49 +78,105 @@ public partial class DiaryView : UserControl
             right = Picture(RightPage, top.RenderScaling);
             (OldLeft.Source, OldRight.Source) = (left, right);
             OldLeft.IsVisible = OldRight.IsVisible = true;
-            // Forward, the right-hand page folds over to the left; back, the left-hand page folds over to the right.
-            var (leaving, arriving, under) = direction > 0 ? ((Control)OldRight, (Control)LeftPage, (Control)OldLeft) : (OldLeft, RightPage, OldRight);
-            var hinge = direction > 0 ? 0.0 : 1.0; // the spine's side of the page that is leaving
-            leaving.ZIndex = 2;
+            // Forward, the right-hand page turns over to the left; back, the left-hand page turns over to the right.
+            var forward = direction > 0;
+            var (leaving, arriving, under) = forward ? ((Control)OldRight, (Control)LeftPage, (Control)OldLeft) : (OldLeft, RightPage, OldRight);
+            var (leavingShade, arrivingShade) = forward ? (ShadeRight, ShadeLeft) : (ShadeLeft, ShadeRight);
+            var hinge = forward ? 0.0 : 1.0; // the spine's side of the page that is leaving
             under.ZIndex = 0;
             LeftPage.ZIndex = RightPage.ZIndex = 1;
-            var lift = new ScaleTransform(1, 1);
-            var land = new ScaleTransform(0, 1);
-            leaving.RenderTransformOrigin = new RelativePoint(hinge, 0.5, RelativeUnit.Relative);
-            leaving.RenderTransform = lift;
-            arriving.RenderTransformOrigin = new RelativePoint(1 - hinge, 0.5, RelativeUnit.Relative);
-            arriving.RenderTransform = land;
+            leaving.ZIndex = 2;
+            leavingShade.ZIndex = arrivingShade.ZIndex = 3;
+
+            // The page swings about the spine like a real one: seen from the front, a page at an angle is as wide
+            // as the cosine of that angle, its free edge comes towards you (a little taller, tilted), and it is in
+            // its own shadow most when it stands upright.
+            Hinge(leaving, leavingShade, hinge);
+            Hinge(arriving, arrivingShade, 1 - hinge);
+            Swing(arriving, arrivingShade, 0, 1, 0);
+            leavingShade.Background = Shadow(fromLeft: forward);
+            arrivingShade.Background = Shadow(fromLeft: !forward);
+            leavingShade.Opacity = arrivingShade.Opacity = 0;
+            leavingShade.IsVisible = arrivingShade.IsVisible = true;
 
             Change();
 
-            // Up to the spine, quickening, and darkening as it turns away from the light.
-            await Tween(HalfTurn, t =>
+            void Pose(double t)
             {
-                lift.ScaleX = 1 - t * t;
-                leaving.Opacity = 1 - 0.3 * t;
-            });
-            leaving.IsVisible = false;
-            // Down on the other side, slowing as it settles.
-            await Tween(HalfTurn, t =>
+                // Slow to lift, quick through the middle, slow to settle.
+                var eased = t * t * (3 - 2 * t);
+                var angle = eased * Math.PI;
+                var upright = Math.Sin(angle);
+                var side = forward ? -1 : 1;
+                if (angle < Math.PI / 2)
+                {
+                    Swing(leaving, leavingShade, Math.Cos(angle), 1 + 0.035 * upright, side * 5 * upright);
+                    leavingShade.Opacity = 0.55 * upright;
+                }
+                else
+                {
+                    if (leaving.IsVisible)
+                        leaving.IsVisible = leavingShade.IsVisible = false;
+                    Swing(arriving, arrivingShade, -Math.Cos(angle), 1 + 0.035 * upright, -side * 5 * upright);
+                    arrivingShade.Opacity = 0.55 * upright;
+                }
+            }
+
+            if (holdAt is { } stop)
             {
-                land.ScaleX = 1 - (1 - t) * (1 - t);
-                arriving.Opacity = 0.7 + 0.3 * t;
-            });
+                Pose(Math.Clamp(stop, 0, 1));
+                held = new TaskCompletionSource();
+                await held.Task;
+            }
+            else
+            {
+                await Tween(TurnTime, Pose);
+            }
         }
         finally
         {
-            foreach (var control in new Control[] { OldLeft, OldRight, LeftPage, RightPage })
+            foreach (var control in new Control[] { OldLeft, OldRight, LeftPage, RightPage, ShadeLeft, ShadeRight })
             {
                 control.RenderTransform = null;
                 control.Opacity = 1;
                 control.ZIndex = 0;
             }
-            OldLeft.IsVisible = OldRight.IsVisible = false;
+            OldLeft.IsVisible = OldRight.IsVisible = ShadeLeft.IsVisible = ShadeRight.IsVisible = false;
+            ShadeLeft.Background = ShadeRight.Background = null;
             OldLeft.Source = OldRight.Source = null;
             left?.Dispose();
             right?.Dispose();
+            held = null;
             turning = false;
         }
+    }
+
+    // A page and its shadow swing together about the spine.
+    private static void Hinge(Control page, Control shade, double spine)
+    {
+        page.RenderTransformOrigin = shade.RenderTransformOrigin = new RelativePoint(spine, 0.5, RelativeUnit.Relative);
+    }
+
+    // How the page is drawn at one moment of its swing: how wide and tall it looks, and how far its free edge tilts.
+    private static void Swing(Control page, Control shade, double wide, double tall, double tiltDegrees)
+    {
+        var drawn = Matrix.CreateScale(wide, tall) * Matrix.CreateSkew(0, tiltDegrees * Math.PI / 180);
+        page.RenderTransform = new MatrixTransform(drawn);
+        shade.RenderTransform = new MatrixTransform(drawn);
+    }
+
+    // The shadow on a turning page: the paper's own ink colour, deepest at the spine and gone by the free edge.
+    private LinearGradientBrush? Shadow(bool fromLeft)
+    {
+        if (!this.TryFindResource("PaperText", ActualThemeVariant, out var found) || found is not ISolidColorBrush ink)
+            return null;
+        var (near, far) = (new Color(150, ink.Color.R, ink.Color.G, ink.Color.B), new Color(20, ink.Color.R, ink.Color.G, ink.Color.B));
+        return new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(fromLeft ? 0 : 1, 0.5, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(fromLeft ? 1 : 0, 0.5, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(near, 0), new GradientStop(far, 1) },
+        };
     }
 
     private static RenderTargetBitmap Picture(Control page, double scaling)

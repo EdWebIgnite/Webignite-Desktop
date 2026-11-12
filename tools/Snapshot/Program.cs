@@ -683,19 +683,23 @@ Save("planner");
         var hadMotion = window.Classes.Contains("motion-full");
         window.Classes.Set("motion-full", true);
         var from = diary.Left.Date;
-        var turn = diaryView.Turn(-1);
-        var half = DateTime.UtcNow.AddMilliseconds(110);
-        while (DateTime.UtcNow < half)
-        {
-            Dispatcher.UIThread.RunJobs();
-            Thread.Sleep(10);
-        }
+        var turn = diaryView.Turn(-1, holdAt: 0.36);
+        Dispatcher.UIThread.RunJobs();
         Check("The pages change as the turn starts, so what is under the turning page is already the new one", diary.Left.Date == from.AddDays(-2) && !turn.IsCompleted);
         Save("diary-turning");
+        diaryView.LetGo();
+        Wait(turn, "The held page settled");
+        var landing = diaryView.Turn(1, holdAt: 0.7);
+        Dispatcher.UIThread.RunJobs();
+        Save("diary-turning-landing");
+        diaryView.LetGo();
+        Wait(landing, "The landing page settled");
+        turn = diaryView.Turn(-1);
         Wait(turn, "The page finished turning");
         Check("After the turn nothing of it is left on the pages",
             diaryView.GetVisualDescendants().OfType<Avalonia.Controls.Image>().All(i => !i.IsVisible && i.Source is null)
-            && diaryView.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.Classes.Contains("diarypage")).All(b => b.RenderTransform is null && b.Opacity == 1));
+            && diaryView.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.Classes.Contains("diarypage")).All(b => b.RenderTransform is null && b.Opacity == 1)
+            && diaryView.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.Name is "ShadeLeft" or "ShadeRight").All(b => !b.IsVisible && b.Background is null));
         window.Classes.Set("motion-full", false);
         Wait(diaryView.Turn(1), "Without motion the pages simply change");
         Check("With motion off the page changes at once", diary.Left.Date == from);
@@ -2884,6 +2888,18 @@ Save("invoice-sum");
     vm.MenuPart.AddToDockCommand.Execute(calculator);
     vm.MenuPart.CloseMenuCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
+    {
+        var plannerButton = vm.MenuPart.Dock.Single(e => e.PageKey == "Home");
+        Check("Planner's button on the dock opens Planner's own menu above it, with the diary in it",
+            plannerButton.OpensList && !plannerButton.IsGroup && plannerButton.Inside[0].PageKey == "Home"
+            && plannerButton.Inside.Any(e => e.PageKey == "Diary") && plannerButton.Inside.Any(e => e.PageKey == "Calendar"));
+        Check("A page with nothing under it still just opens", vm.MenuPart.Dock.Single(e => e.PageKey == "Mail") is { OpensList: false });
+        var dockView = window.GetVisualDescendants().OfType<DockView>().First();
+        var holder = new Avalonia.Controls.Window { Width = 320, Height = 620, Content = dockView.GroupPicture(plannerButton) };
+        holder.Show();
+        SaveWindow(holder, "dock-pop-planner-button");
+        holder.Close();
+    }
     var dockGroup = vm.MenuPart.Dock.Single(e => e.IsGroup);
     Check("The group on the dock holds what is in it, for the short list above the dock",
         dockGroup.Title == "Web tools" && dockGroup.Inside.Count > 2 && dockGroup.Inside.All(e => !e.IsGroup));

@@ -249,9 +249,16 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
             else
             {
                 var module = main.Modules.First(m => m.Key.ToString() == key);
+                // A page with pages of its own under it opens a short list of them above the dock, as a group does:
+                // Planner's button lists Planner's whole menu (its Home first), and a page such as All my pages
+                // lists itself and what the menu shows under it.
+                var under = module.Key == Page.Home
+                    ? main.Sidebar.PlannerItems.Select(PlannerEntry).OfType<MenuEntry>().ToList()
+                    : UnderOnMenu(module, keys);
                 // Planner's Home stands for the whole of Planner on the dock, so it is named for it.
                 Dock.Add(new MenuEntry(module, module.Key == Page.Home ? "Planner" : module.Title, module.Icon)
                 {
+                    Inside = under,
                     PageKey = key,
                     // A Planner page on the dock stays lit for the whole of Planner, as the sidebar's Planner entry does.
                     IsCurrent = main.Selected == module || (module.Key == Page.Home && main.Selected.InPlanner && !keys.Contains(main.Selected.Key.ToString())),
@@ -261,6 +268,15 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
                 });
             }
         }
+    }
+
+    // The page itself and the links the menu shows straight under it (the person's own pages under All my pages);
+    // empty when it has none, and then its button simply opens it.
+    private List<MenuEntry> UnderOnMenu(Module module, IReadOnlyList<string> dock)
+    {
+        var links = main.Sidebar.Unfolded().SkipWhile(i => !ReferenceEquals(i, module)).Skip(1).TakeWhile(i => i is SubLink)
+            .Select(i => Plain(i, dock)).OfType<MenuEntry>().ToList();
+        return links.Count == 0 || Plain(module, dock) is not { } self ? [] : [self, .. links];
     }
 
     private MenuEntry? PlannerEntry(object item) => item switch
@@ -477,6 +493,9 @@ public sealed record MenuEntry(object Item, string Title, string Icon)
     /// <summary>For a group on the dock: what is in it, shown in a short list above the dock when it is clicked.</summary>
     public IReadOnlyList<MenuEntry> Inside { get; init; } = [];
     public bool IsGroup => Item is NavGroup;
+
+    /// <summary>On the dock, a click opens a short list above it (a group, or a page with pages under it) instead of a page.</summary>
+    public bool OpensList => Inside.Count > 0;
 
     /// <summary>In a group's list: a small label over the entries that follow ("Work", "Plan"), not something to open.</summary>
     public bool IsSection => Item is NavHeading;
