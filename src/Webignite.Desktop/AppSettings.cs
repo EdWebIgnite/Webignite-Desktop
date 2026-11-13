@@ -206,6 +206,16 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("speed-history", value.ToDictionary(h => h.Key, h => h.Value.ToList()));
     }
 
+    /// <summary>
+    /// The colours the person gave to cards around the app, by the name each card is known under
+    /// (<see cref="Controls.TileColours"/>). Widgets on their own pages keep theirs with the page.
+    /// </summary>
+    public IReadOnlyDictionary<string, Webignite.Core.Layout.TileLook> TileLooks
+    {
+        get => store.GetSetting<Dictionary<string, Webignite.Core.Layout.TileLook>>("tile-looks") ?? [];
+        set => store.SetSetting("tile-looks", value.ToDictionary(l => l.Key, l => l.Value));
+    }
+
     /// <summary>The person's own Google key for PageSpeed tests (free from Google); empty to test without one.</summary>
     public string SpeedKey
     {

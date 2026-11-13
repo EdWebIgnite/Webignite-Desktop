@@ -13,13 +13,33 @@ public class WidgetLooksTests
     private static MyPage PageWith(WidgetKind kind) => MyPages.Add(new MyPage { Id = "p", Name = "Morning", Grid = MyPages.Columns }, kind);
 
     [Fact]
-    public void A_widget_is_given_a_colour_a_way_of_wearing_it_and_an_intensity()
+    public void A_widgets_heading_body_and_line_each_take_a_colour_of_their_own()
     {
         var page = PageWith(WidgetKind.Mail);
-        var coloured = MyPages.SetLook(page, page.Widgets[0].Id, "#c6e3f7", WidgetTint.Heading, 44);
-        Assert.Equal("#C6E3F7", coloured.Widgets[0].Colour);
-        Assert.Equal(WidgetTint.Heading, coloured.Widgets[0].Tint);
-        Assert.Equal(40, coloured.Widgets[0].Strength);
+        var coloured = MyPages.SetLook(page, page.Widgets[0].Id, new TileLook { Head = "#c6e3f7", Body = "fdddbe", Line = "teal", Strength = 44 });
+        Assert.Equal(new TileLook { Head = "#C6E3F7", Body = "#FDDDBE", Line = "teal", Strength = 40 }, coloured.Widgets[0].Look);
+        Assert.Equal(coloured.Widgets[0].Look, WidgetLooks.Of(coloured.Widgets[0]));
+    }
+
+    [Fact]
+    public void A_look_with_nothing_coloured_is_no_look()
+    {
+        var page = PageWith(WidgetKind.Mail);
+        Assert.Null(MyPages.SetLook(page, page.Widgets[0].Id, new TileLook { Head = "sky blue" }).Widgets[0].Look);
+        Assert.Null(MyPages.SetLook(page, page.Widgets[0].Id, null).Widgets[0].Look);
+        Assert.Null(TileLook.Tidied(new TileLook()));
+    }
+
+    [Fact]
+    public void A_widget_coloured_before_the_parts_could_be_picked_apart_keeps_what_it_coloured()
+    {
+        Widget Old(WidgetTint tint, int strength) => new() { Id = "w", Kind = WidgetKind.Note, Colour = "#C6E3F7", Tint = tint, Strength = strength };
+        Assert.Equal(new TileLook { Head = "#C6E3F7", Body = "#C6E3F7", Strength = 70 }, WidgetLooks.Of(Old(WidgetTint.Wash, 70)));
+        Assert.Equal(new TileLook { Head = "#C6E3F7", Strength = 50 }, WidgetLooks.Of(Old(WidgetTint.Heading, 50)));
+        Assert.Equal(new TileLook { Line = "#C6E3F7", Strength = 70 }, WidgetLooks.Of(Old(WidgetTint.Line, 70)));
+        // The very first, a bright category colour as a faint wash, stays faint.
+        Assert.Equal(WidgetLooks.LeastStrength, WidgetLooks.Of(new Widget { Id = "w", Kind = WidgetKind.Note, Colour = "blue" })!.Strength);
+        Assert.Null(WidgetLooks.Of(new Widget { Id = "w", Kind = WidgetKind.Note }));
     }
 
     [Theory]
@@ -35,11 +55,7 @@ public class WidgetLooksTests
     [InlineData("sky blue")]
     [InlineData("#12345")]
     [InlineData("rgb(1,2,3)")]
-    public void Anything_else_leaves_the_widget_plain(string? colour)
-    {
-        var page = PageWith(WidgetKind.Note);
-        Assert.Null(MyPages.SetLook(page, page.Widgets[0].Id, colour, WidgetTint.Wash).Widgets[0].Colour);
-    }
+    public void Anything_else_is_not_a_colour(string? colour) => Assert.Null(WidgetLooks.Known(colour));
 
     [Fact]
     public void Every_pastel_offered_is_light_soft_and_readable_at_full_strength()
@@ -66,21 +82,9 @@ public class WidgetLooksTests
     [Fact]
     public void A_stronger_intensity_shows_more_of_the_colour()
     {
-        var faint = WidgetLooks.Shade(WidgetTint.Wash, 20);
-        var full = WidgetLooks.Shade(WidgetTint.Wash, 100);
-        Assert.True(full.Body > faint.Body && full.Head > faint.Head);
-        Assert.Equal(1, full.Head);
-        Assert.True(full.Body < full.Head);
-        Assert.Equal(0, WidgetLooks.Shade(WidgetTint.Heading, 100).Body);
-        Assert.Equal(new WidgetShade(0, 0, 0, 1), WidgetLooks.Shade(WidgetTint.Line, 50));
-    }
-
-    [Fact]
-    public void A_widget_coloured_before_intensities_keeps_its_faint_wash()
-    {
-        var shade = WidgetLooks.Shade(WidgetTint.Wash);
-        Assert.InRange(shade.Body, 0.01, 0.12);
-        Assert.InRange(shade.Head, 0.1, 0.25);
+        Assert.Equal(0.2, WidgetLooks.Share(20), 3);
+        Assert.Equal(1, WidgetLooks.Share(100), 3);
+        Assert.True(WidgetLooks.Share(70) > WidgetLooks.Share(30));
     }
 
     [Fact]

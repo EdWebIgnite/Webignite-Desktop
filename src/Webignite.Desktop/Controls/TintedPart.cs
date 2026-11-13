@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Webignite.Core.Layout;
+using Webignite.Core.Tools;
 
 namespace Webignite.Desktop.Controls;
 
@@ -14,38 +15,34 @@ public enum TintPart
 }
 
 /// <summary>
-/// A part of one of the person's widgets that can wear the widget's colour: the card itself, the band behind its
-/// heading, or the line along its top. The colour is never used at full strength on the card or the band: it is
-/// mixed into the look's own Surface by the share <see cref="WidgetLooks.Shade"/> gives, so it follows light and
-/// dark looks and the writing on it stays readable. With no colour the part is exactly as its style draws it.
+/// A part of one of the person's widgets that wears the widget's colours: the card itself (its body colour), the
+/// band behind its heading, or the line along its top. Each colour is mixed into the look's own Surface as strongly
+/// as the intensity says and no further than the writing on it can still be read (<see cref="TileBrushes"/>). With
+/// no colour the part is exactly as its style draws it.
 /// </summary>
 public sealed class TintedPart : Border
 {
-    public static readonly StyledProperty<string?> ColourProperty = AvaloniaProperty.Register<TintedPart, string?>(nameof(Colour));
-    public static readonly StyledProperty<WidgetTint> TintProperty = AvaloniaProperty.Register<TintedPart, WidgetTint>(nameof(Tint));
-    public static readonly StyledProperty<int> StrengthProperty = AvaloniaProperty.Register<TintedPart, int>(nameof(Strength));
+    public static readonly StyledProperty<TileLook?> LookProperty = AvaloniaProperty.Register<TintedPart, TileLook?>(nameof(Look));
     public static readonly StyledProperty<TintPart> PartProperty = AvaloniaProperty.Register<TintedPart, TintPart>(nameof(Part));
 
     protected override Type StyleKeyOverride => typeof(Border);
 
     public TintedPart()
     {
-        // The look changing (light to dark, or another palette) changes what the colour is mixed into.
+        // The look changing (light to dark, or another palette) changes what the colours are mixed into.
         ActualThemeVariantChanged += (_, _) => Apply();
         ResourcesChanged += (_, _) => Apply();
         // While arranging, the card's outline is the style's, to show which widgets can be moved.
         Classes.CollectionChanged += (_, _) => Apply();
     }
 
-    public string? Colour { get => GetValue(ColourProperty); set => SetValue(ColourProperty, value); }
-    public WidgetTint Tint { get => GetValue(TintProperty); set => SetValue(TintProperty, value); }
-    public int Strength { get => GetValue(StrengthProperty); set => SetValue(StrengthProperty, value); }
+    public TileLook? Look { get => GetValue(LookProperty); set => SetValue(LookProperty, value); }
     public TintPart Part { get => GetValue(PartProperty); set => SetValue(PartProperty, value); }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == ColourProperty || change.Property == TintProperty || change.Property == StrengthProperty || change.Property == PartProperty)
+        if (change.Property == LookProperty || change.Property == PartProperty)
             Apply();
     }
 
@@ -57,38 +54,21 @@ public sealed class TintedPart : Border
 
     private void Apply()
     {
-        var shade = WidgetLooks.Shade(Tint, Strength);
-        // A code the person picked is its own colour in every look; a category colour's name is the look's own.
-        var colour = Colour is null ? null : WidgetLooks.Code(Colour) is { } code ? Color.FromRgb(code.R, code.G, code.B) : Found(CategoryDot.ResourceKey(Colour));
-        var surface = Found("Surface");
-        // The faintest writing on a widget (times, second lines) is what must still be read, so that is what the
-        // colour is held back for; in a dark look that keeps a pastel to a deep tint of itself.
-        var writing = Found("Muted") ?? Found("Text");
-        IBrush? Mixed(double share, bool readOn = true)
-        {
-            if (colour is not { } c || surface is not { } s || share <= 0)
-                return null;
-            var (from, to) = (new Webignite.Core.Tools.Rgb(s.R, s.G, s.B), new Webignite.Core.Tools.Rgb(c.R, c.G, c.B));
-            // Where writing sits on it, the colour is held back to where the writing can still be read.
-            if (readOn && writing is { } w)
-                share = WidgetLooks.Readable(from, to, new Webignite.Core.Tools.Rgb(w.R, w.G, w.B), share);
-            var mixed = WidgetLooks.Mix(from, to, share);
-            return new SolidColorBrush(Color.FromRgb(mixed.R, mixed.G, mixed.B));
-        }
+        var brushes = new TileBrushes(this, Look);
         switch (Part)
         {
             case TintPart.Card:
-                Set(BackgroundProperty, Mixed(shade.Body));
-                Set(BorderBrushProperty, Classes.Contains("arranging") ? null : Mixed(shade.Edge, readOn: false));
+                Set(BackgroundProperty, brushes.Body);
+                Set(BorderBrushProperty, Classes.Contains("arranging") ? null : brushes.Edge);
                 break;
             case TintPart.Head:
-                Set(BackgroundProperty, Mixed(shade.Head));
+                Set(BackgroundProperty, brushes.Head);
                 // A band needs a little air under it before the widget's own content starts.
-                Margin = Mixed(shade.Head) is null ? default : new Thickness(0, 0, 0, 8);
+                Margin = brushes.Head is null ? default : new Thickness(0, 0, 0, 8);
                 break;
             default:
-                IsVisible = colour is not null && shade.Line > 0;
-                Set(BackgroundProperty, IsVisible ? Mixed(shade.Line, readOn: false) : null);
+                IsVisible = brushes.Line is not null;
+                Set(BackgroundProperty, brushes.Line);
                 break;
         }
     }
@@ -101,6 +81,51 @@ public sealed class TintedPart : Border
         else
             SetValue(property, brush);
     }
+}
 
-    private Color? Found(string key) => this.TryFindResource(key, ActualThemeVariant, out var found) && found is ISolidColorBrush brush ? brush.Color : null;
+/// <summary>
+/// A tile's colours as they are drawn in the look on screen. A heading or body colour is mixed into the look's
+/// Surface by the share its intensity gives, then held back to where even the faint (Muted) writing keeps its
+/// contrast, so pastels are used nearly in full on a light look and become deep tints on a dark one. The line along
+/// the top carries no writing and is the colour itself.
+/// </summary>
+public readonly struct TileBrushes
+{
+    public TileBrushes(StyledElement on, TileLook? look)
+    {
+        if (look is null || look.IsPlain || Found(on, "Surface") is not { } surface)
+            return;
+        var writing = Found(on, "Muted") ?? Found(on, "Text");
+        var share = WidgetLooks.Share(look.Strength);
+        Color? Mixed(string? colour, double wanted, bool readOn)
+        {
+            if (colour is null || (WidgetLooks.Code(colour) ?? Found(on, CategoryDot.ResourceKey(colour))) is not { } c)
+                return null;
+            if (readOn && writing is { } w)
+                wanted = WidgetLooks.Readable(surface, c, w, wanted);
+            var mixed = WidgetLooks.Mix(surface, c, wanted);
+            return Color.FromRgb(mixed.R, mixed.G, mixed.B);
+        }
+        HeadColour = Mixed(look.Head, share, readOn: true);
+        BodyColour = Mixed(look.Body, share, readOn: true);
+        LineColour = Mixed(look.Line, 1, readOn: false);
+        EdgeColour = Mixed(look.Head ?? look.Body, 0.8 * share, readOn: false);
+        SurfaceColour = Color.FromRgb(surface.R, surface.G, surface.B);
+    }
+
+    public Color? HeadColour { get; }
+    public Color? BodyColour { get; }
+    public Color? LineColour { get; }
+    public Color? EdgeColour { get; }
+
+    /// <summary>The look's own surface, for the parts of a tile left plain.</summary>
+    public Color SurfaceColour { get; }
+
+    public IBrush? Head => HeadColour is { } c ? new SolidColorBrush(c) : null;
+    public IBrush? Body => BodyColour is { } c ? new SolidColorBrush(c) : null;
+    public IBrush? Line => LineColour is { } c ? new SolidColorBrush(c) : null;
+    public IBrush? Edge => EdgeColour is { } c ? new SolidColorBrush(c) : null;
+
+    private static Rgb? Found(StyledElement on, string key) =>
+        on.TryFindResource(key, on.ActualThemeVariant, out var found) && found is ISolidColorBrush brush ? new Rgb(brush.Color.R, brush.Color.G, brush.Color.B) : null;
 }

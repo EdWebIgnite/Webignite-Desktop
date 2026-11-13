@@ -35,6 +35,8 @@ public partial class App : Application
                 ApplyRestoredBackup();
                 Services = new AppServices(LocalStore.OpenDefault());
             }
+            // Cards the person coloured are painted as they come on screen, and a right-click on a card colours it.
+            Controls.TileColours.Watch();
             MainWelcomePart.AskToSignInAtStart = true;
             var main = new MainViewModel(Services);
             var window = new MainWindow { DataContext = main };
