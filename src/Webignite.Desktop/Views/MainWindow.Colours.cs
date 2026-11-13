@@ -7,8 +7,8 @@ using Webignite.Desktop.ViewModels;
 namespace Webignite.Desktop.Views;
 
 /// <summary>
-/// The colour picker: a shortcut from any program (Ctrl+Alt+C) or Pick from screen in the Colours tool freezes
-/// every monitor (the app steps aside first when it started the pick), and the colour clicked is copied as its code. Windows only.
+/// The colour picker: a shortcut from any program (Ctrl+Alt+C), or picking from the screen anywhere in the app,
+/// freezes every monitor as it is, the app included, and the colour clicked is copied as its code. Windows only.
 /// </summary>
 public partial class MainWindow
 {
@@ -25,23 +25,17 @@ public partial class MainWindow
         if (!OperatingSystem.IsWindows() || pickingColour)
             return;
         pickingColour = true;
-        var steppedAside = new List<(Window Window, WindowState Before)>();
         var pickers = new List<ColourPickWindow>();
         var frozen = new List<Avalonia.Media.Imaging.Bitmap>();
+        // Where the pick was started from, to go back to once it is done.
+        var startedIn = AppWindows().FirstOrDefault(w => w.IsActive);
         try
         {
-            // Started from inside the app, the app steps aside first, so the frozen screen shows what's behind it,
-            // such as a website, and not Webignite itself.
-            if (picked is not null || AppWindows().Any(w => w.IsActive))
-            {
-                foreach (var window in AppWindows().Where(w => w.IsVisible && w.WindowState != WindowState.Minimized && w.Owner is null))
-                {
-                    steppedAside.Add((window, window.WindowState));
-                    window.WindowState = WindowState.Minimized;
-                }
-                if (steppedAside.Count > 0)
-                    await Task.Delay(350);
-            }
+            // The app stays where it is: the colour wanted is often in it, on a page in the Browser or a client's
+            // logo in Files. Started from inside the app, the menu or pop-up that was clicked is given a moment to
+            // close, so it isn't frozen into the picture.
+            if (picked is not null || startedIn is not null)
+                await Task.Delay(180);
 
             // Every monitor is frozen, each under its own picker, so a colour can come from any of them.
             var (x, y) = ScreenCapture.Cursor();
@@ -86,13 +80,9 @@ public partial class MainWindow
                 window.Dismiss();
             foreach (var picture in frozen)
                 picture.Dispose();
-            foreach (var (window, before) in steppedAside)
-                window.WindowState = before;
             // Back where the pick started, e.g. the Colours tool, with the colour in it.
-            if (steppedAside.Count > 0 && picked is not null && toolWindows.TryGetValue(ToolKind.Colours, out var tool))
-                tool.Activate();
-            else if (steppedAside.Count > 0)
-                Activate();
+            if (startedIn is { IsVisible: true })
+                startedIn.Activate();
             pickingColour = false;
         }
     }
