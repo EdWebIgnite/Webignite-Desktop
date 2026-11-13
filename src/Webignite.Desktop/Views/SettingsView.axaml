@@ -4,6 +4,7 @@
              xmlns:tools="using:Webignite.Core.Tools"
              xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:v="using:Webignite.Desktop.Views"
              x:Class="Webignite.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel"
              x:Name="Root">
@@ -1066,6 +1067,19 @@
           <TextBlock Text="{Binding Account.TeamMessage}" VerticalAlignment="Center" Classes.problem="{Binding Account.TeamProblem}" TextWrapping="Wrap" />
         </StackPanel>
         <TextBlock Text="{Binding Account.SyncMessage}" TextWrapping="Wrap" Classes.problem="{Binding Account.SyncProblem}" IsVisible="{Binding Account.SyncMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding ShowShortcuts}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Keyboard shortcuts" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Every shortcut in the app. Press F1 on any page to see this list there, with that page's shortcuts first. The ones that work from any program can be changed or turned off." />
+        <StackPanel Orientation="Horizontal" Spacing="14">
+          <Button Classes="link" Content="Change the screenshot, recording and tool shortcuts" Command="{Binding OpenSectionCommand}" CommandParameter="screenshots" />
+          <Button Classes="link" Content="Change the quick note shortcut" Command="{Binding OpenSectionCommand}" CommandParameter="notes" />
+        </StackPanel>
+        <v:ShortcutListView DataContext="{Binding Shortcuts}" />
       </StackPanel>
     </Border>
 

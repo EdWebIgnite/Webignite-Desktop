@@ -543,28 +543,18 @@
         </StackPanel>
       </Border>
     </Grid>
-    <!-- F1: the keyboard shortcuts. Click anywhere or press Esc to close. -->
+    <!-- F1: the keyboard shortcuts. Click outside the box or press Esc to close. -->
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding ShowingShortcuts}" Background="{DynamicResource Scrim}" PointerPressed="CloseShortcuts">
-      <Border Classes="card searchbox" Width="520" VerticalAlignment="Top" Margin="0,90,0,0" BoxShadow="{DynamicResource OverlayShadow}">
-        <StackPanel Spacing="12">
-          <DockPanel>
+      <Border Classes="card searchbox" Width="640" MaxHeight="620" VerticalAlignment="Top" Margin="0,70,0,0" BoxShadow="{DynamicResource OverlayShadow}">
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
             <Button DockPanel.Dock="Right" Classes="link" Content="Close" Command="{Binding HideShortcutsCommand}" />
+            <Button DockPanel.Dock="Right" Classes="link" Content="Change shortcuts" Command="{Binding ShortcutSettingsCommand}" Margin="0,0,14,0"
+                    ToolTip.Tip="Settings, Shortcuts: the list, and where the ones that work from any program are picked" />
             <TextBlock Classes="h2" Text="Keyboard shortcuts" />
           </DockPanel>
-          <ItemsControl ItemsSource="{x:Static vm:MainViewModel.Shortcuts}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:MainViewModel+Shortcut">
-                <Grid ColumnDefinitions="150,*" Margin="0,5">
-                  <Border Grid.Column="0" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Line2}" BorderThickness="1"
-                          CornerRadius="5" Padding="7,2" HorizontalAlignment="Left" VerticalAlignment="Top">
-                    <TextBlock Text="{Binding Keys}" FontSize="{DynamicResource Text12}" FontWeight="SemiBold" />
-                  </Border>
-                  <TextBlock Grid.Column="1" Text="{Binding What}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                </Grid>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
+          <ContentControl x:Name="ShortcutHost" />
+        </DockPanel>
       </Border>
     </Grid>
   </Grid>

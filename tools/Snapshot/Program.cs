@@ -234,8 +234,18 @@ void SaveLooks(string name)
 Save("overview-start");
 
 vm.ToggleShortcutsCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("F1 lists the shortcuts under headings, with a box to search them",
+    vm.ShortcutsPart.Groups.Count > 5 && window.GetVisualDescendants().OfType<Webignite.Desktop.Views.ShortcutListView>().Any(v => v.IsEffectivelyVisible));
 Save("shortcuts");
+vm.ShortcutsPart.Search = "recycle";
+Dispatcher.UIThread.RunJobs();
+Check("Typing in the box narrows the shortcuts", vm.ShortcutsPart.Groups.Count == 1 && vm.ShortcutsPart.Groups[0].Items.Count == 1);
+Save("shortcuts-search");
 vm.HideShortcutsCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("Closed, the shortcut list is let go", vm.ShortcutsPart.Groups.Count == 0
+    && !window.GetVisualDescendants().OfType<Webignite.Desktop.Views.ShortcutListView>().Any());
 
 // Working states: a background job in the sidebar and the payments check on Overview.
 using (services.Work.Start("Checking mail"))
@@ -460,6 +470,10 @@ var settingsPage = (SettingsViewModel)vm.Current.Page;
 settingsPage.Refresh();
 settingsPage.Open("backups");
 Save("settings-backups");
+settingsPage.Open("shortcuts");
+Dispatcher.UIThread.RunJobs();
+Check("Settings has the shortcuts in a section of their own", settingsPage.ShowShortcuts && settingsPage.Shortcuts.Groups.Count > 5);
+Save("settings-shortcuts");
 settingsPage.Open("emails");
 Save("settings-emails");
 // How quote and invoice mails look: the details for the branded layout, below the wording.

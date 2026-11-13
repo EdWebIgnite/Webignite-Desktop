@@ -446,7 +446,7 @@
                     </MenuFlyout>
                   </Button.Flyout>
                 </Button>
-                <Button Classes="primary" Content="Write" Command="{Binding WriteCommand}" />
+                <Button Classes="primary" Content="Write" Command="{Binding WriteCommand}" ToolTip.Tip="Write a new mail (Ctrl+N)" />
               </StackPanel>
               <TextBlock Classes="h2" Text="{Binding ListTitle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
@@ -647,9 +647,9 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <WrapPanel ItemSpacing="6" LineSpacing="6">
-                  <Button Classes="primary" Content="Reply" Command="{Binding ReplyCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
-                  <Button Classes="quiet" Content="Reply all" Command="{Binding ReplyAllCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
-                  <Button Classes="quiet" Content="Forward" Command="{Binding ForwardCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                  <Button Classes="primary" Content="Reply" ToolTip.Tip="Reply (R)" Command="{Binding ReplyCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                  <Button Classes="quiet" Content="Reply all" ToolTip.Tip="Reply to everyone (Shift+R)" Command="{Binding ReplyAllCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
+                  <Button Classes="quiet" Content="Forward" ToolTip.Tip="Forward (F)" Command="{Binding ForwardCommand}" IsVisible="{Binding IsNotDraft}" IsEnabled="{Binding CanWrite}" />
                   <Button Classes="primary" Content="Edit draft" Command="{Binding EditDraftCommand}" IsVisible="{Binding IsDraft}" IsEnabled="{Binding CanWrite}" />
                 </WrapPanel>
               </DockPanel>

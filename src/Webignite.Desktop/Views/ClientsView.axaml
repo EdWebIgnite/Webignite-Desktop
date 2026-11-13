@@ -29,7 +29,7 @@
             <WrapPanel ItemSpacing="6" LineSpacing="6">
               <Button Classes="quiet" Content="Bring in from Xero" Command="{Binding BringInFromXeroCommand}" IsEnabled="{Binding !BringingIn}"
                       ToolTip.Tip="Xero's customers become clients here, and blank details are filled in. Xero isn't changed. This also happens every few hours." />
-              <Button Classes="primary" Command="{Binding NewCommand}">
+              <Button Classes="primary" Command="{Binding NewCommand}" ToolTip.Tip="New client (Ctrl+N)">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
                   <TextBlock Text="New client" />
@@ -86,7 +86,7 @@
                               Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
                         <Button.ContextMenu>
                           <ContextMenu>
-                            <MenuItem Header="Open" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}" />
+                            <MenuItem Header="Open" InputGesture="Enter" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}" />
                             <MenuItem Header="Open in a new tab" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenInNewTabCommand}" CommandParameter="{Binding}" />
                             <MenuItem Header="Open in a new window" Command="{Binding #Root.((vm:ClientsViewModel)DataContext).OpenInNewWindowCommand}" CommandParameter="{Binding}" />
                             <Separator />
