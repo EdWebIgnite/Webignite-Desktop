@@ -3850,6 +3850,69 @@ SaveLooks("projects");
         Check("The board has a column per heading with its tasks as cards", projectsPage.IsBoard
             && projectsPage.Columns.Select(c => c.Section.Name).SequenceEqual(["No heading", "Design", "Build", "Launch"])
             && projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards.Count == 2);
+        // A repeating task ticked off by a real click on the tick: the one task stays, unticked, due a month on.
+        {
+            var launchCard = projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards[0];
+            var repeatTitle = launchCard.Title;
+            services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Repeat = Webignite.Core.Projects.TaskRepeat.Monthly, Due = today });
+            projectsPage.Refresh();
+            Dispatcher.UIThread.RunJobs();
+            // True when there is still just the one task, not done, and due a month on.
+            bool Copies()
+            {
+                var all = services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle).ToList();
+                return all.Count == 1 && all[0].Id == launchCard.Task.Id && !all[0].Done && all[0].Due == today.AddMonths(1);
+            }
+            void Settle()
+            {
+                for (var i = 0; i < 25; i++)
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    Thread.Sleep(10);
+                }
+            }
+            void StartAgain()
+            {
+                foreach (var made in services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle && t.Id != launchCard.Task.Id).ToList())
+                    services.Projects.DeleteTask(made.Id);
+                services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Done = false, Due = today, RepeatFrom = null });
+                projectsPage.Refresh();
+                Settle();
+            }
+            // On its card on the board.
+            var tick = window.GetVisualDescendants().OfType<Avalonia.Controls.CheckBox>().First(c => c.IsEffectivelyVisible && c.DataContext is TaskRow { Title: var title } && title == repeatTitle);
+            tick.IsChecked = true;
+            Settle();
+            var fromBoard = Copies();
+            // In the list.
+            StartAgain();
+            projectsPage.ListViewCommand.Execute(null);
+            Settle();
+            var listTick = window.GetVisualDescendants().OfType<Avalonia.Controls.CheckBox>().First(c => c.IsEffectivelyVisible && c.DataContext is TaskRow { Title: var title } && title == repeatTitle);
+            listTick.IsChecked = true;
+            Settle();
+            var fromList = Copies();
+            // In the task's own pane, with the task open.
+            StartAgain();
+            projectsPage.OpenTaskById(launchCard.Task.Id);
+            Settle();
+            var paneTick = window.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ToggleButton>().First(c => c.IsEffectivelyVisible && c.Classes.Contains("markdone"));
+            paneTick.IsChecked = true;
+            Settle();
+            var fromPane = Copies();
+            Check("Ticking a repeating task keeps the one task and moves it to its next date, wherever it is ticked", fromBoard && fromList && fromPane);
+            Check("And each time it was ticked is in its history",
+                services.Projects.Activity(launchCard.Task.Id).Count(a => a.Kind == Webignite.Core.Projects.ActivityKind.DoneThisTime) == 3);
+            Save("projects-task-repeating-ticked");
+            projectsPage.CloseTaskCommand.Execute(null);
+            projectsPage.BoardViewCommand.Execute(null);
+            Settle();
+            foreach (var made in services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle && t.Id != launchCard.Task.Id).ToList())
+                services.Projects.DeleteTask(made.Id);
+            services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Repeat = Webignite.Core.Projects.TaskRepeat.None, Due = null, Done = false });
+            projectsPage.Refresh();
+            Dispatcher.UIThread.RunJobs();
+        }
         var colours = projectsPage.Columns.SelectMany(c => c.Cards).First(r => r.Title == "Colours and fonts");
         projectsPage.Drop(colours, projectsPage.Columns.First(c => c.Section.Name == "Build"), below: false);
         Check("Dropping a card on a column moves it to the end of that heading",

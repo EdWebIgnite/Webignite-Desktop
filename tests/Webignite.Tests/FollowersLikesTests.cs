@@ -117,14 +117,15 @@ public sealed class FollowersLikesTests : IDisposable
     }
 
     [Fact]
-    public void The_next_one_of_a_repeating_task_keeps_its_followers_but_not_its_likes()
+    public void A_repeating_task_ticked_off_is_the_same_task_so_it_keeps_its_followers_and_likes()
     {
         var task = NewTask("Check backups", assigned: "lize", repeat: TaskRepeat.Weekly);
         projects.LikeTask(task.Id, true);
-        projects.ChangeTask(task.Id, t => t with { Done = true });
-        var next = projects.AllTasks(task.ProjectId).Single(t => t.RepeatOf == task.Id);
-        Assert.Equal(["eddie", "lize"], next.Followers);
-        Assert.Empty(next.LikedBy);
+        var again = projects.ChangeTask(task.Id, t => t with { Done = true }).Saved!;
+        Assert.Equal(task.Id, again.Id);
+        Assert.False(again.Done);
+        Assert.Equal(["eddie", "lize"], again.Followers);
+        Assert.Equal(["eddie"], again.LikedBy);
     }
 
     [Fact]

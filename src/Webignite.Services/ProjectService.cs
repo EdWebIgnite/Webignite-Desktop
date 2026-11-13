@@ -250,11 +250,41 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         var subtasks = changed.HeadingId != current.HeadingId
             ? AllTasks(current.ProjectId).Where(t => t.ParentId == id).Select(t => ProjectRules.Stamped(t, t with { HeadingId = changed.HeadingId }, now)).ToList()
             : [];
+        if (TickedOffForNow(current, changed, now) is { } again)
+            return (again, []);
         var saved = ProjectRules.Stamped(current, TaskTalk.Followed(current, changed, now.By), now);
-        store.SaveProjectWork([], [], [saved, .. subtasks, .. NextOf(current, saved, now)]);
+        store.SaveProjectWork([], [], [saved, .. subtasks]);
         Record(current, saved, now);
         Changed?.Invoke(current.ProjectId);
         return (saved, []);
+    }
+
+    /// <summary>
+    /// A repeating task just ticked off stays the one task: it is not done again, due on its next day, with its
+    /// subtasks unticked for next time, and its history keeps that it was done and for which day. Null when the
+    /// change isn't that (the task doesn't repeat, is a subtask, or wasn't ticked off by it).
+    /// </summary>
+    private ProjectTask? TickedOffForNow(ProjectTask before, ProjectTask ticked, Stamp now)
+    {
+        if (before.Done || !ticked.Done || ticked.ParentId is not null || ticked.Repeat == TaskRepeat.None)
+            return null;
+        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        var all = AllTasks(before.ProjectId);
+        var again = ProjectRules.ForNextTime(ticked, all, today);
+        if (again.Count == 0)
+            return null;
+        var saved = ProjectRules.Stamped(before, TaskTalk.Followed(before, again[0], now.By), now);
+        var subtasks = again.Skip(1).Select(t => ProjectRules.Stamped(all.First(s => s.Id == t.Id), t, now));
+        store.SaveProjectWork([], [], [saved, .. subtasks]);
+        // Whatever else the change did (a rename, a new assignee) is kept as usual; the tick and the date it moved
+        // the task to are one line of their own, not "marked complete" and "changed the due date".
+        var untouched = ticked with { Done = before.Done, Due = before.Due };
+        var headings = Headings(saved.ProjectId).ToDictionary(h => h.Id, h => h.Name);
+        foreach (var (kind, value) in TaskTalk.Changes(before, untouched, id => id is null ? null : headings.GetValueOrDefault(id), id => Get(id)?.Name))
+            store.SaveActivity(new TaskActivity(ProjectRules.NewId(), saved.Id, saved.ProjectId, now, kind, value));
+        store.SaveActivity(new TaskActivity(ProjectRules.NewId(), saved.Id, saved.ProjectId, now, ActivityKind.DoneThisTime, TaskTalk.DoneThisTimeValue(before.Due, saved.Due!.Value)));
+        Changed?.Invoke(before.ProjectId);
+        return saved;
     }
 
     /// <summary>Adds a custom field to a project, as Asana's; a choice field takes its options from what's typed.</summary>
@@ -498,21 +528,6 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         // A subtask added shows on its task's feed too, as in Asana.
         if (before is null && after.ParentId is { } parent)
             store.SaveActivity(new TaskActivity(ProjectRules.NewId(), parent, after.ProjectId, now, ActivityKind.SubtaskAdded, after.Title));
-    }
-
-    // A repeating task just ticked off: the next one, straight after it, with its subtasks fresh. Ticked off,
-    // back on and off again, it makes no other while the one it made is still there.
-    private List<ProjectTask> NextOf(ProjectTask before, ProjectTask after, Stamp now)
-    {
-        if (before.Done || !after.Done || after.ParentId is not null || after.Repeat == TaskRepeat.None)
-            return [];
-        var all = store.ListProjectTasks();
-        if (ProjectRules.HasNext(after, all))
-            return [];
-        var tasks = all.Where(t => t.ProjectId == after.ProjectId && t.Deleted is null).ToList();
-        var nextOrder = tasks.Where(t => t.ParentId is null && t.HeadingId == after.HeadingId && t.Order > after.Order).Select(t => (double?)t.Order).Min();
-        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
-        return [.. ProjectRules.Next(after, tasks, today, ProjectRules.Between(after.Order, nextOrder)).Select(t => ProjectRules.Stamped(null, t, now))];
     }
 
     /// <summary>A new project from a template, starting on a day, with everything in it, at the end of the list.</summary>
