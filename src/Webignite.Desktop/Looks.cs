@@ -122,10 +122,25 @@ public static class Looks
         new((Uri?)null) { Source = new Uri($"avares://Webignite{Folder}{Style}/{file}.axaml") };
 
     // Which palette colour goes where, and the small text sizes: both by name, so what is on screen follows at once.
+    /// <summary>How solid the dock's glass is: 1 would be its colour itself, with nothing of the page showing through.</summary>
+    public const double GlassStrength = 0.8;
+
     private static void ApplyColours(Application app, AppearanceSettings settings)
     {
         foreach (var key in SwappedKeys)
             app.Resources.Remove(key);
+        // The dock's own colours, read while the palette's sidebar colours are still its own: a dark dock is the
+        // palette's sidebar colour and stays so beside a light sidebar; a light dock is paper, which is white in
+        // every look, so it stands out on a dark page. Its body is glass: let through a little, so the page under a
+        // floating dock shows faintly.
+        var light = settings.DockTone == DockTone.Light;
+        var body = Find(light ? "Paper" : "Nav");
+        Set("DockSolid", body);
+        if (body is ISolidColorBrush solid)
+            app.Resources["DockGlass"] = new SolidColorBrush(solid.Color, GlassStrength);
+        Set("DockText", Find(light ? "PaperText" : "NavText"));
+        Set("DockHover", Find(light ? "PaperShade" : "NavHover"));
+        Set("DockLine", Find(light ? "PaperLine" : "NavSelected"));
         foreach (var (key, airy) in Sizes)
         {
             if (settings.Style == LookStyle.Airy)
@@ -133,14 +148,15 @@ public static class Looks
             else
                 app.Resources.Remove(key);
         }
-        if (settings.Sidebar != SidebarTone.Light)
-            return;
-        // A light sidebar is the white of the cards, beside the page's soft grey.
-        Set("Nav", Find("Surface"));
-        Set("NavHover", Find("TableHead"));
-        Set("NavSelected", Find("Line"));
-        Set("NavText", Find("Ink"));
-        Set("NavMuted", Find("Muted"));
+        if (settings.Sidebar == SidebarTone.Light)
+        {
+            // A light sidebar is the white of the cards, beside the page's soft grey.
+            Set("Nav", Find("Surface"));
+            Set("NavHover", Find("TableHead"));
+            Set("NavSelected", Find("Line"));
+            Set("NavText", Find("Ink"));
+            Set("NavMuted", Find("Muted"));
+        }
 
         IBrush? Find(string key) => app.TryGetResource(key, app.ActualThemeVariant, out var found) ? found as IBrush : null;
 

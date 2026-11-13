@@ -24,6 +24,9 @@ public sealed partial class SettingsDockViewModel : ViewModelBase, IDisposable
     public bool DockFloats => services.Settings.Appearance.DockFloats;
     public bool DockHasStrip => !DockFloats;
 
+    public bool IsDarkDock => services.Settings.Appearance.DockTone == DockTone.Dark;
+    public bool IsLightDock => !IsDarkDock;
+
     /// <summary>Each thing that can sit beside the dock, and where it is now.</summary>
     public ObservableCollection<BarChoiceRow> Rows { get; } = [];
 
@@ -37,6 +40,8 @@ public sealed partial class SettingsDockViewModel : ViewModelBase, IDisposable
             Rows.Add(new BarChoiceRow(widget, bar.Left.Contains(widget), bar.Right.Contains(widget)));
         OnPropertyChanged(nameof(DockFloats));
         OnPropertyChanged(nameof(DockHasStrip));
+        OnPropertyChanged(nameof(IsDarkDock));
+        OnPropertyChanged(nameof(IsLightDock));
     }
 
     private void Keep(BarLayout bar) =>
@@ -44,6 +49,14 @@ public sealed partial class SettingsDockViewModel : ViewModelBase, IDisposable
 
     [RelayCommand]
     private void Float(string floats) => services.Settings.Appearance = services.Settings.Appearance with { DockFloats = floats == "yes" };
+
+    /// <summary>The dock as dark glass or light.</summary>
+    [RelayCommand]
+    private void Tone(string tone)
+    {
+        if (Enum.TryParse<DockTone>(tone, out var value))
+            services.Settings.Appearance = services.Settings.Appearance with { DockTone = value };
+    }
 
     [RelayCommand]
     private void PutLeft(BarChoiceRow row) => Keep(DockBar.Add(Bar, row.Widget, BarSide.Left));

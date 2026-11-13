@@ -145,6 +145,15 @@
           </Border>
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                      Text="Floating gives the page the window's full height; the dock then covers the middle of the page's bottom edge." />
+          <TextBlock Classes="label" Text="The dock's colour" Margin="0,6,0,0" />
+          <Border Classes="segments" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="segment" Classes.on="{Binding Dock.IsDarkDock}" Content="Dark glass" Command="{Binding Dock.ToneCommand}" CommandParameter="Dark" />
+              <Button Classes="segment" Classes.on="{Binding Dock.IsLightDock}" Content="Light glass" Command="{Binding Dock.ToneCommand}" CommandParameter="Light" />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                     Text="The dock and the panels beside it are glass, so a floating dock lets the page show faintly through. Light glass stands out better on a dark look." />
           <TextBlock Classes="label" Text="Beside the dock" Margin="0,6,0,0" />
           <ItemsControl ItemsSource="{Binding Dock.Rows}">
             <ItemsControl.ItemTemplate>
