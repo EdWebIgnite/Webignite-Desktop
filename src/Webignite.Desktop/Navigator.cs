@@ -48,6 +48,7 @@ public sealed class Navigator
     internal Action<string?, string?>? OpenPersonAction { get; set; }
     internal Action<string>? OpenProjectTaskAction { get; set; }
     internal Action<DateOnly>? OpenDiaryAction { get; set; }
+    internal Action<string>? SiteCheckAction { get; set; }
     internal Action<string>? OpenProjectAction { get; set; }
     internal Action<string>? OpenProjectMessagesAction { get; set; }
     internal Action? MyTasksAction { get; set; }
@@ -164,6 +165,9 @@ public sealed class Navigator
 
     /// <summary>Opens a person in Contacts.</summary>
     public void Person(string id) => OpenPersonAction?.Invoke(id, null);
+
+    /// <summary>Opens Site check on a domain or web address and looks the domain over.</summary>
+    public void SiteCheck(string address) => SiteCheckAction?.Invoke(address);
 
     /// <summary>Opens the diary at a day.</summary>
     public void Diary(DateOnly day) => OpenDiaryAction?.Invoke(day);

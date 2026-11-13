@@ -16,7 +16,7 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
     private WebHelpersToolViewModel? webHelpers;
     private DnsToolViewModel? dns;
     private PageCaptureToolViewModel? pageCapture;
-    private PageCaptureToolViewModel? browser;
+    private BrowserToolViewModel? browser;
     private RulerToolViewModel? ruler;
     private SnippetsToolViewModel? snippets;
     private ScreenTextToolViewModel? screenText;
@@ -35,8 +35,8 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
     public DnsToolViewModel Dns => dns ??= new(services);
     public PageCaptureToolViewModel PageCapture => pageCapture ??= new(services);
 
-    /// <summary>The Browser tool: the same page view, for looking at a site and trying it at device sizes.</summary>
-    public PageCaptureToolViewModel Browser => browser ??= new(services) { Browses = true };
+    /// <summary>The Browser: tabs, the web tools as its extensions, and the device viewer.</summary>
+    public BrowserToolViewModel Browser => browser ??= new(services);
     public RulerToolViewModel Ruler => ruler ??= new(services);
     public SnippetsToolViewModel Snippets => snippets ??= new(services);
     public ScreenTextToolViewModel ScreenText => screenText ??= new(services);

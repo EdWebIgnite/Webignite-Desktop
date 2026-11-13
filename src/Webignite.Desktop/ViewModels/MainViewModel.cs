@@ -446,6 +446,14 @@ public partial class MainViewModel : ViewModelBase
             Selected = this[Page.Projects];
             PageOf<ProjectsViewModel>(Page.Projects).OpenTaskById(id);
         };
+        go.SiteCheckAction = address =>
+        {
+            Selected = this[Page.SiteCheck];
+            var check = PageOf<SiteCheckViewModel>(Page.SiteCheck);
+            check.Address = address;
+            if (check.CheckDomainCommand.CanExecute(null))
+                check.CheckDomainCommand.ExecuteAsync(null).Forget("Checking a site from the browser", tell: true);
+        };
         go.OpenDiaryAction = day =>
         {
             Selected = this[Page.Diary];

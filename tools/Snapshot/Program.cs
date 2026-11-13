@@ -2297,35 +2297,57 @@ SaveWindow(captureWindow, "tools-page-capture");
 }
 captureWindow.Close();
 Check("Closing the page tool's window shuts its browser down", standInBrowser!.Disposed && !capture.PageCapture.HasCaptureView);
-// The Browser tool: a site to click through, at the window's size or a device's, one click each.
+// The Browser: tabs down the side, the web tools at the end of the address bar, and the device viewer.
 {
     var browserWindow = window.ShowTool(ToolKind.Browser, services);
-    var browsing = browserWindow.Tools.Browser;
-    Check("The Browser tool starts its own browser when its window opens", Until(() => standInBrowser is { Started: true, Disposed: false } && browsing.HasCaptureView));
-    var engine = standInBrowser!;
-    browsing.CaptureAddress = "karoocoffee.co.za/menu";
-    browsing.BrowseCommand.Execute(null);
-    Check("An address typed in the Browser opens", browsing.CaptureAddress == "https://karoocoffee.co.za/menu" && browsing.CaptureNote == "Menu | Karoo Coffee");
-    browsing.CaptureAddress = "karoo coffee menu";
-    browsing.BrowseCommand.Execute(null);
-    Check("Words typed in the Browser are searched for", browsing.CaptureAddress.StartsWith("https://www.google.com/search?q=karoo%20coffee%20menu", StringComparison.Ordinal) && !browsing.CaptureProblem);
-    engine.Calls.Clear();
-    browsing.QuickSizes.First(q => q.Label == "Phone").PickCommand.Execute(null);
-    Check("One click shows the page as a phone, and the button says which size is on",
-        Until(() => engine.Calls.Contains("Emulation.setDeviceMetricsOverride")) && browsing.IsDeviceOn && browsing.DeviceSize.StartsWith("390 × 844", StringComparison.Ordinal)
-        && browsing.QuickSizes.Single(q => q.IsOn).Label == "Phone");
-    SaveWindow(browserWindow, "tools-browser-phone");
-    browsing.QuickSizes.First(q => q.Label == "Tablet").PickCommand.Execute(null);
-    SaveWindow(browserWindow, "tools-browser-tablet");
-    browsing.QuickSizes.First(q => q.Label == "Fit window").PickCommand.Execute(null);
-    Check("Fit window fills the window again", !browsing.IsDeviceOn && double.IsNaN(browsing.PaneWidth) && browsing.QuickSizes.Single(q => q.IsOn).Label == "Fit window");
-    engine.Calls.Clear();
-    Wait(browsing.BackCommand.ExecuteAsync(null), "Back was asked for");
-    Wait(browsing.ReloadCommand.ExecuteAsync(null), "Reload was asked for");
-    Check("Back asks the browser where it has been, and reload loads the page again", engine.Calls.Contains("Page.getNavigationHistory") && engine.Calls.Contains("Page.reload"));
+    var browser = browserWindow.Tools.Browser;
+    Check("The Browser opens with one tab, whose browser starts when its window opens",
+        browser.Tabs.Count == 1 && browser.Current.IsCurrent && browser.Current.Title == "New tab" && Until(() => standInBrowser is { Started: true, Disposed: false } && browser.Page.HasCaptureView));
+    var firstEngine = standInBrowser!;
+    browser.Page.CaptureAddress = "karoocoffee.co.za/menu";
+    browser.Page.BrowseCommand.Execute(null);
+    Check("An address typed in the Browser opens, and the tab takes the page's name",
+        browser.Page.CaptureAddress == "https://karoocoffee.co.za/menu" && browser.Page.CaptureNote == "Menu | Karoo Coffee" && browser.Current.Title == "Menu | Karoo Coffee");
     SaveWindow(browserWindow, "tools-browser");
+    browser.NewTabCommand.Execute(null);
+    Check("A new tab is a page of its own with its own browser, and the first stays alive behind it",
+        browser.Tabs.Count == 2 && browser.Current == browser.Tabs[1] && !browser.Tabs[0].IsCurrent
+        && Until(() => !ReferenceEquals(standInBrowser, firstEngine) && standInBrowser is { Started: true }) && !firstEngine.Disposed);
+    var secondEngine = standInBrowser!;
+    browser.Page.CaptureAddress = "karoo coffee menu";
+    browser.Page.BrowseCommand.Execute(null);
+    Check("Words typed in the Browser are searched for", browser.Page.CaptureAddress.StartsWith("https://www.google.com/search?q=karoo%20coffee%20menu", StringComparison.Ordinal) && !browser.Page.CaptureProblem);
+    browser.SelectCommand.Execute(browser.Tabs[0]);
+    Check("Clicking a tab shows its page again, as it was left", browser.Page.CaptureAddress == "https://karoocoffee.co.za/menu" && browser.Tabs[0].IsCurrent && !browser.Tabs[1].IsCurrent);
+    firstEngine.Calls.Clear();
+    browser.ToggleDevicesCommand.Execute(null);
+    Check("The viewer's icon opens the device panel and shows the page as a phone straight away",
+        browser.ShowsDevices && Until(() => firstEngine.Calls.Contains("Emulation.setDeviceMetricsOverride")) && browser.Page.IsPhoneFrame && browser.DeviceName == "iPhone 14"
+        && browser.Page.DeviceSize.StartsWith("390 × 844", StringComparison.Ordinal) && browser.DeviceGroups.SelectMany(g => g.Tiles).Single(t => t.IsOn).Name == "iPhone 14");
+    Check("The devices are listed by kind", browser.DeviceGroups.Select(g => g.Name).SequenceEqual(["Phones", "Tablets", "Computers"]) && browser.DeviceGroups.All(g => g.Tiles.Count > 0));
+    SaveWindow(browserWindow, "tools-browser-phone");
+    browser.RotateCommand.Execute(null);
+    Check("Rotate turns the device on its side", browser.Page.CaptureSideways && browser.Page.PaneWidth > browser.Page.PaneHeight);
+    browser.RotateCommand.Execute(null);
+    browser.DeviceGroups[1].Tiles.First(t => t.Name == "iPad Air").PickCommand.Execute(null);
+    Check("Picking a tablet shows the page in a tablet", browser.Page.IsTabletFrame && browser.Page.HasFrameBars && browser.DeviceName == "iPad Air");
+    SaveWindow(browserWindow, "tools-browser-tablet");
+    browser.DeviceGroups[2].Tiles.First(t => t.Name == "Laptop").PickCommand.Execute(null);
+    Check("A computer has a screen with no status or home bar", browser.Page.IsComputerFrame && !browser.Page.HasFrameBars);
+    SaveWindow(browserWindow, "tools-browser-laptop");
+    Check("The other tab kept filling its window: a device belongs to the tab it was picked on", !browser.Tabs[1].Page.IsDeviceOn);
+    browser.LeaveDevicesCommand.Execute(null);
+    Check("No device fills the window again and puts the panel away", !browser.Page.IsDeviceOn && double.IsNaN(browser.Page.PaneWidth) && !browser.ShowsDevices && browser.DeviceName.Length == 0);
+    firstEngine.Calls.Clear();
+    Wait(browser.Page.BackCommand.ExecuteAsync(null), "Back was asked for");
+    Wait(browser.Page.ReloadCommand.ExecuteAsync(null), "Reload was asked for");
+    Check("Back asks the browser where it has been, and reload loads the page again", firstEngine.Calls.Contains("Page.getNavigationHistory") && firstEngine.Calls.Contains("Page.reload"));
+    Check("The page's tools are ready once a page is open", browser.Page.SavePagePdfCommand.CanExecute(null) && browser.Page.MarkUpPageCommand.CanExecute(null));
+    browser.CloseTabCommand.Execute(browser.Tabs[1]);
+    Dispatcher.UIThread.RunJobs();
+    Check("Closing a tab shuts that tab's browser down and leaves the other", browser.Tabs.Count == 1 && secondEngine.Disposed && !firstEngine.Disposed);
     browserWindow.Close();
-    Check("Closing the Browser's window shuts its browser down", engine.Disposed && !browsing.HasCaptureView);
+    Check("Closing the Browser's window shuts every tab's browser down", firstEngine.Disposed && !browser.Page.HasCaptureView);
 }
 // Text snippets: none yet, one saved, found by its code and copied with today's date filled in.
 var snippetWindow = window.ShowTool(ToolKind.Snippets, services);
