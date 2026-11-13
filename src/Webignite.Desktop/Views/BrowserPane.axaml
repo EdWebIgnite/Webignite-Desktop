@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             x:Class="Webignite.Desktop.Views.BrowserPane"
+             x:DataType="vm:PageCaptureToolViewModel">
+  <UserControl.Styles>
+    <!-- The device the page is shown in: a dark body round the screen, with a status bar and a home bar for a
+         phone or tablet. The page itself is the browser's own window, which nothing can be drawn over, so the
+         camera and the bars sit above and below the screen and not on it. The body is the Paper ink in every
+         look, as a device is dark whatever the app's look. -->
+    <Style Selector="Border.device.on">
+      <Setter Property="Background" Value="{DynamicResource PaperText}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="BoxShadow" Value="{DynamicResource OverlayShadow}" />
+    </Style>
+    <Style Selector="Border.device.phone">
+      <Setter Property="CornerRadius" Value="34" />
+      <Setter Property="Padding" Value="10,6,10,8" />
+    </Style>
+    <Style Selector="Border.device.tablet">
+      <Setter Property="CornerRadius" Value="24" />
+      <Setter Property="Padding" Value="14,8,14,10" />
+    </Style>
+    <Style Selector="Border.device.computer">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="8" />
+    </Style>
+    <Style Selector="TextBlock.devicetime">
+      <Setter Property="Foreground" Value="{DynamicResource Paper}" />
+      <Setter Property="FontSize" Value="{DynamicResource Text11}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <Panel x:Name="Room">
+    <Border Classes="device" Classes.on="{Binding IsDeviceOn}" Classes.phone="{Binding IsPhoneFrame}" Classes.tablet="{Binding IsTabletFrame}"
+            Classes.computer="{Binding IsComputerFrame}">
+      <DockPanel>
+        <!-- The status bar: the time, the camera, and signal and battery marks -->
+        <Grid DockPanel.Dock="Top" Height="26" ColumnDefinitions="*,Auto,*" IsVisible="{Binding HasFrameBars}">
+          <TextBlock Grid.Column="0" x:Name="Clock" Classes="devicetime" Margin="16,0,0,0" />
+          <Ellipse Grid.Column="1" Width="9" Height="9" Fill="{DynamicResource PaperMuted}" VerticalAlignment="Center" />
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0">
+            <Border Width="3" Height="5" Background="{DynamicResource Paper}" VerticalAlignment="Bottom" />
+            <Border Width="3" Height="8" Background="{DynamicResource Paper}" VerticalAlignment="Bottom" />
+            <Border Width="3" Height="11" Background="{DynamicResource Paper}" VerticalAlignment="Bottom" />
+            <Border Width="20" Height="10" CornerRadius="3" BorderBrush="{DynamicResource Paper}" BorderThickness="1" Margin="4,0,0,0" VerticalAlignment="Center">
+              <Border Background="{DynamicResource Paper}" CornerRadius="1" Margin="1" Width="12" HorizontalAlignment="Left" />
+            </Border>
+          </StackPanel>
+        </Grid>
+        <!-- The home bar -->
+        <Border DockPanel.Dock="Bottom" Height="18" IsVisible="{Binding HasFrameBars}">
+          <Border Width="110" Height="4" CornerRadius="2" Background="{DynamicResource Paper}" Opacity="0.85" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <ContentControl Content="{Binding CaptureView}" IsVisible="{Binding HasCaptureView}"
+                        Width="{Binding PaneWidth}" Height="{Binding PaneHeight}" />
+      </DockPanel>
+    </Border>
+    <StackPanel Spacing="12" MaxWidth="460" VerticalAlignment="Center" HorizontalAlignment="Center"
+                IsVisible="{Binding CaptureWithout, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+      <TextBlock Text="{Binding CaptureWithout}" TextWrapping="Wrap" TextAlignment="Center" />
+      <Button Classes="primary" Content="Get WebView2 from Microsoft" HorizontalAlignment="Center"
+              Command="{Binding GetWebView2Command}" IsVisible="{Binding CaptureNeedsWebView2}" />
+    </StackPanel>
+  </Panel>
+</UserControl>

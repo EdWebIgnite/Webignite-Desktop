@@ -77,6 +77,18 @@ public sealed partial class PageCaptureToolViewModel : ViewModelBase, IDisposabl
     public partial DeviceChoice? CaptureDevice { get; set; }
 
     [ObservableProperty] public partial bool CaptureSideways { get; set; }
+
+    /// <summary>The open page's own name, for its tab; empty until one is open.</summary>
+    [ObservableProperty] public partial string PageTitle { get; set; } = "";
+
+    /// <summary>The kind of device the page is shown as, for the frame drawn round it; null when it fills the window.</summary>
+    public DeviceKind? FrameKind => ActiveDevice?.Kind;
+    public bool IsPhoneFrame => FrameKind == DeviceKind.Phone;
+    public bool IsTabletFrame => FrameKind == DeviceKind.Tablet;
+    public bool IsComputerFrame => FrameKind == DeviceKind.Computer;
+
+    /// <summary>A device with a status bar and a home bar: a phone or a tablet.</summary>
+    public bool HasFrameBars => FrameKind is DeviceKind.Phone or DeviceKind.Tablet;
     [ObservableProperty] public partial string CustomWidth { get; set; } = "600";
     [ObservableProperty] public partial string CustomHeight { get; set; } = "900";
 
@@ -119,6 +131,8 @@ public sealed partial class PageCaptureToolViewModel : ViewModelBase, IDisposabl
     {
         var device = ActiveDevice;
         OnPropertyChanged(nameof(IsDeviceOn));
+        foreach (var name in new[] { nameof(FrameKind), nameof(IsPhoneFrame), nameof(IsTabletFrame), nameof(IsComputerFrame), nameof(HasFrameBars) })
+            OnPropertyChanged(name);
         var fit = 1.0;
         if (device is null)
         {
@@ -267,6 +281,7 @@ public sealed partial class PageCaptureToolViewModel : ViewModelBase, IDisposabl
     private void OnCaptureOpened(PageOpened page)
     {
         capturePage = page.Ok ? page.Address : null;
+        PageTitle = page.Ok ? (page.Title.Length > 0 ? page.Title : page.Address.Host) : "";
         CaptureReady = page.Ok && !CaptureWorking;
         CaptureProblem = !page.Ok;
         CaptureNote = page.Ok ? (page.Title.Length > 0 ? page.Title : page.Address.Host) : page.Problem;

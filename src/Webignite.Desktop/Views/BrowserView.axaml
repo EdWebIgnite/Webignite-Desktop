@@ -1,70 +1,269 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:v="using:Webignite.Desktop.Views"
              xmlns:c="using:Webignite.Desktop.Controls"
              x:Class="Webignite.Desktop.Views.BrowserView"
-             x:DataType="vm:PageCaptureToolViewModel">
+             x:DataType="vm:BrowserToolViewModel"
+             x:Name="Root">
   <UserControl.Styles>
+    <!-- The tabs down the side: quiet pills, the one on screen lifted. -->
+    <Style Selector="Border.tabside">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="8" />
+    </Style>
+    <Style Selector="Button.sidetab">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,8,6,8" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.sidetab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+    </Style>
+    <Style Selector="Button.sidetab.current /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
+    </Style>
+    <Style Selector="Button.sidetab.current">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <!-- The address bar: one slim rounded bar. -->
+    <Style Selector="Border.addressbar">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="Height" Value="36" />
+    </Style>
+    <Style Selector="TextBox.address">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="MinHeight" Value="32" />
+    </Style>
+    <Style Selector="TextBox.address /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <!-- A tool at the end of the address bar, the size of a browser's extension icon. -->
+    <Style Selector="Button.ext">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="Button.ext:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
+    <Style Selector="Button.ext.on /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource TableHead}" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
     <Style Selector="Border.pagepane">
       <Setter Property="Background" Value="{DynamicResource Surface2}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="ClipToBounds" Value="True" />
     </Style>
-    <Style Selector="Button.nav">
-      <Setter Property="MinWidth" Value="36" />
-      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <!-- A device in the panel: a small drawing of it, its name and screen size. -->
+    <Style Selector="Button.devicetile">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Width" Value="84" />
+      <Setter Property="Height" Value="92" />
+      <Setter Property="Padding" Value="4,8,4,6" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.devicetile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="Button.devicetile.on /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <Style Selector="Border.minidevice">
+      <Setter Property="BorderBrush" Value="{DynamicResource Muted}" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
   </UserControl.Styles>
-  <DockPanel>
-    <!-- Back, forward, reload, the address, and the same page in the PC's normal browser -->
-    <DockPanel DockPanel.Dock="Top">
-      <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="4" Margin="0,0,8,0">
-        <Button Classes="quiet nav" Content="‹" Command="{Binding BackCommand}" ToolTip.Tip="Back (Alt+Left)" HotKey="Alt+Left" />
-        <Button Classes="quiet nav" Content="›" Command="{Binding ForwardCommand}" ToolTip.Tip="Forward (Alt+Right)" HotKey="Alt+Right" />
-        <Button Classes="quiet nav" Content="⟳" Command="{Binding ReloadCommand}" ToolTip.Tip="Load the page again (F5)" HotKey="F5" />
-      </StackPanel>
-      <Button DockPanel.Dock="Right" Classes="quiet" Content="Open in my browser" Margin="8,0,0,0" Command="{Binding OpenOutsideCommand}"
-              ToolTip.Tip="The same page in your normal browser, where your saved passwords and extensions are" />
-      <Button DockPanel.Dock="Right" Classes="primary" Content="Go" Margin="8,0,0,0" IsDefault="True" Command="{Binding BrowseCommand}" />
-      <TextBox x:Name="AddressBox" Text="{Binding CaptureAddress}" PlaceholderText="A web address, or words to search for" />
-    </DockPanel>
 
-    <!-- The size the page is shown at: one click each, every device in the list, and turned sideways -->
-    <WrapPanel DockPanel.Dock="Top" Margin="0,10,0,0" ItemSpacing="6" LineSpacing="6">
-      <ItemsControl ItemsSource="{Binding QuickSizes}" VerticalAlignment="Center">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:QuickSize">
-            <Button Classes.primary="{Binding IsOn}" Classes.quiet="{Binding IsOff}" Content="{Binding Label}" Command="{Binding PickCommand}" ToolTip.Tip="{Binding Tip}" />
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-      <ComboBox ItemsSource="{Binding CaptureDevices}" SelectedItem="{Binding CaptureDevice}" Width="230" MaxDropDownHeight="520" VerticalAlignment="Center"
-                ToolTip.Tip="Every phone, tablet and screen size, or a size of your own" />
-      <TextBox Text="{Binding CustomWidth}" Width="76" PlaceholderText="Width" IsVisible="{Binding IsCustomDevice}" VerticalAlignment="Center" />
-      <TextBox Text="{Binding CustomHeight}" Width="76" PlaceholderText="Height" IsVisible="{Binding IsCustomDevice}" VerticalAlignment="Center" />
-      <CheckBox Content="Turned sideways" IsChecked="{Binding CaptureSideways}" IsEnabled="{Binding IsDeviceOn}" VerticalAlignment="Center" />
-      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding DeviceSize}" VerticalAlignment="Center" />
-    </WrapPanel>
-
-    <!-- The page's name, or what went wrong -->
-    <TextBlock DockPanel.Dock="Top" Classes="muted" Classes.problem="{Binding CaptureProblem}" FontSize="{DynamicResource Text12}" Margin="0,8,0,0"
-               Text="{Binding CaptureNote}" TextTrimming="CharacterEllipsis" MinHeight="18" />
-
-    <!-- The page -->
-    <Border Classes="pagepane" Margin="0,6,0,0">
-      <Panel x:Name="Room">
-        <ContentControl Content="{Binding CaptureView}" IsVisible="{Binding HasCaptureView}"
-                        Width="{Binding PaneWidth}" Height="{Binding PaneHeight}" />
-        <StackPanel Spacing="12" MaxWidth="460" VerticalAlignment="Center" HorizontalAlignment="Center"
-                    IsVisible="{Binding CaptureWithout, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-          <TextBlock Text="{Binding CaptureWithout}" TextWrapping="Wrap" TextAlignment="Center" />
-          <Button Classes="primary" Content="Get WebView2 from Microsoft" HorizontalAlignment="Center"
-                  Command="{Binding GetWebView2Command}" IsVisible="{Binding CaptureNeedsWebView2}" />
-        </StackPanel>
-      </Panel>
+  <Grid ColumnDefinitions="210,12,*">
+    <!-- The tabs, down the side -->
+    <Border Grid.Column="0" Classes="tabside">
+      <DockPanel>
+        <Button DockPanel.Dock="Top" Classes="sidetab" Command="{Binding NewTabCommand}" IsEnabled="{Binding CanAddTab}" Margin="0,0,0,6"
+                ToolTip.Tip="Open another tab (Ctrl+T)" HotKey="Ctrl+T">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <c:Icon Data="{StaticResource Icon.Plus}" Size="14" VerticalAlignment="Center" />
+            <TextBlock Text="New tab" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource Line}" Margin="4,0,4,6" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding Tabs}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:BrowserTab">
+                <Button Classes="sidetab" Classes.current="{Binding IsCurrent}" Margin="0,0,0,2" ToolTip.Tip="{Binding Title}"
+                        Command="{Binding #Root.((vm:BrowserToolViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Right" Classes="link" Padding="4" ToolTip.Tip="Close this tab"
+                            Command="{Binding #Root.((vm:BrowserToolViewModel)DataContext).CloseTabCommand}" CommandParameter="{Binding}">
+                      <c:Icon Data="{StaticResource Icon.Close}" Size="10" />
+                    </Button>
+                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="{DynamicResource Text13}" />
+                  </DockPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
     </Border>
-  </DockPanel>
+
+    <DockPanel Grid.Column="2">
+      <!-- Back, forward and reload, the address, and the web tools at its end as a browser has its extensions -->
+      <DockPanel DockPanel.Dock="Top">
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="2" Margin="0,0,8,0">
+          <Button Classes="ext" Command="{Binding Page.BackCommand}" ToolTip.Tip="Back (Alt+Left)" HotKey="Alt+Left">
+            <c:Icon Data="{StaticResource Icon.Back}" Size="16" />
+          </Button>
+          <Button Classes="ext" Command="{Binding Page.ForwardCommand}" ToolTip.Tip="Forward (Alt+Right)" HotKey="Alt+Right">
+            <c:Icon Data="{StaticResource Icon.Forward}" Size="16" />
+          </Button>
+          <Button Classes="ext" Command="{Binding Page.ReloadCommand}" ToolTip.Tip="Load the page again (F5)" HotKey="F5">
+            <c:Icon Data="{StaticResource Icon.Reload}" Size="15" />
+          </Button>
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" Margin="8,0,0,0">
+          <Button Classes="ext" Classes.on="{Binding ShowsDevices}" Command="{Binding ToggleDevicesCommand}" ToolTip.Tip="Phone and tablet viewer: see the page on a device">
+            <c:Icon Data="{StaticResource Icon.Phone}" Size="16" />
+          </Button>
+          <Button Classes="ext" Command="{Binding Page.SavePagePicturesCommand}" CommandParameter="{Binding $self}" ToolTip.Tip="Take pictures of this page">
+            <c:Icon Data="{StaticResource Icon.Camera}" Size="16" />
+          </Button>
+          <Button Classes="ext" Command="{Binding Page.SavePagePdfCommand}" CommandParameter="{Binding $self}" ToolTip.Tip="Save this page as a PDF">
+            <c:Icon Data="{StaticResource Icon.PdfFile}" Size="16" />
+          </Button>
+          <Button Classes="ext" Command="{Binding Page.MarkUpPageCommand}" ToolTip.Tip="Open a picture of this page in Mark-up to draw on">
+            <c:Icon Data="{StaticResource Icon.Markup}" Size="16" />
+          </Button>
+          <Button Classes="ext" Command="{Binding Page.CheckThisSiteCommand}" ToolTip.Tip="Look this site over in Site check">
+            <c:Icon Data="{StaticResource Icon.SiteCheck}" Size="16" />
+          </Button>
+          <Button Classes="ext" Command="{Binding Page.PickPageColourCommand}" ToolTip.Tip="Pick a colour off the page">
+            <c:Icon Data="{StaticResource Icon.Pipette}" Size="16" />
+          </Button>
+          <Border Width="1" Height="18" Background="{DynamicResource Line}" Margin="4,0" VerticalAlignment="Center" />
+          <Button Classes="ext" Command="{Binding Page.OpenOutsideCommand}" ToolTip.Tip="Open this page in your normal browser, where your saved passwords and extensions are">
+            <c:Icon Data="{StaticResource Icon.NewWindow}" Size="16" />
+          </Button>
+        </StackPanel>
+        <Border Classes="addressbar">
+          <TextBox x:Name="AddressBox" Classes="address" Text="{Binding Page.CaptureAddress}" PlaceholderText="Search, or type a web address">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding Page.BrowseCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+        </Border>
+      </DockPanel>
+
+      <!-- What the page is, or what went wrong, with what was last saved -->
+      <DockPanel DockPanel.Dock="Top" Margin="4,6,0,0" MinHeight="18">
+        <Button DockPanel.Dock="Right" Classes="link" Content="Show in Files" Command="{Binding Page.ShowCapturedCommand}" IsVisible="{Binding Page.HasCaptured}" Padding="0" Margin="12,0,0,0" />
+        <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Page.DeviceSize}" Margin="12,0,0,0" />
+        <TextBlock Classes="muted" Classes.problem="{Binding Page.CaptureProblem}" FontSize="{DynamicResource Text12}" Text="{Binding Page.CaptureNote}" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+
+      <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+        <!-- Every tab's page stays alive while the window is open; only the one on screen shows. -->
+        <Border Grid.Column="0" Classes="pagepane">
+          <ItemsControl ItemsSource="{Binding Tabs}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><Panel /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:BrowserTab">
+                <v:BrowserPane DataContext="{Binding Page}" IsVisible="{Binding $parent[ContentPresenter].((vm:BrowserTab)DataContext).IsCurrent}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+
+        <!-- The device viewer's panel: every device, by kind -->
+        <Border Grid.Column="1" Classes="card" Width="312" Padding="14" Margin="12,0,0,0" IsVisible="{Binding ShowsDevices}">
+          <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+              <Button DockPanel.Dock="Right" Classes="ext" Command="{Binding ToggleDevicesCommand}" ToolTip.Tip="Put this panel away and keep the device">
+                <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+              </Button>
+              <StackPanel>
+                <TextBlock Classes="h2" Text="Devices" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding DeviceName}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </DockPanel>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,10">
+              <Button Classes="quiet" Command="{Binding RotateCommand}" IsEnabled="{Binding Page.IsDeviceOn}" ToolTip.Tip="Turn the device on its side, or back">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <c:Icon Data="{StaticResource Icon.Reload}" Size="13" VerticalAlignment="Center" />
+                  <TextBlock Text="Rotate" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button Classes="quiet" Content="No device" Command="{Binding LeaveDevicesCommand}" ToolTip.Tip="Back to the page filling the window" />
+            </StackPanel>
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding DeviceGroups}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DeviceGroup">
+                    <StackPanel Margin="0,0,0,12">
+                      <TextBlock Classes="label caps" Text="{Binding Name}" Margin="0,0,0,6" />
+                      <ItemsControl ItemsSource="{Binding Tiles}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:DeviceTile">
+                            <Button Classes="devicetile" Classes.on="{Binding IsOn}" Command="{Binding PickCommand}" ToolTip.Tip="{Binding Name}">
+                              <DockPanel>
+                                <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="{DynamicResource Text10}" Text="{Binding Size}" TextAlignment="Center" />
+                                <TextBlock DockPanel.Dock="Bottom" FontSize="{DynamicResource Text11}" Text="{Binding Name}" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
+                                <Panel>
+                                  <Border Classes="minidevice" Width="18" Height="32" CornerRadius="4" IsVisible="{Binding IsPhone}" />
+                                  <Border Classes="minidevice" Width="28" Height="36" CornerRadius="4" IsVisible="{Binding IsTablet}" />
+                                  <StackPanel IsVisible="{Binding IsComputer}" VerticalAlignment="Center" Spacing="1">
+                                    <Border Classes="minidevice" Width="40" Height="26" CornerRadius="3" />
+                                    <Border Width="50" Height="2" Background="{DynamicResource Muted}" CornerRadius="1" HorizontalAlignment="Center" />
+                                  </StackPanel>
+                                </Panel>
+                              </DockPanel>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Grid>
+    </DockPanel>
+  </Grid>
 </UserControl>
