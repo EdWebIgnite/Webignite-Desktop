@@ -47,6 +47,11 @@ public partial class MainWindow : Window
         WireSplit(main);
         main.WindowIsActive = () => IsActive && WindowState != WindowState.Minimized;
         main.FlashTaskbar = Flash;
+        main.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainViewModel.ShowingShortcuts))
+                ShowShortcutList(main);
+        };
         main.Search.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(QuickSearchViewModel.IsOpen) && main.Search.IsOpen)
@@ -281,10 +286,24 @@ public partial class MainWindow : Window
         }
     }
 
+    // A click on the dimmed part closes the list; one inside the box is for the box.
     private void CloseShortcuts(object? sender, PointerPressedEventArgs e)
     {
-        if (DataContext is MainViewModel main)
+        if (ReferenceEquals(e.Source, sender) && DataContext is MainViewModel main)
             main.ShowingShortcuts = false;
+    }
+
+    // The list is built when F1 first asks for it, and let go when it closes, so it costs nothing at start-up.
+    private void ShowShortcutList(MainViewModel main)
+    {
+        if (!main.ShowingShortcuts)
+        {
+            ShortcutHost.Content = null;
+            return;
+        }
+        var list = new ShortcutListView { DataContext = main.ShortcutsPart };
+        ShortcutHost.Content = list;
+        Avalonia.Threading.Dispatcher.UIThread.Post(list.FocusSearch, Avalonia.Threading.DispatcherPriority.Background);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

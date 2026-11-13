@@ -11,7 +11,7 @@
     <!-- Down and Up move between rows, Enter opens one. Esc going back is in MainViewModel.GoBack. -->
     <StackPanel Spacing="18" IsVisible="{Binding IsListing}" c:ListKeys.IsEnabled="True">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center">
+        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center" ToolTip.Tip="Start a new one (Ctrl+N)">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
             <TextBlock Text="{Binding NewLabel}" />
@@ -81,7 +81,7 @@
                         Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
                   <Button.ContextMenu>
                     <ContextMenu>
-                      <MenuItem Header="Open" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Open" InputGesture="Enter" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}" />
                       <MenuItem Header="Make a copy" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).MakeCopyOfCommand}" CommandParameter="{Binding}" />
                       <MenuItem Header="Make an invoice from it" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).MakeInvoiceFromCommand}" CommandParameter="{Binding}" IsVisible="{Binding IsQuote}" />
                       <MenuItem Header="Email it" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).EmailFromCommand}" CommandParameter="{Binding}" IsVisible="{Binding InXero}" />

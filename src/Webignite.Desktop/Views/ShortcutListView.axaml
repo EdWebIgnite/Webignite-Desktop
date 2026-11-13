@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:layout="using:Webignite.Core.Layout"
+             x:Class="Webignite.Desktop.Views.ShortcutListView"
+             x:DataType="vm:ShortcutsPart">
+  <!-- The keyboard shortcuts under their headings, with a box to search them. F1 and Settings both show it. -->
+  <DockPanel>
+    <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Text="{Binding Search}" PlaceholderText="Search shortcuts, e.g. rename or Ctrl+K" Margin="0,0,0,10" />
+    <TextBlock DockPanel.Dock="Top" Classes="muted" Text="{Binding Nothing}" TextWrapping="Wrap"
+               IsVisible="{Binding Nothing, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Groups}" Margin="0,0,10,0">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="layout:ShortcutGroup">
+            <StackPanel Margin="0,0,0,14">
+              <TextBlock Classes="label" Text="{Binding Name}" Margin="0,0,0,4" />
+              <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="layout:Shortcut">
+                    <Grid ColumnDefinitions="190,*" Margin="0,4">
+                      <Border Grid.Column="0" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Line2}" BorderThickness="1"
+                              CornerRadius="5" Padding="7,2" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <TextBlock Text="{Binding Keys}" FontSize="{DynamicResource Text12}" FontWeight="SemiBold" />
+                      </Border>
+                      <TextBlock Grid.Column="1" Text="{Binding What}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

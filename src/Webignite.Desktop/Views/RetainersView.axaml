@@ -9,7 +9,7 @@
 
     <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center">
+        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center" ToolTip.Tip="New retainer (Ctrl+N)">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
             <TextBlock Text="New retainer" />
