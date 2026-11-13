@@ -3850,18 +3850,18 @@ SaveLooks("projects");
         Check("The board has a column per heading with its tasks as cards", projectsPage.IsBoard
             && projectsPage.Columns.Select(c => c.Section.Name).SequenceEqual(["No heading", "Design", "Build", "Launch"])
             && projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards.Count == 2);
-        // A repeating task ticked off by a real click on the tick: the one task stays, unticked, due a month on.
+        // A repeating task ticked off by a real click on the tick: the one task stays, done for now, due a month on.
         {
             var launchCard = projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards[0];
             var repeatTitle = launchCard.Title;
             services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Repeat = Webignite.Core.Projects.TaskRepeat.Monthly, Due = today });
             projectsPage.Refresh();
             Dispatcher.UIThread.RunJobs();
-            // True when there is still just the one task, not done, and due a month on.
+            // True when there is still just the one task, done for now, due a month on and back a week before.
             bool Copies()
             {
                 var all = services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle).ToList();
-                return all.Count == 1 && all[0].Id == launchCard.Task.Id && !all[0].Done && all[0].Due == today.AddMonths(1);
+                return all.Count == 1 && all[0].Id == launchCard.Task.Id && all[0].Done && all[0].Due == today.AddMonths(1) && all[0].BackOn == today.AddMonths(1).AddDays(-7);
             }
             void Settle()
             {
@@ -3875,7 +3875,7 @@ SaveLooks("projects");
             {
                 foreach (var made in services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle && t.Id != launchCard.Task.Id).ToList())
                     services.Projects.DeleteTask(made.Id);
-                services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Done = false, Due = today, RepeatFrom = null });
+                services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Done = false, Due = today, RepeatFrom = null, BackOn = null });
                 projectsPage.Refresh();
                 Settle();
             }
@@ -3900,7 +3900,7 @@ SaveLooks("projects");
             paneTick.IsChecked = true;
             Settle();
             var fromPane = Copies();
-            Check("Ticking a repeating task keeps the one task and moves it to its next date, wherever it is ticked", fromBoard && fromList && fromPane);
+            Check("Ticking a repeating task keeps the one task, done until a week before its next date, wherever it is ticked", fromBoard && fromList && fromPane);
             Check("And each time it was ticked is in its history",
                 services.Projects.Activity(launchCard.Task.Id).Count(a => a.Kind == Webignite.Core.Projects.ActivityKind.DoneThisTime) == 3);
             Save("projects-task-repeating-ticked");
@@ -4266,7 +4266,8 @@ SaveLooks("projects");
         projectsPage.Detail!.Repeat = ProjectsViewModel.Repeats.First(r => r.Value == Webignite.Core.Projects.TaskRepeat.Weekly);
         projectsPage.CloseTaskCommand.Execute(null);
         projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == repeating.Task.Id).Done = true;
-        Check("Ticking off a weekly task makes the next one, a week later", projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == repeating.Title && !r.Done
+        Check("Ticking off a weekly task keeps the one task, done until its next week", projectsPage.Rows.OfType<TaskRow>().Count(r => r.Title == repeating.Title) == 1
+            && projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == repeating.Title && r.Done && r.Task.BackOn is not null
             && r.Task.Due == repeating.Task.Due!.Value.AddDays(7) && r.Repeats));
         projectsPage.SaveAsTemplateCommand.Execute(null);
         Check("A project is kept as a template", projectsPage.Templates.Any(t => t.Name == "Bosveld Builders new website" && t.Headings.Count == 3));
@@ -4277,7 +4278,7 @@ SaveLooks("projects");
             && projectsPage.Sections.Select(x => x.Name).Skip(1).SequenceEqual(["Design", "Build", "Launch"])
             && projectsPage.Rows.OfType<TaskRow>().Any() && projectsPage.Rows.OfType<TaskRow>().All(r => !r.Done && r.Task.AssignedTo is null));
         Check("A new project from a template has no due date of its own", projectsPage.EditDue is null);
-        Check("A ticked repeating task isn't copied into a template, only its next one",
+        Check("A repeating task ticked off for now is still in a template, once",
             projectsPage.Rows.OfType<TaskRow>().Count(r => r.Title == repeating.Title) == 1);
         Save("projects-template");
 

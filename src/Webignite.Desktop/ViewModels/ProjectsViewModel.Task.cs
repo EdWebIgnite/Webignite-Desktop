@@ -70,8 +70,8 @@ public sealed partial class ProjectsViewModel
             return;
         }
         var tagsBefore = detail.Task.Tags;
-        // A repeating task ticked off stays the one task: it comes back not done, due on its next day.
-        var tickedOff = beforeTick.Count > 0 && detail.Done && !saved.Done;
+        // A repeating task ticked off stays the one task: done for now, with the day it comes back.
+        var tickedOff = beforeTick.Count > 0 && saved.BackOn is not null;
         detail.Problem = "";
         detail.Saved(saved, typed);
         // Typing in the title only renames the row; new tags change the filter's list, so everything is shown again.

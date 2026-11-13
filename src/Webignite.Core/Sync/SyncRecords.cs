@@ -153,7 +153,7 @@ public static class RecordMerge
         ["noteshtml"] = ["NotesHtml"], ["assigned"] = ["AssignedTo"], ["start"] = ["Start"], ["due"] = ["Due", "DueTime"], ["done"] = ["Done"],
         ["order"] = ["Order"], ["client"] = ["ClientId"], ["document"] = ["DocumentId"], ["mail"] = ["Mail"], ["priority"] = ["Priority"],
         ["tags"] = ["Tags"], ["repeat"] = ["Repeat", "RepeatEvery", "RepeatOn"], ["attachments"] = ["Attachments"], ["cover"] = ["CoverId"], ["milestone"] = ["Milestone"],
-        ["blockedby"] = ["BlockedBy"], ["values"] = ["Values"], ["repeatof"] = ["RepeatOf"], ["repeatfrom"] = ["RepeatFrom"],
+        ["blockedby"] = ["BlockedBy"], ["values"] = ["Values"], ["repeatof"] = ["RepeatOf"], ["repeatfrom"] = ["RepeatFrom"], ["backon"] = ["BackOn"],
     };
 
     private static readonly Dictionary<string, string[]> CommentMap = new(StringComparer.Ordinal) { ["text"] = ["Text", "Mentions"] };

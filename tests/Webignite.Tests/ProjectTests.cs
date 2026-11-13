@@ -990,29 +990,78 @@ public sealed class ProjectRepeatServiceTests : IDisposable
     }
 
     [Fact]
-    public void Ticking_off_a_repeating_task_keeps_the_one_task_and_moves_it_to_its_next_day()
+    public void Ticking_off_a_repeating_task_keeps_the_one_task_done_until_it_comes_back()
     {
         var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Hosting" }).Saved!;
-        var due = DateOnly.FromDateTime(DateTime.Today);
-        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Check backups", Repeat = TaskRepeat.Weekly, Due = due, Start = due.AddDays(-1) }).Saved!;
-        var sub = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, ParentId = task.Id, Title = "Restore one file", Due = due }).Saved!;
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Monthly maintenance", Repeat = TaskRepeat.Monthly, Due = today, Start = today.AddDays(-1) }).Saved!;
+        var sub = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, ParentId = task.Id, Title = "Update plugins", Due = today }).Saved!;
         projects.ChangeTask(sub.Id, t => t with { Done = true });
 
         var (ticked, problems) = projects.ChangeTask(task.Id, t => t with { Done = true });
 
         Assert.Empty(problems);
-        // The same task, not done again, a week on; no copy of it anywhere.
+        // The same task, done for now, with next month's date and the day it comes back; no copy anywhere.
+        var next = today.AddMonths(1);
+        var shift = next.DayNumber - today.DayNumber;
         Assert.Equal(task.Id, ticked!.Id);
-        Assert.False(ticked.Done);
-        Assert.Equal(due.AddDays(7), ticked.Due);
-        Assert.Equal(due.AddDays(6), ticked.Start);
+        Assert.True(ticked.Done);
+        Assert.Equal(next, ticked.Due);
+        Assert.Equal(today.AddDays(shift - 1), ticked.Start);
+        Assert.Equal(next.AddDays(-7), ticked.BackOn);
         var all = projects.AllTasks(project.Id);
-        Assert.Single(all, t => t.Title == "Check backups");
-        // Its subtask is the same one too, unticked and moved along for next time.
+        Assert.Single(all, t => t.Title == "Monthly maintenance");
         var again = Assert.Single(all, t => t.ParentId == task.Id);
         Assert.Equal(sub.Id, again.Id);
-        Assert.False(again.Done);
-        Assert.Equal(due.AddDays(7), again.Due);
+        Assert.Equal(today.AddDays(shift), again.Due);
+        // Off the person's to-do list meanwhile, and ticking it again does nothing more.
+        Assert.DoesNotContain(projects.Mine("eddie"), t => t.Id == task.Id);
+        projects.ChangeTask(task.Id, t => t with { Done = true });
+        Assert.Equal(next, projects.GetTask(task.Id)!.Due);
+        Assert.Single(projects.Activity(task.Id), a => a.Kind == ActivityKind.DoneThisTime);
+    }
+
+    [Fact]
+    public void A_repeating_task_comes_back_unticked_with_its_subtasks_when_its_day_arrives()
+    {
+        var day = new DateOnly(2026, 11, 13);
+        var task = new ProjectTask { Id = "t", ProjectId = "p", Title = "Monthly maintenance", Repeat = TaskRepeat.Monthly, Due = day };
+        var sub = new ProjectTask { Id = "s", ProjectId = "p", ParentId = "t", Title = "Update plugins", Done = true };
+        var ticked = ProjectRules.ForNextTime(task with { Done = true }, [sub], day);
+        Assert.Equal(new DateOnly(2026, 12, 6), ticked[0].BackOn);
+
+        Assert.Empty(ProjectRules.BackToday([.. ticked], new DateOnly(2026, 12, 5)));
+        var back = ProjectRules.BackToday([.. ticked], new DateOnly(2026, 12, 6));
+
+        Assert.Equal(2, back.Count);
+        Assert.All(back, t => Assert.False(t.Done));
+        Assert.Null(back[0].BackOn);
+        Assert.Equal(new DateOnly(2026, 12, 13), back[0].Due);
+    }
+
+    [Fact]
+    public void A_daily_or_weekly_one_comes_back_on_its_day_and_never_the_day_it_was_ticked()
+    {
+        var today = new DateOnly(2026, 11, 13);
+        Assert.Equal(today.AddDays(7), ProjectRules.ComesBack(today.AddDays(7), today));
+        Assert.Equal(today.AddDays(1), ProjectRules.ComesBack(today.AddDays(1), today));
+        Assert.Equal(today.AddDays(23), ProjectRules.ComesBack(today.AddDays(30), today));
+    }
+
+    [Fact]
+    public void Unticking_one_that_is_waiting_brings_it_back_now_on_its_next_date()
+    {
+        var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Hosting" }).Saved!;
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Monthly maintenance", Repeat = TaskRepeat.Monthly, Due = today }).Saved!;
+        projects.ChangeTask(task.Id, t => t with { Done = true });
+
+        var back = projects.ChangeTask(task.Id, t => t with { Done = false }).Saved!;
+
+        Assert.False(back.Done);
+        Assert.Null(back.BackOn);
+        Assert.Equal(today.AddMonths(1), back.Due);
+        Assert.Equal(0, projects.BringBackRepeating());
     }
 
     [Fact]
@@ -1023,16 +1072,16 @@ public sealed class ProjectRepeatServiceTests : IDisposable
         var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Monthly maintenance", Repeat = TaskRepeat.Monthly, Due = due }).Saved!;
 
         projects.ChangeTask(task.Id, t => t with { Done = true });
+        projects.ChangeTask(task.Id, t => t with { Done = false });
         projects.ChangeTask(task.Id, t => t with { Done = true });
 
         var done = projects.Activity(task.Id).Where(a => a.Kind == ActivityKind.DoneThisTime).ToList();
         Assert.Equal(2, done.Count);
         // One line each time, in place of "marked complete" and "changed the due date".
-        Assert.DoesNotContain(projects.Activity(task.Id), a => a.Kind is ActivityKind.Completed or ActivityKind.DueSet or ActivityKind.Reopened);
-        Assert.Equal(new DateOnly(2027, 1, 13), projects.GetTask(task.Id)!.Due);
+        Assert.DoesNotContain(projects.Activity(task.Id), a => a.Kind is ActivityKind.Completed or ActivityKind.DueSet);
         var en = System.Globalization.CultureInfo.GetCultureInfo("en-ZA");
-        Assert.Equal("ticked this off for 13 Nov 2026; it repeats, so it is due again on 13 Dec 2026",
-            TaskTalk.Describe(done[0], _ => "", en));
+        Assert.StartsWith("ticked this off for 13 Nov 2026; it repeats, so it is due again on",
+            TaskTalk.Describe(done.OrderBy(a => a.At.At).First(), _ => "", en), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1043,8 +1092,9 @@ public sealed class ProjectRepeatServiceTests : IDisposable
 
         var ticked = projects.ChangeTask(task.Id, t => t with { Done = true }).Saved!;
 
-        Assert.False(ticked.Done);
+        Assert.True(ticked.Done);
         Assert.Equal(DateOnly.FromDateTime(DateTime.Today).AddDays(7), ticked.Due);
+        Assert.Equal(ticked.Due, ticked.BackOn);
         Assert.StartsWith("ticked this off; it repeats", TaskTalk.Describe(Assert.Single(projects.Activity(task.Id), a => a.Kind == ActivityKind.DoneThisTime), _ => "", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 

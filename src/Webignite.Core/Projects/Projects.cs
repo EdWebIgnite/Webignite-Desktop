@@ -345,6 +345,12 @@ public sealed record ProjectTask : ITracked
     public DateOnly? RepeatFrom { get; init; }
 
     /// <summary>
+    /// For a repeating task ticked off: the day it comes back onto the lists, unticked, for its next time. Until
+    /// then it shows as done with its next due date. Null when it isn't waiting to come back.
+    /// </summary>
+    public DateOnly? BackOn { get; init; }
+
+    /// <summary>
     /// Who follows it, as Asana's collaborators, by teammate id: they hear about its comments and changes in
     /// Inbox. Whoever makes it, is given it, comments on it or is mentioned on it follows it.
     /// </summary>
@@ -706,19 +712,48 @@ public static class ProjectRules
         })];
     }
 
+    /// <summary>How many days before it is next due a repeating task comes back onto the lists.</summary>
+    public const int BackDaysBefore = 7;
+
     /// <summary>
-    /// A repeating task ticked off, ready for next time: the same task, not done again, due on its next day, its
-    /// start moved by the same step, with its subtasks unticked and their dates moved along too. No copy is made;
-    /// the task's history keeps that it was done. The task comes first. Empty when it doesn't repeat.
+    /// A repeating task ticked off: the same task, shown as done, with its next due date and the day it comes
+    /// back unticked (<see cref="ProjectTask.BackOn"/>), its start moved by the same step and its subtasks' dates
+    /// moved along too. No copy is made; the task's history keeps that it was done. The task comes first. Empty
+    /// when it doesn't repeat.
     /// </summary>
     public static IReadOnlyList<ProjectTask> ForNextTime(ProjectTask done, IEnumerable<ProjectTask> subtasks, DateOnly today)
     {
         if (NextDue(done, today) is not { } due)
             return [];
         var shift = due.Due.DayNumber - (done.Due ?? today).DayNumber;
-        var again = done with { Done = false, Due = due.Due, RepeatFrom = due.Anchor, Start = done.Start?.AddDays(shift) };
+        var again = done with { Done = true, Due = due.Due, RepeatFrom = due.Anchor, Start = done.Start?.AddDays(shift), BackOn = ComesBack(due.Due, today) };
         return [again, .. subtasks.Where(t => t.Deleted is null && t.ParentId == done.Id).OrderBy(t => t.Order)
-            .Select(t => t with { Done = false, Start = t.Start?.AddDays(shift), Due = t.Due?.AddDays(shift) })];
+            .Select(t => t with { Start = t.Start?.AddDays(shift), Due = t.Due?.AddDays(shift) })];
+    }
+
+    /// <summary>
+    /// The day a repeating task ticked off today comes back: a week before it is next due, or on the day itself
+    /// when that is less than a week off (a daily or weekly one), so it is never back the moment it is ticked.
+    /// </summary>
+    public static DateOnly ComesBack(DateOnly nextDue, DateOnly today)
+    {
+        var early = nextDue.AddDays(-BackDaysBefore);
+        return early > today ? early : nextDue > today ? nextDue : today.AddDays(1);
+    }
+
+    /// <summary>
+    /// The repeating tasks whose day to come back has arrived, unticked, each followed by its subtasks unticked
+    /// for the new round. Empty when none is due back.
+    /// </summary>
+    public static IReadOnlyList<ProjectTask> BackToday(IReadOnlyCollection<ProjectTask> tasks, DateOnly today)
+    {
+        var back = new List<ProjectTask>();
+        foreach (var task in tasks.Where(t => t.Deleted is null && t.BackOn is { } on && on <= today))
+        {
+            back.Add(task with { Done = false, BackOn = null });
+            back.AddRange(tasks.Where(t => t.Deleted is null && t.ParentId == task.Id && t.Done).Select(t => t with { Done = false }));
+        }
+        return back;
     }
 
     /// <summary>Whether a repeating task already has its next one, not deleted, so ticking it again makes no other.</summary>
@@ -819,8 +854,8 @@ public static class ProjectRules
     public static ProjectTemplate TemplateOf(string name, IEnumerable<Heading> headings, IEnumerable<ProjectTask> tasks, IReadOnlyList<CustomField>? fields = null)
     {
         var live = headings.Where(h => h.Deleted is null).OrderBy(h => h.Order).ToList();
-        // A repeating task already ticked off has a next one carrying on, so only that one goes in.
-        var all = tasks.Where(t => t.Deleted is null && !(t.Done && t.Repeat != TaskRepeat.None)).ToList();
+        // An old done copy of a repeating task (from when ticking made a new one) stays out; one ticked off for now goes in.
+        var all = tasks.Where(t => t.Deleted is null && !(t.Done && t.Repeat != TaskRepeat.None && t.BackOn is null)).ToList();
         var top = Sections(live, all).SelectMany(s => s.Tasks).ToList();
         IReadOnlyList<ProjectTask> SubtasksOf(ProjectTask t) => [.. all.Where(s => s.ParentId == t.Id).OrderBy(s => s.Order)];
         var dates = top.SelectMany(t => new[] { t.Start, t.Due }).OfType<DateOnly>().ToList();
@@ -1012,7 +1047,7 @@ public static class ProjectRules
         ("assigned", t => t.AssignedTo), ("start", t => t.Start), ("due", t => t.Due), ("done", t => t.Done), ("order", t => t.Order),
         ("client", t => t.ClientId), ("document", t => t.DocumentId), ("mail", t => t.Mail), ("priority", t => t.Priority), ("tags", t => t.Tags), ("repeat", t => t.Repeat),
         ("attachments", t => t.Attachments), ("cover", t => t.CoverId), ("milestone", t => t.Milestone), ("blockedby", t => t.BlockedBy), ("values", t => t.Values),
-        ("repeatof", t => t.RepeatOf), ("repeatfrom", t => t.RepeatFrom),
+        ("repeatof", t => t.RepeatOf), ("repeatfrom", t => t.RepeatFrom), ("backon", t => t.BackOn),
     ];
 
     // Lists of people (who follows, who liked) are stamped per person, as "follower:{id}", so two people joining

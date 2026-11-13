@@ -123,7 +123,6 @@ public sealed class FollowersLikesTests : IDisposable
         projects.LikeTask(task.Id, true);
         var again = projects.ChangeTask(task.Id, t => t with { Done = true }).Saved!;
         Assert.Equal(task.Id, again.Id);
-        Assert.False(again.Done);
         Assert.Equal(["eddie", "lize"], again.Followers);
         Assert.Equal(["eddie"], again.LikedBy);
     }
