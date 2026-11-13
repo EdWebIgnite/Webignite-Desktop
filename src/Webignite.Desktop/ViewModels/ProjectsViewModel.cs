@@ -835,8 +835,8 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             Summary = SummaryOf(services.Projects.AllTasks(project.Id));
         if (IsOverview)
             OverviewPart.LoadOverview();
-        // A repeating task ticked off stays the one task: it comes back not done, due on its next day.
-        if (beforeTick.Count > 0 && !wasDone && row.Done && !saved.Done)
+        // A repeating task ticked off stays the one task: done for now, with the day it comes back.
+        if (beforeTick.Count > 0 && !wasDone && saved.BackOn is not null)
         {
             ShowTasks();
             if (Detail is { } shown && shown.Task.Id == saved.Id)
@@ -862,21 +862,21 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             : [task, .. services.Projects.AllTasks(task.ProjectId).Where(t => t.ParentId == task.Id)];
 
     /// <summary>
-    /// Says what ticking a repeating task did: it is done for this time and due again on its next day, with a way
-    /// back. Without it the task springing back unticked reads as the tick not having taken. Undo puts the task
-    /// and its subtasks back as they were; the line in its history stays.
+    /// Says what ticking a repeating task did: it is done for this time and comes back onto the lists on a day
+    /// shortly before it is next due, with a way back. Undo puts the task and its subtasks back as they were; the
+    /// line in its history stays.
     /// </summary>
     internal void SayDoneForNow(IReadOnlyList<ProjectTask> before, ProjectTask saved)
     {
         var culture = System.Globalization.CultureInfo.CurrentCulture;
         var doneFor = before[0].Due is { } was ? $" for {was.ToString("d MMMM", culture)}" : "";
-        var next = saved.Due is { } on ? $", so it is due again on {on.ToString("d MMMM", culture)}" : "";
-        services.OfferUndo($"Done{doneFor}. It repeats{next}", () =>
+        var back = saved.BackOn is { } on ? $" Back on {on.ToString("d MMMM", culture)}." : "";
+        services.OfferUndo($"Done{doneFor}.{back}", () =>
         {
             Ours(() =>
             {
                 foreach (var old in before)
-                    services.Projects.ChangeTask(old.Id, t => t with { Done = old.Done, Due = old.Due, Start = old.Start, RepeatFrom = old.RepeatFrom });
+                    services.Projects.ChangeTask(old.Id, t => t with { Done = old.Done, Due = old.Due, Start = old.Start, RepeatFrom = old.RepeatFrom, BackOn = old.BackOn });
                 return true;
             });
             ShowTasks();

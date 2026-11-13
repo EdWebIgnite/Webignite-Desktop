@@ -130,6 +130,8 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
         {
             lastBackupLook = now;
             services.BackUpAsync().Forget("Backing up");
+            // And repeating tasks ticked off earlier come back onto the lists when their day arrives.
+            services.Projects.BringBackRepeating();
         }
         // Lists kept unlocked for quick reading are let go once nothing has asked for them for a few minutes.
         services.Store.LetGoOfUnused(TimeSpan.FromMinutes(3));

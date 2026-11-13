@@ -149,7 +149,11 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
     }
 
     /// <summary>Open tasks and subtasks given to this person, in projects that aren't done (see <see cref="ProjectRules.Mine"/>).</summary>
-    public IReadOnlyList<ProjectTask> Mine(string meId) => ProjectRules.Mine(store.ListProjectTasks(), store.ListProjects(), meId);
+    public IReadOnlyList<ProjectTask> Mine(string meId)
+    {
+        BringBackIfNewDay();
+        return ProjectRules.Mine(store.ListProjectTasks(), store.ListProjects(), meId);
+    }
 
     /// <summary>This person's tasks due in a range, for Calendar, Planner and Today.</summary>
     public IReadOnlyList<Webignite.Core.Calendar.AgendaItem> Agenda(DateOnly from, DateOnly to, string meId) =>
@@ -211,8 +215,11 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
     // Tasks
 
     /// <summary>A project's tasks and subtasks, not deleted, in their order.</summary>
-    public IReadOnlyList<ProjectTask> AllTasks(string projectId) =>
-        [.. store.ListProjectTasks().Where(t => t.ProjectId == projectId && t.Deleted is null).OrderBy(t => t.Order)];
+    public IReadOnlyList<ProjectTask> AllTasks(string projectId)
+    {
+        BringBackIfNewDay();
+        return [.. store.ListProjectTasks().Where(t => t.ProjectId == projectId && t.Deleted is null).OrderBy(t => t.Order)];
+    }
 
     public ProjectTask? GetTask(string id) => store.GetProjectTask(id) is { Deleted: null } task ? task : null;
 
@@ -252,6 +259,9 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
             : [];
         if (TickedOffForNow(current, changed, now) is { } again)
             return (again, []);
+        // Unticked by hand while waiting to come back: it is back now, on the date it was moved to.
+        if (current.Done && !changed.Done)
+            changed = changed with { BackOn = null };
         var saved = ProjectRules.Stamped(current, TaskTalk.Followed(current, changed, now.By), now);
         store.SaveProjectWork([], [], [saved, .. subtasks]);
         Record(current, saved, now);
@@ -260,8 +270,8 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
     }
 
     /// <summary>
-    /// A repeating task just ticked off stays the one task: it is not done again, due on its next day, with its
-    /// subtasks unticked for next time, and its history keeps that it was done and for which day. Null when the
+    /// A repeating task just ticked off stays the one task: it shows as done with its next due date until the day
+    /// it comes back (<see cref="BringBackRepeating"/>), and its history keeps that it was done and for which day. Null when the
     /// change isn't that (the task doesn't repeat, is a subtask, or wasn't ticked off by it).
     /// </summary>
     private ProjectTask? TickedOffForNow(ProjectTask before, ProjectTask ticked, Stamp now)
@@ -278,13 +288,45 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         store.SaveProjectWork([], [], [saved, .. subtasks]);
         // Whatever else the change did (a rename, a new assignee) is kept as usual; the tick and the date it moved
         // the task to are one line of their own, not "marked complete" and "changed the due date".
-        var untouched = ticked with { Done = before.Done, Due = before.Due };
+        var untouched = ticked with { Done = before.Done, Due = before.Due, BackOn = before.BackOn };
         var headings = Headings(saved.ProjectId).ToDictionary(h => h.Id, h => h.Name);
         foreach (var (kind, value) in TaskTalk.Changes(before, untouched, id => id is null ? null : headings.GetValueOrDefault(id), id => Get(id)?.Name))
             store.SaveActivity(new TaskActivity(ProjectRules.NewId(), saved.Id, saved.ProjectId, now, kind, value));
         store.SaveActivity(new TaskActivity(ProjectRules.NewId(), saved.Id, saved.ProjectId, now, ActivityKind.DoneThisTime, TaskTalk.DoneThisTimeValue(before.Due, saved.Due!.Value)));
         Changed?.Invoke(before.ProjectId);
         return saved;
+    }
+
+    private DateOnly broughtBackFor;
+
+    /// <summary>
+    /// Unticks the repeating tasks whose day to come back has arrived, with their subtasks, so they are on the
+    /// lists again for their next time. Returns how many came back. Cheap when none is due.
+    /// </summary>
+    public int BringBackRepeating(bool tell = true)
+    {
+        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        broughtBackFor = today;
+        var all = store.ListProjectTasks();
+        var back = ProjectRules.BackToday(all, today);
+        if (back.Count == 0)
+            return 0;
+        var now = Now();
+        var byId = all.ToDictionary(t => t.Id);
+        store.SaveProjectWork([], [], [.. back.Select(t => ProjectRules.Stamped(byId[t.Id], t, now))]);
+        if (tell)
+        {
+            foreach (var project in back.Select(t => t.ProjectId).Distinct())
+                Changed?.Invoke(project);
+        }
+        return back.Count(t => t.ParentId is null);
+    }
+
+    // The first read of tasks on a new day brings back what is due, so a list never shows yesterday's state.
+    private void BringBackIfNewDay()
+    {
+        if (broughtBackFor != DateOnly.FromDateTime(clock.GetLocalNow().DateTime))
+            BringBackRepeating(tell: false);
     }
 
     /// <summary>Adds a custom field to a project, as Asana's; a choice field takes its options from what's typed.</summary>
