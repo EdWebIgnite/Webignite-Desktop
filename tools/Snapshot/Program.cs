@@ -4799,58 +4799,100 @@ SaveLooks("planner-home");
             Check("A client's mail widget lists the mail to and from that client only, wherever it is filed",
                 clientMail.IsForClient && clientMail.Lines.Count > 0 && clientMail.Lines.All(l => l.From.Contains("Lerato", StringComparison.Ordinal) || l.From.Contains("Eddie", StringComparison.Ordinal))
                 && clientMail.Title!.StartsWith("Mail, Fynbos Physio", StringComparison.Ordinal));
-            Of(WidgetKind.NeedsYou).Wear("#FDDDBE", WidgetTint.Wash);
-            Of(WidgetKind.Mail).Wear("#C6E3F7", WidgetTint.Heading);
-            Of(WidgetKind.MyTasks).Wear("#E2D2F5", WidgetTint.Line);
-            Of(WidgetKind.ClientMail).Wear("#C5ECDB", WidgetTint.Wash, 100);
+            // Heading, body and top line each take a colour of their own.
+            Of(WidgetKind.NeedsYou).Wear(new TileLook { Head = "#FBCFC0", Body = "#FDDDBE" });
+            Of(WidgetKind.Mail).Wear(new TileLook { Head = "#C6E3F7" });
+            Of(WidgetKind.MyTasks).Wear(new TileLook { Line = "#D3D1F8", Body = "#EFD0EE", Strength = 40 });
+            Of(WidgetKind.ClientMail).Wear(new TileLook { Head = "#CFE3CC", Body = "#C5ECDB", Line = "#C2EBEB", Strength = 100 });
             Dispatcher.UIThread.RunJobs();
             var kept = services.Settings.MyPages.Single(p => p.Name == "Morning").Widgets;
-            Check("A widget's colour, how it wears it and its intensity are kept with the page",
-                kept.Single(w => w.Kind == WidgetKind.Mail) is { Colour: "#C6E3F7", Tint: WidgetTint.Heading, Strength: WidgetLooks.UsualStrength }
-                && kept.Single(w => w.Kind == WidgetKind.ClientMail) is { Colour: "#C5ECDB", Tint: WidgetTint.Wash, Strength: 100 });
+            Check("A widget's heading, body and line colours and their intensity are kept with the page",
+                kept.Single(w => w.Kind == WidgetKind.Mail).Look is { Head: "#C6E3F7", Body: null, Line: null, Strength: WidgetLooks.UsualStrength }
+                && kept.Single(w => w.Kind == WidgetKind.ClientMail).Look is { Head: "#CFE3CC", Body: "#C5ECDB", Line: "#C2EBEB", Strength: 100 });
             var parts = window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.TintedPart>().ToList();
-            Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Surface", window.ActualThemeVariant, out var surfaceBrush);
-            var surface = ((Avalonia.Media.ISolidColorBrush)surfaceBrush!).Color;
-            // Even the faintest writing on a widget must still be read, whatever colour and intensity were picked.
+            Avalonia.Media.Color Resource(string key)
+            {
+                Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, key, window.ActualThemeVariant, out var brush);
+                return ((Avalonia.Media.ISolidColorBrush)brush!).Color;
+            }
+            var surface = Resource("Surface");
+            // Even the faintest writing on a tile must still be read, whatever colour and intensity were picked.
             bool Readable(Avalonia.Media.Color on)
             {
-                Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Muted", window.ActualThemeVariant, out var textBrush);
-                var text = ((Avalonia.Media.ISolidColorBrush)textBrush!).Color;
+                var text = Resource("Muted");
                 return Webignite.Core.Tools.Colours.Contrast(new(on.R, on.G, on.B), new(text.R, text.G, text.B)) >= WidgetLooks.LeastContrast;
             }
-            var washed = parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Card && t.Colour == "#FDDDBE").ToList();
-            Check("A washed widget takes its pastel and the writing on it can still be read",
-                washed.Count == 1 && washed.All(t => t.Background is Avalonia.Media.ISolidColorBrush b && b.Color != surface && Readable(b.Color)));
-            Of(WidgetKind.NeedsYou).Wear("#2B1A66", WidgetTint.Wash, 100);
+            IEnumerable<Avalonia.Media.Color> Painted(WidgetKind kind, Webignite.Desktop.Controls.TintPart part) =>
+                parts.Where(t => t.Part == part && ReferenceEquals(t.DataContext, Of(kind))).Select(t => t.Background).OfType<Avalonia.Media.ISolidColorBrush>().Select(b => b.Color);
+            var (needsHead, needsBody) = (Painted(WidgetKind.NeedsYou, Webignite.Desktop.Controls.TintPart.Head).Single(), Painted(WidgetKind.NeedsYou, Webignite.Desktop.Controls.TintPart.Card).Single());
+            Check("A widget's heading and body show their own colours, and the writing on both can be read",
+                needsHead != needsBody && needsHead != surface && needsBody != surface && Readable(needsHead) && Readable(needsBody));
+            Check("A widget with only its heading coloured has a plain body",
+                Painted(WidgetKind.Mail, Webignite.Desktop.Controls.TintPart.Head).Single() != surface && Painted(WidgetKind.Mail, Webignite.Desktop.Controls.TintPart.Card).Single() == surface);
+            Of(WidgetKind.NeedsYou).Wear(new TileLook { Head = "#2B1A66", Body = "#102040", Strength = 100 });
             Dispatcher.UIThread.RunJobs();
-            Check("A dark colour set to full is held back to a tint the writing can be read on",
-                parts.Where(t => t.Colour == "#2B1A66" && t.Part != Webignite.Desktop.Controls.TintPart.Line).All(t => t.Background is Avalonia.Media.ISolidColorBrush b && Readable(b.Color)));
-            Of(WidgetKind.NeedsYou).Wear("#FDDDBE", WidgetTint.Wash);
+            Check("Dark colours set to full are held back to tints the writing can be read on",
+                Painted(WidgetKind.NeedsYou, Webignite.Desktop.Controls.TintPart.Head).All(Readable) && Painted(WidgetKind.NeedsYou, Webignite.Desktop.Controls.TintPart.Card).All(Readable));
+            Of(WidgetKind.NeedsYou).Wear(new TileLook { Head = "#FBCFC0", Body = "#FDDDBE" });
             Dispatcher.UIThread.RunJobs();
             Save("my-pages-colours");
-            // The same page in a dark look: the tints are mixed into the dark surface, so they stay quiet there too.
+            // The same page in a dark look: the colours are mixed into the dark surface, so they are deep tints there.
             {
                 var light = services.Settings.Appearance;
                 services.Settings.Appearance = light with { Theme = Theme.Dark };
                 Dispatcher.UIThread.RunJobs();
-                Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Surface", window.ActualThemeVariant, out var darkBrush);
-                var dark = ((Avalonia.Media.ISolidColorBrush)darkBrush!).Color;
-                Check("In a dark look the same pastel is a deep tint the writing can be read on",
-                    parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Card && t.Colour == "#FDDDBE").All(t => t.Background is Avalonia.Media.ISolidColorBrush b
-                        && b.Color != surface && Readable(b.Color)));
+                Check("In a dark look the same pastels are deep tints the writing can be read on",
+                    Painted(WidgetKind.NeedsYou, Webignite.Desktop.Controls.TintPart.Card).All(c => c != needsBody && Readable(c)));
                 Save("my-pages-colours-dark");
                 services.Settings.Appearance = light;
                 Dispatcher.UIThread.RunJobs();
             }
             var view = window.GetVisualDescendants().OfType<MyPagesView>().First();
-            var picker = new Avalonia.Controls.Window { Width = 360, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(14), Content = view.ColourPicture(Of(WidgetKind.Mail)) };
+            var picker = new Avalonia.Controls.Window { Width = 360, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(14), Content = view.ColourPicture(Of(WidgetKind.NeedsYou)) };
             picker.Show();
             SaveWindow(picker, "my-pages-colour-picker");
             picker.Close();
-            Of(WidgetKind.Mail).Wear(null, WidgetTint.Wash);
+            Of(WidgetKind.Mail).Wear(null);
             Dispatcher.UIThread.RunJobs();
-            Check("No colour makes a widget plain again", parts.Where(t => t.Part == Webignite.Desktop.Controls.TintPart.Head && t.DataContext == Of(WidgetKind.Mail)).All(t => !t.IsSet(Avalonia.Controls.Border.BackgroundProperty))
-                && services.Settings.MyPages.Single(p => p.Name == "Morning").Widgets.Single(w => w.Kind == WidgetKind.Mail).Colour is null);
+            Check("No colours at all makes a widget plain again", !Painted(WidgetKind.Mail, Webignite.Desktop.Controls.TintPart.Head).Any(c => c != surface)
+                && services.Settings.MyPages.Single(p => p.Name == "Morning").Widgets.Single(w => w.Kind == WidgetKind.Mail).Look is null);
+        }
+        // Any card in the app can be coloured the same way, by a right-click on its heading.
+        {
+            Webignite.Desktop.Controls.TileColours.Watch();
+            Open(Page.SiteCheck);
+            Dispatcher.UIThread.RunJobs();
+            Avalonia.Controls.Border Card(string heading) => window.GetVisualDescendants().OfType<Avalonia.Controls.Border>()
+                .First(b => b.Classes.Contains("card") && b.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => t.Classes.Contains("h2") && t.Text == heading));
+            var free = Card("Is a domain free?");
+            var before = free.Background;
+            Avalonia.Controls.ResourceNodeExtensions.TryFindResource(window, "Surface", window.ActualThemeVariant, out var surfaceBrushNow);
+            var surfaceNow = ((Avalonia.Media.ISolidColorBrush)surfaceBrushNow!).Color;
+            bool Plain(Avalonia.Controls.Border card) => card.Background is Avalonia.Media.ISolidColorBrush b && b.Color == surfaceNow && ReferenceEquals(card.Background, before);
+            Check("A card nobody coloured is left exactly as its style draws it", Webignite.Desktop.Controls.TileColours.LookOf(free) is null && Plain(free));
+            Webignite.Desktop.Controls.TileColours.Wear(free, new TileLook { Head = "#C6E3F7", Body = "#E2D2F5", Line = "#CBD8F7", Strength = 90 });
+            Dispatcher.UIThread.RunJobs();
+            Check("A coloured card has its heading's colour above its body's, painted as one background, and is kept",
+                free.Background is Avalonia.Media.LinearGradientBrush { GradientStops.Count: >= 4 } && services.Settings.TileLooks.Count == 1
+                && Webignite.Desktop.Controls.TileColours.LookOf(free) is { Head: "#C6E3F7", Body: "#E2D2F5", Strength: 90 });
+            Save("card-colours");
+            var cardPicker = new Avalonia.Controls.Window { Width = 360, SizeToContent = Avalonia.Controls.SizeToContent.Height, Padding = new Avalonia.Thickness(14), Content = Webignite.Desktop.Controls.TileColours.Picker(free, () => { }) };
+            cardPicker.Show();
+            SaveWindow(cardPicker, "card-colour-picker");
+            cardPicker.Close();
+            // Left and come back to: the page is built again and the card is painted as it comes on screen.
+            var name = Webignite.Desktop.Controls.TileColours.Key(free);
+            Open(Page.Overview);
+            Open(Page.SiteCheck);
+            Dispatcher.UIThread.RunJobs();
+            var again = Card("Is a domain free?");
+            Check("The card is known by the same name each time its page is opened, and is painted again",
+                Webignite.Desktop.Controls.TileColours.Key(again) == name && again.Background is Avalonia.Media.LinearGradientBrush
+                && window.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Count(b => b.Classes.Contains("card") && b.Background is Avalonia.Media.LinearGradientBrush) == 1);
+            Webignite.Desktop.Controls.TileColours.Wear(again, null);
+            Dispatcher.UIThread.RunJobs();
+            Check("No colours at all makes the card plain again and nothing is kept",
+                again.Background is Avalonia.Media.ISolidColorBrush plain && plain.Color == surfaceNow && services.Settings.TileLooks.Count == 0);
         }
         window.Width = 1280;
         window.Height = 860;

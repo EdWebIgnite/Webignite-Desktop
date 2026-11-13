@@ -19,7 +19,7 @@ public enum WidgetKind
     ClientMail,
 }
 
-/// <summary>How a widget wears its colour. None is a solid fill: a page of solid blocks is as tiring as a page of white ones.</summary>
+/// <summary>How a widget coloured before its parts could be picked apart wore its one colour. Kept only to read those widgets (<see cref="WidgetLooks.Of"/>).</summary>
 public enum WidgetTint
 {
     /// <summary>The whole widget in a faint wash of the colour, its heading a little deeper.</summary>
@@ -58,6 +58,13 @@ public sealed record Widget
     /// the bright category colours as a faint wash.
     /// </summary>
     public int Strength { get; init; }
+
+    /// <summary>
+    /// Its heading, body and top line colours, each picked on its own. Null for a plain widget, and for one
+    /// coloured before the parts could be picked apart, which <see cref="WidgetLooks.Of"/> reads from the three
+    /// fields above.
+    /// </summary>
+    public TileLook? Look { get; init; }
 }
 
 /// <summary>A page the person made: a name in the sidebar and the widgets on it.</summary>
@@ -166,14 +173,11 @@ public static class MyPages
         page with { Widgets = [.. page.Widgets.Where(w => w.Id != id)] };
 
     /// <summary>Puts the Files widget on another folder.</summary>
-    /// <summary>
-    /// A widget's colour, how it wears it and how strongly. The colour is a pastel's code, any colour code typed in,
-    /// or one of the category colours by name; anything else, or none, makes the widget plain again.
-    /// </summary>
-    public static MyPage SetLook(MyPage page, string id, string? colour, WidgetTint tint, int strength = WidgetLooks.UsualStrength) => page with
+    /// <summary>A widget's colours and their intensity, kept in the one place; a plain look clears them.</summary>
+    public static MyPage SetLook(MyPage page, string id, TileLook? look) => page with
     {
         Widgets = [.. page.Widgets.Select(w => w.Id == id
-            ? w with { Colour = WidgetLooks.Known(colour), Tint = tint, Strength = strength == 0 ? 0 : WidgetLooks.Strength(strength) }
+            ? w with { Look = TileLook.Tidied(look), Colour = null, Tint = WidgetTint.Wash, Strength = 0 }
             : w)],
     };
 
@@ -316,12 +320,35 @@ public sealed record OverviewParts
     public static MyPage EmptyBoard() => new() { Id = BoardId, Name = "Overview", Grid = MyPages.Columns };
 }
 
-/// <summary>How much of its colour each part of a widget takes, from none (0) to all of it (1), mixed into the page's own surface.</summary>
-/// <param name="Body">The widget's background.</param>
-/// <param name="Head">The band behind its heading.</param>
-/// <param name="Edge">Its outline.</param>
-/// <param name="Line">The line along its top.</param>
-public sealed record WidgetShade(double Body, double Head, double Edge, double Line);
+/// <summary>
+/// The colours of a tile: a widget on the person's own pages, or any card in the app. The band behind its heading,
+/// its body and a line along its top are each picked on their own, or left plain (null). A colour is a code such
+/// as #C6E3F7, or one of the category colours by name.
+/// </summary>
+public sealed record TileLook
+{
+    public string? Head { get; init; }
+    public string? Body { get; init; }
+    public string? Line { get; init; }
+
+    /// <summary>How strongly the heading and body colours show, 10 to 100 (percent).</summary>
+    public int Strength { get; init; } = WidgetLooks.UsualStrength;
+
+    public bool IsPlain => Head is null && Body is null && Line is null;
+
+    /// <summary>A look with only colours that can be kept and an intensity on the scale; null when nothing is coloured.</summary>
+    public static TileLook? Tidied(TileLook? look)
+    {
+        if (look is null)
+            return null;
+        var tidy = new TileLook
+        {
+            Head = WidgetLooks.Known(look.Head), Body = WidgetLooks.Known(look.Body), Line = WidgetLooks.Known(look.Line),
+            Strength = WidgetLooks.Strength(look.Strength),
+        };
+        return tidy.IsPlain ? null : tidy;
+    }
+}
 
 /// <summary>A pastel offered for widgets: its name and colour code.</summary>
 public sealed record Pastel(string Name, string Hex);
@@ -360,13 +387,6 @@ public static class WidgetLooks
     /// <summary>The least the writing may stand out from a widget's colour (the usual rule for body text).</summary>
     public const double LeastContrast = 4.5;
 
-    public static string Label(WidgetTint tint) => tint switch
-    {
-        WidgetTint.Wash => "Soft wash",
-        WidgetTint.Heading => "Heading only",
-        _ => "Top line",
-    };
-
     /// <summary>A colour as it is kept: a category colour's name, or a code as #RRGGBB. Null for anything else.</summary>
     public static string? Known(string? colour)
     {
@@ -386,26 +406,26 @@ public static class WidgetLooks
     public static int Strength(int typed) =>
         Math.Clamp((int)Math.Round(typed / (double)StrengthStep) * StrengthStep, LeastStrength, MostStrength);
 
+    /// <summary>The share of a colour a heading or body takes at an intensity: 70 is seven tenths of the way from the surface to the colour.</summary>
+    public static double Share(int strength) => Strength(strength) / 100.0;
+
     /// <summary>
-    /// How much of the colour each part takes at an intensity. At full intensity a wash's heading is the colour
-    /// itself and its body a little under it; "heading only" leaves the body plain. An intensity of 0 is a widget
-    /// coloured before intensities, which keeps the faint wash of a bright colour it had.
+    /// A widget's look. One coloured before its parts could be picked apart had a single colour and a way of
+    /// wearing it, which is read as the parts it coloured: a wash was heading and body, and so on.
     /// </summary>
-    public static WidgetShade Shade(WidgetTint tint, int strength = 0)
+    public static TileLook? Of(Widget widget)
     {
-        if (strength <= 0)
-            return tint switch
-            {
-                WidgetTint.Wash => new(0.07, 0.15, 0.30, 0),
-                WidgetTint.Heading => new(0, 0.18, 0.24, 0),
-                _ => new(0, 0, 0, 1),
-            };
-        var s = Strength(strength) / 100.0;
-        return tint switch
+        if (widget.Look is not null)
+            return TileLook.Tidied(widget.Look);
+        if (Known(widget.Colour) is not { } colour)
+            return null;
+        // The first coloured widgets were a faint wash of a bright colour: the lowest intensities keep them quiet.
+        var strength = widget.Strength > 0 ? widget.Strength : widget.Tint == WidgetTint.Wash ? LeastStrength : 2 * LeastStrength;
+        return widget.Tint switch
         {
-            WidgetTint.Wash => new(0.65 * s, s, s, 0),
-            WidgetTint.Heading => new(0, s, 0.8 * s, 0),
-            _ => new(0, 0, 0, 1),
+            WidgetTint.Wash => new TileLook { Head = colour, Body = colour, Strength = strength },
+            WidgetTint.Heading => new TileLook { Head = colour, Strength = strength },
+            _ => new TileLook { Line = colour, Strength = strength },
         };
     }
 
