@@ -69,6 +69,7 @@ public sealed partial class ProjectsViewModel
             return;
         }
         var tagsBefore = detail.Task.Tags;
+        var tickedOff = !detail.Task.Done && saved.Done && saved.Repeat != TaskRepeat.None;
         detail.Problem = "";
         detail.Saved(saved, typed);
         // Typing in the title only renames the row; new tags change the filter's list, so everything is shown again.
@@ -81,6 +82,8 @@ public sealed partial class ProjectsViewModel
         {
             ShowTasks();
         }
+        if (tickedOff)
+            SayNextWasMade(saved);
     }
 
     internal void AddSubtask(string title)

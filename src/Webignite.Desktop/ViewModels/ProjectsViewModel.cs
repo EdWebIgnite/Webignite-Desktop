@@ -838,6 +838,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         if (!wasDone && saved.Done && saved.Repeat != TaskRepeat.None)
         {
             ShowTasks();
+            SayNextWasMade(saved);
             if (Detail is { } shown && shown.Task.Id == saved.Id)
                 shown.Reload();
             return;
@@ -851,6 +852,29 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         }
         else if (Detail is { } detail && detail.Task.Id == saved.Id)
             detail.Reload();
+    }
+
+    /// <summary>
+    /// Says that ticking a repeating task made its next one, and when that is due, with a way back: without it the
+    /// same task showing again, not done, reads as the tick not having taken. Undo takes the new one away and
+    /// unticks this one.
+    /// </summary>
+    internal void SayNextWasMade(ProjectTask done)
+    {
+        if (services.Projects.AllTasks(done.ProjectId).FirstOrDefault(t => t.RepeatOf == done.Id && !t.Done) is not { } next)
+            return;
+        var due = next.Due is { } on ? $", due {on.ToString("d MMMM", System.Globalization.CultureInfo.CurrentCulture)}" : "";
+        services.OfferUndo($"Done. It repeats, so the next one was made{due}", () =>
+        {
+            Ours(() =>
+            {
+                services.Projects.DeleteTask(next.Id);
+                return services.Projects.ChangeTask(done.Id, t => t with { Done = false });
+            });
+            ShowTasks();
+            if (Detail is { } shown && shown.Task.Id == done.Id)
+                shown.Reload();
+        });
     }
 
     private static string SummaryOf(IReadOnlyList<ProjectTask> tasks)

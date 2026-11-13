@@ -3850,6 +3850,61 @@ SaveLooks("projects");
         Check("The board has a column per heading with its tasks as cards", projectsPage.IsBoard
             && projectsPage.Columns.Select(c => c.Section.Name).SequenceEqual(["No heading", "Design", "Build", "Launch"])
             && projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards.Count == 2);
+        // A repeating task ticked off on its card, by a real click on the tick: one next task, and no more.
+        {
+            var launchCard = projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards[0];
+            var repeatTitle = launchCard.Title;
+            services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Repeat = Webignite.Core.Projects.TaskRepeat.Monthly, Due = today });
+            projectsPage.Refresh();
+            Dispatcher.UIThread.RunJobs();
+            int Copies() => services.Projects.AllTasks(launchCard.Task.ProjectId).Count(t => t.Title == repeatTitle);
+            void Settle()
+            {
+                for (var i = 0; i < 25; i++)
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    Thread.Sleep(10);
+                }
+            }
+            void StartAgain()
+            {
+                foreach (var made in services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle && t.Id != launchCard.Task.Id).ToList())
+                    services.Projects.DeleteTask(made.Id);
+                services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Done = false });
+                projectsPage.Refresh();
+                Settle();
+            }
+            // On its card on the board.
+            var tick = window.GetVisualDescendants().OfType<Avalonia.Controls.CheckBox>().First(c => c.IsEffectivelyVisible && c.DataContext is TaskRow { Title: var title } && title == repeatTitle);
+            tick.IsChecked = true;
+            Settle();
+            var fromBoard = Copies();
+            // In the list.
+            StartAgain();
+            projectsPage.ListViewCommand.Execute(null);
+            Settle();
+            var listTick = window.GetVisualDescendants().OfType<Avalonia.Controls.CheckBox>().First(c => c.IsEffectivelyVisible && c.DataContext is TaskRow { Title: var title } && title == repeatTitle);
+            listTick.IsChecked = true;
+            Settle();
+            var fromList = Copies();
+            // In the task's own pane, with the task open.
+            StartAgain();
+            projectsPage.OpenTaskById(launchCard.Task.Id);
+            Settle();
+            var paneTick = window.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ToggleButton>().First(c => c.IsEffectivelyVisible && c.Classes.Contains("markdone"));
+            paneTick.IsChecked = true;
+            Settle();
+            var fromPane = Copies();
+            Check("Ticking a repeating task makes one next task, not a chain of them, wherever it is ticked", fromBoard == 2 && fromList == 2 && fromPane == 2);
+            projectsPage.CloseTaskCommand.Execute(null);
+            projectsPage.BoardViewCommand.Execute(null);
+            Settle();
+            foreach (var made in services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle && t.Id != launchCard.Task.Id).ToList())
+                services.Projects.DeleteTask(made.Id);
+            services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Repeat = Webignite.Core.Projects.TaskRepeat.None, Due = null, Done = false });
+            projectsPage.Refresh();
+            Dispatcher.UIThread.RunJobs();
+        }
         var colours = projectsPage.Columns.SelectMany(c => c.Cards).First(r => r.Title == "Colours and fonts");
         projectsPage.Drop(colours, projectsPage.Columns.First(c => c.Section.Name == "Build"), below: false);
         Check("Dropping a card on a column moves it to the end of that heading",
