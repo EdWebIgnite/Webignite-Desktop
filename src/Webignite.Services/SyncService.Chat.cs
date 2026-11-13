@@ -65,8 +65,11 @@ public sealed partial class SyncService
         }
         if (JsonSerializer.Deserialize<ChatPart>(json, StoredJson.Options) is not { } part || part.Id != id)
             return Taken.Unreadable;
+        // A picture's data can arrive in a later sync than its message. That is news for the chat, which is showing
+        // the picture as "on its way" until it is told to read again.
+        var isNewPart = !store.HasChatPart(id);
         store.SaveChatPart(part);
         sent.Add((kind, id, fingerprint));
-        return Taken.Same;
+        return isNewPart ? Taken.Changed : Taken.Same;
     }
 }

@@ -59,9 +59,24 @@ public static class ChatRules
     /// <summary>Each part, so a locked part stays well under the server's limit for one record.</summary>
     public const int PartBytes = 256 * 1024;
 
-    private static readonly HashSet<string> PictureTypes = new(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
+    private static readonly HashSet<string> PictureTypes = new(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".jpe", ".jfif", ".gif", ".bmp", ".webp" };
 
     public static bool IsPicture(string name) => PictureTypes.Contains(Path.GetExtension(name));
+
+    /// <summary>
+    /// Whether a file is a picture the chat can show, told from its first bytes as well as its name: a photo saved
+    /// from a browser or a phone often has an odd ending, or none, and should still show as a picture.
+    /// </summary>
+    public static bool IsPicture(string name, ReadOnlySpan<byte> data) => IsPicture(name) || LooksLikePicture(data);
+
+    /// <summary>The first bytes of a PNG, JPEG, GIF, BMP or WebP picture.</summary>
+    public static bool LooksLikePicture(ReadOnlySpan<byte> data) =>
+        data.Length >= 12 && (
+            (data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G')
+            || (data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+            || (data[0] == 'G' && data[1] == 'I' && data[2] == 'F' && data[3] == '8')
+            || (data[0] == 'B' && data[1] == 'M')
+            || (data[0] == 'R' && data[1] == 'I' && data[2] == 'F' && data[3] == 'F' && data[8] == 'W' && data[9] == 'E' && data[10] == 'B' && data[11] == 'P'));
 
     /// <summary>Null when the file can be sent, else why not.</summary>
     public static string? Problem(string name, long bytes) => bytes switch

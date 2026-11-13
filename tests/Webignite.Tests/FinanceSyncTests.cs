@@ -172,6 +172,22 @@ public sealed class FinanceSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task A_pictures_data_arriving_counts_as_news_so_the_chat_is_drawn_again_with_the_picture()
+    {
+        var (owner, member) = await TwoPcs();
+        var eddie = new ChatService(owner.Store);
+        var picture = Enumerable.Range(0, Webignite.Core.Chat.ChatRules.PartBytes + 5000).Select(i => (byte)(i % 199)).ToArray();
+        eddie.Send("", [("funny.jpg", picture)]);
+        await Sync(owner);
+
+        // The message and each of the picture's two parts are news: any of them may come in a sync of its own.
+        var arrived = await member.Sync.SyncAsync(Cancel);
+        Assert.True(arrived.Worked, arrived.Problem);
+        Assert.Equal(3, arrived.Changed);
+        Assert.Equal(0, (await member.Sync.SyncAsync(Cancel)).Changed); // and only once
+    }
+
+    [Fact]
     public async Task The_business_settings_reach_the_partner_and_a_change_there_comes_back_but_looks_stay_on_each_pc()
     {
         var (eddie, jaco) = await TwoPcs();
