@@ -2999,6 +2999,28 @@ Save("invoice-sum");
     Check("Floating, the dock takes no room of its own under the page",
         window.GetVisualDescendants().OfType<DockView>().FirstOrDefault()?.Parent is Avalonia.Controls.ContentControl { Margin.Top: < 0 });
     Save("menu-dock-floating");
+    // The dock is glass, dark or light as picked, and light glass is the one for a dark look.
+    {
+        var dockView = window.GetVisualDescendants().OfType<DockView>().First();
+        Avalonia.Media.Color Glass() => dockView.GetVisualDescendants().OfType<Avalonia.Controls.Border>().First(b => b.Classes.Contains("dock")).Background is Avalonia.Media.ISolidColorBrush b
+            ? Avalonia.Media.Color.FromArgb((byte)Math.Round(b.Color.A * b.Opacity), b.Color.R, b.Color.G, b.Color.B) : default;
+        var dark = Glass();
+        Check("The dock is dark glass to begin with: its colour lets some of the page through, and its side panels match",
+            dark.A is > 150 and < 255 && dark.R < 80 && services.Settings.Appearance.DockTone == DockTone.Dark
+            && dockView.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.Classes.Contains("glass") && b.IsVisible).All(b => ReferenceEquals(b.Background, dockView.GetVisualDescendants().OfType<Avalonia.Controls.Border>().First(d => d.Classes.Contains("dock")).Background)));
+        var before = services.Settings.Appearance;
+        services.Settings.Appearance = before with { DockTone = DockTone.Light, Theme = Theme.Dark };
+        Dispatcher.UIThread.RunJobs();
+        var light = Glass();
+        Check("Light glass is light in a dark look too, and still lets the page through", light.R > 200 && light.A is > 150 and < 255);
+        Save("menu-dock-light-on-dark");
+        services.Settings.Appearance = before with { DockTone = DockTone.Light };
+        Dispatcher.UIThread.RunJobs();
+        Save("menu-dock-light");
+        services.Settings.Appearance = before;
+        Dispatcher.UIThread.RunJobs();
+        Check("Back to dark glass", Glass() == dark);
+    }
     // On a wide screen there is room for everything beside the dock; on a narrow one only what fits whole shows.
     window.Width = 1900;
     Dispatcher.UIThread.RunJobs();

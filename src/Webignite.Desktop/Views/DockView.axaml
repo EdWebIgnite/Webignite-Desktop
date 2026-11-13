@@ -5,50 +5,52 @@
              x:Class="Webignite.Desktop.Views.DockView"
              x:DataType="vm:MainViewModel">
   <UserControl.Styles>
+    <!-- The dock and the panels beside it are glass, dark or light as picked in Settings: their colour let through
+         a little (DockGlass and the other Dock colours, made in Looks.ApplyColours), so the page under a floating
+         dock shows faintly. -->
     <Style Selector="Border.dock">
-      <Setter Property="Background" Value="{DynamicResource Nav}" />
+      <Setter Property="Background" Value="{DynamicResource DockGlass}" />
       <Setter Property="CornerRadius" Value="20" />
       <Setter Property="Padding" Value="8,7" />
-      <Setter Property="BoxShadow" Value="{DynamicResource OverlayShadow}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource PopupShadow}" />
     </Style>
+    <!-- The dock's full text colour, not a grey: on glass, with the page showing faintly behind, grey words are hard to read. -->
     <Style Selector="Button.dockitem">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{DynamicResource NavMuted}" />
+      <Setter Property="Foreground" Value="{DynamicResource DockText}" />
       <Setter Property="Width" Value="70" />
       <Setter Property="Padding" Value="4,8,4,7" />
       <Setter Property="CornerRadius" Value="13" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     </Style>
     <Style Selector="Button.dockitem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource NavHover}" />
-      <Setter Property="Foreground" Value="{DynamicResource NavText}" />
+      <Setter Property="Background" Value="{DynamicResource DockHover}" />
+      <Setter Property="Foreground" Value="{DynamicResource DockText}" />
     </Style>
     <!-- The page on screen is the lit one: the dock's own colours the other way round. -->
     <Style Selector="Button.dockitem.current">
-      <Setter Property="Background" Value="{DynamicResource NavText}" />
-      <Setter Property="Foreground" Value="{DynamicResource Nav}" />
+      <Setter Property="Background" Value="{DynamicResource DockText}" />
+      <Setter Property="Foreground" Value="{DynamicResource DockSolid}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <!-- Its count turns round with it, so it still shows. -->
     <Style Selector="Button.dockitem.current Border.badge">
-      <Setter Property="Background" Value="{DynamicResource Nav}" />
+      <Setter Property="Background" Value="{DynamicResource DockSolid}" />
     </Style>
     <Style Selector="Button.dockitem.current Border.badge > TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource NavText}" />
+      <Setter Property="Foreground" Value="{DynamicResource DockText}" />
     </Style>
     <Style Selector="Button.dockitem Border.badge > TextBlock">
       <Setter Property="HorizontalAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.dockitem.current:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource NavText}" />
-      <Setter Property="Foreground" Value="{DynamicResource Nav}" />
+      <Setter Property="Background" Value="{DynamicResource DockText}" />
+      <Setter Property="Foreground" Value="{DynamicResource DockSolid}" />
     </Style>
-    <!-- Beside the dock: a see-through panel each side, holding the small things the person picked. With a strip of
+    <!-- Beside the dock: a glass panel each side, like the dock itself, holding the small things the person picked. With a strip of
          its own the panel fills its side; floating, it is only as wide as what is in it, so little of the page is covered. -->
     <Style Selector="Border.glass">
-      <Setter Property="Background" Value="{DynamicResource Glass}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource GlassLine}" />
-      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="{DynamicResource DockGlass}" />
       <Setter Property="CornerRadius" Value="20" />
       <Setter Property="Padding" Value="8,0" />
       <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
@@ -65,13 +67,14 @@
     </Style>
     <Style Selector="Button.baritem">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+      <Setter Property="Foreground" Value="{DynamicResource DockText}" />
       <Setter Property="Padding" Value="12,8" />
       <Setter Property="CornerRadius" Value="13" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.baritem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource RowHover}" />
+      <Setter Property="Background" Value="{DynamicResource DockHover}" />
+      <Setter Property="Foreground" Value="{DynamicResource DockText}" />
     </Style>
     <Style Selector="Border.barcount">
       <Setter Property="Background" Value="{DynamicResource Primary}" />
@@ -178,7 +181,7 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Border Width="1" Margin="4,10" Background="{DynamicResource NavSelected}" />
+        <Border Width="1" Margin="4,10" Background="{DynamicResource DockLine}" />
         <Button Classes="dockitem" Command="{Binding MenuPart.ToggleMenuCommand}" ToolTip.Tip="Every page, tool and project (Ctrl+M)">
           <StackPanel Spacing="4">
             <c:Icon Data="{StaticResource Icon.Tiles}" Size="20" HorizontalAlignment="Center" />
