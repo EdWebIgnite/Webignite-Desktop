@@ -3,7 +3,7 @@ using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Tests;
 
-/// <summary>Ticking a repeating task makes its next one, once, says so, and can be undone.</summary>
+/// <summary>Ticking a repeating task keeps the one task: it is noted as done, comes back unticked for its next day, and can be undone.</summary>
 public sealed class RepeatingTaskTests
 {
     private static (ProjectsViewModel Page, Project Project, ProjectTask Task, List<(string What, Action? Undo)> Notes) Open(TestApp app)
@@ -24,24 +24,40 @@ public sealed class RepeatingTaskTests
         [.. app.Services.Projects.AllTasks(project.Id).Where(t => t.Title == "Monthly maintenance")];
 
     [Fact]
-    public Task Ticking_it_in_the_list_makes_one_next_task_and_says_so() => Ui.Run(() =>
+    public Task Ticking_it_in_the_list_keeps_the_one_task_unticked_for_next_month_and_says_so() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var (page, project, task, notes) = Open(app);
 
         page.Rows.OfType<TaskRow>().Single(r => r.Task.Id == task.Id).Done = true;
 
-        var copies = Copies(app, project);
-        Assert.Equal(2, copies.Count);
-        var next = Assert.Single(copies, t => !t.Done);
-        Assert.Equal(new DateOnly(2026, 12, 13), next.Due);
-        Assert.Equal(task.Id, next.RepeatOf);
-        Assert.StartsWith("Done. It repeats, so the next one was made, due 13", Assert.Single(notes).What, StringComparison.Ordinal);
+        var only = Assert.Single(Copies(app, project));
+        Assert.Equal(task.Id, only.Id);
+        Assert.False(only.Done);
+        Assert.Equal(new DateOnly(2026, 12, 13), only.Due);
+        // The list shows it as it is now: not ticked, with its new date.
+        var row = page.Rows.OfType<TaskRow>().Single();
+        Assert.False(row.Done);
+        Assert.Equal(new DateTime(2026, 12, 13), row.Due);
+        Assert.StartsWith("Done for 13", Assert.Single(notes).What, StringComparison.Ordinal);
+        Assert.Contains("It repeats, so it is due again on 13", notes[0].What, StringComparison.Ordinal);
         page.Dispose();
     });
 
     [Fact]
-    public Task Undo_takes_the_next_one_away_and_unticks_the_task() => Ui.Run(() =>
+    public Task Its_history_says_it_was_ticked_off() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, _, task, _) = Open(app);
+
+        page.Rows.OfType<TaskRow>().Single(r => r.Task.Id == task.Id).Done = true;
+
+        Assert.Single(app.Services.Projects.Activity(task.Id), a => a.Kind == ActivityKind.DoneThisTime);
+        page.Dispose();
+    });
+
+    [Fact]
+    public Task Undo_puts_the_task_back_on_the_day_it_was_due() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var (page, project, task, notes) = Open(app);
@@ -50,14 +66,14 @@ public sealed class RepeatingTaskTests
         Assert.Single(notes).Undo!();
 
         var only = Assert.Single(Copies(app, project));
-        Assert.Equal(task.Id, only.Id);
+        Assert.Equal(new DateOnly(2026, 11, 13), only.Due);
         Assert.False(only.Done);
-        Assert.False(page.Rows.OfType<TaskRow>().Single().Done);
+        Assert.Equal(new DateTime(2026, 11, 13), page.Rows.OfType<TaskRow>().Single().Due);
         page.Dispose();
     });
 
     [Fact]
-    public Task Ticking_it_in_its_own_pane_makes_one_next_task_too() => Ui.Run(() =>
+    public Task Ticking_it_in_its_own_pane_does_the_same_and_the_pane_shows_it_unticked() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var (page, project, task, notes) = Open(app);
@@ -65,28 +81,33 @@ public sealed class RepeatingTaskTests
 
         page.Detail!.Done = true;
 
-        Assert.Equal(2, Copies(app, project).Count);
+        var only = Assert.Single(Copies(app, project));
+        Assert.False(only.Done);
+        Assert.Equal(new DateOnly(2026, 12, 13), only.Due);
+        Assert.False(page.Detail.Done);
+        Assert.Equal(new DateTime(2026, 12, 13), page.Detail.Due);
         Assert.Single(notes);
         page.Dispose();
     });
 
     [Fact]
-    public Task Unticking_and_ticking_again_makes_no_second_next_task() => Ui.Run(() =>
+    public Task Each_tick_moves_it_on_one_more_month_and_never_makes_a_copy() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var (page, project, task, _) = Open(app);
 
         TaskRow Row() => page.Rows.OfType<TaskRow>().Single(r => r.Task.Id == task.Id);
         Row().Done = true;
-        Row().Done = false;
+        Row().Done = true;
         Row().Done = true;
 
-        Assert.Equal(2, Copies(app, project).Count);
+        Assert.Equal(new DateOnly(2027, 2, 13), Assert.Single(Copies(app, project)).Due);
+        Assert.Equal(3, app.Services.Projects.Activity(task.Id).Count(a => a.Kind == ActivityKind.DoneThisTime));
         page.Dispose();
     });
 
     [Fact]
-    public Task A_task_that_doesnt_repeat_says_nothing_and_makes_nothing() => Ui.Run(() =>
+    public Task A_task_that_doesnt_repeat_is_simply_done_and_nothing_is_said() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var (page, project, task, notes) = Open(app);
@@ -95,7 +116,7 @@ public sealed class RepeatingTaskTests
 
         page.Rows.OfType<TaskRow>().Single(r => r.Task.Id == task.Id).Done = true;
 
-        Assert.Single(Copies(app, project));
+        Assert.True(Assert.Single(Copies(app, project)).Done);
         Assert.Empty(notes);
         page.Dispose();
     });

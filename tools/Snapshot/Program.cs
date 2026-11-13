@@ -3850,14 +3850,19 @@ SaveLooks("projects");
         Check("The board has a column per heading with its tasks as cards", projectsPage.IsBoard
             && projectsPage.Columns.Select(c => c.Section.Name).SequenceEqual(["No heading", "Design", "Build", "Launch"])
             && projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards.Count == 2);
-        // A repeating task ticked off on its card, by a real click on the tick: one next task, and no more.
+        // A repeating task ticked off by a real click on the tick: the one task stays, unticked, due a month on.
         {
             var launchCard = projectsPage.Columns.First(c => c.Section.Name == "Launch").Cards[0];
             var repeatTitle = launchCard.Title;
             services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Repeat = Webignite.Core.Projects.TaskRepeat.Monthly, Due = today });
             projectsPage.Refresh();
             Dispatcher.UIThread.RunJobs();
-            int Copies() => services.Projects.AllTasks(launchCard.Task.ProjectId).Count(t => t.Title == repeatTitle);
+            // True when there is still just the one task, not done, and due a month on.
+            bool Copies()
+            {
+                var all = services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle).ToList();
+                return all.Count == 1 && all[0].Id == launchCard.Task.Id && !all[0].Done && all[0].Due == today.AddMonths(1);
+            }
             void Settle()
             {
                 for (var i = 0; i < 25; i++)
@@ -3870,7 +3875,7 @@ SaveLooks("projects");
             {
                 foreach (var made in services.Projects.AllTasks(launchCard.Task.ProjectId).Where(t => t.Title == repeatTitle && t.Id != launchCard.Task.Id).ToList())
                     services.Projects.DeleteTask(made.Id);
-                services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Done = false });
+                services.Projects.ChangeTask(launchCard.Task.Id, t => t with { Done = false, Due = today, RepeatFrom = null });
                 projectsPage.Refresh();
                 Settle();
             }
@@ -3895,7 +3900,10 @@ SaveLooks("projects");
             paneTick.IsChecked = true;
             Settle();
             var fromPane = Copies();
-            Check("Ticking a repeating task makes one next task, not a chain of them, wherever it is ticked", fromBoard == 2 && fromList == 2 && fromPane == 2);
+            Check("Ticking a repeating task keeps the one task and moves it to its next date, wherever it is ticked", fromBoard && fromList && fromPane);
+            Check("And each time it was ticked is in its history",
+                services.Projects.Activity(launchCard.Task.Id).Count(a => a.Kind == Webignite.Core.Projects.ActivityKind.DoneThisTime) == 3);
+            Save("projects-task-repeating-ticked");
             projectsPage.CloseTaskCommand.Execute(null);
             projectsPage.BoardViewCommand.Execute(null);
             Settle();

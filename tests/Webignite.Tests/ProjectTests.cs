@@ -990,44 +990,75 @@ public sealed class ProjectRepeatServiceTests : IDisposable
     }
 
     [Fact]
-    public void Ticking_off_a_repeating_task_adds_the_next_with_fresh_subtasks_once()
+    public void Ticking_off_a_repeating_task_keeps_the_one_task_and_moves_it_to_its_next_day()
     {
         var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Hosting" }).Saved!;
         var due = DateOnly.FromDateTime(DateTime.Today);
-        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Check backups", Repeat = TaskRepeat.Weekly, Due = due }).Saved!;
-        var after = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Something after" }).Saved!;
-        projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, ParentId = task.Id, Title = "Restore one file" });
+        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Check backups", Repeat = TaskRepeat.Weekly, Due = due, Start = due.AddDays(-1) }).Saved!;
+        var sub = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, ParentId = task.Id, Title = "Restore one file", Due = due }).Saved!;
+        projects.ChangeTask(sub.Id, t => t with { Done = true });
 
-        projects.ChangeTask(task.Id, t => t with { Done = true });
-        projects.ChangeTask(task.Id, t => t with { Notes = "done" }); // a later change doesn't make another
+        var (ticked, problems) = projects.ChangeTask(task.Id, t => t with { Done = true });
 
-        var open = projects.AllTasks(project.Id).Where(t => t.Title == "Check backups" && !t.Done).ToList();
-        var next = Assert.Single(open);
-        Assert.Equal(due.AddDays(7), next.Due);
-        Assert.True(next.Order > task.Order && next.Order < after.Order);
-        Assert.Equal("Restore one file", Assert.Single(projects.AllTasks(project.Id), t => t.ParentId == next.Id).Title);
+        Assert.Empty(problems);
+        // The same task, not done again, a week on; no copy of it anywhere.
+        Assert.Equal(task.Id, ticked!.Id);
+        Assert.False(ticked.Done);
+        Assert.Equal(due.AddDays(7), ticked.Due);
+        Assert.Equal(due.AddDays(6), ticked.Start);
+        var all = projects.AllTasks(project.Id);
+        Assert.Single(all, t => t.Title == "Check backups");
+        // Its subtask is the same one too, unticked and moved along for next time.
+        var again = Assert.Single(all, t => t.ParentId == task.Id);
+        Assert.Equal(sub.Id, again.Id);
+        Assert.False(again.Done);
+        Assert.Equal(due.AddDays(7), again.Due);
     }
 
     [Fact]
-    public void Ticking_a_repeating_task_off_on_and_off_again_makes_just_one_next()
+    public void A_repeating_tasks_history_keeps_each_time_it_was_done()
     {
         var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Hosting" }).Saved!;
-        var due = DateOnly.FromDateTime(DateTime.Today);
-        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Check backups", Repeat = TaskRepeat.Weekly, Due = due }).Saved!;
-        projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, ParentId = task.Id, Title = "Restore one file", Due = due });
+        var due = new DateOnly(2026, 11, 13);
+        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Monthly maintenance", Repeat = TaskRepeat.Monthly, Due = due }).Saved!;
 
         projects.ChangeTask(task.Id, t => t with { Done = true });
-        projects.ChangeTask(task.Id, t => t with { Done = false });
         projects.ChangeTask(task.Id, t => t with { Done = true });
 
-        var next = Assert.Single(projects.AllTasks(project.Id), t => t.RepeatOf == task.Id);
-        Assert.Equal(due.AddDays(7), Assert.Single(projects.AllTasks(project.Id), t => t.ParentId == next.Id).Due);
+        var done = projects.Activity(task.Id).Where(a => a.Kind == ActivityKind.DoneThisTime).ToList();
+        Assert.Equal(2, done.Count);
+        // One line each time, in place of "marked complete" and "changed the due date".
+        Assert.DoesNotContain(projects.Activity(task.Id), a => a.Kind is ActivityKind.Completed or ActivityKind.DueSet or ActivityKind.Reopened);
+        Assert.Equal(new DateOnly(2027, 1, 13), projects.GetTask(task.Id)!.Due);
+        var en = System.Globalization.CultureInfo.GetCultureInfo("en-ZA");
+        Assert.Equal("ticked this off for 13 Nov 2026; it repeats, so it is due again on 13 Dec 2026",
+            TaskTalk.Describe(done[0], _ => "", en));
+    }
 
-        // With the next one deleted, ticking it again makes another.
-        projects.DeleteTask(next.Id);
-        projects.ChangeTask(task.Id, t => t with { Done = false });
-        projects.ChangeTask(task.Id, t => t with { Done = true });
-        Assert.Single(projects.AllTasks(project.Id), t => t.RepeatOf == task.Id);
+    [Fact]
+    public void A_repeating_task_with_no_date_is_due_a_step_from_today_once_ticked()
+    {
+        var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Hosting" }).Saved!;
+        var task = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Check backups", Repeat = TaskRepeat.Weekly }).Saved!;
+
+        var ticked = projects.ChangeTask(task.Id, t => t with { Done = true }).Saved!;
+
+        Assert.False(ticked.Done);
+        Assert.Equal(DateOnly.FromDateTime(DateTime.Today).AddDays(7), ticked.Due);
+        Assert.StartsWith("ticked this off; it repeats", TaskTalk.Describe(Assert.Single(projects.Activity(task.Id), a => a.Kind == ActivityKind.DoneThisTime), _ => "", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_task_that_doesnt_repeat_is_simply_done_and_a_subtask_never_moves_on()
+    {
+        var project = projects.Add(new Project { Id = ProjectRules.NewId(), Name = "Hosting" }).Saved!;
+        var once = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Move the site" }).Saved!;
+        var parent = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, Title = "Check backups", Repeat = TaskRepeat.Weekly }).Saved!;
+        var sub = projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = project.Id, ParentId = parent.Id, Title = "Restore one file", Repeat = TaskRepeat.Weekly }).Saved!;
+
+        Assert.True(projects.ChangeTask(once.Id, t => t with { Done = true }).Saved!.Done);
+        Assert.True(projects.ChangeTask(sub.Id, t => t with { Done = true }).Saved!.Done);
+        Assert.Equal(3, projects.AllTasks(project.Id).Count);
     }
 
     [Fact]

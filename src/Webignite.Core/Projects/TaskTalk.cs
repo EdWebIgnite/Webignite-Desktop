@@ -27,6 +27,9 @@ public enum ActivityKind
 {
     Created, Completed, Reopened, Assigned, Unassigned, DueSet, DueCleared, Moved, Renamed, DescriptionChanged,
     Attached, Detached, SubtaskAdded, ProjectChanged, PriorityChanged, DependencyChanged,
+
+    /// <summary>A repeating task ticked off: it stays, not done, for next time. The value is the day it was done for and the day it is due next.</summary>
+    DoneThisTime,
 }
 
 /// <summary>
@@ -42,6 +45,20 @@ public sealed record FeedLine(DateTimeOffset At, string Who, string Text, bool I
 public static class TaskTalk
 {
     public static string Check(string text) => text.Trim().Length == 0 ? "Write something first." : "";
+
+    /// <summary>What a repeating task's history keeps of one time it was done: the day it was due (none when it had no date) and the day it moved on to.</summary>
+    public static string DoneThisTimeValue(DateOnly? doneFor, DateOnly next) =>
+        (doneFor?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "") + "|" + next.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private static string DoneThisTimeText(string value, IFormatProvider culture)
+    {
+        static DateOnly? Day(string text) => DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day) ? day : null;
+        var parts = value.Split('|');
+        var doneFor = parts.Length > 0 ? Day(parts[0]) : null;
+        var next = parts.Length > 1 ? Day(parts[1]) : null;
+        return "ticked this off" + (doneFor is { } was ? $" for {was.ToString("d MMM yyyy", culture)}" : "")
+            + (next is { } on ? $"; it repeats, so it is due again on {on.ToString("d MMM yyyy", culture)}" : "");
+    }
 
     /// <summary>
     /// Who a comment mentions: each teammate whose name follows an @, as "@Lize" or "@Lize Botha", any case. The
@@ -150,6 +167,7 @@ public static class TaskTalk
     {
         ActivityKind.Created => "created this task",
         ActivityKind.SubtaskAdded => $"added the subtask {activity.Value}",
+        ActivityKind.DoneThisTime => DoneThisTimeText(activity.Value, culture),
         ActivityKind.Completed => "marked this task complete",
         ActivityKind.Reopened => "marked this task not done",
         ActivityKind.Assigned => $"assigned this task to {nameOf(activity.Value)}",

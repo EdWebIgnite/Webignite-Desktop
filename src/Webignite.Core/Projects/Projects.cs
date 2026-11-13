@@ -706,6 +706,21 @@ public static class ProjectRules
         })];
     }
 
+    /// <summary>
+    /// A repeating task ticked off, ready for next time: the same task, not done again, due on its next day, its
+    /// start moved by the same step, with its subtasks unticked and their dates moved along too. No copy is made;
+    /// the task's history keeps that it was done. The task comes first. Empty when it doesn't repeat.
+    /// </summary>
+    public static IReadOnlyList<ProjectTask> ForNextTime(ProjectTask done, IEnumerable<ProjectTask> subtasks, DateOnly today)
+    {
+        if (NextDue(done, today) is not { } due)
+            return [];
+        var shift = due.Due.DayNumber - (done.Due ?? today).DayNumber;
+        var again = done with { Done = false, Due = due.Due, RepeatFrom = due.Anchor, Start = done.Start?.AddDays(shift) };
+        return [again, .. subtasks.Where(t => t.Deleted is null && t.ParentId == done.Id).OrderBy(t => t.Order)
+            .Select(t => t with { Done = false, Start = t.Start?.AddDays(shift), Due = t.Due?.AddDays(shift) })];
+    }
+
     /// <summary>Whether a repeating task already has its next one, not deleted, so ticking it again makes no other.</summary>
     public static bool HasNext(ProjectTask done, IEnumerable<ProjectTask> tasks) =>
         tasks.Any(t => t.Deleted is null && t.RepeatOf == done.Id);

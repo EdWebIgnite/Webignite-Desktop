@@ -820,6 +820,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     internal void ChangeTask(TaskRow row, Func<ProjectTask, ProjectTask> change)
     {
+        var beforeTick = BeforeTick(row.Task);
         var (saved, problems) = Ours(() => services.Projects.ChangeTask(row.Task.Id, change));
         if (saved is null)
         {
@@ -834,13 +835,13 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             Summary = SummaryOf(services.Projects.AllTasks(project.Id));
         if (IsOverview)
             OverviewPart.LoadOverview();
-        // A repeating task ticked off has made its next one.
-        if (!wasDone && saved.Done && saved.Repeat != TaskRepeat.None)
+        // A repeating task ticked off stays the one task: it comes back not done, due on its next day.
+        if (beforeTick.Count > 0 && !wasDone && row.Done && !saved.Done)
         {
             ShowTasks();
-            SayNextWasMade(saved);
             if (Detail is { } shown && shown.Task.Id == saved.Id)
                 shown.Reload();
+            SayDoneForNow(beforeTick, saved);
             return;
         }
         // A subtask ticked in the task pane changes its task's count in the list; a task changed in the list
@@ -854,26 +855,32 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
             detail.Reload();
     }
 
+    /// <summary>A repeating task and its subtasks as they stand before a tick, to put back if the tick is undone; empty for any other task.</summary>
+    internal IReadOnlyList<ProjectTask> BeforeTick(ProjectTask task) =>
+        task.Repeat == TaskRepeat.None || task.Done || task.ParentId is not null
+            ? []
+            : [task, .. services.Projects.AllTasks(task.ProjectId).Where(t => t.ParentId == task.Id)];
+
     /// <summary>
-    /// Says that ticking a repeating task made its next one, and when that is due, with a way back: without it the
-    /// same task showing again, not done, reads as the tick not having taken. Undo takes the new one away and
-    /// unticks this one.
+    /// Says what ticking a repeating task did: it is done for this time and due again on its next day, with a way
+    /// back. Without it the task springing back unticked reads as the tick not having taken. Undo puts the task
+    /// and its subtasks back as they were; the line in its history stays.
     /// </summary>
-    internal void SayNextWasMade(ProjectTask done)
+    internal void SayDoneForNow(IReadOnlyList<ProjectTask> before, ProjectTask saved)
     {
-        if (services.Projects.AllTasks(done.ProjectId).FirstOrDefault(t => t.RepeatOf == done.Id && !t.Done) is not { } next)
-            return;
-        var due = next.Due is { } on ? $", due {on.ToString("d MMMM", System.Globalization.CultureInfo.CurrentCulture)}" : "";
-        services.OfferUndo($"Done. It repeats, so the next one was made{due}", () =>
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        var doneFor = before[0].Due is { } was ? $" for {was.ToString("d MMMM", culture)}" : "";
+        var next = saved.Due is { } on ? $", so it is due again on {on.ToString("d MMMM", culture)}" : "";
+        services.OfferUndo($"Done{doneFor}. It repeats{next}", () =>
         {
             Ours(() =>
             {
-                services.Projects.DeleteTask(next.Id);
-                return services.Projects.ChangeTask(done.Id, t => t with { Done = false });
+                foreach (var old in before)
+                    services.Projects.ChangeTask(old.Id, t => t with { Done = old.Done, Due = old.Due, Start = old.Start, RepeatFrom = old.RepeatFrom });
+                return true;
             });
             ShowTasks();
-            if (Detail is { } shown && shown.Task.Id == done.Id)
-                shown.Reload();
+            Detail?.Reload();
         });
     }
 

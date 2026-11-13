@@ -61,6 +61,7 @@ public sealed partial class ProjectsViewModel
     {
         if (Detail is not { } detail)
             return;
+        var beforeTick = BeforeTick(detail.Task);
         var (saved, problems) = Ours(() => services.Projects.ChangeTask(detail.Task.Id, change));
         if (saved is null)
         {
@@ -69,7 +70,8 @@ public sealed partial class ProjectsViewModel
             return;
         }
         var tagsBefore = detail.Task.Tags;
-        var tickedOff = !detail.Task.Done && saved.Done && saved.Repeat != TaskRepeat.None;
+        // A repeating task ticked off stays the one task: it comes back not done, due on its next day.
+        var tickedOff = beforeTick.Count > 0 && detail.Done && !saved.Done;
         detail.Problem = "";
         detail.Saved(saved, typed);
         // Typing in the title only renames the row; new tags change the filter's list, so everything is shown again.
@@ -83,7 +85,10 @@ public sealed partial class ProjectsViewModel
             ShowTasks();
         }
         if (tickedOff)
-            SayNextWasMade(saved);
+        {
+            detail.Reload();
+            SayDoneForNow(beforeTick, saved);
+        }
     }
 
     internal void AddSubtask(string title)
