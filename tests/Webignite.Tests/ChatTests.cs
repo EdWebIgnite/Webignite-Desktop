@@ -137,4 +137,19 @@ public sealed class ChatTests
         Assert.False(ChatTiming.IsLively(chatOpen: false, lastMessage: null, now));
         Assert.True(ChatTiming.Lively <= TimeSpan.FromSeconds(10));
     }
+
+    [Fact]
+    public void A_picture_is_told_from_its_first_bytes_whatever_it_is_called()
+    {
+        byte[] png = [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13];
+        byte[] jpeg = [0xFF, 0xD8, 0xFF, 0xE0, 0, 16, (byte)'J', (byte)'F', (byte)'I', (byte)'F', 0, 1];
+        byte[] webp = [(byte)'R', (byte)'I', (byte)'F', (byte)'F', 1, 2, 3, 4, (byte)'W', (byte)'E', (byte)'B', (byte)'P'];
+        byte[] pdf = [(byte)'%', (byte)'P', (byte)'D', (byte)'F', (byte)'-', (byte)'1', (byte)'.', (byte)'7', 10, 10, 10, 10];
+        Assert.True(ChatRules.IsPicture("funny", png));
+        Assert.True(ChatRules.IsPicture("download.bin", jpeg));
+        Assert.True(ChatRules.IsPicture("meme", webp));
+        Assert.False(ChatRules.IsPicture("quote", pdf));
+        Assert.True(ChatRules.IsPicture("photo.jfif"));
+        Assert.False(ChatRules.LooksLikePicture([0xFF, 0xD8]));
+    }
 }

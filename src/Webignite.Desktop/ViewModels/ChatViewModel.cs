@@ -334,14 +334,17 @@ public sealed partial class ChatFileRow : IDisposable
         Size = file.Bytes < 1024 * 1024 ? $"{Math.Max(1, file.Bytes / 1024)} KB" : $"{file.Bytes / (1024d * 1024):0.0} MB";
         var data = services.Chat.FileBytes(file);
         Arrived = data is not null;
-        if (data is not null && ChatRules.IsPicture(file.Name))
+        if (data is not null && ChatRules.IsPicture(file.Name, data))
         {
             try
             {
                 using var stream = new MemoryStream(data);
-                Picture = Bitmap.DecodeToWidth(stream, 260);
+                // Twice the width it is shown at, so it is sharp on a screen set to 150 or 200 percent.
+                Picture = Bitmap.DecodeToWidth(stream, 640);
             }
-            catch (Exception e) when (e is ArgumentException or InvalidOperationException or NotSupportedException)
+#pragma warning disable CA1031 // Whatever is wrong with the picture (cut short, a kind this PC can't read), it is shown as a file to open instead.
+            catch (Exception)
+#pragma warning restore CA1031
             {
                 Picture = null;
             }
