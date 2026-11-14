@@ -11,7 +11,7 @@ public static class ClientPicker
     public static IReadOnlyList<string> Names(IEnumerable<Client> clients) => [.. clients.Select(c => c.Name)];
 
     public static IReadOnlyList<Choice<Client?>> Choices(string first, IEnumerable<Client> clients) =>
-        [new(first, null), .. clients.Select(c => new Choice<Client?>(c.Name, c))];
+        [new(first, null), .. clients.Select(c => new Choice<Client?>(c.Called, c))];
 
     /// <summary>The choice for the client picked before the list was rebuilt, or the first choice.</summary>
     public static Choice<Client?> Keep(IReadOnlyList<Choice<Client?>> choices, Choice<Client?>? before) =>

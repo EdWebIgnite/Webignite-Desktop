@@ -316,10 +316,59 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     /// <summary>Where client folders live, e.g. C:\Projects. Files lists them first and matches them to clients.</summary>
     public string ClientRoot => Files.FileOps.ClientRoot(services.Settings.Files) ?? "Not set";
 
+    /// <summary>Offer to make a folder for a new client and for a project that gets a client. On this PC only.</summary>
+    public bool OfferFolders
+    {
+        get => services.Settings.Files.OfferFolders;
+        set
+        {
+            services.Settings.Files = services.Settings.Files with { OfferFolders = value };
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>The folder direct clients go in together; empty keeps them at the top with the rest.</summary>
+    public string DirectFolder
+    {
+        get => services.Settings.Files.DirectFolder ?? "";
+        set
+        {
+            var typed = value.Trim();
+            services.Settings.Files = services.Settings.Files with { DirectFolder = typed.Length == 0 ? "" : Webignite.Core.Files.FileNames.Safe(typed) };
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FolderExample));
+        }
+    }
+
+    public string ProjectTemplateFolder => services.Settings.Files.ProjectTemplate is { Length: > 0 } path ? path : "None: new project folders start empty";
+    public bool HasProjectTemplateFolder => !string.IsNullOrWhiteSpace(services.Settings.Files.ProjectTemplate);
+
+    public void SetProjectTemplateFolder(string? folder)
+    {
+        services.Settings.Files = services.Settings.Files with { ProjectTemplate = folder };
+        OnPropertyChanged(nameof(ProjectTemplateFolder));
+        OnPropertyChanged(nameof(HasProjectTemplateFolder));
+    }
+
+    [RelayCommand]
+    private void ClearProjectTemplateFolder() => SetProjectTemplateFolder(null);
+
+    /// <summary>Where folders end up, spelt out with made-up names.</summary>
+    public string FolderExample
+    {
+        get
+        {
+            var root = Files.FileOps.ClientRoot(services.Settings.Files) is { } set ? Path.GetFileName(set.TrimEnd('\\', '/')) : "Clients";
+            var direct = DirectFolder.Length > 0 ? $@"{root}\{DirectFolder}\Trimax\New website" : $@"{root}\Trimax\New website";
+            return $@"A studio's projects go in {root}\G3\Amos. A client you work with directly goes in {direct}.";
+        }
+    }
+
     public void SetClientRoot(string folder)
     {
         services.Settings.Files = services.Settings.Files with { ClientRoot = folder };
         OnPropertyChanged(nameof(ClientRoot));
+        OnPropertyChanged(nameof(FolderExample));
         Say("Client folders are in " + folder + ". Files and each client's page use it from now on.");
     }
 

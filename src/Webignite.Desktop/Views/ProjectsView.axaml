@@ -1040,6 +1040,17 @@
                   <TextBlock Classes="label" Text="Client" />
                   <ComboBox x:Name="ClientBox" ItemsSource="{Binding ClientChoices}" SelectedItem="{Binding EditClient, Mode=OneWay}"
                             SelectionChanged="ClientPicked" HorizontalAlignment="Stretch" ToolTip.Tip="The client it's for" />
+                  <StackPanel Spacing="4" IsVisible="{Binding ShowProjectFolder}">
+                    <TextBlock Classes="label" Text="Folder" />
+                    <Button Classes="link" Content="{Binding ProjectFolderShort}" Command="{Binding OpenProjectFolderCommand}" IsVisible="{Binding HasProjectFolder}"
+                            HorizontalAlignment="Left" ToolTip.Tip="{Binding ProjectFolderPath}" />
+                    <TextBlock Classes="muted" Text="{Binding ProjectFolderNote}" TextWrapping="Wrap" FontSize="{DynamicResource Text12}"
+                               IsVisible="{Binding ProjectFolderNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <WrapPanel>
+                      <Button Classes="quiet" Content="Yes, that's it" Command="{Binding ConfirmProjectFolderCommand}" IsVisible="{Binding ProjectFolderIsGuess}" Margin="0,0,8,0" />
+                      <Button Classes="quiet" Content="Make its folder" Command="{Binding MakeProjectFolderCommand}" IsVisible="{Binding CanMakeProjectFolder}" />
+                    </WrapPanel>
+                  </StackPanel>
                   <TextBlock Classes="label" Text="Status" />
                   <ComboBox x:Name="StatusBox" ItemsSource="{x:Static vm:ProjectsViewModel.Statuses}" SelectedItem="{Binding EditStatus, Mode=OneWay}"
                             SelectionChanged="StatusPicked" HorizontalAlignment="Stretch" />

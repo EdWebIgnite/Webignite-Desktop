@@ -325,27 +325,39 @@ public static class ClientFolders
     public sealed record Match(Fit Fit, string? Folder);
 
     /// <summary>
-    /// The folder for a client: the one picked by hand if it is set; else a folder with the same name; else the
-    /// one folder whose name starts the same or shares the client's first word, offered to confirm.
+    /// The folder for a client: the one picked by hand if it is set; else a folder named as the company or the
+    /// client; else the one folder whose name starts the same or shares the first word, offered to confirm.
     /// </summary>
     public static Match For(Client client, IEnumerable<string> folders)
     {
         if (!string.IsNullOrWhiteSpace(client.Folder))
             return new Match(Fit.Sure, client.Folder);
+        return Find([client.Company, client.Name], folders);
+    }
+
+    /// <summary>The folder among these that goes by one of the names, the first name counting most.</summary>
+    public static Match Find(IEnumerable<string?> names, IEnumerable<string> folders)
+    {
         var paths = folders.ToList();
-        var key = Key(client.Name);
-        if (key.Length == 0)
-            return new Match(Fit.None, null);
-        if (paths.FirstOrDefault(p => Key(Name(p)) == key) is { } same)
-            return new Match(Fit.Sure, same);
-        var first = key.Split(' ')[0];
-        var likely = paths.Where(p =>
+        var keys = names.Select(Key).Where(k => k.Length > 0).Distinct().ToList();
+        foreach (var key in keys)
         {
-            var folder = Key(Name(p));
-            return folder.Length > 0 && (folder.StartsWith(key, StringComparison.Ordinal) || key.StartsWith(folder, StringComparison.Ordinal)
-                || (first.Length >= 4 && folder.Split(' ')[0] == first));
-        }).ToList();
-        return likely.Count == 1 ? new Match(Fit.Likely, likely[0]) : new Match(Fit.None, null);
+            if (paths.FirstOrDefault(p => Key(Name(p)) == key) is { } same)
+                return new Match(Fit.Sure, same);
+        }
+        foreach (var key in keys)
+        {
+            var first = key.Split(' ')[0];
+            var likely = paths.Where(p =>
+            {
+                var folder = Key(Name(p));
+                return folder.Length > 0 && (folder.StartsWith(key, StringComparison.Ordinal) || key.StartsWith(folder, StringComparison.Ordinal)
+                    || (first.Length >= 4 && folder.Split(' ')[0] == first));
+            }).ToList();
+            if (likely.Count == 1)
+                return new Match(Fit.Likely, likely[0]);
+        }
+        return new Match(Fit.None, null);
     }
 
     // Names compared the way clients are, ignoring "(Pty) Ltd", "cc" and punctuation.
@@ -357,7 +369,88 @@ public static class ClientFolders
         return string.Join(' ', words);
     }
 
-    private static string Name(string path) => path.TrimEnd('\\', '/')[(path.TrimEnd('\\', '/').LastIndexOfAny(['\\', '/']) + 1)..];
+    internal static string Name(string path) => path.TrimEnd('\\', '/')[(path.TrimEnd('\\', '/').LastIndexOfAny(['\\', '/']) + 1)..];
+}
+
+/// <summary>
+/// Folders the app offers to make for a person who wants their work filed for them: one per client, named after
+/// the company, and one per project inside it. Clients we work with directly go together under one folder
+/// (e.g. Clients\Webignite\Trimax); a studio's own folder sits at the top with its projects inside (Clients\G3\Amos).
+/// Nothing here touches the disk: these only say where things go.
+/// </summary>
+public static class WorkFolders
+{
+    /// <summary>What a client's folder is called.</summary>
+    public static string NameFor(Client client) => FileNames.Safe(client.Called);
+
+    /// <summary>Where a client's folder goes under the main client folder.</summary>
+    public static string ClientPath(Client client, string root, FileSettings settings)
+    {
+        var direct = (settings.DirectFolder ?? "").Trim();
+        return client.Direct && direct.Length > 0
+            ? System.IO.Path.Combine(root, FileNames.Safe(direct), NameFor(client))
+            : System.IO.Path.Combine(root, NameFor(client));
+    }
+
+    /// <summary>The folder inside the main one that direct clients share, or null when they aren't kept apart.</summary>
+    public static string? DirectPath(string root, FileSettings settings) =>
+        string.IsNullOrWhiteSpace(settings.DirectFolder) ? null : System.IO.Path.Combine(root, FileNames.Safe(settings.DirectFolder));
+
+    /// <summary>Where a project's folder goes inside its client's.</summary>
+    public static string ProjectPath(string clientFolder, string projectName) =>
+        System.IO.Path.Combine(clientFolder, FileNames.Safe(string.IsNullOrWhiteSpace(projectName) ? "Project" : projectName));
+
+    /// <summary>
+    /// A project's folder: the one linked on this PC if it is set; else a folder in the client's with the
+    /// project's name, or the one that looks like it ("Amos" for "Amos website"), offered to confirm.
+    /// </summary>
+    public static ClientFolders.Match ForProject(string projectId, string projectName, FileSettings settings, IEnumerable<string> inClientFolder) =>
+        settings.ProjectFolders.TryGetValue(projectId, out var linked) && !string.IsNullOrWhiteSpace(linked)
+            ? new ClientFolders.Match(ClientFolders.Fit.Sure, linked)
+            : ClientFolders.Find([projectName], inClientFolder);
+
+    /// <summary>
+    /// After a rename: where the folder would move to so it keeps the new name, or null when it should be left
+    /// alone (it never had the old name, or the name on disk wouldn't change).
+    /// </summary>
+    public static string? Renamed(string folder, string oldName, string newName)
+    {
+        var was = FileNames.Safe(oldName);
+        var now = FileNames.Safe(newName);
+        if (string.Equals(was, now, StringComparison.OrdinalIgnoreCase) || !string.Equals(ClientFolders.Name(folder), was, StringComparison.OrdinalIgnoreCase))
+            return null;
+        return FilePaths.Parent(folder) is { } parent ? System.IO.Path.Combine(parent, now) : null;
+    }
+
+    /// <summary>The settings with a folder linked to a project, or the link taken away with null.</summary>
+    public static FileSettings Link(FileSettings settings, string projectId, string? folder)
+    {
+        var links = settings.ProjectFolders.ToDictionary(p => p.Key, p => p.Value);
+        if (string.IsNullOrWhiteSpace(folder))
+            links.Remove(projectId);
+        else
+            links[projectId] = folder;
+        return settings with { ProjectFolders = links };
+    }
+
+    /// <summary>The settings after a folder moved: project folders inside it follow.</summary>
+    public static FileSettings Moved(FileSettings settings, string from, string to)
+    {
+        var inside = from.TrimEnd('\\', '/');
+        string Follow(string path) =>
+            string.Equals(path, inside, StringComparison.OrdinalIgnoreCase) ? to
+            : path.StartsWith(inside + "\\", StringComparison.OrdinalIgnoreCase) || path.StartsWith(inside + "/", StringComparison.OrdinalIgnoreCase) ? to + path[inside.Length..]
+            : path;
+        return settings with { ProjectFolders = settings.ProjectFolders.ToDictionary(p => p.Key, p => Follow(p.Value)) };
+    }
+
+    /// <summary>A path as a note shows it: from the main client folder down, e.g. "Clients\G3\Amos".</summary>
+    public static string Short(string path, string? root)
+    {
+        if (root is null || FilePaths.Parent(root) is not { } above || !path.StartsWith(above, StringComparison.OrdinalIgnoreCase))
+            return path;
+        return path[above.Length..].TrimStart('\\', '/');
+    }
 }
 
 /// <summary>Where the file explorer looks for client folders.</summary>
@@ -382,4 +475,19 @@ public sealed record FileSettings
 
     /// <summary>The folder files were last picked from or saved in, where the next pick starts.</summary>
     public string? LastPicked { get; init; }
+
+    /// <summary>
+    /// Offer to make a folder when a client is added and when a project gets its client. Kept on this PC only,
+    /// like the rest of these, so each of the two chooses for themselves. Off until switched on.
+    /// </summary>
+    public bool OfferFolders { get; init; }
+
+    /// <summary>The folder inside the main one for clients we work with directly; empty puts them at the top with the rest.</summary>
+    public string? DirectFolder { get; init; } = "Webignite";
+
+    /// <summary>A folder whose contents every new project folder starts with, e.g. C:\Projects\Clients\_TEMPLATE-new-site.</summary>
+    public string? ProjectTemplate { get; init; }
+
+    /// <summary>Each project's folder on this PC, by the project's id.</summary>
+    public IReadOnlyDictionary<string, string> ProjectFolders { get; init; } = new Dictionary<string, string>();
 }

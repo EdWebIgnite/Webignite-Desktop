@@ -715,6 +715,30 @@
 
     <Border Classes="card" IsVisible="{Binding ShowFiles}">
       <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Folders for new clients and projects" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="When you add a client, or give a project its client, a note offers to make the folder. Click it and the folder is made; leave it and nothing happens. A folder that is there already is used, never made twice. This is for this PC only, so your partner chooses for themselves." />
+        <CheckBox IsChecked="{Binding OfferFolders}" Content="Offer to make folders" />
+        <StackPanel Spacing="12" IsVisible="{Binding OfferFolders}">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Folder for clients you work with directly (leave empty to keep them with the rest)" />
+            <TextBox Text="{Binding DirectFolder, UpdateSourceTrigger=LostFocus}" PlaceholderText="e.g. Webignite" MaxWidth="320" HorizontalAlignment="Left" MinWidth="240" />
+          </StackPanel>
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding FolderExample}" />
+          <StackPanel>
+            <TextBlock Classes="label" Text="Start each new project folder with a copy of what is in this folder" />
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="quiet" Content="None" Command="{Binding ClearProjectTemplateFolderCommand}" IsVisible="{Binding HasProjectTemplateFolder}" Margin="8,0,0,0" />
+              <Button DockPanel.Dock="Right" Classes="quiet" Content="Choose folder" Click="ChooseProjectTemplate" Margin="8,0,0,0" />
+              <TextBox Text="{Binding ProjectTemplateFolder, Mode=OneWay}" IsReadOnly="True" />
+            </DockPanel>
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding ShowFiles}">
+      <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Pictures" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
                    Text="Open pictures from Windows Explorer in Webignite's picture viewer. Windows lets only you choose the default, so this puts Webignite on the list and opens Default apps, where you pick it for JPG, PNG, WebP and the rest." />

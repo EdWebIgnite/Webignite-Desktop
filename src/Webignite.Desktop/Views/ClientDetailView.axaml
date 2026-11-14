@@ -62,6 +62,11 @@
               <TextBlock Classes="label" Text="Name, as it appears on quotes and invoices" />
               <TextBox Text="{Binding Name}" PlaceholderText="Business or person" />
             </StackPanel>
+            <StackPanel>
+              <TextBlock Classes="label" Text="Company, if you know them by another name" />
+              <TextBox Text="{Binding Company}" PlaceholderText="e.g. G3. Their folder is named after it" />
+            </StackPanel>
+            <CheckBox IsChecked="{Binding Direct}" Content="We work with them directly, not through another studio" />
             <Grid ColumnDefinitions="*,12,*">
               <StackPanel Grid.Column="0">
                 <TextBlock Classes="label" Text="Contact person" />

@@ -40,6 +40,8 @@ public sealed class ClientService(LocalStore store, TimeProvider? clock = null)
         var saved = store.UpdateClient(edited.Id, current => current with
         {
             Name = Typed(c => c.Name, current),
+            Company = Typed(c => c.Company, current),
+            Direct = Typed(c => c.Direct, current),
             ContactPerson = Typed(c => c.ContactPerson, current),
             Email = Typed(c => c.Email, current),
             Phone = Typed(c => c.Phone, current),

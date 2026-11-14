@@ -36,7 +36,7 @@ public static class StudioLines
     {
         var byProject = tasks.Where(t => t.Deleted is null && t.ParentId is null).ToLookup(t => t.ProjectId);
         var stops = headings.Where(h => h.Deleted is null).OrderBy(h => h.Order).ToLookup(h => h.ProjectId);
-        var owners = clients.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToDictionary(c => c.Id, c => c.Name);
+        var owners = clients.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToDictionary(c => c.Id, c => c.Called);
         var lines = new List<ProjectLine>();
         foreach (var project in projects.Where(p => p.Deleted is null && p.Status != ProjectStatus.Done).OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
         {
