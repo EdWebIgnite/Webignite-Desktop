@@ -40,7 +40,7 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
     public bool IsLines => Show == StudioShow.Lines;
 
     /// <summary>What to do, shown in a corner while presenting.</summary>
-    public string Hint => IsMap ? "Click a client to fly in  ·  Esc to close" : IsWall ? "Point at a card to turn it over  ·  Esc to close" : "Esc to close";
+    public string Hint => IsMap ? "Double-click a client to fly in  ·  drag to move  ·  Esc to close" : IsWall ? "Point at a card to turn it over  ·  Esc to close" : "Esc to close";
 
     [RelayCommand]
     private void ShowMap() => Show = StudioShow.Map;

@@ -1,7 +1,7 @@
 namespace Webignite.Core.Studio;
 
 /// <summary>The kinds of world a client can be on the Studio map.</summary>
-public enum PlanetKind { Gas, Ocean, Rock, Ice, Desert }
+public enum PlanetKind { Gas, Ocean, Rock, Ice, Desert, Mars }
 
 /// <summary>
 /// The surface of a planet as a flat map of the whole globe (as an atlas shows the Earth), worked out from a
@@ -10,7 +10,15 @@ public enum PlanetKind { Gas, Ocean, Rock, Ice, Desert }
 /// </summary>
 public static class PlanetSurface
 {
-    public static PlanetKind KindOf(int seed) => (PlanetKind)((uint)seed % 5);
+    /// <summary>
+    /// Which kind of world a number gives. Mars takes the place of every other desert world, so a client that was
+    /// a gas giant or an ocean world before Mars was added is still one.
+    /// </summary>
+    public static PlanetKind KindOf(int seed)
+    {
+        var kind = (PlanetKind)((uint)seed % 5);
+        return kind == PlanetKind.Desert && (uint)seed / 5 % 2 == 0 ? PlanetKind.Mars : kind;
+    }
 
     /// <summary>
     /// The map, <paramref name="width"/> by <paramref name="height"/>, row by row from the north pole down.
@@ -41,6 +49,7 @@ public static class PlanetSurface
                     PlanetKind.Ocean => Ocean(x, y, z, lat, shift, main, light, dark, second),
                     PlanetKind.Rock => Rock(x, y, z, shift, craters, main, light, dark),
                     PlanetKind.Ice => Ice(x, y, z, lat, shift, main, light, dark),
+                    PlanetKind.Mars => Mars(x, y, z, lat, lon, shift, main, light, dark),
                     _ => Desert(x, y, z, lat, shift, main, light, dark),
                 };
             }
@@ -122,6 +131,39 @@ public static class PlanetSurface
             colour = Mix(colour, dark, 0.45);
         var cap = Math.Abs(lat) - (1.25 + detail * 0.2);
         return cap > 0 ? Mix(colour, light, Math.Clamp(cap * 10, 0, 0.9)) : colour;
+    }
+
+    // The red planet: rust plains with darker country in broad, soft-edged patches, a paler dusty region, a long
+    // canyon along the equator, a few great volcanoes, and a bright cap at each pole (the north one larger).
+    // <paramref name="main"/> is the rust itself; the world's own colour plays no part, as Mars is always Mars.
+    private static uint Mars(double x, double y, double z, double lat, double lon, double shift, uint main, uint light, uint dark)
+    {
+        var country = Fbm(x * 1.4 + shift, y * 1.4, z * 1.4, 5);
+        var dust = Fbm(x * 2.6 - shift, y * 2.6, z * 2.6 + shift, 4);
+        var grain = Fbm(x * 11 + shift, y * 11, z * 11, 3) - 0.5;
+        // Darker country where the first noise is low, paler dust where the second is high.
+        var colour = Mix(Mix(main, dark, 0.58), main, Math.Clamp((country - 0.32) * 3.2, 0, 1));
+        colour = Mix(colour, Mix(main, light, 0.42), Math.Clamp((dust - 0.56) * 3.5, 0, 0.8));
+        colour = Mix(colour, grain > 0 ? light : dark, Math.Abs(grain) * 0.22);
+        // The canyon: a dark, ragged line a little south of the equator, a quarter of the way round.
+        var along = Math.Abs(Math.IEEERemainder(lon - 1.9 - shift * 0.01, Math.Tau));
+        var across = Math.Abs(lat + 0.12 + (Fbm(x * 5 + shift, y * 5, z * 5, 2) - 0.5) * 0.12);
+        if (along < 0.75 && across < 0.03 * (1 - along / 0.75) + 0.008)
+            colour = Mix(colour, dark, 0.6);
+        // Volcanoes: pale round shields with a dark pit, in a group to the canyon's west.
+        foreach (var (vLon, vLat, size) in new[] { (0.75, 0.32, 0.11), (1.05, 0.05, 0.07), (1.12, -0.1, 0.06), (0.98, 0.18, 0.06) })
+        {
+            var far = Math.Sqrt(Math.Pow(Math.IEEERemainder(lon - vLon - shift * 0.01, Math.Tau) * Math.Cos(lat), 2) + Math.Pow(lat - vLat, 2)) / size;
+            if (far < 0.16)
+                colour = Mix(colour, dark, 0.55);
+            else if (far < 1)
+                colour = Mix(colour, Mix(main, light, 0.5), 0.5 * (1 - far));
+        }
+        var edge = (Fbm(x * 6 + shift, y * 6, z * 6, 3) - 0.5) * 0.16;
+        var north = lat - (1.22 + edge);
+        var south = -lat - (1.36 + edge);
+        var cap = Math.Max(north, south);
+        return cap > 0 ? Mix(colour, light, Math.Clamp(cap * 14, 0, 0.95)) : colour;
     }
 
     private static (double X, double Y, double Z, double Size)[] Craters(int seed, int count)

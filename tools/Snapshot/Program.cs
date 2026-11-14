@@ -4329,6 +4329,46 @@ SaveLooks("projects");
                 Dispatcher.UIThread.RunJobs();
                 Check("Reset layout puts it back", studio.Stars.First(p => p.Star.Name == "Modic Digital") == modic && !studio.HasMoved);
             }
+            // The same with a real pointer: press on a planet, drag, let go. It stays where it was dropped, and one
+            // click on a client does not fly in; a double click does.
+            {
+                studio.SelectedId = null;
+                Dispatcher.UIThread.RunJobs();
+                map.Settle();
+                Dispatcher.UIThread.RunJobs();
+                var g3 = studio.Stars.First(p => p.Star.Name == "G3");
+                Point OnWindow(string id) => map.TranslatePoint(map.PlaceOnScreen(id)!.Value, window)!.Value;
+                var from = OnWindow(g3.Star.Id);
+                var to = new Point(from.X + 140, from.Y - 90);
+                window.MouseDown(from, Avalonia.Input.MouseButton.Left);
+                for (var step = 1; step <= 6; step++)
+                    window.MouseMove(new Point(from.X + (to.X - from.X) * step / 6, from.Y + (to.Y - from.Y) * step / 6), Avalonia.Input.RawInputModifiers.LeftMouseButton);
+                window.MouseUp(to, Avalonia.Input.MouseButton.Left);
+                Dispatcher.UIThread.RunJobs();
+                map.Settle();
+                Dispatcher.UIThread.RunJobs();
+                var dropped = studio.Stars.First(p => p.Star.Name == "G3");
+                var now = OnWindow(g3.Star.Id);
+                // Up by 90 pixels exactly, and well to the right. (How far right in pixels depends on the page's width,
+                // which in this narrow window grows when the Reset layout link appears.)
+                Check("A planet dragged with the pointer stays where it is dropped",
+                    studio.HasMoved && dropped.X > g3.X + 0.15 && dropped.Y < g3.Y - 0.15 && Math.Abs(now.Y - to.Y) < 4);
+                Check("Dragging a planet does not pick it", studio.SelectedId is null);
+                // One click: nothing. Two: flies in.
+                window.MouseDown(now, Avalonia.Input.MouseButton.Left);
+                window.MouseUp(now, Avalonia.Input.MouseButton.Left);
+                Dispatcher.UIThread.RunJobs();
+                var afterOne = studio.SelectedId;
+                window.MouseDown(now, Avalonia.Input.MouseButton.Left);
+                window.MouseUp(now, Avalonia.Input.MouseButton.Left);
+                Dispatcher.UIThread.RunJobs();
+                Check("One click on a client does nothing, and a double click flies in to it", afterOne is null && studio.SelectedId == g3.Star.Id);
+                map.Settle();
+                Save("studio-map-flown-in");
+                studio.SelectedId = null;
+                studio.ResetLayoutCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+            }
             // Present: a copy filling the screen. Esc lets go of a picked client first, then closes it; so does Close.
             {
                 studio.ShowMapCommand.Execute(null);
