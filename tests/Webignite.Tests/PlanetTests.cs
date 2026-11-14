@@ -14,6 +14,7 @@ public sealed class PlanetTests
     [InlineData(PlanetKind.Rock)]
     [InlineData(PlanetKind.Ice)]
     [InlineData(PlanetKind.Desert)]
+    [InlineData(PlanetKind.Mars)]
     public void A_worlds_map_is_the_same_every_time_has_detail_and_joins_up_left_to_right(PlanetKind kind)
     {
         var map = PlanetSurface.Make(kind, 1234, 64, 32, Main, Light, Dark, Land);
@@ -29,10 +30,27 @@ public sealed class PlanetTests
     }
 
     [Fact]
-    public void Each_client_gets_one_of_five_kinds_of_world_always_the_same()
+    public void Each_client_gets_one_of_six_kinds_of_world_always_the_same()
     {
         Assert.Equal(PlanetSurface.KindOf(42), PlanetSurface.KindOf(42));
-        Assert.Equal(5, Enumerable.Range(0, 50).Select(PlanetSurface.KindOf).Distinct().Count());
+        Assert.Equal(6, Enumerable.Range(0, 50).Select(PlanetSurface.KindOf).Distinct().Count());
+    }
+
+    [Fact]
+    public void Mars_is_rust_with_bright_caps_at_its_poles()
+    {
+        const uint rust = 0xB5553A;
+        var map = PlanetSurface.Make(PlanetKind.Mars, 5, 128, 64, rust, Light, Dark, Land);
+
+        double Red(uint c) => c >> 16 & 255;
+        double Blue(uint c) => c & 255;
+        var top = Enumerable.Range(0, 128).Average(x => (double)Brightness(map[x]));
+        var bottom = Enumerable.Range(0, 128).Average(x => (double)Brightness(map[63 * 128 + x]));
+        var middle = Enumerable.Range(0, 128).Select(x => map[32 * 128 + x]).ToList();
+        // The poles are far brighter than the plains, and the plains are redder than they are blue.
+        Assert.True(top > middle.Average(c => (double)Brightness(c)) + 150);
+        Assert.True(bottom > middle.Average(c => (double)Brightness(c)) + 150);
+        Assert.True(middle.Average(Red) > middle.Average(Blue) + 50);
     }
 
     [Fact]

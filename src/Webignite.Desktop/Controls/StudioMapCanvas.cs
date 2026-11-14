@@ -373,7 +373,8 @@ public sealed class StudioMapCanvas : Control
         var light = ColourOf(Brush("NavText"));
         var dark = ColourOf(Brush("Nav"));
         var land = ColourOf(Brush(LandColours[(int)((uint)seed / 5 % LandColours.Length)]));
-        var map = PlanetSurface.Make(PlanetSurface.KindOf(seed), seed, MapWidth, MapHeight, Packed(colour), Packed(light), Packed(dark), Packed(land));
+        var kind = PlanetSurface.KindOf(seed);
+        var map = PlanetSurface.Make(kind, seed, MapWidth, MapHeight, Packed(kind == PlanetKind.Mars ? Rust() : colour), Packed(light), Packed(dark), Packed(land));
         var picture = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(PlanetDots, PlanetDots), new Vector(96, 96),
             Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Premul);
         world = new World(map, picture, (int)((uint)seed / 7 % Leans.Length), 2.2 + (uint)seed % 5 * 0.6);
@@ -392,6 +393,9 @@ public sealed class StudioMapCanvas : Control
         }
     }
 
+    // Mars is rust whoever the client is: the palette's red and orange, a little towards the dark of the sky.
+    private Color Rust() => Mix(Mix(ColourOf(Brush("ProjectRed")), ColourOf(Brush("ProjectOrange")), 0.5), ColourOf(Brush("Nav")), 0.22);
+
     private void ForgetWorlds()
     {
         foreach (var world in worlds.Values)
@@ -408,8 +412,10 @@ public sealed class StudioMapCanvas : Control
     /// </summary>
     private void DrawPlanet(DrawingContext context, string id, Point at, double radius, Color colour, double strength, double beat, int seed)
     {
-        var pale = Mix(colour, ColourOf(Brush("NavText")), 0.45);
         var kind = PlanetSurface.KindOf(seed);
+        if (kind == PlanetKind.Mars)
+            colour = Rust();
+        var pale = Mix(colour, ColourOf(Brush("NavText")), 0.45);
         var ringed = radius >= 22 && kind is PlanetKind.Gas or PlanetKind.Ice && (uint)seed / 3 % 2 == 0;
         var world = radius >= 5 ? WorldOf(id, colour, seed) : null;
         var lean = Leans[world?.Lean ?? 0];
@@ -574,16 +580,23 @@ public sealed class StudioMapCanvas : Control
         var under = Under(point);
         if (under is not null && e.ClickCount >= 2)
         {
-            Opened?.Invoke(under.Star);
+            // A double click on a client flies in to it; on one of its moons it opens what the moon stands for.
+            if (under.Star.ParentId is null)
+                SetCurrentValue(SelectedIdProperty, under.Star.Id);
+            else
+                Opened?.Invoke(under.Star);
+            (dragId, dragging) = (null, false);
+            e.Pointer.Capture(null);
             return;
         }
-        // A client can be dragged; whether this is a drag or a click is settled as the pointer moves.
+        // A client can be dragged. One click on it does nothing else, so a drag is never mistaken for a pick.
         if (under is { Star.ParentId: null } && Scale > 0 && (Stars ?? []).FirstOrDefault(p => p.Star.Id == under.Star.Id) is { } client)
         {
             dragId = client.Star.Id;
             pressedAt = point;
             var (x, y) = InLayout(point);
             (grabX, grabY) = (client.X - x, client.Y - y);
+            (dragX, dragY) = (client.X, client.Y);
             dragging = false;
             e.Pointer.Capture(this);
             return;
@@ -597,15 +610,18 @@ public sealed class StudioMapCanvas : Control
         base.OnPointerReleased(e);
         if (dragId is not { } id)
             return;
-        e.Pointer.Capture(null);
+        // Noted before the pointer is let go: letting it go is itself "the drag was dropped" and clears these.
         var wasDragging = dragging;
+        var (x, y) = (dragX, dragY);
         (dragId, dragging) = (null, false);
+        e.Pointer.Capture(null);
         if (wasDragging)
-            Moved?.Invoke(id, Math.Clamp(dragX, -1, 1), Math.Clamp(dragY, -1, 1));
-        else
-            SetCurrentValue(SelectedIdProperty, id);
+            Moved?.Invoke(id, Math.Clamp(x, -1, 1), Math.Clamp(y, -1, 1));
         InvalidateVisual();
     }
+
+    /// <summary>Where a dot is on the screen, within this control; for pointing at one without a person.</summary>
+    public Point? PlaceOnScreen(string id) => shown.FirstOrDefault(p => p.Star.Id == id) is { } star ? OnScreen(star.X, star.Y) : null;
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
