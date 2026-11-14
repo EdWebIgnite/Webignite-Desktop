@@ -322,10 +322,34 @@ public sealed partial class LocalStore : IDisposable
     public void Dispose()
     {
         foreach (var opened in connections.Values)
-            opened.Dispose();
+            Close(opened);
         connections.Dispose();
         lastLook.Dispose();
         inOneGo.Dispose();
+    }
+
+    // Each thread has its own connection, and one of them may be in the middle of a read on its own thread as
+    // the store is closed: a count for a badge started a moment ago, say. Closing a connection while its thread
+    // is still handing back a command throws ("Collection was modified"), so that one is given a moment and
+    // tried again. One still busy after a second is left; it goes with the process.
+    private static void Close(SqliteConnection opened)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                opened.Dispose();
+                return;
+            }
+            catch (InvalidOperationException) when (attempt < 20)
+            {
+                Thread.Sleep(50);
+            }
+            catch (InvalidOperationException)
+            {
+                return;
+            }
+        }
     }
 
     private byte[] Seal<T>(string context, T value) =>
