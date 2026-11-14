@@ -216,6 +216,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("tile-looks", value.ToDictionary(l => l.Key, l => l.Value));
     }
 
+    /// <summary>Where clients were dragged to on the Studio map, by client id; a client not in it sits where the layout puts it.</summary>
+    public IReadOnlyDictionary<string, Webignite.Core.Studio.MapPlace> StudioPlaces
+    {
+        get => store.GetSetting<Dictionary<string, Webignite.Core.Studio.MapPlace>>("studio-places") ?? [];
+        set => store.SetSetting("studio-places", value.ToDictionary(p => p.Key, p => p.Value));
+    }
+
     /// <summary>Clients left off the Studio pages: contacts that came in from the books but aren't clients, such as a payment provider.</summary>
     public IReadOnlyList<string> StudioHidden
     {
