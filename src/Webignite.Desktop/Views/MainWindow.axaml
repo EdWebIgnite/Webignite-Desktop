@@ -10,12 +10,12 @@
         Width="1200" Height="780" MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen">
 
+  <!-- Ctrl+K and Ctrl+B are not here: writing uses them too (a link, bold), so the window only takes them when
+       nothing on the page did. See OnKeyDown. -->
   <Window.KeyBindings>
-    <KeyBinding Gesture="Ctrl+K" Command="{Binding Search.ShowCommand}" />
     <KeyBinding Gesture="Ctrl+N" Command="{Binding NewCommand}" />
     <KeyBinding Gesture="F5" Command="{Binding RefreshPageCommand}" />
     <KeyBinding Gesture="F1" Command="{Binding ToggleShortcutsCommand}" />
-    <KeyBinding Gesture="Ctrl+B" Command="{Binding Sidebar.ToggleCommand}" />
     <KeyBinding Gesture="Ctrl+M" Command="{Binding MenuPart.ToggleMenuCommand}" />
     <KeyBinding Gesture="Ctrl+T" Command="{Binding NewTabCommand}" />
     <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseThisTabCommand}" />

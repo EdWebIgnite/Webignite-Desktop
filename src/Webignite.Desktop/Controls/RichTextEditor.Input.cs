@@ -258,6 +258,16 @@ public sealed partial class RichTextEditor
             case Key.Space when ctrl:
                 ClearFormatting();
                 break;
+            // Lists, with the keys Google Docs and Word on the web use: 8 is the key with the star on it.
+            case Key.D8 when ctrl && shift:
+                ToggleList(ListKind.Bullet);
+                break;
+            case Key.D7 when ctrl && shift:
+                ToggleList(ListKind.Number);
+                break;
+            case Key.D9 when ctrl && shift:
+                ToggleList(ListKind.Check);
+                break;
             case Key.OemCloseBrackets when ctrl:
             case Key.OemPeriod when ctrl && shift:
                 StepSize(1);

@@ -338,6 +338,23 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        // Shortcuts that writing uses as well: bold and a link come first. The window's key bindings take a key
+        // before the page sees it, so these two are taken here instead, only once nothing on the page wanted them.
+        if (!e.Handled && e.KeyModifiers == KeyModifiers.Control && DataContext is MainViewModel keys)
+        {
+            if (e.Key == Key.B)
+            {
+                keys.Sidebar.ToggleCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.K)
+            {
+                keys.Search.ShowCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+        }
         base.OnKeyDown(e);
     }
 
