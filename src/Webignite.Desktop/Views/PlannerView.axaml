@@ -6,18 +6,7 @@
              x:DataType="vm:PlannerViewModel"
              x:Name="Root">
   <StackPanel Spacing="18">
-    <DockPanel>
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
-        <Button Classes="quiet" Content="This week" Command="{Binding ThisWeekCommand}" />
-        <Button Classes="quiet" Content="‹" Command="{Binding PreviousWeekCommand}" ToolTip.Tip="Previous week" />
-        <Button Classes="quiet" Content="›" Command="{Binding NextWeekCommand}" ToolTip.Tip="Next week" />
-      </StackPanel>
-      <StackPanel>
-        <TextBlock Classes="h1" Text="Week" />
-        <TextBlock Classes="muted" Text="{Binding WeekTitle}" />
-      </StackPanel>
-    </DockPanel>
-
+    <!-- Shown inside Calendar, whose header has the week's dates and the arrows. -->
     <ItemsControl x:Name="DayRow" ItemsSource="{Binding Days}">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>

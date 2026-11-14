@@ -39,7 +39,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Tells the open to-do, calendar, planner and overview pages that something was added from elsewhere.</summary>
     public void RefreshPlanning()
     {
-        foreach (var page in Built<IRefreshable>(Page.Calendar, Page.Planner, Page.Diary, Page.Overview))
+        foreach (var page in Built<IRefreshable>(Page.Calendar, Page.Diary, Page.Overview))
             page.Refresh();
     }
 
@@ -62,13 +62,13 @@ public partial class MainViewModel : ViewModelBase
             }
             pages.UnionWith(area switch
             {
-                "projects" => [Page.Calendar, Page.Planner, Page.Diary, Page.Overview, Page.MyPages, Page.Inbox],
-                "todos" => [Page.Calendar, Page.Planner, Page.Diary, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
+                "projects" => [Page.Calendar, Page.Diary, Page.Overview, Page.MyPages, Page.Inbox],
+                "todos" => [Page.Calendar, Page.Diary, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
                 "clients" => [Page.Clients, Page.Overview, Page.Retainers],
-                "documents" => [Page.Quotes, Page.Invoices, Page.Money, Page.Reports, Page.Approvals, Page.Overview],
+                "documents" => [Page.Quotes, Page.Invoices, Page.Money, Page.Approvals, Page.Overview],
                 "contacts" => [Page.Contacts],
                 "notes" => [Page.Notes],
-                "calendar" => [Page.Calendar, Page.Planner, Page.Diary, Page.Overview, Page.Home],
+                "calendar" => [Page.Calendar, Page.Diary, Page.Overview, Page.Home],
                 "time" => [Page.Time, Page.Overview],
                 "renewals" => [Page.Renewals, Page.Diary, Page.Overview],
                 _ => [],
@@ -122,7 +122,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>The pages that list or count quotes and invoices, read again.</summary>
     internal void RefreshMoneyPages()
     {
-        foreach (var page in Built<IRefreshable>([Page.Quotes, Page.Invoices, Page.Overview, Page.Money, Page.Reports, Page.Approvals, Page.Clients])
+        foreach (var page in Built<IRefreshable>([Page.Quotes, Page.Invoices, Page.Overview, Page.Money, Page.Approvals, Page.Clients])
                      .Where(p => p is not IHoldsWork { HoldsWork: true }))
             page.Refresh();
     }
@@ -273,11 +273,9 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Quotes, "Quotes", () => new DocumentsViewModel(DocumentKind.Quote, services), "Quotes"),
             new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
-            new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
             new Module(Page.Studio, "Studio", () => new StudioViewModel(services), "Studio", fullBleed: true),
             new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true) { InPlanner = true },
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
-            new Module(Page.Planner, "Week", () => new PlannerViewModel(services), "Planner") { InPlanner = true },
             new Module(Page.Diary, "Diary", () => new DiaryViewModel(services), "Diary") { InPlanner = true },
             new Module(Page.Time, "Time", () => new TimeViewModel(services), "Time") { InPlanner = true },
             new NavGroup("computer", "COMPUTER") { Icon = "Tools" },
@@ -541,7 +539,15 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>The sidebar entry for a page.</summary>
-    public Module this[Page page] => Modules.Single(m => m.Key == page);
+    public Module this[Page page] => Modules.Single(m => m.Key == NowIn(page));
+
+    /// <summary>Where a page lives now: one that was folded into another (Week into Calendar) opens that one, so a tab or layout saved before still works.</summary>
+    public static Page NowIn(Page page) => page switch
+    {
+        Page.Planner => Page.Calendar,
+        Page.Reports => Page.Money,
+        _ => page,
+    };
 
     private SiteCheckViewModel BuildSiteCheck(AppServices services)
     {

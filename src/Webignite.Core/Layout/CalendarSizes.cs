@@ -9,6 +9,9 @@ public sealed record CalendarSizes
     public double? MonthHeight { get; init; }
     public double? SideWidth { get; init; }
     public double? PlannerDayHeight { get; init; }
+
+    /// <summary>The calendar was last left on its week, so it opens there again.</summary>
+    public bool Week { get; init; }
 }
 
 public static class CalendarSizing
