@@ -4312,6 +4312,40 @@ SaveLooks("projects");
             Check("The wall has a card for every client in the demo studio", studio.Wall.Count == 27 && wallPanel is { IsEffectivelyVisible: true }
                 && wallPanel.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => t.Text == "G3" && t.IsEffectivelyVisible));
             Save("studio-wall-demo");
+            // Present: a copy filling the screen. Esc lets go of a picked client first, then closes it; so does Close.
+            {
+                studio.ShowMapCommand.Execute(null);
+                var presenting = Webignite.Desktop.Views.StudioView.PresentingWindow(services, studio);
+                var presentingClosed = false;
+                presenting.Closed += (_, _) => presentingClosed = true;
+                presenting.WindowState = Avalonia.Controls.WindowState.Normal;
+                presenting.Width = 1280;
+                presenting.Height = 760;
+                presenting.Show();
+                Dispatcher.UIThread.RunJobs();
+                var shownPage = (StudioViewModel)((Webignite.Desktop.Views.StudioView)presenting.Content!).DataContext!;
+                ((Webignite.Desktop.Views.StudioView)presenting.Content!).Canvas.Settle();
+                Check("Presenting shows the same picture, with the demo studio kept", shownPage.Presenting && shownPage.Demo && shownPage.IsMap);
+                SaveWindow(presenting, "studio-present");
+                void Esc() => presenting.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Escape });
+                shownPage.SelectedId = shownPage.Stars[0].Star.Id;
+                Esc();
+                Dispatcher.UIThread.RunJobs();
+                Check("While presenting, Esc with a client picked lets go of it and stays open", shownPage.SelectedId is null && !presentingClosed);
+                Esc();
+                Dispatcher.UIThread.RunJobs();
+                Check("While presenting, Esc with nothing picked closes the window", presentingClosed);
+                var again = Webignite.Desktop.Views.StudioView.PresentingWindow(services, studio);
+                var againClosed = false;
+                again.Closed += (_, _) => againClosed = true;
+                again.WindowState = Avalonia.Controls.WindowState.Normal;
+                again.Show();
+                Dispatcher.UIThread.RunJobs();
+                var closeButton = again.GetVisualDescendants().OfType<Avalonia.Controls.Button>().First(b => b.Name == "ClosePresenting");
+                closeButton.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+                Dispatcher.UIThread.RunJobs();
+                Check("While presenting, the Close button closes the window", closeButton.IsEffectivelyVisible || againClosed ? againClosed : false);
+            }
             studio.ShowMapCommand.Execute(null);
             studio.Demo = false;
             studio.SelectedId = null;

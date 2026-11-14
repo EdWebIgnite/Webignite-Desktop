@@ -187,6 +187,33 @@ public sealed class StudioPageTests
     });
 
     [Fact]
+    public Task While_presenting_Esc_first_lets_go_of_a_picked_client_and_then_closes() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, clientId, _) = Open(app, presenting: true);
+        page.SelectedId = clientId;
+
+        Assert.True(Webignite.Desktop.Views.StudioView.StepBack(page));
+        Assert.Null(page.SelectedId);
+        // Nothing left to let go of: the window closes.
+        Assert.False(Webignite.Desktop.Views.StudioView.StepBack(page));
+        page.Dispose();
+    });
+
+    [Fact]
+    public Task The_picture_can_be_changed_while_presenting() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, _, _) = Open(app, presenting: true);
+
+        page.ShowWallCommand.Execute(null);
+        Assert.True(page.IsWall);
+        page.ShowLinesCommand.Execute(null);
+        Assert.True(page.IsLines);
+        page.Dispose();
+    });
+
+    [Fact]
     public Task With_nothing_to_show_it_says_so() => Ui.Run(() =>
     {
         using var app = new TestApp();

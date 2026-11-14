@@ -110,8 +110,14 @@
         <TextBlock Classes="h1" Text="Studio" Foreground="{DynamicResource NavText}" />
         <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource NavMuted}" />
       </StackPanel>
-      <TextBlock IsVisible="{Binding Presenting}" Text="{Binding Hint}" Margin="28,22" HorizontalAlignment="Right" VerticalAlignment="Top"
-                 FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" IsHitTestVisible="False" />
+      <!-- While presenting: which picture to show, and a way out that needs no keyboard. -->
+      <StackPanel IsVisible="{Binding Presenting}" Orientation="Horizontal" Spacing="6" Margin="28,16" HorizontalAlignment="Right" VerticalAlignment="Top">
+        <TextBlock Text="{Binding Hint}" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" VerticalAlignment="Center" Margin="0,0,14,0" />
+        <Button Classes="viewtab" Classes.on="{Binding IsMap}" Content="Map" Command="{Binding ShowMapCommand}" Foreground="{DynamicResource NavText}" />
+        <Button Classes="viewtab" Classes.on="{Binding IsWall}" Content="Wall" Command="{Binding ShowWallCommand}" Foreground="{DynamicResource NavText}" />
+        <Button Classes="viewtab" Classes.on="{Binding IsLines}" Content="Lines" Command="{Binding ShowLinesCommand}" Foreground="{DynamicResource NavText}" />
+        <Button x:Name="ClosePresenting" Classes="quiet" Content="Close" Click="StopPresenting" Margin="14,0,0,0" Foreground="{DynamicResource NavText}" BorderBrush="{DynamicResource NavMuted}" Background="Transparent" ToolTip.Tip="Close the full screen (Esc)" />
+      </StackPanel>
     </Panel>
   </DockPanel>
 </UserControl>
