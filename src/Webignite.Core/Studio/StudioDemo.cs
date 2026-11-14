@@ -4,13 +4,15 @@ namespace Webignite.Core.Studio;
 
 /// <summary>
 /// A made-up studio for showing the Studio pages to people outside it: a full set of clients with projects,
-/// websites, renewals and quotes, none of them real. It is the same every time, so a meeting can be rehearsed.
+/// websites, renewals and quotes. The work is made up throughout; two of the names (Modic Digital and G3) are
+/// clients the studio asked to have shown. It is the same every time, so a meeting can be rehearsed.
 /// </summary>
 public static class StudioDemo
 {
     // Name, thousands invoiced this year, then what circles it: projects, websites, renewals, quotes out.
     private static readonly (string Name, int Invoiced, int Projects, int Sites, int Renewals, int Quotes)[] Clients =
     [
+        ("Modic Digital", 196, 4, 2, 3, 1), ("G3", 132, 3, 2, 2, 1),
         ("Marula Coffee Roasters", 148, 3, 2, 3, 1), ("Kudu Construction", 96, 2, 1, 2, 0), ("Aloe Physio", 64, 1, 1, 2, 1),
         ("Mzansi Motors", 122, 2, 2, 2, 0), ("Protea Legal", 81, 1, 1, 1, 1), ("Baobab Bikes", 37, 2, 1, 1, 0),
         ("Table Bay Dental", 58, 1, 1, 2, 0), ("Highveld Solar", 110, 3, 1, 2, 1), ("Blue Crane Travel", 45, 1, 2, 2, 0),
@@ -22,6 +24,16 @@ public static class StudioDemo
 
     private static readonly string[] Projects =
         ["New website", "Brand refresh", "Online shop", "Monthly care plan", "Social media launch", "Logo and stationery", "Booking system", "Newsletter"];
+
+    // The two shown with work of their own, each project named; every one of theirs gets a line too.
+    private static readonly Dictionary<string, string[]> Named = new(StringComparer.Ordinal)
+    {
+        ["Modic Digital"] = ["Website rebuild", "Brand refresh", "Online shop", "Monthly care plan"],
+        ["G3"] = ["New website", "Search and Google Ads", "Monthly care plan"],
+    };
+
+    private static string ProjectName(int client, int at) =>
+        Named.TryGetValue(Clients[client].Name, out var names) ? names[at % names.Length] : Projects[(client + at * 3) % Projects.Length];
 
     /// <summary>The website the made-up studio is shown having trouble with, so the map shows what watching looks like.</summary>
     public const string DownSite = "baobabbikes.co.za";
@@ -39,7 +51,7 @@ public static class StudioDemo
             for (var i = 0; i < projects; i++)
             {
                 var left = (c * 3 + i * 5) % 9;
-                mine.Add(new Star($"{id}:project:{i}", StarKind.Project, Projects[(c + i * 3) % Projects.Length], id, 1,
+                mine.Add(new Star($"{id}:project:{i}", StarKind.Project, ProjectName(c, i), id, 1,
                     left > 0 ? StarState.Busy : StarState.Quiet, left == 0 ? "Nothing open" : left == 1 ? "1 task open" : $"{left} tasks open"));
             }
             for (var i = 0; i < sites; i++)
@@ -70,9 +82,10 @@ public static class StudioDemo
     {
         var lines = new List<ProjectLine>();
         var at = 0;
-        for (var c = 0; c < Clients.Length && lines.Count < 12; c++)
+        for (var c = 0; c < Clients.Length && lines.Count < 14; c++)
         {
-            for (var i = 0; i < Math.Min(1, Clients[c].Projects) && lines.Count < 12; i++)
+            var show = Named.ContainsKey(Clients[c].Name) ? Clients[c].Projects : Math.Min(1, Clients[c].Projects);
+            for (var i = 0; i < show && lines.Count < 14; i++)
             {
                 // How many tasks each stop has, and how far the work has got, spread so no two lines look alike.
                 var reached = (at * 7 + 3) % (Stops.Length * 4);
@@ -86,7 +99,7 @@ public static class StudioDemo
                 stops.Add(new LineStop(StudioLines.Finish, 0, 0));
                 var finished = stops.Sum(s => s.Done);
                 var all = stops.Sum(s => s.Total);
-                lines.Add(new ProjectLine($"demo:line:{at}", Projects[(c + i * 3) % Projects.Length], Clients[c].Name, Colours[at % Colours.Length], stops,
+                lines.Add(new ProjectLine($"demo:line:{at}", ProjectName(c, i), Clients[c].Name, Colours[at % Colours.Length], stops,
                     StudioLines.PositionOf(stops), ProjectHealth.OnTrack, $"{finished} of {all} tasks done"));
                 at++;
             }

@@ -116,7 +116,11 @@ public sealed class StudioMapTests
     {
         var stars = StudioDemo.Stars(Today);
 
-        Assert.Equal(20, stars.Count(s => s.ParentId is null));
+        Assert.Equal(22, stars.Count(s => s.ParentId is null));
+        // Modic is drawn bigger than G3, and both bigger than the rest.
+        var byWeight = stars.Where(s => s.ParentId is null).OrderByDescending(s => s.Weight).Select(s => s.Name).ToList();
+        Assert.Equal("Modic Digital", byWeight[0]);
+        Assert.True(byWeight.IndexOf("G3") is > 0 and < 4);
         Assert.Contains(stars, s => s.Kind == StarKind.Project);
         Assert.Contains(stars, s => s.Kind == StarKind.Quote);
         Assert.Equal(StudioDemo.DownSite, Assert.Single(stars, s => s.State == StarState.Problem && s.Kind == StarKind.Site).Name);

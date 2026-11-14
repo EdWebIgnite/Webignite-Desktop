@@ -61,7 +61,7 @@ public sealed class StudioPageTests
 
         page.Demo = true;
 
-        Assert.Equal(20, page.Stars.Count(p => p.Star.ParentId is null));
+        Assert.Equal(22, page.Stars.Count(p => p.Star.ParentId is null));
         Assert.DoesNotContain(page.Stars, p => p.Star.Name.Contains("Bosveld", StringComparison.OrdinalIgnoreCase));
         Assert.True(page.Lines.Count >= 8);
         page.SelectedId = page.Stars[0].Star.Id;
