@@ -27,12 +27,32 @@ public partial class StudioView : UserControl
         if (followed is not null)
             followed.PropertyChanged += PageChanged;
         ShowLines();
+        ShowWall();
     }
+
+    private void ShowWall()
+    {
+        if (followed is not { IsWall: true } page)
+        {
+            WallHost.Content = null;
+            return;
+        }
+        var wall = new StudioWallPanel();
+        wall.Bind(StudioWallPanel.CardsProperty, new Avalonia.Data.Binding(nameof(StudioViewModel.Wall)) { Source = page });
+        wall.Opened += page.Open;
+        WallHost.Content = wall;
+    }
+
+    /// <summary>The wall, when it is showing, so a picture of it can be taken with its cards in place.</summary>
+    public StudioWallPanel? WallPanel => WallHost.Content as StudioWallPanel;
 
     private void PageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(StudioViewModel.Show))
+        {
             ShowLines();
+            ShowWall();
+        }
     }
 
     private void ShowLines()
@@ -55,6 +75,7 @@ public partial class StudioView : UserControl
             followed.PropertyChanged -= PageChanged;
         followed = null;
         LinesHost.Content = null;
+        WallHost.Content = null;
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)

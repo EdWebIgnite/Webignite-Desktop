@@ -30,22 +30,29 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
 
     [ObservableProperty] public partial bool Demo { get; set; }
 
-    /// <summary>Which picture is showing: the map of clients, or the projects as lines.</summary>
+    /// <summary>Which picture is showing: the map of clients, the wall of client cards, or the projects as lines.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsMap), nameof(IsLines), nameof(Hint))]
+    [NotifyPropertyChangedFor(nameof(IsMap), nameof(IsWall), nameof(IsLines), nameof(Hint))]
     public partial StudioShow Show { get; set; }
 
     public bool IsMap => Show == StudioShow.Map;
+    public bool IsWall => Show == StudioShow.Wall;
     public bool IsLines => Show == StudioShow.Lines;
 
     /// <summary>What to do, shown in a corner while presenting.</summary>
-    public string Hint => IsMap ? "Click a client to fly in  ·  Esc to close" : "Esc to close";
+    public string Hint => IsMap ? "Click a client to fly in  ·  Esc to close" : IsWall ? "Point at a card to turn it over  ·  Esc to close" : "Esc to close";
 
     [RelayCommand]
     private void ShowMap() => Show = StudioShow.Map;
 
     [RelayCommand]
+    private void ShowWall() => Show = StudioShow.Wall;
+
+    [RelayCommand]
     private void ShowLines() => Show = StudioShow.Lines;
+
+    /// <summary>A card for every client, made from the same dots as the map (rules in <see cref="StudioWall"/>).</summary>
+    [ObservableProperty] public partial IReadOnlyList<WallCard> Wall { get; set; } = [];
 
     /// <summary>Each running project as a line with a stop per heading (rules in <see cref="StudioLines"/>).</summary>
     [ObservableProperty] public partial IReadOnlyList<ProjectLine> Lines { get; set; } = [];
@@ -96,6 +103,7 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
             : StudioMap.Build(services.Clients.List(), services.Projects.Projects(), services.Projects.EveryTask(), services.Documents.List(),
                 services.Settings.Uptime, services.Store.ListRenewals(), today, hidden);
         Stars = StudioMap.Layout(stars);
+        Wall = StudioWall.Build(stars);
         Lines = Demo
             ? StudioDemo.Lines()
             : StudioLines.Build(services.Projects.Projects(), services.Projects.EveryHeading(), services.Projects.EveryTask(), services.Clients.List());
@@ -181,6 +189,9 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
         }
     }
 
+    /// <summary>A click on a card on the wall opens its client.</summary>
+    public void Open(WallCard card) => Open(card.Client);
+
     /// <summary>A click on a line opens its project; not in the demo studio, where there is none behind it.</summary>
     public void Open(ProjectLine line)
     {
@@ -192,4 +203,4 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
 }
 
 /// <summary>The pictures Studio can show.</summary>
-public enum StudioShow { Map, Lines }
+public enum StudioShow { Map, Wall, Lines }

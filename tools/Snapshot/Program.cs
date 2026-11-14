@@ -4302,6 +4302,16 @@ SaveLooks("projects");
             Dispatcher.UIThread.RunJobs();
             window.GetVisualDescendants().OfType<Webignite.Desktop.Views.StudioView>().First().LinesCanvas?.Settle();
             Save("studio-lines-demo");
+            // Wall: a card for every client; the first turned over to show its back.
+            studio.ShowWallCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            var wallPanel = window.GetVisualDescendants().OfType<Webignite.Desktop.Views.StudioView>().First().WallPanel;
+            wallPanel?.Settle();
+            wallPanel?.Turn(0, toBack: true);
+            Dispatcher.UIThread.RunJobs();
+            Check("The wall has a card for every client in the demo studio", studio.Wall.Count == 22 && wallPanel is { IsEffectivelyVisible: true }
+                && wallPanel.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => t.Text == "G3" && t.IsEffectivelyVisible));
+            Save("studio-wall-demo");
             studio.ShowMapCommand.Execute(null);
             studio.Demo = false;
             studio.SelectedId = null;
