@@ -52,7 +52,7 @@ public sealed class StudioWallTests
     {
         var cards = StudioWall.Build(StudioDemo.Stars(new DateOnly(2026, 11, 14)));
 
-        Assert.Equal(22, cards.Count);
+        Assert.Equal(27, cards.Count);
         Assert.Equal("Modic Digital", cards[0].Client.Name);
         Assert.Equal("MD", cards[0].Initials);
     }
