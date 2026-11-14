@@ -93,7 +93,12 @@ public sealed class StudioMapCanvas : Control
         else if (change.Property == SelectedIdProperty)
             LookAt(SelectedId);
         else if (change.Property == StarsProperty)
+        {
             ForgetGone();
+            // A picked client that was moved is followed to where it now is.
+            if (SelectedId is not null)
+                LookAt(SelectedId);
+        }
     }
 
     private void Ask()
@@ -212,6 +217,9 @@ public sealed class StudioMapCanvas : Control
         var open = Ease(opened);
         var wide = Wide;
         var clients = stars.Where(p => p.Star.ParentId is null).ToDictionary(p => p.Star.Id);
+        // A client being dragged is drawn where the pointer has it, its moons with it.
+        if (dragging && dragId is not null && clients.TryGetValue(dragId, out var held))
+            clients[dragId] = held with { X = dragX, Y = dragY };
         // What circles a client turns slowly round it; each client's ring at its own pace and direction.
         foreach (var star in stars)
         {
@@ -224,7 +232,8 @@ public sealed class StudioMapCanvas : Control
             }
             else
             {
-                shown.Add(star with { X = star.X * wide * open, Y = star.Y * open });
+                var me = clients[star.Star.Id];
+                shown.Add(star with { X = me.X * wide * open, Y = me.Y * open });
             }
         }
         var places = shown.ToDictionary(p => p.Star.Id);
@@ -510,6 +519,20 @@ public sealed class StudioMapCanvas : Control
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+        if (dragId is not null)
+        {
+            var point = e.GetPosition(this);
+            if (!dragging && Math.Abs(point.X - pressedAt.X) + Math.Abs(point.Y - pressedAt.Y) > DragSlack)
+                dragging = true;
+            if (dragging)
+            {
+                var (x, y) = InLayout(point);
+                (dragX, dragY) = (Math.Clamp(x + grabX, -1, 1), Math.Clamp(y + grabY, -1, 1));
+                Cursor = new Cursor(StandardCursorType.SizeAll);
+                InvalidateVisual();
+            }
+            return;
+        }
         var under = Under(e.GetPosition(this))?.Star.Id;
         if (under == hover)
             return;
@@ -525,18 +548,70 @@ public sealed class StudioMapCanvas : Control
         InvalidateVisual();
     }
 
+    /// <summary>A client dragged to a new place: its id and where its middle now is, in the layout's own square.</summary>
+    public event Action<string, double, double>? Moved;
+
+    // The client the button went down on, where, and how far its middle was from the pointer; it is being dragged
+    // once the pointer has moved more than a few pixels, and until then it is a click.
+    private string? dragId;
+    private Point pressedAt;
+    private double grabX, grabY, dragX, dragY;
+    private bool dragging;
+    private const double DragSlack = 5;
+
+    // A point on the screen as a place in the layout's square (with the sideways spread taken back out).
+    private (double X, double Y) InLayout(Point point) =>
+        ((viewX + (point.X - Bounds.Width / 2) / Scale) / Wide, viewY + (point.Y - Bounds.Height / 2) / Scale);
+
+    /// <summary>Drags a client to a place in the layout's square, as the pointer would; for trying it without a pointer.</summary>
+    public void Drag(string clientId, double x, double y) => Moved?.Invoke(clientId, Math.Clamp(x, -1, 1), Math.Clamp(y, -1, 1));
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
         Focus();
-        var under = Under(e.GetPosition(this));
+        var point = e.GetPosition(this);
+        var under = Under(point);
         if (under is not null && e.ClickCount >= 2)
         {
             Opened?.Invoke(under.Star);
             return;
         }
-        // A click on empty sky flies back out.
+        // A client can be dragged; whether this is a drag or a click is settled as the pointer moves.
+        if (under is { Star.ParentId: null } && Scale > 0 && (Stars ?? []).FirstOrDefault(p => p.Star.Id == under.Star.Id) is { } client)
+        {
+            dragId = client.Star.Id;
+            pressedAt = point;
+            var (x, y) = InLayout(point);
+            (grabX, grabY) = (client.X - x, client.Y - y);
+            dragging = false;
+            e.Pointer.Capture(this);
+            return;
+        }
+        // A click on a moon picks it; one on empty sky flies back out.
         SetCurrentValue(SelectedIdProperty, under?.Star.Id);
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (dragId is not { } id)
+            return;
+        e.Pointer.Capture(null);
+        var wasDragging = dragging;
+        (dragId, dragging) = (null, false);
+        if (wasDragging)
+            Moved?.Invoke(id, Math.Clamp(dragX, -1, 1), Math.Clamp(dragY, -1, 1));
+        else
+            SetCurrentValue(SelectedIdProperty, id);
+        InvalidateVisual();
+    }
+
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        (dragId, dragging) = (null, false);
+        InvalidateVisual();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

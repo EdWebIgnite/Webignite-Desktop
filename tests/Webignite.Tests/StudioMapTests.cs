@@ -168,6 +168,28 @@ public sealed class StudioMapTests
     }
 
     [Fact]
+    public void A_client_dragged_somewhere_stays_there_with_what_circles_it()
+    {
+        var layout = new[]
+        {
+            new PlacedStar(new Star("c", StarKind.Client, "Client", null, 1, StarState.Quiet, ""), 0, 0, 0.2),
+            new PlacedStar(new Star("p", StarKind.Project, "Project", "c", 1, StarState.Quiet, ""), 0.25, 0.1, 0.03),
+            new PlacedStar(new Star("other", StarKind.Client, "Other", null, 1, StarState.Quiet, ""), -0.5, -0.5, 0.2),
+        };
+
+        var moved = StudioMap.WithPlaces(layout, new Dictionary<string, MapPlace> { ["c"] = new(0.4, -0.3), ["gone"] = new(0, 0) });
+
+        Assert.Equal((0.4, -0.3), (moved[0].X, moved[0].Y));
+        // Its moon keeps its distance from it.
+        Assert.Equal(0.65, moved[1].X, 6);
+        Assert.Equal(-0.2, moved[1].Y, 6);
+        Assert.Equal(layout[2], moved[2]);
+        // A place off the edge is brought back inside, and no places at all changes nothing.
+        Assert.Equal(1, StudioMap.WithPlaces(layout, new Dictionary<string, MapPlace> { ["c"] = new(7, 0) })[0].X);
+        Assert.Same(layout, StudioMap.WithPlaces(layout, new Dictionary<string, MapPlace>()));
+    }
+
+    [Fact]
     public void A_point_finds_the_dot_under_it_and_what_circles_a_client_before_the_client()
     {
         var placed = new[]

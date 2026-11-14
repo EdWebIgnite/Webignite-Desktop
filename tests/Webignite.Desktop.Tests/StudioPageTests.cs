@@ -214,6 +214,50 @@ public sealed class StudioPageTests
     });
 
     [Fact]
+    public Task A_planet_dragged_to_a_place_stays_there_and_reset_puts_it_back() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, clientId, projectId) = Open(app);
+        var before = page.Stars.Single(p => p.Star.Id == clientId);
+        var moonBefore = page.Stars.Single(p => p.Star.Id == "project:" + projectId);
+        Assert.False(page.HasMoved);
+
+        page.Move(clientId, 0.5, -0.4);
+
+        var after = page.Stars.Single(p => p.Star.Id == clientId);
+        Assert.Equal((0.5, -0.4), (after.X, after.Y));
+        var moon = page.Stars.Single(p => p.Star.Id == "project:" + projectId);
+        Assert.Equal(moonBefore.X - before.X, moon.X - after.X, 6);
+        Assert.True(page.HasMoved);
+        // It is remembered: another copy of the page has it in the same place.
+        using (var again = new StudioViewModel(app.Services))
+            Assert.Equal(0.5, again.Stars.Single(p => p.Star.Id == clientId).X);
+
+        page.ResetLayoutCommand.Execute(null);
+        Assert.Equal(before, page.Stars.Single(p => p.Star.Id == clientId));
+        Assert.False(page.HasMoved);
+        page.Dispose();
+    });
+
+    [Fact]
+    public Task The_demo_studios_planets_are_placed_apart_from_your_own() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, clientId, _) = Open(app);
+        page.Move(clientId, 0.5, 0.5);
+
+        page.Demo = true;
+        var demo = page.Stars.First(p => p.Star.ParentId is null);
+        page.Move(demo.Star.Id, -0.6, 0.2);
+        page.ResetLayoutCommand.Execute(null);
+
+        // Resetting the demo studio's layout leaves your own client where you put it.
+        page.Demo = false;
+        Assert.Equal(0.5, page.Stars.Single(p => p.Star.Id == clientId).X);
+        page.Dispose();
+    });
+
+    [Fact]
     public Task With_nothing_to_show_it_says_so() => Ui.Run(() =>
     {
         using var app = new TestApp();

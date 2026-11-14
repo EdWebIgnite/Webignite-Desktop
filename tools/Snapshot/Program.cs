@@ -4312,6 +4312,23 @@ SaveLooks("projects");
             Check("The wall has a card for every client in the demo studio", studio.Wall.Count == 27 && wallPanel is { IsEffectivelyVisible: true }
                 && wallPanel.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => t.Text == "G3" && t.IsEffectivelyVisible));
             Save("studio-wall-demo");
+            // A planet dragged somewhere stays there, and Reset layout puts it back.
+            {
+                studio.ShowMapCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+                var modic = studio.Stars.First(p => p.Star.Name == "Modic Digital");
+                map.Drag(modic.Star.Id, -0.7, -0.55);
+                Dispatcher.UIThread.RunJobs();
+                map.Settle();
+                var there = studio.Stars.First(p => p.Star.Name == "Modic Digital");
+                Check("A planet dragged to a place stays there, and a link offers to reset the layout",
+                    Math.Abs(there.X + 0.7) < 0.001 && Math.Abs(there.Y + 0.55) < 0.001 && studio.HasMoved
+                    && window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().Any(b => b.Content as string == "Reset layout" && b.IsEffectivelyVisible));
+                Save("studio-map-dragged");
+                studio.ResetLayoutCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+                Check("Reset layout puts it back", studio.Stars.First(p => p.Star.Name == "Modic Digital") == modic && !studio.HasMoved);
+            }
             // Present: a copy filling the screen. Esc lets go of a picked client first, then closes it; so does Close.
             {
                 studio.ShowMapCommand.Execute(null);

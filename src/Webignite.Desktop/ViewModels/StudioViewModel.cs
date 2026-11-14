@@ -102,7 +102,9 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
             ? StudioDemo.Stars(today)
             : StudioMap.Build(services.Clients.List(), services.Projects.Projects(), services.Projects.EveryTask(), services.Documents.List(),
                 services.Settings.Uptime, services.Store.ListRenewals(), today, hidden);
-        Stars = StudioMap.Layout(stars);
+        var places = services.Settings.StudioPlaces;
+        Stars = StudioMap.WithPlaces(StudioMap.Layout(stars), places);
+        HasMoved = !Presenting && stars.Any(star => star.ParentId is null && places.ContainsKey(star.Id));
         Wall = StudioWall.Build(stars);
         Lines = Demo
             ? StudioDemo.Lines()
@@ -124,6 +126,27 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
         OnPropertyChanged(nameof(PickedAround));
         OnPropertyChanged(nameof(CanOpenPicked));
         OnPropertyChanged(nameof(CanHidePicked));
+    }
+
+    /// <summary>Whether any client on the map sits where it was dragged to, for the link that puts them all back.</summary>
+    [ObservableProperty] public partial bool HasMoved { get; set; }
+
+    /// <summary>A client dragged to a new place on the map: it is kept there, here and in every copy of the page, until the layout is reset.</summary>
+    public void Move(string clientId, double x, double y)
+    {
+        var places = services.Settings.StudioPlaces.ToDictionary(p => p.Key, p => p.Value);
+        places[clientId] = new MapPlace(Math.Clamp(x, -1, 1), Math.Clamp(y, -1, 1));
+        services.Settings.StudioPlaces = places;
+        Refresh();
+    }
+
+    /// <summary>Puts every client on the map that is showing (yours, or the demo studio's) back where the layout has it.</summary>
+    [RelayCommand]
+    private void ResetLayout()
+    {
+        var here = Stars.Where(p => p.Star.ParentId is null).Select(p => p.Star.Id).ToHashSet();
+        services.Settings.StudioPlaces = services.Settings.StudioPlaces.Where(p => !here.Contains(p.Key)).ToDictionary(p => p.Key, p => p.Value);
+        Refresh();
     }
 
     /// <summary>How many clients are left off, for the link that brings them back.</summary>

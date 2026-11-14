@@ -10,6 +10,8 @@
   <DockPanel x:Name="Frame" Margin="24,18,24,20">
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" IsVisible="{Binding NotPresenting}">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+        <Button Classes="link" Content="Reset layout" Command="{Binding ResetLayoutCommand}" IsVisible="{Binding HasMoved}"
+                ToolTip.Tip="Puts the planets you dragged back where they were" />
         <Button Classes="link" Content="{Binding HiddenText}" Command="{Binding ShowHiddenCommand}" IsVisible="{Binding HasHidden}"
                 ToolTip.Tip="Clients you left off Studio. This puts them all back." />
         <CheckBox Content="Demo studio" IsChecked="{Binding Demo}"

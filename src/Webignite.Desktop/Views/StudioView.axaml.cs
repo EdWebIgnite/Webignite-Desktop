@@ -13,6 +13,7 @@ public partial class StudioView : UserControl
     {
         InitializeComponent();
         Map.Opened += star => (DataContext as StudioViewModel)?.Open(star);
+        Map.Moved += (id, x, y) => (DataContext as StudioViewModel)?.Move(id, x, y);
         DataContextChanged += (_, _) => Follow();
     }
 

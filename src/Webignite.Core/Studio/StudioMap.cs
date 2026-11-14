@@ -18,6 +18,9 @@ public enum StarState { Quiet, Busy, Problem }
 /// </summary>
 public sealed record Star(string Id, StarKind Kind, string Name, string? ParentId, double Weight, StarState State, string Detail);
 
+/// <summary>Where the person dragged a client to on the Studio map: its middle, in the layout's square from -1 to 1.</summary>
+public sealed record MapPlace(double X, double Y);
+
 /// <summary>A dot with its place: the middle and radius, where the whole map fits a square from -1 to 1.</summary>
 public sealed record PlacedStar(Star Star, double X, double Y, double Radius);
 
@@ -161,6 +164,20 @@ public static class StudioMap
         }
         var reach = placed.Max(p => Math.Max(Math.Abs(p.X), Math.Abs(p.Y)) + p.Radius);
         return reach <= 0 ? placed : [.. placed.Select(p => p with { X = p.X / reach, Y = p.Y / reach, Radius = p.Radius / reach })];
+    }
+
+    /// <summary>
+    /// The layout with the clients the person dragged somewhere put where they left them, each with everything
+    /// that circles it. A place is the client's middle, in the same square as the layout; one off the edge is
+    /// brought back inside. Clients never dragged stay where the layout put them.
+    /// </summary>
+    public static IReadOnlyList<PlacedStar> WithPlaces(IReadOnlyList<PlacedStar> layout, IReadOnlyDictionary<string, MapPlace> places)
+    {
+        if (places.Count == 0)
+            return layout;
+        var moved = layout.Where(p => p.Star.ParentId is null && places.ContainsKey(p.Star.Id))
+            .ToDictionary(p => p.Star.Id, p => (X: Math.Clamp(places[p.Star.Id].X, -1, 1) - p.X, Y: Math.Clamp(places[p.Star.Id].Y, -1, 1) - p.Y));
+        return [.. layout.Select(p => moved.TryGetValue(p.Star.ParentId ?? p.Star.Id, out var by) ? p with { X = p.X + by.X, Y = p.Y + by.Y } : p)];
     }
 
     /// <summary>The dot under a point, the smallest first so something circling a client is picked over the client; null for empty sky.</summary>
