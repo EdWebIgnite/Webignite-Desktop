@@ -287,24 +287,15 @@ public sealed partial class TaskDetail : ObservableObject
     {
         if (loading)
             return;
-        var text = value.Trim();
-        if (text.Length == 0)
-        {
-            DueTimeProblem = "";
-            Change(t => t with { DueTime = null });
-        }
-        else if (TimeOnly.TryParse(text, System.Globalization.CultureInfo.CurrentCulture, out var time)
-                 || TimeOnly.TryParse(text, System.Globalization.CultureInfo.InvariantCulture, out time))
-        {
-            DueTimeProblem = "";
-            Change(t => t with { DueTime = time });
-        }
-        else
+        var time = ProjectRules.DueTimeTyped(value, System.Globalization.CultureInfo.CurrentCulture, out var ok);
+        if (!ok)
         {
             // Left as typed: half a time ("14:") is on its way to being one.
             DueTimeProblem = "A time like 14:00.";
             return;
         }
+        DueTimeProblem = "";
+        Change(t => t with { DueTime = time });
         ShowRepeat();
     }
     [ObservableProperty] public partial string TagsText { get; set; } = "";

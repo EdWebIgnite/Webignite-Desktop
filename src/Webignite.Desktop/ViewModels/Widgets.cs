@@ -68,10 +68,13 @@ public sealed partial class TaskLine : ObservableObject
         About = about;
         Overdue = overdue;
         Done = task.Done;
+        EditTitle = task.Title;
+        Due = task.Due?.ToDateTime(TimeOnly.MinValue);
+        TimeText = task.DueTime is { } time ? time.ToString("t", CultureInfo.CurrentCulture) : "";
         loading = false;
     }
 
-    public ProjectTask Task { get; }
+    public ProjectTask Task { get; private set; }
     public string Title => Task.Title;
     public string About { get; }
     public bool HasAbout => About.Length > 0;
@@ -83,6 +86,68 @@ public sealed partial class TaskLine : ObservableObject
     {
         if (!loading)
             services.Projects.ChangeTask(Task.Id, t => t with { Done = value });
+    }
+
+    /// <summary>The task's name, to type over right on the widget. Kept when the typing leaves it; an empty name puts the old one back.</summary>
+    [ObservableProperty] public partial string EditTitle { get; set; }
+
+    partial void OnEditTitleChanged(string value)
+    {
+        if (loading)
+            return;
+        var typed = value.Trim();
+        if (typed.Length == 0)
+        {
+            loading = true;
+            EditTitle = Task.Title;
+            loading = false;
+            return;
+        }
+        if (typed != Task.Title)
+            Change(t => t with { Title = typed });
+    }
+
+    /// <summary>The day it is due, picked right on the widget; cleared for no due date, which clears its time too.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDue))]
+    public partial DateTime? Due { get; set; }
+
+    public bool HasDue => Due is not null;
+
+    partial void OnDueChanged(DateTime? value)
+    {
+        if (loading)
+            return;
+        var day = value is { } picked ? DateOnly.FromDateTime(picked) : (DateOnly?)null;
+        if (day is null && TimeText.Length > 0)
+        {
+            loading = true;
+            TimeText = "";
+            loading = false;
+        }
+        Change(t => t with { Due = day, DueTime = day is null ? null : t.DueTime });
+    }
+
+    /// <summary>The time it is due by, as typed ("14:00", "2pm", "9"); empty for any time that day.</summary>
+    [ObservableProperty] public partial string TimeText { get; set; }
+
+    /// <summary>What was typed isn't a time; the task's time is left as it was.</summary>
+    [ObservableProperty] public partial bool TimeProblem { get; private set; }
+
+    partial void OnTimeTextChanged(string value)
+    {
+        if (loading)
+            return;
+        var time = ProjectRules.DueTimeTyped(value, CultureInfo.CurrentCulture, out var ok);
+        TimeProblem = !ok;
+        if (ok && HasDue && time != Task.DueTime)
+            Change(t => t with { DueTime = time });
+    }
+
+    private void Change(Func<ProjectTask, ProjectTask> change)
+    {
+        if (services.Projects.ChangeTask(Task.Id, change).Saved is { } saved)
+            Task = saved;
     }
 
     [RelayCommand]
@@ -160,7 +225,7 @@ public sealed partial class TasksBody : WidgetBody
             if (heading is not null)
                 Lines.Add(new TaskHeadingLine(heading.Name));
             foreach (var task in open)
-                Lines.Add(new TaskLine(task, task.Due is { } due ? due.ToString("d MMM", CultureInfo.CurrentCulture) : "", task.Due < today, services));
+                Lines.Add(new TaskLine(task, "", task.Due < today, services));
         }
         var done = tasks.Count(t => t.Done);
         Empty = Lines.Count > 0 ? "" : tasks.Count == 0 ? "No tasks yet." : $"All {done} done.";
@@ -261,18 +326,33 @@ public sealed partial class NoteBody : WidgetBody
     {
         widgetId = widget.Id;
         this.page = page;
-        Text = widget.Text ?? "";
+        Document = MyPages.NoteOf(widget);
         loading = false;
         typing.Tick += (_, _) => Keep();
     }
 
-    [ObservableProperty] public partial string Text { get; set; }
+    /// <summary>The note with its formatting, as the Notes page's editor works on it: bold, lists, checklists, links.</summary>
+    [ObservableProperty] public partial Webignite.Core.Writing.RichDocument Document { get; set; }
+
+    /// <summary>Goes up each time the editor changes the note, which is when it is kept.</summary>
+    [ObservableProperty] public partial int Revision { get; set; }
+
+    /// <summary>The note as plain words. Setting it replaces the note, as typing it afresh would.</summary>
+    public string Text
+    {
+        get => Webignite.Core.Writing.RichText.ToText(Document).TrimEnd();
+        set
+        {
+            Document = Webignite.Core.Writing.RichText.FromText(value);
+            Revision++;
+        }
+    }
 
     public bool HasTyped { get; private set; }
 
-    partial void OnTextChanged(string value)
+    partial void OnRevisionChanged(int value)
     {
-        if (loading)
+        if (loading || value <= 0)
             return;
         HasTyped = true;
         typing.Stop();
@@ -285,7 +365,7 @@ public sealed partial class NoteBody : WidgetBody
         if (!HasTyped)
             return;
         HasTyped = false;
-        page.SetText(widgetId, Text);
+        page.SetNote(widgetId, Text, Webignite.Core.Writing.RichHtml.Write(Document, Webignite.Core.Writing.RichHtml.ToDataAddress));
     }
 
     public override void Dispose()

@@ -48,6 +48,9 @@ public sealed record Widget
     public string? Target { get; init; }
     public string? Text { get; init; }
 
+    /// <summary>A note with its formatting (bold, lists, checklists, links), as HTML; null for a note typed before notes could be formatted, which is read from <see cref="Text"/>.</summary>
+    public string? Html { get; init; }
+
     /// <summary>One of <see cref="WidgetLooks.Colours"/>, or null for a plain widget.</summary>
     public string? Colour { get; init; }
 
@@ -203,6 +206,21 @@ public static class MyPages
             Height = Math.Clamp(height, least.Height, MostHeight),
         };
     });
+
+    /// <summary>
+    /// Keeps a note: its words, for searching and for showing where formatting can't be, and the same with its
+    /// formatting as HTML.
+    /// </summary>
+    public static MyPage SetNote(MyPage page, string id, string text, string html) => page with
+    {
+        Widgets = [.. page.Widgets.Select(w => w.Id == id ? w with { Text = text, Html = html } : w)],
+    };
+
+    /// <summary>A note as the editor works on it: its formatted form when it has one, else its plain words.</summary>
+    public static Webignite.Core.Writing.RichDocument NoteOf(Widget widget) =>
+        string.IsNullOrWhiteSpace(widget.Html)
+            ? Webignite.Core.Writing.RichText.FromText(widget.Text)
+            : Webignite.Core.Writing.RichHtml.Read(widget.Html, Webignite.Core.Writing.RichHtml.DataAddress);
 
     public static MyPage SetText(MyPage page, string id, string text) => page with
     {

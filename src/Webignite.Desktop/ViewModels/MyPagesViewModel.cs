@@ -88,7 +88,11 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
         ListPages();
         Show(made);
         IsEditing = true;
+        NameAsked?.Invoke();
     }
+
+    /// <summary>A new page was just made: the view puts the typing in its name, with the made-up name picked, ready to type over.</summary>
+    public event Action? NameAsked;
 
     public void OpenPage(string id)
     {
@@ -227,6 +231,13 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
     {
         if (page is not null)
             Save(MyPages.SetText(page, widgetId, text));
+    }
+
+    /// <summary>Keeps a note widget's writing, with its formatting.</summary>
+    public void SetNote(string widgetId, string text, string html)
+    {
+        if (page is not null)
+            Save(MyPages.SetNote(page, widgetId, text, html));
     }
 
     /// <summary>A widget's colours, kept with the page.</summary>
