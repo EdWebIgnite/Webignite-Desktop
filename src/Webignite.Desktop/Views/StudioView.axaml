@@ -10,24 +10,36 @@
   <DockPanel x:Name="Frame" Margin="24,18,24,20">
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" IsVisible="{Binding NotPresenting}">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-        <CheckBox Content="Demo names" IsChecked="{Binding Demo}"
-                  ToolTip.Tip="Swaps every client, project and website for a made-up name and hides money, for showing this to people outside the studio" />
+        <Button Classes="link" Content="{Binding HiddenText}" Command="{Binding ShowHiddenCommand}" IsVisible="{Binding HasHidden}"
+                ToolTip.Tip="Clients you left off Studio. This puts them all back." />
+        <CheckBox Content="Demo studio" IsChecked="{Binding Demo}"
+                  ToolTip.Tip="Shows a made-up studio in place of yours: clients with projects, websites, renewals and quotes, with made-up work throughout. For meetings, and while your own work is still being loaded in." />
         <Button Classes="primary" Content="Present" Click="Present" ToolTip.Tip="Fill the whole screen with the map, for a meeting. Esc closes it." />
       </StackPanel>
-      <StackPanel>
-        <TextBlock Classes="h1" Text="Studio" />
-        <TextBlock Classes="muted" Text="{Binding Summary}" />
+      <StackPanel Orientation="Horizontal" Spacing="26">
+        <StackPanel>
+          <TextBlock Classes="h1" Text="Studio" />
+          <TextBlock Classes="muted" Text="{Binding Summary}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <Button Classes="viewtab" Classes.on="{Binding IsMap}" Content="Map" Command="{Binding ShowMapCommand}" ToolTip.Tip="Every client as a dot, with what is done for them circling" />
+          <Button Classes="viewtab" Classes.on="{Binding IsLines}" Content="Lines" Command="{Binding ShowLinesCommand}" ToolTip.Tip="Each running project as a line, with a stop for each heading" />
+        </StackPanel>
       </StackPanel>
     </DockPanel>
     <Panel>
+      <!-- Lines: each running project as a line on an underground map. -->
+      <Border IsVisible="{Binding IsLines}" Background="{DynamicResource Nav}" CornerRadius="14" ClipToBounds="True">
+        <Panel>
+          <ScrollViewer VerticalScrollBarVisibility="Auto" x:Name="LinesScroll">
+            <ContentControl x:Name="LinesHost" />
+          </ScrollViewer>
+          <c:EmptyState IsVisible="{Binding NoLines}" Icon="{StaticResource Icon.Projects}" Title="No projects under way"
+                        Text="A project with tasks shows here as a line, with a stop for each of its headings." />
+        </Panel>
+      </Border>
+      <Panel IsVisible="{Binding IsMap}">
       <c:StudioMapCanvas x:Name="Map" Stars="{Binding Stars}" SelectedId="{Binding SelectedId}" MinHeight="420" />
-      <!-- Shown over the map while presenting, where there is no heading above it. -->
-      <StackPanel IsVisible="{Binding Presenting}" Margin="28,22" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False">
-        <TextBlock Classes="h1" Text="Studio" Foreground="{DynamicResource NavText}" />
-        <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource NavMuted}" />
-      </StackPanel>
-      <TextBlock IsVisible="{Binding Presenting}" Text="Click a client to fly in  ·  Esc to close" Margin="28,22" HorizontalAlignment="Right" VerticalAlignment="Top"
-                 FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" IsHitTestVisible="False" />
       <!-- What the colours mean. -->
       <StackPanel Orientation="Horizontal" Spacing="16" Margin="24,18" HorizontalAlignment="Left" VerticalAlignment="Bottom" IsHitTestVisible="False">
         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -41,6 +53,10 @@
         <StackPanel Orientation="Horizontal" Spacing="6">
           <Ellipse Width="9" Height="9" Fill="{DynamicResource ProjectPurple}" VerticalAlignment="Center" />
           <TextBlock Text="Domain or hosting" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Ellipse Width="9" Height="9" Fill="{DynamicResource ProjectHotPink}" VerticalAlignment="Center" />
+          <TextBlock Text="Quote out" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="6">
           <Ellipse Width="9" Height="9" Fill="{DynamicResource CategoryRed}" VerticalAlignment="Center" />
@@ -72,9 +88,21 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Button Classes="quiet" Content="Open" Command="{Binding OpenPickedCommand}" IsVisible="{Binding CanOpenPicked}" HorizontalAlignment="Left" />
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <Button Classes="quiet" Content="Open" Command="{Binding OpenPickedCommand}" IsVisible="{Binding CanOpenPicked}" />
+            <Button Classes="link" Content="Leave off Studio" Command="{Binding HidePickedCommand}" IsVisible="{Binding CanHidePicked}" VerticalAlignment="Center"
+                    ToolTip.Tip="For a contact that isn't a client, such as PayFast. It stays in Clients; only Studio leaves it out." />
+          </StackPanel>
         </StackPanel>
       </Border>
+      </Panel>
+      <!-- Shown over the map while presenting, where there is no heading above it. -->
+      <StackPanel IsVisible="{Binding Presenting}" Margin="28,22" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False">
+        <TextBlock Classes="h1" Text="Studio" Foreground="{DynamicResource NavText}" />
+        <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource NavMuted}" />
+      </StackPanel>
+      <TextBlock IsVisible="{Binding Presenting}" Text="{Binding Hint}" Margin="28,22" HorizontalAlignment="Right" VerticalAlignment="Top"
+                 FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" IsHitTestVisible="False" />
     </Panel>
   </DockPanel>
 </UserControl>

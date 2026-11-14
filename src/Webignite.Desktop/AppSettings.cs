@@ -216,6 +216,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("tile-looks", value.ToDictionary(l => l.Key, l => l.Value));
     }
 
+    /// <summary>Clients left off the Studio pages: contacts that came in from the books but aren't clients, such as a payment provider.</summary>
+    public IReadOnlyList<string> StudioHidden
+    {
+        get => store.GetSetting<List<string>>("studio-hidden") ?? [];
+        set => store.SetSetting("studio-hidden", value.ToList());
+    }
+
     /// <summary>The person's own Google key for PageSpeed tests (free from Google); empty to test without one.</summary>
     public string SpeedKey
     {

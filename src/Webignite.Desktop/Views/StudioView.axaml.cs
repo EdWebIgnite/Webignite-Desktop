@@ -13,7 +13,58 @@ public partial class StudioView : UserControl
     {
         InitializeComponent();
         Map.Opened += star => (DataContext as StudioViewModel)?.Open(star);
+        DataContextChanged += (_, _) => Follow();
     }
+
+    private StudioViewModel? followed;
+
+    // The lines are drawn only while they are the picture showing, and draw themselves in afresh each time.
+    private void Follow()
+    {
+        if (followed is not null)
+            followed.PropertyChanged -= PageChanged;
+        followed = DataContext as StudioViewModel;
+        if (followed is not null)
+            followed.PropertyChanged += PageChanged;
+        ShowLines();
+    }
+
+    private void PageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(StudioViewModel.Show))
+            ShowLines();
+    }
+
+    private void ShowLines()
+    {
+        if (followed is not { IsLines: true } page)
+        {
+            LinesHost.Content = null;
+            return;
+        }
+        var lines = new StudioLinesCanvas();
+        lines.Bind(StudioLinesCanvas.LinesProperty, new Avalonia.Data.Binding(nameof(StudioViewModel.Lines)) { Source = page });
+        lines.Opened += page.Open;
+        LinesHost.Content = lines;
+    }
+
+    protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (followed is not null)
+            followed.PropertyChanged -= PageChanged;
+        followed = null;
+        LinesHost.Content = null;
+    }
+
+    protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Follow();
+    }
+
+    /// <summary>The lines, when they are showing, so a picture of them can be taken with the drawing-in at its end.</summary>
+    public StudioLinesCanvas? LinesCanvas => LinesHost.Content as StudioLinesCanvas;
 
     /// <summary>The map itself, so a picture of it can be taken with every movement at its end.</summary>
     public StudioMapCanvas Canvas => Map;
@@ -29,7 +80,7 @@ public partial class StudioView : UserControl
     {
         if (DataContext is not StudioViewModel page || App.Services is not { } services)
             return;
-        var shown = new StudioViewModel(services, presenting: true, demo: page.Demo);
+        var shown = new StudioViewModel(services, presenting: true, demo: page.Demo, show: page.Show);
         var window = new Window
         {
             Title = "Studio",

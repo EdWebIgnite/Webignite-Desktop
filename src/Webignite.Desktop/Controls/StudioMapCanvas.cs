@@ -171,6 +171,7 @@ public sealed class StudioMapCanvas : Control
         StarKind.Project => "ProjectYellowOrange",
         StarKind.Site => "ProjectAqua",
         StarKind.Domain => "ProjectPurple",
+        StarKind.Quote => "ProjectHotPink",
         _ => ClientColours[(int)((uint)StableHash(star.Id) % ClientColours.Length)],
     };
 
