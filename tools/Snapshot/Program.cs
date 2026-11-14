@@ -5612,6 +5612,72 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Save("problem-note");
 }
 
+// Folders for clients and projects, for the person who switched that on: a note offers one, a click makes it.
+{
+    var offered = new List<(string Title, string Text, Action? Act)>();
+    var noteBefore = services.ShowNote;
+    services.ShowNote = (title, text, act) => offered.Add((title, text, act));
+    var g3 = services.Clients.Change(services.Clients.Add("Francois Booyse").Id, c => c with { Company = "G3" })!;
+    Webignite.Desktop.Files.FolderOffers.Offer(services, g3);
+    Check("No folder is offered until that is switched on", offered.Count == 0 && !services.Settings.Files.OfferFolders);
+    var template = Path.Combine(projects, "_TEMPLATE-new-site");
+    Directory.CreateDirectory(Path.Combine(template, "Design"));
+    File.WriteAllText(Path.Combine(template, "Brief.txt"), "What the site is for");
+    services.Settings.Files = services.Settings.Files with { OfferFolders = true, ProjectTemplate = template };
+    Webignite.Desktop.Files.FolderOffers.Offer(services, g3);
+    Check("A new client's folder is offered under the company's name", offered.Count == 1 && offered[0].Text.EndsWith(Path.Combine("Projects", "G3") + ".", StringComparison.Ordinal)
+        && !Directory.Exists(Path.Combine(projects, "G3")));
+    offered[0].Act!();
+    Check("A click makes it and keeps it on the client", Directory.Exists(Path.Combine(projects, "G3")) && services.Clients.Get(g3.Id)!.Folder == Path.Combine(projects, "G3"));
+    var trimax = services.Clients.Change(services.Clients.Add("Trimax").Id, c => c with { Direct = true })!;
+    offered.Clear();
+    Webignite.Desktop.Files.FolderOffers.Offer(services, trimax);
+    Check("A client we work with directly goes with the other direct clients", offered.Count == 1 && offered[0].Text.EndsWith(Path.Combine("Projects", "Webignite", "Trimax") + ".", StringComparison.Ordinal));
+
+    // A project gets its client: its folder is offered inside the client's, started from the template.
+    var (amos, _) = services.Projects.Add(new Webignite.Core.Projects.Project { Id = Webignite.Core.Projects.ProjectRules.NewId(), Name = "Amos website" });
+    Open(Page.Projects);
+    var folderPage = (ProjectsViewModel)vm[Page.Projects].Main.Page;
+    folderPage.Refresh();
+    folderPage.OpenProject(amos!.Id);
+    Check("A project without a client has no folder part", !folderPage.ShowProjectFolder);
+    offered.Clear();
+    folderPage.PickClient(folderPage.ClientChoices.First(c => c.Value?.Id == g3.Id));
+    var amosFolder = Path.Combine(projects, "G3", "Amos website");
+    Check("Giving a project its client offers its folder inside the client's", offered.Count == 1 && offered[0].Text.EndsWith(Path.Combine("Projects", "G3", "Amos website") + ".", StringComparison.Ordinal)
+        && folderPage is { ShowProjectFolder: true, HasProjectFolder: false });
+    offered[0].Act!();
+    for (var i = 0; i < 300 && !folderPage.HasProjectFolder; i++)
+    {
+        Thread.Sleep(10);
+        Dispatcher.UIThread.RunJobs();
+    }
+    Check("A click makes it with what is in the template folder", folderPage.ProjectFolderPath == amosFolder && File.Exists(Path.Combine(amosFolder, "Brief.txt")) && Directory.Exists(Path.Combine(amosFolder, "Design")));
+    folderPage.OverviewViewCommand.Execute(null);
+    Save("project-folder");
+
+    // A rename offers to rename the folder; the project's folder inside follows.
+    offered.Clear();
+    var renamed = services.Clients.Change(g3.Id, c => c with { Company = "G3 Creative" })!;
+    Webignite.Desktop.Files.FolderOffers.OfferRename(services, services.Clients.Get(g3.Id)! with { Company = "G3" }, renamed);
+    Check("A client's new name offers to rename their folder", offered.Count == 1 && Directory.Exists(Path.Combine(projects, "G3")));
+    offered[0].Act!();
+    Check("A click renames it, and the project's folder is still found", Directory.Exists(Path.Combine(projects, "G3 Creative", "Amos website")) && !Directory.Exists(Path.Combine(projects, "G3"))
+        && services.Clients.Get(g3.Id)!.Folder == Path.Combine(projects, "G3 Creative")
+        && services.Settings.Files.ProjectFolders[amos.Id] == Path.Combine(projects, "G3 Creative", "Amos website"));
+    services.ShowNote = noteBefore;
+
+    Open(Page.Settings);
+    var folderSettings = (SettingsViewModel)vm.Current.Page;
+    folderSettings.Refresh();
+    folderSettings.Open("files");
+    Save("settings-folders");
+    Open(Page.Clients);
+    vm.Clients.Refresh();
+    Check("The client list shows the company, with the name invoices go to beneath", vm.Clients.Rows.Any(r => r.Name == "G3 Creative" && r.Contact.StartsWith("Francois Booyse", StringComparison.Ordinal)));
+    Save("clients-company");
+}
+
 Check("The new-mail check finished", mailCheck.IsCompletedSuccessfully);
 if (failures.Count > 0)
 {

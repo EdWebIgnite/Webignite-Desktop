@@ -556,7 +556,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     {
         var team = services.Team();
         People = [new Choice<string?>("No one", null), new Choice<string?>(team.Me!.Name, team.Me.Id), new Choice<string?>(team.Partner!.Name, team.Partner.Id)];
-        ClientChoices = ClientPicker.Choices("No client", services.Clients.List().OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase));
+        ClientChoices = ClientPicker.Choices("No client", services.Clients.List().OrderBy(c => c.Called, StringComparer.CurrentCultureIgnoreCase));
         OnPropertyChanged(nameof(People));
         OnPropertyChanged(nameof(ClientChoices));
         OnPropertyChanged(nameof(SharedLabel));
@@ -592,6 +592,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         loading = false;
         Message = "";
         IsOpen = true;
+        LoadProjectFolder();
         foreach (var row in SharedProjects.Concat(PersonalProjects))
             row.IsOpen = row.Project.Id == project.Id;
         ShowTasks();
@@ -721,7 +722,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     public void PickClient(Choice<Client?> choice)
     {
         EditClient = choice;
+        var before = open?.ClientId;
         ChangeProject(p => p with { ClientId = choice.Value?.Id });
+        if (open is { ClientId: not null } project && project.ClientId != before)
+            Files.FolderOffers.Offer(services, project, () => FolderMadeFor(project.Id));
+        LoadProjectFolder();
     }
 
     public void PickStatus(Choice<ProjectStatus> choice)
@@ -1131,7 +1136,12 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
                     if (EditName.Trim().Length == 0)
                         Message = "Give the project a name.";
                     else
+                    {
+                        var before = open;
                         ChangeProject(p => p with { Name = EditName });
+                        if (open.Id == before.Id && open.Name != before.Name)
+                            Files.FolderOffers.OfferRename(services, before, open.Name, () => FolderMadeFor(before.Id));
+                    }
                     break;
                 case TaskRow row when row.Title.Trim().Length > 0:
                     ChangeTask(row, t => t with { Title = row.Title });

@@ -85,7 +85,7 @@ public static class StudioMap
                     $"{Money.Rand(quote.Document.Total ?? quote.Document.LinesTotal())}, {(quote.Status == DocumentStatus.Draft ? "being written" : "waiting for an answer")}"));
             }
             var money = invoiced.GetValueOrDefault(key);
-            stars.Add(new Star(client.Id, StarKind.Client, client.Name, null, (double)(money / 1000m) + mine.Count + 1, StateOf(mine), Summary(mine, money)));
+            stars.Add(new Star(client.Id, StarKind.Client, client.Called, null, (double)(money / 1000m) + mine.Count + 1, StateOf(mine), Summary(mine, money)));
             stars.AddRange(mine);
         }
 

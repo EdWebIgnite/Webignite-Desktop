@@ -128,6 +128,7 @@ public partial class ClientsViewModel : ViewModelBase, IRefreshable, IHoldsWork,
     private void AddSuggested(string name)
     {
         var client = services.Clients.Add(name);
+        Files.FolderOffers.Offer(services, client);
         Refresh();
         Show(new ClientDetailViewModel(client, isNew: false, services, Close));
     }
@@ -181,8 +182,9 @@ public sealed partial class ClientRow(ClientSummary summary) : ViewModelBase
     public partial bool IsOpen { get; set; }
 
     public Client Client => Summary.Client;
-    public string Name => Client.Name;
-    public string Contact => string.Join("  ·  ", new[] { Client.ContactPerson, Client.Email, Client.Phone }.Where(s => !string.IsNullOrWhiteSpace(s)));
+    /// <summary>The company when they have one; the name invoices go to then leads the line beneath.</summary>
+    public string Name => Client.Called;
+    public string Contact => string.Join("  ·  ", new[] { Client.Called == Client.Name ? null : Client.Name, Client.ContactPerson, Client.Email, Client.Phone }.Where(s => !string.IsNullOrWhiteSpace(s)));
     public bool HasContact => Contact.Length > 0;
     public string Owed => Summary.Owed == 0 ? "" : Money.Rand(Summary.Owed);
 
@@ -205,6 +207,6 @@ public sealed partial class ClientRow(ClientSummary summary) : ViewModelBase
     }
 
     public bool Contains(string word) =>
-        new[] { Client.Name, Client.ContactPerson, Client.Email, Client.Phone, Client.Website }
+        new[] { Client.Name, Client.Company, Client.ContactPerson, Client.Email, Client.Phone, Client.Website }
             .Any(s => s?.Contains(word, StringComparison.OrdinalIgnoreCase) == true);
 }

@@ -24,7 +24,7 @@ public partial class ClientDetailViewModel
     private void LoadFolder()
     {
         var root = FileOps.ClientRoot(services.Settings.Files);
-        var match = ClientFolders.For(client, root is null ? [] : FileOps.Folders(root));
+        var match = FolderOffers.Of(services, client);
         FolderPath = match.Folder ?? "";
         FolderIsGuess = match.Fit == ClientFolders.Fit.Likely;
         FolderNote = match.Fit switch
@@ -58,21 +58,13 @@ public partial class ClientDetailViewModel
     [RelayCommand]
     private void ForgetFolder() => SaveRecords(c => c with { Folder = null });
 
-    /// <summary>A folder with the client's name in the client folders, e.g. C:\Projects\Acme.</summary>
+    /// <summary>A folder named after the company (or the client) in the client folders, e.g. C:\Projects\Acme; with the other direct clients' when ticked.</summary>
     [RelayCommand]
     private void MakeFolder()
     {
-        if (FileOps.ClientRoot(services.Settings.Files) is not { } root)
-            return;
-        var path = Path.Combine(root, FileNames.Safe(client.Name));
-        try
-        {
-            Directory.CreateDirectory(path);
-            UseFolder(path);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            FolderNote = "Couldn't make the folder: " + e.Message;
-        }
+        if (FolderOffers.Make(services, client) is { } problem)
+            FolderNote = "Couldn't make the folder: " + problem;
+        else
+            Refresh();
     }
 }

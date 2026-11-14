@@ -33,6 +33,8 @@ public partial class ClientDetailViewModel : ViewModelBase
     {
         client = shown;
         Name = shown.Name;
+        Company = shown.Company ?? "";
+        Direct = shown.Direct;
         ContactPerson = shown.ContactPerson ?? "";
         Email = shown.Email ?? "";
         Phone = shown.Phone ?? "";
@@ -45,10 +47,16 @@ public partial class ClientDetailViewModel : ViewModelBase
     /// <summary>The client's hourly rate as typed, e.g. "650". Blank means none.</summary>
     [ObservableProperty] public partial string HourlyRate { get; set; } = "";
 
-    public string Title => isNew ? "New client" : client.Name;
+    public string Title => isNew ? "New client" : client.Called;
     public bool IsSaved => !isNew;
 
     [ObservableProperty] public partial string Name { get; set; } = "";
+    /// <summary>The business they are known by when the name is the person who is billed; their folder takes it.</summary>
+    [ObservableProperty] public partial string Company { get; set; } = "";
+
+    /// <summary>We work with them ourselves, not through another studio.</summary>
+    [ObservableProperty] public partial bool Direct { get; set; }
+
     [ObservableProperty] public partial string ContactPerson { get; set; } = "";
     [ObservableProperty] public partial string Email { get; set; } = "";
     [ObservableProperty] public partial string Phone { get; set; } = "";
@@ -126,6 +134,8 @@ public partial class ClientDetailViewModel : ViewModelBase
     private Client Edited() => client with
     {
         Name = Name.Trim(),
+        Company = Blank(Company),
+        Direct = Direct,
         ContactPerson = Blank(ContactPerson),
         Email = Blank(Email),
         Phone = Blank(Phone),
@@ -159,9 +169,15 @@ public partial class ClientDetailViewModel : ViewModelBase
         }
 
         var renamed = !isNew && ClientDirectory.Key(client.Name) != ClientDirectory.Key(edited.Name);
+        var (wasNew, before) = (isNew, client);
         // What's stored now, which may hold a change made elsewhere meanwhile, so the next save doesn't undo it.
         ShowDetails(saved);
         isNew = false;
+        // Their folder, for a person who has that switched on: offered for a new client, and to rename when the name changed.
+        if (wasNew)
+            Files.FolderOffers.Offer(services, saved, Refresh);
+        else
+            Files.FolderOffers.OfferRename(services, before, saved, Refresh);
         SaveState = renamed
             ? "Quotes and invoices are matched by name, so older ones under the old name no longer show here."
             : "";
@@ -301,7 +317,7 @@ public partial class ClientDetailViewModel : ViewModelBase
     private bool DetailsTyped()
     {
         var edited = Edited();
-        return edited.Name != client.Name.Trim() || edited.ContactPerson != Blank(client.ContactPerson ?? "") || edited.Email != Blank(client.Email ?? "")
+        return edited.Name != client.Name.Trim() || edited.Company != Blank(client.Company ?? "") || edited.Direct != client.Direct || edited.ContactPerson != Blank(client.ContactPerson ?? "") || edited.Email != Blank(client.Email ?? "")
             || edited.Phone != Blank(client.Phone ?? "") || edited.Website != Blank(client.Website ?? "") || edited.Address != Blank(client.Address ?? "")
             || edited.Notes != Blank(client.Notes ?? "") || edited.HourlyRate != client.HourlyRate;
     }

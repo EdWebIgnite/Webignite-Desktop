@@ -58,7 +58,25 @@ public static class FileOps
     {
         if (!string.IsNullOrWhiteSpace(settings.ClientRoot) && Directory.Exists(settings.ClientRoot))
             return settings.ClientRoot;
-        return OperatingSystem.IsWindows() && Directory.Exists(@"C:\Projects") ? @"C:\Projects" : null;
+        if (!OperatingSystem.IsWindows())
+            return null;
+        return Directory.Exists(@"C:\Projects\Clients") ? @"C:\Projects\Clients" : Directory.Exists(@"C:\Projects") ? @"C:\Projects" : null;
+    }
+
+    /// <summary>The folders a client's could be: those in the main client folder, and those kept together for direct clients.</summary>
+    public static IReadOnlyList<string> ClientFolderChoices(FileSettings settings)
+    {
+        if (ClientRoot(settings) is not { } root)
+            return [];
+        var direct = WorkFolders.DirectPath(root, settings);
+        return direct is not null && Directory.Exists(direct) ? [.. Folders(root), .. Folders(direct)] : Folders(root);
+    }
+
+    /// <summary>Copies everything in one folder into another, for a new project folder started from a template.</summary>
+    public static void CopyContents(string from, string into)
+    {
+        Directory.CreateDirectory(into);
+        Copy([.. Directory.EnumerateFileSystemEntries(from)], into);
     }
 
     /// <summary>The folders directly in a folder, or none when it can't be read.</summary>

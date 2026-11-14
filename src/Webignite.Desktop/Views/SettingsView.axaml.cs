@@ -115,6 +115,16 @@ public partial class SettingsView : UserControl
             settings.SetClientRoot(path);
     }
 
+    private void ChooseProjectTemplate(object? sender, RoutedEventArgs e) => ChooseProjectTemplateAsync().Forget("Choosing the folder new project folders start from", tell: true);
+
+    private async Task ChooseProjectTemplateAsync()
+    {
+        if (DataContext is not SettingsViewModel settings)
+            return;
+        if (await Picker.Folder(this, "Which folder should new project folders start from?") is { } path)
+            settings.SetProjectTemplateFolder(path);
+    }
+
     private void ChooseBrandLogo(object? sender, RoutedEventArgs e) => ChooseBrandLogoAsync().Forget("Choosing the logo for mails", tell: true);
 
     private async Task ChooseBrandLogoAsync()

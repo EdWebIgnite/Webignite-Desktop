@@ -5,6 +5,17 @@ public sealed record Client
 {
     public required string Id { get; init; }
     public required string Name { get; init; }
+
+    /// <summary>The business they are known by, e.g. "G3", when <see cref="Name"/> is the person Xero bills. Their folder is named after it.</summary>
+    public string? Company { get; init; }
+
+    /// <summary>We work with them ourselves, not through another studio: their folder goes with the other direct clients'.</summary>
+    public bool Direct { get; init; }
+
+    /// <summary>What they are called day to day: the company when there is one, else the name.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string Called => string.IsNullOrWhiteSpace(Company) ? Name : Company.Trim();
+
     public string? ContactPerson { get; init; }
     public string? Email { get; init; }
     public string? Phone { get; init; }
