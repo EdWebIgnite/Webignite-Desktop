@@ -167,6 +167,26 @@ public sealed class StudioPageTests
     });
 
     [Fact]
+    public Task The_wall_has_a_card_for_each_client_and_a_click_opens_it() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, clientId, projectId) = Open(app);
+        var opened = new List<string>();
+        app.Services.Go.OpenClientAction = c => opened.Add(c.Id);
+
+        page.ShowWallCommand.Execute(null);
+
+        Assert.True(page.IsWall);
+        var card = Assert.Single(page.Wall);
+        Assert.Equal("BB", card.Initials);
+        Assert.Equal("Work under way", card.Status);
+        Assert.Equal("project:" + projectId, Assert.Single(card.Busy).Id);
+        page.Open(card);
+        Assert.Equal([clientId], opened);
+        page.Dispose();
+    });
+
+    [Fact]
     public Task With_nothing_to_show_it_says_so() => Ui.Run(() =>
     {
         using var app = new TestApp();

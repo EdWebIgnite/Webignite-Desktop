@@ -23,11 +23,20 @@
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <Button Classes="viewtab" Classes.on="{Binding IsMap}" Content="Map" Command="{Binding ShowMapCommand}" ToolTip.Tip="Every client as a dot, with what is done for them circling" />
+          <Button Classes="viewtab" Classes.on="{Binding IsWall}" Content="Wall" Command="{Binding ShowWallCommand}" ToolTip.Tip="A card for every client; point at one to see what is being done for it" />
           <Button Classes="viewtab" Classes.on="{Binding IsLines}" Content="Lines" Command="{Binding ShowLinesCommand}" ToolTip.Tip="Each running project as a line, with a stop for each heading" />
         </StackPanel>
       </StackPanel>
     </DockPanel>
     <Panel>
+      <!-- Wall: a card for every client. Built only while it is the picture showing. -->
+      <Border IsVisible="{Binding IsWall}" Background="{DynamicResource Nav}" CornerRadius="14" ClipToBounds="True">
+        <Panel>
+          <ContentControl x:Name="WallHost" />
+          <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Clients}" Title="Nothing to show yet"
+                        Text="Add a client and it gets a card here." />
+        </Panel>
+      </Border>
       <!-- Lines: each running project as a line on an underground map. -->
       <Border IsVisible="{Binding IsLines}" Background="{DynamicResource Nav}" CornerRadius="14" ClipToBounds="True">
         <Panel>

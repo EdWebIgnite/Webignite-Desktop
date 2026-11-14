@@ -162,9 +162,6 @@ public sealed class StudioMapCanvas : Control
 
     private static Color ColourOf(IBrush brush) => brush is ISolidColorBrush solid ? solid.Color : Colors.Gray;
 
-    private static readonly string[] ClientColours =
-        ["ProjectBlue", "ProjectAqua", "ProjectPurple", "ProjectMagenta", "ProjectBlueGreen", "ProjectIndigo", "ProjectYellowOrange", "ProjectPink", "ProjectGreen"];
-
     // A client keeps its own colour whatever its state (a problem shows as a red ring), so the map isn't a wall of red.
     private string ColourKey(Star star) => star.State == StarState.Problem && star.Kind != StarKind.Client ? "CategoryRed" : star.Kind switch
     {
@@ -172,7 +169,7 @@ public sealed class StudioMapCanvas : Control
         StarKind.Site => "ProjectAqua",
         StarKind.Domain => "ProjectPurple",
         StarKind.Quote => "ProjectHotPink",
-        _ => ClientColours[(int)((uint)StableHash(star.Id) % ClientColours.Length)],
+        _ => StudioWall.ColourOf(star.Id),
     };
 
     // The same for a client every run, unlike string.GetHashCode.
