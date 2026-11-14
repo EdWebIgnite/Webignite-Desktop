@@ -1070,6 +1070,24 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="card" IsVisible="{Binding ShowReminders}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="Reminders" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="A task that is due at a time, and a calendar event that starts at one, is announced a little before. Give a task its time on the My tasks widget or in Projects. Things with only a day have no reminder; they are in Today and the diary." />
+        <CheckBox Content="Remind me of tasks and events that have a time" IsChecked="{Binding RemindersOn}" />
+        <StackPanel IsEnabled="{Binding RemindersOn}">
+          <TextBlock Classes="label" Text="When" />
+          <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.ReminderLeads}" SelectedItem="{Binding ReminderLead}" MinWidth="220" HorizontalAlignment="Left" />
+        </StackPanel>
+        <CheckBox Content="Also show Windows notifications when Webignite is behind other windows" IsChecked="{Binding WindowsNotes}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="For reminders, new mail, chat messages, a website going down and payments coming in. They show at the corner of the screen and wait in Windows' notification list; a click brings Webignite forward. Windows' Do not disturb holds them back." />
+        <Button Classes="quiet" Content="Show me one now" Command="{Binding TryNotificationCommand}" HorizontalAlignment="Left"
+                ToolTip.Tip="Shows a reminder here and, if switched on, as a Windows notification" />
+      </StackPanel>
+    </Border>
+
     <Border Classes="card" IsVisible="{Binding ShowShortcuts}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Keyboard shortcuts" />

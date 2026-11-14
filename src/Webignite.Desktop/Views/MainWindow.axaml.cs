@@ -60,6 +60,18 @@ public partial class MainWindow : Window
         if (App.Services is { } services)
         {
             services.ShowNote = ShowNote;
+            services.IsInFront = () => IsActive && WindowState != WindowState.Minimized;
+            if (OperatingSystem.IsWindows())
+            {
+                // Made with the first notification, when the window is sure to be up; taken away again as the window closes.
+                services.ShowWindowsNote = (title, text, onClick) => (windowsNotes ??= new WindowsNotifier(this, BringForward)).Show(title, text, onClick);
+                Closed += (_, _) =>
+                {
+                    services.ShowWindowsNote = null;
+                    windowsNotes?.Dispose();
+                    windowsNotes = null;
+                };
+            }
             Restore(services.Settings.Window, main);
             ApplyAppearance(services.Settings.Appearance);
             services.Settings.AppearanceChanged += ApplyAppearance;
@@ -341,6 +353,16 @@ public partial class MainWindow : Window
 
     // What was said in the corner lately, so the same note raised twice in a row shows once.
     private readonly Dictionary<string, DateTime> lately = [];
+
+    private WindowsNotifier? windowsNotes;
+
+    // From a click on a Windows notification: the window comes back from the taskbar and to the front.
+    private void BringForward()
+    {
+        if (WindowState == WindowState.Minimized)
+            WindowState = WindowState.Normal;
+        Activate();
+    }
 
     private void ShowNote(string title, string text, Action? onClick)
     {
