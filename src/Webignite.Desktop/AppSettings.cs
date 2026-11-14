@@ -216,6 +216,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("tile-looks", value.ToDictionary(l => l.Key, l => l.Value));
     }
 
+    /// <summary>How the person is reminded of tasks and events with a time, and whether notes also show as Windows notifications.</summary>
+    public Webignite.Core.Calendar.ReminderSettings Reminders
+    {
+        get => store.GetSetting<Webignite.Core.Calendar.ReminderSettings>("reminders") ?? new Webignite.Core.Calendar.ReminderSettings();
+        set => store.SetSetting("reminders", value);
+    }
+
     /// <summary>Where clients were dragged to on the Studio map, by client id; a client not in it sits where the layout puts it.</summary>
     public IReadOnlyDictionary<string, Webignite.Core.Studio.MapPlace> StudioPlaces
     {

@@ -219,7 +219,7 @@ public sealed class AppServices : IDisposable
             return;
         }
         foreach (var message in fresh.TakeLast(2))
-            ShowNote?.Invoke($"Message from {Chat.NameOf(message.From)}", Webignite.Core.Chat.ChatRules.Preview(message), () => Go.Chat());
+            Notify($"Message from {Chat.NameOf(message.From)}", Webignite.Core.Chat.ChatRules.Preview(message), () => Go.Chat());
         if (fresh.Count > 2)
             ShowNote?.Invoke($"{fresh.Count - 2} more messages", "Open the chat to see them.", () => Go.Chat());
     }
@@ -228,7 +228,7 @@ public sealed class AppServices : IDisposable
     private void AnnounceInbox(IReadOnlyList<Webignite.Core.Projects.InboxItem> fresh)
     {
         foreach (var item in fresh.Take(2))
-            ShowNote?.Invoke(Webignite.Core.Projects.InboxRules.Headline(item), item.Snippet,
+            Notify(Webignite.Core.Projects.InboxRules.Headline(item), item.Snippet,
                 () =>
                 {
                     if (item.MessageId is not null)
@@ -278,6 +278,24 @@ public sealed class AppServices : IDisposable
 
     /// <summary>Set by the main window: shows a note in the corner. The action runs when the note is clicked.</summary>
     public Action<string, string, Action?>? ShowNote { get; set; }
+
+    /// <summary>Set by the main window on Windows: shows one of Windows' own notifications. The action runs when it is clicked, after the window is brought forward.</summary>
+    public Action<string, string, Action?>? ShowWindowsNote { get; set; }
+
+    /// <summary>Set by the main window: whether it is in front and not minimised.</summary>
+    public Func<bool>? IsInFront { get; set; }
+
+    /// <summary>
+    /// A note for something that happened while the person may be elsewhere: a reminder, new mail, a chat message,
+    /// a site down, a payment. It shows in the corner as any note does, and as a Windows notification too when
+    /// Webignite is behind other windows and that is switched on (Settings, Reminders).
+    /// </summary>
+    public void Notify(string title, string text, Action? onClick)
+    {
+        ShowNote?.Invoke(title, text, onClick);
+        if (ShowWindowsNote is { } windows && IsInFront?.Invoke() != true && Settings.Reminders.Windows)
+            windows(title, text, onClick);
+    }
 
     /// <summary>After something is removed: a note that puts it back when clicked.</summary>
     /// <summary>

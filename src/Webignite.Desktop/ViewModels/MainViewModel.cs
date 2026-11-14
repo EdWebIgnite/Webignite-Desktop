@@ -26,7 +26,7 @@ public partial class MainViewModel : ViewModelBase
         if (byHand && problem is not null)
             services.ShowNote?.Invoke("Couldn't check payments", problem, null);
         foreach (var payment in news.Take(3))
-            services.ShowNote?.Invoke(payment.Title, payment.Text, () => Selected = this[Page.Invoices]);
+            services.Notify(payment.Title, payment.Text, () => Selected = this[Page.Invoices]);
         if (news.Count > 3)
             services.ShowNote?.Invoke($"{news.Count - 3} more payments came in", "Open Invoices to see them.", () => Selected = this[Page.Invoices]);
         if (byHand && problem is null && news.Count == 0)
@@ -138,7 +138,7 @@ public partial class MainViewModel : ViewModelBase
     private void AnnounceSites(IReadOnlyList<Webignite.Core.Web.UptimeAlert> alerts)
     {
         foreach (var alert in alerts.Take(3))
-            services.ShowNote?.Invoke(alert.Title, alert.Text, () => Selected = this[Page.SiteCheck]);
+            services.Notify(alert.Title, alert.Text, () => Selected = this[Page.SiteCheck]);
         if (alerts.Count > 3)
             services.ShowNote?.Invoke($"{alerts.Count - 3} more sites changed", "Open Site check to see them.", () => Selected = this[Page.SiteCheck]);
         if (alerts.Any(a => a.Problem) && WindowIsActive?.Invoke() != true)
@@ -222,7 +222,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 var (title, text) = Webignite.Core.Mail.NewMail.Note(found.Fresh);
                 var first = found.Fresh[0];
-                services.ShowNote?.Invoke(title, text, () => services.Go.Mail(first));
+                services.Notify(title, text, () => services.Go.Mail(first));
             }
         }
         finally
@@ -351,6 +351,7 @@ public partial class MainViewModel : ViewModelBase
             EveryMinute = () =>
             {
                 ReleaseIdle(PageIdle);
+                Remind(DateTime.Now);
                 // A new version is looked for every hour while Webignite stays open, not only at start.
                 if (Updates.CheckDue(DateTimeOffset.Now))
                     Updates.CheckAsync().Forget("Checking for an update");

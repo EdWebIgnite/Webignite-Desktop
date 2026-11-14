@@ -16,6 +16,7 @@ public partial class SettingsViewModel
         new("files", "Files"),
         new("screenshots", "Screenshots"),
         new("notes", "Notes"),
+        new("reminders", "Reminders"),
         new("shortcuts", "Shortcuts"),
         new("organisation", "Your organisation"),
         new("account", "Account and sync"),
@@ -26,7 +27,7 @@ public partial class SettingsViewModel
     ];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowXero), nameof(ShowBackups), nameof(ShowLook), nameof(ShowMail), nameof(ShowFiles), nameof(ShowScreenshots), nameof(ShowNotes), nameof(ShowShortcuts), nameof(ShowOrganisation), nameof(ShowAccount),
+    [NotifyPropertyChangedFor(nameof(ShowXero), nameof(ShowBackups), nameof(ShowLook), nameof(ShowMail), nameof(ShowFiles), nameof(ShowScreenshots), nameof(ShowNotes), nameof(ShowShortcuts), nameof(ShowReminders), nameof(ShowOrganisation), nameof(ShowAccount),
         nameof(ShowAssistants), nameof(ShowEmails), nameof(ShowDocuments), nameof(ShowHelp))]
     public partial Section Current { get; set; } = Sections[0];
 
@@ -41,6 +42,60 @@ public partial class SettingsViewModel
     public bool ShowScreenshots => Current.Key == "screenshots";
     public bool ShowNotes => Current.Key == "notes";
     public bool ShowShortcuts => Current.Key == "shortcuts";
+    public bool ShowReminders => Current.Key == "reminders";
+
+    /// <summary>Whether tasks and events with a time are announced a little before.</summary>
+    public bool RemindersOn
+    {
+        get => services.Settings.Reminders.On;
+        set
+        {
+            services.Settings.Reminders = services.Settings.Reminders with { On = value };
+            OnPropertyChanged();
+        }
+    }
+
+    public sealed record LeadChoice(int Minutes, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    public static IReadOnlyList<LeadChoice> ReminderLeads { get; } =
+        [.. Webignite.Core.Calendar.Reminders.Leads.Select(m => new LeadChoice(m, Webignite.Core.Calendar.Reminders.LeadLabel(m)))];
+
+    /// <summary>How long before the time a reminder shows.</summary>
+    public LeadChoice ReminderLead
+    {
+        get => ReminderLeads.FirstOrDefault(l => l.Minutes == services.Settings.Reminders.MinutesBefore) ?? ReminderLeads[2];
+        set
+        {
+            if (value is null)
+                return;
+            services.Settings.Reminders = services.Settings.Reminders with { MinutesBefore = value.Minutes };
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Whether reminders and the notes that matter while away also show as Windows notifications when Webignite is behind other windows.</summary>
+    public bool WindowsNotes
+    {
+        get => services.Settings.Reminders.Windows;
+        set
+        {
+            services.Settings.Reminders = services.Settings.Reminders with { Windows = value };
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Shows a notification now, the way a reminder would, so the person can see what to expect.</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void TryNotification()
+    {
+        const string title = "This is a reminder", text = "This is how a reminder from Webignite looks.";
+        services.ShowNote?.Invoke(title, text, null);
+        if (WindowsNotes)
+            services.ShowWindowsNote?.Invoke(title, text, null);
+    }
 
     /// <summary>Every keyboard shortcut with a search box, as F1 shows it. Filled only while its section is open.</summary>
     public ShortcutsPart Shortcuts => field ??= new ShortcutsPart(
