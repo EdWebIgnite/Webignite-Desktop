@@ -7,7 +7,8 @@ namespace Webignite.Desktop.ViewModels;
 /// <summary>
 /// Studio: the whole business as a picture, for a big screen. The map shows every client as a dot, bigger the
 /// more is done for them, with their projects, websites and renewals circling (rules in <see cref="StudioMap"/>).
-/// Demo names swaps every name for a made-up one and hides money, for showing it to people outside the studio.
+/// Demo shows a made-up studio in place of the real one, for showing it to people outside the studio or while
+/// the real work is still being loaded in.
 /// <paramref name="presenting"/> is the copy shown full screen, which has no button to present itself.
 /// </summary>
 public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisposable
@@ -59,7 +60,7 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
 
     /// <summary>The dot that is picked, by its id; the map flies in to its client.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Picked), nameof(HasPicked), nameof(PickedKind), nameof(PickedAround), nameof(CanOpenPicked))]
+    [NotifyPropertyChangedFor(nameof(Picked), nameof(HasPicked), nameof(PickedKind), nameof(PickedAround), nameof(CanOpenPicked), nameof(CanHidePicked))]
     public partial string? SelectedId { get; set; }
 
     public Star? Picked => Stars.FirstOrDefault(p => p.Star.Id == SelectedId)?.Star;
@@ -71,6 +72,7 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
         StarKind.Project => "Project",
         StarKind.Site => "Website we watch",
         StarKind.Domain => "Domain or hosting",
+        StarKind.Quote => "Quote that is out",
         _ => "",
     };
 
@@ -78,8 +80,8 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
     public IReadOnlyList<Star> PickedAround =>
         Picked is { ParentId: null } client ? [.. Stars.Where(p => p.Star.ParentId == client.Id).Select(p => p.Star)] : [];
 
-    /// <summary>With demo names on nothing opens, as the page behind it would show the real name.</summary>
-    public bool CanOpenPicked => !Demo && !Presenting && Picked is { } star && star.Id != StudioMap.OwnId && star.Kind != StarKind.Domain;
+    /// <summary>In the demo studio nothing opens, as there is nothing real behind it.</summary>
+    public bool CanOpenPicked => !Demo && !Presenting && Picked is { } star && star.Id != StudioMap.OwnId && star.Kind is not (StarKind.Domain or StarKind.Quote);
 
     partial void OnDemoChanged(bool value) => Refresh();
 
@@ -88,24 +90,61 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
     public void Refresh()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
-        var stars = StudioMap.Build(services.Clients.List(), services.Projects.Projects(), services.Projects.EveryTask(), services.Documents.List(),
-            services.Settings.Uptime, services.Store.ListRenewals(), today, Demo);
+        var hidden = services.Settings.StudioHidden;
+        var stars = Demo
+            ? StudioDemo.Stars(today)
+            : StudioMap.Build(services.Clients.List(), services.Projects.Projects(), services.Projects.EveryTask(), services.Documents.List(),
+                services.Settings.Uptime, services.Store.ListRenewals(), today, hidden);
         Stars = StudioMap.Layout(stars);
-        Lines = StudioLines.Build(services.Projects.Projects(), services.Projects.EveryHeading(), services.Projects.EveryTask(), services.Clients.List(), Demo);
+        Lines = Demo
+            ? StudioDemo.Lines()
+            : StudioLines.Build(services.Projects.Projects(), services.Projects.EveryHeading(), services.Projects.EveryTask(), services.Clients.List());
         NoLines = Lines.Count == 0;
         IsEmpty = stars.Count == 0;
+        HiddenCount = Demo ? 0 : hidden.Count(id => services.Clients.Get(id) is not null);
         Summary = string.Join("   ·   ", new[]
         {
             Counted(stars.Count(s => s.ParentId is null && s.Id != StudioMap.OwnId), "client", "clients"),
             Counted(stars.Count(s => s.Kind == StarKind.Project), "project under way", "projects under way"),
             Counted(stars.Count(s => s.Kind == StarKind.Site), "website watched", "websites watched"),
             Counted(stars.Count(s => s.Kind == StarKind.Domain), "renewal looked after", "renewals looked after"),
+            Counted(stars.Count(s => s.Kind == StarKind.Quote), "quote out", "quotes out"),
         }.Where(part => part.Length > 0));
         if (SelectedId is not null && Stars.All(p => p.Star.Id != SelectedId))
             SelectedId = null;
         OnPropertyChanged(nameof(Picked));
         OnPropertyChanged(nameof(PickedAround));
         OnPropertyChanged(nameof(CanOpenPicked));
+        OnPropertyChanged(nameof(CanHidePicked));
+    }
+
+    /// <summary>How many clients are left off, for the link that brings them back.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHidden), nameof(HiddenText))]
+    public partial int HiddenCount { get; set; }
+
+    public bool HasHidden => HiddenCount > 0 && !Presenting;
+    public string HiddenText => HiddenCount == 1 ? "1 left off. Show it again" : $"{HiddenCount} left off. Show them again";
+
+    /// <summary>Only a real client can be left off, and not from the copy shown full screen.</summary>
+    public bool CanHidePicked => !Demo && !Presenting && Picked is { Kind: StarKind.Client } star && star.Id != StudioMap.OwnId;
+
+    /// <summary>Leaves the picked client off Studio: for a contact that isn't a client, such as a payment provider.</summary>
+    [RelayCommand]
+    private void HidePicked()
+    {
+        if (!CanHidePicked || Picked is not { } star)
+            return;
+        services.Settings.StudioHidden = [.. services.Settings.StudioHidden.Where(id => id != star.Id), star.Id];
+        SelectedId = null;
+        Refresh();
+    }
+
+    [RelayCommand]
+    private void ShowHidden()
+    {
+        services.Settings.StudioHidden = [];
+        Refresh();
     }
 
     private static string Counted(int n, string one, string many) => n == 0 ? "" : n == 1 ? $"1 {one}" : $"{n} {many}";
@@ -142,7 +181,7 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
         }
     }
 
-    /// <summary>A click on a line opens its project; not with demo names on, as the page behind shows the real ones.</summary>
+    /// <summary>A click on a line opens its project; not in the demo studio, where there is none behind it.</summary>
     public void Open(ProjectLine line)
     {
         if (!Demo && !Presenting)

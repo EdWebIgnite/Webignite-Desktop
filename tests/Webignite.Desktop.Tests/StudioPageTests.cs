@@ -52,7 +52,7 @@ public sealed class StudioPageTests
     });
 
     [Fact]
-    public Task Demo_names_hide_the_real_ones_and_nothing_opens() => Ui.Run(() =>
+    public Task The_demo_studio_replaces_the_real_one_and_nothing_opens() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var (page, clientId, _) = Open(app);
@@ -60,16 +60,47 @@ public sealed class StudioPageTests
         app.Services.Go.OpenClientAction = _ => opened++;
 
         page.Demo = true;
-        page.SelectedId = clientId;
 
+        Assert.Equal(20, page.Stars.Count(p => p.Star.ParentId is null));
         Assert.DoesNotContain(page.Stars, p => p.Star.Name.Contains("Bosveld", StringComparison.OrdinalIgnoreCase));
+        Assert.True(page.Lines.Count >= 8);
+        page.SelectedId = page.Stars[0].Star.Id;
         Assert.False(page.CanOpenPicked);
+        Assert.False(page.CanHidePicked);
         page.OpenPickedCommand.Execute(null);
         Assert.Equal(0, opened);
 
         page.Demo = false;
+        page.SelectedId = clientId;
         page.OpenPickedCommand.Execute(null);
         Assert.Equal(1, opened);
+        page.Dispose();
+    });
+
+    [Fact]
+    public Task A_contact_that_isnt_a_client_can_be_left_off_and_brought_back() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, _, _) = Open(app);
+        var payfast = app.Services.Clients.Add("PayFast Fees");
+        page.Refresh();
+        Assert.Contains(page.Stars, p => p.Star.Id == payfast.Id);
+
+        page.SelectedId = payfast.Id;
+        Assert.True(page.CanHidePicked);
+        page.HidePickedCommand.Execute(null);
+
+        Assert.DoesNotContain(page.Stars, p => p.Star.Id == payfast.Id);
+        Assert.True(page.HasHidden);
+        Assert.Equal("1 left off. Show it again", page.HiddenText);
+        // It is remembered: another copy of the page leaves it off too, and it is still in Clients.
+        using (var again = new StudioViewModel(app.Services))
+            Assert.DoesNotContain(again.Stars, p => p.Star.Id == payfast.Id);
+        Assert.NotNull(app.Services.Clients.Get(payfast.Id));
+
+        page.ShowHiddenCommand.Execute(null);
+        Assert.Contains(page.Stars, p => p.Star.Id == payfast.Id);
+        Assert.False(page.HasHidden);
         page.Dispose();
     });
 
@@ -120,7 +151,7 @@ public sealed class StudioPageTests
     });
 
     [Fact]
-    public Task A_click_on_a_line_opens_its_project_but_not_with_demo_names_on() => Ui.Run(() =>
+    public Task A_click_on_a_line_opens_its_project_but_not_in_the_demo_studio() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var (page, _, projectId) = Open(app);
@@ -132,7 +163,6 @@ public sealed class StudioPageTests
         page.Open(page.Lines[0]);
 
         Assert.Equal([projectId], opened);
-        Assert.DoesNotContain(page.Lines, l => l.Name.Contains("Bosveld", StringComparison.OrdinalIgnoreCase) || l.Client.Contains("Bosveld", StringComparison.OrdinalIgnoreCase));
         page.Dispose();
     });
 

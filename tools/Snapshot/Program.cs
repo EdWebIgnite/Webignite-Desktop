@@ -4291,9 +4291,18 @@ SaveLooks("projects");
             studio.Demo = true;
             Dispatcher.UIThread.RunJobs();
             map.Settle();
-            Check("Demo names leave no real client name on the map",
-                !studio.Stars.Any(p => services.Clients.List().Any(c => c.Name == p.Star.Name)));
+            Check("The demo studio is a full made-up one, with no real client on it",
+                studio.Stars.Count(p => p.Star.ParentId is null) == 20 && !studio.Stars.Any(p => services.Clients.List().Any(c => c.Name == p.Star.Name)));
             Save("studio-map-demo");
+            studio.SelectedId = studio.Stars.First(p => p.Star.Name == "Marula Coffee Roasters").Star.Id;
+            Dispatcher.UIThread.RunJobs();
+            map.Settle();
+            Save("studio-map-demo-client");
+            studio.ShowLinesCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            window.GetVisualDescendants().OfType<Webignite.Desktop.Views.StudioView>().First().LinesCanvas?.Settle();
+            Save("studio-lines-demo");
+            studio.ShowMapCommand.Execute(null);
             studio.Demo = false;
             studio.SelectedId = null;
             Dispatcher.UIThread.RunJobs();

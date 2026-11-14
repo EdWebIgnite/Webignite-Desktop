@@ -10,8 +10,10 @@
   <DockPanel x:Name="Frame" Margin="24,18,24,20">
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" IsVisible="{Binding NotPresenting}">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-        <CheckBox Content="Demo names" IsChecked="{Binding Demo}"
-                  ToolTip.Tip="Swaps every client, project and website for a made-up name and hides money, for showing this to people outside the studio" />
+        <Button Classes="link" Content="{Binding HiddenText}" Command="{Binding ShowHiddenCommand}" IsVisible="{Binding HasHidden}"
+                ToolTip.Tip="Clients you left off Studio. This puts them all back." />
+        <CheckBox Content="Demo studio" IsChecked="{Binding Demo}"
+                  ToolTip.Tip="Shows a made-up studio in place of yours: twenty clients with projects, websites, renewals and quotes, none of them real. For meetings, and while your own work is still being loaded in." />
         <Button Classes="primary" Content="Present" Click="Present" ToolTip.Tip="Fill the whole screen with the map, for a meeting. Esc closes it." />
       </StackPanel>
       <StackPanel Orientation="Horizontal" Spacing="26">
@@ -53,6 +55,10 @@
           <TextBlock Text="Domain or hosting" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="6">
+          <Ellipse Width="9" Height="9" Fill="{DynamicResource ProjectHotPink}" VerticalAlignment="Center" />
+          <TextBlock Text="Quote out" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6">
           <Ellipse Width="9" Height="9" Fill="{DynamicResource CategoryRed}" VerticalAlignment="Center" />
           <TextBlock Text="Needs attention" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
         </StackPanel>
@@ -82,7 +88,11 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Button Classes="quiet" Content="Open" Command="{Binding OpenPickedCommand}" IsVisible="{Binding CanOpenPicked}" HorizontalAlignment="Left" />
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <Button Classes="quiet" Content="Open" Command="{Binding OpenPickedCommand}" IsVisible="{Binding CanOpenPicked}" />
+            <Button Classes="link" Content="Leave off Studio" Command="{Binding HidePickedCommand}" IsVisible="{Binding CanHidePicked}" VerticalAlignment="Center"
+                    ToolTip.Tip="For a contact that isn't a client, such as PayFast. It stays in Clients; only Studio leaves it out." />
+          </StackPanel>
         </StackPanel>
       </Border>
       </Panel>

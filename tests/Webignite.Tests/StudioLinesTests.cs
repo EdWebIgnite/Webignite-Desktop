@@ -64,14 +64,4 @@ public sealed class StudioLinesTests
 
         Assert.Equal(["Beta", "Alpha"], lines.Select(l => l.Name));
     }
-
-    [Fact]
-    public void Demo_names_hide_the_project_and_its_client()
-    {
-        var line = Assert.Single(StudioLines.Build([new Project { Id = "p1", Name = "Bosveld Builders new website", ClientId = "c1" }], [],
-            [Job("a", null)], [new Client { Id = "c1", Name = "Bosveld Builders" }], demo: true));
-
-        Assert.Equal("New website", line.Name);
-        Assert.Equal("Marula Coffee Roasters", line.Client);
-    }
 }

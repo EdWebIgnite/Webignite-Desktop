@@ -29,16 +29,15 @@ public static class StudioLines
 
     /// <summary>
     /// A line for each running project with at least one task, the ones furthest along first. Only top-level tasks
-    /// count. With <paramref name="demo"/> the names are made up, as on the map.
+    /// count.
     /// </summary>
     public static IReadOnlyList<ProjectLine> Build(IEnumerable<Project> projects, IEnumerable<Heading> headings, IEnumerable<ProjectTask> tasks,
-        IEnumerable<Client> clients, bool demo = false)
+        IEnumerable<Client> clients)
     {
         var byProject = tasks.Where(t => t.Deleted is null && t.ParentId is null).ToLookup(t => t.ProjectId);
         var stops = headings.Where(h => h.Deleted is null).OrderBy(h => h.Order).ToLookup(h => h.ProjectId);
-        var owners = clients.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).Select((c, i) => (c, i)).ToDictionary(x => x.c.Id, x => (x.c.Name, Number: x.i + 1));
+        var owners = clients.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToDictionary(c => c.Id, c => c.Name);
         var lines = new List<ProjectLine>();
-        var at = 0;
         foreach (var project in projects.Where(p => p.Deleted is null && p.Status != ProjectStatus.Done).OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
         {
             var mine = byProject[project.Id].ToList();
@@ -56,12 +55,9 @@ public static class StudioLines
             }
             made.Add(new LineStop(Finish, 0, 0));
             var done = mine.Count(t => t.Done);
-            var owner = project.ClientId is { } id && owners.TryGetValue(id, out var found) ? found : (Name: "", Number: 0);
-            lines.Add(new ProjectLine(project.Id, demo ? StudioDemo.Project(at) : project.Name,
-                owner.Number == 0 ? "" : demo ? StudioDemo.Client(owner.Number) : owner.Name,
+            lines.Add(new ProjectLine(project.Id, project.Name, project.ClientId is { } id ? owners.GetValueOrDefault(id) ?? "" : "",
                 ProjectLooks.ColourOf(project), made, PositionOf(made), project.Health,
                 done == mine.Count ? "Everything done" : $"{done} of {mine.Count} tasks done"));
-            at++;
         }
         return [.. lines.OrderByDescending(l => l.Stops.Count <= 1 ? 0 : l.Position / (l.Stops.Count - 1)).ThenBy(l => l.Name, StringComparer.OrdinalIgnoreCase)];
     }

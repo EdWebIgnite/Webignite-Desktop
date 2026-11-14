@@ -25,8 +25,8 @@ public sealed class StudioMapTests
     };
 
     private static IReadOnlyList<Star> Build(IEnumerable<Client> clients, IEnumerable<Project>? projects = null, IEnumerable<ProjectTask>? tasks = null,
-        IEnumerable<StoredDocument>? documents = null, UptimeSettings? uptime = null, IEnumerable<Renewal>? renewals = null, bool demo = false) =>
-        StudioMap.Build(clients, projects ?? [], tasks ?? [], documents ?? [], uptime ?? new UptimeSettings(), renewals ?? [], Today, demo);
+        IEnumerable<StoredDocument>? documents = null, UptimeSettings? uptime = null, IEnumerable<Renewal>? renewals = null, IReadOnlyCollection<string>? hidden = null) =>
+        StudioMap.Build(clients, projects ?? [], tasks ?? [], documents ?? [], uptime ?? new UptimeSettings(), renewals ?? [], Today, hidden);
 
     [Fact]
     public void Every_client_is_a_dot_with_its_projects_sites_and_renewals_around_it()
@@ -87,17 +87,55 @@ public sealed class StudioMapTests
     }
 
     [Fact]
-    public void Demo_names_hide_who_the_clients_are_and_what_they_pay()
+    public void A_quote_still_out_circles_its_client_and_one_answered_does_not()
     {
-        var stars = Build([NewClient("c1", "Bosveld Builders", "https://bosveld.co.za")],
-            projects: [new Project { Id = "p1", Name = "Bosveld Builders new website", ClientId = "c1" }],
-            documents: [Invoice("Bosveld Builders", 12500m, Today.AddDays(-3))], demo: true);
+        StoredDocument Quote(string number, Settlement? settled) => new()
+        {
+            Id = number, Status = DocumentStatus.InXero, Settled = settled is { } s ? new SettledState { On = DateTimeOffset.UtcNow, As = s } : null,
+            Document = new Document { Kind = DocumentKind.Quote, Origin = DocumentOrigin.New, Number = number, Customer = new Customer { Name = "bosveld builders" }, Total = 8500m, Lines = [] },
+        };
+        var stars = Build([NewClient("c1", "Bosveld Builders")], documents: [Quote("Q-12", null), Quote("Q-9", Settlement.Accepted)]);
 
-        Assert.DoesNotContain(stars, s => s.Name.Contains("Bosveld", StringComparison.OrdinalIgnoreCase) || s.Detail.Contains("R ", StringComparison.Ordinal));
-        Assert.Equal("Marula Coffee Roasters", stars[0].Name);
-        Assert.Equal("marulacoffeeroasters.co.za", stars.Single(s => s.Kind == StarKind.Site).Name);
-        // The size is still the real one, so the map keeps its shape.
-        Assert.True(stars[0].Weight > 13);
+        var quote = Assert.Single(stars, s => s.Kind == StarKind.Quote);
+        Assert.Equal("Quote Q-12", quote.Name);
+        Assert.Equal($"{Money.Rand(8500m)}, waiting for an answer", quote.Detail);
+        Assert.Equal("1 quote out", stars[0].Detail);
+        Assert.Equal(StarState.Busy, stars[0].State);
+    }
+
+    [Fact]
+    public void A_contact_left_off_is_not_on_the_map()
+    {
+        var stars = Build([NewClient("c1", "Bosveld Builders"), NewClient("c2", "PayFast Fees")], hidden: ["c2"]);
+
+        Assert.Equal("Bosveld Builders", Assert.Single(stars).Name);
+    }
+
+    [Fact]
+    public void The_demo_studio_is_full_made_up_and_the_same_every_time()
+    {
+        var stars = StudioDemo.Stars(Today);
+
+        Assert.Equal(20, stars.Count(s => s.ParentId is null));
+        Assert.Contains(stars, s => s.Kind == StarKind.Project);
+        Assert.Contains(stars, s => s.Kind == StarKind.Quote);
+        Assert.Equal(StudioDemo.DownSite, Assert.Single(stars, s => s.State == StarState.Problem && s.Kind == StarKind.Site).Name);
+        Assert.All(stars, s => Assert.DoesNotContain("R ", s.Detail, StringComparison.Ordinal));
+        Assert.All(stars.Where(s => s.ParentId is not null), s => Assert.Contains(stars, c => c.Id == s.ParentId));
+        Assert.Equal(stars.Count, stars.Select(s => s.Id).Distinct().Count());
+        Assert.Equal(stars, StudioDemo.Stars(Today));
+        Assert.Equal(stars.Count, StudioMap.Layout(stars).Count);
+    }
+
+    [Fact]
+    public void The_demo_studios_lines_are_at_every_stage()
+    {
+        var lines = StudioDemo.Lines();
+
+        Assert.True(lines.Count >= 8);
+        Assert.All(lines, l => Assert.Equal(["Brief", "Design", "Build", "Content", "Launch", "Done"], l.Stops.Select(s => s.Name)));
+        Assert.True(lines.Select(l => l.Position).Distinct().Count() >= 6);
+        Assert.Equal(lines.Select(l => l.Position).OrderByDescending(p => p), lines.Select(l => l.Position));
     }
 
     [Fact]
