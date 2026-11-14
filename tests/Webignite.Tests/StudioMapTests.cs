@@ -116,7 +116,7 @@ public sealed class StudioMapTests
     {
         var stars = StudioDemo.Stars(Today);
 
-        Assert.Equal(22, stars.Count(s => s.ParentId is null));
+        Assert.Equal(27, stars.Count(s => s.ParentId is null));
         // Modic is drawn bigger than G3, and both bigger than the rest.
         var byWeight = stars.Where(s => s.ParentId is null).OrderByDescending(s => s.Weight).Select(s => s.Name).ToList();
         Assert.Equal("Modic Digital", byWeight[0]);
@@ -137,6 +137,11 @@ public sealed class StudioMapTests
         var lines = StudioDemo.Lines();
 
         Assert.True(lines.Count >= 8);
+        // The people in the room see their own site: Amos, which the studio builds for G3.
+        Assert.Contains(lines, l => l.Name == "Amos website" && l.Client == "G3");
+        Assert.Contains(lines, l => l.Name == "Forus website" && l.Client == "Modic Digital");
+        Assert.Contains(lines, l => l.Name == "Classic Blade Company website" && l.Client == "Vivant");
+        Assert.Contains(lines, l => l.Name == "Empies website");
         Assert.All(lines, l => Assert.Equal(["Brief", "Design", "Build", "Content", "Launch", "Done"], l.Stops.Select(s => s.Name)));
         Assert.True(lines.Select(l => l.Position).Distinct().Count() >= 6);
         Assert.Equal(lines.Select(l => l.Position).OrderByDescending(p => p), lines.Select(l => l.Position));

@@ -4292,7 +4292,7 @@ SaveLooks("projects");
             Dispatcher.UIThread.RunJobs();
             map.Settle();
             Check("The demo studio is a full made-up one, with no real client on it",
-                studio.Stars.Count(p => p.Star.ParentId is null) == 22 && !studio.Stars.Any(p => services.Clients.List().Any(c => c.Name == p.Star.Name)));
+                studio.Stars.Count(p => p.Star.ParentId is null) == 27 && !studio.Stars.Any(p => services.Clients.List().Any(c => c.Name == p.Star.Name)));
             Save("studio-map-demo");
             studio.SelectedId = studio.Stars.First(p => p.Star.Name == "Modic Digital").Star.Id;
             Dispatcher.UIThread.RunJobs();
@@ -4309,7 +4309,7 @@ SaveLooks("projects");
             wallPanel?.Settle();
             wallPanel?.Turn(0, toBack: true);
             Dispatcher.UIThread.RunJobs();
-            Check("The wall has a card for every client in the demo studio", studio.Wall.Count == 22 && wallPanel is { IsEffectivelyVisible: true }
+            Check("The wall has a card for every client in the demo studio", studio.Wall.Count == 27 && wallPanel is { IsEffectivelyVisible: true }
                 && wallPanel.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => t.Text == "G3" && t.IsEffectivelyVisible));
             Save("studio-wall-demo");
             studio.ShowMapCommand.Execute(null);
