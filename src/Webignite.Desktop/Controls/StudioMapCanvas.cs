@@ -47,6 +47,7 @@ public sealed class StudioMapCanvas : Control
         ResourcesChanged += (_, _) =>
         {
             brushes.Clear();
+            ForgetDrawings();
             ForgetWorlds();
             InvalidateVisual();
         };
@@ -82,6 +83,7 @@ public sealed class StudioMapCanvas : Control
         last = null;
         brushes.Clear();
         shown.Clear();
+        ForgetDrawings();
         ForgetWorlds();
     }
 
@@ -95,6 +97,7 @@ public sealed class StudioMapCanvas : Control
         else if (change.Property == StarsProperty)
         {
             ForgetGone();
+            names.Clear();
             // A picked client that was moved is followed to where it now is.
             if (SelectedId is not null)
                 LookAt(SelectedId);
@@ -246,7 +249,7 @@ public sealed class StudioMapCanvas : Control
             if (!places.TryGetValue(star.Star.ParentId!, out var centre))
                 continue;
             var near = focus is null || star.Star.ParentId == focus;
-            context.DrawLine(new Pen(new SolidColorBrush(ColourOf(Brush(ColourKey(star.Star))), (near ? 0.5 : 0.12) * open), 1),
+            context.DrawLine(Line(ColourOf(Brush(ColourKey(star.Star))), (near ? 0.5 : 0.12) * open, 1),
                 OnScreen(centre.X, centre.Y), OnScreen(star.X, star.Y));
         }
 
@@ -284,24 +287,21 @@ public sealed class StudioMapCanvas : Control
             else
                 DrawMoon(context, at, radius, colour, strength, beat);
             if (isClient && star.Star.State == StarState.Problem)
-                context.DrawEllipse(null, new Pen(new SolidColorBrush(ColourOf(Brush("CategoryRed")), (0.45 + 0.55 * beat) * strength), 3), at, radius + 2 + 3 * beat, radius + 2 + 3 * beat);
+                context.DrawEllipse(null, Line(ColourOf(Brush("CategoryRed")), (0.45 + 0.55 * beat) * strength, 3), at, radius + 2 + 3 * beat, radius + 2 + 3 * beat);
             if (star.Star.Id == selected || star.Star.Id == hover)
-                context.DrawEllipse(null, new Pen(new SolidColorBrush(ColourOf(label), 0.9), 1.5), at, radius + 4, radius + 4);
+                context.DrawEllipse(null, Line(ColourOf(label), 0.9, 1.5), at, radius + 4, radius + 4);
 
             // Names: clients once they are big enough to carry one, what circles them once flown in or pointed at.
             var named = isClient ? radius >= 13 || star.Star.Id == hover : (focus == star.Star.ParentId && zoom > 1.3) || star.Star.Id == hover;
             if (named && open > 0.6)
             {
-                var text = new FormattedText(star.Star.Name, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface.Default,
-                    isClient ? Math.Clamp(radius * 0.3, 11, 16) : 11, new SolidColorBrush(ColourOf(isClient ? label : soft), strength))
-                {
-                    MaxTextWidth = 190, MaxLineCount = isClient ? 2 : 1, TextAlignment = isClient ? TextAlignment.Center : TextAlignment.Left, Trimming = TextTrimming.CharacterEllipsis,
-                };
+                // A name is laid out once and kept; it is only drawn fainter or stronger from frame to frame.
+                var text = NameOf(star.Star, isClient, isClient ? Math.Clamp(radius * 0.3, 11, 16) : 11, isClient ? label : soft);
+                using var faint = context.PushOpacity(Math.Clamp(strength, 0, 1));
                 if (isClient)
                 {
                     // A client's name sits below everything that circles it, so its moons never cover it.
                     var below = Math.Max(radius, reach.GetValueOrDefault(star.Star.Id) * scale);
-                    text.SetFontWeight(FontWeight.SemiBold);
                     context.DrawText(text, new Point(at.X - 95, at.Y + below + 7));
                 }
                 else
@@ -319,22 +319,92 @@ public sealed class StudioMapCanvas : Control
 
     private static Color Faint(Color colour, double opacity) => Color.FromArgb((byte)(255 * Math.Clamp(opacity, 0, 1)), colour.R, colour.G, colour.B);
 
-    // The lit side and the dark side of a ball lit from the upper left: a soft highlight, then shadow growing
-    // towards the far edge until it is the colour of the sky behind. Drawn inside a clip of the ball's own circle.
-    private void Shade(DrawingContext context, Point at, double radius)
+    // Brushes, pens and laid-out names are made once and kept. Making them afresh for every dot on every frame
+    // (hundreds of each, sixty times a second) is what made the map stutter; a frame is now nearly all drawing.
+    private readonly Dictionary<uint, Avalonia.Media.Immutable.ImmutableSolidColorBrush> solids = [];
+    private readonly Dictionary<(uint, int), IPen> lines = [];
+    private readonly Dictionary<uint, IBrush> haloes = [];
+    private readonly Dictionary<uint, IBrush> glows = [];
+    private readonly Dictionary<(string, int), FormattedText> names = [];
+    private IBrush? ballShade;
+
+    private void ForgetDrawings()
     {
+        solids.Clear();
+        lines.Clear();
+        haloes.Clear();
+        glows.Clear();
+        names.Clear();
+        ballShade = null;
+    }
+
+    private static uint ColourKeyOf(Color colour, double opacity) =>
+        (uint)((int)(Math.Clamp(opacity, 0, 1) * 31 + 0.5) << 24 | colour.R << 16 | colour.G << 8 | colour.B);
+
+    // A plain colour at a strength, in 32 steps of strength, which is finer than the eye tells apart.
+    private Avalonia.Media.Immutable.ImmutableSolidColorBrush Solid(Color colour, double opacity = 1)
+    {
+        var key = ColourKeyOf(colour, opacity);
+        if (!solids.TryGetValue(key, out var brush))
+            solids[key] = brush = new Avalonia.Media.Immutable.ImmutableSolidColorBrush(colour, (key >> 24) / 31.0);
+        return brush;
+    }
+
+    private IPen Line(Color colour, double opacity, double thickness)
+    {
+        var key = (ColourKeyOf(colour, opacity), (int)(thickness * 4 + 0.5));
+        if (!lines.TryGetValue(key, out var pen))
+            lines[key] = pen = new Avalonia.Media.Immutable.ImmutablePen(Solid(colour, opacity), key.Item2 / 4.0);
+        return pen;
+    }
+
+    private FormattedText NameOf(Star star, bool isClient, double size, IBrush colour)
+    {
+        var key = (star.Id, (int)(size * 2 + 0.5) * 2 + (isClient ? 1 : 0));
+        if (names.TryGetValue(key, out var text) )
+            return text;
+        if (names.Count > 600)
+            names.Clear();
+        text = new FormattedText(star.Name, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface.Default, (key.Item2 / 2) / 2.0, Solid(ColourOf(colour)))
+        {
+            MaxTextWidth = 190, MaxLineCount = isClient ? 2 : 1, TextAlignment = isClient ? TextAlignment.Center : TextAlignment.Left, Trimming = TextTrimming.CharacterEllipsis,
+        };
+        if (isClient)
+            text.SetFontWeight(FontWeight.SemiBold);
+        return names[key] = text;
+    }
+
+    // The lit side and the dark side of a ball lit from the upper left, as one brush laid over the ball: a soft
+    // highlight where the light falls, then shadow growing towards the far edge until it is the colour of the sky.
+    private IBrush BallShade()
+    {
+        if (ballShade is not null)
+            return ballShade;
         var sky = ColourOf(Brush("Nav"));
         var light = ColourOf(Brush("NavText"));
-        var lit = new Point(at.X - radius * 0.42, at.Y - radius * 0.42);
-        context.DrawEllipse(new RadialGradientBrush
+        var lit = new RelativePoint(0.29, 0.29, RelativeUnit.Relative);
+        return ballShade = new RadialGradientBrush
         {
-            GradientStops = { new GradientStop(Faint(sky, 0), 0), new GradientStop(Faint(sky, 0), 0.36), new GradientStop(Faint(sky, 0.7), 0.62), new GradientStop(Faint(sky, 0.97), 0.84), new GradientStop(Faint(sky, 0.99), 1) },
-        }, null, lit, radius * 1.95, radius * 1.95);
-        context.DrawEllipse(new RadialGradientBrush
-        {
-            GradientStops = { new GradientStop(Faint(light, 0.42), 0), new GradientStop(Faint(light, 0), 1) },
-        }, null, lit, radius * 0.8, radius * 0.8);
+            Center = lit, GradientOrigin = lit,
+            GradientStops =
+            {
+                new GradientStop(Faint(light, 0.42), 0), new GradientStop(Faint(light, 0.08), 0.28), new GradientStop(Faint(sky, 0.1), 0.5),
+                new GradientStop(Faint(sky, 0.62), 0.95), new GradientStop(Faint(sky, 0.95), 1.45), new GradientStop(Faint(sky, 0.97), 2),
+            },
+        }.ToImmutable();
     }
+
+    // A glow that is strongest in the middle and gone at the edge; with <paramref name="hold"/>, strong most of the way out first.
+    private static IBrush Fading(Color colour, double strength, double hold = 0)
+    {
+        var brush = new RadialGradientBrush { GradientStops = { new GradientStop(Faint(colour, strength), 0) } };
+        if (hold > 0)
+            brush.GradientStops.Add(new GradientStop(Faint(colour, strength * 0.9), hold));
+        brush.GradientStops.Add(new GradientStop(Faint(colour, 0), 1));
+        return brush.ToImmutable();
+    }
+
+    private void Shade(DrawingContext context, Point at, double radius) => context.DrawEllipse(BallShade(), null, at, radius, radius);
 
     // A planet's picture is this many dots across, whatever size it is drawn; its map of the globe is MapWidth by MapHeight.
     private const int PlanetDots = 128, MapWidth = 256, MapHeight = 128;
@@ -422,12 +492,13 @@ public sealed class StudioMapCanvas : Control
         var tilt = Matrix.CreateTranslation(-at.X, -at.Y) * Matrix.CreateRotation(lean) * Matrix.CreateTranslation(at.X, at.Y);
         using var faded = context.PushOpacity(Math.Clamp(strength, 0, 1));
 
-        // The atmosphere: a faint halo just outside the globe, brighter on the lit side.
+        // The atmosphere: a faint halo just outside the globe, brighter on the lit side. One brush per colour;
+        // its breathing is how strongly it is drawn.
         var halo = radius * (1.32 + 0.07 * beat);
-        context.DrawEllipse(new RadialGradientBrush
-        {
-            GradientStops = { new GradientStop(Faint(colour, 0.34 + 0.22 * beat), 0), new GradientStop(Faint(colour, 0.3 + 0.2 * beat), 0.74), new GradientStop(Faint(colour, 0), 1) },
-        }, null, new Point(at.X - radius * 0.06, at.Y - radius * 0.06), halo, halo);
+        if (!haloes.TryGetValue(ColourKeyOf(colour, 1), out var air))
+            haloes[ColourKeyOf(colour, 1)] = air = Fading(colour, 0.56, hold: 0.74);
+        using (context.PushOpacity((0.34 + 0.22 * beat) / 0.56))
+            context.DrawEllipse(air, null, new Point(at.X - radius * 0.06, at.Y - radius * 0.06), halo, halo);
 
         if (ringed)
             DrawRing(context, at, radius, pale, tilt, behind: true);
@@ -435,17 +506,14 @@ public sealed class StudioMapCanvas : Control
         if (world is null)
         {
             // Too small to show a surface, or not made yet: a plain ball, lit the same way.
-            using (context.PushGeometryClip(new EllipseGeometry(new Rect(at.X - radius, at.Y - radius, radius * 2, radius * 2))))
-            {
-                context.DrawEllipse(new SolidColorBrush(colour), null, at, radius, radius);
-                Shade(context, at, radius);
-            }
+            context.DrawEllipse(Solid(colour), null, at, radius, radius);
+            Shade(context, at, radius);
         }
         else
         {
-            // Drawn again only once it has turned far enough to see, which is a few times a second.
+            // Drawn again once it has turned an eighth of a pixel, which is finer than the eye sees move.
             var turned = Spinner.Still ? 0 : clock * world.Pace;
-            if (double.IsNaN(world.Drawn) || Math.Abs(turned - world.Drawn) * radius * 2 / PlanetDots >= 0.35)
+            if (double.IsNaN(world.Drawn) || Math.Abs(turned - world.Drawn) * radius * 2 / PlanetDots >= 0.12)
             {
                 var sphere = spheres[world.Lean] ??= new PlanetSphere(PlanetDots, Leans[world.Lean], MapWidth, MapHeight);
                 sphere.Render(world.Map, turned, Packed(ColourOf(Brush("Nav"))), Packed(pale), dots);
@@ -463,7 +531,7 @@ public sealed class StudioMapCanvas : Control
     }
 
     // A ring seen at a slant: the far half is drawn before the ball and the near half after it, so the ball sits in it.
-    private static void DrawRing(DrawingContext context, Point at, double radius, Color colour, Matrix tilt, bool behind)
+    private void DrawRing(DrawingContext context, Point at, double radius, Color colour, Matrix tilt, bool behind)
     {
         using var tilted = context.PushTransform(tilt);
         var half = behind
@@ -473,7 +541,7 @@ public sealed class StudioMapCanvas : Control
         // Several bands with gaps between, the outer ones fainter.
         (double Out, double Wide, double Bright)[] bands = [(1.42, 0.07, 0.5), (1.6, 0.16, 0.75), (1.84, 0.1, 0.6), (2.02, 0.04, 0.35)];
         foreach (var (out_, wide, bright) in bands)
-            context.DrawEllipse(null, new Pen(new SolidColorBrush(colour, bright * (behind ? 0.5 : 0.9)), radius * wide), at, radius * out_, radius * out_ * 0.27);
+            context.DrawEllipse(null, Line(colour, bright * (behind ? 0.5 : 0.9), radius * wide), at, radius * out_, radius * out_ * 0.27);
     }
 
     /// <summary>What circles a client, as a small moon: a faint glow, and a ball lit from the same side as its planet.</summary>
@@ -481,15 +549,12 @@ public sealed class StudioMapCanvas : Control
     {
         using var faded = context.PushOpacity(Math.Clamp(strength, 0, 1));
         var glow = radius * 2.4 * (1 + 0.12 * beat);
-        context.DrawEllipse(new RadialGradientBrush
-        {
-            GradientStops = { new GradientStop(Faint(colour, 0.5 * (0.55 + 0.45 * beat)), 0), new GradientStop(Faint(colour, 0), 1) },
-        }, null, at, glow, glow);
-        using (context.PushGeometryClip(new EllipseGeometry(new Rect(at.X - radius, at.Y - radius, radius * 2, radius * 2))))
-        {
-            context.DrawEllipse(new SolidColorBrush(colour), null, at, radius, radius);
-            Shade(context, at, radius);
-        }
+        if (!glows.TryGetValue(ColourKeyOf(colour, 1), out var shine))
+            glows[ColourKeyOf(colour, 1)] = shine = Fading(colour, 0.5);
+        using (context.PushOpacity(0.55 + 0.45 * beat))
+            context.DrawEllipse(shine, null, at, glow, glow);
+        context.DrawEllipse(Solid(colour), null, at, radius, radius);
+        Shade(context, at, radius);
     }
 
     // A scatter of faint specks behind everything, the same each time, drifting a little as the view moves.
@@ -507,7 +572,7 @@ public sealed class StudioMapCanvas : Control
             var px = ((x - viewX * depth * 0.2) % 1 + 1) % 1 * bounds.Width;
             var py = ((y - viewY * depth * 0.2) % 1 + 1) % 1 * bounds.Height;
             var twinkle = 0.5 + 0.5 * Math.Sin(clock * (0.6 + i % 7 * 0.2) + i);
-            context.DrawEllipse(new SolidColorBrush(speck, depth * (0.4 + 0.6 * twinkle)), null, new Point(px, py), 0.8 + i % 3 * 0.4, 0.8 + i % 3 * 0.4);
+            context.DrawEllipse(Solid(speck, depth * (0.4 + 0.6 * twinkle)), null, new Point(px, py), 0.8 + i % 3 * 0.4, 0.8 + i % 3 * 0.4);
         }
     }
 
