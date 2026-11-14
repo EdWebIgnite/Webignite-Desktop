@@ -13,6 +13,7 @@ public enum WidgetKind
     Note,
     Calculator,
     Timer,
+    /// <summary>Clipboard history, which the app no longer has. Kept so pages saved with one still read; such a widget is left out (<see cref="MyPages.IsGone"/>).</summary>
     Clipboard,
     Colours,
     Files,
@@ -129,6 +130,9 @@ public static class MyPages
     };
 
     /// <summary>Widgets that show one project or one client, picked when added.</summary>
+    /// <summary>A kind of widget the app no longer has: not offered, and left out of pages saved with one.</summary>
+    public static bool IsGone(WidgetKind kind) => kind == WidgetKind.Clipboard;
+
     public static bool NeedsTarget(WidgetKind kind) => kind is WidgetKind.Project or WidgetKind.Client or WidgetKind.ClientMail;
 
     /// <summary>The size a widget starts at, in fine columns and rows.</summary>

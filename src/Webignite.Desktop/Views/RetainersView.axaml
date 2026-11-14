@@ -9,20 +9,31 @@
 
     <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center" ToolTip.Tip="New retainer (Ctrl+N)">
+        <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center" ToolTip.Tip="New retainer (Ctrl+N)" IsVisible="{Binding IsRetainers}">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <c:Icon Data="{StaticResource Icon.Plus}" Size="16" VerticalAlignment="Center" />
             <TextBlock Text="New retainer" />
           </StackPanel>
         </Button>
         <Button DockPanel.Dock="Right" Classes="quiet" Content="From Xero's repeating invoices" Command="{Binding ShowXeroRepeatingCommand}"
-                VerticalAlignment="Center" Margin="0,0,8,0" IsEnabled="{Binding !ReadingRepeating}"
+                VerticalAlignment="Center" Margin="0,0,8,0" IsEnabled="{Binding !ReadingRepeating}" IsVisible="{Binding IsRetainers}"
                 ToolTip.Tip="Brings repeating invoices set up in Xero over as retainers, so Webignite drafts them instead." />
         <StackPanel Spacing="4">
-          <TextBlock Classes="h1" Text="Retainers" />
-          <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" />
+          <TextBlock Classes="h1" Text="Recurring" />
+          <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" IsVisible="{Binding IsRetainers}" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" IsVisible="{Binding IsRenewals}"
+                     Text="A to-do appears before each renewal. If the client pays for it, the renewal invoice is drafted at the same time for you to check." />
         </StackPanel>
       </DockPanel>
+
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,-6,0,0">
+        <Button Classes="viewtab" Classes.on="{Binding IsRetainers}" Content="Retainers" Command="{Binding ShowRetainersCommand}" ToolTip.Tip="Work billed every month" />
+        <Button Classes="viewtab" Classes.on="{Binding IsRenewals}" Content="Domains and hosting" Command="{Binding ShowRenewalsCommand}" ToolTip.Tip="What renews, and when" />
+      </StackPanel>
+
+      <ContentControl Content="{Binding Renewals}" IsVisible="{Binding IsRenewals}" />
+
+      <StackPanel Spacing="18" IsVisible="{Binding IsRetainers}">
 
       <Border Classes="card" IsVisible="{Binding ShowingRepeating}">
         <StackPanel Spacing="10">
@@ -97,6 +108,7 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
       </Border>
+      </StackPanel>
     </StackPanel>
   </Panel>
 </UserControl>

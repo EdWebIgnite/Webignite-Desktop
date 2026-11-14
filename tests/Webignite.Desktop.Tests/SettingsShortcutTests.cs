@@ -120,7 +120,6 @@ public sealed class SettingsShortcutTests
         GlobalShortcut.Recording => settings.RecordShortcut,
         GlobalShortcut.QuickNote => settings.QuickNoteShortcut,
         GlobalShortcut.ColourPicker => settings.ColourShortcut,
-        GlobalShortcut.ClipboardHistory => settings.ClipboardShortcut,
         GlobalShortcut.Ruler => settings.RulerShortcut,
         GlobalShortcut.Snippets => settings.SnippetShortcut,
         GlobalShortcut.ScreenText => settings.TextShortcut,

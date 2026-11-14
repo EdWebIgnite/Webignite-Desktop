@@ -11,7 +11,33 @@ namespace Webignite.Desktop.ViewModels;
 /// <summary>The Retainers module: clients billed the same every month, with the invoice drafted for you.</summary>
 public partial class RetainersViewModel : ViewModelBase, IRefreshable, IHoldsWork
 {
-    public bool HoldsWork => Editor is not null;
+    public bool HoldsWork => Editor is not null || renewals?.HoldsWork == true;
+
+    /// <summary>Showing domains and hosting (the old page of that name) in place of the retainers.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRetainers), nameof(Renewals))]
+    public partial bool IsRenewals { get; set; }
+
+    public bool IsRetainers => !IsRenewals;
+
+    private RenewalsViewModel? renewals;
+
+    /// <summary>Domains and hosting, built the first time they are asked for.</summary>
+    public RenewalsViewModel? Renewals => IsRenewals ? renewals ??= new RenewalsViewModel(services) : null;
+
+    partial void OnIsRenewalsChanged(bool value)
+    {
+        if (value)
+            renewals?.Refresh();
+        else
+            Refresh();
+    }
+
+    [RelayCommand]
+    private void ShowRetainers() => IsRenewals = false;
+
+    [RelayCommand]
+    private void ShowRenewals() => IsRenewals = true;
 
     private readonly AppServices services;
 
@@ -77,6 +103,8 @@ public partial class RetainersViewModel : ViewModelBase, IRefreshable, IHoldsWor
 
     public void Refresh()
     {
+        if (IsRenewals)
+            renewals?.Refresh();
         var retainers = services.Store.ListRetainers();
         var runs = services.Store.DraftsMade();
         var drafted = runs.Keys.ToHashSet();

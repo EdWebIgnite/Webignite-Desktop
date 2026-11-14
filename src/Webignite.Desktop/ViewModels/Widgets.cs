@@ -40,7 +40,6 @@ public abstract partial class WidgetBody : ObservableObject, IDisposable
         WidgetKind.Month => new MonthBody(services),
         WidgetKind.Note => new NoteBody(widget, page),
         WidgetKind.Calculator => new CalculatorBody(page.Tools),
-        WidgetKind.Clipboard => new ClipboardBody(page.Tools),
         WidgetKind.Colours => new ColoursBody(page.Tools),
         WidgetKind.Timer => new TimerBody(services),
         WidgetKind.Client => new ClientBody(services, widget.Target),
@@ -380,12 +379,6 @@ public sealed partial class NoteBody : WidgetBody
 public sealed class CalculatorBody(ToolsViewModel tools) : WidgetBody
 {
     public CalculatorToolViewModel Tools { get; } = tools.Calculator;
-}
-
-/// <summary>The clipboard history, as in its own window.</summary>
-public sealed class ClipboardBody(ToolsViewModel tools) : WidgetBody
-{
-    public ClipboardToolViewModel Tools { get; } = tools.Clipboard;
 }
 
 /// <summary>The colours tool, as in its own window.</summary>

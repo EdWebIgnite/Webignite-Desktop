@@ -49,11 +49,8 @@
             <TextBlock Text="Add domain or hosting" />
           </StackPanel>
         </Button>
-      <StackPanel Spacing="4">
-        <TextBlock Classes="h1" Text="Domains and hosting" />
-        <TextBlock Classes="muted" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left"
-                   Text="A to-do appears before each renewal. If the client pays for it, the renewal invoice is drafted at the same time for you to check." />
-      </StackPanel>
+      <!-- Shown inside Recurring, under its Domains and hosting tab, which has the heading. -->
+      <Panel />
     </DockPanel>
 
     <Border Classes="ready" IsVisible="{Binding HasMessage}">

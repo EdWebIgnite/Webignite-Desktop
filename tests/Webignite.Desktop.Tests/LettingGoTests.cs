@@ -76,14 +76,13 @@ public sealed class ToolsLettingGoTests
     });
 
     [Fact]
-    public async Task A_closed_tool_no_longer_listens_to_the_clipboard_or_the_recent_colours()
+    public async Task A_closed_tool_no_longer_listens_to_the_recent_colours()
     {
         using var app = new TestApp();
         WeakReference? weak = null;
         await Ui.Run(() =>
         {
             var tools = new ToolsViewModel(app.Services);
-            tools.Clipboard.WatchClipboard();
             tools.Colours.WatchColours();
             weak = new WeakReference(tools);
             tools.Dispose();

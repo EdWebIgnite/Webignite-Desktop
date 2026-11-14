@@ -267,8 +267,7 @@ public partial class MainViewModel : ViewModelBase
             new NavGroup("client-work", "CLIENT WORK") { Icon = "Clients" },
             new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
             new Module(Page.Contacts, "Contacts", () => new ContactsViewModel(services), "Contacts", fullBleed: true),
-            new Module(Page.Retainers, "Retainers", () => new RetainersViewModel(services), "Retainers"),
-            new Module(Page.Renewals, "Domains and hosting", () => new RenewalsViewModel(services), "Domains"),
+            new Module(Page.Retainers, "Recurring", () => new RetainersViewModel(services), "Retainers"),
             new NavGroup("billing", "BILLING") { Icon = "Invoices" },
             new Module(Page.Quotes, "Quotes", () => new DocumentsViewModel(DocumentKind.Quote, services), "Quotes"),
             new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
@@ -287,7 +286,6 @@ public partial class MainViewModel : ViewModelBase
             new ToolLink(ToolKind.Calculator, "Calculator", "Calculator"),
             new ToolLink(ToolKind.Passwords, "Password generator", "Key"),
             new ToolLink(ToolKind.Colours, "Colours", "Palette"),
-            new ToolLink(ToolKind.Clipboard, "Clipboard history", "Clipboard"),
             new ToolLink(ToolKind.Snippets, "Text snippets", "Snippets"),
             new ToolLink(ToolKind.ScreenText, "Text from the screen", "ScreenText"),
             new NavGroup("web-tools", "WEB TOOLS") { Icon = "SiteCheck" },
@@ -368,7 +366,7 @@ public partial class MainViewModel : ViewModelBase
 
         // How other pages get here. Each one lands on the right page first, then opens the thing.
         var go = services.Go;
-        go.OpenPage = page => Selected = this[page];
+        go.OpenPage = GoTo;
         go.OpenMailAction = summary =>
         {
             Selected = mailModule;
@@ -539,6 +537,17 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>The sidebar entry for a page.</summary>
+    /// <summary>
+    /// Opens a page. One that was folded into another opens there on its own view: Domains and hosting is a tab
+    /// on Recurring, so going to it shows that tab, and going to Retainers shows the other.
+    /// </summary>
+    public void GoTo(Page page)
+    {
+        Selected = this[page];
+        if (page is Page.Renewals or Page.Retainers && Current.Page is RetainersViewModel recurring && recurring.IsListing)
+            recurring.IsRenewals = page == Page.Renewals;
+    }
+
     public Module this[Page page] => Modules.Single(m => m.Key == NowIn(page));
 
     /// <summary>Where a page lives now: one that was folded into another (Week into Calendar) opens that one, so a tab or layout saved before still works.</summary>
@@ -546,6 +555,7 @@ public partial class MainViewModel : ViewModelBase
     {
         Page.Planner => Page.Calendar,
         Page.Reports => Page.Money,
+        Page.Renewals => Page.Retainers,
         _ => page,
     };
 

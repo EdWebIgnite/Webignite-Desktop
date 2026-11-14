@@ -26,10 +26,7 @@ public sealed record ScreenshotSettings
     /// <summary>The keys that pick a colour from anywhere on the screen. Empty turns it off.</summary>
     public string ColourShortcut { get; init; } = DefaultColourShortcut;
 
-    public const string DefaultClipboardShortcut = "Ctrl+Alt+V";
 
-    /// <summary>The keys that open clipboard history from any program. Empty turns it off.</summary>
-    public string ClipboardShortcut { get; init; } = DefaultClipboardShortcut;
 
     public const string DefaultRulerShortcut = "Ctrl+Alt+M";
 
@@ -48,7 +45,7 @@ public sealed record ScreenshotSettings
 }
 
 /// <summary>The shortcuts that work from any program, so one can't be given keys another already has.</summary>
-public enum GlobalShortcut { Screenshot, Recording, QuickNote, ColourPicker, ClipboardHistory, Ruler, Snippets, ScreenText }
+public enum GlobalShortcut { Screenshot, Recording, QuickNote, ColourPicker, Ruler, Snippets, ScreenText }
 
 /// <summary>
 /// Everything that differs between one global shortcut and the next, in one row: what Windows knows it by, what it
@@ -82,9 +79,6 @@ public static class GlobalShortcuts
         new(GlobalShortcut.ColourPicker, 0x574A, "colour picker", "the colour picker", "Colour picker shortcut not set", "screenshots", "Screenshots",
             ScreenshotSettings.DefaultColourShortcut, "Press {0} in any program, then click a colour to copy its code.",
             "The colour picker shortcut is off. Pick colours from the Colours tool."),
-        new(GlobalShortcut.ClipboardHistory, 0x574B, "clipboard history", "clipboard history", "Clipboard history shortcut not set", "screenshots", "Screenshots",
-            ScreenshotSettings.DefaultClipboardShortcut, "Press {0} in any program to see what you copied.",
-            "The clipboard history shortcut is off. Open it from the sidebar under Computer."),
         new(GlobalShortcut.Ruler, 0x574C, "screen ruler", "the screen ruler", "Screen ruler shortcut not set", "screenshots", "Screenshots",
             ScreenshotSettings.DefaultRulerShortcut, "Press {0} in any program, then point at something or drag a box to measure it.",
             "The screen ruler shortcut is off. Measure from the Screen ruler tool."),
@@ -109,7 +103,6 @@ public static class GlobalShortcuts
         GlobalShortcut.Recording => shots.RecordShortcut,
         GlobalShortcut.QuickNote => quickNote,
         GlobalShortcut.ColourPicker => shots.ColourShortcut,
-        GlobalShortcut.ClipboardHistory => shots.ClipboardShortcut,
         GlobalShortcut.Ruler => shots.RulerShortcut,
         GlobalShortcut.Snippets => shots.SnippetShortcut,
         GlobalShortcut.ScreenText => shots.TextShortcut,
@@ -122,7 +115,6 @@ public static class GlobalShortcuts
         GlobalShortcut.Screenshot => shots with { Shortcut = keys },
         GlobalShortcut.Recording => shots with { RecordShortcut = keys },
         GlobalShortcut.ColourPicker => shots with { ColourShortcut = keys },
-        GlobalShortcut.ClipboardHistory => shots with { ClipboardShortcut = keys },
         GlobalShortcut.Ruler => shots with { RulerShortcut = keys },
         GlobalShortcut.Snippets => shots with { SnippetShortcut = keys },
         GlobalShortcut.ScreenText => shots with { TextShortcut = keys },

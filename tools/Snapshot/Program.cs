@@ -114,7 +114,7 @@ var vm = new MainViewModel(services);
 var window = new MainWindow { DataContext = vm, Width = 1280, Height = 860 };
 window.Show();
 
-void Open(Page page) => vm.Selected = vm[page];
+void Open(Page page) => vm.GoTo(page);
 
 // Calendar on its week (the Week page was folded into Calendar), and back on its month.
 PlannerViewModel WeekPage()
@@ -270,6 +270,8 @@ using (services.Work.Start("Checking mail"))
 Open(Page.Retainers);
 Save("empty-retainers");
 Open(Page.Renewals);
+Check("Domains and hosting is a tab on Recurring, and gone from the sidebar", vm.Selected.Key == Page.Retainers && vm.Current.Page is RetainersViewModel { IsRenewals: true, Renewals: not null }
+    && vm.Modules.All(m => m.Title != "Domains and hosting"));
 Save("empty-domains");
 
 Open(Page.Invoices);
@@ -455,7 +457,7 @@ Check("The folded sidebar shows each group as one icon, not every page",
     vm.Sidebar.IconPages.OfType<NavGroup>().Select(g => g.Key).SequenceEqual(["my-pages", "client-work", "billing", "computer", "web-tools"])
     && vm.Sidebar.IconPages.OfType<Module>().Select(m => m.Key).SequenceEqual([Page.Overview, Page.Approvals, Page.Mail, Page.Settings]));
 var clientWork = vm.Sidebar.IconPages.OfType<NavGroup>().First(g => g.Key == "client-work");
-Check("A group's list has its pages", clientWork.Entries.Select(e => e.Title).SequenceEqual(["Clients", "Contacts", "Retainers", "Domains and hosting"]));
+Check("A group's list has its pages", clientWork.Entries.Select(e => e.Title).SequenceEqual(["Clients", "Contacts", "Recurring"]));
 var groupIcon = window.GetVisualDescendants().OfType<Avalonia.Controls.Panel>()
     .First(p => p.DataContext == clientWork && Avalonia.Controls.Primitives.FlyoutBase.GetAttachedFlyout(p) is not null);
 Avalonia.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(groupIcon);
@@ -2154,7 +2156,7 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
 }
 Check("A new install opens with the dock as its menu", startsWithDock);
 Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
-    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
+    vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
     && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
@@ -2665,28 +2667,8 @@ colourWindow.Close();
     socialWindow.Close();
     Check("Closing the window lets the small pictures go", social.Social.SocialPreviews.Count == 0);
 }
-// Clipboard history: what was copied, text and pictures, newest first, in memory only.
-services.Clipboard.Add("thandi@karoocoffee.co.za");
-services.Clipboard.Add("Hi Pieter,\n\nThe new menu is live on the site. Have a look and shout if anything needs changing.\n\nEddie");
-using (var shot = window.CaptureRenderedFrame()!)
-using (var shotStream = new MemoryStream())
-{
-    shot.Save(shotStream, new PngBitmapEncoderOptions());
-    services.Clipboard.Add(new Webignite.Core.Tools.Clip(null, shotStream.ToArray(), shot.PixelSize.Width, shot.PixelSize.Height));
-}
-services.Clipboard.Add("INV-0107");
-services.Clipboard.Add("thandi@karoocoffee.co.za");
-var clipWindow = window.ShowTool(ToolKind.Clipboard, services);
-Check("Clipboard history lists each copy once, newest first, pictures too", clipWindow.Tools.Clipboard.Clips.Count == 4
-    && clipWindow.Tools.Clipboard.Clips[0].Clip.Text == "thandi@karoocoffee.co.za" && clipWindow.Tools.Clipboard.Clips[2].IsPicture && clipWindow.Tools.Clipboard.Clips[2].Thumbnail is not null);
-SaveWindow(clipWindow, "tools-clipboard");
-clipWindow.Tools.Clipboard.ClipSearch = "pieter";
-Check("The search finds a copy by its words", clipWindow.Tools.Clipboard.Clips.Count == 1 && clipWindow.Tools.Clipboard.Clips[0].Preview.StartsWith("Hi Pieter", StringComparison.Ordinal));
-clipWindow.Tools.Clipboard.ClipSearch = "";
-clipWindow.Tools.Clipboard.Clips[1].ForgetCommand.Execute(null);
-Check("Forget takes one off", clipWindow.Tools.Clipboard.Clips.Count == 3 && services.Clipboard.Items.Count == 3);
-clipWindow.Close();
-Check("Closing the window stops it following the history and lets the pictures go", clipWindow.Tools.Clipboard.Clips.Count == 0);
+Check("Clipboard history is gone from the tools and the widgets", vm.Sidebar.OnMenus().OfType<ToolLink>().All(t => t.Title != "Clipboard history")
+    && Webignite.Core.Layout.MyPages.IsGone(Webignite.Core.Layout.WidgetKind.Clipboard));
 // Chat with your partner: words, a screenshot and a file, in a small window. Signed in only for the shot.
 {
     var me = services.Team().Me!.Id;
@@ -2891,8 +2873,8 @@ Save("invoice-sum");
         vm.MenuPart.IsMenuOpen && vm.MenuPart.MenuColumns.Count >= 6 && vm.MenuPart.MenuColumns[0].Title == "Start" && vm.MenuPart.MenuColumns.Any(c => c.Title == "Planner")
         && vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.IsCurrent) == 1);
     Check("The menu says how things stand beside its pages", vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Any(e => e.HasFigure));
-    Check("Retainers, domains, money and clients have their figures too",
-        vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.HasFigure && e.PageKey is "Retainers" or "Renewals" or "Money" or "Clients") == 4);
+    Check("Recurring, money and clients have their figures too",
+        vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.HasFigure && e.PageKey is "Retainers" or "Money" or "Clients") == 3);
     Save("menu-button-open");
     Check("Settings comes last in the menu", vm.MenuPart.MenuColumns[^1].Entries.Any(e => e.PageKey == "Settings") && !vm.MenuPart.MenuColumns[^1].CanFold);
     {
@@ -3108,7 +3090,7 @@ Save("invoice-sum");
     vm.MenuPart.PickFromMenuCommand.Execute(InMenu(retainers));
     Dispatcher.UIThread.RunJobs();
     Check("A click takes an entry off: it moves to Available, and the page on screen stays",
-        vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Retainers", "Calculator"]) && vm.Selected.Key != Page.Retainers && vm.MenuPart.IsMenuOpen && vm.MenuPart.HasMenuTakenOff
+        vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Recurring", "Calculator"]) && vm.Selected.Key != Page.Retainers && vm.MenuPart.IsMenuOpen && vm.MenuPart.HasMenuTakenOff
         && vm.Sidebar.IsOff(calculator) && vm.Sidebar.IsOff(retainers));
     var settingsEntry = InMenu(vm[Page.Settings]);
     vm.MenuPart.PickFromMenuCommand.Execute(settingsEntry);

@@ -9,13 +9,6 @@ namespace Webignite.Desktop.Views;
 public partial class MainWindow
 {
     private readonly Dictionary<ToolKind, ToolWindow> toolWindows = [];
-    // From another program: with Webignite minimised, the tool shows on its own rather than hidden with the main window.
-    private void ShowClipboardFromAnywhere(AppServices services)
-    {
-        var window = ShowTool(ToolKind.Clipboard, services, owned: WindowState != Avalonia.Controls.WindowState.Minimized);
-        window.Activate();
-    }
-
     // From another program: the window that was in front is remembered, so the snippet picked is pasted there.
     private void ShowSnippetsFromAnywhere(AppServices services)
     {
@@ -37,15 +30,11 @@ public partial class MainWindow
         services.Go.MainToFrontAction = Activate;
         OnShortcut(Webignite.Core.Tools.GlobalShortcut.Snippets, () => ShowSnippetsFromAnywhere(services));
         services.Go.OpenToolAction = kind => ShowTool(kind, services);
-        // Clipboard history listens from the start, so what's copied before the tool is opened is there too.
-        Opened += (_, _) => services.Clipboard.Watch(this);
         Closing += (_, _) =>
         {
             foreach (var open in toolWindows.Values.ToList())
                 open.Close();
         };
-        Closed += (_, _) => services.Clipboard.Stop();
-        OnShortcut(Webignite.Core.Tools.GlobalShortcut.ClipboardHistory, () => ShowClipboardFromAnywhere(services));
     }
 
     /// <summary>Opens a tool, or brings its window forward. Returns the window, for the screenshot tool.</summary>

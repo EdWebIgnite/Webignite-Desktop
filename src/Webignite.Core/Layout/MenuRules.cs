@@ -71,6 +71,10 @@ public static class MenuFigures
             figures["Renewals"] = renewing;
         if (GoingOut(facts.Retainers, facts.Drafted, today) is { } goingOut)
             figures["Retainers"] = goingOut;
+        // Domains and hosting is a tab on the retainers' page (Recurring): its figure shows there when one is late,
+        // or when no retainer has anything to say.
+        if (figures.TryGetValue("Renewals", out var renews) && (renews.Late || !figures.ContainsKey("Retainers")))
+            figures["Retainers"] = renews;
         var building = facts.Clients.Count(Onboarding.InProgress);
         if (building > 0)
             figures["Clients"] = new MenuFigure(building == 1 ? "1 new site" : string.Create(CultureInfo.InvariantCulture, $"{building} new sites"));

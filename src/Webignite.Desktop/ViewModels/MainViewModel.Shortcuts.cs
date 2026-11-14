@@ -15,7 +15,6 @@ public partial class MainViewModel
         [GlobalShortcut.Recording] = "Start or stop recording the screen",
         [GlobalShortcut.QuickNote] = "A quick note, to-do or event",
         [GlobalShortcut.ColourPicker] = "Pick a colour off the screen and copy its code",
-        [GlobalShortcut.ClipboardHistory] = "Clipboard history, the last things you copied",
         [GlobalShortcut.Ruler] = "Measure something on the screen",
         [GlobalShortcut.Snippets] = "Paste a text snippet where you are typing",
         [GlobalShortcut.ScreenText] = "Copy words off the screen",
