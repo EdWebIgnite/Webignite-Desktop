@@ -97,10 +97,36 @@ public partial class StudioView : UserControl
         return this;
     }
 
+    /// <summary>What Esc does first while presenting: lets go of a picked client. False when there was nothing to let go of, and the window closes.</summary>
+    public static bool StepBack(StudioViewModel shown)
+    {
+        if (shown.SelectedId is null)
+            return false;
+        shown.SelectedId = null;
+        return true;
+    }
+
+    // The Close button on the copy that fills the screen.
+    private void StopPresenting(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is StudioViewModel { Presenting: true } && TopLevel.GetTopLevel(this) is Window window)
+            window.Close();
+    }
+
     private void Present(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not StudioViewModel page || App.Services is not { } services)
             return;
+        var window = PresentingWindow(services, page);
+        if (TopLevel.GetTopLevel(this) is Window owner)
+            window.Show(owner);
+        else
+            window.Show();
+    }
+
+    /// <summary>The window that fills the screen with a copy of the page as it stands; the caller shows it. Esc or its Close button closes it.</summary>
+    public static Window PresentingWindow(AppServices services, StudioViewModel page)
+    {
         var shown = new StudioViewModel(services, presenting: true, demo: page.Demo, show: page.Show);
         var window = new Window
         {
@@ -108,16 +134,24 @@ public partial class StudioView : UserControl
             WindowState = WindowState.FullScreen,
             Content = new StudioView { DataContext = shown, Padding = default }.Edgeless(),
         };
-        // Esc with nothing picked closes; with a client picked the map takes it first and flies back out.
-        window.KeyDown += (_, key) =>
+        // Esc with a client picked flies back out; with nothing picked it closes. The key is caught on its way down
+        // to whatever has the keyboard, so it works whichever picture is showing and whatever was clicked last.
+        window.Focusable = true;
+        window.AddHandler(KeyDownEvent, (_, key) =>
         {
-            if (key.Key == Key.Escape && !key.Handled)
+            if (key.Key != Key.Escape)
+                return;
+            key.Handled = true;
+            if (!StepBack(shown))
                 window.Close();
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+        // A window opened from a click doesn't always take the keyboard by itself; it is asked to, once it is up.
+        window.Opened += (_, _) =>
+        {
+            window.Activate();
+            window.Focus();
         };
         window.Closed += (_, _) => shown.Dispose();
-        if (TopLevel.GetTopLevel(this) is Window owner)
-            window.Show(owner);
-        else
-            window.Show();
+        return window;
     }
 }
