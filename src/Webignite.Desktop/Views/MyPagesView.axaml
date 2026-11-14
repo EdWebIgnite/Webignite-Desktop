@@ -156,9 +156,6 @@
     <DataTemplate DataType="vm:CalculatorBody">
       <ScrollViewer HorizontalScrollBarVisibility="Disabled"><v:CalculatorView DataContext="{Binding Tools}" /></ScrollViewer>
     </DataTemplate>
-    <DataTemplate DataType="vm:ClipboardBody">
-      <ScrollViewer HorizontalScrollBarVisibility="Disabled"><v:ClipboardView DataContext="{Binding Tools}" /></ScrollViewer>
-    </DataTemplate>
     <DataTemplate DataType="vm:ColoursBody">
       <ScrollViewer HorizontalScrollBarVisibility="Disabled"><v:ColourView DataContext="{Binding Tools}" /></ScrollViewer>
     </DataTemplate>

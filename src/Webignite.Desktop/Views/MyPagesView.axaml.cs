@@ -199,7 +199,7 @@ public partial class MyPagesView : UserControl
         if (Pages is not { } pages || sender is not MenuFlyout flyout)
             return;
         flyout.Items.Clear();
-        foreach (var kind in Enum.GetValues<WidgetKind>())
+        foreach (var kind in Enum.GetValues<WidgetKind>().Where(k => !MyPages.IsGone(k)))
         {
             var item = new MenuItem { Header = MyPages.Label(kind) };
             if (kind == WidgetKind.Project)

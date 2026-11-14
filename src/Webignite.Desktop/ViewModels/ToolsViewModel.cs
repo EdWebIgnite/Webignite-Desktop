@@ -10,7 +10,6 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
     private CalculatorToolViewModel? calculator;
     private PasswordsToolViewModel? passwords;
     private ColoursToolViewModel? colours;
-    private ClipboardToolViewModel? clipboard;
     private QrToolViewModel? qr;
     private ImagesToolViewModel? images;
     private WebHelpersToolViewModel? webHelpers;
@@ -28,7 +27,6 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
     public CalculatorToolViewModel Calculator => calculator ??= new(services);
     public PasswordsToolViewModel Passwords => passwords ??= new();
     public ColoursToolViewModel Colours => colours ??= new(services);
-    public ClipboardToolViewModel Clipboard => clipboard ??= new(services);
     public QrToolViewModel Qr => qr ??= new();
     public ImagesToolViewModel Images => images ??= new(services);
     public WebHelpersToolViewModel WebHelpers => webHelpers ??= new();
@@ -51,7 +49,6 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
         ToolKind.Calculator => Calculator,
         ToolKind.Passwords => Passwords,
         ToolKind.Colours => Colours,
-        ToolKind.Clipboard => Clipboard,
         ToolKind.Qr => Qr,
         ToolKind.WebHelpers => WebHelpers,
         ToolKind.Dns => Dns,
@@ -71,7 +68,6 @@ public sealed class ToolsViewModel(AppServices services) : IDisposable
     public void Dispose()
     {
         colours?.Dispose();
-        clipboard?.Dispose();
         qr?.Dispose();
         pageCapture?.Dispose();
         browser?.Dispose();

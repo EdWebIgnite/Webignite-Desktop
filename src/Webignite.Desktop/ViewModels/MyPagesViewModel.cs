@@ -137,7 +137,7 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
         loading = true;
         EditName = page.Name;
         loading = false;
-        foreach (var widget in page.Widgets)
+        foreach (var widget in page.Widgets.Where(w => !MyPages.IsGone(w.Kind)))
             Widgets.Add(new WidgetViewModel(widget, WidgetBody.For(widget, services, this), this));
         Changed();
     }

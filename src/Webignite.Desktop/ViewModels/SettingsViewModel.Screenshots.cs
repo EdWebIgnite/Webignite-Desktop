@@ -20,7 +20,6 @@ public partial class SettingsViewModel
     [ObservableProperty] public partial string RulerShortcut { get; private set; } = "";
     [ObservableProperty] public partial string SnippetShortcut { get; private set; } = "";
     [ObservableProperty] public partial string TextShortcut { get; private set; } = "";
-    [ObservableProperty] public partial string ClipboardShortcut { get; private set; } = "";
 
     /// <summary>Record the microphone with the screen.</summary>
     public bool RecordMicrophone
@@ -99,7 +98,6 @@ public partial class SettingsViewModel
             case GlobalShortcut.Recording: RecordShortcut = shown; break;
             case GlobalShortcut.QuickNote: QuickNoteShortcut = shown; break;
             case GlobalShortcut.ColourPicker: ColourShortcut = shown; break;
-            case GlobalShortcut.ClipboardHistory: ClipboardShortcut = shown; break;
             case GlobalShortcut.Ruler: RulerShortcut = shown; break;
             case GlobalShortcut.Snippets: SnippetShortcut = shown; break;
             case GlobalShortcut.ScreenText: TextShortcut = shown; break;

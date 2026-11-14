@@ -434,9 +434,6 @@ public sealed class AppServices : IDisposable
 
     public void ChangedMyPages(object? by) => MyPagesChanged?.Invoke(by);
 
-    /// <summary>The last things copied while the app is open, in memory only.</summary>
-    public Files.ClipboardKeeper Clipboard { get; } = new();
-
     /// <summary>A screen recording is under way, so closing the app should stop it properly first.</summary>
     public bool Recording { get; set; }
 
