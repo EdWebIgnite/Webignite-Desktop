@@ -455,7 +455,7 @@ Save("sidebar-icons");
 // Folded, each group is one icon; its pages open in a list beside it, as on a hover.
 Check("The folded sidebar shows each group as one icon, not every page",
     vm.Sidebar.IconPages.OfType<NavGroup>().Select(g => g.Key).SequenceEqual(["my-pages", "client-work", "billing", "computer", "web-tools"])
-    && vm.Sidebar.IconPages.OfType<Module>().Select(m => m.Key).SequenceEqual([Page.Overview, Page.Approvals, Page.Mail, Page.Settings]));
+    && vm.Sidebar.IconPages.OfType<Module>().Select(m => m.Key).SequenceEqual([Page.Overview, Page.Mail, Page.Settings]));
 var clientWork = vm.Sidebar.IconPages.OfType<NavGroup>().First(g => g.Key == "client-work");
 Check("A group's list has its pages", clientWork.Entries.Select(e => e.Title).SequenceEqual(["Clients", "Contacts", "Recurring"]));
 var groupIcon = window.GetVisualDescendants().OfType<Avalonia.Controls.Panel>()
@@ -636,7 +636,7 @@ Save("setup-guide-chatgpt");
 vm.WelcomePart.GuideNextCommand.Execute(null);
 vm.WelcomePart.GuideNextCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
-Check("The look round shows the real pages: To approve", vm.WelcomePart.GuideStep.Key == "approvals" && vm.Selected.Key == Page.Approvals && vm.WelcomePart.GuideNextLabel == "Next");
+Check("The look round shows the real pages: Quotes", vm.WelcomePart.GuideStep.Key == "quotes" && vm.Selected.Key == Page.Quotes && vm.WelcomePart.GuideNextLabel == "Next");
 Save("setup-guide-approvals");
 while (vm.WelcomePart.GuideStep.Key != "done")
     vm.WelcomePart.GuideNextCommand.Execute(null);
@@ -2077,10 +2077,20 @@ assistant.Draft("quote", "Fynbos Physio", [new("Booking page rebuild", 1, 6500m)
     DocumentSource.Claude, reference: "Booking page");
 assistant.Draft("invoice", "Bosveld Builders", [new("Deposit: new website, 50%", 1, 7250m)], DocumentSource.ChatGpt, reference: "Website deposit");
 Open(Page.Approvals);
+vm.Overview.Refresh();
+Check("To approve is a card on Overview, with its counts on Quotes and Invoices", vm.Selected.Key == Page.Overview && vm.Modules.All(m => m.Title != "To approve")
+    && vm.Approvals.HasRows && vm[Page.Quotes].Badge + vm[Page.Invoices].Badge == vm.Approvals.Rows.Count && vm[Page.Quotes].Badge > 0
+    && vm.Overview.Summary.All(l => l.Action != "Review"));
 Save("to-approve");
-vm.Approvals.Rows[1].OpenCommand.Execute(null);
-Save("to-approve-open");
-vm.Approvals.Editor!.BackCommand.Execute(null);
+{
+    var waitingRow = vm.Approvals.Rows[1];
+    waitingRow.OpenCommand.Execute(null);
+    var where = waitingRow.IsQuote ? vm.Quotes : vm.Invoices;
+    Check("Open shows it in Quotes or Invoices, in the usual editor", vm.Selected.Key == (waitingRow.IsQuote ? Page.Quotes : Page.Invoices) && where.Editor is not null);
+    Save("to-approve-open");
+    where.Editor!.BackCommand.Execute(null);
+    Open(Page.Overview);
+}
 // A draft in Xero can be taken off the list by hand (one deleted in Xero, say), after a yes; Undo puts it back.
 {
     var inXero = vm.Approvals.Rows.First(r => r.CanRemove);

@@ -20,17 +20,14 @@
       <Setter Property="Foreground" Value="{DynamicResource QuoteTint}" />
     </Style>
   </UserControl.Styles>
-  <Panel>
-    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsListing}" />
-
-    <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
-      <StackPanel Spacing="4">
-        <TextBlock Classes="h1" Text="To approve" />
-        <TextBlock Classes="muted" Text="{Binding Summary}" />
+  <!-- A card at the top of Overview, shown only while something waits. -->
+  <Border Classes="card" IsVisible="{Binding HasRows}">
+    <StackPanel Spacing="12">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <c:Icon Classes="cardicon" Data="{StaticResource Icon.Approve}" />
+        <TextBlock Classes="h2" Text="To approve" VerticalAlignment="Center" />
+        <TextBlock Classes="muted" Text="{Binding Summary}" VerticalAlignment="Center" Margin="6,0,0,0" />
       </StackPanel>
-
-      <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Done}" Title="All caught up"
-                    Text="Quotes and invoices that Claude or ChatGPT prepare land here, along with drafts in Xero you haven't approved or emailed yet." />
 
       <ItemsControl ItemsSource="{Binding Rows}" IsVisible="{Binding !IsEmpty}">
         <ItemsControl.ItemsPanel>
@@ -40,7 +37,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:ApprovalRowViewModel">
-            <Border Classes="card lift" Padding="18,14">
+            <Border Classes="taskrow" Padding="14,12" CornerRadius="10">
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Spacing="8" VerticalAlignment="Center" Margin="16,0,0,0">
                   <TextBlock Classes="amount" FontSize="16" FontWeight="SemiBold" Text="{Binding Total}" />
@@ -79,5 +76,5 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
     </StackPanel>
-  </Panel>
+  </Border>
 </UserControl>

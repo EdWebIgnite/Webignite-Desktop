@@ -233,7 +233,7 @@ flowchart LR
 
 | Group | Pages |
 | --- | --- |
-| (top) | Overview, To approve, Mail, Planner (opens the Planner sidebar) |
+| (top) | Overview (with To approve as a card at its top while anything waits: `ApprovalsViewModel` on `OverviewViewModel.Approvals`, its counts as badges on Quotes and Invoices), Mail, Planner (opens the Planner sidebar) |
 | My pages | All my pages, each page the person made by name, New page (all one page; see My pages above) |
 | Client work | Clients, Contacts, Recurring (retainers, with Domains and hosting as a tab inside it: `RetainersViewModel.IsRenewals` shows a `RenewalsViewModel`; `MainViewModel.GoTo` opens the right tab) |
 | Billing | Quotes, Invoices, Money (with Reports as a tab inside it: `MoneyViewModel.IsReports` shows a `ReportsViewModel`) |
