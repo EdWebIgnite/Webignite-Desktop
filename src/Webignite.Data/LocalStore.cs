@@ -22,12 +22,32 @@ public sealed partial class LocalStore : IDisposable
     // thread land inside another thread's transaction and be rolled back with it. SQLite keeps separate
     // connections apart and makes a writer wait for the other (WAL mode, and the command timeout as busy wait).
     // Every transaction here is opened and finished in one synchronous method, so it stays on one thread.
-    private readonly ThreadLocal<SqliteConnection> connections;
+    private readonly ThreadLocal<Held> connections;
     private readonly string connectionString;
     private readonly Vault vault;
     private readonly TimeProvider clock;
 
-    private SqliteConnection connection => connections.Value!;
+    /// <summary>A thread's own connection, and when that thread last reached for it (by the system's tick count).</summary>
+    private sealed class Held(SqliteConnection connection, int thread)
+    {
+        public SqliteConnection Connection { get; } = connection;
+        public int Thread { get; } = thread;
+        public long LastUsed;
+    }
+
+    // Set as the store starts to close: from then on nothing new is started on any connection.
+    private volatile bool closing;
+
+    private SqliteConnection connection
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(closing, this);
+            var held = connections.Value!;
+            Volatile.Write(ref held.LastUsed, Environment.TickCount64);
+            return held.Connection;
+        }
+    }
 
     public LocalStore(string databasePath, Vault vault, TimeProvider? clock = null)
     {
@@ -36,7 +56,7 @@ public sealed partial class LocalStore : IDisposable
         if (Path.GetDirectoryName(databasePath) is { Length: > 0 } folder)
             Directory.CreateDirectory(folder);
         connectionString = new SqliteConnectionStringBuilder { DataSource = databasePath, Pooling = false, DefaultTimeout = 30 }.ToString();
-        connections = new ThreadLocal<SqliteConnection>(OpenConnection, trackAllValues: true);
+        connections = new ThreadLocal<Held>(() => new Held(OpenConnection(), Environment.CurrentManagedThreadId), trackAllValues: true);
         Execute("""
             PRAGMA journal_mode = WAL;
             CREATE TABLE IF NOT EXISTS documents (
@@ -321,17 +341,38 @@ public sealed partial class LocalStore : IDisposable
 
     public void Dispose()
     {
-        foreach (var opened in connections.Values)
-            Close(opened);
+        // Each thread has its own connection, and one of them may be in the middle of a read on its own thread as
+        // the store is closed: a count for a badge started a moment ago, say. Closing a connection under a read
+        // hands that read rubbish and can throw on either side. So: nothing new may start (see the connection
+        // property), another thread's connection is left until that thread has not reached for it for a moment,
+        // and only then is it closed.
+        closing = true;
+        foreach (var held in connections.Values)
+        {
+            if (held.Thread != Environment.CurrentManagedThreadId)
+                WaitUntilQuiet(held);
+            Close(held.Connection);
+        }
         connections.Dispose();
         lastLook.Dispose();
         inOneGo.Dispose();
     }
 
-    // Each thread has its own connection, and one of them may be in the middle of a read on its own thread as
-    // the store is closed: a count for a badge started a moment ago, say. Closing a connection while its thread
-    // is still handing back a command throws ("Collection was modified"), so that one is given a moment and
-    // tried again. One still busy after a second is left; it goes with the process.
+    // Reads here take milliseconds and reach for the connection at the start of each. One not reached for in the
+    // last while has nothing under way. A connection last used long ago costs no wait at all.
+    private const int QuietMilliseconds = 120;
+
+    private static void WaitUntilQuiet(Held held)
+    {
+        for (var waited = 0; waited < 3000; waited += 10)
+        {
+            if (Environment.TickCount64 - Volatile.Read(ref held.LastUsed) >= QuietMilliseconds)
+                return;
+            Thread.Sleep(10);
+        }
+    }
+
+    // The last guard: a connection that still turns out to be busy as it is closed is tried again, then left to go with the process.
     private static void Close(SqliteConnection opened)
     {
         for (var attempt = 0; ; attempt++)
@@ -341,13 +382,11 @@ public sealed partial class LocalStore : IDisposable
                 opened.Dispose();
                 return;
             }
-            catch (InvalidOperationException) when (attempt < 20)
+            catch (Exception e) when (e is InvalidOperationException or ArgumentException)
             {
+                if (attempt >= 20)
+                    return;
                 Thread.Sleep(50);
-            }
-            catch (InvalidOperationException)
-            {
-                return;
             }
         }
     }

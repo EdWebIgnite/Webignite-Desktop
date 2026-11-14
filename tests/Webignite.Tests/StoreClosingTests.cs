@@ -7,7 +7,7 @@ namespace Webignite.Tests;
 public sealed class StoreClosingTests
 {
     [Fact]
-    public async Task Closing_the_store_while_another_thread_is_reading_it_does_not_throw()
+    public async Task Closing_the_store_while_another_thread_is_reading_it_harms_neither()
     {
         // The app counts things for badges on other threads; closing must not trip over a read in flight.
         for (var round = 0; round < 40; round++)
@@ -19,17 +19,27 @@ public sealed class StoreClosingTests
                 store.SaveClient(new Client { Id = "c" + i, Name = "Client " + i });
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var cancel = TestContext.Current.CancellationToken;
+            Exception? readerSaw = null;
             var reading = Task.Run(() =>
             {
                 started.SetResult();
                 try
                 {
-                    for (var i = 0; i < 200; i++)
-                        store.ListClients();
+                    for (var i = 0; i < 400; i++)
+                    {
+                        // Each read must be whole or refused: twenty clients, or "the store is closed".
+                        if (store.ListClients().Count != 20)
+                            throw new InvalidDataException("A read came back short.");
+                        store.GetClient("c" + i % 20);
+                    }
                 }
-                catch (Exception e) when (e is ObjectDisposedException or InvalidOperationException or Microsoft.Data.Sqlite.SqliteException or NullReferenceException)
+                catch (ObjectDisposedException)
                 {
-                    // The reader losing its connection mid-read is expected; the closer throwing is not.
+                    // Refused because the store is closing: the one thing a reader may be told.
+                }
+                catch (Exception e)
+                {
+                    readerSaw = e;
                 }
             }, cancel);
             await started.Task.WaitAsync(cancel);
@@ -38,6 +48,8 @@ public sealed class StoreClosingTests
 
             Assert.Null(closing);
             await reading.WaitAsync(TimeSpan.FromSeconds(10), cancel);
+            // And the reader was never handed rubbish: it finished, or was told the store had closed.
+            Assert.Null(readerSaw);
             try
             {
                 Directory.Delete(folder, recursive: true);
