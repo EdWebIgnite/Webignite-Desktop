@@ -14,11 +14,12 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
 {
     private readonly AppServices services;
 
-    public StudioViewModel(AppServices services, bool presenting = false, bool demo = false)
+    public StudioViewModel(AppServices services, bool presenting = false, bool demo = false, StudioShow show = StudioShow.Map)
     {
         this.services = services;
         Presenting = presenting;
         Demo = demo;
+        Show = show;
         services.Projects.Changed += WorkChanged;
         Refresh();
     }
@@ -27,6 +28,28 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
     public bool NotPresenting => !Presenting;
 
     [ObservableProperty] public partial bool Demo { get; set; }
+
+    /// <summary>Which picture is showing: the map of clients, or the projects as lines.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMap), nameof(IsLines), nameof(Hint))]
+    public partial StudioShow Show { get; set; }
+
+    public bool IsMap => Show == StudioShow.Map;
+    public bool IsLines => Show == StudioShow.Lines;
+
+    /// <summary>What to do, shown in a corner while presenting.</summary>
+    public string Hint => IsMap ? "Click a client to fly in  ·  Esc to close" : "Esc to close";
+
+    [RelayCommand]
+    private void ShowMap() => Show = StudioShow.Map;
+
+    [RelayCommand]
+    private void ShowLines() => Show = StudioShow.Lines;
+
+    /// <summary>Each running project as a line with a stop per heading (rules in <see cref="StudioLines"/>).</summary>
+    [ObservableProperty] public partial IReadOnlyList<ProjectLine> Lines { get; set; } = [];
+
+    [ObservableProperty] public partial bool NoLines { get; set; }
 
     [ObservableProperty] public partial IReadOnlyList<PlacedStar> Stars { get; set; } = [];
 
@@ -68,6 +91,8 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
         var stars = StudioMap.Build(services.Clients.List(), services.Projects.Projects(), services.Projects.EveryTask(), services.Documents.List(),
             services.Settings.Uptime, services.Store.ListRenewals(), today, Demo);
         Stars = StudioMap.Layout(stars);
+        Lines = StudioLines.Build(services.Projects.Projects(), services.Projects.EveryHeading(), services.Projects.EveryTask(), services.Clients.List(), Demo);
+        NoLines = Lines.Count == 0;
         IsEmpty = stars.Count == 0;
         Summary = string.Join("   ·   ", new[]
         {
@@ -117,5 +142,15 @@ public sealed partial class StudioViewModel : ViewModelBase, IRefreshable, IDisp
         }
     }
 
+    /// <summary>A click on a line opens its project; not with demo names on, as the page behind shows the real ones.</summary>
+    public void Open(ProjectLine line)
+    {
+        if (!Demo && !Presenting)
+            services.Go.Project(line.ProjectId);
+    }
+
     public void Dispose() => services.Projects.Changed -= WorkChanged;
 }
+
+/// <summary>The pictures Studio can show.</summary>
+public enum StudioShow { Map, Lines }

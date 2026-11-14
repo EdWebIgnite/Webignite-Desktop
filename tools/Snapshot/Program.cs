@@ -4297,6 +4297,18 @@ SaveLooks("projects");
             studio.Demo = false;
             studio.SelectedId = null;
             Dispatcher.UIThread.RunJobs();
+            // Lines: each running project as a line, a stop for each heading, a marker where the work has got to.
+            studio.ShowLinesCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            var studioView = window.GetVisualDescendants().OfType<Webignite.Desktop.Views.StudioView>().First();
+            studioView.LinesCanvas?.Settle();
+            Check("Lines draws each running project with its headings as stops",
+                studio.Lines.Count >= 1 && studio.Lines.Any(l => l.Stops.Count >= 4 && l.Stops[^1].Name == "Done")
+                && studioView.LinesCanvas is { IsEffectivelyVisible: true });
+            Save("studio-lines");
+            studio.ShowMapCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Check("Back on the map, the lines are let go", studioView.LinesCanvas is null);
         }
 
         // A repeating task ticked off comes back; a project kept as a template starts another.

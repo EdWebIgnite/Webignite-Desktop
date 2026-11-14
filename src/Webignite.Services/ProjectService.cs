@@ -221,6 +221,9 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return [.. store.ListProjectTasks().Where(t => t.ProjectId == projectId && t.Deleted is null).OrderBy(t => t.Order)];
     }
 
+    /// <summary>Every heading in every project, for pictures of all the work at once (the Studio pages).</summary>
+    public IReadOnlyList<Heading> EveryHeading() => [.. store.ListHeadings().Where(h => h.Deleted is null)];
+
     /// <summary>Every task in every project, for pictures of all the work at once (the Studio pages).</summary>
     public IReadOnlyList<ProjectTask> EveryTask()
     {

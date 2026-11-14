@@ -100,6 +100,43 @@ public sealed class StudioPageTests
     });
 
     [Fact]
+    public Task Lines_shows_each_running_project_with_a_stop_per_heading() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, _, projectId) = Open(app);
+        var design = app.Services.Projects.AddHeading(projectId, "Design").Saved!;
+        app.Services.Projects.AddTask(new ProjectTask { Id = ProjectRules.NewId(), ProjectId = projectId, HeadingId = design.Id, Title = "Colours", Done = true });
+        page.Refresh();
+
+        page.ShowLinesCommand.Execute(null);
+
+        Assert.True(page.IsLines);
+        Assert.False(page.IsMap);
+        var line = Assert.Single(page.Lines);
+        Assert.Equal(["Start", "Design", "Done"], line.Stops.Select(s => s.Name));
+        Assert.Equal("Bosveld Builders", line.Client);
+        Assert.False(page.NoLines);
+        page.Dispose();
+    });
+
+    [Fact]
+    public Task A_click_on_a_line_opens_its_project_but_not_with_demo_names_on() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var (page, _, projectId) = Open(app);
+        var opened = new List<string>();
+        app.Services.Go.OpenProjectAction = opened.Add;
+
+        page.Open(page.Lines[0]);
+        page.Demo = true;
+        page.Open(page.Lines[0]);
+
+        Assert.Equal([projectId], opened);
+        Assert.DoesNotContain(page.Lines, l => l.Name.Contains("Bosveld", StringComparison.OrdinalIgnoreCase) || l.Client.Contains("Bosveld", StringComparison.OrdinalIgnoreCase));
+        page.Dispose();
+    });
+
+    [Fact]
     public Task With_nothing_to_show_it_says_so() => Ui.Run(() =>
     {
         using var app = new TestApp();
