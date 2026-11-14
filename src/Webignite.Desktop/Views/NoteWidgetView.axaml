@@ -14,7 +14,10 @@
       <Button Classes="quiet format" Focusable="False" Click="Numbers" ToolTip.Tip="Numbered list"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
       <Button Classes="quiet format" Focusable="False" Click="Checklist" ToolTip.Tip="Checklist (Ctrl+Shift+C)"><c:Icon Data="{StaticResource Icon.Checklist}" Size="13" /></Button>
     </StackPanel>
-    <c:RichTextEditor x:Name="Editor" Document="{Binding Document}" Revision="{Binding Revision}" PageColours="True"
-                      Placeholder="Type anything. It's kept as you go." Padding="0,2" />
+    <!-- A note longer than its widget scrolls inside it, and the view follows the typing. -->
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <c:RichTextEditor x:Name="Editor" Document="{Binding Document}" Revision="{Binding Revision}" PageColours="True"
+                        Placeholder="Type anything. It's kept as you go." Padding="0,2,10,2" />
+    </ScrollViewer>
   </DockPanel>
 </UserControl>

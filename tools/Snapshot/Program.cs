@@ -5011,6 +5011,47 @@ SaveLooks("planner-home");
         window.Height = 860;
         myPages.ShowList();
         Check("All my pages lists the pages made", myPages.Cards.Count == 1 && myPages.Cards[0].Name == "Monday");
+        // A note longer than its widget scrolls inside it.
+        {
+            var notePages = (MyPagesViewModel)vm.Current.Page;
+            var listWasShowing = notePages.Showing is null;
+            if (listWasShowing)
+                notePages.OpenPage(services.Settings.MyPages.First(p => p.Widgets.Any(w => w.Kind == WidgetKind.Note)).Id);
+            Dispatcher.UIThread.RunJobs();
+            var longNote = (NoteBody)notePages.Widgets.First(w => w.Kind == WidgetKind.Note).Body;
+            var was = longNote.Text;
+            longNote.Text = string.Join("\n", Enumerable.Range(1, 60).Select(i => $"Line {i} of a long note"));
+            Dispatcher.UIThread.RunJobs();
+            var noteScroll = window.GetVisualDescendants().OfType<Webignite.Desktop.Views.NoteWidgetView>().First()
+                .GetVisualDescendants().OfType<Avalonia.Controls.ScrollViewer>().First();
+            Check("A long note scrolls inside its widget", noteScroll.Extent.Height > noteScroll.Viewport.Height + 100 && noteScroll.Viewport.Height > 40);
+            noteScroll.Offset = new Avalonia.Vector(0, 400);
+            Dispatcher.UIThread.RunJobs();
+            Save("my-pages-long-note");
+            longNote.Text = was;
+            longNote.Keep();
+            if (listWasShowing)
+                notePages.ShowList();
+            Dispatcher.UIThread.RunJobs();
+        }
+        // A page said to be for a client is listed under that client in the sidebar; the others stay loose.
+        {
+            var forClient = services.Clients.List().First();
+            var ownPages = (MyPagesViewModel)vm.Current.Page;
+            var openId = ownPages.Showing;
+            if (openId is null)
+                ownPages.OpenPage(services.Settings.MyPages[0].Id);
+            ownPages.SetClient(forClient.Id);
+            Dispatcher.UIThread.RunJobs();
+            Check("A page for a client is under that client's heading in the sidebar, and says who it is for",
+                vm.Sidebar.Items.OfType<MyPageGroupLink>().Any(g => g.Title == forClient.Name) && ownPages.ForText == "For " + forClient.Name);
+            Save("my-pages-for-client");
+            ownPages.SetClient(null);
+            Dispatcher.UIThread.RunJobs();
+            Check("Taken off the client, the heading goes", !vm.Sidebar.Items.OfType<MyPageGroupLink>().Any());
+            if (openId is null)
+                ownPages.ShowList();
+        }
         Save("my-pages-list");
         myPages.NewPage();
         myPages.EditName = "Morning";

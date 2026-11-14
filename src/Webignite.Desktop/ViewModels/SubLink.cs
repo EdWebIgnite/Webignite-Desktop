@@ -32,3 +32,13 @@ public abstract partial class SubLink(string? id, string title, string icon) : O
 
 /// <summary>One of the person's own pages in the sidebar, or the entry that makes a new one (no id).</summary>
 public sealed class MyPageLink(string? id, string title, string icon) : SubLink(id, title, icon);
+
+/// <summary>
+/// A client or a project that some of the person's pages are for, as a heading in the sidebar's My pages group
+/// with those pages under it. A click opens the client or the project.
+/// </summary>
+public sealed class MyPageGroupLink(Webignite.Core.Layout.PageGroupKind kind, string id, string title)
+    : SubLink(id, title, kind == Webignite.Core.Layout.PageGroupKind.Client ? "Clients" : "Projects")
+{
+    public Webignite.Core.Layout.PageGroupKind Kind { get; } = kind;
+}

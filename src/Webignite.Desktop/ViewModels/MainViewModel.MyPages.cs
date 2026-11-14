@@ -10,23 +10,56 @@ public partial class MainViewModel
     private readonly Dictionary<string, MyPageLink> myPageLinks = [];
     private MyPagesViewModel? watchedMyPages;
 
-    /// <summary>Lists the person's pages under My pages in the sidebar, keeping the entries already there.</summary>
+    private readonly Dictionary<string, MyPageGroupLink> myPageGroups = [];
+
+    /// <summary>
+    /// Lists the person's pages under My pages in the sidebar, keeping the entries already there: first the pages
+    /// for no client or project, then each client and project that has pages, as a heading with its pages under it.
+    /// </summary>
     private void ListMyPages()
     {
         var pages = services.Settings.MyPages;
         var links = new List<SubLink>();
-        foreach (var page in pages)
+        var groupsSeen = new HashSet<string>();
+        var anyGrouped = pages.Any(p => p.ClientId is not null || p.ProjectId is not null);
+        var groups = anyGrouped
+            ? Webignite.Core.Layout.MyPages.Grouped(pages, id => services.Clients.Get(id)?.Name, id => services.Projects.Get(id)?.Name)
+            : [new Webignite.Core.Layout.PageGroup(Webignite.Core.Layout.PageGroupKind.None, null, "", pages)];
+        foreach (var group in groups)
         {
-            if (!myPageLinks.TryGetValue(page.Id, out var link))
-                myPageLinks[page.Id] = link = new MyPageLink(page.Id, page.Name, "");
-            link.Title = page.Name;
-            links.Add(link);
+            if (group.Kind != Webignite.Core.Layout.PageGroupKind.None)
+            {
+                var key = $"{group.Kind}:{group.Id}";
+                groupsSeen.Add(key);
+                if (!myPageGroups.TryGetValue(key, out var heading))
+                    myPageGroups[key] = heading = new MyPageGroupLink(group.Kind, group.Id!, group.Name);
+                heading.Title = group.Name;
+                links.Add(heading);
+            }
+            foreach (var page in group.Pages)
+            {
+                if (!myPageLinks.TryGetValue(page.Id, out var link))
+                    myPageLinks[page.Id] = link = new MyPageLink(page.Id, page.Name, "");
+                link.Title = page.Name;
+                links.Add(link);
+            }
         }
         foreach (var gone in myPageLinks.Keys.Except(pages.Select(p => p.Id)).ToList())
             myPageLinks.Remove(gone);
+        foreach (var gone in myPageGroups.Keys.Where(k => !groupsSeen.Contains(k)).ToList())
+            myPageGroups.Remove(gone);
         links.Add(newPageLink);
         Sidebar.ShowLinks(Page.MyPages, [], links);
         OnPropertyChanged(nameof(SelectedNav));
+    }
+
+    // A client's or project's heading among My pages: opens the client or the project.
+    private void OpenMyPageGroup(MyPageGroupLink group)
+    {
+        if (group.Kind == Webignite.Core.Layout.PageGroupKind.Client && services.Clients.Get(group.Id!) is { } client)
+            services.Go.Client(client);
+        else if (group.Kind == Webignite.Core.Layout.PageGroupKind.Project)
+            services.Go.Project(group.Id!);
     }
 
     /// <summary>The sidebar entry for the page of the person's own on screen, if there is one.</summary>
