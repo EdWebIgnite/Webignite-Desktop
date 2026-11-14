@@ -47,6 +47,7 @@ public sealed class StudioMapCanvas : Control
         ResourcesChanged += (_, _) =>
         {
             brushes.Clear();
+            ForgetWorlds();
             InvalidateVisual();
         };
     }
@@ -60,6 +61,7 @@ public sealed class StudioMapCanvas : Control
     /// <summary>Jumps every movement to its end, so a picture of the map is the same each time.</summary>
     public void Settle()
     {
+        settled = true;
         opened = 1;
         flown = 1;
         (viewX, viewY, zoom) = (toX, toY, toZoom);
@@ -80,6 +82,7 @@ public sealed class StudioMapCanvas : Control
         last = null;
         brushes.Clear();
         shown.Clear();
+        ForgetWorlds();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -89,6 +92,8 @@ public sealed class StudioMapCanvas : Control
             Ask();
         else if (change.Property == SelectedIdProperty)
             LookAt(SelectedId);
+        else if (change.Property == StarsProperty)
+            ForgetGone();
     }
 
     private void Ask()
@@ -192,6 +197,7 @@ public sealed class StudioMapCanvas : Control
     {
         var bounds = new Rect(Bounds.Size);
         context.FillRectangle(Brush("Nav"), bounds, 14);
+        madeThisFrame = 0;
         var stars = Stars ?? [];
         DrawDust(context, bounds);
         shown.Clear();
@@ -260,7 +266,7 @@ public sealed class StudioMapCanvas : Control
                 _ => 0.35,
             };
             if (isClient)
-                DrawPlanet(context, at, radius, colour, strength, beat, StableHash(star.Star.Id));
+                DrawPlanet(context, star.Star.Id, at, radius, colour, strength, beat, StableHash(star.Star.Id));
             else
                 DrawMoon(context, at, radius, colour, strength, beat);
             if (isClient && star.Star.State == StarState.Problem)
@@ -316,83 +322,121 @@ public sealed class StudioMapCanvas : Control
         }, null, lit, radius * 0.8, radius * 0.8);
     }
 
-    /// <summary>
-    /// A client as a planet: an atmosphere that glows (and breathes while there is work under way), a ball lit from
-    /// the upper left with its far side in shadow, and a surface of its own, either cloud bands with a storm, seas
-    /// with land, or craters, that turns slowly. The biggest of some kinds wear a ring. Which a client gets comes
-    /// from its id, so it is always the same planet.
-    /// </summary>
-    private void DrawPlanet(DrawingContext context, Point at, double radius, Color colour, double strength, double beat, int seed)
+    // A planet's picture is this many dots across, whatever size it is drawn; its map of the globe is MapWidth by MapHeight.
+    private const int PlanetDots = 128, MapWidth = 256, MapHeight = 128;
+    private static readonly double[] Leans = [-0.36, -0.12, 0.14, 0.38];
+    private static readonly string[] LandColours = ["ProjectGreen", "ProjectYellowOrange", "ProjectYellowGreen", "ProjectOrange"];
+
+    /// <summary>One client's world: its map, its picture, and how far it had turned when the picture was last drawn.</summary>
+    private sealed class World(uint[] map, Avalonia.Media.Imaging.WriteableBitmap picture, int lean, double pace) : IDisposable
     {
-        var kind = (int)((uint)seed % 3);
+        public uint[] Map { get; } = map;
+        public Avalonia.Media.Imaging.WriteableBitmap Picture { get; } = picture;
+        public int Lean { get; } = lean;
+        public double Pace { get; } = pace;
+        public double Drawn { get; set; } = double.NaN;
+        public void Dispose() => Picture.Dispose();
+    }
+
+    private readonly Dictionary<string, World> worlds = [];
+    private readonly PlanetSphere?[] spheres = new PlanetSphere?[Leans.Length];
+    private readonly int[] dots = new int[PlanetDots * PlanetDots];
+    private int madeThisFrame;
+    // Once a picture of the map has been asked for, every world is made at once so none is missing from it.
+    private bool settled;
+
+    private static uint Packed(Color colour) => (uint)(colour.R << 16 | colour.G << 8 | colour.B);
+
+    // A client's world, made the first time it is drawn. Only a few are made in any one frame, so opening the map
+    // on a full studio doesn't hold the screen up; until its turn comes a planet is a plain lit ball.
+    private World? WorldOf(string id, Color colour, int seed)
+    {
+        if (worlds.TryGetValue(id, out var world))
+            return world;
+        if (madeThisFrame >= 3 && !settled)
+            return null;
+        madeThisFrame++;
+        var light = ColourOf(Brush("NavText"));
+        var dark = ColourOf(Brush("Nav"));
+        var land = ColourOf(Brush(LandColours[(int)((uint)seed / 5 % LandColours.Length)]));
+        var map = PlanetSurface.Make(PlanetSurface.KindOf(seed), seed, MapWidth, MapHeight, Packed(colour), Packed(light), Packed(dark), Packed(land));
+        var picture = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(PlanetDots, PlanetDots), new Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Premul);
+        world = new World(map, picture, (int)((uint)seed / 7 % Leans.Length), 2.2 + (uint)seed % 5 * 0.6);
+        worlds[id] = world;
+        return world;
+    }
+
+    // Worlds of clients no longer on the map are let go.
+    private void ForgetGone()
+    {
+        var here = (Stars ?? []).Select(p => p.Star.Id).ToHashSet();
+        foreach (var gone in worlds.Keys.Where(id => !here.Contains(id)).ToList())
+        {
+            worlds[gone].Dispose();
+            worlds.Remove(gone);
+        }
+    }
+
+    private void ForgetWorlds()
+    {
+        foreach (var world in worlds.Values)
+            world.Dispose();
+        worlds.Clear();
+    }
+
+    /// <summary>
+    /// A client as a planet: a real globe, drawn dot by dot from a map of its surface (gas bands, seas and land
+    /// under cloud, cratered rock, ice or desert), lit from the upper left with a soft edge between day and night
+    /// and a thin shine of air at the rim, turning slowly on a leaning axis. Round it an atmosphere that breathes
+    /// while there is work under way, and on some of the bigger ones a ring. Which world a client gets comes from
+    /// its id, so it is always the same one.
+    /// </summary>
+    private void DrawPlanet(DrawingContext context, string id, Point at, double radius, Color colour, double strength, double beat, int seed)
+    {
         var pale = Mix(colour, ColourOf(Brush("NavText")), 0.45);
-        var deep = Mix(colour, ColourOf(Brush("Nav")), 0.45);
-        var ringed = radius >= 22 && (uint)seed / 3 % 3 == 0;
-        var tilt = Matrix.CreateTranslation(-at.X, -at.Y) * Matrix.CreateRotation(-0.38 + (uint)seed % 5 * 0.07) * Matrix.CreateTranslation(at.X, at.Y);
+        var kind = PlanetSurface.KindOf(seed);
+        var ringed = radius >= 22 && kind is PlanetKind.Gas or PlanetKind.Ice && (uint)seed / 3 % 2 == 0;
+        var world = radius >= 5 ? WorldOf(id, colour, seed) : null;
+        var lean = Leans[world?.Lean ?? 0];
+        var tilt = Matrix.CreateTranslation(-at.X, -at.Y) * Matrix.CreateRotation(lean) * Matrix.CreateTranslation(at.X, at.Y);
         using var faded = context.PushOpacity(Math.Clamp(strength, 0, 1));
 
-        // The atmosphere: a halo just outside the ball.
-        var halo = radius * (1.5 + 0.1 * beat);
+        // The atmosphere: a faint halo just outside the globe, brighter on the lit side.
+        var halo = radius * (1.32 + 0.07 * beat);
         context.DrawEllipse(new RadialGradientBrush
         {
-            GradientStops = { new GradientStop(Faint(colour, 0.5 + 0.3 * beat), 0), new GradientStop(Faint(colour, 0.42 + 0.3 * beat), 0.62), new GradientStop(Faint(colour, 0), 1) },
-        }, null, at, halo, halo);
+            GradientStops = { new GradientStop(Faint(colour, 0.34 + 0.22 * beat), 0), new GradientStop(Faint(colour, 0.3 + 0.2 * beat), 0.74), new GradientStop(Faint(colour, 0), 1) },
+        }, null, new Point(at.X - radius * 0.06, at.Y - radius * 0.06), halo, halo);
 
         if (ringed)
             DrawRing(context, at, radius, pale, tilt, behind: true);
 
-        var ball = new EllipseGeometry(new Rect(at.X - radius, at.Y - radius, radius * 2, radius * 2));
-        using (context.PushGeometryClip(ball))
+        if (world is null)
         {
-            context.DrawEllipse(new SolidColorBrush(colour), null, at, radius, radius);
-            // The surface slides sideways, slowly, and comes round again: the planet turning.
-            var turn = clock * (4 + (uint)seed % 4) % (radius * 4);
-            using (context.PushTransform(tilt))
+            // Too small to show a surface, or not made yet: a plain ball, lit the same way.
+            using (context.PushGeometryClip(new EllipseGeometry(new Rect(at.X - radius, at.Y - radius, radius * 2, radius * 2))))
             {
-                var dice = (uint)seed * 2654435761u;
-                double Roll()
-                {
-                    dice = dice * 1664525u + 1013904223u;
-                    return (dice >> 8) % 10000 / 10000.0;
-                }
-                if (kind == 0)
-                {
-                    // Cloud bands, some paler and some deeper, with one long storm.
-                    var y = at.Y - radius;
-                    for (var i = 0; y < at.Y + radius; i++)
-                    {
-                        var thick = radius * (0.16 + 0.2 * Roll());
-                        context.FillRectangle(new SolidColorBrush(i % 2 == 0 ? pale : deep, 0.3 + 0.35 * Roll()), new Rect(at.X - radius * 1.3, y, radius * 2.6, thick));
-                        y += thick + radius * 0.06 * Roll();
-                    }
-                    var stormX = at.X - radius * 2 + (radius * 1.2 + turn) % (radius * 4);
-                    context.DrawEllipse(new SolidColorBrush(pale, 0.75), null, new Point(stormX, at.Y + radius * 0.3), radius * 0.3, radius * 0.14);
-                }
-                else
-                {
-                    // Land on a sea, or craters on rock: blobs scattered over twice the width, so there is always more coming round.
-                    var count = kind == 1 ? 9 : 12;
-                    for (var i = 0; i < count; i++)
-                    {
-                        var x = at.X - radius * 2 + (Roll() * radius * 4 + turn) % (radius * 4);
-                        var y = at.Y + (Roll() * 2 - 1) * radius * 0.85;
-                        var size = radius * (kind == 1 ? 0.18 + 0.3 * Roll() : 0.07 + 0.14 * Roll());
-                        if (kind == 1)
-                        {
-                            context.DrawEllipse(new SolidColorBrush(pale, 0.8), null, new Point(x, y), size * 1.5, size);
-                            context.DrawEllipse(new SolidColorBrush(pale, 0.8), null, new Point(x + size * 0.9, y + size * 0.5), size * 0.8, size * 0.7);
-                        }
-                        else
-                        {
-                            context.DrawEllipse(new SolidColorBrush(deep, 0.85), new Pen(new SolidColorBrush(pale, 0.5), Math.Max(0.6, size * 0.18)), new Point(x, y), size, size);
-                        }
-                    }
-                }
+                context.DrawEllipse(new SolidColorBrush(colour), null, at, radius, radius);
+                Shade(context, at, radius);
             }
-            Shade(context, at, radius);
         }
-        // A thin bright edge where the light catches the air.
-        context.DrawEllipse(null, new Pen(new SolidColorBrush(pale, 0.35), 1), at, radius, radius);
+        else
+        {
+            // Drawn again only once it has turned far enough to see, which is a few times a second.
+            var turned = Spinner.Still ? 0 : clock * world.Pace;
+            if (double.IsNaN(world.Drawn) || Math.Abs(turned - world.Drawn) * radius * 2 / PlanetDots >= 0.35)
+            {
+                var sphere = spheres[world.Lean] ??= new PlanetSphere(PlanetDots, Leans[world.Lean], MapWidth, MapHeight);
+                sphere.Render(world.Map, turned, Packed(ColourOf(Brush("Nav"))), Packed(pale), dots);
+                using (var frame = world.Picture.Lock())
+                    System.Runtime.InteropServices.Marshal.Copy(dots, 0, frame.Address, dots.Length);
+                world.Drawn = turned;
+            }
+            // The picture has a dot of clear edge all round, so it is drawn a touch larger than the globe.
+            var half = radius * PlanetDots / (PlanetDots - 2.0);
+            context.DrawImage(world.Picture, new Rect(at.X - half, at.Y - half, half * 2, half * 2));
+        }
 
         if (ringed)
             DrawRing(context, at, radius, pale, tilt, behind: false);
@@ -406,8 +450,10 @@ public sealed class StudioMapCanvas : Control
             ? new Rect(at.X - radius * 2.4, at.Y - radius, radius * 4.8, radius)
             : new Rect(at.X - radius * 2.4, at.Y, radius * 4.8, radius);
         using var clipped = context.PushClip(half);
-        context.DrawEllipse(null, new Pen(new SolidColorBrush(colour, behind ? 0.3 : 0.6), radius * 0.2), at, radius * 1.85, radius * 0.48);
-        context.DrawEllipse(null, new Pen(new SolidColorBrush(colour, behind ? 0.2 : 0.4), radius * 0.07), at, radius * 1.52, radius * 0.39);
+        // Several bands with gaps between, the outer ones fainter.
+        (double Out, double Wide, double Bright)[] bands = [(1.42, 0.07, 0.5), (1.6, 0.16, 0.75), (1.84, 0.1, 0.6), (2.02, 0.04, 0.35)];
+        foreach (var (out_, wide, bright) in bands)
+            context.DrawEllipse(null, new Pen(new SolidColorBrush(colour, bright * (behind ? 0.5 : 0.9)), radius * wide), at, radius * out_, radius * out_ * 0.27);
     }
 
     /// <summary>What circles a client, as a small moon: a faint glow, and a ball lit from the same side as its planet.</summary>
