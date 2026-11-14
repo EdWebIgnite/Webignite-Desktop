@@ -5674,6 +5674,20 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
         Dispatcher.UIThread.RunJobs();
     }
     Check("A click makes it with what is in the template folder", folderPage.ProjectFolderPath == amosFolder && File.Exists(Path.Combine(amosFolder, "Brief.txt")) && Directory.Exists(Path.Combine(amosFolder, "Design")));
+    // Notes about a project: started from its Overview, kept in Notes, listed back on the project.
+    folderPage.NewProjectNoteCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("A new note from a project is about it and its client, and opens in Notes", vm.Selected.Key == Page.Notes
+        && vm.Notes.Open is { } projectNote && projectNote.ProjectId == amos.Id && projectNote.ClientId == g3.Id && vm.Notes.OpenProject?.Id == amos.Id);
+    vm.Notes.Title = "Kick-off meeting";
+    vm.Notes.Keep();
+    Save("note-about-project");
+    Open(Page.Projects);
+    folderPage.Refresh();
+    Check("The project's Overview lists its notes", folderPage.ProjectNotes.Count == 1 && folderPage.ProjectNotes[0].Name == "Kick-off meeting");
+    services.Go.ProjectNotes(amos.Id, amos.Name);
+    Check("Notes can show only a project's notes", vm.Notes.Place is { Kind: Webignite.Core.Notes.NotePlace.Project } && vm.Notes.Rows.Count == 1);
+    Open(Page.Projects);
     folderPage.OverviewViewCommand.Execute(null);
     Save("project-folder");
 

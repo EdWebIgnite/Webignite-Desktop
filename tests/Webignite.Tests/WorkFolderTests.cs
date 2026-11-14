@@ -79,3 +79,16 @@ public class WorkFolderTests
         Assert.Equal(Path.Combine("Clients", "G3", "Amos"), WorkFolders.Short(Path.Combine(Root, "G3", "Amos"), Root));
     }
 }
+
+public class ProjectNoteTests
+{
+    [Fact]
+    public void A_projects_notes_are_those_about_it_and_not_deleted()
+    {
+        Webignite.Core.Notes.Note Note(string id, string? project, bool deleted = false) =>
+            new() { Id = id, NotebookId = "b", ProjectId = project, Deleted = deleted ? DateTimeOffset.UtcNow : null };
+        var notes = new[] { Note("1", "p1"), Note("2", "p2"), Note("3", "p1", deleted: true), Note("4", null) };
+        Assert.Equal(["1"], Webignite.Core.Notes.NoteRules.In(notes, Webignite.Core.Notes.NotePlace.Project, projectId: "p1").Select(n => n.Id));
+        Assert.Equal(3, Webignite.Core.Notes.NoteRules.In(notes, Webignite.Core.Notes.NotePlace.All).Count());
+    }
+}

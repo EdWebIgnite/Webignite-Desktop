@@ -36,6 +36,7 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
     public ObservableCollection<NotePlaceRow> Places { get; } = [];
     public ObservableCollection<NoteRow> Rows { get; } = [];
     public ObservableCollection<Client> Clients { get; } = [];
+    public ObservableCollection<Webignite.Core.Projects.Project> Projects { get; } = [];
 
     /// <summary>Where the list is looking: all notes, a notebook, a folder, a client's, or Deleted.</summary>
     [ObservableProperty]
@@ -79,6 +80,8 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
         Places.Add(new NotePlaceRow(NotePlace.All, "All notes", Count: all.Count(n => n.Deleted is null)));
         if (place is { Kind: NotePlace.Client } client)
             Places.Add(client with { Count = NoteRules.In(all, NotePlace.Client, clientId: client.ClientId).Count() });
+        if (place is { Kind: NotePlace.Project } project)
+            Places.Add(project with { Count = NoteRules.In(all, NotePlace.Project, projectId: project.ProjectId).Count() });
         foreach (var notebook in notebooks)
         {
             Places.Add(new NotePlaceRow(NotePlace.Notebook, notebook.Name, notebook.Id, Count: NoteRules.In(all, NotePlace.Notebook, notebook.Id).Count()));
@@ -104,7 +107,7 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
         }
         else if (Place is { } place)
         {
-            foreach (var note in NoteRules.Ordered(NoteRules.In(all, place.Kind, place.NotebookId, place.Folder, place.ClientId)))
+            foreach (var note in NoteRules.Ordered(NoteRules.In(all, place.Kind, place.NotebookId, place.Folder, place.ClientId, place.ProjectId)))
                 Rows.Add(Row(note, NoteRules.Preview(note), now));
         }
         Picked = Rows.FirstOrDefault(r => r.Note.Id == openId);
@@ -117,11 +120,12 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
 
     private NoteRow Row(Note note, string preview, DateTimeOffset now)
     {
-        var where = Place?.Kind is NotePlace.All or NotePlace.Client || Searching
+        var where = Place?.Kind is NotePlace.All or NotePlace.Client or NotePlace.Project || Searching
             ? notebooks.FirstOrDefault(b => b.Id == note.NotebookId)?.Name
             : null;
         var client = note.ClientId is { } id ? Clients.FirstOrDefault(c => c.Id == id)?.Name : null;
-        var detail = string.Join(" · ", new[] { When(note.Changed, now), NoteRules.Progress(note), client, where }.Where(s => !string.IsNullOrEmpty(s)));
+        var project = note.ProjectId is { } projectId ? Projects.FirstOrDefault(p => p.Id == projectId)?.Name : null;
+        var detail = string.Join(" · ", new[] { When(note.Changed, now), NoteRules.Progress(note), client, project, where }.Where(s => !string.IsNullOrEmpty(s)));
         return new NoteRow(note, NoteRules.Name(note), preview, detail);
     }
 
@@ -141,6 +145,11 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
         foreach (var client in fresh)
             Clients.Add(client);
         OpenClient = OpenClientId is { } id ? Clients.FirstOrDefault(c => c.Id == id) : null;
+        var projects = services.Projects.Projects();
+        Projects.Clear();
+        foreach (var project in projects.OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase))
+            Projects.Add(project);
+        OpenProject = Open?.ProjectId is { } projectId ? Projects.FirstOrDefault(p => p.Id == projectId) : null;
     }
 
     public void Refresh()
@@ -184,6 +193,16 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
         Show(Rows.FirstOrDefault()?.Note);
     }
 
+    /// <summary>The notes about a project, e.g. from its Overview.</summary>
+    public void ShowProject(string projectId, string projectName)
+    {
+        Keep();
+        Query = "";
+        Place = new NotePlaceRow(NotePlace.Project, $"About {projectName}", ProjectId: projectId);
+        Reload();
+        Show(Rows.FirstOrDefault()?.Note);
+    }
+
     partial void OnQueryChanged(string value)
     {
         OnPropertyChanged(nameof(Searching));
@@ -218,25 +237,26 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
     // Making and moving
 
     /// <summary>The notebook and folder a new note goes into: the one shown, else the first notebook.</summary>
-    private (string Notebook, string Folder, string? Client) Target() => Place switch
+    private (string Notebook, string Folder, string? Client, string? Project) Target() => Place switch
     {
-        { Kind: NotePlace.Notebook, NotebookId: { } b } => (b, "", null),
-        { Kind: NotePlace.Folder, NotebookId: { } b, Folder: { } f } => (b, f, null),
-        { Kind: NotePlace.Client, ClientId: { } c } => (notebooks[0].Id, "", c),
-        _ => (notebooks[0].Id, "", null),
+        { Kind: NotePlace.Notebook, NotebookId: { } b } => (b, "", null, null),
+        { Kind: NotePlace.Folder, NotebookId: { } b, Folder: { } f } => (b, f, null, null),
+        { Kind: NotePlace.Client, ClientId: { } c } => (notebooks[0].Id, "", c, null),
+        { Kind: NotePlace.Project, ProjectId: { } p } => (notebooks[0].Id, "", services.Projects.Projects().FirstOrDefault(x => x.Id == p)?.ClientId, p),
+        _ => (notebooks[0].Id, "", null, null),
     };
 
     [RelayCommand]
     private void NewNote()
     {
         Keep();
-        var (notebook, folder, client) = Target();
+        var (notebook, folder, client, project) = Target();
         if (InDeleted || Searching)
         {
             Query = "";
             Place = Places.First(p => p.Kind == NotePlace.Notebook && p.NotebookId == notebook);
         }
-        var note = services.Notes.New(notebook, folder, client);
+        var note = services.Notes.New(notebook, folder, client, project);
         saving = true;
         try
         {
@@ -378,7 +398,7 @@ public sealed partial class NotesViewModel : ViewModelBase, IHoldsWork, IDisposa
 }
 
 /// <summary>A line in the list on the left: all notes, a notebook, a folder in it, a client's notes, Deleted.</summary>
-public sealed record NotePlaceRow(NotePlace Kind, string Title, string? NotebookId = null, string? Folder = null, string? ClientId = null, int Count = 0)
+public sealed record NotePlaceRow(NotePlace Kind, string Title, string? NotebookId = null, string? Folder = null, string? ClientId = null, int Count = 0, string? ProjectId = null)
 {
     public bool IsFolder => Kind == NotePlace.Folder;
     public bool IsNotebook => Kind == NotePlace.Notebook;
@@ -388,12 +408,13 @@ public sealed record NotePlaceRow(NotePlace Kind, string Title, string? Notebook
         NotePlace.Folder => "Folder",
         NotePlace.Deleted => "Trash",
         NotePlace.Client => "Clients",
+        NotePlace.Project => "Projects",
         NotePlace.All => "Inbox",
         _ => "Notes",
     };
 
     public bool Same(NotePlaceRow other) =>
-        Kind == other.Kind && NotebookId == other.NotebookId && ClientId == other.ClientId
+        Kind == other.Kind && NotebookId == other.NotebookId && ClientId == other.ClientId && ProjectId == other.ProjectId
         && string.Equals(Folder, other.Folder, StringComparison.OrdinalIgnoreCase);
 }
 

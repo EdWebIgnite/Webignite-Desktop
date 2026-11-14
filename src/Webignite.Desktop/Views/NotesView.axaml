@@ -4,6 +4,7 @@
                  xmlns:v="using:Webignite.Desktop.Views"
                  xmlns:c="using:Webignite.Desktop.Controls"
                  xmlns:clients="using:Webignite.Core.Clients"
+                 xmlns:projects="using:Webignite.Core.Projects"
                  x:Class="Webignite.Desktop.Views.NotesView"
                  x:DataType="vm:NotesViewModel">
   <v:FullBleedView.Styles>
@@ -125,11 +126,22 @@
                       SelectionChanged="ClientChosen" IsEnabled="{Binding CanEdit}" ToolTip.Tip="The note shows on this client's page">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="clients:Client">
-                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Called}" TextTrimming="CharacterEllipsis" />
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
             <Button Classes="quiet format icon" Command="{Binding ForgetClientCommand}" ToolTip.Tip="Not about a client" IsVisible="{Binding OpenClient, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <c:Icon Data="{StaticResource Icon.Close}" Size="14" />
+            </Button>
+            <ComboBox x:Name="ProjectBox" Width="170" PlaceholderText="About a project" ItemsSource="{Binding Projects}" SelectedItem="{Binding OpenProject, Mode=OneWay}"
+                      SelectionChanged="ProjectChosen" IsEnabled="{Binding CanEdit}" ToolTip.Tip="The note shows on this project's Overview">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="projects:Project">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Classes="quiet format icon" Command="{Binding ForgetProjectCommand}" ToolTip.Tip="Not about a project" IsVisible="{Binding OpenProject, Converter={x:Static ObjectConverters.IsNotNull}}">
               <c:Icon Data="{StaticResource Icon.Close}" Size="14" />
             </Button>
             <Button Classes="quiet format icon" Command="{Binding TogglePinCommand}" ToolTip.Tip="{Binding PinText}" IsEnabled="{Binding CanEdit}">

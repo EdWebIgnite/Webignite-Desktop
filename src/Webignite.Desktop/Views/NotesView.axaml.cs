@@ -101,6 +101,12 @@ public partial class NotesView : FullBleedView
             Notes?.PickRow(row);
     }
 
+    private void ProjectChosen(object? sender, SelectionChangedEventArgs e)
+    {
+        if (ProjectBox.SelectedItem is Webignite.Core.Projects.Project project)
+            Notes?.ProjectPicked(project);
+    }
+
     private void ClientChosen(object? sender, SelectionChangedEventArgs e)
     {
         if (ClientBox.SelectedItem is Webignite.Core.Clients.Client client)

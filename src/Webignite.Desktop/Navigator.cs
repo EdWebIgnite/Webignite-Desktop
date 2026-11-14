@@ -55,6 +55,7 @@ public sealed class Navigator
     internal Action? MyTasksAction { get; set; }
     internal Action? NewProjectAction { get; set; }
     internal Action<string, string>? ClientNotesAction { get; set; }
+    internal Action<string, string>? ProjectNotesAction { get; set; }
     internal Action? QuickNoteAction { get; set; }
     internal Action<ViewModels.ToolKind>? OpenToolAction { get; set; }
     internal Action<Action<string>?>? PickColourAction { get; set; }
@@ -193,6 +194,9 @@ public sealed class Navigator
 
     /// <summary>Shows the notes about a client on the Notes page.</summary>
     public void ClientNotes(string clientId, string clientName) => ClientNotesAction?.Invoke(clientId, clientName);
+
+    /// <summary>Shows the notes about a project on the Notes page.</summary>
+    public void ProjectNotes(string projectId, string projectName) => ProjectNotesAction?.Invoke(projectId, projectName);
 
     /// <summary>Opens a small tool (the calculator, the QR codes) in a window of its own.</summary>
     public void Tool(ViewModels.ToolKind kind) => OpenToolAction?.Invoke(kind);
