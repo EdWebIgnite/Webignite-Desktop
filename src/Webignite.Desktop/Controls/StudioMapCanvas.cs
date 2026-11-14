@@ -146,7 +146,7 @@ public sealed class StudioMapCanvas : Control
         {
             var reach = client.Radius + 0.3 * Math.Max(client.Radius, 0.12) + stars.Where(p => p.Star.ParentId == client.Star.Id)
                 .Select(p => Math.Sqrt(Math.Pow(p.X - client.X, 2) + Math.Pow(p.Y - client.Y, 2)) + p.Radius - client.Radius).DefaultIfEmpty(0).Max();
-            (toX, toY, toZoom) = (client.X, client.Y, Math.Clamp(0.45 / reach, 1.4, 4.5));
+            (toX, toY, toZoom) = (client.X * Wide, client.Y, Math.Clamp(0.45 / reach, 1.4, 4.5));
         }
         flown = Spinner.Still || TopLevel.GetTopLevel(this) is null ? 1 : 0;
         if (flown >= 1)
@@ -188,6 +188,10 @@ public sealed class StudioMapCanvas : Control
         }
     }
 
+    // The layout fits a square, and the page is wider than it is tall: the planets are spread sideways to use the
+    // width, so they sit further apart without being drawn any smaller. Moons keep their round paths.
+    private double Wide => Bounds.Height <= 0 ? 1 : Math.Clamp(Bounds.Width / Bounds.Height * 0.97, 1, 1.8);
+
     private double Scale => Math.Min(Bounds.Width, Bounds.Height) / 2 * 0.9 * zoom;
 
     private Point OnScreen(double x, double y) =>
@@ -206,6 +210,7 @@ public sealed class StudioMapCanvas : Control
 
         var scale = Scale;
         var open = Ease(opened);
+        var wide = Wide;
         var clients = stars.Where(p => p.Star.ParentId is null).ToDictionary(p => p.Star.Id);
         // What circles a client turns slowly round it; each client's ring at its own pace and direction.
         foreach (var star in stars)
@@ -215,11 +220,11 @@ public sealed class StudioMapCanvas : Control
                 var spin = (StableHash(parent) % 2 == 0 ? 1 : -1) * clock * (0.05 + (uint)StableHash(parent) % 5 * 0.012);
                 var (dx, dy) = (star.X - centre.X, star.Y - centre.Y);
                 var (cos, sin) = (Math.Cos(spin), Math.Sin(spin));
-                shown.Add(star with { X = (centre.X + dx * cos - dy * sin) * open, Y = (centre.Y + dx * sin + dy * cos) * open });
+                shown.Add(star with { X = (centre.X * wide + dx * cos - dy * sin) * open, Y = (centre.Y + dx * sin + dy * cos) * open });
             }
             else
             {
-                shown.Add(star with { X = star.X * open, Y = star.Y * open });
+                shown.Add(star with { X = star.X * wide * open, Y = star.Y * open });
             }
         }
         var places = shown.ToDictionary(p => p.Star.Id);

@@ -140,7 +140,7 @@ public static class StudioMap
         var heaviest = Math.Max(1, clients.Max(c => c.Weight));
         var placed = new List<PlacedStar>(stars.Count);
         // Far enough apart that the widest client, with its ring, clears its neighbours.
-        const double step = 0.66;
+        const double step = 0.74;
         for (var i = 0; i < clients.Count; i++)
         {
             var client = clients[i];
