@@ -51,6 +51,16 @@ public partial class MyPagesView : UserControl
         PageName.SelectAll();
     }, Avalonia.Threading.DispatcherPriority.Background);
 
+    // Enter in a task's name or time on a widget is "done": the typing leaves it, which keeps what was typed.
+    private void TaskNameKey(object? sender, Avalonia.Input.KeyEventArgs e)
+    {
+        if (e.Key != Avalonia.Input.Key.Enter)
+            return;
+        Focusable = true;
+        Focus();
+        e.Handled = true;
+    }
+
     // Enter in the page's name is "done": the typing leaves it, which keeps the name.
     private void PageNameKey(object? sender, Avalonia.Input.KeyEventArgs e)
     {

@@ -573,6 +573,29 @@ public static class ProjectRules
     }
 
     /// <summary>
+    /// A time of day as someone typed it for when a task is due: "14:00", "2pm", "9", or nothing for no time.
+    /// <paramref name="ok"/> is false when it is neither a time nor empty, and the task's time is then left alone.
+    /// Read in the PC's own way first, then the plain 24-hour way.
+    /// </summary>
+    public static TimeOnly? DueTimeTyped(string? typed, IFormatProvider culture, out bool ok)
+    {
+        var text = (typed ?? "").Trim();
+        ok = true;
+        if (text.Length == 0)
+            return null;
+        // A bare hour: "9" is nine o'clock, "14" two in the afternoon.
+        if (int.TryParse(text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var hour))
+        {
+            ok = hour is >= 0 and <= 23;
+            return ok ? new TimeOnly(hour, 0) : null;
+        }
+        if (TimeOnly.TryParse(text, culture, out var time) || TimeOnly.TryParse(text, System.Globalization.CultureInfo.InvariantCulture, out time))
+            return time;
+        ok = false;
+        return null;
+    }
+
+    /// <summary>
     /// Tasks by when they're due: overdue, today, the rest of this week, later, and no date, then those already
     /// done. Within a group, by date, then High before Normal before Low. The week starts on
     /// <paramref name="firstDay"/>; screens pass the PC's.

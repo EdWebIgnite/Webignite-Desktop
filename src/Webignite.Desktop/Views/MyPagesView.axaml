@@ -69,16 +69,24 @@
                 <TextBlock Classes="label" Text="{Binding Name}" Margin="0,8,0,4" />
               </DataTemplate>
               <DataTemplate DataType="vm:TaskLine">
-                <DockPanel Margin="0,2">
-                  <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Done}" VerticalAlignment="Top" Margin="0,0,4,0" ToolTip.Tip="Tick it off" />
-                  <StackPanel VerticalAlignment="Center">
-                    <Button Classes="link" Command="{Binding OpenCommand}" HorizontalAlignment="Left" Padding="0" ToolTip.Tip="Open in Projects">
-                      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="{DynamicResource Text13}" Foreground="{DynamicResource Text}" />
-                    </Button>
-                    <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding About}" Classes.problem="{Binding Overdue}" IsVisible="{Binding HasAbout}"
+                <!-- A task, changed right here: tick it, type over its name, pick its day and type its time. -->
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,1">
+                  <CheckBox IsChecked="{Binding Done}" VerticalAlignment="Center" Margin="0,0,2,0" ToolTip.Tip="Tick it off" />
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBox Classes="inline" Text="{Binding EditTitle, UpdateSourceTrigger=LostFocus}" FontSize="{DynamicResource Text13}" KeyDown="TaskNameKey"
+                             ToolTip.Tip="Click to rename" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding About}" IsVisible="{Binding HasAbout}" Margin="8,-2,0,0"
                                TextTrimming="CharacterEllipsis" />
                   </StackPanel>
-                </DockPanel>
+                  <c:DateBox Grid.Column="2" Classes="quiet" SelectedDate="{Binding Due}" PlaceholderText="Date" VerticalAlignment="Center" Margin="6,0,0,0"
+                             Classes.problem="{Binding Overdue}" ToolTip.Tip="The day it is due" />
+                  <TextBox Grid.Column="3" Classes="inline" Classes.problem="{Binding TimeProblem}" Text="{Binding TimeText, UpdateSourceTrigger=LostFocus}" Width="62"
+                           PlaceholderText="Time" IsEnabled="{Binding HasDue}" FontSize="{DynamicResource Text12}" VerticalAlignment="Center" KeyDown="TaskNameKey"
+                           ToolTip.Tip="The time it is due by, such as 14:00. Pick a day first." />
+                  <Button Grid.Column="4" Classes="quiet format icon" Command="{Binding OpenCommand}" VerticalAlignment="Center" ToolTip.Tip="Open in Projects, for everything else about it">
+                    <c:Icon Data="{StaticResource Icon.Forward}" Size="13" />
+                  </Button>
+                </Grid>
               </DataTemplate>
             </ItemsControl.DataTemplates>
           </ItemsControl>

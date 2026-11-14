@@ -1098,6 +1098,28 @@ public sealed class ProjectRepeatServiceTests : IDisposable
         Assert.StartsWith("ticked this off; it repeats", TaskTalk.Describe(Assert.Single(projects.Activity(task.Id), a => a.Kind == ActivityKind.DoneThisTime), _ => "", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("14:00", 14, 0)]
+    [InlineData(" 9 ", 9, 0)]
+    [InlineData("14", 14, 0)]
+    [InlineData("08:30", 8, 30)]
+    public void A_due_time_is_read_as_typed(string typed, int hour, int minute)
+    {
+        Assert.Equal(new TimeOnly(hour, minute), ProjectRules.DueTimeTyped(typed, System.Globalization.CultureInfo.InvariantCulture, out var ok));
+        Assert.True(ok);
+    }
+
+    [Fact]
+    public void Nothing_typed_is_no_time_and_nonsense_is_refused()
+    {
+        Assert.Null(ProjectRules.DueTimeTyped("", System.Globalization.CultureInfo.InvariantCulture, out var empty));
+        Assert.True(empty);
+        Assert.Null(ProjectRules.DueTimeTyped("soon", System.Globalization.CultureInfo.InvariantCulture, out var nonsense));
+        Assert.False(nonsense);
+        Assert.Null(ProjectRules.DueTimeTyped("25", System.Globalization.CultureInfo.InvariantCulture, out var late));
+        Assert.False(late);
+    }
+
     [Fact]
     public void A_task_that_doesnt_repeat_is_simply_done_and_a_subtask_never_moves_on()
     {
