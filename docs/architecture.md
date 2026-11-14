@@ -237,7 +237,7 @@ flowchart LR
 | (top) | Overview, To approve, Mail, Planner (opens the Planner sidebar) |
 | My pages | All my pages, each page the person made by name, New page (all one page; see My pages above) |
 | Client work | Clients, Contacts, Retainers, Domains and hosting |
-| Billing | Quotes, Invoices, Money, Reports |
+| Billing | Quotes, Invoices, Money (with Reports as a tab inside it: `MoneyViewModel.IsReports` shows a `ReportsViewModel`) |
 | Planner (its own sidebar) | Back arrow, Home, My tasks, Projects, WORK (each running project, Templates, + for a new project), PLAN (Calendar, Week, Diary, Time) |
 | Computer | Files, PDF tools, Notes; the tools Compare, Duplicate files, Calculator, Password generator, Colours, Clipboard history, Text snippets, Text from the screen |
 | Web tools | Site check, Site crawler, Mark-up; the tools Website images, Logos and brand sheet, Social images, QR code, Web helpers, DNS records, Page to PDF or picture, Screen ruler |

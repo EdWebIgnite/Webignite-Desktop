@@ -5,13 +5,9 @@
              x:Class="Webignite.Desktop.Views.ReportsView"
              x:DataType="vm:ReportsViewModel">
   <StackPanel Spacing="18">
-    <StackPanel Spacing="4">
-      <TextBlock Classes="h1" Text="Reports" />
-      <TextBlock Classes="muted" Text="Worked out from what you enter under Money." />
-    </StackPanel>
-
+    <!-- Shown inside Money, under its Reports tab, which has the heading. -->
     <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Reports}" Title="Nothing to report yet"
-                  Text="Add money received and expenses under Money, and the months fill in here." />
+                  Text="Add money received and expenses under Month, and the months fill in here." />
 
     <StackPanel Spacing="18" IsVisible="{Binding !IsEmpty}">
       <Border Classes="card">

@@ -1223,11 +1223,20 @@ settingsPage.Open("look");
 Save("settings-looks");
 settingsPage.Open("xero");
 window.Height = 860;
-Open(Page.Reports);
-Save("reports");
-window.Height = 1300;
-Save("reports-tall");
-window.Height = 860;
+Open(Page.Money);
+{
+    var moneyReports = (MoneyViewModel)vm.Current.Page;
+    Check("Money opens on its month, with no reports built yet", moneyReports is { IsReports: false, Reports: null });
+    moneyReports.ShowReportsCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Reports is a tab inside Money, and gone from the sidebar", moneyReports.Reports is { } inside && inside.Months.Count > 0
+        && vm.Modules.All(m => m.Title != "Reports") && vm[Page.Reports].Key == Page.Money);
+    Save("reports");
+    window.Height = 1300;
+    Save("reports-tall");
+    window.Height = 860;
+    moneyReports.ShowMonthCommand.Execute(null);
+}
 
 // Mail: the first-time setup, then two mailboxes with a few messages kept on this PC. No network is used.
 Open(Page.Mail);

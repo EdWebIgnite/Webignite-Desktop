@@ -34,6 +34,37 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
 
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
+    /// <summary>Showing the reports (the tax year, month by month, clients and costs) in place of the month.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMonth), nameof(Reports), nameof(Blurb))]
+    public partial bool IsReports { get; set; }
+
+    public bool IsMonth => !IsReports;
+
+    private ReportsViewModel? reports;
+
+    /// <summary>The reports, built the first time they are asked for.</summary>
+    public ReportsViewModel? Reports => IsReports ? reports ??= new ReportsViewModel(services) : null;
+
+    public string Blurb => IsReports
+        ? "Worked out from what you enter under Month."
+        : "What came in and what went out, kept on this PC, and the bills you owe, read from Xero.";
+
+    partial void OnIsReportsChanged(bool value)
+    {
+        if (value)
+        {
+            SaveTyped();
+            reports?.Refresh();
+        }
+    }
+
+    [RelayCommand]
+    private void ShowMonth() => IsReports = false;
+
+    [RelayCommand]
+    private void ShowReports() => IsReports = true;
+
     public IReadOnlyList<string> Categories => ExpenseCategories.All;
     public IReadOnlyList<string> ClientNames { get; private set; } = [];
     public ObservableCollection<EntryRowViewModel> ReceivedRows { get; } = [];
@@ -204,6 +235,8 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
     /// <summary>Shows the month. Monthly expenses that came round are added by <see cref="AppServices.CatchUp"/>.</summary>
     public void Refresh()
     {
+        if (IsReports)
+            reports?.Refresh();
         services.CatchUp();
         var entries = services.Store.ListEntries(Month, Month.AddMonths(1).AddDays(-1));
 

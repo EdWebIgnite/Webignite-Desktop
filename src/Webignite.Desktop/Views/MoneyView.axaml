@@ -14,7 +14,7 @@
   </UserControl.Styles>
   <StackPanel Spacing="18">
     <DockPanel>
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding IsMonth}">
         <Button Classes="quiet" Content="This month" Command="{Binding ThisMonthCommand}" IsVisible="{Binding !IsThisMonth}" />
         <Button Classes="quiet" Content="‹" Command="{Binding PreviousMonthCommand}" ToolTip.Tip="Previous month" />
         <TextBlock Text="{Binding MonthTitle}" FontWeight="SemiBold" MinWidth="130" TextAlignment="Center" VerticalAlignment="Center" />
@@ -22,9 +22,18 @@
       </StackPanel>
       <StackPanel Spacing="4">
         <TextBlock Classes="h1" Text="Money" />
-        <TextBlock Classes="muted" Text="What came in and what went out, kept on this PC, and the bills you owe, read from Xero." />
+        <TextBlock Classes="muted" Text="{Binding Blurb}" />
       </StackPanel>
     </DockPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,-6,0,0">
+      <Button Classes="viewtab" Classes.on="{Binding IsMonth}" Content="Month" Command="{Binding ShowMonthCommand}" ToolTip.Tip="What came in and went out in a month, and the bills to pay" />
+      <Button Classes="viewtab" Classes.on="{Binding IsReports}" Content="Reports" Command="{Binding ShowReportsCommand}" ToolTip.Tip="The tax year, month by month, clients and costs" />
+    </StackPanel>
+
+    <ContentControl Content="{Binding Reports}" IsVisible="{Binding IsReports}" />
+
+    <StackPanel Spacing="18" IsVisible="{Binding IsMonth}">
 
     <UniformGrid Columns="3">
       <Border Classes="card" Margin="0,0,12,0">
@@ -364,5 +373,6 @@
         <Border Height="8" />
       </StackPanel>
     </Border>
+    </StackPanel>
   </StackPanel>
 </UserControl>

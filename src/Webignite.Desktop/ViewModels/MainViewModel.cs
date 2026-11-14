@@ -65,7 +65,7 @@ public partial class MainViewModel : ViewModelBase
                 "projects" => [Page.Calendar, Page.Diary, Page.Overview, Page.MyPages, Page.Inbox],
                 "todos" => [Page.Calendar, Page.Diary, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
                 "clients" => [Page.Clients, Page.Overview, Page.Retainers],
-                "documents" => [Page.Quotes, Page.Invoices, Page.Money, Page.Reports, Page.Approvals, Page.Overview],
+                "documents" => [Page.Quotes, Page.Invoices, Page.Money, Page.Approvals, Page.Overview],
                 "contacts" => [Page.Contacts],
                 "notes" => [Page.Notes],
                 "calendar" => [Page.Calendar, Page.Diary, Page.Overview, Page.Home],
@@ -122,7 +122,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>The pages that list or count quotes and invoices, read again.</summary>
     internal void RefreshMoneyPages()
     {
-        foreach (var page in Built<IRefreshable>([Page.Quotes, Page.Invoices, Page.Overview, Page.Money, Page.Reports, Page.Approvals, Page.Clients])
+        foreach (var page in Built<IRefreshable>([Page.Quotes, Page.Invoices, Page.Overview, Page.Money, Page.Approvals, Page.Clients])
                      .Where(p => p is not IHoldsWork { HoldsWork: true }))
             page.Refresh();
     }
@@ -273,7 +273,6 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Quotes, "Quotes", () => new DocumentsViewModel(DocumentKind.Quote, services), "Quotes"),
             new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
-            new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
             new Module(Page.Studio, "Studio", () => new StudioViewModel(services), "Studio", fullBleed: true),
             new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true) { InPlanner = true },
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
@@ -546,6 +545,7 @@ public partial class MainViewModel : ViewModelBase
     public static Page NowIn(Page page) => page switch
     {
         Page.Planner => Page.Calendar,
+        Page.Reports => Page.Money,
         _ => page,
     };
 
