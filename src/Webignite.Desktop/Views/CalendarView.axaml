@@ -10,15 +10,23 @@
   <Grid x:Name="Layout" ColumnDefinitions="*,20,300" RowDefinitions="Auto,*" Margin="36,30,36,24">
     <DockPanel Grid.ColumnSpan="3" Margin="0,0,0,18">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
-        <Button Classes="quiet" Content="Today" Command="{Binding GoToTodayCommand}" />
-        <Button Classes="quiet" Content="‹" Command="{Binding PreviousMonthCommand}" ToolTip.Tip="Previous month" />
-        <Button Classes="quiet" Content="›" Command="{Binding NextMonthCommand}" ToolTip.Tip="Next month" />
+        <Button Classes="viewtab" Classes.on="{Binding IsMonth}" Content="Month" Command="{Binding ShowMonthCommand}" ToolTip.Tip="The whole month" />
+        <Button Classes="viewtab" Classes.on="{Binding IsWeek}" Content="Week" Command="{Binding ShowWeekCommand}" Margin="0,0,10,0"
+                ToolTip.Tip="One week, with the tasks that have no day yet" />
+        <Button Classes="quiet" Content="{Binding TodayLabel}" Command="{Binding GoToTodayCommand}" />
+        <Button Classes="quiet" Content="‹" Command="{Binding PreviousMonthCommand}" ToolTip.Tip="Back" />
+        <Button Classes="quiet" Content="›" Command="{Binding NextMonthCommand}" ToolTip.Tip="Forward" />
       </StackPanel>
-      <TextBlock Classes="h1" Text="{Binding MonthTitle}" />
+      <TextBlock Classes="h1" Text="{Binding Title}" />
     </DockPanel>
 
     <!-- Month grid, with a handle under it to make it shorter or taller -->
-    <Grid x:Name="MonthArea" Grid.Row="1" Grid.Column="0" RowDefinitions="*,14">
+    <!-- The week, in place of the month and the day panel -->
+    <ScrollViewer Grid.Row="1" Grid.ColumnSpan="3" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding IsWeek}">
+      <ContentControl Content="{Binding Week}" />
+    </ScrollViewer>
+
+    <Grid x:Name="MonthArea" Grid.Row="1" Grid.Column="0" RowDefinitions="*,14" IsVisible="{Binding IsMonth}">
     <Border Classes="card" Padding="0" ClipToBounds="True">
       <DockPanel>
         <ItemsControl DockPanel.Dock="Top" ItemsSource="{x:Static vm:CalendarViewModel.WeekdayNames}" Background="{DynamicResource TableHead}">
@@ -73,10 +81,10 @@
 
     <!-- Drag to make the day panel wider or narrower -->
     <GridSplitter x:Name="SideSplitter" Grid.Row="1" Grid.Column="1" Classes="gap" ResizeDirection="Columns"
-                  DragCompleted="SideDragged" ToolTip.Tip="Drag to make the day panel wider or narrower" />
+                  DragCompleted="SideDragged" ToolTip.Tip="Drag to make the day panel wider or narrower" IsVisible="{Binding IsMonth}" />
 
     <!-- Selected day -->
-    <ScrollViewer x:Name="DaySide" Grid.Row="1" Grid.Column="2" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer x:Name="DaySide" Grid.Row="1" Grid.Column="2" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding IsMonth}">
       <StackPanel Spacing="14">
         <Border Classes="card">
           <StackPanel Spacing="10">

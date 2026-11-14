@@ -116,6 +116,17 @@ window.Show();
 
 void Open(Page page) => vm.Selected = vm[page];
 
+// Calendar on its week (the Week page was folded into Calendar), and back on its month.
+PlannerViewModel WeekPage()
+{
+    Open(Page.Calendar);
+    var calendar = (CalendarViewModel)vm[Page.Calendar].Main.Page;
+    calendar.IsWeek = true;
+    Dispatcher.UIThread.RunJobs();
+    return calendar.Week!;
+}
+void MonthAgain() => ((CalendarViewModel)vm[Page.Calendar].Main.Page).IsWeek = false;
+
 // Checks along the way. Each failure is listed, and the run ends with an error so CI shows it.
 var failures = new List<string>();
 void Check(string what, bool ok)
@@ -656,8 +667,15 @@ store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e3", Title = "
 store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "t5", Title = "Write blog post on site speed", Created = DateTimeOffset.UtcNow });
 Open(Page.Calendar);
 Save("calendar");
-Open(Page.Planner);
+Check("Calendar opens on its month, with no week built yet", vm.Current.Page is CalendarViewModel { IsWeek: false, Week: null });
+{
+    var weekShown = WeekPage();
+    Check("Calendar's Week shows the seven days in the same page", weekShown.Days.Count == 7 && vm.Selected.Key == Page.Calendar
+        && ((CalendarViewModel)vm.Current.Page).Title == weekShown.WeekTitle && services.Settings.CalendarSizes.Week);
+    Check("A tab or layout saved on the old Week page opens Calendar", vm[Page.Planner].Key == Page.Calendar);
+}
 Save("planner");
+MonthAgain();
 // The diary: today and its neighbour open like a book, written from the calendar, the to-dos and the money dates.
 {
     store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "e-teams", Title = "Karoo Coffee monthly catch-up", Date = today, Start = new TimeOnly(14, 0), End = new TimeOnly(14, 45),
@@ -4250,8 +4268,7 @@ SaveLooks("projects");
 
         // My tasks with a due date show in Planner, for the week they're due.
         var dated = services.Projects.Mine(team.Me.Id).Where(t => t.Due is not null).OrderBy(t => t.Due).First();
-        Open(Page.Planner);
-        var planner = (PlannerViewModel)vm[Page.Planner].Main.Page;
+        var planner = WeekPage();
         while (planner.Days[0].Date > dated.Due)
             planner.PreviousWeekCommand.Execute(null);
         while (planner.Days[^1].Date < dated.Due)
@@ -4259,6 +4276,7 @@ SaveLooks("projects");
         Check("My dated project tasks show in Planner", planner.Days.SelectMany(d => d.Items).Any(i => i.Item.Kind == Webignite.Core.Calendar.AgendaKind.ProjectTask
             && i.Title.StartsWith(dated.Title, StringComparison.Ordinal)));
         planner.ThisWeekCommand.Execute(null);
+        MonthAgain();
 
         // A mail's right-click adds it to a project as a task, linked to the mail.
         Open(Page.Mail);
@@ -4502,7 +4520,7 @@ SaveLooks("projects");
         var homePage = (PlannerHomeViewModel)vm.Current.Page;
         Check("Clicking Planner opens Home and swaps the sidebar for Planner's", vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Home
             && vm.Sidebar.PlannerItems.First() is SidebarBack
-            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Inbox", "Projects", "Calendar", "Week", "Diary", "Time"])
+            && vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Title).SequenceEqual(["Home", "Inbox", "Projects", "Calendar", "Diary", "Time"])
             && vm.Sidebar.PlannerItems.OfType<ProjectLink>().Any(l => l.Kind == ProjectLinkKind.MyTasks));
         // Back to the main sidebar, then a real click on Planner again: it goes straight back in.
         vm.SelectedNav = vm.Sidebar.PlannerBack;
@@ -4587,13 +4605,14 @@ SaveLooks("planner-home");
         services.Projects.ChangeTask(launchMilestone.Id, t => t with { Milestone = false });
         services.Projects.Change(site.Id, p => p with { Health = homeHealth, Updates = [] });
         homePage.Refresh();
-        Open(Page.Planner);
-        Check("The week planner is called Week inside Planner", vm.Selected.Title == "Week" && vm.Sidebar.IsPlanner);
+        var weekInCalendar = WeekPage();
+        Check("The week is inside Calendar, in Planner", vm.Selected.Title == "Calendar" && vm.Sidebar.IsPlanner
+            && vm.Sidebar.PlannerItems.OfType<Module>().All(m => m.Title != "Week"));
         Check("Week's list without a day has project tasks given to me as well as to-dos",
-            ((PlannerViewModel)vm.Current.Page).Unplanned.Any(u => u.About == "To-do") && ((PlannerViewModel)vm.Current.Page).Unplanned.Any(u => u.About != "To-do"));
+            weekInCalendar.Unplanned.Any(u => u.About == "To-do") && weekInCalendar.Unplanned.Any(u => u.About != "To-do"));
         {
             // A day before the task's start can't be its due date: Week says so instead of the pick quietly not taking.
-            var weekPage = (PlannerViewModel)vm.Current.Page;
+            var weekPage = weekInCalendar;
             var undated = weekPage.Unplanned.First(u => u.About != "To-do");
             var undatedTask = services.Projects.Mine(services.Me().Id).First(t => t.Due is null && t.Title == undated.Title);
             services.Projects.ChangeTask(undatedTask.Id, t => t with { Start = DateOnly.FromDateTime(DateTime.Today).AddDays(60) });
@@ -4607,9 +4626,10 @@ SaveLooks("planner-home");
         }
         vm.SelectedNav = vm.Sidebar.PlannerBack;
         Dispatcher.UIThread.RunJobs();
-        Check("The arrow at the top goes back to the main sidebar, leaving the page as it was", !vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Planner
+        Check("The arrow at the top goes back to the main sidebar, leaving the page as it was", !vm.Sidebar.IsPlanner && vm.Selected.Key == Page.Calendar
             && vm.SelectedNav is SectionLink);
         Save("planner-back");
+        MonthAgain();
         window.Width = 1280;
         window.Height = 860;
         Open(Page.Overview);
@@ -4676,10 +4696,10 @@ SaveLooks("planner-home");
                 && services.Projects.Projects().First(p => p.Name == "Karoo Coffee website").Favourite);
 
             var time = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Time);
-            var week = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Planner);
+            var week = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Diary);
             DragOnto(Row(plannerList, time), Row(plannerList, week), 0.2);
             var planKeys = vm.Sidebar.PlannerItems.OfType<Module>().Select(m => m.Key).ToList();
-            Check("A page under Plan dragged above another moves there", planKeys.IndexOf(Page.Time) == planKeys.IndexOf(Page.Planner) - 1);
+            Check("A page under Plan dragged above another moves there", planKeys.IndexOf(Page.Time) == planKeys.IndexOf(Page.Diary) - 1);
             Check("To-do isn't in the Planner sidebar: its to-dos show in My tasks", vm.Sidebar.PlannerItems.OfType<Module>().All(m => m.Title != "To-do"));
 
             var calendar = vm.Sidebar.PlannerItems.OfType<Module>().First(m => m.Key == Page.Calendar);
@@ -5527,8 +5547,7 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Save("calendar-sized");
     calendarPage.KeepMonthHeight(null);
     vm.CloseTab(sizedCalendar);
-    Open(Page.Planner);
-    var plannerPage = (PlannerViewModel)vm[Page.Planner].Main.Page;
+    var plannerPage = WeekPage();
     plannerPage.KeepDayHeight(170);
     Dispatcher.UIThread.RunJobs();
     Check("Planner's days take the height they were dragged to, and keep it", plannerPage.DayHeight == 170
@@ -5537,6 +5556,7 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     plannerPage.KeepDayHeight(null);
     Check("Double-clicking the handle fits the days to what's on them again", double.IsNaN(plannerPage.DayHeight)
         && services.Settings.CalendarSizes.PlannerDayHeight is null);
+    MonthAgain();
     window.Width = 1280;
     window.Height = 860;
     Open(Page.Overview);

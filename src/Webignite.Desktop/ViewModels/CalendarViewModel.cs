@@ -21,8 +21,55 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
         var today = Today;
         month = Dates.MonthStart(today);
         SelectedDate = today;
+        IsWeek = services.Settings.CalendarSizes.Week;
         Refresh();
     }
+
+    /// <summary>Showing one week, a column a day, with the tasks that have no day yet beneath; otherwise the month.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMonth), nameof(Title), nameof(Week), nameof(TodayLabel))]
+    public partial bool IsWeek { get; set; }
+
+    public bool IsMonth => !IsWeek;
+
+    private PlannerViewModel? week;
+
+    /// <summary>The week, built the first time it is asked for.</summary>
+    public PlannerViewModel? Week
+    {
+        get
+        {
+            if (IsWeek && week is null)
+            {
+                week = new PlannerViewModel(services);
+                week.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(PlannerViewModel.WeekTitle))
+                        OnPropertyChanged(nameof(Title));
+                };
+            }
+            return IsWeek ? week : null;
+        }
+    }
+
+    public string Title => IsWeek ? Week?.WeekTitle ?? "" : MonthTitle;
+    public string TodayLabel => IsWeek ? "This week" : "Today";
+
+    partial void OnIsWeekChanged(bool value)
+    {
+        if (services.Settings.CalendarSizes.Week != value)
+            services.Settings.CalendarSizes = services.Settings.CalendarSizes with { Week = value };
+        if (value)
+            week?.Refresh();
+    }
+
+    partial void OnMonthTitleChanged(string value) => OnPropertyChanged(nameof(Title));
+
+    [RelayCommand]
+    private void ShowMonth() => IsWeek = false;
+
+    [RelayCommand]
+    private void ShowWeek() => IsWeek = true;
 
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
@@ -72,14 +119,31 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
     public bool SelectedIsEmpty => SelectedItems.Count == 0;
 
     [RelayCommand]
-    private void PreviousMonth() => Show(month.AddMonths(-1));
+    private void PreviousMonth()
+    {
+        if (IsWeek)
+            Week?.PreviousWeekCommand.Execute(null);
+        else
+            Show(month.AddMonths(-1));
+    }
 
     [RelayCommand]
-    private void NextMonth() => Show(month.AddMonths(1));
+    private void NextMonth()
+    {
+        if (IsWeek)
+            Week?.NextWeekCommand.Execute(null);
+        else
+            Show(month.AddMonths(1));
+    }
 
     [RelayCommand]
     private void GoToToday()
     {
+        if (IsWeek)
+        {
+            Week?.ThisWeekCommand.Execute(null);
+            return;
+        }
         SelectedDate = Today;
         Show(Dates.MonthStart(Today));
     }
@@ -150,6 +214,8 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
 
     public void Refresh()
     {
+        if (IsWeek)
+            week?.Refresh();
         var (first, last) = Agenda.MonthGrid(month.Year, month.Month);
         var items = Agenda.Build(first, last, services.Store.ListEvents(first, last), services.Store.ListTasks(), services.Documents.List(),
             services.Projects.Agenda(first, last, services.Me().Id));
