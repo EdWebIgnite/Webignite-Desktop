@@ -741,6 +741,8 @@ public partial class MainViewModel : ViewModelBase
                 OpenProjectLink(link);
             if (value is MyPageLink pageLink)
                 OpenMyPageLink(pageLink);
+            if (value is MyPageGroupLink pageGroup)
+                OpenMyPageGroup(pageGroup);
             // The Planner entry opens its sidebar, and Home unless a Planner page is on screen already (back to the main
             // sidebar and in again); the arrow at the top goes back to the main sidebar.
             if (value is SectionLink)

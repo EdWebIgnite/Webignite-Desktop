@@ -51,6 +51,36 @@ public partial class MyPagesView : UserControl
         PageName.SelectAll();
     }, Avalonia.Threading.DispatcherPriority.Background);
 
+    // The page's menu, as it opens: the clients and the running projects to say the page is for, the one it is for ticked, and None.
+    private void FillForMenus(object? sender, EventArgs e)
+    {
+        if (sender is not MenuFlyout flyout || Pages is not { } pages)
+            return;
+        foreach (var item in flyout.Items.OfType<MenuItem>())
+        {
+            if (item.Tag as string == "client")
+                item.ItemsSource = Choices(pages.ClientChoices(), pages.ForClient, pages.SetClient, "No clients yet");
+            else if (item.Tag as string == "project")
+                item.ItemsSource = Choices(pages.ProjectChoices(), pages.ForProject, pages.SetProject, "No projects under way");
+        }
+    }
+
+    private static List<object> Choices(IReadOnlyList<(string Id, string Name)> all, string? picked, Action<string?> pick, string none)
+    {
+        var none_ = new MenuItem { Header = "None", ToggleType = MenuItemToggleType.Radio, IsChecked = picked is null };
+        none_.Click += (_, _) => pick(null);
+        var items = new List<object> { none_, new Separator() };
+        if (all.Count == 0)
+            items.Add(new MenuItem { Header = none, IsEnabled = false });
+        foreach (var (id, name) in all)
+        {
+            var item = new MenuItem { Header = name, ToggleType = MenuItemToggleType.Radio, IsChecked = id == picked };
+            item.Click += (_, _) => pick(id);
+            items.Add(item);
+        }
+        return items;
+    }
+
     // Enter in a task's name or time on a widget is "done": the typing leaves it, which keeps what was typed.
     private void TaskNameKey(object? sender, Avalonia.Input.KeyEventArgs e)
     {

@@ -70,6 +70,12 @@ public sealed record Widget
     public TileLook? Look { get; init; }
 }
 
+/// <summary>What a group of pages in the sidebar is gathered under.</summary>
+public enum PageGroupKind { None, Client, Project }
+
+/// <summary>Pages listed together in the sidebar: those for one client, for one project, or (first, with no name) for neither.</summary>
+public sealed record PageGroup(PageGroupKind Kind, string? Id, string Name, IReadOnlyList<MyPage> Pages);
+
 /// <summary>A page the person made: a name in the sidebar and the widgets on it.</summary>
 public sealed record MyPage
 {
@@ -82,6 +88,12 @@ public sealed record MyPage
     /// and are scaled up when read, so they look the same.
     /// </summary>
     public int Grid { get; init; }
+
+    /// <summary>The client this page is for, by id; null for a page that is for no client.</summary>
+    public string? ClientId { get; init; }
+
+    /// <summary>The project this page is for, by id; null for none. A page can be for a client, a project, both or neither.</summary>
+    public string? ProjectId { get; init; }
 }
 
 /// <summary>
@@ -159,6 +171,56 @@ public static class MyPages
     }
 
     /// <summary>A new name for a page; empty keeps the old one.</summary>
+    /// <summary>Says which client and which project a page is for; null for either is "none".</summary>
+    public static MyPage For(MyPage page, string? clientId, string? projectId) => page with
+    {
+        ClientId = string.IsNullOrWhiteSpace(clientId) ? null : clientId,
+        ProjectId = string.IsNullOrWhiteSpace(projectId) ? null : projectId,
+    };
+
+    /// <summary>
+    /// The pages as the sidebar lists them: first those for no client or project, in the order they were made, then
+    /// a group for each client that has pages, by name, then one for each project that has pages for no client. A
+    /// page for a client and a project is under its client. A page whose client or project is gone is back among
+    /// the ungrouped ones. The names come from <paramref name="clientName"/> and <paramref name="projectName"/>,
+    /// which give null for one that is gone.
+    /// </summary>
+    public static IReadOnlyList<PageGroup> Grouped(IEnumerable<MyPage> pages, Func<string, string?> clientName, Func<string, string?> projectName)
+    {
+        var loose = new List<MyPage>();
+        var clients = new Dictionary<string, (string Name, List<MyPage> Pages)>(StringComparer.Ordinal);
+        var projects = new Dictionary<string, (string Name, List<MyPage> Pages)>(StringComparer.Ordinal);
+        foreach (var page in pages)
+        {
+            if (page.ClientId is { } client && clientName(client) is { } named)
+                Into(clients, client, named, page);
+            else if (page.ProjectId is { } project && projectName(project) is { } called)
+                Into(projects, project, called, page);
+            else
+                loose.Add(page);
+        }
+        var groups = new List<PageGroup> { new(PageGroupKind.None, null, "", loose) };
+        groups.AddRange(clients.OrderBy(g => g.Value.Name, StringComparer.CurrentCultureIgnoreCase).Select(g => new PageGroup(PageGroupKind.Client, g.Key, g.Value.Name, g.Value.Pages)));
+        groups.AddRange(projects.OrderBy(g => g.Value.Name, StringComparer.CurrentCultureIgnoreCase).Select(g => new PageGroup(PageGroupKind.Project, g.Key, g.Value.Name, g.Value.Pages)));
+        return groups;
+
+        static void Into(Dictionary<string, (string Name, List<MyPage> Pages)> groups, string id, string name, MyPage page)
+        {
+            if (!groups.TryGetValue(id, out var group))
+                groups[id] = group = (name, []);
+            group.Pages.Add(page);
+        }
+    }
+
+    /// <summary>"For Bosveld Builders · New website", "For Bosveld Builders", "For New website", or nothing for a page for neither.</summary>
+    public static string ForText(string? clientName, string? projectName) => (clientName, projectName) switch
+    {
+        ({ Length: > 0 }, { Length: > 0 }) => $"For {clientName} · {projectName}",
+        ({ Length: > 0 }, _) => $"For {clientName}",
+        (_, { Length: > 0 }) => $"For {projectName}",
+        _ => "",
+    };
+
     public static MyPage Rename(MyPage page, string name) =>
         string.IsNullOrWhiteSpace(name) ? page : page with { Name = name.Trim() };
 

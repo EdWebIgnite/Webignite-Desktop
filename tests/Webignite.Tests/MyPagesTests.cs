@@ -37,6 +37,52 @@ public sealed class MyPagesTests
     }
 
     [Fact]
+    public void Pages_are_listed_loose_ones_first_then_by_client_then_by_project()
+    {
+        MyPage Page(string id, string? client = null, string? project = null) => new() { Id = id, Name = id, ClientId = client, ProjectId = project };
+        var clients = new Dictionary<string, string> { ["c1"] = "Modic Digital", ["c2"] = "G3" };
+        var projects = new Dictionary<string, string> { ["p1"] = "Amos website", ["p2"] = "App fixes" };
+
+        var groups = MyPages.Grouped(
+            [Page("Monday"), Page("Forus", "c1"), Page("Amos", "c2", "p1"), Page("Internal", project: "p2"), Page("Kemin", "c2"), Page("Orphan", "gone"), Page("Lost", project: "gone")],
+            id => clients.GetValueOrDefault(id), id => projects.GetValueOrDefault(id));
+
+        Assert.Equal([PageGroupKind.None, PageGroupKind.Client, PageGroupKind.Client, PageGroupKind.Project], groups.Select(g => g.Kind));
+        // Pages for no one, and those whose client or project is gone, are loose.
+        Assert.Equal(["Monday", "Orphan", "Lost"], groups[0].Pages.Select(p => p.Name));
+        Assert.Equal(["G3", "Modic Digital", "App fixes"], groups.Skip(1).Select(g => g.Name));
+        // A page for a client and a project is under its client.
+        Assert.Equal(["Amos", "Kemin"], groups[1].Pages.Select(p => p.Name));
+        Assert.Equal("p2", groups[3].Id);
+    }
+
+    [Fact]
+    public void With_no_pages_for_anyone_there_is_just_the_one_loose_group()
+    {
+        var groups = MyPages.Grouped([Empty], _ => null, _ => null);
+
+        Assert.Equal(PageGroupKind.None, Assert.Single(groups).Kind);
+        Assert.Single(groups[0].Pages);
+    }
+
+    [Theory]
+    [InlineData("Modic Digital", "Forus website", "For Modic Digital · Forus website")]
+    [InlineData("Modic Digital", null, "For Modic Digital")]
+    [InlineData(null, "App fixes", "For App fixes")]
+    [InlineData(null, null, "")]
+    public void A_page_says_who_it_is_for(string? client, string? project, string text) => Assert.Equal(text, MyPages.ForText(client, project));
+
+    [Fact]
+    public void A_page_can_be_for_a_client_a_project_both_or_neither()
+    {
+        var page = MyPages.For(Empty, "c1", "p1");
+        Assert.Equal(("c1", "p1"), (page.ClientId, page.ProjectId));
+        page = MyPages.For(page, null, " ");
+        Assert.Null(page.ClientId);
+        Assert.Null(page.ProjectId);
+    }
+
+    [Fact]
     public void New_widgets_go_side_by_side_then_onto_the_next_row()
     {
         var page = Empty;

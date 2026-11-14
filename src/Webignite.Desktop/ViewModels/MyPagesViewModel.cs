@@ -160,6 +160,7 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
         OnPropertyChanged(nameof(IsEmptyPage));
         OnPropertyChanged(nameof(Showing));
         OnPropertyChanged(nameof(TabTitle));
+        ForChanged();
     }
 
     [RelayCommand]
@@ -185,6 +186,49 @@ public sealed partial class MyPagesViewModel : ViewModelBase, IRefreshable, IHol
             return;
         nameTyped = false;
         Save(MyPages.Rename(page, EditName));
+    }
+
+    /// <summary>The client the page on screen is for, by id; null for none.</summary>
+    public string? ForClient => page?.ClientId;
+
+    /// <summary>The project the page on screen is for, by id; null for none.</summary>
+    public string? ForProject => page?.ProjectId;
+
+    /// <summary>"For Bosveld Builders · New website" under the page's name; empty for a page for neither.</summary>
+    public string ForText => page is null ? "" : MyPages.ForText(
+        page.ClientId is { } client ? services.Clients.Get(client)?.Name : null,
+        page.ProjectId is { } project ? services.Projects.Get(project)?.Name : null);
+
+    public bool HasFor => ForText.Length > 0;
+
+    /// <summary>Says which client the page is for, or none. In the sidebar it is then listed under that client.</summary>
+    public void SetClient(string? clientId)
+    {
+        if (page is null)
+            return;
+        Save(MyPages.For(page, clientId, page.ProjectId));
+        ForChanged();
+    }
+
+    /// <summary>
+    /// Says which project the page is for, or none. A project that belongs to a client brings its client along
+    /// when the page has none yet, so the page is listed under that client.
+    /// </summary>
+    public void SetProject(string? projectId)
+    {
+        if (page is null)
+            return;
+        var client = page.ClientId ?? (projectId is null ? null : services.Projects.Get(projectId)?.ClientId);
+        Save(MyPages.For(page, client, projectId));
+        ForChanged();
+    }
+
+    private void ForChanged()
+    {
+        OnPropertyChanged(nameof(ForClient));
+        OnPropertyChanged(nameof(ForProject));
+        OnPropertyChanged(nameof(ForText));
+        OnPropertyChanged(nameof(HasFor));
     }
 
     /// <summary>The running projects, to pick one for a project widget.</summary>

@@ -323,9 +323,13 @@
         <Button Classes="quiet" ToolTip.Tip="More" IsVisible="{Binding IsOwnPage}">
           <TextBlock Text="···" />
           <Button.Flyout>
-            <MenuFlyout Placement="BottomEdgeAlignedRight">
+            <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="FillForMenus">
               <MenuItem Header="All my pages" Command="{Binding ShowListCommand}" />
               <MenuItem Header="New page" Command="{Binding NewPageCommand}" />
+              <Separator />
+              <!-- Filled as the menu opens, with the clients and the running projects. -->
+              <MenuItem Header="This page is for a client" Tag="client" />
+              <MenuItem Header="This page is for a project" Tag="project" />
               <Separator />
               <MenuItem Header="Delete this page" Command="{Binding DeletePageCommand}" />
             </MenuFlyout>
@@ -347,6 +351,8 @@
           <!-- The page's name is its heading and can be typed over at any time, not only while arranging. -->
           <TextBox x:Name="PageName" Classes="inline" Text="{Binding EditName}" FontSize="22" FontWeight="SemiBold" MinWidth="160" MaxWidth="560" HorizontalAlignment="Left"
                    Margin="-8,0,0,0" PlaceholderText="Name this page" KeyDown="PageNameKey" ToolTip.Tip="Click to rename this page" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ForText}" IsVisible="{Binding HasFor}" VerticalAlignment="Bottom" Margin="0,36,0,0"
+                     ToolTip.Tip="The client and project this page is for. Change it from the ··· menu." />
         </Panel>
         <!-- On Overview this is the person's own part of the page, under what Overview shows by itself. -->
         <TextBlock Classes="h2" Text="Your widgets" IsVisible="{Binding IsHome}" VerticalAlignment="Center" />
