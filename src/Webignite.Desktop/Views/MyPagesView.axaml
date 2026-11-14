@@ -141,8 +141,7 @@
 
     <!-- A note -->
     <DataTemplate DataType="vm:NoteBody">
-      <TextBox Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap" VerticalAlignment="Stretch" VerticalContentAlignment="Top"
-               PlaceholderText="Type anything. It's kept as you go." BorderThickness="0" Background="Transparent" Padding="0" />
+      <v:NoteWidgetView />
     </DataTemplate>
 
     <!-- The tools, as in their own windows -->
@@ -337,8 +336,9 @@
       </StackPanel>
       <Panel IsVisible="{Binding IsPage}">
         <Panel IsVisible="{Binding IsOwnPage}">
-          <TextBlock Classes="h1" Text="{Binding EditName}" IsVisible="{Binding !IsEditing}" TextTrimming="CharacterEllipsis" />
-          <TextBox Text="{Binding EditName}" IsVisible="{Binding IsEditing}" FontSize="22" MaxWidth="480" HorizontalAlignment="Left" PlaceholderText="Name this page" />
+          <!-- The page's name is its heading and can be typed over at any time, not only while arranging. -->
+          <TextBox x:Name="PageName" Classes="inline" Text="{Binding EditName}" FontSize="22" FontWeight="SemiBold" MinWidth="160" MaxWidth="560" HorizontalAlignment="Left"
+                   Margin="-8,0,0,0" PlaceholderText="Name this page" KeyDown="PageNameKey" ToolTip.Tip="Click to rename this page" />
         </Panel>
         <!-- On Overview this is the person's own part of the page, under what Overview shows by itself. -->
         <TextBlock Classes="h2" Text="Your widgets" IsVisible="{Binding IsHome}" VerticalAlignment="Center" />

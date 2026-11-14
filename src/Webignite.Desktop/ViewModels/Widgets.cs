@@ -261,18 +261,33 @@ public sealed partial class NoteBody : WidgetBody
     {
         widgetId = widget.Id;
         this.page = page;
-        Text = widget.Text ?? "";
+        Document = MyPages.NoteOf(widget);
         loading = false;
         typing.Tick += (_, _) => Keep();
     }
 
-    [ObservableProperty] public partial string Text { get; set; }
+    /// <summary>The note with its formatting, as the Notes page's editor works on it: bold, lists, checklists, links.</summary>
+    [ObservableProperty] public partial Webignite.Core.Writing.RichDocument Document { get; set; }
+
+    /// <summary>Goes up each time the editor changes the note, which is when it is kept.</summary>
+    [ObservableProperty] public partial int Revision { get; set; }
+
+    /// <summary>The note as plain words. Setting it replaces the note, as typing it afresh would.</summary>
+    public string Text
+    {
+        get => Webignite.Core.Writing.RichText.ToText(Document).TrimEnd();
+        set
+        {
+            Document = Webignite.Core.Writing.RichText.FromText(value);
+            Revision++;
+        }
+    }
 
     public bool HasTyped { get; private set; }
 
-    partial void OnTextChanged(string value)
+    partial void OnRevisionChanged(int value)
     {
-        if (loading)
+        if (loading || value <= 0)
             return;
         HasTyped = true;
         typing.Stop();
@@ -285,7 +300,7 @@ public sealed partial class NoteBody : WidgetBody
         if (!HasTyped)
             return;
         HasTyped = false;
-        page.SetText(widgetId, Text);
+        page.SetNote(widgetId, Text, Webignite.Core.Writing.RichHtml.Write(Document, Webignite.Core.Writing.RichHtml.ToDataAddress));
     }
 
     public override void Dispose()

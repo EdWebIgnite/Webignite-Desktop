@@ -13,6 +13,30 @@ public sealed class MyPagesTests
         page.Widgets.All(a => page.Widgets.All(b => a.Id == b.Id || !MyPages.Overlap(a, b)));
 
     [Fact]
+    public void A_note_keeps_its_formatting_and_its_plain_words()
+    {
+        var page = MyPages.Add(Empty, WidgetKind.Note);
+        var id = At(page, 0).Id;
+
+        page = MyPages.SetNote(page, id, "Call Pieter", "<p><b>Call</b> Pieter</p><ul><li>photos</li></ul>");
+
+        Assert.Equal("Call Pieter", At(page, 0).Text);
+        var note = MyPages.NoteOf(At(page, 0));
+        Assert.Contains("Call Pieter", Webignite.Core.Writing.RichText.ToText(note), StringComparison.Ordinal);
+        Assert.Contains("<b>", Webignite.Core.Writing.RichHtml.Write(note, Webignite.Core.Writing.RichHtml.ToDataAddress), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(note.Blocks.OfType<Webignite.Core.Writing.TextBlock>(), b => b.List == Webignite.Core.Writing.ListKind.Bullet);
+    }
+
+    [Fact]
+    public void A_note_typed_before_formatting_came_in_is_read_from_its_words()
+    {
+        var old = new Widget { Id = "w", Kind = WidgetKind.Note, Text = "Line one\nLine two" };
+
+        Assert.Equal("Line one\nLine two", Webignite.Core.Writing.RichText.ToText(MyPages.NoteOf(old)).TrimEnd());
+        Assert.Equal("", Webignite.Core.Writing.RichText.ToText(MyPages.NoteOf(new Widget { Id = "e", Kind = WidgetKind.Note })).TrimEnd());
+    }
+
+    [Fact]
     public void New_widgets_go_side_by_side_then_onto_the_next_row()
     {
         var page = Empty;

@@ -30,6 +30,50 @@ public partial class MyPagesView : UserControl
         Board.AddHandler(PointerMovedEvent, Dragged, RoutingStrategies.Tunnel, handledEventsToo: true);
         Board.AddHandler(PointerReleasedEvent, Dropped, RoutingStrategies.Tunnel, handledEventsToo: true);
         Board.AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Bubble);
+        DataContextChanged += (_, _) => FollowNaming();
+    }
+
+    private MyPagesViewModel? naming;
+
+    // A page just made has its made-up name picked and the typing in it, so the first thing typed names it.
+    private void FollowNaming()
+    {
+        if (naming is not null)
+            naming.NameAsked -= AskName;
+        naming = DataContext as MyPagesViewModel;
+        if (naming is not null)
+            naming.NameAsked += AskName;
+    }
+
+    private void AskName() => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+    {
+        PageName.Focus();
+        PageName.SelectAll();
+    }, Avalonia.Threading.DispatcherPriority.Background);
+
+    // Enter in the page's name is "done": the typing leaves it, which keeps the name.
+    private void PageNameKey(object? sender, Avalonia.Input.KeyEventArgs e)
+    {
+        if (e.Key is Avalonia.Input.Key.Enter or Avalonia.Input.Key.Escape)
+        {
+            Focusable = true;
+            Focus();
+            e.Handled = true;
+        }
+    }
+
+    protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (naming is not null)
+            naming.NameAsked -= AskName;
+        naming = null;
+    }
+
+    protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        FollowNaming();
     }
 
     private MyPagesViewModel? Pages => DataContext as MyPagesViewModel;
