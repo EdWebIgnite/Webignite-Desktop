@@ -35,6 +35,9 @@ public sealed record Note
     /// <summary>The client it's about, so it shows on their page.</summary>
     public string? ClientId { get; init; }
 
+    /// <summary>The project it's about, so it shows on the project's Overview.</summary>
+    public string? ProjectId { get; init; }
+
     public bool Pinned { get; init; }
 
     /// <summary>Checklist items in it, and how many are ticked.</summary>
@@ -61,7 +64,7 @@ public sealed record NoteSettings
 }
 
 /// <summary>Where the note list is looking.</summary>
-public enum NotePlace { All, Notebook, Folder, Client, Deleted }
+public enum NotePlace { All, Notebook, Folder, Client, Deleted, Project }
 
 /// <summary>A note found by a search, with the bit of it that matched.</summary>
 public sealed record NoteHit(Note Note, string Snippet, int Score);
@@ -102,13 +105,14 @@ public static class NoteRules
         [.. notes.OrderByDescending(n => n.Pinned).ThenByDescending(n => n.Changed).ThenBy(n => n.Id, StringComparer.Ordinal)];
 
     /// <summary>The notes in a place. Deleted notes show only in Deleted.</summary>
-    public static IEnumerable<Note> In(IEnumerable<Note> notes, NotePlace place, string? notebookId = null, string? folder = null, string? clientId = null) =>
+    public static IEnumerable<Note> In(IEnumerable<Note> notes, NotePlace place, string? notebookId = null, string? folder = null, string? clientId = null, string? projectId = null) =>
         place switch
         {
             NotePlace.Deleted => notes.Where(n => n.Deleted is not null),
             NotePlace.Notebook => notes.Where(n => n.Deleted is null && n.NotebookId == notebookId),
             NotePlace.Folder => notes.Where(n => n.Deleted is null && n.NotebookId == notebookId && string.Equals(n.Folder, folder, StringComparison.OrdinalIgnoreCase)),
             NotePlace.Client => notes.Where(n => n.Deleted is null && n.ClientId == clientId),
+            NotePlace.Project => notes.Where(n => n.Deleted is null && n.ProjectId == projectId),
             _ => notes.Where(n => n.Deleted is null),
         };
 

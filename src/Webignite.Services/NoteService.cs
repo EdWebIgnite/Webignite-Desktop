@@ -44,10 +44,10 @@ public sealed class NoteService(LocalStore store, TimeProvider? clock = null)
     }
 
     /// <summary>A new, empty note.</summary>
-    public Note New(string notebookId, string folder = "", string? clientId = null)
+    public Note New(string notebookId, string folder = "", string? clientId = null, string? projectId = null)
     {
         var now = clock.GetUtcNow();
-        var note = store.SaveNote(new Note { Id = NewId(), NotebookId = notebookId, Folder = folder, ClientId = clientId, Created = now, Changed = now }, "");
+        var note = store.SaveNote(new Note { Id = NewId(), NotebookId = notebookId, Folder = folder, ClientId = clientId, ProjectId = projectId, Created = now, Changed = now }, "");
         Changed?.Invoke(note.Id);
         return note;
     }

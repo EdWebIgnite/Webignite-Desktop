@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="using:Webignite.Desktop.Controls"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:v="using:Webignite.Desktop.Views"
              x:Class="Webignite.Desktop.Views.OverviewView"
              x:DataType="vm:OverviewViewModel">
   <UserControl.Styles>
@@ -30,6 +31,8 @@
         <TextBlock Classes="muted" Text="{Binding TodayText}" />
       </StackPanel>
     </DockPanel>
+
+    <v:ApprovalsView DataContext="{Binding Approvals}" />
 
     <UniformGrid Columns="4" IsVisible="{Binding ShowFigures}">
       <Border Classes="card" Margin="0,0,9,0">

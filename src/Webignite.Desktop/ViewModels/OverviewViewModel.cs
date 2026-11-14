@@ -18,6 +18,7 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHo
     public OverviewViewModel(AppServices services)
     {
         this.services = services;
+        Approvals = new ApprovalsViewModel(services);
         services.RepliesChanged += Refresh;
         // The person's own widgets are only built when there are some, so a plain Overview starts as light as before.
         if (services.Settings.OverviewBoard is { Widgets.Count: > 0 })
@@ -172,9 +173,13 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHo
         }
     }
 
+    /// <summary>What is waiting to be approved or emailed: a card at the top, there only while something waits.</summary>
+    public ApprovalsViewModel Approvals { get; }
+
     public void Refresh()
     {
         Board?.Refresh();
+        Approvals.Refresh();
         var today = DateOnly.FromDateTime(DateTime.Today);
         services.Store.RaiseAutomaticTasks(services.Settings.Tasks, today);
         var tasks = services.Store.ListTasks();
@@ -205,7 +210,9 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHo
             ? $"Payments from Xero, checked at {checkedAt.ToLocalTime():HH:mm}."
             : services.XeroApi is null ? "Connect Xero to see payments." : "Checking Xero for payments.";
 
-        allSummary = [.. MorningSummary.Build(Summaries.Input(services, today, documents)).Select(line => new SummaryLineViewModel(line, services))];
+        allSummary = [.. MorningSummary.Build(Summaries.Input(services, today, documents))
+            // What waits to be approved has its own card at the top of this page.
+            .Where(line => line.Target != SummaryTarget.Approvals).Select(line => new SummaryLineViewModel(line, services))];
         ShowSummary();
 
         OnPropertyChanged(string.Empty);

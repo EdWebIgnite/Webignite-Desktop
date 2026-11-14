@@ -7,23 +7,18 @@ namespace Webignite.Desktop.ViewModels;
 
 /// <summary>
 /// Everything waiting on Eddie: documents Claude or ChatGPT prepared, drafts in Xero not yet approved,
-/// invoices approved but not emailed, and anything Xero left unclear. Opening one shows the usual editor.
+/// invoices approved but not emailed, and anything Xero left unclear. A card at the top of Overview, there only
+/// while something waits; opening one shows it in Quotes or Invoices, in the usual editor.
 /// </summary>
-public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, IRefreshable, IHoldsWork
+public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, IRefreshable
 {
-    public bool HoldsWork => Editor is not null;
-
     public ObservableCollection<ApprovalRowViewModel> Rows { get; } = [];
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsListing))]
-    public partial DocumentEditorViewModel? Editor { get; set; }
+    /// <summary>Told how many quotes and how many invoices wait, each time the list is read: the sidebar shows them on Quotes and Invoices.</summary>
+    public Action<int, int>? Counted { get; set; }
 
-    // Whatever replaces an open editor, what was typed in it is saved first.
-    partial void OnEditorChanging(DocumentEditorViewModel? oldValue, DocumentEditorViewModel? newValue) => oldValue?.Keep();
-
-    public bool IsListing => Editor is null;
     public bool IsEmpty => Rows.Count == 0;
+    public bool HasRows => Rows.Count > 0;
     public string Summary => Rows.Count switch
     {
         0 => "Nothing is waiting on you.",
@@ -36,18 +31,16 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
         Rows.Clear();
         foreach (var item in Approvals.Waiting(services.Documents.List()))
             Rows.Add(new ApprovalRowViewModel(item, this));
+        Counted?.Invoke(Rows.Count(r => r.IsQuote), Rows.Count(r => !r.IsQuote));
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(HasRows));
         OnPropertyChanged(nameof(Summary));
     }
 
     internal void Open(ApprovalRowViewModel row)
     {
         if (services.Documents.Get(row.Item.Stored.Id) is { } latest)
-            Editor = new DocumentEditorViewModel(latest, services, () =>
-            {
-                Editor = null;
-                Refresh();
-            });
+            services.Go.Document(latest);
     }
 
     internal void Remove(ApprovalRowViewModel row)

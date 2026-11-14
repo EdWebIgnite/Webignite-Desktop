@@ -106,6 +106,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
 
     public void Refresh()
     {
+        LoadProjectNotes();
         LoadChoices();
         ShowList();
         if (open is not null)
@@ -488,7 +489,11 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
     private void MessagesView() => ShowOnly(ProjectTab.Messages);
 
     [RelayCommand]
-    private void OverviewView() => ShowOnly(ProjectTab.Overview);
+    private void OverviewView()
+    {
+        LoadProjectNotes();
+        ShowOnly(ProjectTab.Overview);
+    }
 
     public bool IsTimeline => Tab == ProjectTab.Timeline;
 
@@ -593,6 +598,7 @@ public sealed partial class ProjectsViewModel : ViewModelBase, IRefreshable, IHo
         Message = "";
         IsOpen = true;
         LoadProjectFolder();
+        LoadProjectNotes();
         foreach (var row in SharedProjects.Concat(PersonalProjects))
             row.IsOpen = row.Project.Id == project.Id;
         ShowTasks();

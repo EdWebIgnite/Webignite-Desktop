@@ -33,6 +33,9 @@ public sealed partial class NotesViewModel
     /// <summary>The client the open note is about; the picker is one-way and calls <see cref="ClientPicked"/>.</summary>
     [ObservableProperty] public partial Client? OpenClient { get; private set; }
 
+    /// <summary>The project the open note is about; the picker is one-way and calls <see cref="ProjectPicked"/>.</summary>
+    [ObservableProperty] public partial Webignite.Core.Projects.Project? OpenProject { get; private set; }
+
     public ObservableCollection<NoteMoveTarget> MoveTargets { get; } = [];
 
     public bool HoldsWork => Dirty;
@@ -58,6 +61,7 @@ public sealed partial class NotesViewModel
         Dirty = false;
         SavedText = "";
         OpenClient = note?.ClientId is { } id ? Clients.FirstOrDefault(c => c.Id == id) : null;
+        OpenProject = note?.ProjectId is { } projectId ? Projects.FirstOrDefault(p => p.Id == projectId) : null;
         listing = true;
         Picked = note is null ? null : Rows.FirstOrDefault(r => r.Note.Id == note.Id);
         listing = false;
@@ -179,6 +183,20 @@ public sealed partial class NotesViewModel
 
     [RelayCommand]
     private void ForgetClient() => ClientPicked(null);
+
+    /// <summary>The note is about this project: it shows on the project's Overview, and takes the project's client when it has none.</summary>
+    public void ProjectPicked(Webignite.Core.Projects.Project? project)
+    {
+        if (loading || Open is null || project?.Id == Open.ProjectId)
+            return;
+        OpenProject = project;
+        var client = Open.ClientId ?? project?.ClientId;
+        ChangeOpen(n => n with { ProjectId = project?.Id, ClientId = client });
+        OpenClient = client is null ? null : Clients.FirstOrDefault(c => c.Id == client);
+    }
+
+    [RelayCommand]
+    private void ForgetProject() => ProjectPicked(null);
 
     public void MoveTo(NoteMoveTarget target) => ChangeOpen(n => n with { NotebookId = target.NotebookId, Folder = target.Folder });
 

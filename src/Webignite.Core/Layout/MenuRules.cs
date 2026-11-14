@@ -62,7 +62,7 @@ public static class MenuFigures
             figures["Quotes"] = new MenuFigure(Whole(out_) + " out");
         var waiting = Approvals.Waiting(documents).Count;
         if (waiting > 0)
-            figures["Approvals"] = new MenuFigure(string.Create(CultureInfo.InvariantCulture, $"{waiting} waiting"));
+            figures["Overview"] = new MenuFigure(string.Create(CultureInfo.InvariantCulture, $"{waiting} waiting"));
         if (facts.UnreadMail > 0)
             figures["Mail"] = new MenuFigure(string.Create(CultureInfo.InvariantCulture, $"{facts.UnreadMail} unread"));
         if (facts.ReceivedThisMonth > 0)
@@ -124,7 +124,7 @@ public static class DockPages
     public const int Most = 12;
 
     /// <summary>What the dock holds until the person changes it.</summary>
-    public static readonly IReadOnlyList<string> Usual = ["Overview", "Approvals", "Mail", "Home", "Clients", "Invoices", "Quotes", "Money", "Files"];
+    public static readonly IReadOnlyList<string> Usual = ["Overview", "Mail", "Home", "Clients", "Invoices", "Quotes", "Money", "Files"];
 
     /// <summary>The dock as saved, without pages the app no longer has, or the usual ones when nothing is saved.</summary>
     public static IReadOnlyList<string> Shown(IReadOnlyList<string>? saved, IReadOnlyCollection<string> known) =>

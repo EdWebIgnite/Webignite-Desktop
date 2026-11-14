@@ -76,9 +76,9 @@ public sealed class MenuRulesTests
         if (quotesOut > 0)
             Assert.Equal(Money.Rand(17700m)[..^3] + " out", figures["Quotes"].Text);
         var waiting = Approvals.Waiting(documents).Count;
-        Assert.Equal(waiting > 0, figures.ContainsKey("Approvals"));
+        Assert.Equal(waiting > 0, figures.ContainsKey("Overview"));
         if (waiting > 0)
-            Assert.Equal($"{waiting} waiting", figures["Approvals"].Text);
+            Assert.Equal($"{waiting} waiting", figures["Overview"].Text);
         Assert.Equal("2 unread", figures["Mail"].Text);
     }
 

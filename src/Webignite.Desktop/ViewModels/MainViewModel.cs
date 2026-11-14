@@ -65,7 +65,7 @@ public partial class MainViewModel : ViewModelBase
                 "projects" => [Page.Calendar, Page.Diary, Page.Overview, Page.MyPages, Page.Inbox],
                 "todos" => [Page.Calendar, Page.Diary, Page.Overview, Page.Home, Page.Projects, Page.MyPages],
                 "clients" => [Page.Clients, Page.Overview, Page.Retainers],
-                "documents" => [Page.Quotes, Page.Invoices, Page.Money, Page.Approvals, Page.Overview],
+                "documents" => [Page.Quotes, Page.Invoices, Page.Money, Page.Overview],
                 "contacts" => [Page.Contacts],
                 "notes" => [Page.Notes],
                 "calendar" => [Page.Calendar, Page.Diary, Page.Overview, Page.Home],
@@ -122,7 +122,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>The pages that list or count quotes and invoices, read again.</summary>
     internal void RefreshMoneyPages()
     {
-        foreach (var page in Built<IRefreshable>([Page.Quotes, Page.Invoices, Page.Overview, Page.Money, Page.Approvals, Page.Clients])
+        foreach (var page in Built<IRefreshable>([Page.Quotes, Page.Invoices, Page.Overview, Page.Money, Page.Clients])
                      .Where(p => p is not IHoldsWork { HoldsWork: true }))
             page.Refresh();
     }
@@ -256,8 +256,7 @@ public partial class MainViewModel : ViewModelBase
         // Each page is built the first time it is opened, so starting the app builds Overview and nothing else.
         object[] nav =
         [
-            new Module(Page.Overview, "Overview", () => new OverviewViewModel(services) { CheckPayments = () => CheckPaymentsAsync(byHand: true) }, "Overview"),
-            new Module(Page.Approvals, "To approve", () => new ApprovalsViewModel(services), "Approve"),
+            new Module(Page.Overview, "Overview", () => BuildOverview(services), "Overview"),
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
             plannerSection,
             new Module(Page.Home, "Home", () => new PlannerHomeViewModel(services), "Home") { InPlanner = true },
@@ -485,6 +484,11 @@ public partial class MainViewModel : ViewModelBase
             Selected = this[Page.Notes];
             PageOf<NotesViewModel>(Page.Notes).ShowClient(id, name);
         };
+        go.ProjectNotesAction = (id, name) =>
+        {
+            Selected = this[Page.Notes];
+            PageOf<NotesViewModel>(Page.Notes).ShowProject(id, name);
+        };
         go.SetupGuideAction = () => WelcomePart.StartGuide();
         go.OpenSettingsAction = section =>
         {
@@ -556,8 +560,22 @@ public partial class MainViewModel : ViewModelBase
         Page.Planner => Page.Calendar,
         Page.Reports => Page.Money,
         Page.Renewals => Page.Retainers,
+        Page.Approvals => Page.Overview,
         _ => page,
     };
+
+    private OverviewViewModel BuildOverview(AppServices services)
+    {
+        var page = new OverviewViewModel(services) { CheckPayments = () => CheckPaymentsAsync(byHand: true) };
+        // What waits to be approved shows as a count on Quotes and on Invoices.
+        page.Approvals.Counted = (quotes, invoices) =>
+        {
+            this[Page.Quotes].Badge = quotes;
+            this[Page.Invoices].Badge = invoices;
+        };
+        page.Approvals.Refresh();
+        return page;
+    }
 
     private SiteCheckViewModel BuildSiteCheck(AppServices services)
     {
@@ -686,7 +704,7 @@ public partial class MainViewModel : ViewModelBase
     public PdfViewModel Pdf => PageOf<PdfViewModel>(Page.Pdf);
     public NotesViewModel Notes => PageOf<NotesViewModel>(Page.Notes);
     public MailViewModel Mail => PageOf<MailViewModel>(Page.Mail);
-    public ApprovalsViewModel Approvals => PageOf<ApprovalsViewModel>(Page.Approvals);
+    public ApprovalsViewModel Approvals => Overview.Approvals;
     public SiteCheckViewModel SiteCheck => PageOf<SiteCheckViewModel>(Page.SiteCheck);
     public MarkupViewModel Markup => PageOf<MarkupViewModel>(Page.Markup);
     public TimeViewModel Time => PageOf<TimeViewModel>(Page.Time);
@@ -787,8 +805,6 @@ public partial class MainViewModel : ViewModelBase
             money.SaveTyped();
         foreach (var documents in Built<DocumentsViewModel>(Page.Invoices, Page.Quotes))
             documents.Editor?.Keep();
-        foreach (var approvals in Built<ApprovalsViewModel>(Page.Approvals))
-            approvals.Editor?.Keep();
         foreach (var notes in Built<NotesViewModel>(Page.Notes))
             notes.Keep();
         foreach (var projects in Built<ProjectsViewModel>(Page.Projects))
