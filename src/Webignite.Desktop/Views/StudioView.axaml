@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:studio="using:Webignite.Core.Studio"
+             x:Class="Webignite.Desktop.Views.StudioView"
+             x:DataType="vm:StudioViewModel"
+             x:Name="Root">
+  <!-- Studio: the whole business as a picture. The map fills the page; what is picked shows in a card on its right. -->
+  <DockPanel x:Name="Frame" Margin="24,18,24,20">
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" IsVisible="{Binding NotPresenting}">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+        <CheckBox Content="Demo names" IsChecked="{Binding Demo}"
+                  ToolTip.Tip="Swaps every client, project and website for a made-up name and hides money, for showing this to people outside the studio" />
+        <Button Classes="primary" Content="Present" Click="Present" ToolTip.Tip="Fill the whole screen with the map, for a meeting. Esc closes it." />
+      </StackPanel>
+      <StackPanel>
+        <TextBlock Classes="h1" Text="Studio" />
+        <TextBlock Classes="muted" Text="{Binding Summary}" />
+      </StackPanel>
+    </DockPanel>
+    <Panel>
+      <c:StudioMapCanvas x:Name="Map" Stars="{Binding Stars}" SelectedId="{Binding SelectedId}" MinHeight="420" />
+      <!-- Shown over the map while presenting, where there is no heading above it. -->
+      <StackPanel IsVisible="{Binding Presenting}" Margin="28,22" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False">
+        <TextBlock Classes="h1" Text="Studio" Foreground="{DynamicResource NavText}" />
+        <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource NavMuted}" />
+      </StackPanel>
+      <TextBlock IsVisible="{Binding Presenting}" Text="Click a client to fly in  ·  Esc to close" Margin="28,22" HorizontalAlignment="Right" VerticalAlignment="Top"
+                 FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" IsHitTestVisible="False" />
+      <!-- What the colours mean. -->
+      <StackPanel Orientation="Horizontal" Spacing="16" Margin="24,18" HorizontalAlignment="Left" VerticalAlignment="Bottom" IsHitTestVisible="False">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Ellipse Width="9" Height="9" Fill="{DynamicResource ProjectYellowOrange}" VerticalAlignment="Center" />
+          <TextBlock Text="Project" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Ellipse Width="9" Height="9" Fill="{DynamicResource ProjectAqua}" VerticalAlignment="Center" />
+          <TextBlock Text="Website" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Ellipse Width="9" Height="9" Fill="{DynamicResource ProjectPurple}" VerticalAlignment="Center" />
+          <TextBlock Text="Domain or hosting" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Ellipse Width="9" Height="9" Fill="{DynamicResource CategoryRed}" VerticalAlignment="Center" />
+          <TextBlock Text="Needs attention" FontSize="{DynamicResource Text12}" Foreground="{DynamicResource NavMuted}" />
+        </StackPanel>
+      </StackPanel>
+      <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Clients}" Title="Nothing to show yet"
+                    Text="Add a client or a project and it appears here as a dot." />
+      <!-- What is picked. -->
+      <Border Classes="card" IsVisible="{Binding HasPicked}" Width="290" Margin="20" HorizontalAlignment="Right" VerticalAlignment="Center"
+              BoxShadow="{DynamicResource OverlayShadow}">
+        <StackPanel Spacing="8">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="link" Content="Close" Command="{Binding ClearPickedCommand}" />
+            <TextBlock Classes="label" Text="{Binding PickedKind}" VerticalAlignment="Center" />
+          </DockPanel>
+          <TextBlock Classes="h2" Text="{Binding Picked.Name}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{Binding Picked.Detail}" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding PickedAround}" Margin="0,4,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="studio:Star">
+                <Button Classes="link" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="0,3"
+                        Command="{Binding #Root.((vm:StudioViewModel)DataContext).PickCommand}" CommandParameter="{Binding}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="quiet" Content="Open" Command="{Binding OpenPickedCommand}" IsVisible="{Binding CanOpenPicked}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+    </Panel>
+  </DockPanel>
+</UserControl>

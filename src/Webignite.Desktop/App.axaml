@@ -41,6 +41,7 @@
     <DataTemplate DataType="vm:DiaryViewModel"><v:DiaryView /></DataTemplate>
     <DataTemplate DataType="vm:MyPagesViewModel"><v:MyPagesView /></DataTemplate>
     <DataTemplate DataType="vm:PlannerHomeViewModel"><v:PlannerHomeView /></DataTemplate>
+    <DataTemplate DataType="vm:StudioViewModel"><v:StudioView /></DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
     <DataTemplate DataType="vm:MailViewModel"><v:MailView /></DataTemplate>
     <DataTemplate DataType="vm:ApprovalsViewModel"><v:ApprovalsView /></DataTemplate>

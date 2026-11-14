@@ -221,6 +221,13 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
         return [.. store.ListProjectTasks().Where(t => t.ProjectId == projectId && t.Deleted is null).OrderBy(t => t.Order)];
     }
 
+    /// <summary>Every task in every project, for pictures of all the work at once (the Studio pages).</summary>
+    public IReadOnlyList<ProjectTask> EveryTask()
+    {
+        BringBackIfNewDay();
+        return [.. store.ListProjectTasks().Where(t => t.Deleted is null)];
+    }
+
     public ProjectTask? GetTask(string id) => store.GetProjectTask(id) is { Deleted: null } task ? task : null;
 
     /// <summary>A new task (or subtask) at the end of its heading, or its task's subtasks; at the top with <paramref name="first"/>.</summary>
