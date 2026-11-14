@@ -10,9 +10,9 @@
       <Button Classes="quiet format" Focusable="False" Click="Bold" ToolTip.Tip="Bold (Ctrl+B)"><c:Icon Data="{StaticResource Icon.Bold}" Size="13" /></Button>
       <Button Classes="quiet format" Focusable="False" Click="Italic" ToolTip.Tip="Italic (Ctrl+I)"><c:Icon Data="{StaticResource Icon.Italic}" Size="13" /></Button>
       <Button Classes="quiet format" Focusable="False" Click="Underline" ToolTip.Tip="Underline (Ctrl+U)"><c:Icon Data="{StaticResource Icon.Underline}" Size="13" /></Button>
-      <Button Classes="quiet format" Focusable="False" Click="Bullets" ToolTip.Tip="Bullets"><c:Icon Data="{StaticResource Icon.Bullets}" Size="13" /></Button>
-      <Button Classes="quiet format" Focusable="False" Click="Numbers" ToolTip.Tip="Numbered list"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
-      <Button Classes="quiet format" Focusable="False" Click="Checklist" ToolTip.Tip="Checklist (Ctrl+Shift+C)"><c:Icon Data="{StaticResource Icon.Checklist}" Size="13" /></Button>
+      <Button Classes="quiet format" Focusable="False" Click="Bullets" ToolTip.Tip="Bullets (Ctrl+Shift+8)"><c:Icon Data="{StaticResource Icon.Bullets}" Size="13" /></Button>
+      <Button Classes="quiet format" Focusable="False" Click="Numbers" ToolTip.Tip="Numbered list (Ctrl+Shift+7)"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
+      <Button Classes="quiet format" Focusable="False" Click="Checklist" ToolTip.Tip="Checklist (Ctrl+Shift+9)"><c:Icon Data="{StaticResource Icon.Checklist}" Size="13" /></Button>
     </StackPanel>
     <!-- A note longer than its widget scrolls inside it, and the view follows the typing. -->
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">

@@ -5028,6 +5028,52 @@ SaveLooks("planner-home");
             noteScroll.Offset = new Avalonia.Vector(0, 400);
             Dispatcher.UIThread.RunJobs();
             Save("my-pages-long-note");
+            // Ctrl+B in a note makes bold and leaves the sidebar alone; the same key anywhere else folds the sidebar.
+            {
+                var noteEditor = window.GetVisualDescendants().OfType<Webignite.Desktop.Views.NoteWidgetView>().First()
+                    .GetVisualDescendants().OfType<Webignite.Desktop.Controls.RichTextEditor>().First();
+                noteEditor.Focus();
+                Dispatcher.UIThread.RunJobs();
+                var sidebarChanges = 0;
+                void Counted(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => sidebarChanges++;
+                vm.Sidebar.PropertyChanged += Counted;
+                var boldBefore = noteEditor.CurrentFormat.Bold;
+                window.KeyPress(Avalonia.Input.Key.B, Avalonia.Input.RawInputModifiers.Control, Avalonia.Input.PhysicalKey.B, null);
+                Dispatcher.UIThread.RunJobs();
+                vm.Sidebar.PropertyChanged -= Counted;
+                Check("Ctrl+B in a note makes bold and leaves the sidebar as it is", noteEditor.CurrentFormat.Bold != boldBefore && sidebarChanges == 0);
+                window.KeyPress(Avalonia.Input.Key.B, Avalonia.Input.RawInputModifiers.Control, Avalonia.Input.PhysicalKey.B, null);
+                Dispatcher.UIThread.RunJobs();
+                // Bullets by the keyboard: Ctrl+Shift+8 turns the line into a bullet, and again turns it back.
+                bool Bulleted() => longNote.Document.Blocks.OfType<Webignite.Core.Writing.TextBlock>().Any(b => b.List == Webignite.Core.Writing.ListKind.Bullet);
+                window.KeyPress(Avalonia.Input.Key.D8, Avalonia.Input.RawInputModifiers.Control | Avalonia.Input.RawInputModifiers.Shift, Avalonia.Input.PhysicalKey.Digit8, null);
+                Dispatcher.UIThread.RunJobs();
+                var bulleted = Bulleted();
+                window.KeyPress(Avalonia.Input.Key.D8, Avalonia.Input.RawInputModifiers.Control | Avalonia.Input.RawInputModifiers.Shift, Avalonia.Input.PhysicalKey.Digit8, null);
+                Dispatcher.UIThread.RunJobs();
+                Check("Ctrl+Shift+8 in a note turns bullets on, and off again", bulleted && !Bulleted());
+                // Away from any writing, Ctrl+B still folds the sidebar and Ctrl+K still opens search.
+                // The typing is moved out of the note, into the page's name, which has no use for either key.
+                window.GetVisualDescendants().OfType<Avalonia.Controls.TextBox>().First(t => t.Name == "PageName").Focus();
+                Dispatcher.UIThread.RunJobs();
+                sidebarChanges = 0;
+                vm.Sidebar.PropertyChanged += Counted;
+                window.KeyPress(Avalonia.Input.Key.B, Avalonia.Input.RawInputModifiers.Control, Avalonia.Input.PhysicalKey.B, null);
+                Dispatcher.UIThread.RunJobs();
+                vm.Sidebar.PropertyChanged -= Counted;
+                var folded = sidebarChanges > 0;
+                // Back to how it was: the key goes round three states, so two more presses.
+                if (folded)
+                {
+                    vm.Sidebar.ToggleCommand.Execute(null);
+                    vm.Sidebar.ToggleCommand.Execute(null);
+                }
+                window.KeyPress(Avalonia.Input.Key.K, Avalonia.Input.RawInputModifiers.Control, Avalonia.Input.PhysicalKey.K, null);
+                Dispatcher.UIThread.RunJobs();
+                Check("Away from writing, Ctrl+B still folds the sidebar and Ctrl+K still opens search", folded && vm.Search.IsOpen);
+                vm.Search.Hide();
+                Dispatcher.UIThread.RunJobs();
+            }
             longNote.Text = was;
             longNote.Keep();
             if (listWasShowing)

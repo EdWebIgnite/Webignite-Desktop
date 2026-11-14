@@ -291,7 +291,7 @@
           <Button x:Name="BulletsButton" Classes="quiet format icon" Focusable="False" Tag="bullets" Click="Format" ToolTip.Tip="Bulleted list">
             <c:Icon Data="{StaticResource Icon.Bullets}" Size="16" />
           </Button>
-          <Button x:Name="NumbersButton" Classes="quiet format icon" Focusable="False" Tag="numbers" Click="Format" ToolTip.Tip="Numbered list">
+          <Button x:Name="NumbersButton" Classes="quiet format icon" Focusable="False" Tag="numbers" Click="Format" ToolTip.Tip="Numbered list (Ctrl+Shift+7)">
             <c:Icon Data="{StaticResource Icon.Numbers}" Size="16" />
           </Button>
           <Button Classes="quiet format icon" Focusable="False" Tag="outdent" Click="Format" ToolTip.Tip="Indent less">

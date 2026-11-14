@@ -27,11 +27,11 @@ public partial class MainViewModel
     /// </summary>
     public static IReadOnlyList<Shortcut> AllShortcuts(ScreenshotSettings shots, string quickNote) =>
     [
-        new("Ctrl+K", "Search clients, people, quotes, invoices, mail, to-dos, notes, site logins and files", ShortcutList.Everywhere),
+        new("Ctrl+K", "Search clients, people, quotes, invoices, mail, to-dos, notes, site logins and files (while writing, it adds a link)", ShortcutList.Everywhere),
         new("Ctrl+N", "New on this page: quote, invoice, client, retainer, domain, mail or note", ShortcutList.Everywhere),
         new("Ctrl+M", "Open or close the menu of every page, tool and project", ShortcutList.Everywhere),
         new("Ctrl+1 to Ctrl+9", "Jump to a page, in sidebar order", ShortcutList.Everywhere),
-        new("Ctrl+B", "Fold the sidebar to icons, tuck it away, or bring it back", ShortcutList.Everywhere),
+        new("Ctrl+B", "Fold the sidebar to icons, tuck it away, or bring it back (while writing, it is bold)", ShortcutList.Everywhere),
         new("Ctrl+Shift+1 to 4", "Show or hide the first, second, third or fourth pane (Mail, Clients, Notes, Files)", ShortcutList.Everywhere),
         new("F5", "Read this page again, or check for mail on Mail", ShortcutList.Everywhere),
         new("F1", "Show or hide this list", ShortcutList.Everywhere),
@@ -52,6 +52,9 @@ public partial class MainViewModel
         new("Ctrl+A", "In the list: select every mail", ShortcutList.Mail),
         new("Ctrl+B, Ctrl+I, Ctrl+U", "Bold, italic, underline", ShortcutList.Writing),
         new("Ctrl+Space", "Remove formatting", ShortcutList.Writing),
+        new("Ctrl+Shift+8", "Bullets on or off", ShortcutList.Writing),
+        new("Ctrl+Shift+7", "Numbered list on or off", ShortcutList.Writing),
+        new("Ctrl+Shift+9", "Checklist on or off", ShortcutList.Writing),
         new("Ctrl+] / Ctrl+[", "Bigger or smaller text", ShortcutList.Writing),
         new("Ctrl+K", "Add a link", ShortcutList.Writing),
         new("Ctrl+Z, Ctrl+Y", "Undo, redo", ShortcutList.Writing),

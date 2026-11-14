@@ -862,8 +862,8 @@
                     <Button Classes="quiet format" Focusable="False" Click="ProjectBold" ToolTip.Tip="Bold (Ctrl+B)"><c:Icon Data="{StaticResource Icon.Bold}" Size="13" /></Button>
                     <Button Classes="quiet format" Focusable="False" Click="ProjectItalic" ToolTip.Tip="Italic (Ctrl+I)"><c:Icon Data="{StaticResource Icon.Italic}" Size="13" /></Button>
                     <Button Classes="quiet format" Focusable="False" Click="ProjectUnderline" ToolTip.Tip="Underline (Ctrl+U)"><c:Icon Data="{StaticResource Icon.Underline}" Size="13" /></Button>
-                    <Button Classes="quiet format" Focusable="False" Click="ProjectBullets" ToolTip.Tip="Bullets"><c:Icon Data="{StaticResource Icon.Bullets}" Size="13" /></Button>
-                    <Button Classes="quiet format" Focusable="False" Click="ProjectNumbers" ToolTip.Tip="Numbered list"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
+                    <Button Classes="quiet format" Focusable="False" Click="ProjectBullets" ToolTip.Tip="Bullets (Ctrl+Shift+8)"><c:Icon Data="{StaticResource Icon.Bullets}" Size="13" /></Button>
+                    <Button Classes="quiet format" Focusable="False" Click="ProjectNumbers" ToolTip.Tip="Numbered list (Ctrl+Shift+7)"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
                   </StackPanel>
                   <TextBlock Classes="overviewhead" Text="Project description" VerticalAlignment="Center" />
                 </DockPanel>
@@ -1775,8 +1775,8 @@
                   <Button Classes="quiet format" Focusable="False" Click="DescriptionBold" ToolTip.Tip="Bold (Ctrl+B)"><c:Icon Data="{StaticResource Icon.Bold}" Size="13" /></Button>
                   <Button Classes="quiet format" Focusable="False" Click="DescriptionItalic" ToolTip.Tip="Italic (Ctrl+I)"><c:Icon Data="{StaticResource Icon.Italic}" Size="13" /></Button>
                   <Button Classes="quiet format" Focusable="False" Click="DescriptionUnderline" ToolTip.Tip="Underline (Ctrl+U)"><c:Icon Data="{StaticResource Icon.Underline}" Size="13" /></Button>
-                  <Button Classes="quiet format" Focusable="False" Click="DescriptionBullets" ToolTip.Tip="Bullets"><c:Icon Data="{StaticResource Icon.Bullets}" Size="13" /></Button>
-                  <Button Classes="quiet format" Focusable="False" Click="DescriptionNumbers" ToolTip.Tip="Numbered list"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
+                  <Button Classes="quiet format" Focusable="False" Click="DescriptionBullets" ToolTip.Tip="Bullets (Ctrl+Shift+8)"><c:Icon Data="{StaticResource Icon.Bullets}" Size="13" /></Button>
+                  <Button Classes="quiet format" Focusable="False" Click="DescriptionNumbers" ToolTip.Tip="Numbered list (Ctrl+Shift+7)"><c:Icon Data="{StaticResource Icon.Numbers}" Size="13" /></Button>
                 </StackPanel>
                 <TextBlock Classes="label" Text="Description" VerticalAlignment="Center" />
               </DockPanel>
