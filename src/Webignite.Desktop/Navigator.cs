@@ -16,6 +16,7 @@ public enum Page
     Settings,
     Inbox,
     Diary,
+    Studio,
 }
 
 /// <summary>

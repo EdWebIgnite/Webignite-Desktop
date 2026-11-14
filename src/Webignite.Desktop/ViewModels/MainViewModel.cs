@@ -274,6 +274,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
             new Module(Page.Reports, "Reports", () => new ReportsViewModel(services), "Reports"),
+            new Module(Page.Studio, "Studio", () => new StudioViewModel(services), "Studio", fullBleed: true),
             new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true) { InPlanner = true },
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
             new Module(Page.Planner, "Week", () => new PlannerViewModel(services), "Planner") { InPlanner = true },

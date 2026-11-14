@@ -4272,6 +4272,33 @@ SaveLooks("projects");
                 && services.Projects.AllTasks(site.Id).Any(t => t.Mail?.Uid == projectMail.Summary.Uid && t.AssignedTo == team.Me.Id));
         }
 
+        // Studio: every client a dot on a dark map, with its projects, websites and renewals circling.
+        {
+            Open(Page.Studio);
+            var studio = (StudioViewModel)vm.Current.Page;
+            Dispatcher.UIThread.RunJobs();
+            var map = window.GetVisualDescendants().OfType<Webignite.Desktop.Views.StudioView>().First().Canvas;
+            map.Settle();
+            Check("Studio has a dot for every client, and what is done for them around it",
+                studio.Stars.Count(p => p.Star.ParentId is null) >= services.Clients.List().Count && studio.Stars.Any(p => p.Star.Kind == Webignite.Core.Studio.StarKind.Project));
+            Save("studio-map");
+            var biggest = studio.Stars.Where(p => p.Star.ParentId is null).OrderByDescending(p => studio.Stars.Count(q => q.Star.ParentId == p.Star.Id)).First();
+            studio.SelectedId = biggest.Star.Id;
+            Dispatcher.UIThread.RunJobs();
+            map.Settle();
+            Check("Picking a client flies in to it and lists what circles it", studio.HasPicked && studio.PickedAround.Count > 0);
+            Save("studio-map-client");
+            studio.Demo = true;
+            Dispatcher.UIThread.RunJobs();
+            map.Settle();
+            Check("Demo names leave no real client name on the map",
+                !studio.Stars.Any(p => services.Clients.List().Any(c => c.Name == p.Star.Name)));
+            Save("studio-map-demo");
+            studio.Demo = false;
+            studio.SelectedId = null;
+            Dispatcher.UIThread.RunJobs();
+        }
+
         // A repeating task ticked off comes back; a project kept as a template starts another.
         Open(Page.Projects);
         projectsPage.OpenProject(site.Id);
