@@ -8,15 +8,17 @@ using Webignite.Data;
 namespace Webignite.Connector;
 
 /// <summary>
-/// Quote and invoice tools for Claude and ChatGPT. They can look documents up and prepare new ones, which
-/// wait under To approve. Nothing reaches Xero or a customer until Eddie approves it in the app.
+/// Quote and invoice tools for Claude and ChatGPT. They can look documents up, prepare new ones, which wait
+/// under To approve, and change one that has not reached Xero yet. Nothing reaches Xero or a customer until
+/// Eddie approves it in the app.
 /// </summary>
 [McpServerToolType]
 public sealed class DocumentTools(AssistantDocuments documents)
 {
     [McpServerTool(Name = "list_documents", Title = "List quotes and invoices", ReadOnly = true, OpenWorld = false)]
-    [Description("Lists quotes and invoices kept in Webignite, newest first, with their lines, totals and where they stand "
-        + "(waiting for Eddie, draft in Xero, approved, emailed).")]
+    [Description("Lists quotes and invoices kept in Webignite, newest first, with their id, lines, notes, discount, totals and where they stand "
+        + "(waiting for Eddie, draft in Xero, approved, emailed). can_change is true for one that has not reached Xero: "
+        + "change_document can adjust that one, so a new one needn't be made.")]
     public string ListDocuments(
         [Description("quote or invoice. Leave out for both.")] string? kind = null,
         [Description("Part of the customer's name, e.g. Karoo.")] string? customer = null,
@@ -37,7 +39,8 @@ public sealed class DocumentTools(AssistantDocuments documents)
     [McpServerTool(Name = "prepare_document", Title = "Prepare a quote or invoice", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Prepares a quote or invoice for Eddie to check under To approve in Webignite. It does not go to Xero and is not "
         + "sent to the customer; Eddie approves it in the app. Amounts are in Rand with no VAT (Webignite is not VAT registered). "
-        + "The date and due or expiry date are set from Eddie's settings. Call it once per document; calling again makes another.")]
+        + "The date and due or expiry date are set from Eddie's settings. Call it once per document; calling again makes another. "
+        + "To adjust one already prepared, use change_document, never a second prepare_document.")]
     public string PrepareDocument(
         [Description("quote or invoice.")] string kind,
         [Description("The customer's name as it is in Xero, e.g. Karoo Coffee Roasters.")] string customer,
@@ -54,6 +57,33 @@ public sealed class DocumentTools(AssistantDocuments documents)
             return Json(documents.Draft(kind, customer,
                 lines.Select(l => new AssistantDocuments.DraftLine(l.Description, l.Quantity, l.UnitPrice, l.Item)).ToList(),
                 Source(server), customer_email, reference, notes, discount_percent, discount_amount));
+        }
+        catch (ArgumentException e)
+        {
+            throw new McpException(e.Message);
+        }
+    }
+
+    [McpServerTool(Name = "change_document", Title = "Change a quote or invoice not yet in Xero", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Changes a quote or invoice that has not reached Xero yet (can_change is true in list_documents): its lines, reference, "
+        + "notes or discount. Use this when Eddie wants one adjusted, in place of preparing another. Leave out whatever should stay as it is. "
+        + "When lines are given they replace all the lines, so send every line the document should end up with: read them from "
+        + "list_documents first and change only what Eddie asked for. The customer can't be changed here. It then waits under "
+        + "To approve, marked as changed, for Eddie to check. One already in Xero is refused: Eddie changes that in the app.")]
+    public string ChangeDocument(
+        [Description("The document's id, from list_documents or prepare_document.")] string id,
+        [Description("Every line the document should have, replacing the ones it has. Leave out to keep the lines as they are.")] DraftLineInput[]? lines = null,
+        [Description("The new reference. Leave out to keep it; an empty string clears it.")] string? reference = null,
+        [Description("The new notes for the client. Leave out to keep them; an empty string clears them.")] string? notes = null,
+        [Description("A discount on the whole document as a percentage, e.g. 10; 0 takes the discount off. Leave out to keep it as it is.")] decimal? discount_percent = null,
+        [Description("A discount on the whole document in Rand, instead of a percentage; 0 takes the discount off. Leave out to keep it as it is.")] decimal? discount_amount = null,
+        McpServer? server = null)
+    {
+        try
+        {
+            return Json(documents.Change(id, Source(server),
+                lines?.Select(l => new AssistantDocuments.DraftLine(l.Description, l.Quantity, l.UnitPrice, l.Item)).ToList(),
+                reference, notes, discount_percent, discount_amount));
         }
         catch (ArgumentException e)
         {

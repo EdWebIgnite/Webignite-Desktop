@@ -286,7 +286,7 @@ public partial class DocumentEditorViewModel
     {
         foreach (var name in new[]
         {
-            nameof(XeroState), nameof(IsEditable), nameof(IsVerified), nameof(XeroHint), nameof(CanCreate), nameof(ShowCreate), nameof(ShowCheck),
+            nameof(CanDelete), nameof(XeroState), nameof(IsEditable), nameof(IsVerified), nameof(XeroHint), nameof(CanCreate), nameof(ShowCreate), nameof(ShowCheck),
             nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanType), nameof(CanDecideQuote), nameof(Links), nameof(HasLinks),
             nameof(CanVoid), nameof(VoidLabel), nameof(VoidQuestion), nameof(CanCredit), nameof(CreditHint), nameof(CreditNotesText), nameof(HasCreditNotes),
             nameof(CanRecordPayment), nameof(PaymentHint), nameof(CanAttach), nameof(AttachmentsText), nameof(HasAttachments),

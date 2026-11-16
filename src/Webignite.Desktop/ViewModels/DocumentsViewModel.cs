@@ -139,7 +139,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
     public bool IsListing => Editor is null;
 
     [RelayCommand]
-    private void New() => Editor = new DocumentEditorViewModel(Kind, services, Close);
+    private void New() => Editor = new DocumentEditorViewModel(Kind, services, Close) { DeleteIt = Delete };
 
     /// <summary>What bringing in from Xero by hand found, under the heading.</summary>
     [ObservableProperty]
@@ -171,10 +171,10 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
     }
 
     [RelayCommand]
-    private void Open(DocumentRow row) => Editor = new DocumentEditorViewModel(row.Stored, services, Close);
+    private void Open(DocumentRow row) => Editor = new DocumentEditorViewModel(row.Stored, services, Close) { DeleteIt = Delete };
 
     /// <summary>Opens a quote or invoice, e.g. from search.</summary>
-    public void OpenDocument(StoredDocument stored) => Editor = new DocumentEditorViewModel(services.Documents.Get(stored.Id) ?? stored, services, Close);
+    public void OpenDocument(StoredDocument stored) => Editor = new DocumentEditorViewModel(services.Documents.Get(stored.Id) ?? stored, services, Close) { DeleteIt = Delete };
 
     private void Close()
     {

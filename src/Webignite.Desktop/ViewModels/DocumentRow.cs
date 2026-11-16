@@ -10,6 +10,8 @@ public sealed record DocumentRow(StoredDocument Stored, DateOnly Today)
     public string CustomerName => Stored.Document.Customer.Name ?? "";
     public bool IsQuote => Stored.Document.Kind == DocumentKind.Quote;
     public bool InXero => Stored.Xero.Id is { Length: > 0 };
+    /// <summary>Never reached Xero, so it can be deleted here.</summary>
+    public bool CanDelete => Approvals.CanDelete(Stored);
     public bool HasNumber => Stored.Xero.Number is { Length: > 0 };
     public string Date => Stored.Document.Date?.ToString("d MMM yyyy") ?? "";
     public string Total => Money.Rand(Stored.Document.Total ?? 0);

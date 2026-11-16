@@ -25,6 +25,89 @@ public sealed class ApprovalTests : IDisposable
     };
 
     [Fact]
+    public void An_assistant_changes_a_document_that_has_not_reached_Xero_in_place()
+    {
+        var made = documents.Draft("quote", "Karoo Coffee Roasters", [new("Home page design", 1, 4500m, "Design"), new("Hosting for a year", 1, 1800m)],
+            DocumentSource.Claude, reference: "Website", notes: "Valid for 30 days.");
+        var changed = documents.Change(made.Id, DocumentSource.ChatGpt,
+            [new("Home page design", 1, 5200m, "Design"), new("Hosting for a year", 1, 1800m), new("Contact form", 1, 950m)], discountPercent: 10);
+
+        Assert.Equal(made.Id, changed.Id);
+        var stored = Assert.Single(store.List(null));
+        Assert.Equal([5200m, 1800m, 950m], stored.Document.Lines.Select(l => l.UnitPrice ?? 0));
+        Assert.Equal(10m, stored.Document.DocumentDiscountPercent);
+        // The totals follow the new lines and the discount.
+        Assert.Equal(7950m, stored.Document.Subtotal);
+        Assert.Equal(7155m, stored.Document.Total);
+        Assert.Equal(Money.Rand(7155m), changed.Total);
+        // What was left out stays as it was, and so does who it is for.
+        Assert.Equal("Website", stored.Document.Reference);
+        Assert.Equal("Valid for 30 days.", stored.Document.Notes);
+        Assert.Equal("Karoo Coffee Roasters", stored.Document.Customer.Name);
+        Assert.Equal(DocumentSource.ChatGpt, stored.Source);
+        Assert.Contains("ChatGPT changed this quote", Approvals.Why(stored)!.Reason, StringComparison.Ordinal);
+        Assert.True(documents.List().Single().CanChange);
+
+        // An empty string clears, and 0 takes the discount off.
+        documents.Change(made.Id, DocumentSource.Claude, reference: "", discountPercent: 0);
+        stored = store.Get(made.Id)!;
+        Assert.Null(stored.Document.Reference);
+        Assert.Null(stored.Document.DocumentDiscountPercent);
+        Assert.Equal(3, stored.Document.Lines.Count);
+        Assert.Equal(7950m, stored.Document.Total);
+    }
+
+    [Fact]
+    public void An_assistant_can_change_Eddies_own_draft_and_it_then_waits_to_be_checked()
+    {
+        var mine = store.Save(Doc(DocumentKind.Quote));
+        Assert.Null(Approvals.Why(mine));
+        documents.Change(mine.Id, DocumentSource.Claude, notes: "Half up front.");
+        var stored = store.Get(mine.Id)!;
+        Assert.Equal("Half up front.", stored.Document.Notes);
+        Assert.Equal(WaitingKind.FromAssistant, Approvals.Why(stored)!.Kind);
+        Assert.Contains("Claude changed this quote", Approvals.Why(stored)!.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_assistant_cant_change_what_is_in_Xero_or_ask_for_nothing()
+    {
+        var inXero = store.Save(Doc().WithXero(x => x with { State = XeroWriteState.Verified, Id = "x1" }) with { Status = DocumentStatus.InXero });
+        var refused = Assert.Throws<ArgumentException>(() => documents.Change(inXero.Id, DocumentSource.Claude, notes: "Changed"));
+        Assert.Contains("already in Xero", refused.Message, StringComparison.Ordinal);
+        Assert.Null(store.Get(inXero.Id)!.Document.Notes);
+        Assert.Null(store.Get(inXero.Id)!.ChangedByAssistant);
+        Assert.False(documents.List().Single().CanChange);
+
+        var local = store.Save(Doc(DocumentKind.Quote));
+        Assert.Throws<ArgumentException>(() => documents.Change(local.Id, DocumentSource.Claude));
+        Assert.Throws<ArgumentException>(() => documents.Change(local.Id, DocumentSource.Claude, lines: []));
+        Assert.Throws<ArgumentException>(() => documents.Change(local.Id, DocumentSource.Claude, lines: [new("Refund", 1, -100m)]));
+        Assert.Throws<ArgumentException>(() => documents.Change(local.Id, DocumentSource.Claude, discountPercent: 10, discountAmount: 100));
+        Assert.Throws<ArgumentException>(() => documents.Change("nope", DocumentSource.Claude, notes: "x"));
+    }
+
+    [Fact]
+    public void Only_what_never_reached_Xero_can_be_deleted_here()
+    {
+        var service = new Webignite.Services.DocumentService(store);
+        var local = store.Save(Doc(DocumentKind.Quote));
+        var inXero = store.Save(Doc().WithXero(x => x with { State = XeroWriteState.Verified, Id = "x1" }) with { Status = DocumentStatus.InXero });
+        Assert.True(Approvals.CanDelete(local));
+        Assert.False(Approvals.CanDelete(inXero));
+
+        Assert.Null(service.Delete(inXero.Id));
+        Assert.NotNull(store.Get(inXero.Id));
+        var gone = service.Delete(local.Id);
+        Assert.NotNull(gone);
+        Assert.Null(store.Get(local.Id));
+        // Undo puts it back as it was.
+        service.Restore(gone!);
+        Assert.Equal(local.Id, store.Get(local.Id)!.Id);
+        Assert.Null(service.Delete("nope"));
+    }
+
+    [Fact]
     public void Something_settled_or_taken_off_by_hand_leaves_the_list_and_only_what_is_in_Xero_can_be_taken_off()
     {
         var draft = Doc(DocumentKind.Quote).WithXero(x => x with { State = XeroWriteState.Mismatch, Id = "q9" }) with { Status = DocumentStatus.InXero };
@@ -95,7 +178,7 @@ public sealed class ApprovalTests : IDisposable
         Assert.Equal(WaitingKind.FromAssistant, Approvals.Why(stored)!.Kind);
 
         var listed = Assert.Single(documents.List("invoices", "karoo"));
-        Assert.Equal("waiting for Eddie under To approve", listed.Status);
+        Assert.Equal("waiting for Eddie under To approve, not in Xero yet", listed.Status);
         Assert.Contains("Content updates (hours): 3.5 x " + Money.Rand(650m), listed.Lines);
     }
 

@@ -208,6 +208,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
             return;
         }
         stored = latest;
+        OnPropertyChanged(nameof(CanDelete));
         changed = false;
         SaveState = $"Saved on this PC at {stored.Updated.ToLocalTime():HH:mm}";
         SavedStamp++;
@@ -220,8 +221,27 @@ public partial class DocumentEditorViewModel : ViewModelBase
     /// </summary>
     public void Keep()
     {
-        if (changed && HasContent)
+        if (!deleted && changed && HasContent)
             Save();
+    }
+
+    // Deleted from this editor: closing must not save it back.
+    private bool deleted;
+
+    /// <summary>Set by the list the editor is open in: deletes the document there and offers Undo.</summary>
+    public Action<string>? DeleteIt { get; set; }
+
+    /// <summary>A saved quote or invoice that has never reached Xero can be deleted here.</summary>
+    public bool CanDelete => DeleteIt is not null && stored is not null && Approvals.CanDelete(services.Documents.Get(stored.Id) ?? stored);
+
+    [RelayCommand]
+    private void Delete()
+    {
+        if (stored is null || DeleteIt is null)
+            return;
+        deleted = true;
+        close();
+        DeleteIt(stored.Id);
     }
 
     /// <summary>Counts up on each save, so the short "Saved" note beside the Save button shows again.</summary>
@@ -231,7 +251,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     [RelayCommand]
     private void Back()
     {
-        if (HasContent)
+        if (HasContent && !deleted)
             Save();
         close();
     }

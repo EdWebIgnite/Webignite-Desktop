@@ -5,8 +5,9 @@ using Webignite.Core.Xero;
 namespace Webignite.Data;
 
 /// <summary>
-/// What Claude and ChatGPT can do with quotes and invoices: look them up, and prepare new ones that wait
-/// under To approve. Nothing here talks to Xero; only Eddie's click in the app does that.
+/// What Claude and ChatGPT can do with quotes and invoices: look them up, prepare new ones that wait under
+/// To approve, and change one that has not reached Xero yet. Nothing here talks to Xero; only Eddie's click in
+/// the app does that.
 /// </summary>
 public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = null)
 {
@@ -18,8 +19,9 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
     public sealed record Prepared(string Id, string Kind, string Customer, string Date, string DueOrExpiry, string Total,
         IReadOnlyList<string> StillNeeded, string Message);
 
+    /// <param name="CanChange">Whether change_document may change it: only while it has not reached Xero.</param>
     public sealed record Listed(string Id, string Kind, string? Number, string Customer, string? Reference, string Date, string Total,
-        string Status, IReadOnlyList<string> Lines);
+        string Status, IReadOnlyList<string> Lines, bool CanChange = false, string? Notes = null, string? Discount = null);
 
     public Prepared Draft(string kind, string customer, IReadOnlyList<DraftLine> lines, DocumentSource source,
         string? customerEmail = null, string? reference = null, string? notes = null, decimal? discountPercent = null, decimal? discountAmount = null)
@@ -59,14 +61,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
             DocumentDiscountPercent = discountPercent,
             DocumentDiscountAmount = discountAmount is { } off ? Money.Cents(off) : null,
-            Lines = lines.Where(l => !string.IsNullOrWhiteSpace(l.Description))
-                .Select(l => new Line
-                {
-                    Product = string.IsNullOrWhiteSpace(l.Item) ? null : l.Item.Trim(),
-                    Description = l.Description.Trim(),
-                    Quantity = l.UnitPrice is null && l.Quantity is null ? null : l.Quantity ?? 1,
-                    UnitPrice = l.UnitPrice,
-                }).ToList(),
+            Lines = Lines(lines),
         }, settings, DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
 
         var stored = store.Save(new StoredDocument
@@ -82,6 +77,82 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             "Saved in Webignite under To approve for Eddie to check. Nothing has gone to Xero, and it is not sent to the customer."
             + (problems.Count > 0 ? " It still needs: " + string.Join(" ", problems) : ""));
     }
+
+    /// <summary>
+    /// Changes a quote or invoice that has not reached Xero: its lines (all of them, when given), reference, notes
+    /// or discount. What is left out stays as it is. The customer and their address are never changed here. It
+    /// waits under To approve afterwards, marked as changed, whoever made it first.
+    /// </summary>
+    public Prepared Change(string id, DocumentSource source, IReadOnlyList<DraftLine>? lines = null, string? reference = null, string? notes = null,
+        decimal? discountPercent = null, decimal? discountAmount = null)
+    {
+        if (discountPercent is not null && discountAmount is not null)
+            throw new ArgumentException("Give the discount as a percentage or an amount, not both.");
+        if (discountPercent is < 0 or > 100 || discountAmount is < 0)
+            throw new ArgumentException("A discount is a percentage up to 100 or an amount in Rand; 0 takes the discount off.");
+        if (lines is not null && (lines.Count == 0 || lines.All(l => string.IsNullOrWhiteSpace(l.Description))))
+            throw new ArgumentException("Give every line the document should have, at least one with a description. Leave lines out to keep them as they are.");
+        if (lines?.Any(l => l.UnitPrice is < 0 || l.Quantity is < 0) == true)
+            throw new ArgumentException("Quantities and prices can't be negative. Use a separate credit note in Xero for refunds.");
+        if (lines is null && reference is null && notes is null && discountPercent is null && discountAmount is null)
+            throw new ArgumentException("Say what to change: lines, reference, notes or a discount.");
+        if (store.Get((id ?? "").Trim()) is not { } found)
+            throw new ArgumentException("No quote or invoice has that id. Use list_documents to find it.");
+        if (!Approvals.AssistantMayChange(found))
+            throw new ArgumentException($"That {Word(found)} is already in Xero ({StatusText(found)}), so Eddie changes it in Webignite, where Xero's copy is kept in step. Tell Eddie what should change.");
+
+        string? problem = null;
+        var saved = store.Update(found.Id, current =>
+        {
+            // Read again inside the save: it may have gone to Xero in the moment between.
+            if (!Approvals.AssistantMayChange(current))
+            {
+                problem = $"That {Word(current)} has just gone to Xero, so it wasn't changed.";
+                return null;
+            }
+            var document = current.Document;
+            if (lines is not null)
+                document = document with { Lines = Lines(lines) };
+            if (reference is not null)
+                document = document with { Reference = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim() };
+            if (notes is not null)
+                document = document with { Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim() };
+            if (discountPercent is not null || discountAmount is not null)
+                document = document with
+                {
+                    DocumentDiscountPercent = discountPercent is > 0 ? discountPercent : null,
+                    DocumentDiscountAmount = discountAmount is > 0 and var off ? Money.Cents(off) : null,
+                };
+            // The totals are kept on the document, so they are worked out again from the lines and the discount.
+            document = DocumentDefaults.Complete(document with { Subtotal = null, Total = null },
+                store.GetSetting<DocumentSettings>("documents") ?? new DocumentSettings(), DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
+            return current with
+            {
+                Document = document, Status = DocumentStatus.AwaitingApproval, Source = source, OffApprovals = null,
+                ChangedByAssistant = clock.GetUtcNow(),
+            };
+        });
+        if (problem is not null || saved is null)
+            throw new ArgumentException(problem ?? "It couldn't be changed. Use list_documents to see where it stands.");
+
+        var problems = DocumentValidator.Validate(saved.Document);
+        return new Prepared(saved.Id, Word(saved), saved.Document.Customer.Name, saved.Document.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "",
+            saved.Document.DueOrExpiryDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", Money.Rand(saved.Document.Total ?? 0), problems,
+            "Changed in Webignite. It waits under To approve for Eddie to check, marked as changed. Nothing has gone to Xero, and it is not sent to the customer."
+            + (problems.Count > 0 ? " It still needs: " + string.Join(" ", problems) : ""));
+    }
+
+    private static string Word(StoredDocument s) => s.Document.Kind == DocumentKind.Quote ? "quote" : "invoice";
+
+    private static List<Line> Lines(IReadOnlyList<DraftLine> lines) =>
+        [.. lines.Where(l => !string.IsNullOrWhiteSpace(l.Description))
+            .Select(l => new Line
+            {
+                Product = string.IsNullOrWhiteSpace(l.Item) ? null : l.Item.Trim(),
+                Description = l.Description.Trim(),
+                Quantity = l.UnitPrice is null && l.Quantity is null ? null : l.Quantity ?? 1,
+                UnitPrice = l.UnitPrice,
+            })];
 
     /// <summary>Eddie's standard packages and items, with their usual lines and prices.</summary>
     public IReadOnlyList<PriceEntry> Prices() => store.GetSetting<List<PriceEntry>>("price-list") ?? [];
@@ -101,7 +172,10 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             .Take(Math.Clamp(limit <= 0 ? 20 : limit, 1, 100))
             .Select(s => new Listed(s.Id, s.Document.Kind.ToString().ToLowerInvariant(), s.Xero.Number, s.Document.Customer.Name, s.Document.Reference,
                 s.Document.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", Money.Rand(s.Document.Total ?? 0), StatusText(s),
-                s.Document.Lines.Select(l => l.IsPriced ? $"{l.Description}: {l.Quantity:0.##} x {Money.Rand(l.UnitPrice ?? 0)}" : l.Description).ToList()))
+                s.Document.Lines.Select(l => (string.IsNullOrWhiteSpace(l.Product) ? "" : l.Product + ": ")
+                    + (l.IsPriced ? $"{l.Description}: {l.Quantity:0.##} x {Money.Rand(l.UnitPrice ?? 0)}" : l.Description)).ToList(),
+                Approvals.AssistantMayChange(s), s.Document.Notes,
+                s.Document.DocumentDiscountPercent is { } percent ? $"{percent:0.##}%" : s.Document.DocumentDiscountAmount is { } amount ? Money.Rand(amount) : null))
             .ToList();
     }
 
@@ -111,8 +185,8 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         { Delivery.Approved: not null } => "approved in Xero, not emailed",
         { Xero.State: XeroWriteState.Verified } => "draft in Xero",
         { Xero.State: XeroWriteState.Editing } => "draft in Xero, being changed by Eddie",
-        { Status: DocumentStatus.AwaitingApproval } => "waiting for Eddie under To approve",
+        { Status: DocumentStatus.AwaitingApproval } => "waiting for Eddie under To approve, not in Xero yet",
         { Xero.Id: not null } => "in Xero",
-        _ => "draft on Eddie's PC",
+        _ => "draft on Eddie's PC, not in Xero yet",
     };
 }
