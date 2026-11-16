@@ -5253,8 +5253,18 @@ SaveLooks("planner-home");
                 var light = services.Settings.Appearance;
                 services.Settings.Appearance = light with { Theme = Theme.Dark };
                 Dispatcher.UIThread.RunJobs();
-                Check("In a dark look the same pastels are deep tints the writing can be read on",
-                    Painted(WidgetKind.NeedsYou, Webignite.Desktop.Controls.TintPart.Card).All(c => c != needsBody && Readable(c)));
+                // There a pastel is worn as a deep shade of its own hue, so it comes through instead of going grey:
+                // the main writing keeps the full contrast, the faint writing a little less.
+                bool ReadableOnDark(Avalonia.Media.Color on)
+                {
+                    var (text, faint) = (Resource("Text"), Resource("Muted"));
+                    var rgb = new Webignite.Core.Tools.Rgb(on.R, on.G, on.B);
+                    return Webignite.Core.Tools.Colours.Contrast(rgb, new(text.R, text.G, text.B)) >= WidgetLooks.LeastContrast
+                        && Webignite.Core.Tools.Colours.Contrast(rgb, new(faint.R, faint.G, faint.B)) >= WidgetLooks.LeastFaintOnDark;
+                }
+                Check("In a dark look the same pastels are deep shades of their own colour, and the writing can be read on them",
+                    Painted(WidgetKind.NeedsYou, Webignite.Desktop.Controls.TintPart.Card).All(c => c != needsBody && ReadableOnDark(c)
+                        && Webignite.Core.Tools.Colours.ToHsl(new(c.R, c.G, c.B)).S > 0.3));
                 Save("my-pages-colours-dark");
                 services.Settings.Appearance = light;
                 Dispatcher.UIThread.RunJobs();

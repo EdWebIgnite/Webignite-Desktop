@@ -95,15 +95,14 @@ public readonly struct TileBrushes
     {
         if (look is null || look.IsPlain || Found(on, "Surface") is not { } surface)
             return;
-        var writing = Found(on, "Muted") ?? Found(on, "Text");
+        var text = Found(on, "Text");
+        var faint = Found(on, "Muted") ?? text;
         var share = WidgetLooks.Share(look.Strength);
         Color? Mixed(string? colour, double wanted, bool readOn)
         {
             if (colour is null || (WidgetLooks.Code(colour) ?? Found(on, CategoryDot.ResourceKey(colour))) is not { } c)
                 return null;
-            if (readOn && writing is { } w)
-                wanted = WidgetLooks.Readable(surface, c, w, wanted);
-            var mixed = WidgetLooks.Mix(surface, c, wanted);
+            var mixed = readOn ? WidgetLooks.Drawn(surface, c, text, faint, wanted) : WidgetLooks.Mix(surface, c, wanted);
             return Color.FromRgb(mixed.R, mixed.G, mixed.B);
         }
         HeadColour = Mixed(look.Head, share, readOn: true);

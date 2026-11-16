@@ -13,6 +13,37 @@ public class WidgetLooksTests
     private static MyPage PageWith(WidgetKind kind) => MyPages.Add(new MyPage { Id = "p", Name = "Morning", Grid = MyPages.Columns }, kind);
 
     [Fact]
+    public void On_a_dark_look_a_pastel_comes_through_as_its_own_hue_and_stays_readable()
+    {
+        var faint = new Rgb(160, 165, 172);
+        foreach (var pastel in WidgetLooks.Pastels.Take(16))
+        {
+            var colour = Colours.Parse(pastel.Hex)!.Value;
+            var old = WidgetLooks.Mix(DarkSurface, colour, WidgetLooks.Readable(DarkSurface, colour, faint, 0.7));
+            var drawn = WidgetLooks.Drawn(DarkSurface, colour, PaleInk, faint, 0.7);
+            // More of the colour than a pale mix gave, which was close to grey.
+            Assert.True(Colours.ToHsl(drawn).S > Colours.ToHsl(old).S + 0.25, pastel.Name);
+            // The same hue, give or take.
+            var turn = Math.Abs(Colours.ToHsl(drawn).H - Colours.ToHsl(colour).H);
+            Assert.True(Math.Min(turn, 360 - turn) < 12, pastel.Name);
+            Assert.True(Colours.Contrast(drawn, PaleInk) >= WidgetLooks.LeastContrast, pastel.Name);
+            Assert.True(Colours.Contrast(drawn, faint) >= WidgetLooks.LeastFaintOnDark, pastel.Name);
+        }
+    }
+
+    [Fact]
+    public void On_a_light_look_a_colour_is_drawn_as_it_always_was()
+    {
+        var sky = Colours.Parse("#C6E3F7")!.Value;
+        var faint = new Rgb(105, 112, 110);
+        Assert.Equal(sky, WidgetLooks.Worn(White, sky));
+        Assert.Equal(WidgetLooks.Mix(White, sky, WidgetLooks.Readable(White, sky, faint, 0.7)), WidgetLooks.Drawn(White, sky, Ink, faint, 0.7));
+        // Greys stay grey on a dark look, and a colour that is deep already is left alone.
+        Assert.True(Colours.ToHsl(WidgetLooks.Worn(DarkSurface, Colours.Parse("#DFDCD5")!.Value)).S < 0.2);
+        Assert.Equal(new Rgb(20, 60, 120), WidgetLooks.Worn(DarkSurface, new Rgb(20, 60, 120)));
+    }
+
+    [Fact]
     public void A_widgets_heading_body_and_line_each_take_a_colour_of_their_own()
     {
         var page = PageWith(WidgetKind.Mail);

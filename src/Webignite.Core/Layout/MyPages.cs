@@ -525,11 +525,50 @@ public static class WidgetLooks
     /// which the writing keeps its contrast. A dark colour typed in and set to full is held back to a tint of
     /// itself, so no choice makes a widget unreadable.
     /// </summary>
-    public static double Readable(Webignite.Core.Tools.Rgb surface, Webignite.Core.Tools.Rgb colour, Webignite.Core.Tools.Rgb writing, double share)
+    public static double Readable(Webignite.Core.Tools.Rgb surface, Webignite.Core.Tools.Rgb colour, Webignite.Core.Tools.Rgb writing, double share,
+        double least = LeastContrast)
     {
         for (var tried = Math.Clamp(share, 0, 1); tried > 0.02; tried -= 0.04)
-            if (Webignite.Core.Tools.Colours.Contrast(Mix(surface, colour, tried), writing) >= LeastContrast)
+            if (Webignite.Core.Tools.Colours.Contrast(Mix(surface, colour, tried), writing) >= least)
                 return tried;
         return 0.02;
+    }
+
+    /// <summary>The least the faint writing (dates, captions) may stand out on a coloured part of a dark look.</summary>
+    public const double LeastFaintOnDark = 3.0;
+
+    /// <summary>A surface the writing on is light: a dark look.</summary>
+    public static bool IsDark(Webignite.Core.Tools.Rgb surface) =>
+        Webignite.Core.Tools.Colours.Contrast(surface, new(255, 255, 255)) > Webignite.Core.Tools.Colours.Contrast(surface, new(0, 0, 0));
+
+    /// <summary>
+    /// The colour as a dark look wears it. A pale colour mixed straight into a dark surface goes grey, so there it
+    /// is first turned into a deep, strong shade of the same hue; the greys stay grey, and a colour that is deep
+    /// already is left alone. On a light look the colour is itself.
+    /// </summary>
+    public static Webignite.Core.Tools.Rgb Worn(Webignite.Core.Tools.Rgb surface, Webignite.Core.Tools.Rgb colour)
+    {
+        if (!IsDark(surface))
+            return colour;
+        var (h, s, l) = Webignite.Core.Tools.Colours.ToHsl(colour);
+        return l <= 0.5 ? colour : Webignite.Core.Tools.Colours.FromHsl(h, s < 0.2 ? s : 0.6, 0.42);
+    }
+
+    /// <summary>
+    /// A part's colour as drawn: mixed into the look's surface by the share asked for, no further than its writing
+    /// can be read on. On a light look the faint writing keeps the full contrast. On a dark look the colour is worn
+    /// deep (<see cref="Worn"/>), the main writing keeps the full contrast and the faint writing a little less, so
+    /// the colour comes through instead of sinking into the dark.
+    /// </summary>
+    public static Webignite.Core.Tools.Rgb Drawn(Webignite.Core.Tools.Rgb surface, Webignite.Core.Tools.Rgb colour, Webignite.Core.Tools.Rgb? text,
+        Webignite.Core.Tools.Rgb? faint, double share)
+    {
+        var worn = Worn(surface, colour);
+        var dark = IsDark(surface);
+        if (faint is { } f)
+            share = Readable(surface, worn, f, share, dark ? LeastFaintOnDark : LeastContrast);
+        if (dark && text is { } t)
+            share = Readable(surface, worn, t, share);
+        return Mix(surface, worn, share);
     }
 }
