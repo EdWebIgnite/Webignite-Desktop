@@ -99,6 +99,9 @@ public sealed record StoredDocument
     /// <summary>When it was taken off To approve by hand. It stays in its list, and nothing changes in Xero.</summary>
     public DateTimeOffset? OffApprovals { get; init; }
 
+    /// <summary>When Claude or ChatGPT last changed it, before it reached Xero: To approve says so, as Eddie should look again.</summary>
+    public DateTimeOffset? ChangedByAssistant { get; init; }
+
     public DateTimeOffset Created { get; init; }
     public DateTimeOffset Updated { get; init; }
 

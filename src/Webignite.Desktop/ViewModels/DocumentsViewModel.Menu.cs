@@ -17,6 +17,28 @@ public partial class DocumentsViewModel
         return Editor;
     }
 
+    /// <summary>Deletes a quote or invoice that never reached Xero; the note that follows puts it back.</summary>
+    [RelayCommand]
+    private void DeleteRow(DocumentRow row) => Delete(row.Stored.Id);
+
+    internal void Delete(string id)
+    {
+        if (services.Documents.Delete(id) is not { } gone)
+        {
+            services.ShowNote?.Invoke("It can't be deleted here", "It has gone to Xero, so it is voided or deleted from there: open it and use Void in Xero.", null);
+            Refresh();
+            return;
+        }
+        Refresh();
+        var what = gone.Document.Kind == Webignite.Core.Documents.DocumentKind.Quote ? "quote" : "invoice";
+        var who = string.IsNullOrWhiteSpace(gone.Document.Customer.Name) ? "" : " for " + gone.Document.Customer.Name;
+        services.OfferUndo($"Deleted the {what}{who}", () =>
+        {
+            services.Documents.Restore(gone);
+            Refresh();
+        });
+    }
+
     [RelayCommand]
     private void MakeCopyOf(DocumentRow row) => OpenRow(row)?.CopyCommand.Execute(null);
 

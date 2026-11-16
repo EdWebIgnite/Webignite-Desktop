@@ -71,6 +71,18 @@ public sealed class DocumentService(LocalStore store)
     }
 
     /// <summary>
+    /// Deletes a quote or invoice that never reached Xero, as it is stored now. Returns what was deleted, for Undo
+    /// (<see cref="Restore"/>), or null when it has gone to Xero meanwhile or is no longer there.
+    /// </summary>
+    public StoredDocument? Delete(string id)
+    {
+        if (store.Get(id) is not { } gone || !Approvals.CanDelete(gone))
+            return null;
+        store.DeleteDocument(gone.Id);
+        return gone;
+    }
+
+    /// <summary>
     /// Saves this exact record. Only for the Xero write steps, which hold the document (and keep the editor busy)
     /// from the first step to the last, saving each one before the next.
     /// </summary>

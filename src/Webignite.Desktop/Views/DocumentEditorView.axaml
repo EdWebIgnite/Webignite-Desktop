@@ -298,6 +298,9 @@
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="{Binding VoidLabel}" Command="{Binding StartVoidCommand}" IsVisible="{Binding CanVoid}" />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Delete" Command="{Binding DeleteCommand}" IsVisible="{Binding CanDelete}"
+                  ToolTip.Tip="It has not gone to Xero, so it is only deleted here. A note lets you put it back." />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Change this draft" Command="{Binding ChangeDraftCommand}" IsVisible="{Binding CanChangeDraft}"
                   ToolTip.Tip="Unlocks it to change here. Update draft in Xero then puts the change in Xero." />
           <StackPanel Spacing="4" IsVisible="{Binding CanAttach}">

@@ -41,6 +41,21 @@ public static class Approvals
     /// </summary>
     public static bool CanRemove(WaitingItem item) => item.Stored.Xero.Id is not null;
 
+    /// <summary>
+    /// Whether Claude or ChatGPT may change it: only while it has never reached Xero, been approved, emailed or
+    /// settled, and only one made here (an imported one keeps the figures of where it came from). From then on it
+    /// is Eddie's to change in the app, where Xero's copy is kept in step.
+    /// </summary>
+    public static bool AssistantMayChange(StoredDocument s) =>
+        s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: DocumentOrigin.New };
+
+    /// <summary>
+    /// Whether Eddie can delete it here: only while it has never reached Xero. Once Xero has it, it is voided or
+    /// deleted there (Void in Xero), so the two never disagree.
+    /// </summary>
+    public static bool CanDelete(StoredDocument s) =>
+        s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: not DocumentOrigin.Xero };
+
     public static WaitingItem? Why(StoredDocument s)
     {
         var what = s.Document.Kind == DocumentKind.Quote ? "quote" : "invoice";
@@ -58,7 +73,9 @@ public static class Approvals
             // Drafts made in Xero itself are dealt with in Xero.
             { Document.Origin: DocumentOrigin.Xero, Delivery.Emailed: null } => null,
             { Xero.State: XeroWriteState.None, Status: DocumentStatus.AwaitingApproval } =>
-                new(s, WaitingKind.FromAssistant, $"{by} prepared this {what}. Check it, then create it in Xero or reject it."),
+                new(s, WaitingKind.FromAssistant, s.ChangedByAssistant is null
+                    ? $"{by} prepared this {what}. Check it, then create it in Xero or reject it."
+                    : $"{by} changed this {what}. Check it, then create it in Xero or reject it."),
             { Xero.State: XeroWriteState.Verified, Delivery: { Emailed: null, Approved: null } } =>
                 new(s, WaitingKind.XeroDraft, s.Document.Kind == DocumentKind.Quote
                     ? "Draft quote in Xero, not emailed yet."

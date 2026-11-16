@@ -89,6 +89,9 @@
                       <Separator />
                       <MenuItem Header="Open the client" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).OpenClientOfCommand}" CommandParameter="{Binding}" />
                       <MenuItem Header="Copy the number" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).CopyNumberCommand}" CommandParameter="{Binding}" IsVisible="{Binding HasNumber}" />
+                      <Separator IsVisible="{Binding CanDelete}" />
+                      <MenuItem Header="Delete" Command="{Binding #Root.((vm:DocumentsViewModel)DataContext).DeleteRowCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanDelete}"
+                                ToolTip.Tip="It has not gone to Xero, so it is only deleted here. A note lets you put it back." />
                     </ContextMenu>
                   </Button.ContextMenu>
                   <Grid ColumnDefinitions="150,*,130,130,140,28">

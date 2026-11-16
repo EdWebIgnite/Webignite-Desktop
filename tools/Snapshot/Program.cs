@@ -2109,6 +2109,32 @@ var assistant = new Webignite.Data.AssistantDocuments(store);
 assistant.Draft("quote", "Fynbos Physio", [new("Booking page rebuild", 1, 6500m), new("Mobile testing and fixes (hours)", 4, 650m)],
     DocumentSource.Claude, reference: "Booking page");
 assistant.Draft("invoice", "Bosveld Builders", [new("Deposit: new website, 50%", 1, 7250m)], DocumentSource.ChatGpt, reference: "Website deposit");
+// An assistant adjusts what it prepared in place, and Eddie can delete what never reached Xero.
+{
+    var prepared = assistant.List("quote", "Fynbos").First(d => d.CanChange);
+    var countBefore = store.List(null).Count;
+    assistant.Change(prepared.Id, DocumentSource.Claude,
+        [new("Booking page rebuild", 1, 6900m), new("Mobile testing and fixes (hours)", 4, 650m)], notes: "Half up front, the rest on going live.");
+    Check("An assistant changes a quote not yet in Xero in place: no second one, new total, marked as changed",
+        store.List(null).Count == countBefore && store.Get(prepared.Id) is { Document.Total: 9500m, ChangedByAssistant: not null } changedQuote
+        && Webignite.Core.Documents.Approvals.Why(changedQuote)!.Reason.StartsWith("Claude changed this quote", StringComparison.Ordinal));
+    Open(Page.Quotes);
+    vm.Quotes.Refresh();
+    var localRow = vm.Quotes.Rows.First(r => r.Stored.Id == prepared.Id);
+    Check("A quote that never reached Xero can be deleted from the list, one in Xero can't", localRow.CanDelete && vm.Quotes.Rows.Where(r => r.InXero).All(r => !r.CanDelete));
+    Action? putBack = null;
+    var noteWas = services.ShowNote;
+    services.ShowNote = (_, _, act) => putBack = act;
+    vm.Quotes.OpenCommand.Execute(localRow);
+    Check("The editor offers Delete for it", vm.Quotes.Editor is { CanDelete: true });
+    Save("quote-delete");
+    vm.Quotes.Editor!.DeleteCommand.Execute(null);
+    Check("Delete closes the editor and takes it off the list, without saving it back", vm.Quotes.Editor is null && store.Get(prepared.Id) is null
+        && vm.Quotes.Rows.All(r => r.Stored.Id != prepared.Id) && putBack is not null);
+    putBack!();
+    Check("Undo puts it back", store.Get(prepared.Id) is not null && vm.Quotes.Rows.Any(r => r.Stored.Id == prepared.Id));
+    services.ShowNote = noteWas;
+}
 Open(Page.Approvals);
 vm.Overview.Refresh();
 Check("To approve is a card on Overview, with its counts on Quotes and Invoices", vm.Selected.Key == Page.Overview && vm.Modules.All(m => m.Title != "To approve")
