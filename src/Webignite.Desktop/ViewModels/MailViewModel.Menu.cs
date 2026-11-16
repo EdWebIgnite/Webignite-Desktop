@@ -30,7 +30,8 @@ public partial class MailViewModel
             services.Go.MailInNewWindow(mail);
             return Task.CompletedTask;
         }) { Icon = "NewWindow" };
-        if (mail.From is { Address.Length: > 0 } from)
+        // About the other person: the sender, or for a mail I sent, each person it went to (the first few). Never me.
+        foreach (var from in AddressBook.Others(mail, services.Store.ListMailAccounts().Select(a => a.Address)).Take(3))
         {
             yield return MailMenuItem.Separator;
             var who = string.IsNullOrWhiteSpace(from.Name) ? from.Address : from.Name!;

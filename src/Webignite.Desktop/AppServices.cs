@@ -456,6 +456,14 @@ public sealed class AppServices : IDisposable
     /// <summary>The mail check that runs whether or not the Mail page is open.</summary>
     public MailCheck MailCheck => mailCheck ??= new MailCheck(this);
 
+    /// <summary>A mail went to these people: they are remembered on this PC and suggested from the next address typed.</summary>
+    public void RememberMailed(IReadOnlyList<Webignite.Core.Mail.MailPerson> people)
+    {
+        var own = Store.ListMailAccounts().Select(a => a.Address).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Settings.MailedTo = Webignite.Core.Mail.AddressBook.Remember(Settings.MailedTo, people.Where(p => !own.Contains(p.Address)), DateTimeOffset.Now);
+        addressBook = null;
+    }
+
     private IReadOnlyList<Webignite.Core.Mail.Contact>? addressBook;
     private DateTime addressBookMade;
 
@@ -469,8 +477,16 @@ public sealed class AppServices : IDisposable
             return book;
         var accounts = Store.ListMailAccounts();
         var clients = Store.ListClients();
-        var mail = await Task.Run(() => Store.FindMail(accounts.Select(a => a.Id), _ => true, 3000));
-        addressBook = Webignite.Core.Mail.AddressBook.Build(clients, mail, accounts.Select(a => a.Address), DateTimeOffset.Now, Contacts.List());
+        var own = accounts.Select(a => a.Address).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // The newest mail of any kind, and mail Eddie sent from further back, as a busy inbox would crowd that out.
+        var mail = await Task.Run(() =>
+        {
+            var newest = Store.FindMail(accounts.Select(a => a.Id), _ => true, 3000);
+            var sent = Store.FindMail(accounts.Select(a => a.Id), m => m.From is { } from && own.Contains(from.Address), 3000);
+            var seen = newest.Select(m => (m.AccountId, m.Folder, m.Uid)).ToHashSet();
+            return (IReadOnlyList<Webignite.Core.Mail.MailSummary>)[.. newest, .. sent.Where(m => seen.Add((m.AccountId, m.Folder, m.Uid)))];
+        });
+        addressBook = Webignite.Core.Mail.AddressBook.Build(clients, mail, own, DateTimeOffset.Now, Contacts.List(), Settings.MailedTo);
         addressBookMade = DateTime.UtcNow;
         return addressBook;
     }
