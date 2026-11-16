@@ -39,14 +39,38 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
     [NotifyPropertyChangedFor(nameof(IsMonth), nameof(Reports), nameof(Blurb))]
     public partial bool IsReports { get; set; }
 
-    public bool IsMonth => !IsReports;
+    public bool IsMonth => !IsReports && !IsExpected;
+
+    /// <summary>Showing the Expected tab: money that may come in, typed by hand and kept on this PC.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMonth), nameof(Expected), nameof(Blurb))]
+    public partial bool IsExpected { get; set; }
+
+    private ExpectedIncomeViewModel? expected;
+
+    /// <summary>The Expected tab, built the first time it is asked for.</summary>
+    public ExpectedIncomeViewModel? Expected => IsExpected ? expected ??= new ExpectedIncomeViewModel(services) : null;
+
+    partial void OnIsExpectedChanged(bool value)
+    {
+        if (value)
+        {
+            SaveTyped();
+            IsReports = false;
+            expected?.Refresh();
+        }
+    }
+
+    [RelayCommand]
+    private void ShowExpected() => IsExpected = true;
 
     private ReportsViewModel? reports;
 
     /// <summary>The reports, built the first time they are asked for.</summary>
     public ReportsViewModel? Reports => IsReports ? reports ??= new ReportsViewModel(services) : null;
 
-    public string Blurb => IsReports
+    public string Blurb => IsExpected ? "What you think is coming, typed by hand. Only on this PC."
+        : IsReports
         ? "Worked out from what you enter under Month."
         : "What came in and what went out, kept on this PC, and the bills you owe, read from Xero.";
 
@@ -55,12 +79,13 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
         if (value)
         {
             SaveTyped();
+            IsExpected = false;
             reports?.Refresh();
         }
     }
 
     [RelayCommand]
-    private void ShowMonth() => IsReports = false;
+    private void ShowMonth() => IsReports = IsExpected = false;
 
     [RelayCommand]
     private void ShowReports() => IsReports = true;
@@ -237,6 +262,8 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
     {
         if (IsReports)
             reports?.Refresh();
+        if (IsExpected)
+            expected?.Refresh();
         services.CatchUp();
         var entries = services.Store.ListEntries(Month, Month.AddMonths(1).AddDays(-1));
 

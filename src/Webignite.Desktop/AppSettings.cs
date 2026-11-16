@@ -293,6 +293,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("mail-sent-to", value.ToList());
     }
 
+    /// <summary>Money that may come in, typed by hand on Money's Expected tab. This PC's own: not one of the shared settings, so it never syncs.</summary>
+    public IReadOnlyList<Webignite.Core.Finance.ExpectedIncome> ExpectedIncome
+    {
+        get => store.GetSetting<List<Webignite.Core.Finance.ExpectedIncome>>("expected-income") ?? [];
+        set => store.SetSetting("expected-income", value.ToList());
+    }
+
     /// <summary>Mail set to send later, waiting as drafts.</summary>
     public SendLaterSettings SendLater
     {

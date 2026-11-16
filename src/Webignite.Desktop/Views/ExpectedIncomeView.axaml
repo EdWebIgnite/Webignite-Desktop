@@ -1,0 +1,164 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.ExpectedIncomeView"
+             x:DataType="vm:ExpectedIncomeViewModel">
+  <!-- Shown inside Money, under its Expected tab, which has the heading. -->
+  <StackPanel Spacing="18">
+    <UniformGrid Columns="3">
+      <Border Classes="card" Margin="0,0,12,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="LIKELY" />
+          <TextBlock Classes="figure" Text="{Binding Likely}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Each line counted by how sure it is." TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Margin="6,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="IF ALL OF IT COMES IN" />
+          <TextBlock Classes="figure" Text="{Binding Possible}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding CountLine}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Margin="12,0,0,0">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="TICKED OFF THIS YEAR" />
+          <TextBlock Classes="figure" Text="{Binding CameIn}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Lines you marked as come in." TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+
+    <Grid ColumnDefinitions="2*,24,3*">
+      <!-- Add or change a line -->
+      <Border Grid.Column="0" Classes="card" VerticalAlignment="Top">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Money you expect" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                     Text="Anything that may come in, even before it is quoted or invoiced. This list is yours: it stays on this PC and is not synced." />
+          <AutoCompleteBox Text="{Binding Who}" ItemsSource="{Binding ClientNames}" FilterMode="ContainsOrdinal" PlaceholderText="Who from" />
+          <TextBox Text="{Binding What}" PlaceholderText="What for, e.g. New website" />
+          <Grid ColumnDefinitions="*,8,*">
+            <TextBox Grid.Column="0" Text="{Binding Amount}" PlaceholderText="Amount, e.g. 12500" />
+            <ComboBox Grid.Column="2" ItemsSource="{Binding MonthChoices}" SelectedItem="{Binding Month}" HorizontalAlignment="Stretch" ToolTip.Tip="The month you expect it in" />
+          </Grid>
+          <StackPanel Spacing="6">
+            <TextBlock Classes="label" Text="How sure" />
+            <WrapPanel>
+              <ItemsControl ItemsSource="{Binding Presets}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ExpectedPreset">
+                    <Button Classes="segment" Classes.on="{Binding IsOn}" Content="{Binding Label}" Command="{Binding PickCommand}" ToolTip.Tip="{Binding Tip}" Margin="0,0,6,6" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </WrapPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBox Width="70" Text="{Binding Percent}" ToolTip.Tip="Or type your own percentage, 0 to 100" />
+              <TextBlock Text="%" VerticalAlignment="Center" />
+              <TextBlock Classes="muted" Text="{Binding PercentLabel}" VerticalAlignment="Center" />
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Classes="label problem" Text="{Binding Message}" TextWrapping="Wrap"
+                     IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary" Content="{Binding AddLabel}" Command="{Binding AddCommand}" />
+            <Button Classes="link" Content="Cancel" Command="{Binding CancelChangeCommand}" IsVisible="{Binding IsChanging}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Month by month -->
+      <StackPanel Grid.Column="2" Spacing="14">
+        <Border Classes="card" IsVisible="{Binding NoMonths}">
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="Nothing expected yet. Add what you think is coming, and each month shows what it is likely worth." />
+        </Border>
+        <ItemsControl ItemsSource="{Binding Months}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Spacing="14" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ExpectedMonthGroup">
+              <Border Classes="card" Padding="0">
+                <StackPanel>
+                  <DockPanel Margin="20,14,20,8">
+                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Totals}" VerticalAlignment="Center" />
+                    <TextBlock Classes="h2" Text="{Binding Name}" />
+                  </DockPanel>
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Margin="20,0,20,6" IsVisible="{Binding IsPast}"
+                             Text="This month has passed. Tick off what came in or was lost." />
+                  <ItemsControl ItemsSource="{Binding Rows}" Margin="0,0,0,8">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ExpectedRow">
+                        <Border Classes="taskrow" Padding="20,8,12,8">
+                          <Border.ContextMenu>
+                            <ContextMenu>
+                              <MenuItem Header="Came in" Command="{Binding MarkCameInCommand}" />
+                              <MenuItem Header="Lost" Command="{Binding MarkLostCommand}" />
+                              <Separator />
+                              <MenuItem Header="Change" Command="{Binding ChangeCommand}" />
+                              <MenuItem Header="Remove" Command="{Binding RemoveCommand}" />
+                            </ContextMenu>
+                          </Border.ContextMenu>
+                          <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="12,0,0,0">
+                              <Button Classes="quiet" Content="Came in" Command="{Binding MarkCameInCommand}" ToolTip.Tip="The money came in: tick it off" />
+                              <Button Classes="link" Content="Lost" Command="{Binding MarkLostCommand}" ToolTip.Tip="It fell through" />
+                              <Button Classes="link" Content="Change" Command="{Binding ChangeCommand}" />
+                            </StackPanel>
+                            <StackPanel DockPanel.Dock="Right" Spacing="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                              <TextBlock Text="{Binding Amount}" FontWeight="SemiBold" TextAlignment="Right" />
+                              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding LikelyText}" TextAlignment="Right" />
+                            </StackPanel>
+                            <StackPanel Spacing="1" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextTrimming="CharacterEllipsis">
+                                <Run Text="{Binding Sure, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Detail, Mode=OneWay}" />
+                              </TextBlock>
+                            </StackPanel>
+                          </DockPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Ticked off -->
+        <Border Classes="card" Padding="0" IsVisible="{Binding HasSettled}">
+          <StackPanel>
+            <TextBlock Classes="h2" Text="Ticked off" Margin="20,14,20,8" />
+            <ItemsControl ItemsSource="{Binding Settled}" Margin="0,0,0,8">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ExpectedRow">
+                  <Border Classes="taskrow" Padding="20,8,12,8">
+                    <DockPanel>
+                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="12,0,0,0">
+                        <Button Classes="link" Content="Put back" Command="{Binding PutBackCommand}" ToolTip.Tip="Still expected after all" />
+                        <Button Classes="link" Content="Remove" Command="{Binding RemoveCommand}" />
+                      </StackPanel>
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding Amount}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0" />
+                      <StackPanel Spacing="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextTrimming="CharacterEllipsis">
+                          <Run Text="{Binding Outcome, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding MonthName, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Detail, Mode=OneWay}" />
+                        </TextBlock>
+                      </StackPanel>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Grid>
+  </StackPanel>
+</UserControl>

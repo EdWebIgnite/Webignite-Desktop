@@ -237,7 +237,7 @@ flowchart LR
 | (top) | Overview (with To approve as a card at its top while anything waits: `ApprovalsViewModel` on `OverviewViewModel.Approvals`, its counts as badges on Quotes and Invoices), Mail, Planner (opens the Planner sidebar) |
 | My pages | All my pages, each page the person made by name, New page (all one page; see My pages above) |
 | Client work | Clients, Contacts, Recurring (retainers, with Domains and hosting as a tab inside it: `RetainersViewModel.IsRenewals` shows a `RenewalsViewModel`; `MainViewModel.GoTo` opens the right tab) |
-| Billing | Quotes, Invoices, Money (with Reports as a tab inside it: `MoneyViewModel.IsReports` shows a `ReportsViewModel`) |
+| Billing | Quotes, Invoices, Money (with Reports as a tab inside it: `MoneyViewModel.IsReports` shows a `ReportsViewModel`; and Expected, `MoneyViewModel.IsExpected` showing an `ExpectedIncomeViewModel`: money that may come in, typed by hand with a month and how sure, ticked off as come in or lost. Rules in `Finance/Expected.cs`; kept in the setting `expected-income`, which is not a shared setting, so it stays on the PC it was typed on) |
 | Planner (its own sidebar) | Back arrow, Home, My tasks, Projects, WORK (each running project, Templates, + for a new project), PLAN (Calendar, Week, Diary, Time) |
 | Computer | Files, PDF tools, Notes; the tools Compare, Duplicate files, Calculator, Password generator, Colours, Text snippets, Text from the screen |
 | Web tools | Site check, Site crawler, Mark-up; the tools Website images, Logos and brand sheet, Social images, QR code, Web helpers, DNS records, Page to PDF or picture, Screen ruler |

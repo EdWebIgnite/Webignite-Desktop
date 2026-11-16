@@ -35,6 +35,7 @@
     <DataTemplate DataType="vm:CrawlerViewModel"><v:CrawlerView /></DataTemplate>
     <DataTemplate DataType="vm:MarkupViewModel"><v:MarkupView /></DataTemplate>
     <DataTemplate DataType="vm:ReportsViewModel"><v:ReportsView /></DataTemplate>
+    <DataTemplate DataType="vm:ExpectedIncomeViewModel"><v:ExpectedIncomeView /></DataTemplate>
     <DataTemplate DataType="vm:TimeViewModel"><v:TimeView /></DataTemplate>
     <DataTemplate DataType="vm:CalendarViewModel"><v:CalendarView /></DataTemplate>
     <DataTemplate DataType="vm:PlannerViewModel"><v:PlannerView /></DataTemplate>
