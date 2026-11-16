@@ -1237,7 +1237,40 @@ Open(Page.Money);
     window.Height = 1300;
     Save("reports-tall");
     window.Height = 860;
+    // Expected: money that may come in, typed by hand, with how sure each line is. On this PC only.
+    moneyReports.ShowExpectedCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    var hoped = moneyReports.Expected!;
+    Check("Expected is a third tab on Money, empty to start", moneyReports is { IsExpected: true, IsReports: false, IsMonth: false } && hoped.NoMonths);
+    void Hope(string who, string what, string amount, int monthsAhead, string percent)
+    {
+        hoped.Who = who;
+        hoped.What = what;
+        hoped.Amount = amount;
+        hoped.Month = hoped.MonthChoices[monthsAhead];
+        hoped.Percent = percent;
+        hoped.AddCommand.Execute(null);
+    }
+    Hope("", "", "5000", 0, "50");
+    Check("A line needs who or what", hoped.Message.Length > 0 && hoped.NoMonths);
+    Hope("Karoo Coffee Roasters", "Online shop", "28000", 1, "75");
+    Hope("Bosveld Builders", "Second phase of the site", "14500", 1, "50");
+    Hope("A referral from Pieter", "Logo and stationery", "9000", 2, "25");
+    Hope("Fynbos Physio", "Hosting for the year", "1800", 0, "100");
+    Check("Each month adds up what is likely and what is possible", hoped.Months.Count == 3 && hoped.Likely == Webignite.Core.Documents.Money.Rand(32300m) && hoped.Possible == Webignite.Core.Documents.Money.Rand(53300m)
+        && hoped.Months[1].Rows.Count == 2 && hoped.Months[1].Rows[0].Sure == "Likely, 75%");
+    hoped.Months[0].Rows[0].MarkCameInCommand.Execute(null);
+    Check("Ticking a line off moves it to Ticked off and out of the totals", hoped.Months.Count == 2 && hoped.Settled.Count == 1 && hoped.Settled[0].CameIn
+        && hoped.Possible == Webignite.Core.Documents.Money.Rand(51500m) && hoped.CameIn == Webignite.Core.Documents.Money.Rand(1800m));
+    hoped.Months[1].Rows[0].ChangeCommand.Execute(null);
+    Check("Change loads a line back into the form", hoped.IsChanging && hoped.Amount == "9000" && hoped.PercentLabel == "Long shot");
+    hoped.CancelChangeCommand.Execute(null);
+    Check("The list is this PC's own, not a shared setting", services.Settings.ExpectedIncome.Count == 4 && !Webignite.Core.Sync.SharedSettings.IsShared("expected-income"));
+    window.Height = 1000;
+    Save("money-expected");
+    window.Height = 860;
     moneyReports.ShowMonthCommand.Execute(null);
+    Check("Back on Month, the other tabs are put away", moneyReports is { IsMonth: true, Expected: null, Reports: null });
 }
 
 // Mail: the first-time setup, then two mailboxes with a few messages kept on this PC. No network is used.
