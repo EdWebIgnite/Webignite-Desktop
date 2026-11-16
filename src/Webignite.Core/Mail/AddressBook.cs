@@ -14,6 +14,9 @@ public sealed record Contact(string? Name, string Address, int Score, IReadOnlyL
     public string Display => Members is { } members ? $"{Name} (group of {members.Count})" : Person.ToString();
 }
 
+/// <summary>Someone a mail was sent to from this PC, and when: remembered so they are suggested next time.</summary>
+public sealed record Mailed(string? Name, string Address, DateTimeOffset When);
+
 /// <summary>
 /// Suggestions for To, Cc and Bcc: people in Contacts first, then clients and mail already sent and received.
 /// People Eddie has written to rank above people who only wrote in; automatic senders are left out. Groups in
@@ -25,8 +28,40 @@ public static class AddressBook
 
     private static readonly string[] Automatic = ["noreply", "no-reply", "donotreply", "do-not-reply", "mailer-daemon", "postmaster", "bounce", "notifications", "notification"];
 
+    /// <summary>How many people written to are remembered.</summary>
+    public const int MostMailed = 500;
+
+    /// <summary>
+    /// The people written to, with these added at the front: one line per address, the newest first, at most
+    /// <see cref="MostMailed"/>. Kept on the PC as mail is sent, so someone written to is suggested next time
+    /// whether or not the Sent folder has been read.
+    /// </summary>
+    public static IReadOnlyList<Mailed> Remember(IEnumerable<Mailed> known, IEnumerable<MailPerson> sentTo, DateTimeOffset now)
+    {
+        var fresh = sentTo.Where(p => Addresses.LooksValid(p.Address.Trim()))
+            .Select(p => new Mailed(string.IsNullOrWhiteSpace(p.Name) ? null : p.Name.Trim(), p.Address.Trim(), now)).ToList();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var old = known.ToList();
+        // A name known from before is kept when the mail just sent had only the address.
+        var names = old.Where(m => m.Name is not null).GroupBy(m => m.Address, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First().Name, StringComparer.OrdinalIgnoreCase);
+        return [.. fresh.Select(m => m.Name is null && names.TryGetValue(m.Address, out var name) ? m with { Name = name } : m).Concat(old)
+            .Where(m => seen.Add(m.Address)).Take(MostMailed)];
+    }
+
+    /// <summary>
+    /// Who a mail's menu is about: its sender, or for a mail Eddie sent, the people it went to. His own addresses
+    /// are never among them, so nothing offers to add him to Contacts or make him a client.
+    /// </summary>
+    public static IReadOnlyList<MailPerson> Others(MailSummary mail, IEnumerable<string> ownAddresses)
+    {
+        var own = new HashSet<string>(ownAddresses, StringComparer.OrdinalIgnoreCase);
+        var people = mail.From is { Address.Length: > 0 } from && !own.Contains(from.Address) ? [from] : mail.To.Concat(mail.Cc);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        return [.. people.Where(p => p.Address.Length > 0 && !own.Contains(p.Address) && seen.Add(p.Address))];
+    }
+
     public static IReadOnlyList<Contact> Build(IEnumerable<Client> clients, IEnumerable<MailSummary> mail, IEnumerable<string> ownAddresses, DateTimeOffset now,
-        IEnumerable<Person>? people = null)
+        IEnumerable<Person>? people = null, IEnumerable<Mailed>? mailed = null)
     {
         var own = new HashSet<string>(ownAddresses, StringComparer.OrdinalIgnoreCase);
         var scores = new Dictionary<string, (string? Name, DateTimeOffset NameDate, int Score)>(StringComparer.OrdinalIgnoreCase);
@@ -69,6 +104,10 @@ public static class AddressBook
             else if (m.From is { } sender)
                 Add(sender.Name, sender.Address, 2 * recent, m.Date);
         }
+
+        // People written to from this PC, remembered as each mail went.
+        foreach (var sent in mailed ?? [])
+            Add(sent.Name, sent.Address, 10 * (now - sent.When < TimeSpan.FromDays(90) ? 2 : 1), sent.When);
 
         var everyone = scores.Select(p => new Contact(p.Value.Name, p.Key, p.Value.Score))
             .OrderByDescending(c => c.Score).ThenBy(c => c.Address, StringComparer.OrdinalIgnoreCase);

@@ -286,6 +286,13 @@ public sealed class AppSettings(LocalStore store)
         store.SetSetting("panels", all);
     }
 
+    /// <summary>People mail was sent to from this PC, the newest first, so they are suggested when an address is typed.</summary>
+    public IReadOnlyList<Webignite.Core.Mail.Mailed> MailedTo
+    {
+        get => store.GetSetting<List<Webignite.Core.Mail.Mailed>>("mail-sent-to") ?? [];
+        set => store.SetSetting("mail-sent-to", value.ToList());
+    }
+
     /// <summary>Mail set to send later, waiting as drafts.</summary>
     public SendLaterSettings SendLater
     {

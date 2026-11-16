@@ -261,6 +261,7 @@ public partial class ComposeViewModel : ViewModelBase
             }
             var message = MailComposer.Build(mail, From, source);
             var note = await services.Mail.SendAsync(From, message, answering?.AccountId == From.Id ? answering : null, draftUid);
+            services.RememberMailed([.. mail.To, .. mail.Cc, .. mail.Bcc]);
             if (afterSent is not null)
             {
                 try

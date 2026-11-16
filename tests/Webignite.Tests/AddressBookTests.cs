@@ -34,6 +34,32 @@ public sealed class AddressBookTests
         Assert.DoesNotContain(book, c => c.Address.Contains("xero") || c.Address.Contains("webignite"));
     }
 
+    [Fact]
+    public void A_mail_I_sent_is_about_the_people_it_went_to_and_never_about_me()
+    {
+        var sent = Mail("eddie@webignite.co.za", "Eddie", ["derik@example.co.za", "accounts@webignite.co.za", "derik@example.co.za"], 0, 9);
+        Assert.Equal(["derik@example.co.za"], AddressBook.Others(sent, Own).Select(p => p.Address));
+        var received = Mail("pieter@bosveldbuilders.co.za", "Pieter van Wyk", ["eddie@webignite.co.za"], 0, 10);
+        Assert.Equal(["pieter@bosveldbuilders.co.za"], AddressBook.Others(received, Own).Select(p => p.Address));
+        // A note to myself is about nobody.
+        Assert.Empty(AddressBook.Others(Mail("eddie@webignite.co.za", "Eddie", ["eddie@webignite.co.za"], 0, 11), Own));
+    }
+
+    [Fact]
+    public void People_written_to_are_remembered_and_suggested_without_the_sent_folder()
+    {
+        var mailed = AddressBook.Remember([], [new MailPerson("Derik Ungerer", "derik@example.co.za"), new MailPerson(null, "not an address")], Now);
+        Assert.Equal([new Mailed("Derik Ungerer", "derik@example.co.za", Now)], mailed);
+        // Written to again with only the address: once in the list, the name kept, the newer time.
+        mailed = AddressBook.Remember(mailed, [new MailPerson(null, "DERIK@example.co.za")], Now.AddDays(1));
+        Assert.Equal("Derik Ungerer", Assert.Single(mailed).Name);
+        Assert.Equal(Now.AddDays(1), mailed[0].When);
+
+        var book = AddressBook.Build([], [], Own, Now, mailed: [.. mailed, new Mailed("Eddie", "eddie@webignite.co.za", Now)]);
+        Assert.Equal("derik@example.co.za", Assert.Single(book).Address, ignoreCase: true);
+        Assert.Equal("Derik Ungerer", Assert.Single(AddressBook.Match(book, "der")).Name);
+    }
+
     [Theory]
     [InlineData("pie", "pieter@bosveldbuilders.co.za")]
     [InlineData("van", "pieter@bosveldbuilders.co.za")]
