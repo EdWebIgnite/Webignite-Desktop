@@ -192,6 +192,20 @@ public class XeroPayloadTests
         Assert.Equal("2026-12-10", XeroPayload.QuoteStatus(record, "ACCEPTED")["ExpiryDate"]!.GetValue<string>());
     }
 
+    [Theory]
+    [InlineData("\"LineAmountTypes\":\"NoTax\",", "NOTAX")]
+    [InlineData("\"LineAmountTypes\":\"Exclusive\",\"TotalTax\":150,", "EXCLUSIVE")]
+    [InlineData("\"LineAmountTypes\":\"INCLUSIVE\",", "INCLUSIVE")]
+    [InlineData("", "NOTAX")]
+    [InlineData("\"LineAmountTypes\":\"\",\"TotalTax\":0,", "NOTAX")]
+    [InlineData("\"TotalTax\":150.5,", "EXCLUSIVE")]
+    public void A_quote_status_change_always_carries_an_amount_type_xero_takes(string given, string sent)
+    {
+        // Xero hands a quote back with the type spelt its own way, or without it, and refuses either when it is sent back.
+        var record = JsonNode.Parse("{" + given + "\"QuoteID\":\"q1\",\"QuoteNumber\":\"QU-1023\",\"DateString\":\"2026-11-16T00:00:00\",\"Contact\":{\"ContactID\":\"k1\"}}")!.AsObject();
+        Assert.Equal(sent, XeroPayload.QuoteStatus(record, "SENT")["LineAmountTypes"]!.GetValue<string>());
+    }
+
     [Fact]
     public void A_quote_is_valid_for_the_set_days_from_sending_unless_a_date_was_picked_by_hand()
     {

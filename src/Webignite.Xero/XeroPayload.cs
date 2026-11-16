@@ -238,16 +238,31 @@ public static class XeroPayload
             ["Contact"] = new JsonObject { ["ContactID"] = Str(record["Contact"]?["ContactID"]) },
             ["Date"] = NormalizeDate(Str(record["DateString"]) is { Length: > 0 } d ? d : Str(record["Date"])),
         };
-        foreach (var key in new[] { "QuoteNumber", "Reference", "Title", "Summary", "Terms", "CurrencyCode", "BrandingThemeID", "LineAmountTypes" })
+        foreach (var key in new[] { "QuoteNumber", "Reference", "Title", "Summary", "Terms", "CurrencyCode", "BrandingThemeID" })
         {
             if (Str(record[key]) is { Length: > 0 } value)
                 payload[key] = value;
         }
+        payload["LineAmountTypes"] = QuoteAmountTypes(record);
         var keptExpiry = NormalizeDate(Str(record["ExpiryDateString"]) is { Length: > 0 } e ? e : Str(record["ExpiryDate"]));
         if ((expiry is { } newExpiry ? Iso(newExpiry) : keptExpiry) is { } expires)
             payload["ExpiryDate"] = expires;
         return payload;
     }
+
+    /// <summary>
+    /// How a quote's amounts are taxed, in the spelling Xero takes for quotes: EXCLUSIVE, INCLUSIVE or NOTAX. Xero
+    /// hands a quote back with it spelt another way ("NoTax"), or without it, and then turns the update down with
+    /// "Please provide a valid Line Amount Type", so it is never passed back as read. With none given, a quote with
+    /// no tax on it is NOTAX (Webignite is not VAT registered), and one with tax is EXCLUSIVE.
+    /// </summary>
+    public static string QuoteAmountTypes(JsonObject record) => Str(record["LineAmountTypes"]).Trim().ToUpperInvariant() switch
+    {
+        "EXCLUSIVE" => "EXCLUSIVE",
+        "INCLUSIVE" => "INCLUSIVE",
+        "NOTAX" => "NOTAX",
+        _ => (Dec(record["TotalTax"]) ?? 0m) == 0m ? "NOTAX" : "EXCLUSIVE",
+    };
 
     /// <summary>Xero returns dates as /Date(1735689600000+0000)/ or as ISO text.</summary>
     public static string? NormalizeDate(string? value)
