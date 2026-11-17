@@ -29,7 +29,6 @@ public sealed partial class RichTextEditor
 
     public bool HasSelection => caret != anchor;
 
-    private static readonly DataFormat<RichDocument> Writing = DataFormat.CreateInProcessFormat<RichDocument>("webignite-writing");
     private static readonly DataFormat<string> HtmlFormat = DataFormat.CreateStringPlatformFormat("HTML Format");
 
     // Changes
@@ -427,10 +426,16 @@ public sealed partial class RichTextEditor
             return;
         var (start, end) = Selection;
         var piece = RichEditing.Copy(document, start, end);
-        var data = new DataTransfer();
-        data.Add(DataTransferItem.Create(DataFormat.Text, RichText.ToText(piece)));
-        data.Add(DataTransferItem.Create(Writing, piece));
-        await clipboard.SetDataAsync(data);
+        // Windows gets plain text, the one thing every program and Windows' own clipboard history take. The
+        // writing with its formatting is kept here beside it, and used when the same text is pasted back into
+        // the app: a format of the app's own on the clipboard made copies go missing from it.
+        var text = RichText.ToText(piece);
+        if (!await SetTextSurely(clipboard, text))
+        {
+            App.Services?.ShowNote?.Invoke("Not copied", "Windows' clipboard is being used by another program. Try again in a moment.", null);
+            return;
+        }
+        copied = (Plain(text), piece);
         if (cut)
             Change(d => RichEditing.Delete(d, start, end));
     }
@@ -442,8 +447,9 @@ public sealed partial class RichTextEditor
             return;
         RichDocument? piece = null;
         var formats = await clipboard.GetDataFormatsAsync();
-        if (!plain && formats.Contains(Writing))
-            piece = (await clipboard.TryGetValueAsync(Writing))?.Clone();
+        // What was last copied in the app, when it is still what the clipboard holds: pasted with its formatting.
+        if (!plain && copied is { } kept && await clipboard.TryGetTextAsync() is { } onClipboard && Plain(onClipboard) == kept.Text)
+            piece = kept.Piece.Clone();
         if (piece is null && !plain && formats.Contains(HtmlFormat) && await clipboard.TryGetValueAsync(HtmlFormat) is { Length: > 0 } html)
             piece = RichHtml.Read(Fragment(html));
         if (piece is null && !plain && formats.Contains(DataFormat.Bitmap) && await clipboard.TryGetBitmapAsync() is { } bitmap)
@@ -459,13 +465,37 @@ public sealed partial class RichTextEditor
         if (piece is null && await clipboard.TryGetTextAsync() is { Length: > 0 } text)
         {
             piece = new RichDocument();
-            foreach (var line in text.Replace("\r", "").Split('\n'))
+            // Some programs copy text with web codes left in it ("Hi&nbsp;Ronald"); they are turned back into what they stand for.
+            foreach (var line in RichHtml.Uncoded(text).Replace("\r", "").Split('\n'))
                 piece.Blocks.Add(new TextBlock(line));
         }
         if (piece is null)
             return;
         var keep = piece;
         Change(d => RichEditing.InsertDocument(d, HasSelection ? RichEditing.Delete(d, Selection.Start, Selection.End) : caret, keep));
+    }
+
+    // The last thing copied in the app: its plain text as it went to the clipboard, and the writing itself.
+    private static (string Text, RichDocument Piece)? copied;
+
+    private static string Plain(string text) => text.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\n');
+
+    // Another program can hold the clipboard for a moment (a clipboard manager, remote desktop); a few tries get past that.
+    private static async Task<bool> SetTextSurely(IClipboard clipboard, string text)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                await clipboard.SetTextAsync(text);
+                return true;
+            }
+            catch (Exception e) when (e is System.Runtime.InteropServices.COMException or InvalidOperationException or TimeoutException)
+            {
+                await Task.Delay(60);
+            }
+        }
+        return false;
     }
 
     // Windows puts a small header before the HTML; the copied part sits between StartFragment and EndFragment.

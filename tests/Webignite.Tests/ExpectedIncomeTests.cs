@@ -119,3 +119,24 @@ public class NeedsYouAndNotesTests
         Assert.Equal(Webignite.Core.Overview.NoteHistory.Most, kept.Count);
     }
 }
+
+public class PastedTextTests
+{
+    [Theory]
+    [InlineData("Hi&nbsp;Ronald", "Hi Ronald")]
+    [InlineData("We&apos;ll&nbsp;send&nbsp;the&nbsp;quotes", "We'll send the quotes")]
+    [InlineData("Hi&amp;nbsp;Ronald, it&amp;apos;s fine", "Hi Ronald, it's fine")]
+    [InlineData("Tom &amp; Jerry", "Tom & Jerry")]
+    [InlineData("R&D and Q&A stay as typed", "R&D and Q&A stay as typed")]
+    [InlineData("5 < 6 & 7 > 2", "5 < 6 & 7 > 2")]
+    [InlineData("Non breaking", "Non breaking")]
+    public void Text_copied_with_web_codes_left_in_is_pasted_as_it_reads(string copied, string pasted) =>
+        Assert.Equal(pasted, Webignite.Core.Writing.RichHtml.Uncoded(copied));
+
+    [Fact]
+    public void A_page_with_its_codes_coded_twice_is_read_as_it_reads()
+    {
+        var read = Webignite.Core.Writing.RichHtml.Read("<p>Hi&amp;nbsp;Ronald</p><ul><li>Design&nbsp;of&nbsp;a&nbsp;site</li></ul>");
+        Assert.Equal(["Hi Ronald", "Design of a site"], read.Blocks.OfType<Webignite.Core.Writing.TextBlock>().Select(b => b.Text));
+    }
+}
