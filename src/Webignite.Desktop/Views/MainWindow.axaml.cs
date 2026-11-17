@@ -96,9 +96,18 @@ public partial class MainWindow : Window
         {
             await FinishRecordingBeforeClose();
             string? problem;
+            List<Window> hidden = [];
             try
             {
-                problem = await main.PrepareToCloseAsync();
+                problem = main.KeepOpenWork();
+                // Everything typed is saved, so the windows go at once. A mail still to send and the last sync
+                // (a few seconds when the server is slow or off) finish behind them, and then the app ends.
+                if (problem is null)
+                {
+                    hidden = HideEveryWindow();
+                    SingleCopy.StopListening();
+                }
+                problem = await main.FinishBeforeCloseAsync(problem);
             }
             catch (Exception e)
             {
@@ -107,6 +116,14 @@ public partial class MainWindow : Window
             }
             if (problem is not null && !warned)
             {
+                // Something needs the person after all (a mail that wouldn't go): the windows come back to say so.
+                foreach (var window in hidden)
+                    window.Show();
+                if (hidden.Count > 0)
+                {
+                    SingleCopy.ListenAgain();
+                    Activate();
+                }
                 // Said once. Closing again leaves anyway, so a mail server that's down can't keep the app open.
                 warned = true;
                 services.ShowNote?.Invoke("Not closed yet", problem + " Close again to leave without it.", null);
@@ -119,6 +136,17 @@ public partial class MainWindow : Window
         }
         readyToClose = true;
         Close();
+    }
+
+    // Hides every window of the app that is showing, and says which, so they can be shown again.
+    private static List<Window> HideEveryWindow()
+    {
+        var showing = Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.Windows.Where(w => w.IsVisible).ToList()
+            : [];
+        foreach (var window in showing)
+            window.Hide();
+        return showing;
     }
 
     /// <summary>Opens the window where it was last time, at the same size and on the same page.</summary>
@@ -142,9 +170,18 @@ public partial class MainWindow : Window
             main.Selected = page;
     }
 
+    private bool watchingScreen;
+
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+        // Freezes of the screen go into the log with what was showing, so a click that went nowhere can be traced.
+        if (!watchingScreen)
+        {
+            watchingScreen = true;
+            var watch = new ScreenWatch(() => (DataContext as MainViewModel)?.Current?.Title ?? "");
+            Closed += (_, _) => watch.Dispose();
+        }
         // A screen that was there last time may be unplugged now: bring the window back into view.
         if (Screens.ScreenFromPoint(Position + new Avalonia.PixelPoint(40, 20)) is null && Screens.Primary is { } screen)
             Position = new Avalonia.PixelPoint(

@@ -798,7 +798,13 @@ public partial class MainViewModel : ViewModelBase
     /// Runs when the window is closed: saves open quotes, invoices and the open client, sends a mail still in its
     /// undo wait and saves the mail being written. Returns what couldn't be kept, or null when nothing is lost.
     /// </summary>
-    public async Task<string?> PrepareToCloseAsync()
+    public async Task<string?> PrepareToCloseAsync() => await FinishBeforeCloseAsync(KeepOpenWork());
+
+    /// <summary>
+    /// The first half of closing, done at once on this PC: everything typed and not yet saved is kept. Returns what
+    /// couldn't be saved and needs the person, or null.
+    /// </summary>
+    public string? KeepOpenWork()
     {
         // Only built pages can hold anything unsaved, and every open copy of a page is saved.
         foreach (var money in Built<MoneyViewModel>(Page.Money))
@@ -829,6 +835,15 @@ public partial class MainViewModel : ViewModelBase
             if (clients.Detail is { } client && !client.Leave())
                 problem ??= $"{client.Title} has something to fix before it can be saved.";
         }
+        return problem;
+    }
+
+    /// <summary>
+    /// The second half of closing, which can take a few seconds and needs nothing on screen: a mail in its undo
+    /// wait goes, the mail being written is saved to Drafts, and the last changes go to your partner.
+    /// </summary>
+    public async Task<string?> FinishBeforeCloseAsync(string? problem)
+    {
         foreach (var mail in Built<MailViewModel>(Page.Mail))
             problem = await mail.SendingPart.PrepareToCloseAsync() ?? problem;
         // What changed since the last full sync goes to your partner now, waiting a few seconds at most.

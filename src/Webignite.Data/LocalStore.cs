@@ -273,7 +273,10 @@ public sealed partial class LocalStore : IDisposable
         var opened = new SqliteConnection(connectionString);
         opened.Open();
         using var command = opened.CreateCommand();
-        command.CommandText = "PRAGMA foreign_keys = ON;";
+        // With the write-ahead log, NORMAL keeps the database whole through a crash or a power cut and only skips
+        // forcing each save to the disk before carrying on, which made every small save on the screen's thread
+        // wait for the disk. The last save or two could be lost in a power cut, never the database.
+        command.CommandText = "PRAGMA foreign_keys = ON; PRAGMA synchronous = NORMAL;";
         command.ExecuteNonQuery();
         return opened;
     }
