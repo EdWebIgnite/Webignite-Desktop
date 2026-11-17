@@ -300,6 +300,27 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("expected-income", value.ToList());
     }
 
+    /// <summary>Lines dismissed from Needs you, by what each is about, with the day it was dismissed. This PC's own.</summary>
+    public IReadOnlyDictionary<string, DateOnly> NeedsYouDismissed
+    {
+        get => store.GetSetting<Dictionary<string, DateOnly>>("needs-you-dismissed") ?? [];
+        set => store.SetSetting("needs-you-dismissed", value.ToDictionary(d => d.Key, d => d.Value));
+    }
+
+    /// <summary>Things on Today's list hidden for the day they were on: "2026-11-17|Event|id". This PC's own.</summary>
+    public IReadOnlyList<string> TodayDismissed
+    {
+        get => store.GetSetting<List<string>>("today-dismissed") ?? [];
+        set => store.SetSetting("today-dismissed", value.ToList());
+    }
+
+    /// <summary>The notes the app showed, kept under the bell until dismissed. This PC's own.</summary>
+    public IReadOnlyList<Webignite.Core.Overview.KeptNote> NoteHistory
+    {
+        get => store.GetSetting<List<Webignite.Core.Overview.KeptNote>>("note-history") ?? [];
+        set => store.SetSetting("note-history", value.ToList());
+    }
+
     /// <summary>Mail set to send later, waiting as drafts.</summary>
     public SendLaterSettings SendLater
     {

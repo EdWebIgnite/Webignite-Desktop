@@ -75,3 +75,47 @@ public class ExpectedIncomeTests
         Assert.Equal(19, ExpectedRules.MonthChoices(Today).Count);
     }
 }
+
+public class NeedsYouAndNotesTests
+{
+    private static readonly DateOnly Today = new(2026, 11, 17);
+
+    [Fact]
+    public void A_dismissed_line_stays_away_while_its_words_change_and_a_problem_comes_back_after_a_week()
+    {
+        var followUp = new Webignite.Core.Overview.SummaryLine("QU-1020 for Eedria was emailed 7 days ago with no answer yet.", Webignite.Core.Overview.SummaryTarget.Renewals) { Key = "chase:q1:FollowUp" };
+        var later = followUp with { Text = "QU-1020 for Eedria was emailed 30 days ago with no answer yet." };
+        var problem = new Webignite.Core.Overview.SummaryLine("karoocoffee.co.za is down.", Webignite.Core.Overview.SummaryTarget.SiteCheck, Problem: true) { Key = "site:karoocoffee.co.za:down" };
+
+        var dismissed = Webignite.Core.Overview.MorningSummary.Dismiss(new Dictionary<string, DateOnly>(), followUp, Today);
+        dismissed = Webignite.Core.Overview.MorningSummary.Dismiss(dismissed, problem, Today);
+        Assert.True(Webignite.Core.Overview.MorningSummary.IsDismissed(dismissed, later, Today.AddDays(200)));
+        Assert.True(Webignite.Core.Overview.MorningSummary.IsDismissed(dismissed, problem, Today.AddDays(6)));
+        Assert.False(Webignite.Core.Overview.MorningSummary.IsDismissed(dismissed, problem, Today.AddDays(7)));
+        // Undo, and a line with no key of its own is known by its words without the numbers.
+        Assert.False(Webignite.Core.Overview.MorningSummary.IsDismissed(Webignite.Core.Overview.MorningSummary.PutBack(dismissed, followUp), later, Today));
+        var plain = new Webignite.Core.Overview.SummaryLine("3 more overdue invoices.", Webignite.Core.Overview.SummaryTarget.Invoices);
+        Assert.Equal(plain.Key, (plain with { Text = "5 more overdue invoices." }).Key);
+        // Dismissals over a year old are forgotten.
+        Assert.DoesNotContain("chase:q1:FollowUp", Webignite.Core.Overview.MorningSummary.Dismiss(dismissed, problem, Today.AddDays(401)).Keys);
+    }
+
+    [Fact]
+    public void Notes_are_kept_newest_first_until_dismissed_but_not_the_offers_to_undo()
+    {
+        var at = new DateTimeOffset(2026, 11, 17, 9, 0, 0, TimeSpan.Zero);
+        IReadOnlyList<Webignite.Core.Overview.KeptNote> kept = [];
+        kept = Webignite.Core.Overview.NoteHistory.Add(kept, "New mail", "Thandi: Product photos", at);
+        kept = Webignite.Core.Overview.NoteHistory.Add(kept, "New mail", "Thandi: Product photos", at.AddSeconds(20));
+        kept = Webignite.Core.Overview.NoteHistory.Add(kept, "Deleted the quote", Webignite.Core.Overview.NoteHistory.UndoText, at.AddMinutes(1));
+        kept = Webignite.Core.Overview.NoteHistory.Add(kept, "Site down", "karoocoffee.co.za stopped answering.", at.AddMinutes(2));
+        Assert.Equal(["Site down", "New mail"], kept.Select(n => n.Title));
+        Assert.Equal(2, Webignite.Core.Overview.NoteHistory.Unseen(kept));
+        kept = Webignite.Core.Overview.NoteHistory.Seen(kept);
+        Assert.Equal(0, Webignite.Core.Overview.NoteHistory.Unseen(kept));
+        Assert.Equal("New mail", Assert.Single(Webignite.Core.Overview.NoteHistory.Dismiss(kept, kept[0].Id)).Title);
+        for (var i = 0; i < 150; i++)
+            kept = Webignite.Core.Overview.NoteHistory.Add(kept, "Note " + i, "text", at.AddHours(i));
+        Assert.Equal(Webignite.Core.Overview.NoteHistory.Most, kept.Count);
+    }
+}

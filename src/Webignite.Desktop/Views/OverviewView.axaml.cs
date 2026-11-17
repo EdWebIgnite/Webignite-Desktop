@@ -130,4 +130,15 @@ public partial class OverviewView : UserControl
         Grid.SetRow(TodayCard, nowWide ? 0 : 1);
         TodayCard.Margin = nowWide || !NeedsCard.IsVisible ? default : new Thickness(0, 22, 0, 0);
     }
+
+    // Done or Dismiss on one of Today's items: a click on its label at the right, heard once for the whole list.
+    private void ClearPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        if (e.Source is Avalonia.Controls.TextBlock { Tag: "clear", DataContext: Webignite.Desktop.ViewModels.AgendaItemViewModel { CanClear: true } item }
+            && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            e.Handled = true;
+            item.Clear();
+        }
+    }
 }

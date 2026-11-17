@@ -3,6 +3,7 @@
         xmlns:vm="using:Webignite.Desktop.ViewModels"
         xmlns:search="using:Webignite.Core.Search"
         xmlns:c="using:Webignite.Desktop.Controls"
+        xmlns:v="using:Webignite.Desktop.Views"
         x:Class="Webignite.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/icon.png"
@@ -60,6 +61,17 @@
           </Button>
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,8,0,0">
+          <Button Classes="navtoggle" HorizontalAlignment="Center" ToolTip.Tip="{Binding NotificationsTip}">
+            <Button.Flyout>
+              <Flyout Placement="RightEdgeAlignedBottom" Opened="NotificationsOpened" />
+            </Button.Flyout>
+            <Panel>
+              <c:Icon Data="{StaticResource Icon.Bell}" Size="18" Foreground="{DynamicResource NavText}" />
+              <Border Classes="badge" IsVisible="{Binding HasUnseenNotifications}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-10,0">
+                <TextBlock Text="{Binding UnseenNotifications}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
+              </Border>
+            </Panel>
+          </Button>
           <Button Classes="navtoggle" HorizontalAlignment="Center" Command="{Binding OpenChatCommand}" ToolTip.Tip="{Binding ChatPartnerTip}">
             <Panel>
               <c:Icon Data="{StaticResource Icon.Chat}" Size="18" Foreground="{DynamicResource NavText}" />
@@ -155,6 +167,19 @@
         </StackPanel>
 
         <StackPanel DockPanel.Dock="Bottom" Margin="6,8,6,0" Spacing="6">
+          <!-- Notifications: what the app said in its corner, kept until dismissed. A list from the bell, not a page. -->
+          <Button Classes="navsearch" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding NotificationsTip}">
+            <Button.Flyout>
+              <Flyout Placement="RightEdgeAlignedBottom" Opened="NotificationsOpened" />
+            </Button.Flyout>
+            <DockPanel>
+              <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasUnseenNotifications}" VerticalAlignment="Center">
+                <TextBlock Text="{Binding UnseenNotifications}" FontSize="{DynamicResource Text10}" FontWeight="SemiBold" />
+              </Border>
+              <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Bell}" Size="16" Foreground="{DynamicResource NavText}" Margin="0,0,10,0" VerticalAlignment="Center" />
+              <TextBlock Text="Notifications" Foreground="{DynamicResource NavText}" VerticalAlignment="Center" />
+            </DockPanel>
+          </Button>
           <!-- Chat with your partner, in a small window; the count is messages not read yet. -->
           <Button Classes="navsearch" HorizontalAlignment="Stretch" Command="{Binding OpenChatCommand}" ToolTip.Tip="{Binding ChatPartnerTip}">
             <DockPanel>

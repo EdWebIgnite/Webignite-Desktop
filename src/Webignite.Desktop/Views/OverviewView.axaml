@@ -99,9 +99,9 @@
             <DataTemplate x:DataType="vm:SummaryLineViewModel">
               <!-- The whole line opens what it's about; its action and No reply needed show while the pointer is on it. -->
               <DockPanel Classes="needsrow">
-                <Button DockPanel.Dock="Right" Classes="link needsextra" Content="No reply needed" Margin="10,0,0,0" IsVisible="{Binding CanWaveOff}"
-                        Command="{Binding NoReplyNeededCommand}" VerticalAlignment="Center"
-                        ToolTip.Tip="Takes it off this list. It comes back if they write again." />
+                <!-- One button for taking a line off, whatever it is about: this page is built as the app starts, so a line gets no more parts than it had. -->
+                <Button DockPanel.Dock="Right" Classes="link needsextra" Content="{Binding WaveOffLabel}" Margin="10,0,0,0"
+                        Command="{Binding WaveOffCommand}" VerticalAlignment="Center" ToolTip.Tip="{Binding WaveOffTip}" />
                 <Button DockPanel.Dock="Right" Classes="link needsextra" Content="{Binding Action}" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}"
                         FontSize="{DynamicResource Text12}" Margin="10,0,0,0" VerticalAlignment="Center" />
                 <Button Classes="row needsline" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
@@ -132,12 +132,14 @@
           </StackPanel>
         </DockPanel>
         <TextBlock Classes="muted" Text="Nothing booked or due today." IsVisible="{Binding TodayIsEmpty}" />
-        <ItemsControl ItemsSource="{Binding Today}">
+        <ItemsControl ItemsSource="{Binding Today}" PointerPressed="ClearPressed">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:AgendaItemViewModel">
               <c:AgendaChip Padding="10,7" Margin="0,0,0,6">
                 <DockPanel>
-                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding KindLabel}" VerticalAlignment="Center" />
+                  <!-- What it is, and the word that clears it ("To-do · Done"). The list takes the click (ClearPressed), so a long day costs no more parts. -->
+                  <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding KindAndClear}" VerticalAlignment="Center"
+                             Tag="clear" />
                   <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="52" IsVisible="{Binding HasTime}" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
                 </DockPanel>

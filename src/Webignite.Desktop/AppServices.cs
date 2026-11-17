@@ -314,6 +314,27 @@ public sealed class AppServices : IDisposable
         });
     }
 
+    /// <summary>
+    /// Dismisses a line from Needs you, whatever it is about: it stays away (a problem comes back after a week if
+    /// it is still there). A quote's follow-up or an invoice's reminder takes its to-do with it. Offers Undo.
+    /// </summary>
+    public void DismissFromNeedsYou(Webignite.Core.Overview.SummaryLine line)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        Settings.NeedsYouDismissed = Webignite.Core.Overview.MorningSummary.Dismiss(Settings.NeedsYouDismissed, line, today);
+        if (line.Chase is { } chase)
+            Documents.TickOffChasing(chase.Stored.Id, DateTimeOffset.Now);
+        RepliesChanged?.Invoke();
+        OfferUndo("Dismissed from Needs you", () =>
+        {
+            Settings.NeedsYouDismissed = Webignite.Core.Overview.MorningSummary.PutBack(Settings.NeedsYouDismissed, line);
+            RepliesChanged?.Invoke();
+        });
+    }
+
+    /// <summary>Something on Today's list was ticked off or dismissed: Overview and the widgets that show it look again.</summary>
+    public void TodayChanged() => RepliesChanged?.Invoke();
+
     public event Action? RepliesChanged;
 
     public void OfferUndo(string what, Action putBack) => ShowNote?.Invoke(what, "Click here to undo.", putBack);
@@ -478,14 +499,9 @@ public sealed class AppServices : IDisposable
         var accounts = Store.ListMailAccounts();
         var clients = Store.ListClients();
         var own = accounts.Select(a => a.Address).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        // The newest mail of any kind, and mail Eddie sent from further back, as a busy inbox would crowd that out.
-        var mail = await Task.Run(() =>
-        {
-            var newest = Store.FindMail(accounts.Select(a => a.Id), _ => true, 3000);
-            var sent = Store.FindMail(accounts.Select(a => a.Id), m => m.From is { } from && own.Contains(from.Address), 3000);
-            var seen = newest.Select(m => (m.AccountId, m.Folder, m.Uid)).ToHashSet();
-            return (IReadOnlyList<Webignite.Core.Mail.MailSummary>)[.. newest, .. sent.Where(m => seen.Add((m.AccountId, m.Folder, m.Uid)))];
-        });
+        // The newest mail of any kind. People written to are remembered as each mail goes (Settings.MailedTo), so
+        // older sent mail isn't searched for: that read every message kept on this PC each time the book was made.
+        var mail = await Task.Run(() => Store.FindMail(accounts.Select(a => a.Id), _ => true, 3000));
         addressBook = Webignite.Core.Mail.AddressBook.Build(clients, mail, own, DateTimeOffset.Now, Contacts.List(), Settings.MailedTo);
         addressBookMade = DateTime.UtcNow;
         return addressBook;

@@ -12,7 +12,26 @@ namespace Webignite.Core.Overview;
 public enum SummaryTarget { Invoices, Approvals, Mail, Renewals, Money, Settings, Chase, Statement, Clients, SiteCheck }
 
 /// <summary>One line of the morning summary. A problem shows in red; the rest are plain.</summary>
-public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null, string? Customer = null, Client? Client = null);
+public sealed record SummaryLine(string Text, SummaryTarget Target, bool Problem = false, MailSummary? Mail = null, ChaseItem? Chase = null, string? Customer = null, Client? Client = null)
+{
+    /// <summary>
+    /// What the line is about, the same from day to day while its words change ("7 days ago", then 8): a line
+    /// dismissed from Needs you is remembered by this. Set where the line is made; otherwise worked out from what
+    /// it carries, and last from its words with the numbers left out.
+    /// </summary>
+    public string Key
+    {
+        get => field ?? this switch
+        {
+            { Chase: { } chase } => $"chase:{chase.Stored.Id}:{chase.Kind}",
+            { Mail: { From: { } from } } => $"mail:{from.Address.ToLowerInvariant()}",
+            { Target: SummaryTarget.Statement, Customer: { } customer } => $"statement:{customer.ToLowerInvariant()}",
+            { Client: { } client } => $"client:{client.Id}",
+            _ => $"{Target}:{new string([.. Text.Where(c => !char.IsDigit(c))])}",
+        };
+        init;
+    }
+}
 
 /// <summary>Everything the summary looks at, read by the app from the database.</summary>
 public sealed record SummaryInput
@@ -35,6 +54,9 @@ public sealed record SummaryInput
     /// A newer mail from them shows again.
     /// </summary>
     public IReadOnlyDictionary<string, DateTimeOffset> NoReplyNeeded { get; init; } = new Dictionary<string, DateTimeOffset>();
+
+    /// <summary>Lines dismissed from Needs you, by <see cref="SummaryLine.Key"/>, with the day each was dismissed.</summary>
+    public IReadOnlyDictionary<string, DateOnly> Dismissed { get; init; } = new Dictionary<string, DateOnly>();
 }
 
 /// <summary>
@@ -57,9 +79,9 @@ public static class MorningSummary
         var today = input.Today;
 
         if (!input.BackupsOn)
-            lines.Add(new("Backups are off. Choose a backup password in Settings.", SummaryTarget.Settings, Problem: true));
+            lines.Add(new("Backups are off. Choose a backup password in Settings.", SummaryTarget.Settings, Problem: true) { Key = "backups:off" });
         else if (input.BackupOverdue)
-            lines.Add(new("The daily backup hasn't run for more than two days. Check Settings.", SummaryTarget.Settings, Problem: true));
+            lines.Add(new("The daily backup hasn't run for more than two days. Check Settings.", SummaryTarget.Settings, Problem: true) { Key = "backups:late" });
 
         foreach (var site in input.Sites.Where(Uptime.IsDown).OrderBy(s => s.DownSince))
         {
@@ -67,10 +89,10 @@ public static class MorningSummary
             lines.Add(new(since == today
                     ? $"{site.Domain} is down. It stopped answering at {(site.DownSince ?? site.Last!.At).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)}."
                     : $"{site.Domain} has been down since {Day(since, today)}.",
-                SummaryTarget.SiteCheck, Problem: true));
+                SummaryTarget.SiteCheck, Problem: true) { Key = $"site:{site.Domain}:down" });
         }
         foreach (var site in input.Sites.Where(s => !Uptime.IsDown(s) && Uptime.CertificateProblem(s, today)))
-            lines.Add(new($"{site.Domain}: {Uptime.Certificate(site, today)}", SummaryTarget.SiteCheck, Problem: true));
+            lines.Add(new($"{site.Domain}: {Uptime.Certificate(site, today)}", SummaryTarget.SiteCheck, Problem: true) { Key = $"site:{site.Domain}:certificate" });
 
         var chases = Chasers.Find(input.Documents, today);
         var reminders = chases.Where(c => c.Kind == ChaseKind.Reminder).ToList();
@@ -86,7 +108,7 @@ public static class MorningSummary
             lines.Add(new($"{reminders.Count - MaxChaseLines} more overdue invoices.", SummaryTarget.Invoices, Problem: true));
 
         foreach (var renewal in input.Renewals.Where(r => RenewalRules.State(r, today) == RenewalState.Overdue).OrderBy(r => r.RenewsOn))
-            lines.Add(new($"{renewal.Name} was due for renewal {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals, Problem: true));
+            lines.Add(new($"{renewal.Name} was due for renewal {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals, Problem: true) { Key = $"renewal:{renewal.Id}:{renewal.RenewsOn:yyyy-MM-dd}:late" });
 
         var waiting = Approvals.Waiting(input.Documents).Count;
         if (waiting > 0)
@@ -100,7 +122,8 @@ public static class MorningSummary
         {
             var due = Statements.Due(input.Documents, input.StatementsSent, today);
             foreach (var (customer, open) in due.Take(MaxChaseLines))
-                lines.Add(new($"{customer} has {Money.Rand(open)} open. Send this month's statement.", SummaryTarget.Statement, Customer: customer));
+                lines.Add(new($"{customer} has {Money.Rand(open)} open. Send this month's statement.", SummaryTarget.Statement, Customer: customer)
+                    { Key = $"statement:{customer.ToLowerInvariant()}:{today:yyyy-MM}" });
             if (due.Count > MaxChaseLines)
                 lines.Add(new($"{due.Count - MaxChaseLines} more clients are due a statement. Open a client to draft theirs.", SummaryTarget.Clients));
         }
@@ -117,15 +140,38 @@ public static class MorningSummary
         foreach (var renewal in input.Renewals.Where(r => r.RenewsOn >= today && r.RenewsOn <= today.AddDays(RenewalDays)).OrderBy(r => r.RenewsOn))
         {
             var who = renewal.ClientName is { Length: > 0 } client ? $" for {client}" : "";
-            lines.Add(new($"{renewal.Name}{who} renews {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals));
+            lines.Add(new($"{renewal.Name}{who} renews {On(renewal.RenewsOn, today)}.", SummaryTarget.Renewals) { Key = $"renewal:{renewal.Id}:{renewal.RenewsOn:yyyy-MM-dd}" });
         }
 
         var received = Trends.ReceivedThisMonth(input.Entries, today);
         if (received > 0)
-            lines.Add(new($"{Money.Rand(received)} has come in so far in {today.ToString("MMMM", CultureInfo.InvariantCulture)}.", SummaryTarget.Money));
+            lines.Add(new($"{Money.Rand(received)} has come in so far in {today.ToString("MMMM", CultureInfo.InvariantCulture)}.", SummaryTarget.Money)
+                { Key = $"received:{today:yyyy-MM}" });
 
-        return lines;
+        return [.. lines.Where(line => !IsDismissed(input.Dismissed, line, today))];
     }
+
+    /// <summary>How long a dismissed problem (an overdue invoice, a site down, backups off) stays away before it is said again.</summary>
+    public const int ProblemQuietDays = 7;
+
+    /// <summary>
+    /// Whether a line was dismissed from Needs you. Anything else stays away for good: a client who never answers
+    /// a quote needn't be chased. A problem comes back after <see cref="ProblemQuietDays"/> days if it is still there.
+    /// </summary>
+    public static bool IsDismissed(IReadOnlyDictionary<string, DateOnly> dismissed, SummaryLine line, DateOnly today) =>
+        dismissed.TryGetValue(line.Key, out var on) && (!line.Problem || today.DayNumber - on.DayNumber < ProblemQuietDays);
+
+    /// <summary>The dismissals with this line added. Ones over a year old are forgotten, so the list stays short.</summary>
+    public static IReadOnlyDictionary<string, DateOnly> Dismiss(IReadOnlyDictionary<string, DateOnly> dismissed, SummaryLine line, DateOnly today)
+    {
+        var list = dismissed.Where(d => today.DayNumber - d.Value.DayNumber < 400).ToDictionary(d => d.Key, d => d.Value);
+        list[line.Key] = today;
+        return list;
+    }
+
+    /// <summary>Undo: the line shows again.</summary>
+    public static IReadOnlyDictionary<string, DateOnly> PutBack(IReadOnlyDictionary<string, DateOnly> dismissed, SummaryLine line) =>
+        dismissed.Where(d => d.Key != line.Key).ToDictionary(d => d.Key, d => d.Value);
 
     /// <summary>
     /// Mail from clients in the last two weeks that hasn't been answered, one line per person, newest first.
