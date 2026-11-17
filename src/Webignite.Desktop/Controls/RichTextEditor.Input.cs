@@ -430,7 +430,7 @@ public sealed partial class RichTextEditor
         // writing with its formatting is kept here beside it, and used when the same text is pasted back into
         // the app: a format of the app's own on the clipboard made copies go missing from it.
         var text = RichText.ToText(piece);
-        if (!await SetTextSurely(clipboard, text))
+        if (!await ClipboardText.SetTextAsync(clipboard, text))
         {
             App.Services?.ShowNote?.Invoke("Not copied", "Windows' clipboard is being used by another program. Try again in a moment.", null);
             return;
@@ -480,23 +480,11 @@ public sealed partial class RichTextEditor
 
     private static string Plain(string text) => text.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\n');
 
-    // Another program can hold the clipboard for a moment (a clipboard manager, remote desktop); a few tries get past that.
-    private static async Task<bool> SetTextSurely(IClipboard clipboard, string text)
-    {
-        for (var attempt = 0; attempt < 5; attempt++)
-        {
-            try
-            {
-                await clipboard.SetTextAsync(text);
-                return true;
-            }
-            catch (Exception e) when (e is System.Runtime.InteropServices.COMException or InvalidOperationException or TimeoutException)
-            {
-                await Task.Delay(60);
-            }
-        }
-        return false;
-    }
+    /// <summary>
+    /// Keeps writing copied somewhere else in the app (a mail being read) beside the text that went to the
+    /// clipboard, so pasting it here brings its formatting along.
+    /// </summary>
+    public static void Remember(string text, RichDocument piece) => copied = (Plain(text), piece);
 
     // Windows puts a small header before the HTML; the copied part sits between StartFragment and EndFragment.
     private static string Fragment(string html)
