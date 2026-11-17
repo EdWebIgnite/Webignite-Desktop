@@ -25,6 +25,7 @@ public partial class MailView : FullBleedView
         InitializeComponent();
         Looks.Attach(this, "Mail");
         // Links in mail open in the normal browser, never inside the app.
+        Controls.MailCopy.Attach(Body);
         Body.LinkClicked += (_, e) =>
         {
             e.Event.Handled = true;

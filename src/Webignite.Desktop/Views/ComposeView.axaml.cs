@@ -23,6 +23,7 @@ public partial class ComposeView : UserControl
         InitializeComponent();
         Looks.Attach(this, "Compose");
         // The quoted mail never fetches anything from the internet.
+        Controls.MailCopy.Attach(QuotePanel);
         QuotePanel.ImageLoad += (_, e) =>
         {
             if (!Webignite.Core.Mail.MailImages.Allowed(e.Event.Src, remoteAllowed: false))
