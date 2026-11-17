@@ -64,8 +64,28 @@ public static class SingleCopy
     }
 
     /// <summary>Listens for later starts while the app runs; each hands over what it was asked to open ("" for nothing).</summary>
+    private static Action<string>? answering;
+
+    /// <summary>
+    /// Stops answering later starts while this copy finishes closing behind its hidden windows: a start in those
+    /// few seconds then waits for this copy to end and opens fresh, in place of raising a window that is on its way out.
+    /// </summary>
+    public static void StopListening()
+    {
+        listening?.Cancel();
+        listening = null;
+    }
+
+    /// <summary>Answers later starts again, when closing was called off.</summary>
+    public static void ListenAgain()
+    {
+        if (listening is null && answering is { } opened)
+            Listen(opened);
+    }
+
     public static void Listen(Action<string> opened)
     {
+        answering = opened;
         if (held is null)
             return;
         listening = new CancellationTokenSource();
