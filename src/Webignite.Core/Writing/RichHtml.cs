@@ -174,6 +174,23 @@ public static partial class RichHtml
     /// Reads HTML into writing. <paramref name="picture"/> turns an img src into its bytes and type, or null
     /// to leave the picture out (pictures on the web are never fetched).
     /// </summary>
+    /// <summary>
+    /// Text as a person reads it, from text that still carries web codes: "Hi&amp;nbsp;Ronald, it&amp;apos;s" becomes
+    /// "Hi Ronald, it's". Some programs copy text with the codes left in, or coded twice, and pasted as it comes it
+    /// fills a mail with them. Text without such codes is returned untouched, so an ampersand someone typed stays.
+    /// Non-breaking spaces become ordinary ones.
+    /// </summary>
+    public static string Uncoded(string text)
+    {
+        for (var round = 0; round < 3 && LeftoverCode().IsMatch(text); round++)
+            text = WebUtility.HtmlDecode(text);
+        return text.Replace('\u00A0', ' ');
+    }
+
+    // The codes that only ever come from a web page's source, never from someone's typing.
+    [GeneratedRegex(@"&(nbsp|apos|quot|amp|lt|gt|#39|#160|#x27|#xA0|rsquo|lsquo|rdquo|ldquo|ndash|mdash|hellip);", RegexOptions.IgnoreCase)]
+    private static partial Regex LeftoverCode();
+
     public static RichDocument Read(string html, Func<string, (byte[] Data, string Type)?>? picture = null)
     {
         var reader = new Reader(picture ?? DataAddress);
@@ -387,7 +404,8 @@ public static partial class RichHtml
         {
             if (skipping > 0)
                 return;
-            var text = WebUtility.HtmlDecode(raw);
+            // Decoded, and once more when the page had its codes coded twice ("&amp;nbsp;").
+            var text = Uncoded(WebUtility.HtmlDecode(raw));
             if (!context.Pre)
             {
                 text = Spaces().Replace(text, " ");
