@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.NotificationsList"
+             x:DataType="vm:MainViewModel"
+             Width="360">
+  <!-- The bell's list: every note the app showed, newest first, each with Dismiss. -->
+  <StackPanel Spacing="8">
+    <DockPanel>
+      <Button DockPanel.Dock="Right" Classes="link" Content="Clear all" Command="{Binding ClearNotificationsCommand}" IsVisible="{Binding HasNotifications}" />
+      <TextBlock Classes="h2" Text="Notifications" VerticalAlignment="Center" />
+    </DockPanel>
+    <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoNotifications}"
+               Text="Nothing here. What Webignite tells you in the corner is kept here until you dismiss it." />
+    <ScrollViewer MaxHeight="440" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasNotifications}">
+      <ItemsControl ItemsSource="{Binding Notifications}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:KeptNoteRow">
+            <Border Classes="taskrow" Padding="8,8,4,8">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="quiet coltool" Command="{Binding DismissCommand}" ToolTip.Tip="Dismiss" VerticalAlignment="Top" Margin="6,0,0,0">
+                  <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                </Button>
+                <StackPanel Spacing="2">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="{DynamicResource Text11}" Text="{Binding When}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    <Ellipse DockPanel.Dock="Left" Width="7" Height="7" Fill="{DynamicResource Primary}" VerticalAlignment="Center" Margin="0,0,6,0" IsVisible="{Binding IsNew}" />
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  </DockPanel>
+                  <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="{DynamicResource Text12}" />
+                  <Button Classes="link" Content="Open" Command="{Binding OpenCommand}" IsVisible="{Binding CanOpen}" Padding="0,2" HorizontalAlignment="Left"
+                          FontSize="{DynamicResource Text12}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </StackPanel>
+</UserControl>

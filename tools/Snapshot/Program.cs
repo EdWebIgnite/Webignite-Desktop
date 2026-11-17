@@ -5782,6 +5782,62 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Save("clients-company");
 }
 
+// Needs you lines can be dismissed, Today's items cleared where they are, and the app's notes are kept under the bell.
+{
+    Action? undo = null;
+    var noteWas = services.ShowNote;
+    services.ShowNote = (_, text, act) => { if (text == Webignite.Core.Overview.NoteHistory.UndoText) undo = act; };
+    store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = "today-1", Title = "Phone the printer", Due = DateOnly.FromDateTime(DateTime.Today), Created = DateTimeOffset.UtcNow });
+    store.SaveEvent(new Webignite.Core.Calendar.CalendarEvent { Id = "today-e", Title = "Coffee with Thandi", Date = DateOnly.FromDateTime(DateTime.Today), Start = new TimeOnly(15, 0) });
+    Open(Page.Overview);
+    vm.Overview.Refresh();
+    if (vm.Overview.HasMoreSummary)
+        vm.Overview.ToggleSummaryCommand.Execute(null);
+    var needs = vm.Overview.Summary.Count;
+    var goes = vm.Overview.Summary.First(l => !l.CanWaveOff);
+    var goesText = goes.Text;
+    Check("Every Needs you line has one way off: Dismiss, or No reply needed for mail", goes.WaveOffLabel == "Dismiss"
+        && vm.Overview.Summary.Where(l => l.CanWaveOff).All(l => l.WaveOffLabel == "No reply needed"));
+    goes.WaveOffCommand.Execute(null);
+    Check("A Needs you line can be dismissed, and stays away when the page is read again", vm.Overview.Summary.All(l => l.Text != goesText)
+        && services.Settings.NeedsYouDismissed.Count == 1 && undo is not null);
+    vm.Overview.Refresh();
+    Check("It is still gone after a refresh", vm.Overview.Summary.All(l => l.Text != goesText));
+    undo!();
+    Check("Undo puts the line back", vm.Overview.Summary.Any(l => l.Text == goesText) && services.Settings.NeedsYouDismissed.Count == 0);
+
+    var todo = vm.Overview.Today.First(i => i.Title == "Phone the printer");
+    var meeting = vm.Overview.Today.First(i => i.Title == "Coffee with Thandi");
+    Check("Today's items say what clearing them does", todo is { CanClear: true, ClearLabel: "Done" } && meeting is { CanClear: true, ClearLabel: "Dismiss" }
+        && todo.KindAndClear.EndsWith("Done", StringComparison.Ordinal) && meeting.KindAndClear.StartsWith("Event", StringComparison.Ordinal));
+    Save("overview-today-clear");
+    todo.Clear();
+    Check("Done on Today ticks the to-do off", store.ListTasks().First(t => t.Id == "today-1").Done && vm.Overview.Today.All(i => i.Title != "Phone the printer"));
+    undo!();
+    Check("Undo unticks it", !store.ListTasks().First(t => t.Id == "today-1").Done && vm.Overview.Today.Any(i => i.Title == "Phone the printer"));
+    vm.Overview.Today.First(i => i.Title == "Coffee with Thandi").Clear();
+    Check("Dismiss takes an event off Today and leaves it in the calendar", vm.Overview.Today.All(i => i.Title != "Coffee with Thandi") && store.GetEvent("today-e") is not null);
+    store.DeleteEvent("today-e");
+    store.ChangeTask("today-1", t => t with { Done = true });
+    services.ShowNote = noteWas;
+
+    services.Settings.NoteHistory = [];
+    vm.ShowNotifications();
+    var noteOpened = false;
+    vm.KeepNote("karoocoffee.co.za is down", "It stopped answering at 10:41.", () => noteOpened = true);
+    vm.KeepNote("Deleted the quote", Webignite.Core.Overview.NoteHistory.UndoText, () => { });
+    vm.KeepNote("Payment received", "Karoo Coffee Roasters paid INV-0107.", null);
+    Check("Notes are kept under the bell, newest first, without the offers to undo", vm.Notifications.Count == 2 && vm.UnseenNotifications == 2
+        && vm.Notifications[0].Title == "Payment received" && vm.Notifications[1].CanOpen && !vm.Notifications[0].CanOpen);
+    vm.NotificationsSeen();
+    vm.Notifications[1].OpenCommand.Execute(null);
+    Check("Opening the list marks them seen, and a note still opens what it was about", vm.UnseenNotifications == 0 && noteOpened);
+    vm.Notifications[0].DismissCommand.Execute(null);
+    Check("A note can be dismissed, and all of them cleared", vm.Notifications.Count == 1 && services.Settings.NoteHistory.Count == 1);
+    vm.ClearNotificationsCommand.Execute(null);
+    Check("Clear all empties the list", vm.Notifications.Count == 0 && vm.NoNotifications);
+}
+
 Check("The new-mail check finished", mailCheck.IsCompletedSuccessfully);
 if (failures.Count > 0)
 {

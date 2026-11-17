@@ -104,6 +104,8 @@
               <DataTemplate x:DataType="vm:AgendaItemViewModel">
                 <c:AgendaChip Padding="8,5" Margin="0,0,0,5">
                   <DockPanel>
+                    <Button DockPanel.Dock="Right" Classes="link" Content="{Binding ClearLabel}" Command="{Binding ClearCommand}" IsVisible="{Binding CanClear}"
+                            FontSize="{DynamicResource Text12}" Padding="6,0" VerticalAlignment="Center" ToolTip.Tip="{Binding ClearTip}" />
                     <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Width="44" IsVisible="{Binding HasTime}" FontWeight="SemiBold" FontSize="{DynamicResource Text12}" />
                     <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="{DynamicResource Text12}" />
                   </DockPanel>
@@ -211,8 +213,7 @@
                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="{DynamicResource Text12x5}" Classes.problem="{Binding Problem}" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
                       <Button Classes="link" Content="{Binding Action}" Command="{Binding OpenCommand}" IsEnabled="{Binding !Busy}" Padding="0" FontSize="{DynamicResource Text12}" />
-                      <Button Classes="link" Content="No reply needed" Command="{Binding NoReplyNeededCommand}" IsVisible="{Binding CanWaveOff}" Padding="0" FontSize="{DynamicResource Text12}"
-                              ToolTip.Tip="Takes it off this list. It comes back if they write again." />
+                      <Button Classes="link" Content="{Binding WaveOffLabel}" Command="{Binding WaveOffCommand}" ToolTip.Tip="{Binding WaveOffTip}" Padding="0" FontSize="{DynamicResource Text12}" />
                     </StackPanel>
                   </StackPanel>
                 </DockPanel>

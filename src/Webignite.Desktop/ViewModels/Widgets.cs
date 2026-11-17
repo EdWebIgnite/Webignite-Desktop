@@ -254,11 +254,9 @@ public sealed partial class TodayBody : WidgetBody
 
     public override void Refresh()
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
         Items.Clear();
-        foreach (var item in Agenda.Build(today, today, services.Store.ListEvents(today, today), services.Store.ListTasks(), services.Documents.List(),
-                     services.Projects.Agenda(today, today, services.Me().Id)).Where(i => !i.Done))
-            Items.Add(new AgendaItemViewModel(item));
+        foreach (var item in TodayList.Items(services, Refresh))
+            Items.Add(item);
         IsEmpty = Items.Count == 0;
     }
 }

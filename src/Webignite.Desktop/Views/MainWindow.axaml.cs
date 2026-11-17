@@ -418,6 +418,15 @@ public partial class MainWindow : Window
         Activate();
     }
 
+    // The bell's list is opening: read the kept notes, and nothing in it counts as new any more.
+    // The list itself is made the first time it is opened, so it costs nothing as the app starts.
+    private void NotificationsOpened(object? sender, EventArgs e)
+    {
+        if (sender is Flyout { Content: null } flyout)
+            flyout.Content = new NotificationsList { DataContext = DataContext };
+        (DataContext as MainViewModel)?.NotificationsSeen();
+    }
+
     private void ShowNote(string title, string text, Action? onClick)
     {
         var now = DateTime.UtcNow;
@@ -431,6 +440,8 @@ public partial class MainWindow : Window
                 return;
             lately[key] = now;
         }
+        // Kept under the bell as well, to read later and dismiss (not the offers to undo).
+        (DataContext as MainViewModel)?.KeepNote(title, text, onClick);
         notes.Show(new Notification(title, text, NotificationType.Information, NoteShows, onClick: () =>
         {
             if (WindowState == WindowState.Minimized)

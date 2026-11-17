@@ -186,8 +186,9 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHo
         var documents = services.Documents.List();
 
         Today.Clear();
-        foreach (var item in Agenda.Build(today, today, services.Store.ListEvents(today, today), tasks, documents, services.Projects.Agenda(today, today, services.Me().Id)).Where(i => !i.Done))
-            Today.Add(new AgendaItemViewModel(item));
+        // Overview hears of a change through RepliesChanged, so the list needs nothing more from the item cleared.
+        foreach (var item in TodayList.Items(services, () => { }))
+            Today.Add(item);
         var overdueTasks = tasks.Count(t => TaskGroups.Of(t, today) == TaskGroup.Overdue);
         OverdueText = overdueTasks switch { 0 => "", 1 => "1 overdue to-do", _ => $"{overdueTasks} overdue to-dos" };
 
@@ -233,6 +234,24 @@ public sealed partial class SummaryLineViewModel(SummaryLine line, AppServices s
     {
         if (line.Mail is { } mail)
             services.NoReplyNeeded(mail);
+    }
+
+    /// <summary>Takes the line off Needs you: some clients are never chased, and that is fine.</summary>
+    [RelayCommand]
+    private void Dismiss() => services.DismissFromNeedsYou(line);
+
+    /// <summary>The one way off the list each line has: a mail waiting on a reply needs none, anything else is dismissed.</summary>
+    public string WaveOffLabel => CanWaveOff ? "No reply needed" : "Dismiss";
+    public string WaveOffTip => CanWaveOff ? "Takes it off this list. It comes back if they write again."
+        : line.Problem ? "Takes it off this list. It comes back after a week if it is still a problem." : "Takes it off this list for good.";
+
+    [RelayCommand]
+    private void WaveOff()
+    {
+        if (CanWaveOff)
+            NoReplyNeeded();
+        else
+            Dismiss();
     }
 
     [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]

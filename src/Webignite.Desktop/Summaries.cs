@@ -31,6 +31,7 @@ public static class Summaries
             BackupsOn = hasPassword,
             BackupOverdue = BackupRules.Overdue(services.Settings.Backups, hasPassword, DateTimeOffset.Now),
             NoReplyNeeded = services.Settings.NoReplyNeeded,
+            Dismissed = services.Settings.NeedsYouDismissed,
         };
     }
 
