@@ -209,6 +209,17 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     [ObservableProperty] public partial int MailCheckMinutes { get; set; } = 5;
     [ObservableProperty] public partial bool NotifyNewMail { get; set; } = true;
 
+    /// <summary>A mail being written opens in a window of its own.</summary>
+    public bool ComposeInWindow
+    {
+        get => services.Settings.ComposeInWindow;
+        set
+        {
+            services.Settings.ComposeInWindow = value;
+            OnPropertyChanged();
+        }
+    }
+
     partial void OnMailCheckMinutesChanged(int value) =>
         services.Settings.MailCheck = services.Settings.MailCheck with { Minutes = value };
 

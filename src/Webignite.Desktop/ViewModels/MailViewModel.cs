@@ -104,14 +104,30 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
     }
 
     public bool HasComposer => Composer is not null;
-    public bool ShowReader => Reader is not null && Composer is null && SelectedCount <= 1;
-    public bool ShowMany => SelectedCount > 1 && Composer is null;
-    public bool ShowNothing => Reader is null && Composer is null && SelectedCount <= 1;
+
+    /// <summary>The mail being written is in a window of its own, so this page goes on showing the mail being read.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowComposerHere), nameof(ShowReader), nameof(ShowNothing), nameof(ShowMany), nameof(ShowActions))]
+    public partial bool ComposerOut { get; private set; }
+
+    public bool ShowComposerHere => Composer is not null && !ComposerOut;
+
+    partial void OnComposerChanged(ComposeViewModel? oldValue, ComposeViewModel? newValue)
+    {
+        if (oldValue is not null && ComposerOut)
+            services.HideComposer?.Invoke(oldValue);
+        ComposerOut = newValue is not null && services.ShowComposer?.Invoke(newValue) == true;
+        OnPropertyChanged(nameof(ShowComposerHere));
+    }
+
+    public bool ShowReader => Reader is not null && !ShowComposerHere && SelectedCount <= 1;
+    public bool ShowMany => SelectedCount > 1 && !ShowComposerHere;
+    public bool ShowNothing => Reader is null && !ShowComposerHere && SelectedCount <= 1;
     public string ManyText => $"{SelectedCount} messages selected";
 
     /// <summary>Whether the buttons for marking, moving and deleting have something to work on.</summary>
     public bool HasTargets => SelectedCount > 0 || Reader is not null;
-    public bool ShowActions => HasTargets && Composer is null;
+    public bool ShowActions => HasTargets && !ShowComposerHere;
 
     [ObservableProperty] public partial string Search { get; set; } = "";
     [ObservableProperty] public partial string Status { get; set; } = "";

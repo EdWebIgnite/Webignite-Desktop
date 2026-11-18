@@ -80,6 +80,7 @@ public partial class MainWindow : Window
             WireRecording(main, services);
             WireQuickNote(services);
             WireTools(services);
+            WireCompose(services);
             WireColourPicker(services);
             WireRuler(services);
             WireScreenText(services);

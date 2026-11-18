@@ -42,6 +42,8 @@ services.Settings.Backups = new Webignite.Core.Backups.BackupSettings { Folder =
 // Client folders as on Eddie's PC (C:\Projects), with a few files in them, for Files and the client pages.
 var projects = Path.Combine(data, "Projects");
 services.Settings.Files = new Webignite.Core.Files.FileSettings { ClientRoot = projects };
+// Mail is written inside the Mail page for these pictures; its own window is tried once, further down.
+services.Settings.ComposeInWindow = false;
 App.Services = services;
 
 AppBuilder.Configure<App>()
@@ -4509,7 +4511,8 @@ SaveLooks("projects");
         projectsPage.Rows.OfType<TaskRow>().First(r => r.Task.Id == repeating.Task.Id).Done = true;
         Check("Ticking off a weekly task keeps the one task, done until its next week", projectsPage.Rows.OfType<TaskRow>().Count(r => r.Title == repeating.Title) == 1
             && projectsPage.Rows.OfType<TaskRow>().Any(r => r.Title == repeating.Title && r.Done && r.Task.BackOn is not null
-            && r.Task.Due == repeating.Task.Due!.Value.AddDays(7) && r.Repeats));
+            // Its next due date is a whole number of weeks on, whatever today is (the task's date is a fixed one).
+            && r.Task.Due > repeating.Task.Due && (r.Task.Due!.Value.DayNumber - repeating.Task.Due!.Value.DayNumber) % 7 == 0 && r.Repeats));
         projectsPage.SaveAsTemplateCommand.Execute(null);
         Check("A project is kept as a template", projectsPage.Templates.Any(t => t.Name == "Bosveld Builders new website" && t.Headings.Count == 3));
         projectsPage.NewProjectName = "Karoo Coffee website";
@@ -5836,6 +5839,28 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Check("A note can be dismissed, and all of them cleared", vm.Notifications.Count == 1 && services.Settings.NoteHistory.Count == 1);
     vm.ClearNotificationsCommand.Execute(null);
     Check("Clear all empties the list", vm.Notifications.Count == 0 && vm.NoNotifications);
+}
+
+// A mail being written opens in a window of its own when that is switched on, and the page goes on showing the mail being read.
+{
+    services.Settings.ComposeInWindow = true;
+    Open(Page.Mail);
+    var writing = vm.Mail;
+    if (writing.Composer is not null)
+        writing.Composer.DiscardCommand.Execute(null);
+    writing.WriteCommand.Execute(null);
+    if (writing.Composer is { } newMail)
+        newMail.Subject = "Proofs for Friday";
+    Dispatcher.UIThread.RunJobs();
+    var composeWindow = (Avalonia.Application.Current!.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.Windows
+        .OfType<ComposeWindow>().FirstOrDefault() ?? window.OwnedWindows.OfType<ComposeWindow>().FirstOrDefault();
+    Check("A new mail opens in a window of its own, named after its subject", composeWindow is { Title: "Proofs for Friday" } && writing is { ComposerOut: true, ShowComposerHere: false });
+    if (composeWindow is not null)
+        SaveWindow(composeWindow, "mail-compose-window");
+    writing.Composer!.DiscardCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Closing the mail closes its window", writing.Composer is null && !window.OwnedWindows.OfType<ComposeWindow>().Any());
+    services.Settings.ComposeInWindow = false;
 }
 
 Check("The new-mail check finished", mailCheck.IsCompletedSuccessfully);

@@ -451,6 +451,8 @@
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="New mail also shows within seconds of arriving, when your mail server can tell Webignite (most can, xneelo included). The check above is the backup." />
         <CheckBox IsChecked="{Binding NotifyNewMail}" Content="Show a note in the corner when new mail arrives" />
+        <CheckBox IsChecked="{Binding ComposeInWindow}" Content="Write mail in a window of its own"
+                  ToolTip.Tip="A new mail, a reply or a forward opens in its own window, so the mail you are reading stays in view. Off keeps it inside the Mail page." />
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
                    Text="Mail is checked while Webignite is open, on any page. The taskbar button flashes when mail comes in while the app is behind other windows." />
       </StackPanel>

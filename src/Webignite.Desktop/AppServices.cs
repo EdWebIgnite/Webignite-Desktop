@@ -279,6 +279,12 @@ public sealed class AppServices : IDisposable
     /// <summary>Set by the main window: shows a note in the corner. The action runs when the note is clicked.</summary>
     public Action<string, string, Action?>? ShowNote { get; set; }
 
+    /// <summary>Set by the main window: shows a mail being written in a window of its own. False when it stays in the Mail page (switched off, or no window to show it).</summary>
+    public Func<ViewModels.ComposeViewModel, bool>? ShowComposer { get; set; }
+
+    /// <summary>Set by the main window: closes the window a mail was being written in.</summary>
+    public Action<ViewModels.ComposeViewModel>? HideComposer { get; set; }
+
     /// <summary>Set by the main window on Windows: shows one of Windows' own notifications. The action runs when it is clicked, after the window is brought forward.</summary>
     public Action<string, string, Action?>? ShowWindowsNote { get; set; }
 
