@@ -24,7 +24,11 @@ public sealed class ComposeWindow : Window
         MinHeight = 420;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = this.TryFindResource("Canvas", out var canvas) && canvas is IBrush brush ? brush : Brushes.WhiteSmoke;
-        Content = new ComposeView { DataContext = composer };
+        var view = new ComposeView { DataContext = composer };
+        // The window's own title and X stand in for the composer's heading row, which gives the mail another line.
+        view.FindControl<Panel>("Root")?.Classes.Add("inwindow");
+        Content = view;
+        Looks.Follow(this);
         ShowTitle();
         composer.PropertyChanged += Changed;
         Closed += (_, _) => composer.PropertyChanged -= Changed;

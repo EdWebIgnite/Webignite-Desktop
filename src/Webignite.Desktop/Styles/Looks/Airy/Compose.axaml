@@ -6,8 +6,8 @@
     <Setter Property="Background" Value="{DynamicResource Surface2}" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="CornerRadius" Value="9" />
-    <Setter Property="Padding" Value="7,5" />
-    <Setter Property="MinHeight" Value="38" />
+    <Setter Property="Padding" Value="5,3" />
+    <Setter Property="MinHeight" Value="32" />
   </Style>
   <Style Selector="Window.look-airy Border.addressbox:focus-within">
     <Setter Property="Background" Value="{DynamicResource Surface}" />
@@ -20,5 +20,31 @@
     <Setter Property="Background" Value="{DynamicResource Surface}" />
     <Setter Property="CornerRadius" Value="7" />
     <Setter Property="Padding" Value="9,3,4,3" />
+  </Style>
+  <!-- Airy is roomy everywhere else; above a mail being written its boxes and buttons are pulled in, so the mail gets the room. -->
+  <Style Selector="Window.look-airy Panel.compose TextBox">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="10,5" />
+  </Style>
+  <Style Selector="Window.look-airy Panel.compose TextBox.addressinput">
+    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="Padding" Value="4,2" />
+  </Style>
+  <Style Selector="Window.look-airy Panel.compose ComboBox">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="10,4" />
+  </Style>
+  <Style Selector="Window.look-airy Panel.compose Button.quiet">
+    <Setter Property="Padding" Value="11,5" />
+  </Style>
+  <Style Selector="Window.look-airy Panel.compose Button.primary">
+    <Setter Property="Padding" Value="15,6" />
+  </Style>
+  <Style Selector="Window.look-airy Panel.compose Button.format">
+    <Setter Property="Padding" Value="7,4" />
+    <Setter Property="MinWidth" Value="28" />
+  </Style>
+  <Style Selector="Window.look-airy Panel.compose Button.format.icon">
+    <Setter Property="Padding" Value="6,5" />
   </Style>
 </Styles>

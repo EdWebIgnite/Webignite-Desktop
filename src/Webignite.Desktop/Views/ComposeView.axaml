@@ -14,16 +14,43 @@
       <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
-      <Setter Property="Padding" Value="5,3" />
-      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="4,2" />
+      <Setter Property="MinHeight" Value="30" />
       <Setter Property="Cursor" Value="IBeam" />
     </Style>
     <Style Selector="Border.addressbox:focus-within">
       <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
     </Style>
+    <!-- Writing a mail is kept close: the boxes and buttons above the mail are a little smaller than elsewhere, so the
+         mail itself gets the room. -->
+    <Style Selector="Panel.compose TextBox">
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Panel.compose ComboBox">
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style Selector="Panel.compose Button.quiet">
+      <Setter Property="Padding" Value="10,4" />
+    </Style>
+    <Style Selector="Panel.compose Button.primary">
+      <Setter Property="Padding" Value="14,5" />
+    </Style>
+    <Style Selector="Panel.compose Button.format">
+      <Setter Property="Padding" Value="7,3" />
+      <Setter Property="MinWidth" Value="28" />
+    </Style>
+    <Style Selector="Panel.compose Button.format.icon">
+      <Setter Property="Padding" Value="5,4" />
+    </Style>
+    <!-- In a window of its own the window's title and X say what the heading row would. -->
+    <Style Selector="Panel.compose.inwindow DockPanel.composetitle">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
     <Style Selector="TextBox.addressinput">
-      <Setter Property="MinHeight" Value="26" />
-      <Setter Property="Padding" Value="4,3" />
+      <Setter Property="MinHeight" Value="22" />
+      <Setter Property="Padding" Value="4,2" />
       <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="TextBox.addressinput /template/ Border#PART_BorderElement">
@@ -59,11 +86,11 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
   </UserControl.Styles>
-  <Panel x:Name="Root" DragDrop.AllowDrop="True" Background="Transparent">
+  <Panel x:Name="Root" Classes="compose" DragDrop.AllowDrop="True" Background="Transparent">
   <DockPanel>
     <!-- Header and address fields -->
-    <StackPanel DockPanel.Dock="Top" Margin="24,18,24,8" Spacing="8">
-      <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="16,10,16,4" Spacing="5">
+      <DockPanel Classes="composetitle">
         <Button DockPanel.Dock="Right" Classes="link" Content="Close" Command="{Binding CloseCommand}" />
         <TextBlock Classes="h2" Text="{Binding Heading}" />
       </DockPanel>
@@ -155,7 +182,7 @@
     </StackPanel>
 
     <!-- Send bar -->
-    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="24,12">
+    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="16,8">
       <StackPanel Spacing="8">
         <Border Classes="card" Padding="12,8" IsVisible="{Binding AskingAboutAttachment}">
           <DockPanel>
@@ -216,7 +243,7 @@
     </Border>
 
     <!-- The earlier message, folded away until asked for -->
-    <StackPanel DockPanel.Dock="Bottom" Margin="24,0,24,8" IsVisible="{Binding HasQuote}" Spacing="6">
+    <StackPanel DockPanel.Dock="Bottom" Margin="16,0,16,6" IsVisible="{Binding HasQuote}" Spacing="4">
       <Button Classes="link" Command="{Binding ToggleQuoteCommand}" HorizontalAlignment="Left">
         <Panel>
           <TextBlock Text="Show the earlier message (it goes with the mail)" IsVisible="{Binding !ShowQuote}" />
@@ -232,10 +259,10 @@
     </StackPanel>
 
     <!-- What you type, on paper, with the format bar above it -->
-    <DockPanel Margin="24,4,24,8">
-      <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,6">
-        <WrapPanel x:Name="FormatBar" ItemSpacing="4" LineSpacing="4">
-          <ComboBox x:Name="StyleBox" Width="122" Focusable="False" ToolTip.Tip="Paragraph, heading, quote or code" SelectionChanged="StyleChosen">
+    <DockPanel Margin="16,2,16,6">
+      <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,4">
+        <WrapPanel x:Name="FormatBar" ItemSpacing="2" LineSpacing="2">
+          <ComboBox x:Name="StyleBox" Width="118" Focusable="False" ToolTip.Tip="Paragraph, heading, quote or code" SelectionChanged="StyleChosen">
             <ComboBoxItem Content="Paragraph" Tag="Paragraph" />
             <ComboBoxItem Content="Heading 1" Tag="Heading1" />
             <ComboBoxItem Content="Heading 2" Tag="Heading2" />
@@ -247,7 +274,7 @@
             <ComboBoxItem Content="Normal font" />
             <ComboBoxItem Content="Fixed width" />
           </ComboBox>
-          <ComboBox x:Name="SizeBox" Width="104" Focusable="False" ToolTip.Tip="Text size" SelectionChanged="SizeChosen" />
+          <ComboBox x:Name="SizeBox" Width="98" Focusable="False" ToolTip.Tip="Text size" SelectionChanged="SizeChosen" />
           <Button Classes="quiet format" Focusable="False" Tag="smaller" Click="Format" ToolTip.Tip="Smaller (Ctrl+[)" Content="A−" />
           <Button Classes="quiet format" Focusable="False" Tag="larger" Click="Format" ToolTip.Tip="Larger (Ctrl+])" Content="A+" />
           <Button Classes="quiet format icon" Focusable="False" ToolTip.Tip="Text colour">
