@@ -31,6 +31,7 @@ public sealed partial class SettingsMailBrandViewModel : ViewModelBase, IDisposa
     [ObservableProperty] public partial string BrandWebsite { get; set; } = "";
     [ObservableProperty] public partial string BrandBank { get; set; } = "";
     [ObservableProperty] public partial string BrandTerms { get; set; } = "";
+    [ObservableProperty] public partial string BrandPayFast { get; set; } = "";
     [ObservableProperty] public partial string BrandMessage { get; set; } = "";
     [ObservableProperty] public partial bool BrandProblem { get; set; }
 
@@ -52,6 +53,7 @@ public sealed partial class SettingsMailBrandViewModel : ViewModelBase, IDisposa
         BrandWebsite = brand.Website;
         BrandBank = brand.BankDetails;
         BrandTerms = brand.TermsLink;
+        BrandPayFast = brand.PayFastMerchantId;
         ShowLogo(brand.Logo is { Length: > 0 } logo ? (logo, brand.LogoType) : null);
     }
 
@@ -95,6 +97,7 @@ public sealed partial class SettingsMailBrandViewModel : ViewModelBase, IDisposa
             Website = BrandWebsite.Trim(),
             BankDetails = BrandBank.Trim(),
             TermsLink = BrandTerms.Trim(),
+            PayFastMerchantId = BrandPayFast.Trim(),
         };
         SayBrand($"Saved at {DateTime.Now:HH:mm}. Quote and invoice mails now go out in this layout, on both PCs.", problem: false);
     }

@@ -977,6 +977,54 @@ vm.Clients.Detail!.BackCommand.Execute(null);
         frame?.Save(Path.Combine(output, "pop-out.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
         Console.WriteLine("Saved pop-out");
     }
+    OwnInvoicePdf();
+    // In a function of its own, so the PDF drawing is only loaded when this runs and not as the program starts.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    void OwnInvoicePdf()
+    {
+        // Webignite's own invoice PDF: a company addressed attention the person, enough lines to run onto a second page.
+        var sample = new Webignite.Core.Documents.StoredDocument
+        {
+            Id = "sample",
+            Xero = new Webignite.Core.Documents.XeroLink { Number = "INV-0112", AmountPaid = 1000 },
+            Document = new Webignite.Core.Documents.Document
+            {
+                Kind = Webignite.Core.Documents.DocumentKind.Invoice,
+                Origin = Webignite.Core.Documents.DocumentOrigin.New,
+                Customer = new Webignite.Core.Documents.Customer { Name = "Francois Booysens" },
+                Date = new DateOnly(2026, 11, 18),
+                DueOrExpiryDate = new DateOnly(2026, 11, 25),
+                Reference = "November care",
+                Lines =
+                [
+                    new() { Product = "Website care plan", Description = "Updates, backups and security checks for g3.co.za, with a monthly report of what was done and what needs attention next.", Quantity = 1, UnitPrice = 1850 },
+                    new() { Description = "Extra changes: new team page and gallery", Quantity = 3.5m, UnitPrice = 650, DiscountPercent = 10 },
+                    new() { Description = "Work done in November 2026" },
+                    .. Enumerable.Range(1, 28).Select(n => new Webignite.Core.Documents.Line { Description = $"Product photo retouch, batch {n}", Quantity = 4, UnitPrice = 85 }),
+                ],
+                DocumentDiscountPercent = 5,
+                Notes = "Thank you for the quick sign-off on the proofs.",
+            },
+        };
+        sample = sample with { Document = Webignite.Core.Documents.DocumentDefaults.Complete(sample.Document, new Webignite.Core.Documents.DocumentSettings(), new DateOnly(2026, 11, 18)) };
+        var sampleBrand = new Webignite.Core.Documents.MailBrand
+        {
+            CompanyName = "Webignite (Pty) Ltd", Address = "1 Sample Street\nCape Town, 8001", Phone = "021 555 0100", Email = "accounts@webignite.co.za",
+            Website = "www.webignite.co.za", BankDetails = "FNB Business Account\nAccount number 62 000 000 000\nBranch code 250655\nUse the invoice number as reference",
+            TermsLink = "https://www.webignite.co.za/terms", PayFastMerchantId = "10012345",
+        };
+        var sampleSheet = Webignite.Core.Documents.DocumentSheets.Build(sample, sampleBrand,
+            new Webignite.Core.Clients.Client { Id = "g3", Name = "Francois Booysens", Company = "G3", Address = "12 Main Road\nPaarl, 7646" });
+        var samplePdf = Webignite.Tools.DocumentPdfMaker.Make(sampleSheet);
+        var (samplePages, samplePageCount) = Webignite.Tools.PdfPages.Render(samplePdf, 1190, 2);
+        Check("Webignite's own invoice PDF runs onto a second page when the lines need it", samplePageCount == 2 && samplePages.Count == 2);
+        for (var n = 0; n < samplePages.Count; n++)
+        {
+            samplePages[n].Save(Path.Combine(output, $"own-invoice-pdf-{n + 1}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            samplePages[n].Dispose();
+        }
+        Console.WriteLine("Saved own-invoice-pdf");
+    }
     Open(Page.Clients);
     Check("The sidebar opens Clients in the main window and leaves the popped-out one be",
         vm.Current.Key == Page.Clients && vm.Current != clientTab && vm.PoppedOut.Contains(clientTab));

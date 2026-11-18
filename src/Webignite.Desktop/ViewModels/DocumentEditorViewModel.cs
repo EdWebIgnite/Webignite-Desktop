@@ -216,6 +216,32 @@ public partial class DocumentEditorViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Opens the quote or invoice as Webignite prints it itself, in the PDF tools: what was typed is saved first, and
+    /// nothing goes to Xero or the client.
+    /// </summary>
+    [RelayCommand]
+    private async Task SeePdf()
+    {
+        Keep();
+        if (stored is null || (services.Documents.Get(stored.Id) ?? stored) is not { } current)
+        {
+            SaveState = "Add a customer or a line first.";
+            return;
+        }
+        var sheet = DocumentSheets.Build(current, services.Settings.MailBrand, services.Clients.Find(current.Document.Customer.Name));
+        try
+        {
+            var pdf = await Task.Run(() => Webignite.Tools.DocumentPdfMaker.Make(sheet));
+            services.Go.Pdf(sheet.FileName, pdf);
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            Webignite.Data.AppLog.Write("Making a quote or invoice PDF", e);
+            SaveState = "Couldn't make the PDF: " + e.Message;
+        }
+    }
+
+    /// <summary>
     /// Saves what was typed before the editor goes away for any reason: another document opened over it, another
     /// client picked, or the app closing. Back already saves; this covers every other way out.
     /// </summary>
