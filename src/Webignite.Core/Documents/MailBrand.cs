@@ -27,6 +27,9 @@ public sealed record MailBrand
     /// <summary>Where the full terms and conditions are.</summary>
     public string TermsLink { get; init; } = "";
 
+    /// <summary>The PayFast merchant ID, for the Pay now link on invoices Webignite prints itself. Empty for none.</summary>
+    public string PayFastMerchantId { get; init; } = "";
+
     /// <summary>The biggest logo kept, so it travels and mails stay light.</summary>
     public const int LargestLogo = 400 * 1024;
 }

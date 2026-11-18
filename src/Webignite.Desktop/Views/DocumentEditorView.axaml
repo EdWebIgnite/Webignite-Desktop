@@ -281,6 +281,9 @@
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="{Binding EmailButtonText}" Command="{Binding StartEmailCommand}" IsVisible="{Binding ShowEmail}" IsEnabled="{Binding !XeroBusy}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding EmailedText}" IsVisible="{Binding HasEmailedText}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="See as PDF" Command="{Binding SeePdfCommand}"
+                  ToolTip.Tip="Webignite's own PDF of this, with your logo, banking details and PayFast link. Nothing is sent." />
           <Grid ColumnDefinitions="*,8,*" IsVisible="{Binding CanDecideQuote}">
             <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Content="Client accepted" Command="{Binding AcceptQuoteCommand}"

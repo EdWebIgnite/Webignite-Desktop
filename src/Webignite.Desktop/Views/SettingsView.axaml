@@ -694,6 +694,10 @@
           <TextBlock Classes="label" Text="Link to your terms and conditions" />
           <TextBox Text="{Binding MailBrand.BrandTerms}" PlaceholderText="https://" />
         </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="PayFast merchant ID (for Pay now on Webignite's own invoice PDFs)" />
+          <TextBox Text="{Binding MailBrand.BrandPayFast}" PlaceholderText="For example 10012345" MaxWidth="240" HorizontalAlignment="Left" />
+        </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="12">
           <Button Classes="quiet" Content="Save" Command="{Binding MailBrand.SaveBrandCommand}" />
           <Button Classes="link" Content="Send a test to myself" Command="{Binding MailBrand.SendBrandTestCommand}" />
