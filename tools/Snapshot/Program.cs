@@ -5277,6 +5277,21 @@ SaveLooks("planner-home");
             Of(WidgetKind.NeedsYou).Wear(new TileLook { Head = "#FBCFC0", Body = "#FDDDBE" });
             Dispatcher.UIThread.RunJobs();
             Save("my-pages-colours");
+            // A narrow window: the widgets go under each other at a readable width, in place of being squeezed.
+            {
+                var wideWindow = window.Width;
+                var board = window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.WidgetGrid>().First();
+                Check("With room, widgets sit where they were put", !board.IsReflowed);
+                window.Width = 900;
+                Dispatcher.UIThread.RunJobs();
+                Check("On a narrow window the widgets stack, none narrower than a quarter of a full page",
+                    board.IsReflowed && board.Children.All(c => c.Bounds.Width >= 12 * Webignite.Core.Layout.MyPages.LeastColumnPitch - board.Gap - 1)
+                    && board.Children.All(c => c.Bounds.Right <= board.Bounds.Width + 1));
+                Save("my-pages-narrow");
+                window.Width = wideWindow;
+                Dispatcher.UIThread.RunJobs();
+                Check("Wide again, the page is as it was arranged", !board.IsReflowed);
+            }
             // The same page in a dark look: the colours are mixed into the dark surface, so they are deep tints there.
             {
                 var light = services.Settings.Appearance;

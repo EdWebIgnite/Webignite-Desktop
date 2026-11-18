@@ -81,16 +81,31 @@ public sealed class WidgetGrid : Panel
     public (int Columns, int Rows) CellsFor(Size size) =>
         ((int)Math.Round((size.Width + Gap) / ColumnPitch(Bounds.Width)), (int)Math.Round((size.Height + Gap) / RowPitch));
 
+    /// <summary>
+    /// The window or pane is too narrow for the page as arranged, so the widgets are shown under each other in
+    /// reading order (<see cref="Webignite.Core.Layout.MyPages.Reflow"/>). Widgets can't be moved or sized while it is so.
+    /// </summary>
+    public bool IsReflowed { get; private set; }
+
+    // Where each child goes for a width: as arranged when all the columns fit, else under each other.
+    private (int Columns, IReadOnlyList<(int Column, int Row, int Width, int Height)> Cells) Places(double width)
+    {
+        var columns = Webignite.Core.Layout.MyPages.ColumnsFor(width, Gap);
+        var cells = Children.Select(c => (GetColumn(c), GetRow(c), GetWidths(c), GetHeights(c))).ToList();
+        return (columns, Webignite.Core.Layout.MyPages.Reflow(cells, columns));
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         var width = double.IsInfinity(availableSize.Width) ? 1000 : availableSize.Width;
-        var pitch = ColumnPitch(width);
+        var (columns, cells) = Places(width);
+        var pitch = Math.Max(1, (width + Gap) / columns);
         var rows = 0;
-        foreach (var child in Children)
+        for (var i = 0; i < Children.Count; i++)
         {
-            var (w, h) = (GetWidths(child), GetHeights(child));
-            child.Measure(new Size(Math.Max(0, pitch * w - Gap), Math.Max(0, RowPitch * h - Gap)));
-            rows = Math.Max(rows, GetRow(child) + h);
+            var cell = cells[i];
+            Children[i].Measure(new Size(Math.Max(0, pitch * cell.Width - Gap), Math.Max(0, RowPitch * cell.Height - Gap)));
+            rows = Math.Max(rows, cell.Row + cell.Height);
         }
         rows += ExtraRows;
         return new Size(width, rows == 0 ? 0 : rows * RowPitch - Gap);
@@ -98,11 +113,13 @@ public sealed class WidgetGrid : Panel
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var pitch = ColumnPitch(finalSize.Width);
-        foreach (var child in Children)
+        var (columns, cells) = Places(finalSize.Width);
+        IsReflowed = columns < Columns;
+        var pitch = Math.Max(1, (finalSize.Width + Gap) / columns);
+        for (var i = 0; i < Children.Count; i++)
         {
-            var (w, h) = (GetWidths(child), GetHeights(child));
-            child.Arrange(new Rect(GetColumn(child) * pitch, GetRow(child) * RowPitch, Math.Max(0, pitch * w - Gap), Math.Max(0, RowPitch * h - Gap)));
+            var cell = cells[i];
+            Children[i].Arrange(new Rect(cell.Column * pitch, cell.Row * RowPitch, Math.Max(0, pitch * cell.Width - Gap), Math.Max(0, RowPitch * cell.Height - Gap)));
         }
         return finalSize;
     }

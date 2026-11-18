@@ -3,6 +3,7 @@
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:v="using:Webignite.Desktop.Views"
              xmlns:c="using:Webignite.Desktop.Controls"
+             xmlns:layout="using:Webignite.Core.Layout"
              x:Class="Webignite.Desktop.Views.MyPagesView"
              x:DataType="vm:MyPagesViewModel"
              x:Name="Root">
@@ -400,6 +401,16 @@
                     <Button DockPanel.Dock="Right" Classes="link" Padding="4,0" Command="{Binding RemoveCommand}" ToolTip.Tip="Take this widget off the page"
                             IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
                       <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                    </Button>
+                    <Button DockPanel.Dock="Right" Classes="link" Padding="4,0" ToolTip.Tip="Small, medium or large" Content="Size" FontSize="{DynamicResource Text12}"
+                            IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
+                      <Button.Flyout>
+                        <MenuFlyout>
+                          <MenuItem Header="Small" Tag="{x:Static layout:WidgetSize.Small}" Click="SizePicked" ToolTip.Tip="A quarter of the page across" />
+                          <MenuItem Header="Medium" Tag="{x:Static layout:WidgetSize.Medium}" Click="SizePicked" ToolTip.Tip="Half the page across" />
+                          <MenuItem Header="Large" Tag="{x:Static layout:WidgetSize.Large}" Click="SizePicked" ToolTip.Tip="The whole page across" />
+                        </MenuFlyout>
+                      </Button.Flyout>
                     </Button>
                     <Button DockPanel.Dock="Right" Classes="link" Padding="4,0" Click="ColourClicked" ToolTip.Tip="Give this widget a colour"
                             IsVisible="{Binding #Root.((vm:MyPagesViewModel)DataContext).IsEditing}">
