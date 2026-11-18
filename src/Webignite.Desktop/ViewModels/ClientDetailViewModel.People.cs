@@ -25,7 +25,7 @@ public partial class ClientDetailViewModel
         if (isNew)
             return;
         foreach (var person in services.Contacts.ForClient(client.Id))
-            People.Add(new ClientPersonRow(person, client.MainContactId == person.Id, client.BillingContactId == person.Id, this));
+            People.Add(new ClientPersonRow(person, client, this));
         foreach (var person in services.Contacts.List().Where(p => p.ClientId is null))
             Unlinked.Add(person);
         OnPropertyChanged(nameof(HasPeople));
@@ -49,7 +49,7 @@ public partial class ClientDetailViewModel
 
     internal void MakeMain(Person person) => Point(() => services.Contacts.MakeMain(client.Id, person.Id));
 
-    internal void MakeBilling(Person person) => Point(() => services.Contacts.MakeBilling(client.Id, person.Id));
+    internal void Send(Person person, MailFor kind) => Point(() => services.Contacts.Send(client.Id, person.Id, kind));
 
     internal void Unlink(Person person)
     {
@@ -88,15 +88,24 @@ public partial class ClientDetailViewModel
 }
 
 /// <summary>A person with the client, and what they are to it.</summary>
-public sealed partial class ClientPersonRow(Person person, bool isMain, bool getsInvoices, ClientDetailViewModel page) : ObservableObject
+public sealed partial class ClientPersonRow(Person person, Client client, ClientDetailViewModel page) : ObservableObject
 {
+    private bool Has(MailFor kind) => ClientMailTo.ContactId(client, kind) == Person.Id;
+    private bool Can(MailFor kind) => Person.Email is not null && !Has(kind);
+
     public Person Person { get; } = person;
     public string Name => Person.Name;
     public string Detail => string.Join(" · ", new[] { Person.Role, Person.Email, Person.Phone }.Where(t => !string.IsNullOrWhiteSpace(t)));
-    public bool IsMain { get; } = isMain;
-    public bool GetsInvoices { get; } = getsInvoices;
+    public bool IsMain { get; } = client.MainContactId == person.Id;
     public bool NotMain => !IsMain;
-    public bool CanGetInvoices => !GetsInvoices && Person.Email is not null;
+
+    /// <summary>"Gets quotes, invoices": which mail goes to them.</summary>
+    public string Gets => ClientMailTo.Gets(client, Person.Id) is { Length: > 0 } what ? "Gets " + what : "";
+    public bool GetsSomething => Gets.Length > 0;
+    public bool CanGetQuotes => Can(MailFor.Quotes);
+    public bool CanGetInvoices => Can(MailFor.Invoices);
+    public bool CanGetStatements => Can(MailFor.Statements);
+    public bool CanGetProjects => Can(MailFor.Projects);
     public bool HasEmail => Person.Email is not null;
 
     [RelayCommand]
@@ -106,7 +115,16 @@ public sealed partial class ClientPersonRow(Person person, bool isMain, bool get
     private void MakeMain() => page.MakeMain(Person);
 
     [RelayCommand]
-    private void MakeBilling() => page.MakeBilling(Person);
+    private void MakeBilling() => page.Send(Person, MailFor.Invoices);
+
+    [RelayCommand]
+    private void SendQuotes() => page.Send(Person, MailFor.Quotes);
+
+    [RelayCommand]
+    private void SendStatements() => page.Send(Person, MailFor.Statements);
+
+    [RelayCommand]
+    private void SendProjects() => page.Send(Person, MailFor.Projects);
 
     [RelayCommand]
     private void Unlink() => page.Unlink(Person);

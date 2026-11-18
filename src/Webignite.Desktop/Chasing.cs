@@ -1,3 +1,4 @@
+using Webignite.Core.Clients;
 using Webignite.Core.Documents;
 using Webignite.Core.Mail;
 using Webignite.Data;
@@ -26,7 +27,7 @@ public static class Chasing
 
             var pdf = await services.Drafts.AttachAsync(ready.PdfName, ready.Pdf);
             var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.ChaserFor(stored.Document.Kind), ready.Values);
-            var opened = services.Drafts.Open(new MailDraft(mailbox, ready.ContactEmail, filled.Subject, filled.Body)
+            var opened = services.Drafts.Open(new MailDraft(mailbox, services.Contacts.AddressFor(stored.Document.Customer.Name, stored.Document.Kind == DocumentKind.Quote ? MailFor.Quotes : MailFor.Statements) ?? ready.ContactEmail, filled.Subject, filled.Body)
             {
                 Attachments = [pdf],
                 NoAddress = $"Xero has no email address for {ready.Values.ContactName}. Type it in To.",

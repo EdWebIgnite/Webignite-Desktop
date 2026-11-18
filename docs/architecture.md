@@ -259,7 +259,7 @@ A tool in the sidebar is a `ToolLink`, not a page: clicking it opens the tool in
 | Table | Holds |
 | --- | --- |
 | `documents` | Quotes and invoices (`StoredDocument`): the document, then its `Xero` link and what Xero last said, its `Delivery` (approved, emailed, chased) and `Settled` (when and how). |
-| `clients` | Clients with notes, files, their folder on the PC, projects, onboarding, hourly rates, and which person is the contact person and gets the invoices. |
+| `clients` | Clients with notes, files, their folder on the PC, projects, onboarding, hourly rates, and which person is the contact person and which gets the quotes, invoices, statements and reminders, and project mail (`ClientMailTo`: quotes and statements follow the invoices, project mail the contact person, until given their own). |
 | `contacts` | People: names, emails and numbers with labels, role, company, client, groups and notes. |
 | `file_tags` | Files and folders with tags from Files: the path, the tag ids and the Windows file id, all encrypted. The tags themselves are the `file-tags` setting. |
 | `site_logins` | Clients' site logins (site, address, username, password, notes), encrypted like every row, with the client's id inside the encrypted part. |

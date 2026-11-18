@@ -1,3 +1,4 @@
+using Webignite.Core.Clients;
 using Webignite.Core.Documents;
 using Webignite.Core.Mail;
 using Webignite.Xero;
@@ -41,7 +42,7 @@ public static class Statementing
                 TradingName = services.Settings.Xero.TenantName ?? "Webignite",
             };
             var filled = DocumentEmail.Fill(services.Settings.EmailTemplates.Statement, values);
-            var opened = services.Drafts.Open(new MailDraft(mailbox, ready.Email, filled.Subject, filled.Body)
+            var opened = services.Drafts.Open(new MailDraft(mailbox, services.Contacts.AddressFor(customer, MailFor.Statements) ?? ready.Email, filled.Subject, filled.Body)
             {
                 NoAddress = $"Xero has no email address for {ready.ContactName}. Type it in To.",
                 Unfilled = filled.Unfilled,

@@ -207,7 +207,7 @@ public sealed partial class MarkupViewModel : ViewModelBase, IHoldsWork, IDispos
         var picture = await services.Drafts.AttachAsync(FileName, png);
         var (subject, body) = Markup.Mail(Client?.Name, Client?.ContactPerson, Page, Marks, services.Settings.Xero.TenantName ?? "Webignite");
         var unwritten = Marks.Count(m => m.Kind == MarkKind.Pin && string.IsNullOrWhiteSpace(m.Comment));
-        var opened = services.Drafts.Open(new MailDraft(mailbox, Client?.Email, subject, body)
+        var opened = services.Drafts.Open(new MailDraft(mailbox, services.Contacts.AddressFor(Client, Webignite.Core.Clients.MailFor.Projects) ?? Client?.Email, subject, body)
         {
             Attachments = [picture],
             Note = unwritten > 0 ? $"{unwritten} numbered note(s) have nothing written, so they're not in the list." : null,

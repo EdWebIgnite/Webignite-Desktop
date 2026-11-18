@@ -87,8 +87,17 @@ public sealed class ContactService(LocalStore store, TimeProvider? clock = null)
     /// <summary>Makes this person the client's contact person: their name and number show on the client.</summary>
     public Client? MakeMain(string clientId, string contactId) => Point(clientId, c => c with { MainContactId = contactId }, contactId);
 
-    /// <summary>Quotes and invoices for the client go to this person's address.</summary>
-    public Client? MakeBilling(string clientId, string contactId) => Point(clientId, c => c with { BillingContactId = contactId }, contactId);
+    /// <summary>Invoices for the client go to this person's address.</summary>
+    public Client? MakeBilling(string clientId, string contactId) => Send(clientId, contactId, MailFor.Invoices);
+
+    /// <summary>This kind of mail for the client goes to this person's address.</summary>
+    public Client? Send(string clientId, string contactId, MailFor kind) => Point(clientId, c => ClientMailTo.Send(c, kind, contactId), contactId);
+
+    /// <summary>The address this kind of mail goes to for a client, or null when nobody was picked for it.</summary>
+    public string? AddressFor(Client? client, MailFor kind) => client is null ? null : ClientMailTo.Address(client, kind, store.GetContact);
+
+    /// <summary>The same, for the customer named on a quote or invoice.</summary>
+    public string? AddressFor(string? customer, MailFor kind) => AddressFor(ClientDirectory.Find(store.ListClients(), customer), kind);
 
     /// <summary>Puts a person with a client, or with none.</summary>
     public Person? Link(string contactId, string? clientId)
@@ -120,12 +129,7 @@ public sealed class ContactService(LocalStore store, TimeProvider? clock = null)
     // A person no longer with a client stops being its contact person or getting its invoices. What they had
     // put on the client stays, as typed details.
     private void Forget(string clientId, string contactId) => store.UpdateClient(clientId, client =>
-        client.MainContactId != contactId && client.BillingContactId != contactId ? null
-            : client with
-            {
-                MainContactId = client.MainContactId == contactId ? null : client.MainContactId,
-                BillingContactId = client.BillingContactId == contactId ? null : client.BillingContactId,
-            });
+        ClientMailTo.PointsAt(client, contactId) ? ClientMailTo.Without(client, contactId) : null);
 
     /// <summary>
     /// Once: each client from before Contacts with a contact person or an address gets that person as a contact,

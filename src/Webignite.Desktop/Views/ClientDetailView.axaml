@@ -241,7 +241,7 @@
                   <Button Classes="quiet" Content="New person" Command="{Binding AddPersonCommand}" />
                 </StackPanel>
                             <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoPeople}"
-                                       Text="The owner, the accounts person and anyone else here. One is the contact person, and one gets quotes and invoices." />
+                                       Text="The owner, the accounts person and anyone else here. One is the contact person, and quotes, invoices, statements and project mail can each go to their own person." />
                             <ItemsControl ItemsSource="{Binding People}" IsVisible="{Binding HasPeople}">
                               <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ClientPersonRow">
@@ -252,7 +252,10 @@
                                         <MenuItem Header="Write a mail" Command="{Binding WriteCommand}" IsEnabled="{Binding HasEmail}" />
                                         <Separator />
                                         <MenuItem Header="Make the contact person" Command="{Binding MakeMainCommand}" IsEnabled="{Binding NotMain}" />
-                                        <MenuItem Header="Send quotes and invoices to them" Command="{Binding MakeBillingCommand}" IsEnabled="{Binding CanGetInvoices}" />
+                                        <MenuItem Header="Send quotes to them" Command="{Binding SendQuotesCommand}" IsEnabled="{Binding CanGetQuotes}" />
+                                        <MenuItem Header="Send invoices to them" Command="{Binding MakeBillingCommand}" IsEnabled="{Binding CanGetInvoices}" />
+                                        <MenuItem Header="Send statements and reminders to them" Command="{Binding SendStatementsCommand}" IsEnabled="{Binding CanGetStatements}" />
+                                        <MenuItem Header="Send project mail to them" Command="{Binding SendProjectsCommand}" IsEnabled="{Binding CanGetProjects}" />
                                         <Separator />
                                         <MenuItem Header="Not with this client any more" Command="{Binding UnlinkCommand}" />
                                       </ContextMenu>
@@ -264,14 +267,23 @@
                                         <Border Classes="pill" IsVisible="{Binding IsMain}">
                                           <TextBlock FontSize="{DynamicResource Text11}" Text="Contact person" />
                                         </Border>
-                                        <Border Classes="pill" IsVisible="{Binding GetsInvoices}">
-                                          <TextBlock FontSize="{DynamicResource Text11}" Text="Gets quotes and invoices" />
+                                        <Border Classes="pill" IsVisible="{Binding GetsSomething}">
+                                          <TextBlock FontSize="{DynamicResource Text11}" Text="{Binding Gets}" />
                                         </Border>
                                       </WrapPanel>
                                       <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" TextWrapping="Wrap" />
                                       <WrapPanel ItemSpacing="12">
                                         <Button Classes="link" Content="Make contact person" Padding="0,2" Command="{Binding MakeMainCommand}" IsVisible="{Binding NotMain}" />
-                                        <Button Classes="link" Content="Send invoices here" Padding="0,2" Command="{Binding MakeBillingCommand}" IsVisible="{Binding CanGetInvoices}" />
+                                        <Button Classes="link" Content="Send here…" Padding="0,2" IsVisible="{Binding HasEmail}" ToolTip.Tip="Choose which mail goes to this person">
+                                          <Button.Flyout>
+                                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                              <MenuItem Header="Quotes" Command="{Binding SendQuotesCommand}" IsEnabled="{Binding CanGetQuotes}" />
+                                              <MenuItem Header="Invoices" Command="{Binding MakeBillingCommand}" IsEnabled="{Binding CanGetInvoices}" />
+                                              <MenuItem Header="Statements and reminders" Command="{Binding SendStatementsCommand}" IsEnabled="{Binding CanGetStatements}" />
+                                              <MenuItem Header="Project mail" Command="{Binding SendProjectsCommand}" IsEnabled="{Binding CanGetProjects}" />
+                                            </MenuFlyout>
+                                          </Button.Flyout>
+                                        </Button>
                                       </WrapPanel>
                                     </StackPanel>
                                   </Border>

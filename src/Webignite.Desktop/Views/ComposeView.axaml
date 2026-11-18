@@ -23,25 +23,25 @@
     </Style>
     <!-- Writing a mail is kept close: the boxes and buttons above the mail are a little smaller than elsewhere, so the
          mail itself gets the room. -->
-    <Style Selector="Panel.compose TextBox">
+    <Style Selector=":is(Panel).compose TextBox">
       <Setter Property="MinHeight" Value="30" />
       <Setter Property="Padding" Value="8,4" />
     </Style>
-    <Style Selector="Panel.compose ComboBox">
+    <Style Selector=":is(Panel).compose ComboBox">
       <Setter Property="MinHeight" Value="30" />
       <Setter Property="Padding" Value="8,3" />
     </Style>
-    <Style Selector="Panel.compose Button.quiet">
+    <Style Selector=":is(Panel).compose Button.quiet">
       <Setter Property="Padding" Value="10,4" />
     </Style>
-    <Style Selector="Panel.compose Button.primary">
+    <Style Selector=":is(Panel).compose Button.primary">
       <Setter Property="Padding" Value="14,5" />
     </Style>
-    <Style Selector="Panel.compose Button.format">
+    <Style Selector=":is(Panel).compose Button.format">
       <Setter Property="Padding" Value="7,3" />
       <Setter Property="MinWidth" Value="28" />
     </Style>
-    <Style Selector="Panel.compose Button.format.icon">
+    <Style Selector=":is(Panel).compose Button.format.icon">
       <Setter Property="Padding" Value="5,4" />
     </Style>
     <!-- In a window of its own the window's title and X say what the heading row would. -->
@@ -270,13 +270,6 @@
             <ComboBoxItem Content="Quote" Tag="Quote" />
             <ComboBoxItem Content="Code" Tag="Code" />
           </ComboBox>
-          <ComboBox x:Name="FontBox" Width="128" Focusable="False" ToolTip.Tip="Font" SelectionChanged="FontChosen">
-            <ComboBoxItem Content="Normal font" />
-            <ComboBoxItem Content="Fixed width" />
-          </ComboBox>
-          <ComboBox x:Name="SizeBox" Width="98" Focusable="False" ToolTip.Tip="Text size" SelectionChanged="SizeChosen" />
-          <Button Classes="quiet format" Focusable="False" Tag="smaller" Click="Format" ToolTip.Tip="Smaller (Ctrl+[)" Content="A−" />
-          <Button Classes="quiet format" Focusable="False" Tag="larger" Click="Format" ToolTip.Tip="Larger (Ctrl+])" Content="A+" />
           <Button Classes="quiet format icon" Focusable="False" ToolTip.Tip="Text colour">
             <c:Icon Data="{StaticResource Icon.TextColour}" Size="16" />
             <Button.Flyout>
@@ -312,29 +305,11 @@
           <Button x:Name="UnderlineButton" Classes="quiet format icon" Focusable="False" Tag="underline" Click="Format" ToolTip.Tip="Underline (Ctrl+U)">
             <c:Icon Data="{StaticResource Icon.Underline}" Size="16" />
           </Button>
-          <Button Classes="quiet format icon" Focusable="False" Tag="clear" Click="Format" ToolTip.Tip="Remove formatting (Ctrl+Space)">
-            <c:Icon Data="{StaticResource Icon.ClearFormat}" Size="16" />
-          </Button>
           <Button x:Name="BulletsButton" Classes="quiet format icon" Focusable="False" Tag="bullets" Click="Format" ToolTip.Tip="Bulleted list">
             <c:Icon Data="{StaticResource Icon.Bullets}" Size="16" />
           </Button>
           <Button x:Name="NumbersButton" Classes="quiet format icon" Focusable="False" Tag="numbers" Click="Format" ToolTip.Tip="Numbered list (Ctrl+Shift+7)">
             <c:Icon Data="{StaticResource Icon.Numbers}" Size="16" />
-          </Button>
-          <Button Classes="quiet format icon" Focusable="False" Tag="outdent" Click="Format" ToolTip.Tip="Indent less">
-            <c:Icon Data="{StaticResource Icon.IndentLess}" Size="16" />
-          </Button>
-          <Button Classes="quiet format icon" Focusable="False" Tag="indent" Click="Format" ToolTip.Tip="Indent more">
-            <c:Icon Data="{StaticResource Icon.IndentMore}" Size="16" />
-          </Button>
-          <Button x:Name="LeftButton" Classes="quiet format icon" Focusable="False" Tag="left" Click="Format" ToolTip.Tip="Align left">
-            <c:Icon Data="{StaticResource Icon.AlignLeft}" Size="16" />
-          </Button>
-          <Button x:Name="CentreButton" Classes="quiet format icon" Focusable="False" Tag="centre" Click="Format" ToolTip.Tip="Centre">
-            <c:Icon Data="{StaticResource Icon.AlignCentre}" Size="16" />
-          </Button>
-          <Button x:Name="RightButton" Classes="quiet format icon" Focusable="False" Tag="right" Click="Format" ToolTip.Tip="Align right">
-            <c:Icon Data="{StaticResource Icon.AlignRight}" Size="16" />
           </Button>
           <Button Classes="quiet format icon" Focusable="False" Click="LinkClicked" ToolTip.Tip="Link the selected words to a web page or address">
             <c:Icon Data="{StaticResource Icon.Link}" Size="16" />
@@ -390,6 +365,44 @@
             </StackPanel>
             <Button.Flyout>
               <c:FreshMenu Placement="BottomEdgeAlignedLeft" Filling="TemplatesOpening" />
+            </Button.Flyout>
+          </Button>
+          <Button Classes="quiet format icon" Focusable="False" ToolTip.Tip="More: font, size, indent, alignment, remove formatting">
+            <c:Icon Data="{StaticResource Icon.More}" Size="16" />
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel Classes="compose" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="2">
+                  <ComboBox x:Name="FontBox" Width="128" Focusable="False" ToolTip.Tip="Font" SelectionChanged="FontChosen">
+                    <ComboBoxItem Content="Normal font" />
+                    <ComboBoxItem Content="Fixed width" />
+                  </ComboBox>
+                  <ComboBox x:Name="SizeBox" Width="98" Focusable="False" ToolTip.Tip="Text size" SelectionChanged="SizeChosen" />
+                  <Button Classes="quiet format" Focusable="False" Tag="smaller" Click="Format" ToolTip.Tip="Smaller (Ctrl+[)" Content="A−" />
+                  <Button Classes="quiet format" Focusable="False" Tag="larger" Click="Format" ToolTip.Tip="Larger (Ctrl+])" Content="A+" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="2">
+                  <Button x:Name="LeftButton" Classes="quiet format icon" Focusable="False" Tag="left" Click="Format" ToolTip.Tip="Align left">
+                    <c:Icon Data="{StaticResource Icon.AlignLeft}" Size="16" />
+                  </Button>
+                  <Button x:Name="CentreButton" Classes="quiet format icon" Focusable="False" Tag="centre" Click="Format" ToolTip.Tip="Centre">
+                    <c:Icon Data="{StaticResource Icon.AlignCentre}" Size="16" />
+                  </Button>
+                  <Button x:Name="RightButton" Classes="quiet format icon" Focusable="False" Tag="right" Click="Format" ToolTip.Tip="Align right">
+                    <c:Icon Data="{StaticResource Icon.AlignRight}" Size="16" />
+                  </Button>
+                  <Button Classes="quiet format icon" Focusable="False" Tag="outdent" Click="Format" ToolTip.Tip="Indent less">
+                    <c:Icon Data="{StaticResource Icon.IndentLess}" Size="16" />
+                  </Button>
+                  <Button Classes="quiet format icon" Focusable="False" Tag="indent" Click="Format" ToolTip.Tip="Indent more">
+                    <c:Icon Data="{StaticResource Icon.IndentMore}" Size="16" />
+                  </Button>
+                  <Button Classes="quiet format icon" Focusable="False" Tag="clear" Click="Format" ToolTip.Tip="Remove formatting (Ctrl+Space)">
+                    <c:Icon Data="{StaticResource Icon.ClearFormat}" Size="16" />
+                  </Button>
+                  </StackPanel>
+                </StackPanel>
+              </Flyout>
             </Button.Flyout>
           </Button>
         </WrapPanel>

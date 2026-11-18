@@ -73,7 +73,7 @@ public partial class ClientDetailViewModel
             return;
         }
         var (subject, body) = Onboarding.Reminder(client, services.Settings.Xero.TenantName ?? "Webignite");
-        var opened = services.Drafts.Open(new MailDraft(mailbox, client.Email, subject, body)
+        var opened = services.Drafts.Open(new MailDraft(mailbox, services.Contacts.AddressFor(client, MailFor.Projects) ?? client.Email, subject, body)
         {
             NoAddress = "This client has no email address. Type it in To.",
         });
