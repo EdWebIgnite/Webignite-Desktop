@@ -26,8 +26,17 @@ public sealed record Client
     /// <summary>The person from Contacts who is this client's contact person; their name and number show here.</summary>
     public string? MainContactId { get; init; }
 
-    /// <summary>The person from Contacts who gets quotes and invoices; their address is first in Email.</summary>
+    /// <summary>The person from Contacts who gets invoices (and whatever has no person of its own); their address is first in Email.</summary>
     public string? BillingContactId { get; init; }
+
+    /// <summary>Who gets quotes, when that isn't whoever gets invoices.</summary>
+    public string? QuoteContactId { get; init; }
+
+    /// <summary>Who gets statements and reminders, when that isn't whoever gets invoices.</summary>
+    public string? StatementContactId { get; init; }
+
+    /// <summary>Who gets mail about the work (proofs, the checklist), when that isn't the contact person.</summary>
+    public string? ProjectContactId { get; init; }
 
     /// <summary>The matching contact in Xero, once known.</summary>
     public string? XeroContactId { get; init; }

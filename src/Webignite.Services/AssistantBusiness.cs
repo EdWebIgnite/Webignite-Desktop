@@ -256,7 +256,7 @@ public sealed class AssistantBusiness
             KeepOld("contacts", saved.Id, $"Replaced the notes on {saved.Name}", "contact-notes", found.Notes);
         // The main email of a client's contact person, or of who gets their invoices, is the client's email too.
         if (email is { Length: > 0 } && !string.Equals(found.Email, saved.Email, StringComparison.OrdinalIgnoreCase) && saved.ClientId is { } owner
-            && clients.Get(owner) is { } theirs && (theirs.MainContactId == saved.Id || theirs.BillingContactId == saved.Id))
+            && clients.Get(owner) is { } theirs && ClientMailTo.PointsAt(theirs, saved.Id))
         {
             var what = $"{Who} changed {saved.Name}'s email from {Shown(found.Email)} to {Shown(saved.Email)}, which {theirs.Name}'s email follows.";
             AssistantLog.Add(store, clock.GetUtcNow(), Who, "contacts", saved.Id, what);

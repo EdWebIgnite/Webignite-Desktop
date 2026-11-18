@@ -173,7 +173,7 @@ public sealed partial class RecordingViewModel : ViewModelBase, IDisposable
             return;
         var size = new FileInfo(saved).Length;
         var first = owner.Client?.ContactPerson is { Length: > 0 } person ? person.Split(' ')[0] : owner.Client?.Name ?? "there";
-        var opened = services.Drafts.Open(new MailDraft(mailbox, owner.Client?.Email, "A screen recording for you",
+        var opened = services.Drafts.Open(new MailDraft(mailbox, services.Contacts.AddressFor(owner.Client, Webignite.Core.Clients.MailFor.Projects) ?? owner.Client?.Email, "A screen recording for you",
             $"Hi {first},\n\nHere's a short screen recording ({Recordings.Clock(Kept().End - Kept().Start)}).\n\nThanks,\n{services.Settings.Xero.TenantName ?? "Webignite"}")
         {
             Attachments = [new OutgoingAttachment(System.IO.Path.GetFileName(saved), size, FilePath: saved)],
