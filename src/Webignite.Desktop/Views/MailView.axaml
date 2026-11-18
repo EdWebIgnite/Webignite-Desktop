@@ -599,7 +599,7 @@
             <TextBlock Classes="h2" Text="{Binding ManyText}" HorizontalAlignment="Center" />
             <TextBlock Classes="muted" Text="Use the buttons above, right-click, or drag them onto a folder or category." HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
           </StackPanel>
-          <Panel IsVisible="{Binding HasComposer}">
+          <Panel IsVisible="{Binding ShowComposerHere}">
             <v:ComposeView DataContext="{Binding Composer}" />
           </Panel>
           <Panel IsVisible="{Binding ShowReader}">

@@ -321,6 +321,13 @@ public sealed class AppSettings(LocalStore store)
         set => store.SetSetting("note-history", value.ToList());
     }
 
+    /// <summary>A mail being written opens in a window of its own; off keeps it inside the Mail page. On until switched off. This PC's own.</summary>
+    public bool ComposeInWindow
+    {
+        get => store.GetSetting<bool?>("mail-compose-window") ?? true;
+        set => store.SetSetting<bool?>("mail-compose-window", value);
+    }
+
     /// <summary>Mail set to send later, waiting as drafts.</summary>
     public SendLaterSettings SendLater
     {
