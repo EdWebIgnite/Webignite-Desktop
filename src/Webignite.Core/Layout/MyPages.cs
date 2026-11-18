@@ -1,6 +1,9 @@
 namespace Webignite.Core.Layout;
 
 /// <summary>What a widget on one of the person's own pages shows.</summary>
+/// <summary>The sizes offered for a widget, beside dragging its corner.</summary>
+public enum WidgetSize { Small, Medium, Large }
+
 public enum WidgetKind
 {
     MyTasks,
@@ -164,6 +167,74 @@ public static class MyPages
     }
 
     public static int MostHeight => 16 * Fine;
+
+    /// <summary>
+    /// The size a widget takes when Small, Medium or Large is picked: a quarter, a half or the whole of the
+    /// page's width, each a little taller than the last, and never under what its kind needs to show anything.
+    /// A widget can still be dragged to any size in between.
+    /// </summary>
+    public static (int Width, int Height) Preset(WidgetKind kind, WidgetSize size)
+    {
+        var (width, height) = size switch
+        {
+            WidgetSize.Small => (Columns / 4, 3 * Fine),
+            WidgetSize.Medium => (Columns / 2, 4 * Fine),
+            _ => (Columns, 5 * Fine),
+        };
+        var least = LeastSize(kind);
+        return (Math.Max(width, least.Width), Math.Max(height, least.Height));
+    }
+
+    /// <summary>The least a column may be across, in pixels, before the page stops squeezing and starts stacking: a quarter-width widget stays readable.</summary>
+    public const double LeastColumnPitch = 20;
+
+    /// <summary>
+    /// How many of the page's columns fit a width: all of them when there is room, and fewer (in whole coarse
+    /// columns, never under a quarter of the page) on a narrow window or pane, where widgets go under each other
+    /// (<see cref="Reflow"/>) in place of being squeezed.
+    /// </summary>
+    public static int ColumnsFor(double width, double gap) =>
+        width <= 0 || double.IsInfinity(width) ? Columns : Math.Clamp((int)((width + gap) / LeastColumnPitch) / Fine * Fine, Columns / 4, Columns);
+
+    /// <summary>
+    /// Where each widget goes when the page has only <paramref name="columns"/> columns to give: taken in reading
+    /// order (top to bottom, left to right), each keeps its size, or takes the whole width when it is wider than half of it,
+    /// and takes the first free place. With all the columns the widgets stay exactly where they were put.
+    /// Nothing is saved: a wider window shows the page as arranged.
+    /// </summary>
+    public static IReadOnlyList<(int Column, int Row, int Width, int Height)> Reflow(IReadOnlyList<(int Column, int Row, int Width, int Height)> cells, int columns)
+    {
+        if (columns >= Columns)
+            return cells;
+        var placed = new (int Column, int Row, int Width, int Height)[cells.Count];
+        var done = new List<(int Column, int Row, int Width, int Height)>();
+        foreach (var index in Enumerable.Range(0, cells.Count).OrderBy(i => cells[i].Row).ThenBy(i => cells[i].Column))
+        {
+            // One wider than half of what there is can have nothing beside it, so it takes the whole width
+            // and leaves no empty strip down its side.
+            var width = cells[index].Width * 2 > columns ? columns : cells[index].Width;
+            var height = cells[index].Height;
+            var spot = (Column: 0, Row: 0, Width: width, Height: height);
+            for (var row = 0; ; row++)
+            {
+                var found = false;
+                for (var column = 0; column + width <= columns; column++)
+                {
+                    spot = (column, row, width, height);
+                    if (!done.Any(d => d.Column < spot.Column + spot.Width && spot.Column < d.Column + d.Width && d.Row < spot.Row + spot.Height && spot.Row < d.Row + d.Height))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                    break;
+            }
+            placed[index] = spot;
+            done.Add(spot);
+        }
+        return placed;
+    }
 
     public static MyPage NewPage(IEnumerable<MyPage> existing)
     {

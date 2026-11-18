@@ -175,6 +175,25 @@ public static partial class RichHtml
     /// to leave the picture out (pictures on the web are never fetched).
     /// </summary>
     /// <summary>
+    /// The web page a program put on Windows' clipboard, as text. Browsers put it there as UTF-8 (whatever the
+    /// page was), a few older programs as two bytes a letter; read the wrong way round it comes out as a line of
+    /// Chinese-looking characters. Null when what is there isn't a page at all, so the plain text is used instead.
+    /// </summary>
+    public static string? FromClipboard(byte[]? bytes)
+    {
+        if (bytes is not { Length: > 0 })
+            return null;
+        // Two bytes a letter shows as a zero after nearly every byte of plain Latin text.
+        var probe = Math.Min(bytes.Length, 200);
+        var zeros = 0;
+        for (var i = 1; i < probe; i += 2)
+            if (bytes[i] == 0)
+                zeros++;
+        var text = (zeros > probe / 4 ? System.Text.Encoding.Unicode : System.Text.Encoding.UTF8).GetString(bytes).TrimEnd('\0');
+        return text.Contains('<') && text.Contains('>') ? text : null;
+    }
+
+    /// <summary>
     /// Text as a person reads it, from text that still carries web codes: "Hi&amp;nbsp;Ronald, it&amp;apos;s" becomes
     /// "Hi Ronald, it's". Some programs copy text with the codes left in, or coded twice, and pasted as it comes it
     /// fills a mail with them. Text without such codes is returned untouched, so an ampersand someone typed stays.

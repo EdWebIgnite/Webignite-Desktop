@@ -140,3 +140,79 @@ public class PastedTextTests
         Assert.Equal(["Hi Ronald", "Design of a site"], read.Blocks.OfType<Webignite.Core.Writing.TextBlock>().Select(b => b.Text));
     }
 }
+
+public class WidgetReflowTests
+{
+    private const int All = Webignite.Core.Layout.MyPages.Columns;
+
+    [Fact]
+    public void A_wide_page_keeps_every_widget_where_it_was_put()
+    {
+        (int, int, int, int)[] cells = [(0, 0, 12, 12), (12, 0, 12, 12), (30, 4, 18, 8)];
+        Assert.Same(cells, Webignite.Core.Layout.MyPages.Reflow(cells, All));
+        Assert.Equal(All, Webignite.Core.Layout.MyPages.ColumnsFor(1400, 16));
+        Assert.Equal(All, Webignite.Core.Layout.MyPages.ColumnsFor(double.PositiveInfinity, 16));
+    }
+
+    [Fact]
+    public void A_narrow_page_puts_widgets_under_each_other_at_their_own_size()
+    {
+        // Four quarter-width widgets in a row, as in a pane half as wide: two fit across, the other two go beneath.
+        (int Column, int Row, int Width, int Height)[] row = [(0, 0, 12, 12), (12, 0, 12, 12), (24, 0, 12, 12), (36, 0, 12, 12)];
+        var half = Webignite.Core.Layout.MyPages.Reflow(row, 24);
+        Assert.Equal([(0, 0, 12, 12), (12, 0, 12, 12), (0, 12, 12, 12), (12, 12, 12, 12)], half);
+        // Narrower still: one under the other, none squeezed.
+        var quarter = Webignite.Core.Layout.MyPages.Reflow(row, 12);
+        Assert.Equal([0, 12, 24, 36], quarter.Select(c => c.Row));
+        Assert.All(quarter, c => Assert.Equal(12, c.Width));
+        // A widget wider than the page takes the whole width, and nothing overlaps.
+        var wide = Webignite.Core.Layout.MyPages.Reflow([(0, 0, 48, 8), (0, 8, 12, 8)], 24);
+        Assert.Equal([(0, 0, 24, 8), (0, 8, 12, 8)], wide);
+        // One wider than half of what there is takes the whole width, so no empty strip is left beside it.
+        Assert.Equal([(0, 0, 28, 8)], Webignite.Core.Layout.MyPages.Reflow([(0, 0, 16, 8)], 28));
+    }
+
+    [Theory]
+    [InlineData(1000, 48)]
+    [InlineData(700, 32)]
+    [InlineData(500, 24)]
+    [InlineData(250, 12)]
+    [InlineData(80, 12)]
+    public void The_columns_that_fit_step_down_with_the_width(double width, int columns) =>
+        Assert.Equal(columns, Webignite.Core.Layout.MyPages.ColumnsFor(width, 16));
+
+    [Fact]
+    public void Small_medium_and_large_are_a_quarter_a_half_and_the_whole_width()
+    {
+        Assert.Equal(All / 4, Webignite.Core.Layout.MyPages.Preset(Webignite.Core.Layout.WidgetKind.Note, Webignite.Core.Layout.WidgetSize.Small).Width);
+        Assert.Equal(All / 2, Webignite.Core.Layout.MyPages.Preset(Webignite.Core.Layout.WidgetKind.Mail, Webignite.Core.Layout.WidgetSize.Medium).Width);
+        Assert.Equal(All, Webignite.Core.Layout.MyPages.Preset(Webignite.Core.Layout.WidgetKind.Mail, Webignite.Core.Layout.WidgetSize.Large).Width);
+        // Never under what the kind needs: a small month is still a month.
+        var month = Webignite.Core.Layout.MyPages.Preset(Webignite.Core.Layout.WidgetKind.Month, Webignite.Core.Layout.WidgetSize.Small);
+        Assert.True(month.Width >= Webignite.Core.Layout.MyPages.LeastSize(Webignite.Core.Layout.WidgetKind.Month).Width
+            && month.Height >= Webignite.Core.Layout.MyPages.LeastSize(Webignite.Core.Layout.WidgetKind.Month).Height);
+    }
+}
+
+public class ClipboardPageTests
+{
+    private const string Page = "Version:0.9\r\nStartHTML:0000000105\r\n<html><body><!--StartFragment--><p>Hi Ronald, thanks for today’s meeting.</p><!--EndFragment--></body></html>";
+
+    [Fact]
+    public void A_page_copied_in_a_browser_is_read_as_utf8_not_as_two_bytes_a_letter()
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(Page + "\0");
+        Assert.Equal(Page, Webignite.Core.Writing.RichHtml.FromClipboard(bytes));
+        // Read the old way the same bytes are the gibberish that was being pasted.
+        Assert.DoesNotContain("Ronald", System.Text.Encoding.Unicode.GetString(bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_page_put_there_two_bytes_a_letter_is_read_too_and_what_is_no_page_is_left()
+    {
+        Assert.Equal(Page, Webignite.Core.Writing.RichHtml.FromClipboard(System.Text.Encoding.Unicode.GetBytes(Page)));
+        Assert.Null(Webignite.Core.Writing.RichHtml.FromClipboard(System.Text.Encoding.UTF8.GetBytes("just words")));
+        Assert.Null(Webignite.Core.Writing.RichHtml.FromClipboard([]));
+        Assert.Null(Webignite.Core.Writing.RichHtml.FromClipboard(null));
+    }
+}

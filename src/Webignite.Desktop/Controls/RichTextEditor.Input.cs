@@ -29,7 +29,9 @@ public sealed partial class RichTextEditor
 
     public bool HasSelection => caret != anchor;
 
-    private static readonly DataFormat<string> HtmlFormat = DataFormat.CreateStringPlatformFormat("HTML Format");
+    // Read as bytes and decoded here (RichHtml.FromClipboard): browsers write it as UTF-8, and read as a string
+    // Windows hands it over two bytes a letter, which turned every paste from a web page into gibberish.
+    private static readonly DataFormat<byte[]> HtmlFormat = DataFormat.CreateBytesPlatformFormat("HTML Format");
 
     // Changes
 
@@ -450,8 +452,14 @@ public sealed partial class RichTextEditor
         // What was last copied in the app, when it is still what the clipboard holds: pasted with its formatting.
         if (!plain && copied is { } kept && await clipboard.TryGetTextAsync() is { } onClipboard && Plain(onClipboard) == kept.Text)
             piece = kept.Piece.Clone();
-        if (piece is null && !plain && formats.Contains(HtmlFormat) && await clipboard.TryGetValueAsync(HtmlFormat) is { Length: > 0 } html)
+        if (piece is null && !plain && formats.Contains(HtmlFormat) && RichHtml.FromClipboard(await clipboard.TryGetValueAsync(HtmlFormat)) is { } html)
+        {
             piece = RichHtml.Read(Fragment(html));
+            // A page that read as nothing, or as far less than the plain text beside it, is left for the plain text.
+            var read = RichText.ToText(piece).Trim();
+            if (read.Length == 0 || (await clipboard.TryGetTextAsync() is { Length: > 0 } beside && read.Length * 3 < beside.Trim().Length))
+                piece = null;
+        }
         if (piece is null && !plain && formats.Contains(DataFormat.Bitmap) && await clipboard.TryGetBitmapAsync() is { } bitmap)
         {
             using (bitmap)

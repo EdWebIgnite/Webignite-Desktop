@@ -120,11 +120,33 @@ public partial class MyPagesView : UserControl
 
     private WidgetGrid? Grid => Board.ItemsPanelRoot as WidgetGrid;
 
+    // On a narrow window the widgets are shown under each other, not where they were put, so moving or sizing one
+    // there would put it somewhere unexpected on the real page. Said once per try.
+    private bool TooNarrowToArrange()
+    {
+        if (Grid is not { IsReflowed: true })
+            return false;
+        App.Services?.ShowNote?.Invoke("Make the window wider to arrange", "The widgets are stacked to fit this width. Widen the window or the pane to move or size them; Small, Medium and Large still work.", null);
+        return true;
+    }
+
+    // Small, Medium or Large from the widget's size menu.
+    private void SizePicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: Webignite.Core.Layout.WidgetSize size, DataContext: WidgetViewModel widget } && Pages is { } pages)
+        {
+            var (width, height) = Webignite.Core.Layout.MyPages.Preset(widget.Kind, size);
+            pages.ResizeTo(widget, width, height);
+        }
+    }
+
     // Picking up a widget by its heading while arranging.
     private void HeadingPressed(object? sender, PointerPressedEventArgs e)
     {
         if (Pages is not { IsEditing: true } pages || (sender as Control)?.DataContext is not WidgetViewModel widget
             || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || Grid is null)
+            return;
+        if (TooNarrowToArrange())
             return;
         if ((e.Source as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is not null)
             return;
@@ -143,6 +165,8 @@ public partial class MyPagesView : UserControl
     private void CornerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (Pages is not { IsEditing: true } pages || (sender as Control)?.DataContext is not WidgetViewModel widget || Grid is null)
+            return;
+        if (TooNarrowToArrange())
             return;
         var card = (sender as Visual)?.FindAncestorOfType<ContentPresenter>();
         if (card is null)
