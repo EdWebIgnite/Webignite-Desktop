@@ -4,13 +4,25 @@ using Webignite.Core.Tools;
 
 namespace Webignite.Desktop.ViewModels;
 
-// Password generator: made on this PC, shown once, never saved.
+// Password generator: words (RedVelvetLantern47$) or random characters, made on this PC, shown once, never saved.
 public sealed partial class PasswordsToolViewModel : ViewModelBase
 {
     public PasswordsToolViewModel()
     {
         NewPassword();
     }
+
+    /// <summary>Words, easier to type and remember, unless random characters are picked.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRandom))]
+    public partial bool UseWords { get; set; } = true;
+
+    public bool IsRandom => !UseWords;
+
+    [ObservableProperty] public partial double WordCount { get; set; } = 3;
+    public int WordMin => Passphrases.MinWords;
+    public int WordMax => Passphrases.MaxWords;
+    public string WordCountText => $"{(int)WordCount} words";
 
     [ObservableProperty] public partial double PasswordLength { get; set; } = 20;
     [ObservableProperty] public partial bool PasswordNumbers { get; set; } = true;
@@ -26,6 +38,16 @@ public sealed partial class PasswordsToolViewModel : ViewModelBase
 
     private PasswordOptions PasswordChoices => new((int)PasswordLength, PasswordNumbers, PasswordSymbols, PasswordAvoidLookalikes);
 
+    private PassphraseOptions WordChoices => new((int)WordCount, PasswordNumbers, PasswordSymbols);
+
+    partial void OnUseWordsChanged(bool value) => NewPassword();
+
+    partial void OnWordCountChanged(double value)
+    {
+        OnPropertyChanged(nameof(WordCountText));
+        NewPassword();
+    }
+
     partial void OnPasswordLengthChanged(double value)
     {
         OnPropertyChanged(nameof(PasswordLengthText));
@@ -37,11 +59,23 @@ public sealed partial class PasswordsToolViewModel : ViewModelBase
     partial void OnPasswordAvoidLookalikesChanged(bool value) => NewPassword();
 
     [RelayCommand]
+    private void UseRandom() => UseWords = false;
+
+    [RelayCommand]
     private void NewPassword()
     {
-        Password = Passwords.Make(PasswordChoices);
-        var bits = Passwords.Bits(PasswordChoices);
-        PasswordStrength = $"{Passwords.Strength(bits)}, about {bits} bits";
+        if (UseWords)
+        {
+            Password = Passphrases.Make(WordChoices);
+            var wordBits = Passphrases.Bits(WordChoices);
+            PasswordStrength = $"{Passphrases.Strength(wordBits)}, about {wordBits} bits";
+        }
+        else
+        {
+            Password = Passwords.Make(PasswordChoices);
+            var bits = Passwords.Bits(PasswordChoices);
+            PasswordStrength = $"{Passwords.Strength(bits)}, about {bits} bits";
+        }
         PasswordMessage = "";
     }
 

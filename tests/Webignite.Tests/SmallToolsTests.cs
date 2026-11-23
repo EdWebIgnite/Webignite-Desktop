@@ -31,6 +31,25 @@ public sealed class SmallToolsTests
     }
 
     [Fact]
+    public void Word_passwords_are_capitalised_words_then_two_digits_and_a_symbol()
+    {
+        var shape = new System.Text.RegularExpressions.Regex("^([A-Z][a-z]+){3}[0-9]{2}[!@#$%&*?]$");
+        for (var i = 0; i < 200; i++)
+            Assert.Matches(shape, Passphrases.Make(new PassphraseOptions()));
+        Assert.Matches("^([A-Z][a-z]+){2}$", Passphrases.Make(new PassphraseOptions(2, Number: false, Symbol: false)));
+        Assert.Matches("^([A-Z][a-z]+){6}[0-9]{2}[!@#$%&*?]$", Passphrases.Make(new PassphraseOptions(40)));
+        Assert.All(Passphrases.Describing.Concat(Passphrases.Things), w => Assert.Matches("^[a-z]{3,9}$", w));
+    }
+
+    [Fact]
+    public void Word_password_strength_grows_with_words_and_is_said_plainly()
+    {
+        Assert.True(Passphrases.Bits(new PassphraseOptions(2)) < Passphrases.Bits(new PassphraseOptions(3)));
+        Assert.StartsWith("Fair", Passphrases.Strength(Passphrases.Bits(new PassphraseOptions(3))), StringComparison.Ordinal);
+        Assert.StartsWith("Easy to guess", Passphrases.Strength(Passphrases.Bits(new PassphraseOptions(2, Number: false, Symbol: false))), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Qr_codes_use_the_standard_forms()
     {
         Assert.Equal("https://webignite.co.za", QrText.Build(QrKind.Link, " webignite.co.za "));

@@ -2632,7 +2632,13 @@ Check("The ruler's window lists what was measured, newest first, and names its s
 SaveWindow(rulerWindow, "tools-ruler");
 rulerWindow.Close();
 var passwordWindow = window.ShowTool(ToolKind.Passwords, services);
+Check("The password generator makes a word password by default, like RedVelvetLantern47$",
+    passwordWindow.Tools.Passwords.UseWords && System.Text.RegularExpressions.Regex.IsMatch(passwordWindow.Tools.Passwords.Password, "^([A-Z][a-z]+){3}[0-9]{2}[!@#$%&*?]$"));
 SaveWindow(passwordWindow, "tools-passwords");
+passwordWindow.Tools.Passwords.UseWords = false;
+Dispatcher.UIThread.RunJobs();
+Check("Random characters is still there", passwordWindow.Tools.Passwords.Password.Length == 20);
+SaveWindow(passwordWindow, "tools-passwords-random");
 passwordWindow.Close();
 services.RememberColour("#1C1D21");
 services.RememberColour("#2F9E44");
