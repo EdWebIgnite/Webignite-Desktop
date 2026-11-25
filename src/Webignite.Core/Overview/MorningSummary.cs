@@ -49,6 +49,9 @@ public sealed record SummaryInput
     public bool BackupsOn { get; init; } = true;
     public bool BackupOverdue { get; init; }
 
+    /// <summary>Said when sync with the other PC has stopped on this one for a while (<see cref="Webignite.Core.Sync.SyncTroubles.Line"/>); null while it works.</summary>
+    public string? SyncStopped { get; init; }
+
     /// <summary>
     /// People whose mail needs no reply, by address, with the date of the newest mail of theirs that was waved off.
     /// A newer mail from them shows again.
@@ -78,6 +81,9 @@ public static class MorningSummary
         var lines = new List<SummaryLine>();
         var today = input.Today;
 
+        // First, as the other person can't reach this PC until it is put right.
+        if (input.SyncStopped is { } stopped)
+            lines.Add(new(stopped + " Open Settings, Account and sync.", SummaryTarget.Settings, Problem: true) { Key = "sync:stopped" });
         if (!input.BackupsOn)
             lines.Add(new("Backups are off. Choose a backup password in Settings.", SummaryTarget.Settings, Problem: true) { Key = "backups:off" });
         else if (input.BackupOverdue)

@@ -172,7 +172,10 @@ public sealed class AppServices : IDisposable
         if (result.Problem != lastSyncProblem && result.Problem is { } problem)
             Webignite.Data.AppLog.Write($"Syncing shared projects: {problem}");
         if (!result.Skipped)
+        {
             lastSyncProblem = result.Problem;
+            NoteSyncTrouble(Webignite.Core.Sync.SyncTroubles.After(syncTrouble, result.Problem, DateTimeOffset.UtcNow));
+        }
         return result;
     }
 
@@ -180,6 +183,47 @@ public sealed class AppServices : IDisposable
 
     /// <summary>The last sync didn't get through to the server; the chat then waits for the minute's sync instead of trying every few seconds.</summary>
     public bool SyncInTrouble => lastSyncProblem is not null;
+
+    private Webignite.Core.Sync.SyncTrouble? syncTrouble;
+    private bool syncTroubleSaid;
+
+    /// <summary>
+    /// Sync isn't working on this PC, and has not for long enough to say so: what is wrong and since when. Also a PC
+    /// that synced before and is now signed out, which tries nothing and so has no failed sync to go by. Null while
+    /// all is well. The chat window and Overview show it, as otherwise nothing on this PC looks wrong.
+    /// </summary>
+    public Webignite.Core.Sync.SyncTrouble? SyncTrouble
+    {
+        get
+        {
+            var now = DateTimeOffset.UtcNow;
+            if (!Account.IsSignedIn && Sync.State.LastSynced is { } last)
+                return new Webignite.Core.Sync.SyncTrouble(Webignite.Core.Sync.SyncTroubles.SignedOut, last);
+            return Webignite.Core.Sync.SyncTroubles.IsWorthSaying(syncTrouble, now) ? syncTrouble : null;
+        }
+    }
+
+    /// <summary>The trouble in one line for the person, or null while all is well.</summary>
+    public string? SyncTroubleLine => SyncTrouble is { } trouble
+        ? Webignite.Core.Sync.SyncTroubles.Line(trouble, TimeZoneInfo.Local, System.Globalization.CultureInfo.CurrentCulture) : null;
+
+    // Kept as it goes on, said once when it has lasted (a note that opens Account and sync), and cleared when a sync gets through.
+    private void NoteSyncTrouble(Webignite.Core.Sync.SyncTrouble? now)
+    {
+        var was = SyncTrouble;
+        syncTrouble = now;
+        if (now is null)
+            syncTroubleSaid = false;
+        var said = SyncTrouble;
+        if (said is not null && !syncTroubleSaid)
+        {
+            syncTroubleSaid = true;
+            Notify("Sync has stopped on this PC", said.Problem + " Click to open Account and sync.", () => Go.Settings("account"));
+        }
+        // Overview's Needs you says it too, and stops saying it when a sync gets through.
+        if (was != said)
+            RepliesChanged?.Invoke();
+    }
     private DateTimeOffset? lastFullSync;
 
     /// <summary>

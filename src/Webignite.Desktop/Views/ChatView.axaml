@@ -111,6 +111,16 @@
         </StackPanel>
       </DockPanel>
     </Border>
+    <!-- Sync has stopped on this PC: nothing written here goes out and nothing comes in until it is put right -->
+    <Border DockPanel.Dock="Top" Padding="12,8" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1"
+            IsVisible="{Binding HasSyncTrouble}">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding SyncTroubleLine}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="Messages will go, and your partner's will come, once it is syncing again." />
+        <Button Classes="link" Content="Open Account and sync" Command="{Binding OpenAccountCommand}" HorizontalAlignment="Left" Padding="0" />
+      </StackPanel>
+    </Border>
     <!-- Writing: files waiting to go, then a round bar with the paperclip and the words, and a round send button -->
     <Border DockPanel.Dock="Bottom" Padding="10,8,10,10" Background="{DynamicResource Canvas}">
       <StackPanel Spacing="8">

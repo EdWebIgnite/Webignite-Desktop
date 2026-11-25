@@ -58,6 +58,16 @@ public sealed partial class ChatViewModel(AppServices services) : ViewModelBase,
 
     public string PartnerLine => services.Chat.PartnerLine;
 
+    /// <summary>
+    /// Said across the top when sync has stopped on this PC: until it is put right nothing written here goes out and
+    /// nothing comes in, and what it says about my partner is only as of when it stopped. Null while all is well.
+    /// </summary>
+    public string? SyncTroubleLine => services.SyncTroubleLine;
+    public bool HasSyncTrouble => SyncTroubleLine is not null;
+
+    [RelayCommand]
+    private void OpenAccount() => services.Go.Settings("account");
+
     public string EmptyText => $"Write to {PartnerName} here. Files and screenshots can go too; everything is locked before it leaves this PC.";
 
     /// <summary>Statuses, names and ticks read again, after a sync or a pick.</summary>
@@ -68,6 +78,8 @@ public sealed partial class ChatViewModel(AppServices services) : ViewModelBase,
         OnPropertyChanged(nameof(PartnerStatusText));
         OnPropertyChanged(nameof(PartnerName));
         OnPropertyChanged(nameof(PartnerLine));
+        OnPropertyChanged(nameof(SyncTroubleLine));
+        OnPropertyChanged(nameof(HasSyncTrouble));
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(EmptyText));
         var onServer = services.Chat.OnServer();

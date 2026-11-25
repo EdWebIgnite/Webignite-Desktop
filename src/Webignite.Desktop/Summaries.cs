@@ -30,6 +30,7 @@ public static class Summaries
                 .Select(d => services.Settings.Uptime.Sites.GetValueOrDefault(d.Domain)).OfType<Webignite.Core.Web.WatchedSite>().ToList(),
             BackupsOn = hasPassword,
             BackupOverdue = BackupRules.Overdue(services.Settings.Backups, hasPassword, DateTimeOffset.Now),
+            SyncStopped = services.SyncTroubleLine,
             NoReplyNeeded = services.Settings.NoReplyNeeded,
             Dismissed = services.Settings.NeedsYouDismissed,
         };

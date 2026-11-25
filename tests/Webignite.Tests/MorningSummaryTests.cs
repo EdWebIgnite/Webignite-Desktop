@@ -158,4 +158,17 @@ public sealed class MorningSummaryTests
         var waved = MorningSummary.NoReply(old, Mail("lerato@fynbosphysio.co.za", "Lerato Dlamini", 2), Today);
         Assert.Equal(["lerato@fynbosphysio.co.za"], waved.Keys);
     }
+
+    [Fact]
+    public void Sync_that_has_stopped_on_this_PC_is_the_first_thing_said()
+    {
+        var lines = MorningSummary.Build(Input() with { BackupsOn = false, SyncStopped = "Chat and shared projects stopped syncing on this PC at 18:49 on 20 Nov. Sign in again." });
+
+        Assert.Equal("Chat and shared projects stopped syncing on this PC at 18:49 on 20 Nov. Sign in again. Open Settings, Account and sync.", lines[0].Text);
+        Assert.True(lines[0].Problem);
+        Assert.Equal(SummaryTarget.Settings, lines[0].Target);
+        Assert.Equal("sync:stopped", lines[0].Key);
+        // While it works, nothing is said about it.
+        Assert.DoesNotContain(MorningSummary.Build(Input()), l => l.Key == "sync:stopped");
+    }
 }
