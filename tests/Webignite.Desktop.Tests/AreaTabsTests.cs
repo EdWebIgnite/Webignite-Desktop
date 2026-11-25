@@ -141,4 +141,18 @@ public sealed class AreaTabsTests
         main.Selected = main[Page.Business];
         Assert.Equal("5 of these are pinned to the menu.", ((AreaViewModel)main.Current.Page).Summary);
     });
+
+    [Fact]
+    public Task The_bar_draws_its_tabs_itself_and_finds_the_one_under_a_click() => Ui.Run(() =>
+    {
+        var picked = new List<AppArea>();
+        List<AreaTab> tabs = [.. Enum.GetValues<AppArea>().Select(area => new AreaTab(area, picked.Add))];
+        var bar = new Webignite.Desktop.Controls.AreaBar { Tabs = tabs };
+        bar.Measure(Avalonia.Size.Infinity);
+
+        Assert.True(bar.DesiredSize.Width > 300 && bar.DesiredSize.Height > 20);
+        Assert.Equal(AppArea.Mail, bar.TabAt(new Avalonia.Point(5, 5))?.Area);
+        Assert.Equal(AppArea.Tools, bar.TabAt(new Avalonia.Point(bar.DesiredSize.Width - 5, 5))?.Area);
+        Assert.Null(bar.TabAt(new Avalonia.Point(bar.DesiredSize.Width + 10, 5)));
+    });
 }
