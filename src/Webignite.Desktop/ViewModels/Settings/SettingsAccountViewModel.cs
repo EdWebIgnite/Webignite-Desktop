@@ -175,6 +175,9 @@ public sealed partial class SettingsAccountViewModel : ViewModelBase, IDisposabl
     private Task SyncNow() => Busy(async () =>
     {
         var result = await services.SyncNowAsync(byHand: true);
+        // The server may have said the sign-in is no longer good: then this shows the way to sign in, not the signed-in page.
+        IsSignedIn = services.Account.IsSignedIn;
+        HasWorkspaceKey = services.Account.HasWorkspaceKey;
         SaySync(result.Summary(), problem: result.Problem is not null || result.Unreadable > 0);
         ShowLastSynced();
         ShowLicence();
