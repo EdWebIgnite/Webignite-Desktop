@@ -5961,6 +5961,7 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
 
     // A long day: Today shows its first 12 things with Show more, so opening the app doesn't draw a row for each.
     {
+        vm.Overview.Refresh();
         var before = vm.Overview.TodayRows.All.Count;
         for (var i = 1; i <= 20; i++)
             store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = $"long-{i}", Title = $"Check site {i} after the update", Due = DateOnly.FromDateTime(DateTime.Today), Created = DateTimeOffset.UtcNow });
@@ -5968,7 +5969,11 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
         Dispatcher.UIThread.RunJobs();
         Check("A long day shows its first 12 things, with Show more for the rest",
             vm.Overview.Today.Count == 12 && vm.Overview.TodayRows.MoreText == $"Show {before + 20 - 12} more");
+        var overviewScroller = window.GetVisualDescendants().OfType<Avalonia.Controls.ScrollViewer>().First(v => v.Name == "PageScroller" || v.Extent.Height > v.Viewport.Height);
+        overviewScroller.ScrollToEnd();
+        Dispatcher.UIThread.RunJobs();
         Save("overview-long-day");
+        overviewScroller.ScrollToHome();
         vm.Overview.TodayRows.ToggleCommand.Execute(null);
         Check("Show more shows the whole day, and offers to show fewer", vm.Overview.Today.Count == before + 20 && vm.Overview.TodayRows.MoreText == "Show fewer");
         vm.Overview.TodayRows.ToggleCommand.Execute(null);
