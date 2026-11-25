@@ -204,7 +204,8 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
     // Pages and tools taken off the menus are off the dock too. A group stays while it has a name to show.
     private IReadOnlyList<string> DockNow() => DockPages.Shown(services.Settings.Appearance.Dock,
     [
-        .. main.Modules.Where(m => !main.Sidebar.IsOff(m)).Select(m => m.Key.ToString()),
+        // Only what has an entry of its own: not an area's page of tiles, nor a page that is a tab of another (Billing's).
+        .. main.Modules.Where(m => !m.IsArea && m.Under is null && !main.Sidebar.IsOff(m)).Select(m => m.Key.ToString()),
         .. main.Sidebar.OnMenus().OfType<ToolLink>().Select(t => DockKeys.Tool(t.Kind.ToString())),
         .. main.Sidebar.OnMenus().OfType<NavGroup>().Where(g => g.CanFold).Select(g => DockKeys.Group(g.Key)),
         DockKeys.Group(PlannerGroup.Key),
@@ -260,7 +261,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
                     Inside = under,
                     PageKey = key,
                     // A Planner page on the dock stays lit for the whole of Planner, as the sidebar's Planner entry does.
-                    IsCurrent = main.Selected == module || (module.Key == Page.Home && main.Selected.InPlanner && !keys.Contains(main.Selected.Key.ToString())),
+                    IsCurrent = main.IsOnScreen(module) || (module.Key == Page.Home && main.Selected.InPlanner && !keys.Contains(main.Selected.Key.ToString())),
                     Module = module,
                     OnDock = true,
                     CanTakeOff = canTakeOff,
@@ -291,7 +292,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
     private MenuEntry? Plain(object item, IReadOnlyList<string> dock) => item switch
     {
         Module { InPlanner: false } module => new MenuEntry(module, module.Title, module.Icon)
-            { PageKey = module.Key.ToString(), Module = module, IsCurrent = main.Selected == module, OnDock = dock.Contains(module.Key.ToString()) },
+            { PageKey = module.Key.ToString(), Module = module, IsCurrent = main.IsOnScreen(module), OnDock = dock.Contains(module.Key.ToString()) },
         ToolLink tool => new MenuEntry(tool, tool.Title, tool.Icon) { PageKey = DockKeys.Tool(tool.Kind.ToString()) },
         SectionLink section => new MenuEntry(section, section.Title, section.Icon) { IsCurrent = main.Selected.InPlanner },
         SubLink link => new MenuEntry(link, link.Title, link.Icon) { IsCurrent = ReferenceEquals(main.SelectedNav, link) },
@@ -413,7 +414,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
                         PageKey = key,
                         Figure = figure?.Text ?? (module.HasBadge ? module.Badge.ToString(System.Globalization.CultureInfo.CurrentCulture) : ""),
                         Late = figure?.Late ?? false,
-                        IsCurrent = main.Selected == module,
+                        IsCurrent = main.IsOnScreen(module),
                         Module = module,
                         OnDock = dock.Contains(key),
                         CanAdd = IsDockMenu && DockPages.CanAdd(dock, key),

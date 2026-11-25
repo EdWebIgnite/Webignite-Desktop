@@ -48,7 +48,7 @@ public partial class MainViewModel
     /// A page in a window of its own, from the dock or the menu: the copy on screen when it is that page, otherwise
     /// a new copy, so what is on screen stays where it is.
     /// </summary>
-    public void OpenInWindow(Module module) => PopOut(Current.Module == module ? Current : OpenInNewTab(module));
+    public void OpenInWindow(Module module) => PopOut(Current.Module == Lands(module) ? Current : OpenInNewTab(module));
 
     /// <summary>Puts a popped-out page back as a tab in the main window, beside the one on screen.</summary>
     public void DockBack(PageHost host)

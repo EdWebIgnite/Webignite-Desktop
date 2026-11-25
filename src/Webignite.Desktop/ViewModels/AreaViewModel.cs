@@ -125,16 +125,29 @@ public sealed partial class AreaTile(AppEntry entry, bool pinned, AreaViewModel 
     private void Pin() => page.Pin(this);
 }
 
-/// <summary>One of the tabs across the top of the window.</summary>
-public sealed partial class AreaTab(AppArea area, Action<AppArea> pick) : ObservableObject
+/// <summary>A tab in a row of tabs drawn by <see cref="Webignite.Desktop.Controls.AreaBar"/>: an icon, a name, and whether it is the one lit.</summary>
+public partial class BarTab(string title, string icon, Action pick) : ObservableObject
 {
-    public AppArea Area { get; } = area;
-    public string Title { get; } = ToolCatalogue.AreaTitle(area);
-    public string Icon { get; } = ToolCatalogue.AreaIcon(area);
+    /// <summary>Its name, with a count after it when there is one ("Invoices · 2").</summary>
+    [ObservableProperty] public partial string Title { get; set; } = title;
 
-    /// <summary>The page on screen belongs to this area.</summary>
+    public string Icon { get; } = icon;
+
+    /// <summary>The page on screen belongs to this tab.</summary>
     [ObservableProperty] public partial bool IsOn { get; set; }
 
     [RelayCommand]
-    private void Pick() => pick(Area);
+    private void Pick() => pick();
+}
+
+/// <summary>One of the areas across the top of the window.</summary>
+public sealed class AreaTab(AppArea area, Action<AppArea> pick) : BarTab(ToolCatalogue.AreaTitle(area), ToolCatalogue.AreaIcon(area), () => pick(area))
+{
+    public AppArea Area { get; } = area;
+}
+
+/// <summary>One of the tabs across the top of a page that is several pages in one (Billing): the page it opens.</summary>
+public sealed class PageTab(Module module, Action<Module> pick) : BarTab(module.Title, module.Icon, () => pick(module))
+{
+    public Module Module { get; } = module;
 }

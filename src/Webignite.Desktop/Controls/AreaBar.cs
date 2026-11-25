@@ -10,21 +10,22 @@ using Webignite.Desktop.ViewModels;
 namespace Webignite.Desktop.Controls;
 
 /// <summary>
-/// The tabs across the top of the window (Mail, Business, Planner, Computer, Tools), drawn as one part: an icon and
-/// a name each, the one for the page on screen lit. It is on screen from the first frame, so it draws its tabs
-/// itself instead of holding a button for each, which keeps start-up light. Its colours come from its style.
+/// A row of tabs drawn as one part: an icon and a name each, the one for the page on screen lit. The areas across
+/// the top of the window (Mail, Business, Planner, Computer, Tools) are one, and the tabs of a page that is several
+/// pages in one (Billing) another. The areas are on screen from the first frame, so the row draws its tabs itself
+/// instead of holding a button for each, which keeps start-up light. Its colours come from its style.
 /// </summary>
 public sealed class AreaBar : Control
 {
     private const double PadX = 14, PadY = 7, IconSize = 15, IconGap = 8, Between = 4, Corner = 8;
 
-    public static readonly StyledProperty<IReadOnlyList<AreaTab>?> TabsProperty = AvaloniaProperty.Register<AreaBar, IReadOnlyList<AreaTab>?>(nameof(Tabs));
+    public static readonly StyledProperty<IReadOnlyList<BarTab>?> TabsProperty = AvaloniaProperty.Register<AreaBar, IReadOnlyList<BarTab>?>(nameof(Tabs));
     public static readonly StyledProperty<IBrush?> ForegroundProperty = TextElement.ForegroundProperty.AddOwner<AreaBar>();
     public static readonly StyledProperty<IBrush?> OnForegroundProperty = AvaloniaProperty.Register<AreaBar, IBrush?>(nameof(OnForeground));
     public static readonly StyledProperty<IBrush?> OnBackgroundProperty = AvaloniaProperty.Register<AreaBar, IBrush?>(nameof(OnBackground));
 
     private readonly List<Rect> places = [];
-    private IReadOnlyList<AreaTab>? watched;
+    private IReadOnlyList<BarTab>? watched;
     private int hover = -1;
 
     static AreaBar()
@@ -35,7 +36,7 @@ public sealed class AreaBar : Control
 
     public AreaBar() => Cursor = new Cursor(StandardCursorType.Hand);
 
-    public IReadOnlyList<AreaTab>? Tabs { get => GetValue(TabsProperty); set => SetValue(TabsProperty, value); }
+    public IReadOnlyList<BarTab>? Tabs { get => GetValue(TabsProperty); set => SetValue(TabsProperty, value); }
 
     /// <summary>The colour of a tab's icon and name.</summary>
     public IBrush? Foreground { get => GetValue(ForegroundProperty); set => SetValue(ForegroundProperty, value); }
@@ -66,7 +67,7 @@ public sealed class AreaBar : Control
     }
 
     // A tab lights up or goes dark when the page on screen changes: drawn again then. Let go of when the bar is.
-    private void Watch(IReadOnlyList<AreaTab>? tabs)
+    private void Watch(IReadOnlyList<BarTab>? tabs)
     {
         if (ReferenceEquals(watched, tabs))
             return;
@@ -75,10 +76,17 @@ public sealed class AreaBar : Control
         watched = tabs;
         foreach (var tab in watched ?? [])
             tab.PropertyChanged += TabChanged;
+        InvalidateMeasure();
         InvalidateVisual();
     }
 
-    private void TabChanged(object? sender, PropertyChangedEventArgs e) => InvalidateVisual();
+    private void TabChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // A name that changed (a count after it) changes the tab's width.
+        if (e.PropertyName == nameof(BarTab.Title))
+            InvalidateMeasure();
+        InvalidateVisual();
+    }
 
     private FormattedText Words(string text, IBrush? brush) => new(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
         new Typeface(TextElement.GetFontFamily(this), FontStyle.Normal, FontWeight.SemiBold), TextElement.GetFontSize(this), brush);
@@ -129,7 +137,7 @@ public sealed class AreaBar : Control
     }
 
     /// <summary>The tab at a point in the bar, or null between tabs.</summary>
-    public AreaTab? TabAt(Point point)
+    public BarTab? TabAt(Point point)
     {
         var at = places.FindIndex(place => place.Contains(point));
         return at >= 0 && Tabs is { } tabs && at < tabs.Count ? tabs[at] : null;

@@ -14,6 +14,7 @@ public enum Page
     Home, Projects, Notes, Calendar, Planner, Time, MyPages,
     SiteCheck, Crawler, Markup, Pdf,
     Business, Computer, Tools,
+    Billing,
     Settings,
     Inbox,
     Diary,

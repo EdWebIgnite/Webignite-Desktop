@@ -271,11 +271,13 @@ public partial class MainViewModel : ViewModelBase
             new NavGroup("client-work", "CLIENT WORK") { Icon = "Clients" },
             new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
             new Module(Page.Contacts, "Contacts", () => new ContactsViewModel(services), "Contacts", fullBleed: true),
-            new Module(Page.Retainers, "Recurring", () => new RetainersViewModel(services), "Retainers"),
-            new NavGroup("billing", "BILLING") { Icon = "Invoices" },
-            new Module(Page.Quotes, "Quotes", () => new DocumentsViewModel(DocumentKind.Quote, services), "Quotes"),
-            new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices"),
-            new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money"),
+            // Billing is one entry: quotes, invoices, money and what recurs are its tabs. It has no page of its own;
+            // opening it opens the tab used last. The four pages are as they were, only not on the menus themselves.
+            new Module(Page.Billing, "Billing", () => new TabsOnlyViewModel(), "Invoices") { Tabs = BillingTabPages },
+            new Module(Page.Quotes, "Quotes", () => new DocumentsViewModel(DocumentKind.Quote, services), "Quotes") { Under = Page.Billing },
+            new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices") { Under = Page.Billing },
+            new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money") { Under = Page.Billing },
+            new Module(Page.Retainers, "Recurring", () => new RetainersViewModel(services), "Retainers") { Under = Page.Billing },
             new Module(Page.Studio, "Studio", () => new StudioViewModel(services), "Studio", fullBleed: true),
             new Module(Page.Projects, "Projects", () => new ProjectsViewModel(services), "Projects", fullBleed: true) { InPlanner = true },
             new Module(Page.Calendar, "Calendar", () => new CalendarViewModel(services), "Calendar", fullBleed: true) { InPlanner = true },
@@ -319,6 +321,7 @@ public partial class MainViewModel : ViewModelBase
         }
         Modules = [.. nav.OfType<Module>()];
         // The areas' own pages are opened by the tabs only: they are never on the menus, nor among what can be put there.
+        // Nor are the pages that are tabs of another (Billing's): their entry is the one on the menus.
         // When the rest moves to the areas' pages, someone who has made pages of their own keeps them on the sidebar,
         // and someone who uses the dock keeps what is on it.
         IReadOnlyList<string> Keep(IReadOnlyList<string> defaults)
@@ -327,13 +330,14 @@ public partial class MainViewModel : ViewModelBase
             return
             [
                 .. services.Settings.MyPages.Count > 0 ? [SidebarViewModel.KeyOf(Page.MyPages)] : Array.Empty<string>(),
-                .. appearance.Menu == Webignite.Core.Layout.MenuKind.Dock ? Webignite.Core.Layout.Sidebar.OnDock(appearance.Dock ?? Webignite.Core.Layout.DockPages.Usual, defaults) : [],
+                .. appearance.Menu == Webignite.Core.Layout.MenuKind.Dock ? Webignite.Core.Layout.Sidebar.OnDock(Webignite.Core.Layout.DockPages.Moved(appearance.Dock ?? Webignite.Core.Layout.DockPages.Usual), defaults) : [],
             ];
         }
-        Sidebar = new SidebarViewModel(services.Settings, [.. nav.Where(item => item is not Module { IsArea: true })], ToolCatalogue.OffToStart, Keep) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        Sidebar = new SidebarViewModel(services.Settings, [.. nav.Where(item => item is not Module { IsArea: true } and not Module { Under: not null })], ToolCatalogue.OffToStart, Keep) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
         services.Go.IsOnMenusAsked = Sidebar.IsOnMenus;
         services.Go.ShowOnMenusAction = Sidebar.ShowOnMenus;
         AreaTabs = [.. Enum.GetValues<AppArea>().Select(area => new AreaTab(area, a => GoTo(ToolCatalogue.AreaPage(a))))];
+        BillingTabs = [.. BillingTabPages.Select(page => new PageTab(this[page], module => Selected = module))];
         Sidebar.LayoutChanged += MenuPart.MenusChanged;
         services.Go.EditMenuAction = () => MenuPart.EditMenuCommand.Execute(null);
         Open = [.. Modules.Select(m => m.Main)];
@@ -573,7 +577,14 @@ public partial class MainViewModel : ViewModelBase
             recurring.IsRenewals = page == Page.Renewals;
     }
 
-    public Module this[Page page] => Modules.Single(m => m.Key == NowIn(page));
+    /// <summary>
+    /// The page to open for a name. An entry that is several pages in one (Billing) has no page of its own, so its
+    /// name gives the tab used last.
+    /// </summary>
+    public Module this[Page page] => Lands(Modules.Single(m => m.Key == NowIn(page)));
+
+    /// <summary>Where opening an entry lands: the page itself, or for one that is several pages in one, the tab used last.</summary>
+    public Module Lands(Module entry) => entry.Tabs is null ? entry : Modules.Single(m => m.Key == lastTab[entry.Key]);
 
     /// <summary>Where a page lives now: one that was folded into another (Week into Calendar) opens that one, so a tab or layout saved before still works.</summary>
     public static Page NowIn(Page page) => page switch
@@ -588,11 +599,14 @@ public partial class MainViewModel : ViewModelBase
     private OverviewViewModel BuildOverview(AppServices services)
     {
         var page = new OverviewViewModel(services) { CheckPayments = () => CheckPaymentsAsync(byHand: true) };
-        // What waits to be approved shows as a count on Quotes and on Invoices.
+        // What waits to be approved shows as a count on Billing, and on its Quotes and Invoices tabs.
         page.Approvals.Counted = (quotes, invoices) =>
         {
             this[Page.Quotes].Badge = quotes;
             this[Page.Invoices].Badge = invoices;
+            Modules.First(m => m.Key == Page.Billing).Badge = quotes + invoices;
+            foreach (var tab in BillingTabs)
+                tab.Title = Webignite.Core.Layout.PageTabs.Title(tab.Module.Title, tab.Module.Badge);
         };
         page.Approvals.Refresh();
         return page;
@@ -765,7 +779,7 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     public object? SelectedIcon
     {
-        get => !Sidebar.IsPlanner && Selected.Group is { CanFold: true } group && Sidebar.IconPages.Contains(group) ? group : Selected;
+        get => !Sidebar.IsPlanner && OnMenusFor(Selected).Group is { CanFold: true } group && Sidebar.IconPages.Contains(group) ? group : OnMenusFor(Selected);
         set
         {
             if (value is not NavGroup)
@@ -778,7 +792,7 @@ public partial class MainViewModel : ViewModelBase
     public object? SelectedNav
     {
         get => (object?)ShownProjectLink() ?? (object?)ShownMyPageLink()
-            ?? (Selected is { InPlanner: true } && !Sidebar.IsPlanner ? plannerSection : Selected);
+            ?? (Selected is { InPlanner: true } && !Sidebar.IsPlanner ? plannerSection : OnMenusFor(Selected));
         set
         {
             // A list that doesn't hold the page on screen clears its pick; that's not a choice.
@@ -887,8 +901,39 @@ public partial class MainViewModel : ViewModelBase
             tab.IsOn = tab.Area == area;
     }
 
+    /// <summary>
+    /// The tabs across the top of Billing's pages: Quotes, Invoices, Money and Recurring, the one on screen lit, with
+    /// how many wait to be approved after Quotes and Invoices.
+    /// </summary>
+    public IReadOnlyList<PageTab> BillingTabs { get; private set; } = [];
+
+    /// <summary>One of Billing's pages is on screen, so its tabs show above it.</summary>
+    public bool ShowBillingTabs => Selected?.Under == Page.Billing;
+
+    private static readonly Page[] BillingTabPages = [Page.Quotes, Page.Invoices, Page.Money, Page.Retainers];
+
+    // The tab each several-pages-in-one entry was last on, so opening the entry goes back there. Invoices to begin with.
+    private readonly Dictionary<Page, Page> lastTab = new() { [Page.Billing] = Page.Invoices };
+
+    /// <summary>The entry on the menus that stands for a page: the page itself, or the entry it is a tab of (Billing, for Invoices).</summary>
+    public Module OnMenusFor(Module module) => module.Under is { } lead ? Modules.First(m => m.Key == lead) : module;
+
+    /// <summary>Whether a menu entry is the one for the page on screen: the page, or the entry the page is a tab of.</summary>
+    public bool IsOnScreen(Module entry) => Selected == entry || Selected?.Under == entry.Key;
+
     partial void OnSelectedChanged(Module value)
     {
+        // An entry that is several pages in one (Billing) has no page of its own: it opens the tab used last.
+        if (value.Tabs is not null)
+        {
+            Selected = Lands(value);
+            return;
+        }
+        if (value.Under is { } lead)
+            lastTab[lead] = value.Key;
+        foreach (var tab in BillingTabs)
+            tab.IsOn = tab.Module == value;
+        OnPropertyChanged(nameof(ShowBillingTabs));
         ShowArea(value);
         if (Current?.Module != value)
             Current = TabFor(value) ?? LastUsed(value);

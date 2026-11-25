@@ -19,7 +19,7 @@ public sealed class AreaTabsTests
         var main = new MainViewModel(app.Services);
 
         Assert.Equal(["Mail", "Business", "Planner", "Computer", "Tools"], main.AreaTabs.Select(t => t.Title));
-        Assert.Equal([Page.Overview, Page.Mail, Page.Clients, Page.Quotes, Page.Invoices, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
+        Assert.Equal([Page.Overview, Page.Mail, Page.Clients, Page.Billing, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
         Assert.Contains(main.Sidebar.OnMenus(), item => item is SectionLink);
         Assert.Empty(main.Sidebar.OnMenus().OfType<ToolLink>());
     });
@@ -124,22 +124,22 @@ public sealed class AreaTabsTests
         var main = new MainViewModel(app.Services);
 
         Assert.Equal(DockPages.Usual, main.MenuPart.Dock.Select(e => e.PageKey));
-        Assert.Equal([Page.Overview, Page.Mail, Page.Clients, Page.Quotes, Page.Invoices, Page.Money, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
+        Assert.Equal([Page.Overview, Page.Mail, Page.Clients, Page.Billing, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
     });
 
     [Fact]
     public Task Someone_who_uses_the_dock_keeps_what_is_on_it() => Ui.Run(() =>
     {
         using var app = new TestApp();
-        app.Services.Settings.Appearance = app.Services.Settings.Appearance with { Menu = MenuKind.Dock, Dock = ["Overview", "Money", DockKeys.Tool("Calculator")] };
+        app.Services.Settings.Appearance = app.Services.Settings.Appearance with { Menu = MenuKind.Dock, Dock = ["Overview", "Studio", DockKeys.Tool("Calculator")] };
         var main = new MainViewModel(app.Services);
 
-        Assert.Contains(Page.Money, OnSidebar(main));
+        Assert.Contains(Page.Studio, OnSidebar(main));
         Assert.Equal(ToolKind.Calculator, main.Sidebar.OnMenus().OfType<ToolLink>().Single().Kind);
         Assert.DoesNotContain(Page.Contacts, OnSidebar(main));
 
         main.Selected = main[Page.Business];
-        Assert.Equal("5 of these are pinned to the menu.", ((AreaViewModel)main.Current.Page).Summary);
+        Assert.Equal("4 of these are pinned to the menu.", ((AreaViewModel)main.Current.Page).Summary);
     });
 
     [Fact]
@@ -151,8 +151,8 @@ public sealed class AreaTabsTests
         bar.Measure(Avalonia.Size.Infinity);
 
         Assert.True(bar.DesiredSize.Width > 300 && bar.DesiredSize.Height > 20);
-        Assert.Equal(AppArea.Mail, bar.TabAt(new Avalonia.Point(5, 5))?.Area);
-        Assert.Equal(AppArea.Tools, bar.TabAt(new Avalonia.Point(bar.DesiredSize.Width - 5, 5))?.Area);
+        Assert.Equal(AppArea.Mail, (bar.TabAt(new Avalonia.Point(5, 5)) as AreaTab)?.Area);
+        Assert.Equal(AppArea.Tools, (bar.TabAt(new Avalonia.Point(bar.DesiredSize.Width - 5, 5)) as AreaTab)?.Area);
         Assert.Null(bar.TabAt(new Avalonia.Point(bar.DesiredSize.Width + 10, 5)));
     });
 
