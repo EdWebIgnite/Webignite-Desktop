@@ -61,8 +61,12 @@ public static class PresenceRules
 }
 
 /// <summary>
-/// How quickly chat is looked for: every few seconds while the two of you are talking (the chat window open, or a
-/// message either way in the last few minutes), else with the minute's sync.
+/// How quickly chat is looked for. From the moment Webignite is opened the chat listens as if its window were open,
+/// though it isn't on screen: every few seconds while the person is at the PC, while the chat window is open, or
+/// while a message went either way in the last few minutes. So a message arrives, pops up and chimes within
+/// seconds, and the other person shows as online just as soon. With the PC left alone it is the minute's sync,
+/// and so it is while the sync server can't be reached, so a laptop away from the office isn't trying every few
+/// seconds all day.
 /// </summary>
 public static class ChatTiming
 {
@@ -71,6 +75,10 @@ public static class ChatTiming
     /// <summary>How long after the last message the chat counts as still going.</summary>
     public static readonly TimeSpan Talking = TimeSpan.FromMinutes(10);
 
-    public static bool IsLively(bool chatOpen, DateTimeOffset? lastMessage, DateTimeOffset now) =>
-        chatOpen || lastMessage is { } last && now - last <= Talking;
+    /// <param name="chatOpen">The chat window is on screen.</param>
+    /// <param name="lastMessage">When a message last went either way.</param>
+    /// <param name="lastActive">When the person last used the PC, in any program.</param>
+    /// <param name="reachable">The last sync got through to the server.</param>
+    public static bool IsLively(bool chatOpen, DateTimeOffset? lastMessage, DateTimeOffset lastActive, DateTimeOffset now, bool reachable = true) =>
+        reachable && (chatOpen || now - lastActive <= PresenceRules.IdleAfter || lastMessage is { } last && now - last <= Talking);
 }

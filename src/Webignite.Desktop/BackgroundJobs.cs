@@ -64,12 +64,14 @@ public sealed class BackgroundJobs(AppServices services) : IDisposable
 
     private void AssistantsTick(object? sender, EventArgs e) => LookForAssistants();
 
-    // While the two of you are chatting, a quick sync every few seconds brings messages in almost at once. One at a
-    // time: a sync still running is left to finish.
+    // From the moment the app is open the chat listens as if its window were open: while the person is at the PC, a
+    // quick sync every few seconds brings messages in almost at once and keeps them showing as online. One at a
+    // time: a sync still running is left to finish. With the server out of reach it waits for the minute's sync.
     private void ChatTick(object? sender, EventArgs e)
     {
         if (chatSync is { IsCompleted: false } || !services.MaySync
-            || !Webignite.Core.Chat.ChatTiming.IsLively(ChatOpen?.Invoke() == true, services.Chat.LastMessageAt, DateTimeOffset.UtcNow))
+            || !Webignite.Core.Chat.ChatTiming.IsLively(ChatOpen?.Invoke() == true, services.Chat.LastMessageAt, IdleClock.LastActive(), DateTimeOffset.UtcNow,
+                reachable: !services.SyncInTrouble))
             return;
         chatSync = SyncProjects!();
         chatSync.Forget("Looking for chat messages");
