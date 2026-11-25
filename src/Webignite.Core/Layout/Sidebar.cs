@@ -29,6 +29,12 @@ public sealed record SidebarLayout
     /// </summary>
     public IReadOnlyList<string> Off { get; init; } = [];
 
+    /// <summary>
+    /// The small tools have been moved off the menus onto the Tools page once (<see cref="Sidebar.TuckTools"/>).
+    /// After that, which of them show on the menus is the person's choice, kept in <see cref="Off"/> like the rest.
+    /// </summary>
+    public bool ToolsTucked { get; init; }
+
     public bool IsOpen(string group) => !Folded.Contains(group, StringComparer.Ordinal);
 
     public bool IsOff(string key) => Off.Contains(key, StringComparer.Ordinal);
@@ -89,6 +95,24 @@ public static class Sidebar
 
     /// <summary>Everything back on the menus.</summary>
     public static SidebarLayout PutAllBack(SidebarLayout layout) => layout.Off.Count == 0 ? layout : layout with { Off = [] };
+
+    /// <summary>
+    /// Everything back on the menus except the small tools, which go back to the Tools page: the menus as they are
+    /// when nothing has been taken off or pinned.
+    /// </summary>
+    public static SidebarLayout PutAllBack(SidebarLayout layout, IReadOnlyList<string> tools) =>
+        layout.Off.Count == tools.Count && tools.All(layout.IsOff) ? layout : layout with { Off = [.. tools] };
+
+    /// <summary>
+    /// The first time the Tools page exists, the small tools come off the menus: they live on that page, and the
+    /// ones the person pins there show on the menus again. Done once, so a pinned tool stays pinned.
+    /// </summary>
+    public static SidebarLayout TuckTools(SidebarLayout layout, IReadOnlyList<string> tools) =>
+        layout.ToolsTucked ? layout : layout with { ToolsTucked = true, Off = [.. layout.Off.Union(tools, StringComparer.Ordinal)] };
+
+    /// <summary>Whether anything other than a tool that lives on the Tools page has been taken off the menus.</summary>
+    public static bool HasTakenOff(SidebarLayout layout, IReadOnlyList<string> defaults, IReadOnlyList<string> tools) =>
+        TakenOff(layout, defaults).Any(key => !tools.Contains(key, StringComparer.Ordinal));
 
     /// <summary>
     /// What the menus show, top to bottom: the entries in the person's order without those taken off, and

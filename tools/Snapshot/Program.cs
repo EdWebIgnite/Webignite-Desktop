@@ -246,6 +246,43 @@ void SaveLooks(string name)
 
 Save("overview-start");
 
+// The Tools page: every small tool as a tile under tabs, off the sidebar until pinned there.
+{
+    Check("The small tools start on the Tools page, not on the sidebar",
+        !vm.Sidebar.OnMenus().OfType<ToolLink>().Any() && vm.Sidebar.OnMenus().OfType<Module>().Any(m => m.Key == Page.Tools)
+        && !vm.Sidebar.OnMenus().OfType<Module>().Any(m => m.Key is Page.Pdf or Page.Crawler or Page.SiteCheck or Page.Markup));
+    Open(Page.Tools);
+    var toolbox = (ToolboxViewModel)vm[Page.Tools].Main.Page;
+    Dispatcher.UIThread.RunJobs();
+    Check("The Tools page opens on Computer, with a tile for each tool there", toolbox.Tab == ToolTab.Computer && toolbox.Tiles.Count == 8
+        && toolbox.Tiles.All(t => !t.IsPinned) && toolbox.Tabs.Count == 3 && toolbox.Tabs[0].IsOn);
+    Save("tools");
+    toolbox.Tabs[1].PickCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The Web tab lists the website tools", toolbox.Tiles.Any(t => t.Title == "Site crawler") && toolbox.Tiles.All(t => t.Entry.Tab == ToolTab.Web));
+    Save("tools-web");
+    toolbox.Tabs[0].PickCommand.Execute(null);
+    var calculatorTile = toolbox.Tiles.First(t => t.Title == "Calculator");
+    calculatorTile.PinCommand.Execute(null);
+    toolbox.Tiles.First(t => t.Title == "PDF tools").PinCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("A pinned tool shows in the sidebar too, and the page says how many are pinned",
+        calculatorTile.IsPinned && vm.Sidebar.OnMenus().OfType<ToolLink>().Single().Kind == ToolKind.Calculator
+        && vm.Sidebar.OnMenus().OfType<Module>().Any(m => m.Key == Page.Pdf) && toolbox.Summary == "2 tools are pinned to the sidebar.");
+    Save("tools-pinned");
+    toolbox.Find = "pdf";
+    Dispatcher.UIThread.RunJobs();
+    Check("Typing finds tools on any tab by name or by what they do",
+        toolbox.Tiles.Select(t => t.Title).SequenceEqual(["PDF tools", "Page to PDF or picture"]) && toolbox.Tabs.All(t => !t.IsOn));
+    Save("tools-find");
+    toolbox.Find = "";
+    // Back as it was for the rest of the run, which finds the tools on the menus.
+    foreach (var entry in ToolCatalogue.All)
+        vm.Sidebar.ShowOnMenus(entry.MenuKey, true);
+    Dispatcher.UIThread.RunJobs();
+    Open(Page.Overview);
+}
+
 vm.ToggleShortcutsCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
 Check("F1 lists the shortcuts under headings, with a box to search them",

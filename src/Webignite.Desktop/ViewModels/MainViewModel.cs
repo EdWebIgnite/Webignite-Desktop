@@ -280,26 +280,28 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
             new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
             new Module(Page.Notes, "Notes", () => new NotesViewModel(services), "Notes", fullBleed: true),
-            new ToolLink(ToolKind.Compare, "Compare", "Compare"),
-            new ToolLink(ToolKind.Duplicates, "Duplicate files", "Duplicates"),
-            new ToolLink(ToolKind.Calculator, "Calculator", "Calculator"),
-            new ToolLink(ToolKind.Passwords, "Password generator", "Key"),
-            new ToolLink(ToolKind.Colours, "Colours", "Palette"),
-            new ToolLink(ToolKind.Snippets, "Text snippets", "Snippets"),
-            new ToolLink(ToolKind.ScreenText, "Text from the screen", "ScreenText"),
+            new Module(Page.Tools, "Tools", () => new ToolboxViewModel(services), "Tools"),
+            // The small tools live on the Tools page; the ones pinned there show here too, under their heading.
+            ToolCatalogue.Link(ToolKind.Compare),
+            ToolCatalogue.Link(ToolKind.Duplicates),
+            ToolCatalogue.Link(ToolKind.Calculator),
+            ToolCatalogue.Link(ToolKind.Passwords),
+            ToolCatalogue.Link(ToolKind.Colours),
+            ToolCatalogue.Link(ToolKind.Snippets),
+            ToolCatalogue.Link(ToolKind.ScreenText),
             new NavGroup("web-tools", "WEB TOOLS") { Icon = "SiteCheck" },
             new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
             new Module(Page.Crawler, "Site crawler", () => new CrawlerViewModel(services), "Crawler"),
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
-            new ToolLink(ToolKind.Images, "Website images", "Picture"),
-            new ToolLink(ToolKind.Logos, "Logos and brand sheet", "Logos"),
-            new ToolLink(ToolKind.Social, "Social images", "Social"),
-            new ToolLink(ToolKind.Qr, "QR code", "Qr"),
-            new ToolLink(ToolKind.WebHelpers, "Web helpers", "Code"),
-            new ToolLink(ToolKind.Dns, "DNS records", "Dns"),
-            new ToolLink(ToolKind.Browser, "Browser and phone preview", "Browser"),
-            new ToolLink(ToolKind.PageCapture, "Page to PDF or picture", "PageCapture"),
-            new ToolLink(ToolKind.Ruler, "Screen ruler", "Ruler"),
+            ToolCatalogue.Link(ToolKind.Images),
+            ToolCatalogue.Link(ToolKind.Logos),
+            ToolCatalogue.Link(ToolKind.Social),
+            ToolCatalogue.Link(ToolKind.Qr),
+            ToolCatalogue.Link(ToolKind.WebHelpers),
+            ToolCatalogue.Link(ToolKind.Dns),
+            ToolCatalogue.Link(ToolKind.Browser),
+            ToolCatalogue.Link(ToolKind.PageCapture),
+            ToolCatalogue.Link(ToolKind.Ruler),
             new NavGroup("end", ""),
             new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings", readingWidth: true),
         ];
@@ -312,7 +314,9 @@ public partial class MainViewModel : ViewModelBase
                 module.Group = group;
         }
         Modules = [.. nav.OfType<Module>()];
-        Sidebar = new SidebarViewModel(services.Settings, nav) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        Sidebar = new SidebarViewModel(services.Settings, nav, ToolCatalogue.MenuKeys) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        services.Go.IsOnMenusAsked = Sidebar.IsOnMenus;
+        services.Go.ShowOnMenusAction = Sidebar.ShowOnMenus;
         Sidebar.LayoutChanged += MenuPart.MenusChanged;
         services.Go.EditMenuAction = () => MenuPart.EditMenuCommand.Execute(null);
         Open = [.. Modules.Select(m => m.Main)];

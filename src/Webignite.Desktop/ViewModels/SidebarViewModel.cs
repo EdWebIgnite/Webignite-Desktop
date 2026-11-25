@@ -18,14 +18,24 @@ public sealed partial class SidebarViewModel : ObservableObject
     private SidebarLayout layout;
     private readonly Dictionary<Page, (IReadOnlyList<SubLink> Above, IReadOnlyList<SubLink> Below)> links = [];
 
+    private readonly string[] tools;
+
     /// <param name="all">Every entry in the app's own order: pages and the group headings between them.</param>
-    public SidebarViewModel(AppSettings settings, IReadOnlyList<object> all)
+    /// <param name="tools">The keys of what lives on the Tools page: off the menus unless pinned there.</param>
+    public SidebarViewModel(AppSettings settings, IReadOnlyList<object> all, IReadOnlyList<string>? tools = null)
     {
         this.settings = settings;
         byKey = all.ToDictionary(Key);
         defaults = [.. all.Select(Key)];
+        this.tools = [.. (tools ?? []).Where(byKey.ContainsKey)];
         var groups = all.OfType<NavGroup>().Where(g => g.CanFold).ToList();
         layout = Sidebar.Reconcile(settings.Sidebar, [.. groups.Select(g => g.Key)]);
+        // Once: the small tools move from the menus to the Tools page. Kept, so a tool pinned later stays pinned.
+        if (this.tools.Length > 0 && Sidebar.TuckTools(layout, this.tools) is var tucked && tucked != layout)
+        {
+            layout = tucked;
+            settings.Sidebar = layout;
+        }
         ShowMode(layout.Mode);
         foreach (var item in all)
         {
@@ -43,11 +53,31 @@ public sealed partial class SidebarViewModel : ObservableObject
         Apply();
     }
 
+    /// <summary>A page's key on the menus.</summary>
+    public static string KeyOf(Page page) => page.ToString();
+
+    /// <summary>A small tool's key on the menus.</summary>
+    public static string KeyOf(ToolKind kind) => "tool-" + kind;
+
+    /// <summary>Whether the entry with this key shows on the menus (a tool pinned from the Tools page does).</summary>
+    public bool IsOnMenus(string key) => byKey.ContainsKey(key) && !layout.IsOff(key);
+
+    /// <summary>Pins an entry to the menus by its key, or takes it off again.</summary>
+    public void ShowOnMenus(string key, bool show)
+    {
+        if (!byKey.TryGetValue(key, out var item))
+            return;
+        if (show)
+            PutBack(item);
+        else
+            TakeOff(item);
+    }
+
     private static string Key(object item) => item switch
     {
         NavGroup group => Sidebar.Heading(group.Key),
-        Module module => module.Key.ToString(),
-        ToolLink tool => "tool-" + tool.Kind,
+        Module module => KeyOf(module.Key),
+        ToolLink tool => KeyOf(tool.Kind),
         SectionLink section => "section-" + section.Key,
         _ => throw new ArgumentException("Not a sidebar entry", nameof(item)),
     };
@@ -193,10 +223,11 @@ public sealed partial class SidebarViewModel : ObservableObject
             Change(Sidebar.PutBack(layout, Key(item)));
     }
 
-    public void PutAllBack() => Change(Sidebar.PutAllBack(layout));
+    /// <summary>Everything back on the menus; the small tools go back to the Tools page.</summary>
+    public void PutAllBack() => Change(Sidebar.PutAllBack(layout, tools));
 
-    /// <summary>True when something has been taken off the menus.</summary>
-    public bool HasTakenOff => Sidebar.TakenOff(layout, defaults).Count > 0;
+    /// <summary>True when something has been taken off the menus (a tool that lives on the Tools page doesn't count).</summary>
+    public bool HasTakenOff => Sidebar.HasTakenOff(layout, defaults, tools);
 
     /// <summary>Every entry that is on the menus, headings too, in the person's order, whether its group is folded or not.</summary>
     public IReadOnlyList<object> OnMenus() => [.. Sidebar.Shown(layout, defaults).Select(key => byKey[key])];
