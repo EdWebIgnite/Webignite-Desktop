@@ -2988,7 +2988,9 @@ imagesWindow.Close();
     Until(() => pic.Picture is not null);
     var showNote = services.ShowNote;
     Action? undo = null;
-    services.ShowNote = (_, _, act) => undo = act; // the Undo in the corner, kept to press below
+    // The Undo in the corner for the crop, kept to press below. Only the crop's own: a note from something that
+    // finished late (a mail archived a moment ago, say) must not take its place.
+    services.ShowNote = (what, _, act) => { if (what.StartsWith("Cropped", StringComparison.Ordinal)) undo = act; };
 
     pic.StartCropCommand.Execute(null);
     pic.DragCrop(new Point(100 * pic.Zoom, 100 * pic.Zoom), new Point(1300 * pic.Zoom, 900 * pic.Zoom));
@@ -2996,6 +2998,7 @@ imagesWindow.Close();
     SaveWindow(tools, "picture-crop");
     pic.ApplyCropCommand.Execute(null);
     Check("Crop keeps only the part dragged over", Until(() => Webignite.Tools.PictureTools.Size(team) == (1200, 800) && pic.FullWidth == 1200));
+    Check("Cropping offers Undo", undo is not null);
     undo?.Invoke();
     Check("Undo puts the picture back as it was", Until(() => Webignite.Tools.PictureTools.Size(team) == (2400, 1600) && pic.FullWidth == 2400));
 
@@ -5969,7 +5972,9 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
         Dispatcher.UIThread.RunJobs();
         Check("A long day shows its first 12 things, with Show more for the rest",
             vm.Overview.Today.Count == 12 && vm.Overview.TodayRows.MoreText == $"Show {before + 20 - 12} more");
-        var overviewScroller = window.GetVisualDescendants().OfType<Avalonia.Controls.ScrollViewer>().First(v => v.Name == "PageScroller" || v.Extent.Height > v.Viewport.Height);
+        // The picture is of Today, which sits below the fold: the page is scrolled to it, then back.
+        var todayCard = window.GetVisualDescendants().OfType<Avalonia.Controls.Border>().First(b => b.Name == "TodayCard");
+        var overviewScroller = todayCard.FindAncestorOfType<Avalonia.Controls.ScrollViewer>()!;
         overviewScroller.ScrollToEnd();
         Dispatcher.UIThread.RunJobs();
         Save("overview-long-day");
