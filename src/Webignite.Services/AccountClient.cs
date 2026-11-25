@@ -75,8 +75,9 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
     {
         if (SyncAddress.Problem(Settings.ServerAddress) is { } addressProblem)
             return new Reply<T>(default, addressProblem);
-        if (signedIn && !await EnsureAccess(cancel))
-            return new Reply<T>(default, "Sign in again.");
+        // Why the sign-in couldn't be renewed, as it is: a server that can't be reached isn't a reason to sign in again.
+        if (signedIn && await EnsureAccess(cancel) is { } noAccess)
+            return new Reply<T>(default, noAccess);
         try
         {
             using var request = new HttpRequestMessage(method, Endpoint(path));
@@ -108,22 +109,44 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
         }
     }
 
-    // A fresh access token from the kept refresh token when the one in memory has (nearly) run out.
-    private async Task<bool> EnsureAccess(CancellationToken cancel)
+    private const string SignInAgain = "Sign in again.";
+
+    // One at a time. The server hands out a new kept sign-in with each renewal and takes an old one coming back as
+    // stolen, signing the PC out. Two requests renewing at once (a sync and the licence check, say) would send the
+    // same one twice and do just that.
+    private readonly SemaphoreSlim renewing = new(1, 1);
+
+    /// <summary>
+    /// A fresh access token from the kept sign-in when the one in memory has (nearly) run out. Null when there is one
+    /// to use; otherwise what went wrong, in the server's or the network's own words. Only the server saying the
+    /// sign-in is no longer good forgets it; a server that can't be reached leaves it for the next try.
+    /// </summary>
+    private async Task<string?> EnsureAccess(CancellationToken cancel)
     {
         if (accessToken is not null && accessExpires > DateTimeOffset.UtcNow.AddMinutes(1))
-            return true;
-        if (secrets.Read(RefreshName) is not { Length: > 0 } refresh)
-            return false;
-        var reply = await Send<SessionInfo>(HttpMethod.Post, "api/sessions/refresh", new RefreshRequest(refresh), signedIn: false, cancel);
-        if (reply.Value is not { } session)
+            return null;
+        await renewing.WaitAsync(cancel);
+        try
         {
-            if (reply.Problem == "Sign in again.")
-                Forget();
-            return false;
+            // Renewed while this one waited its turn.
+            if (accessToken is not null && accessExpires > DateTimeOffset.UtcNow.AddMinutes(1))
+                return null;
+            if (secrets.Read(RefreshName) is not { Length: > 0 } refresh)
+                return SignInAgain;
+            var reply = await Send<SessionInfo>(HttpMethod.Post, "api/sessions/refresh", new RefreshRequest(refresh), signedIn: false, cancel);
+            if (reply.Value is not { } session)
+            {
+                if (reply.Problem == SignInAgain)
+                    Forget();
+                return reply.Problem ?? SignInAgain;
+            }
+            Keep(session);
+            return null;
         }
-        Keep(session);
-        return true;
+        finally
+        {
+            renewing.Release();
+        }
     }
 
     private void Keep(SessionInfo session)
@@ -410,6 +433,7 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
     public void Dispose()
     {
         http.Dispose();
+        renewing.Dispose();
         if (EncryptionKey is { } key)
             System.Security.Cryptography.CryptographicOperations.ZeroMemory(key);
     }

@@ -81,6 +81,52 @@ public sealed class AccountClientTests : IDisposable
         Assert.Equal(workspaceKey, fresh.WorkspaceKey);
     }
 
+    private sealed class NoServer : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromException<HttpResponseMessage>(new HttpRequestException(HttpRequestError.ConnectionError));
+    }
+
+    [Fact]
+    public async Task A_server_that_cant_be_reached_says_so_and_the_sign_in_is_kept()
+    {
+        using (var client = Client())
+            Assert.True((await client.SignUpAsync("eddie@webignite.co.za", "karoo rooibos sunrise", "Webignite", null, TestContext.Current.CancellationToken)).Worked);
+
+        // Another start of the app, with the server down: it must not say "Sign in again", which signing in wouldn't fix.
+        using (var offline = new AccountClient(store, secrets, new NoServer()))
+        {
+            Assert.Null(offline.UseServer("http://localhost"));
+            var reply = await offline.RefreshAccountAsync(TestContext.Current.CancellationToken);
+            Assert.False(reply.Worked);
+            Assert.StartsWith("Couldn't reach the sync server.", reply.Problem, StringComparison.Ordinal);
+            Assert.True(offline.IsSignedIn);
+            Assert.True(offline.HasWorkspaceKey);
+        }
+
+        // The server back, the kept sign-in works as before.
+        using var back = Client();
+        Assert.True((await back.RefreshAccountAsync(TestContext.Current.CancellationToken)).Worked);
+    }
+
+    [Fact]
+    public async Task Requests_that_renew_the_sign_in_at_the_same_moment_dont_sign_the_PC_out()
+    {
+        using (var client = Client())
+            Assert.True((await client.SignUpAsync("eddie@webignite.co.za", "karoo rooibos sunrise", "Webignite", null, TestContext.Current.CancellationToken)).Worked);
+
+        // Another start of the app: a sync, the licence check and Settings all ask at once, each needing the kept
+        // sign-in renewed. The server takes an old one coming back as stolen and signs the PC out, so it is renewed once.
+        using var later = Client();
+        var replies = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => later.RefreshAccountAsync(TestContext.Current.CancellationToken)));
+        Assert.All(replies, reply => Assert.True(reply.Worked, reply.Problem));
+        Assert.True(later.IsSignedIn);
+        Assert.True(later.HasWorkspaceKey);
+
+        using var next = Client();
+        Assert.True((await next.RefreshAccountAsync(TestContext.Current.CancellationToken)).Worked);
+    }
+
     [Fact]
     public async Task A_partner_joins_with_an_invite_code()
     {
