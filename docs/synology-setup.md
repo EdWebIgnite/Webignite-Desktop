@@ -36,6 +36,13 @@ The router needs to know where the NAS is, and that address shouldn't change.
 2. In the router, find **DHCP reservation**, **Address reservation** or **Static lease** (often under LAN or
    DHCP settings). Add the NAS with that address, so the router always gives it the same one.
 
+   On an ASUS router (such as the TUF series): **LAN**, **DHCP Server** tab, set **Enable Manual Assignment** to
+   **Yes**, pick the NAS in the list under it, click **+**, then **Apply**.
+
+Don't skip this. Without it the NAS can come back from a power cut or load shedding on a different address, the
+router keeps sending the sync server's traffic to the old one, and sync stops on both PCs with nothing on the NAS
+looking wrong. That happened on 20 Nov 2026 (the NAS moved from `.41` to `.42`).
+
 If you can't find that setting in the router, tell me the router's make and model.
 
 ## 3. Install Container Manager
@@ -208,8 +215,10 @@ cuts and protects the NAS's disks.
 
 ## Troubleshooting
 
-- **The health page doesn't open on mobile data:** check the port forward in step 8 points at the NAS's address
-  from step 2, and that the address in step 6 shows **Normal** under DDNS.
+- **The health page doesn't open on mobile data (it times out):** the NAS's address at home has most likely
+  changed. In DSM, **Control Panel**, **Network**, **Network Interface**, note the address. In the router's port
+  forward (step 8), make the inside address the same, and reserve it (step 2) so it stays. Also check the address
+  in step 6 shows **Normal** under DDNS.
 - **It opens on mobile data but not on a PC at home:** the router doesn't send your own address back inside your
   home. Tell me the router's make and model.
 - **The health page says 502 or Bad Gateway:** the server isn't running. In Container Manager, **Project**,
