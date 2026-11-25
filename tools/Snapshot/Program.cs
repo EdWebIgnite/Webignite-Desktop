@@ -5959,6 +5959,36 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     store.ChangeTask("today-1", t => t with { Done = true });
     services.ShowNote = noteWas;
 
+    // A long day: Today shows its first 12 things with Show more, so opening the app doesn't draw a row for each.
+    {
+        vm.Overview.Refresh();
+        var before = vm.Overview.TodayRows.All.Count;
+        for (var i = 1; i <= 20; i++)
+            store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = $"long-{i}", Title = $"Check site {i} after the update", Due = DateOnly.FromDateTime(DateTime.Today), Created = DateTimeOffset.UtcNow });
+        vm.Overview.Refresh();
+        Dispatcher.UIThread.RunJobs();
+        Check("A long day shows its first 12 things, with Show more for the rest",
+            vm.Overview.Today.Count == 12 && vm.Overview.TodayRows.MoreText == $"Show {before + 20 - 12} more");
+        var overviewScroller = window.GetVisualDescendants().OfType<Avalonia.Controls.ScrollViewer>().First(v => v.Name == "PageScroller" || v.Extent.Height > v.Viewport.Height);
+        overviewScroller.ScrollToEnd();
+        Dispatcher.UIThread.RunJobs();
+        Save("overview-long-day");
+        overviewScroller.ScrollToHome();
+        vm.Overview.TodayRows.ToggleCommand.Execute(null);
+        Check("Show more shows the whole day, and offers to show fewer", vm.Overview.Today.Count == before + 20 && vm.Overview.TodayRows.MoreText == "Show fewer");
+        vm.Overview.TodayRows.ToggleCommand.Execute(null);
+        Open(Page.Home);
+        var home = (PlannerHomeViewModel)vm[Page.Home].Main.Page;
+        Dispatcher.UIThread.RunJobs();
+        Check("Planner's Home shows the first 12 of My tasks and says how many more are on My tasks",
+            home.Tasks.Count == 12 && home.HasMoreTasks && home.MoreTasksText.EndsWith(" more in My tasks", StringComparison.Ordinal));
+        Save("home-long-day");
+        for (var i = 1; i <= 20; i++)
+            store.DeleteTask($"long-{i}");
+        Open(Page.Overview);
+        vm.Overview.Refresh();
+    }
+
     services.Settings.NoteHistory = [];
     vm.ShowNotifications();
     var noteOpened = false;

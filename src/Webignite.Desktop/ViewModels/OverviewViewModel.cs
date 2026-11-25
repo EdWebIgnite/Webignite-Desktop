@@ -91,7 +91,14 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHo
 
     public string TodayText => DateTime.Today.ToString("dddd, d MMMM");
 
+    /// <summary>Today as shown, in order of the day: the first few until asked for all, so a long day isn't drawn row by row.</summary>
     public ObservableCollection<AgendaItemViewModel> Today { get; } = [];
+
+    private const int TodayFirstShown = 12;
+    private FirstFewList<AgendaItemViewModel>? todayRows;
+
+    /// <summary>Show more and Show fewer under Today.</summary>
+    public FirstFewList<AgendaItemViewModel> TodayRows => todayRows ??= new(Today, TodayFirstShown);
 
     /// <summary>How many Needs you lines show before "Show more": the most pressing come first.</summary>
     private const int FirstShown = 6;
@@ -185,10 +192,8 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHo
         var tasks = services.Store.ListTasks();
         var documents = services.Documents.List();
 
-        Today.Clear();
         // Overview hears of a change through RepliesChanged, so the list needs nothing more from the item cleared.
-        foreach (var item in TodayList.Items(services, () => { }))
-            Today.Add(item);
+        TodayRows.Set(TodayList.Items(services, () => { }));
         var overdueTasks = tasks.Count(t => TaskGroups.Of(t, today) == TaskGroup.Overdue);
         OverdueText = overdueTasks switch { 0 => "", 1 => "1 overdue to-do", _ => $"{overdueTasks} overdue to-dos" };
 

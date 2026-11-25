@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Webignite.Core.Layout;
 using Webignite.Core.Projects;
 
 namespace Webignite.Desktop.ViewModels;
@@ -60,6 +61,13 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
     [ObservableProperty] public partial string EmptyText { get; private set; } = "";
 
     public bool HasNoTasks => Tasks.Count == 0;
+
+    /// <summary>How many rows the My tasks card shows.</summary>
+    private const int TasksShown = 12;
+
+    /// <summary>"7 more in My tasks" under the card's list, which opens My tasks; empty when everything fits.</summary>
+    public string MoreTasksText { get; private set; } = "";
+    public bool HasMoreTasks => MoreTasksText.Length > 0;
 
     [RelayCommand]
     private void ShowTab(HomeTab tab)
@@ -158,9 +166,13 @@ public sealed partial class PlannerHomeViewModel : ViewModelBase, IRefreshable, 
                 services.Projects.Projects().SelectMany(p => services.Projects.AllTasks(p.Id)), todos, me, DateTimeOffset.Now.AddDays(-14)),
             _ => PlannerHome.Upcoming(services.Projects.Mine(me), todos, Today),
         };
+        // The card shows the first few; the rest are a click away on My tasks, so a long list isn't drawn row by row here.
         Tasks.Clear();
-        foreach (var item in shown)
+        foreach (var item in shown.Take(TasksShown))
             Tasks.Add(new HomeTaskRow(item, item.Task is { } task ? names.GetValueOrDefault(task.ProjectId) ?? "" : "To-do", Today, services, Refresh));
+        MoreTasksText = FirstFew.LeftOut(shown.Count, TasksShown) switch { 0 => "", var more => $"{more} more in My tasks" };
+        OnPropertyChanged(nameof(MoreTasksText));
+        OnPropertyChanged(nameof(HasMoreTasks));
         EmptyText = Tab switch
         {
             HomeTab.Overdue => "Nothing overdue. Well done.",

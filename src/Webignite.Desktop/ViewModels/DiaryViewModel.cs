@@ -106,8 +106,8 @@ public partial class DiaryPageViewModel : ViewModelBase
         IsToday = day.Date == today;
         foreach (var line in day.Lines)
             Lines.Add(new DiaryLineViewModel(line, this));
-        foreach (var item in day.Untimed)
-            Untimed.Add(new DiaryEntryViewModel(item, this));
+        UntimedRows = new(Untimed, UntimedFirstShown);
+        UntimedRows.Set(day.Untimed.Select(item => new DiaryEntryViewModel(item, this)));
         keptNotes = services.Store.DiaryNote(day.Date);
         Notes = keptNotes;
     }
@@ -119,8 +119,14 @@ public partial class DiaryPageViewModel : ViewModelBase
     public string MonthYear => Date.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
 
     public ObservableCollection<DiaryLineViewModel> Lines { get; } = [];
+    /// <summary>What is to do or due on the day with no time: the first few until asked for all, so a full day isn't drawn row by row.</summary>
     public ObservableCollection<DiaryEntryViewModel> Untimed { get; } = [];
     public bool HasUntimed => Untimed.Count > 0;
+
+    private const int UntimedFirstShown = 12;
+
+    /// <summary>Show more and Show fewer under the day's to-dos.</summary>
+    public FirstFewList<DiaryEntryViewModel> UntimedRows { get; }
 
     /// <summary>A to-do being typed for this day.</summary>
     [ObservableProperty] public partial string NewTodo { get; set; } = "";

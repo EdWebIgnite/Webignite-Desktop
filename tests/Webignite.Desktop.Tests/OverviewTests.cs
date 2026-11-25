@@ -68,4 +68,40 @@ public sealed class OverviewTests
         pages.Dispose();
         again.Dispose();
     });
+
+    [Fact]
+    public Task A_long_day_shows_its_first_few_things_until_asked_for_all() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        for (var i = 1; i <= 30; i++)
+            app.Services.Store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = $"t{i}", Title = $"Thing {i}", Due = today });
+        var overview = new OverviewViewModel(app.Services);
+
+        Assert.Equal(12, overview.Today.Count);
+        Assert.True(overview.TodayRows.HasMore);
+        Assert.Equal("Show 18 more", overview.TodayRows.MoreText);
+
+        overview.TodayRows.ToggleCommand.Execute(null);
+        Assert.Equal(30, overview.Today.Count);
+        Assert.Equal("Show fewer", overview.TodayRows.MoreText);
+
+        overview.TodayRows.ToggleCommand.Execute(null);
+        Assert.Equal(12, overview.Today.Count);
+        overview.Dispose();
+    });
+
+    [Fact]
+    public Task An_ordinary_day_shows_everything_with_nothing_to_ask_for() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        for (var i = 1; i <= 5; i++)
+            app.Services.Store.SaveTask(new Webignite.Core.Tasks.TaskItem { Id = $"t{i}", Title = $"Thing {i}", Due = today });
+        var overview = new OverviewViewModel(app.Services);
+
+        Assert.Equal(5, overview.Today.Count);
+        Assert.False(overview.TodayRows.HasMore);
+        overview.Dispose();
+    });
 }

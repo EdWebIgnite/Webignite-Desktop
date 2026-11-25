@@ -245,8 +245,14 @@ public sealed partial class TodayBody : WidgetBody
     public TodayBody(AppServices services)
     {
         this.services = services;
+        Rows = new(Items, FirstShown);
         Refresh();
     }
+
+    private const int FirstShown = 12;
+
+    /// <summary>Show more and Show fewer under the list: a long day shows its first few until asked for all.</summary>
+    public FirstFewList<AgendaItemViewModel> Rows { get; }
 
     public ObservableCollection<AgendaItemViewModel> Items { get; } = [];
 
@@ -254,9 +260,7 @@ public sealed partial class TodayBody : WidgetBody
 
     public override void Refresh()
     {
-        Items.Clear();
-        foreach (var item in TodayList.Items(services, Refresh))
-            Items.Add(item);
+        Rows.Set(TodayList.Items(services, Refresh));
         IsEmpty = Items.Count == 0;
     }
 }

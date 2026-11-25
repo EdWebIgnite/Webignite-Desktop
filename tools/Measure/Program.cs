@@ -69,12 +69,17 @@ for (var round = 1; round <= 2; round++)
 {
     foreach (var module in vm.Modules.Where(m => m.Key != Page.Overview).ToList())
     {
-        var (page, view) = OpenAndLeave(vm, window, module);
+        var (page, view, open) = OpenAndLeave(vm, window, module);
         var kept = module.Main.IsBuilt;
         var after = Settle();
         var gone = !page.IsAlive && !view.IsAlive;
+        // What the page holds while it is on screen (with the made-up year in it), then what is left once it is let go.
         if (round == 1)
-            Line($"{module.Title}: opened and let go", kept ? "kept (holds work)" : gone ? $"freed, {Mb(after)}" : $"STILL IN MEMORY, {Mb(after)}");
+            Line($"{module.Title}: while open, then let go", $"{Mb(open)} open, " + (kept ? "kept (holds work)" : gone ? $"freed, {Mb(after)}" : $"STILL IN MEMORY, {Mb(after)}"));
+        // A page that draws a row for everything in a long list shows up here: Planner's Home held 98 MB with 199
+        // things on the day before its list was kept to the first few.
+        if (round == 1)
+            Check($"{module.Title} holds {Mb(open)} while open (limit {limits.OpenPageMegabytes} MB)", open <= limits.OpenPageMegabytes * 1024L * 1024);
         if (!kept)
             Check($"{module.Title} gives its memory back when let go (round {round})", gone);
     }
@@ -173,10 +178,11 @@ static (WeakReference Picker, WeakReference Window) OpenPickerAndClose(MainWindo
 // Not inlined, so nothing in the caller keeps the page alive by accident. Both the page and its screen must go:
 // a screen held by the window (a handler left on it, say) keeps everything it shows.
 [MethodImpl(MethodImplOptions.NoInlining)]
-static (WeakReference Page, WeakReference View) OpenAndLeave(MainViewModel vm, MainWindow window, Module module)
+static (WeakReference Page, WeakReference View, long OpenBytes) OpenAndLeave(MainViewModel vm, MainWindow window, Module module)
 {
     vm.Selected = module;
     Draw(window);
+    var open = GC.GetTotalMemory(forceFullCollection: true);
     var page = new WeakReference(module.Main.Page);
     var view = new WeakReference(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window)
         .OfType<Avalonia.Controls.UserControl>().FirstOrDefault(v => ReferenceEquals(v.DataContext, module.Main.Page)));
@@ -184,7 +190,7 @@ static (WeakReference Page, WeakReference View) OpenAndLeave(MainViewModel vm, M
     Draw(window);
     vm.ReleaseIdle(TimeSpan.Zero);
     Draw(window);
-    return (page, view);
+    return (page, view, open);
 }
 
 [MethodImpl(MethodImplOptions.NoInlining)]
@@ -265,7 +271,7 @@ static long Settle()
 
 static string Mb(long bytes) => $"{bytes / 1024.0 / 1024.0:0.0} MB";
 
-internal sealed record Limits(int StartMilliseconds, int StartManagedMegabytes, int FirstRoundGrowthMegabytes, double RepeatGrowthMegabytes);
+internal sealed record Limits(int StartMilliseconds, int StartManagedMegabytes, int FirstRoundGrowthMegabytes, double RepeatGrowthMegabytes, int OpenPageMegabytes);
 
 /// <summary>About a year of work for a small studio: clients, quotes, invoices and to-dos.</summary>
 internal static class MadeUpWork
