@@ -106,6 +106,10 @@ SQLite database. A step-by-step guide to putting it on a server comes with phase
 
 ## Licences
 
+**Not checked for now** (`LicenceKey.Checked` is `false`, since 25 Nov 2026): Webignite is only used by the two of
+us, so the app doesn't ask the server for a licence, Settings says nothing about one, and nothing is locked.
+Everything below is kept as it was, on the server and in the app, and applies again when that is switched on.
+
 A workspace's plan is on the server (`trial`, `active` with a paid-until day, or `complimentary`); `set-plan`
 changes it. The server signs the licence with ECDSA P-256 (`Licences` in Core); the app checks it with the public
 key built in (`LicenceKey.Public`), keeps it in the setting `licence` and fetches it again twice a day while

@@ -146,7 +146,8 @@ If it doesn't work, see Troubleshooting at the end.
 
 `https://sync.yourname.synology.me/licence-public-key` shows one long line of letters and numbers: the public
 half of the server's licence key. It's safe to share. It goes into the app (`LicenceKey.Public`) so licences
-work; for Webignite's own NAS it's in already.
+work; for Webignite's own NAS it's in already. (The app doesn't check licences for now, as it is only the two of
+you using it, so there is nothing to do here.)
 
 ## 12. Sign up in Webignite
 

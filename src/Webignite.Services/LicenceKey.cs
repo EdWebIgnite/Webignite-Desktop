@@ -7,6 +7,14 @@ namespace Webignite.Services;
 /// </summary>
 public static class LicenceKey
 {
+    /// <summary>
+    /// Whether this copy of the app checks licences at all. Off for now: Webignite is only used by the two of us, so
+    /// there is nothing to licence. Off, the app never asks the server for a licence, Settings says nothing about
+    /// one, and nothing is ever locked. Everything else is kept (the key below, the server's side, the rules in
+    /// <c>Core.Accounts.Licences</c>), so switching this on is all it takes when the app is sold.
+    /// </summary>
+    public const bool Checked = false;
+
     public const string Public = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPbaYHUOvQOkFdel4cZbutTawCDcmEh8fhlbfztvZKNsljg+lk6qu5n89MpamUpkaMJMxPwDswkVmrXP2EUWs1A==";
 }
 
