@@ -5,10 +5,10 @@ using Webignite.Core.Layout;
 
 namespace Webignite.Desktop.ViewModels;
 
-// The other two ways to reach pages besides the sidebar (Settings, Look and feel, Menu): one Menu button that opens
-// the whole menu over the page, or a dock of the pages used most along the bottom with the rest behind More. Both
-// list what the sidebar lists, in the person's own order, and pick through SelectedNav as the sidebar does, so a
-// page, a tool, a project or one of My pages opens the same way from any of the three.
+// The other way to reach pages besides the sidebar (Settings, Look and feel, Menu): a dock of the pages used most
+// along the bottom, with the rest behind More, which opens the whole menu over the page. The menu lists what the
+// sidebar lists, in the person's own order, and picks through SelectedNav as the sidebar does, so a page, a tool, a
+// project or one of My pages opens the same way from either.
 public sealed partial class MainMenuPart(AppServices services, MainViewModel main) : ViewModelBase
 {
     /// <summary>Planner as a group for the dock. It has no heading in the sidebar, so it is made here.</summary>
@@ -16,7 +16,6 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
 
     public MenuKind Menu => services.Settings.Appearance.Menu;
     public bool IsSidebarMenu => Menu == MenuKind.Sidebar;
-    public bool IsButtonMenu => Menu == MenuKind.Button;
     public bool IsDockMenu => Menu == MenuKind.Dock;
 
     /// <summary>Without the sidebar, a bar along the top holds what the sidebar's top and foot held: search, chat, the timer.</summary>
@@ -44,7 +43,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
         if (lastKind is { } was && was != Menu)
             IsMenuOpen = false;
         lastKind = Menu;
-        foreach (var name in new[] { nameof(Menu), nameof(IsSidebarMenu), nameof(IsButtonMenu), nameof(IsDockMenu), nameof(HasMenuBar) })
+        foreach (var name in new[] { nameof(Menu), nameof(IsSidebarMenu), nameof(IsDockMenu), nameof(HasMenuBar) })
             OnPropertyChanged(name);
         FillDock();
         main.DockBarPart.FillBar();

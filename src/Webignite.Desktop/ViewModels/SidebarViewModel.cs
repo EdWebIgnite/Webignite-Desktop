@@ -202,7 +202,7 @@ public sealed partial class SidebarViewModel : ObservableObject
             Change(Sidebar.MoveTo(layout, defaults, Key(item), Key(target), below));
     }
 
-    // Choosing what is on the menus. What is taken off is off the sidebar, the Menu button and the dock alike.
+    // Choosing what is on the menus. What is taken off is off the sidebar, the open menu and the dock alike.
 
     /// <summary>Set by the main window's view model: opens the menu to choose what is on it.</summary>
     public Action? EditAsked { get; set; }
@@ -240,7 +240,7 @@ public sealed partial class SidebarViewModel : ObservableObject
 
     /// <summary>
     /// Everything on the menus as the sidebar lists it with every group open: headings, pages, tools and the links
-    /// that sit beside a page (each of My pages). The Menu button's menu and the dock's More show this, as a group
+    /// that sit beside a page (each of My pages). The open menu (the dock's More, or Ctrl+M) shows this, as a group
     /// folded in the sidebar has nowhere to be unfolded there.
     /// </summary>
     public IReadOnlyList<object> Unfolded()

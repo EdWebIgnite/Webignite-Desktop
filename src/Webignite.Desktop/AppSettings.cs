@@ -254,7 +254,9 @@ public sealed class AppSettings(LocalStore store)
     /// <summary>Light or dark, which dark look, and how much the app moves.</summary>
     public AppearanceSettings Appearance
     {
-        get => store.GetSetting<AppearanceSettings>("appearance") ?? new AppearanceSettings();
+        // A PC that had the Menu button, which is no longer offered, gets the dock.
+        get => store.GetSetting<AppearanceSettings>("appearance") is { } saved
+            ? saved with { Menu = Webignite.Core.Layout.MenuKinds.Offered(saved.Menu) } : new AppearanceSettings();
         set
         {
             store.SetSetting("appearance", value);

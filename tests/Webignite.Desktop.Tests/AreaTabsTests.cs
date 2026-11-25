@@ -155,4 +155,16 @@ public sealed class AreaTabsTests
         Assert.Equal(AppArea.Tools, bar.TabAt(new Avalonia.Point(bar.DesiredSize.Width - 5, 5))?.Area);
         Assert.Null(bar.TabAt(new Avalonia.Point(bar.DesiredSize.Width + 10, 5)));
     });
+
+    [Fact]
+    public Task A_PC_that_had_the_Menu_button_opens_with_the_dock() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        app.Services.Settings.Appearance = app.Services.Settings.Appearance with { Menu = MenuKind.Button };
+
+        Assert.Equal(MenuKind.Dock, app.Services.Settings.Appearance.Menu);
+        var main = new MainViewModel(app.Services);
+        Assert.True(main.MenuPart.IsDockMenu);
+        Assert.True(main.MenuPart.HasMenuBar);
+    });
 }

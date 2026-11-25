@@ -27,7 +27,7 @@ public sealed record AppearanceSettings
 
     public SidebarTone Sidebar { get; init; } = SidebarTone.Dark;
 
-    /// <summary>How pages are reached: the sidebar, one Menu button, or a dock along the bottom.</summary>
+    /// <summary>How pages are reached: the sidebar, or a dock along the bottom.</summary>
     public Webignite.Core.Layout.MenuKind Menu { get; init; } = Webignite.Core.Layout.MenuKind.Dock;
 
     /// <summary>The pages on the dock, by name, in order; null until the person changes them (<see cref="Webignite.Core.Layout.DockPages"/>).</summary>

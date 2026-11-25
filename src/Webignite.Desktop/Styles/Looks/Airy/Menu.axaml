@@ -5,10 +5,6 @@
   <Style Selector="Window.look-airy Border.menubar">
     <Setter Property="Padding" Value="16,10" />
   </Style>
-  <Style Selector="Window.look-airy Button.menubutton">
-    <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="Padding" Value="14,8" />
-  </Style>
   <Style Selector="Window.look-airy Button.barbutton">
     <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Padding" Value="12,8" />

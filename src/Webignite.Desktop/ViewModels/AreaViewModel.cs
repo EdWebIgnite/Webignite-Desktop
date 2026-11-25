@@ -8,7 +8,7 @@ namespace Webignite.Desktop.ViewModels;
 /// <summary>
 /// The page behind one of the tabs across the top (Business, Computer, Tools): everything in that area as tiles
 /// under a few headings, with a box that finds a page or tool anywhere in the app. A click opens it. Its pin puts it
-/// on the menus (the sidebar, or the menu behind the Menu button or the dock), which are the person's own shortlist,
+/// on the menus (the sidebar, or the menu behind the dock's More), which are the person's own shortlist,
 /// or takes it off again.
 /// </summary>
 public sealed partial class AreaViewModel : ViewModelBase, IRefreshable
@@ -36,7 +36,7 @@ public sealed partial class AreaViewModel : ViewModelBase, IRefreshable
 
     public bool IsEmpty => Groups.Count == 0;
 
-    /// <summary>Where a pin puts things, in the person's words: the sidebar, or the menu for someone with the Menu button or the dock.</summary>
+    /// <summary>Where a pin puts things, in the person's words: the sidebar, or the menu for someone with the dock.</summary>
     internal string Place => services.Settings.Appearance.Menu == MenuKind.Sidebar ? "sidebar" : "menu";
 
     /// <summary>How many of this area's things are pinned, said under the heading.</summary>

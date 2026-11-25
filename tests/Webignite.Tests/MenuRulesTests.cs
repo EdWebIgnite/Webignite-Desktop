@@ -218,4 +218,11 @@ public sealed class MenuRulesTests
         Assert.Same(dock, DockPages.Move(dock, "Notes", "Mail", after: true));
         Assert.Same(dock, DockPages.Move(dock, "Mail", "Notes", after: true));
     }
+
+    [Theory]
+    [InlineData(MenuKind.Sidebar, MenuKind.Sidebar)]
+    [InlineData(MenuKind.Dock, MenuKind.Dock)]
+    [InlineData(MenuKind.Button, MenuKind.Dock)]
+    public void The_menu_button_is_no_longer_offered_and_a_PC_that_saved_it_gets_the_dock(MenuKind saved, MenuKind shown) =>
+        Assert.Equal(shown, MenuKinds.Offered(saved));
 }
