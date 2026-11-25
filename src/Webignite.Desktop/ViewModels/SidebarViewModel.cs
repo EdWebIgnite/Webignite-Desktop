@@ -22,7 +22,8 @@ public sealed partial class SidebarViewModel : ObservableObject
 
     /// <param name="all">Every entry in the app's own order: pages and the group headings between them.</param>
     /// <param name="tools">The keys of what starts off the menus: it lives on its area's page, and shows here once pinned there.</param>
-    public SidebarViewModel(AppSettings settings, IReadOnlyList<object> all, IReadOnlyList<string>? tools = null)
+    /// <param name="keep">Of those, what this person keeps on the menus all the same: what is on their dock, and their own pages.</param>
+    public SidebarViewModel(AppSettings settings, IReadOnlyList<object> all, IReadOnlyList<string>? tools = null, Func<IReadOnlyList<string>, IReadOnlyList<string>>? keep = null)
     {
         this.settings = settings;
         byKey = all.ToDictionary(Key);
@@ -31,8 +32,10 @@ public sealed partial class SidebarViewModel : ObservableObject
         var groups = all.OfType<NavGroup>().Where(g => g.CanFold).ToList();
         layout = Sidebar.Reconcile(settings.Sidebar, [.. groups.Select(g => g.Key)]);
         // Once: the menus become the shortlist, and the rest moves to the areas' pages. Kept, so what is pinned later stays pinned.
-        if (this.tools.Length > 0 && Sidebar.TuckTools(layout, this.tools) is var tucked && tucked != layout)
+        if (this.tools.Length > 0 && !layout.ToolsTucked)
         {
+            var kept = keep?.Invoke(defaults) ?? [];
+            var tucked = Sidebar.TuckTools(layout, [.. this.tools.Except(kept)]);
             layout = tucked;
             settings.Sidebar = layout;
         }

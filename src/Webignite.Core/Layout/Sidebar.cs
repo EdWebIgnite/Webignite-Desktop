@@ -111,6 +111,26 @@ public static class Sidebar
     public static SidebarLayout TuckTools(SidebarLayout layout, IReadOnlyList<string> tools) =>
         layout.ToolsTucked ? layout : layout with { ToolsTucked = true, Off = [.. layout.Off.Union(tools, StringComparer.Ordinal)] };
 
+    /// <summary>
+    /// The menu keys of what is on the dock: a page by its name, a tool, and for a group everything under its heading.
+    /// Someone who uses the dock keeps these on the menus when the rest moves to the areas' pages, as the dock is
+    /// their shortlist already and only shows what is on the menus.
+    /// </summary>
+    public static List<string> OnDock(IReadOnlyList<string> dock, IReadOnlyList<string> defaults)
+    {
+        var keys = new List<string>();
+        foreach (var name in dock)
+        {
+            if (DockKeys.AsTool(name) is { } tool)
+                keys.Add("tool-" + tool);
+            else if (DockKeys.AsGroup(name) is { } group)
+                keys.AddRange(defaults.Where(key => !IsHeading(key) && GroupOf(defaults, key) == group));
+            else
+                keys.Add(name);
+        }
+        return keys;
+    }
+
     /// <summary>Whether one of the usual entries has been taken off the menus (one that lives on an area's page doesn't count).</summary>
     public static bool HasTakenOff(SidebarLayout layout, IReadOnlyList<string> defaults, IReadOnlyList<string> tools) =>
         TakenOff(layout, defaults).Any(key => !tools.Contains(key, StringComparer.Ordinal));

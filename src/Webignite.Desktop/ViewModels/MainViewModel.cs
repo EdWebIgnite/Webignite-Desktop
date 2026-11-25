@@ -319,10 +319,18 @@ public partial class MainViewModel : ViewModelBase
         }
         Modules = [.. nav.OfType<Module>()];
         // The areas' own pages are opened by the tabs only: they are never on the menus, nor among what can be put there.
-        // Someone who has already made pages of their own keeps them on the sidebar.
-        var myPages = SidebarViewModel.KeyOf(Page.MyPages);
-        IReadOnlyList<string> offToStart = services.Settings.MyPages.Count > 0 ? [.. ToolCatalogue.OffToStart.Where(key => key != myPages)] : ToolCatalogue.OffToStart;
-        Sidebar = new SidebarViewModel(services.Settings, [.. nav.Where(item => item is not Module { IsArea: true })], offToStart) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        // When the rest moves to the areas' pages, someone who has made pages of their own keeps them on the sidebar,
+        // and someone who uses the dock keeps what is on it.
+        IReadOnlyList<string> Keep(IReadOnlyList<string> defaults)
+        {
+            var appearance = services.Settings.Appearance;
+            return
+            [
+                .. services.Settings.MyPages.Count > 0 ? [SidebarViewModel.KeyOf(Page.MyPages)] : Array.Empty<string>(),
+                .. appearance.Menu == Webignite.Core.Layout.MenuKind.Dock ? Webignite.Core.Layout.Sidebar.OnDock(appearance.Dock ?? Webignite.Core.Layout.DockPages.Usual, defaults) : [],
+            ];
+        }
+        Sidebar = new SidebarViewModel(services.Settings, [.. nav.Where(item => item is not Module { IsArea: true })], ToolCatalogue.OffToStart, Keep) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
         services.Go.IsOnMenusAsked = Sidebar.IsOnMenus;
         services.Go.ShowOnMenusAction = Sidebar.ShowOnMenus;
         AreaTabs = [.. Enum.GetValues<AppArea>().Select(area => new AreaTab(area, a => GoTo(ToolCatalogue.AreaPage(a))))];

@@ -217,6 +217,19 @@ public sealed class SidebarOrderTests
         Assert.Same(back, Sidebar.PutAllBack(back, tools));
     }
 
+    [Fact]
+    public void What_is_on_the_dock_stays_on_the_menus_when_the_rest_moves_to_the_areas_pages()
+    {
+        // A page by name, a tool, and a group with everything under its heading.
+        Assert.Equal(["Overview", "tool-Qr"], Sidebar.OnDock(["Overview", DockKeys.Tool("Qr")], Menu));
+        Assert.Equal(["Clients", "Retainers"], Sidebar.OnDock([DockKeys.Group("work")], Menu));
+
+        string[] tools = ["Retainers", "tool-Calculator", "tool-Qr"];
+        var kept = Sidebar.OnDock(["Overview", "Retainers", DockKeys.Tool("Qr")], Menu);
+        var tucked = Sidebar.TuckTools(new SidebarLayout(), [.. tools.Except(kept)]);
+        Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#tools", "tool-Qr", "#end", "Settings"], Sidebar.Shown(tucked, Menu));
+    }
+
     [Theory]
     [InlineData("", true)]
     [InlineData("pdf", true)]

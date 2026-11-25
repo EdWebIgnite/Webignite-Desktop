@@ -12,9 +12,10 @@ public sealed class AreaTabsTests
     private static List<Page> OnSidebar(MainViewModel main) => [.. main.Sidebar.OnMenus().OfType<Module>().Where(m => !m.InPlanner).Select(m => m.Key)];
 
     [Fact]
-    public Task A_new_install_has_five_tabs_and_a_short_sidebar() => Ui.Run(() =>
+    public Task There_are_five_tabs_and_the_sidebar_is_a_shortlist() => Ui.Run(() =>
     {
         using var app = new TestApp();
+        app.Services.Settings.Appearance = app.Services.Settings.Appearance with { Menu = MenuKind.Sidebar };
         var main = new MainViewModel(app.Services);
 
         Assert.Equal(["Mail", "Business", "Planner", "Computer", "Tools"], main.AreaTabs.Select(t => t.Title));
@@ -113,5 +114,31 @@ public sealed class AreaTabsTests
 
         Assert.Contains(Page.MyPages, OnSidebar(main));
         Assert.Contains(main.Sidebar.Items.OfType<MyPageLink>(), link => link.Title == "Monday");
+    });
+
+    [Fact]
+    public Task A_new_install_with_the_dock_has_everything_the_dock_starts_with() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        Assert.Equal(MenuKind.Dock, app.Services.Settings.Appearance.Menu);
+        var main = new MainViewModel(app.Services);
+
+        Assert.Equal(DockPages.Usual, main.MenuPart.Dock.Select(e => e.PageKey));
+        Assert.Equal([Page.Overview, Page.Mail, Page.Clients, Page.Quotes, Page.Invoices, Page.Money, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
+    });
+
+    [Fact]
+    public Task Someone_who_uses_the_dock_keeps_what_is_on_it() => Ui.Run(() =>
+    {
+        using var app = new TestApp();
+        app.Services.Settings.Appearance = app.Services.Settings.Appearance with { Menu = MenuKind.Dock, Dock = ["Overview", "Money", DockKeys.Tool("Calculator")] };
+        var main = new MainViewModel(app.Services);
+
+        Assert.Contains(Page.Money, OnSidebar(main));
+        Assert.Equal(ToolKind.Calculator, main.Sidebar.OnMenus().OfType<ToolLink>().Single().Kind);
+        Assert.DoesNotContain(Page.Contacts, OnSidebar(main));
+
+        main.Selected = main[Page.Business];
+        Assert.Equal("5 of these are pinned to the menu.", ((AreaViewModel)main.Current.Page).Summary);
     });
 }
