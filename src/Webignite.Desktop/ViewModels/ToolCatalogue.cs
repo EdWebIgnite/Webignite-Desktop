@@ -48,7 +48,7 @@ public static class ToolCatalogue
         new("All my pages", "Tiles", AppArea.Business, Day, "Pages you put together yourself from widgets.", Page: Page.MyPages),
         new("Clients", "Clients", AppArea.Business, Clients, "Each client with their quotes, invoices, mail, files and logins.", Page: Page.Clients, Starts: true),
         new("Contacts", "Contacts", AppArea.Business, Clients, "The people you deal with, linked to their clients.", Page: Page.Contacts),
-        new("Billing", "Invoices", AppArea.Business, Billing, "Quotes, invoices, money in and out, and retainers, hosting and domains that recur, each on its own tab.",
+        new("Billing", "Invoices", AppArea.Business, Billing, "Quotes, invoices, money, retainers, hosting and domains, on tabs.",
             Page: Page.Billing, Starts: true),
         new("Studio", "Studio", AppArea.Business, Billing, "How the work links up, from first quote to paid.", Page: Page.Studio),
 
