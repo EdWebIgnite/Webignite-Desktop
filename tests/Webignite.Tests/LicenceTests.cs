@@ -152,6 +152,22 @@ public sealed class LicenceTests : IDisposable
     }
 
     [Fact]
+    public async Task The_app_itself_doesnt_check_licences_for_now()
+    {
+        // Only the two of us use it, so licences are switched off: the app as it ships asks the server for none.
+        Assert.False(LicenceKey.Checked);
+        using var server = Server(keys.PrivateKey);
+        using var store = new LocalStore(Path.Combine(folder, "app.db"), new Vault(RandomNumberGenerator.GetBytes(32)));
+        using var client = new AccountClient(store, new MemorySecretStore(), server.Server.CreateHandler());
+        Assert.Null(client.UseServer("http://localhost"));
+        Assert.True((await client.SignUpAsync("eddie@webignite.co.za", "karoo rooibos sunrise", "Webignite", null, Cancel)).Worked);
+
+        Assert.False(client.ChecksLicences);
+        Assert.False((await client.RefreshLicenceAsync(TimeSpan.Zero, DateTimeOffset.UtcNow, Cancel)).Worked);
+        Assert.Null(client.Licence);
+    }
+
+    [Fact]
     public async Task A_licence_signed_with_another_key_is_not_kept()
     {
         using var server = Server(Licences.NewKeys().PrivateKey); // a server that isn't ours

@@ -949,8 +949,8 @@
           <TextBlock Classes="problem" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="This PC doesn't have the workspace key yet. Sign out and sign in again with your password." IsVisible="{Binding !Account.HasWorkspaceKey}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="Who's in the workspace is under Your organisation." />
 
-          <TextBlock FontWeight="SemiBold" Text="Licence" Margin="0,6,0,0" />
-          <TextBlock Text="{Binding Account.LicenceText}" TextWrapping="Wrap" Classes.problem="{Binding Account.LicenceProblem}" />
+          <TextBlock FontWeight="SemiBold" Text="Licence" Margin="0,6,0,0" IsVisible="{Binding Account.ShowsLicence}" />
+          <TextBlock Text="{Binding Account.LicenceText}" TextWrapping="Wrap" Classes.problem="{Binding Account.LicenceProblem}" IsVisible="{Binding Account.ShowsLicence}" />
 
           <TextBlock FontWeight="SemiBold" Text="Shared projects" Margin="0,6,0,0" />
           <TextBlock Classes="muted" TextWrapping="Wrap"

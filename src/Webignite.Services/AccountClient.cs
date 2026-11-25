@@ -373,9 +373,10 @@ public sealed class AccountClient(LocalStore store, ISecretStore secrets, HttpMe
     }
 
     private const string LicenceName = "licence";
-    private readonly string licenceKey = licencePublicKey ?? LicenceKey.Public;
+    // A key handed in (tests) is always checked against; the app's own only while licences are switched on.
+    private readonly string licenceKey = licencePublicKey ?? (LicenceKey.Checked ? LicenceKey.Public : "");
 
-    /// <summary>Whether this copy of the app can check licences: it has the server's public key built in.</summary>
+    /// <summary>Whether this copy of the app checks licences: they are switched on and it has the server's public key built in.</summary>
     public bool ChecksLicences => licenceKey.Length > 0;
 
     /// <summary>

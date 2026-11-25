@@ -107,6 +107,9 @@ public sealed partial class SettingsAccountViewModel : ViewModelBase, IDisposabl
     [ObservableProperty] public partial string LicenceText { get; private set; } = "";
     [ObservableProperty] public partial bool LicenceProblem { get; private set; }
 
+    /// <summary>Settings says where the licence stands only while licences are checked; for now they aren't, so it says nothing.</summary>
+    public bool ShowsLicence => services.Account.ChecksLicences;
+
     private void ShowLicence()
     {
         if (!services.Account.ChecksLicences)
