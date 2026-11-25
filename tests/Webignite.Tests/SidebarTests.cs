@@ -231,6 +231,21 @@ public sealed class SidebarOrderTests
     }
 
     [Theory]
+    [InlineData(5, false, 5, "")]
+    [InlineData(12, false, 12, "")]
+    [InlineData(13, false, 12, "Show 1 more")]
+    [InlineData(199, false, 12, "Show 187 more")]
+    [InlineData(199, true, 199, "Show fewer")]
+    [InlineData(0, true, 0, "")]
+    public void A_long_list_shows_its_first_few_rows_until_asked_for_all(int total, bool showAll, int drawn, string words)
+    {
+        var all = Enumerable.Range(1, total).ToList();
+        Assert.Equal(all.Take(drawn), FirstFew.Of(all, 12, showAll));
+        Assert.Equal(words, FirstFew.MoreText(total, 12, showAll));
+        Assert.Equal(Math.Max(0, total - 12), FirstFew.LeftOut(total, 12));
+    }
+
+    [Theory]
     [InlineData("", true)]
     [InlineData("pdf", true)]
     [InlineData("split shrink", true)]

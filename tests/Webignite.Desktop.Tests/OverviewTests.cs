@@ -79,14 +79,14 @@ public sealed class OverviewTests
         var overview = new OverviewViewModel(app.Services);
 
         Assert.Equal(12, overview.Today.Count);
-        Assert.True(overview.HasMoreToday);
-        Assert.Equal("Show 18 more", overview.MoreTodayText);
+        Assert.True(overview.TodayRows.HasMore);
+        Assert.Equal("Show 18 more", overview.TodayRows.MoreText);
 
-        overview.ToggleTodayListCommand.Execute(null);
+        overview.TodayRows.ToggleCommand.Execute(null);
         Assert.Equal(30, overview.Today.Count);
-        Assert.Equal("Show fewer", overview.MoreTodayText);
+        Assert.Equal("Show fewer", overview.TodayRows.MoreText);
 
-        overview.ToggleTodayListCommand.Execute(null);
+        overview.TodayRows.ToggleCommand.Execute(null);
         Assert.Equal(12, overview.Today.Count);
         overview.Dispose();
     });
@@ -101,7 +101,7 @@ public sealed class OverviewTests
         var overview = new OverviewViewModel(app.Services);
 
         Assert.Equal(5, overview.Today.Count);
-        Assert.False(overview.HasMoreToday);
+        Assert.False(overview.TodayRows.HasMore);
         overview.Dispose();
     });
 }

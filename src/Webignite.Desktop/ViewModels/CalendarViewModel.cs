@@ -88,7 +88,14 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
         services.Settings.CalendarSizes = services.Settings.CalendarSizes with { SideWidth = width };
 
     public ObservableCollection<DayCellViewModel> Days { get; } = [];
+    /// <summary>The picked day's things beside the month: the first few until asked for all, so a full day isn't drawn row by row.</summary>
     public ObservableCollection<AgendaItemViewModel> SelectedItems { get; } = [];
+
+    private const int SelectedFirstShown = 12;
+    private FirstFewList<AgendaItemViewModel>? selectedRows;
+
+    /// <summary>Show more and Show fewer under the picked day.</summary>
+    public FirstFewList<AgendaItemViewModel> SelectedRows => selectedRows ??= new(SelectedItems, SelectedFirstShown);
 
     [ObservableProperty]
     public partial string MonthTitle { get; set; } = "";
@@ -226,13 +233,12 @@ public partial class CalendarViewModel : ViewModelBase, IRefreshable
         FillDays();
 
         SelectedTitle = SelectedDate == Today ? $"Today, {SelectedDate:d MMMM}" : SelectedDate.ToString("dddd, d MMMM");
-        SelectedItems.Clear();
         var selected = SelectedDate >= first && SelectedDate <= last
             ? byDay[SelectedDate]
             : Agenda.Build(SelectedDate, SelectedDate, services.Store.ListEvents(SelectedDate, SelectedDate), services.Store.ListTasks(), services.Documents.List(),
                 services.Projects.Agenda(SelectedDate, SelectedDate, services.Me().Id));
-        foreach (var item in selected)
-            SelectedItems.Add(new AgendaItemViewModel(item, DeleteEvent, item.Kind == AgendaKind.Event ? services.Store.GetEvent(item.SourceId)?.JoinLink : null));
+        SelectedRows.Set(selected.Select(item =>
+            new AgendaItemViewModel(item, DeleteEvent, item.Kind == AgendaKind.Event ? services.Store.GetEvent(item.SourceId)?.JoinLink : null)));
         OnPropertyChanged(nameof(SelectedIsEmpty));
     }
 

@@ -127,6 +127,8 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+        <Button Classes="paperlink" Content="{Binding UntimedRows.MoreText}" Command="{Binding UntimedRows.ToggleCommand}" IsVisible="{Binding UntimedRows.HasMore}"
+                HorizontalAlignment="Left" Margin="24,2,0,2" />
         <Border Classes="diaryrule" MinHeight="0" Padding="0">
           <TextBox Classes="diarywrite shown" Text="{Binding NewTodo}" PlaceholderText="Add a to-do for this day" Margin="24,0,0,0">
             <TextBox.KeyBindings>

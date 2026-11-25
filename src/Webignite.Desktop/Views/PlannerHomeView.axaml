@@ -152,6 +152,8 @@
                         </DockPanel>
                         <Border Height="1" Background="{DynamicResource Line}" Margin="-20,0" />
                       </StackPanel>
+                      <Button DockPanel.Dock="Bottom" Classes="link" Content="{Binding Page.MoreTasksText}" Command="{Binding Page.OpenMyTasksCommand}"
+                              IsVisible="{Binding Page.HasMoreTasks}" HorizontalAlignment="Left" Margin="0,8,0,0" />
                       <Panel>
                         <TextBlock Classes="muted" Text="{Binding Page.EmptyText}" IsVisible="{Binding Page.HasNoTasks}" TextWrapping="Wrap" Margin="0,14,0,0" />
                         <ItemsControl ItemsSource="{Binding Page.Tasks}">
