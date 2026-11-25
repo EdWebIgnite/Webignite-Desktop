@@ -476,6 +476,11 @@
               </StackPanel>
             </DockPanel>
           </Border>
+          <!-- Billing is several pages in one: its tabs (Quotes, Invoices, Money, Recurring) sit above whichever is on
+               screen, lined up with the page's own left edge. -->
+          <Border DockPanel.Dock="Top" Padding="22,16,36,0" IsVisible="{Binding ShowBillingTabs}">
+            <c:AreaBar Tabs="{Binding BillingTabs}" HorizontalAlignment="Left" />
+          </Border>
           <Panel>
             <ScrollViewer IsVisible="{Binding Current.Scrolls}" HorizontalScrollBarVisibility="Auto">
               <c:FitWidth MinWidth="672">

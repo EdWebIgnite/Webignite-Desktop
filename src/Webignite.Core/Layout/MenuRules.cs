@@ -87,6 +87,12 @@ public static class MenuFigures
         // or when no retainer has anything to say.
         if (figures.TryGetValue("Renewals", out var renews) && (renews.Late || !figures.ContainsKey("Retainers")))
             figures["Retainers"] = renews;
+        // Billing is quotes, invoices, money and what recurs in one entry: it says the most pressing of theirs. Something
+        // late comes first, then what is owed, what is out on quotes, what recurs, and what came in.
+        string[] billing = ["Invoices", "Retainers", "Quotes", "Money"];
+        var said = billing.Where(figures.ContainsKey).Select(page => figures[page]).ToList();
+        if ((said.FirstOrDefault(f => f.Late) ?? said.FirstOrDefault()) is { } pressing)
+            figures["Billing"] = pressing;
         var building = facts.Clients.Count(Onboarding.InProgress);
         if (building > 0)
             figures["Clients"] = new MenuFigure(building == 1 ? "1 new site" : string.Create(CultureInfo.InvariantCulture, $"{building} new sites"));
@@ -129,6 +135,14 @@ public static class MenuFigures
     }
 }
 
+/// <summary>The tabs across the top of a page that is several pages in one (Billing).</summary>
+public static class PageTabs
+{
+    /// <summary>A tab's name, with how many wait there after it when any do: "Invoices · 2".</summary>
+    public static string Title(string name, int waiting) =>
+        waiting > 0 ? string.Create(CultureInfo.InvariantCulture, $"{name} · {waiting}") : name;
+}
+
 /// <summary>Which pages sit on the dock, by name, in order. The person adds and takes off their own.</summary>
 public static class DockPages
 {
@@ -136,11 +150,18 @@ public static class DockPages
     public const int Most = 12;
 
     /// <summary>What the dock holds until the person changes it.</summary>
-    public static readonly IReadOnlyList<string> Usual = ["Overview", "Mail", "Home", "Clients", "Invoices", "Quotes", "Money", "Files"];
+    public static readonly IReadOnlyList<string> Usual = ["Overview", "Mail", "Home", "Clients", "Billing", "Files", "Notes"];
 
     /// <summary>The dock as saved, without pages the app no longer has, or the usual ones when nothing is saved.</summary>
     public static IReadOnlyList<string> Shown(IReadOnlyList<string>? saved, IReadOnlyCollection<string> known) =>
-        [.. (saved ?? Usual).Where(known.Contains).Distinct().Take(Most)];
+        [.. Moved(saved ?? Usual).Where(known.Contains).Distinct().Take(Most)];
+
+    /// <summary>
+    /// A dock saved before quotes, invoices, money and what recurs became tabs of one Billing entry: Billing stands
+    /// where the first of them stood, once.
+    /// </summary>
+    public static IReadOnlyList<string> Moved(IReadOnlyList<string> dock) =>
+        [.. dock.Select(page => page is "Quotes" or "Invoices" or "Money" or "Retainers" ? "Billing" : page).Distinct()];
 
     public static bool CanAdd(IReadOnlyList<string> dock, string page) => !dock.Contains(page) && dock.Count < Most;
 

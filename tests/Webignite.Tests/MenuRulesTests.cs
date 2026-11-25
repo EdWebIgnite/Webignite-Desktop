@@ -8,8 +8,8 @@ public sealed class MenuRulesTests
     [Fact]
     public void The_dock_starts_with_the_usual_pages_and_keeps_only_ones_the_app_has()
     {
-        string[] known = ["Overview", "Mail", "Clients", "Invoices", "Files", "Notes"];
-        Assert.Equal(["Overview", "Mail", "Clients", "Invoices", "Files"], DockPages.Shown(null, known));
+        string[] known = ["Overview", "Mail", "Clients", "Billing", "Files", "Notes"];
+        Assert.Equal(["Overview", "Mail", "Clients", "Billing", "Files", "Notes"], DockPages.Shown(null, known));
         Assert.Equal(["Notes", "Mail"], DockPages.Shown(["Notes", "Gone", "Mail", "Notes"], known));
         Assert.Empty(DockPages.Shown([], known));
         Assert.Equal(DockPages.Most, DockPages.Shown([.. Enumerable.Range(1, 30).Select(i => "P" + i)], [.. Enumerable.Range(1, 30).Select(i => "P" + i)]).Count);
@@ -225,4 +225,30 @@ public sealed class MenuRulesTests
     [InlineData(MenuKind.Button, MenuKind.Dock)]
     public void The_menu_button_is_no_longer_offered_and_a_PC_that_saved_it_gets_the_dock(MenuKind saved, MenuKind shown) =>
         Assert.Equal(shown, MenuKinds.Offered(saved));
+
+    [Fact]
+    public void A_dock_saved_with_quotes_invoices_and_money_on_it_has_billing_where_the_first_stood()
+    {
+        string[] known = ["Overview", "Mail", "Clients", "Billing", "Files"];
+        Assert.Equal(["Overview", "Billing", "Clients", "Files"], DockPages.Shown(["Overview", "Invoices", "Clients", "Quotes", "Money", "Files", "Retainers"], known));
+        Assert.Equal(["Billing"], DockPages.Moved(["Money"]));
+        Assert.Equal(["Overview", "Mail"], DockPages.Moved(["Overview", "Mail"]));
+    }
+
+    [Fact]
+    public void Billing_says_the_most_pressing_of_what_its_tabs_have_to_say()
+    {
+        var today = new DateOnly(2026, 11, 25);
+        // Nothing owed, nothing out: nothing to say.
+        Assert.False(MenuFigures.For(new MenuFacts { Today = today, Documents = [] }).ContainsKey("Billing"));
+        // Money came in and nothing else: that is what it says.
+        var came = MenuFigures.For(new MenuFacts { Today = today, Documents = [], ReceivedThisMonth = 1200m });
+        Assert.Equal(came["Money"], came["Billing"]);
+    }
+
+    [Theory]
+    [InlineData("Invoices", 0, "Invoices")]
+    [InlineData("Invoices", 2, "Invoices · 2")]
+    [InlineData("Quotes", 1, "Quotes · 1")]
+    public void A_tab_says_how_many_wait_there(string name, int waiting, string title) => Assert.Equal(title, PageTabs.Title(name, waiting));
 }

@@ -46,6 +46,18 @@ public sealed partial class Module : ObservableObject
     public bool IsArea { get; init; }
 
     /// <summary>
+    /// The pages this entry stands for, as tabs across the top of them (Billing: Quotes, Invoices, Money, Recurring).
+    /// It has no page of its own: opening it opens the tab used last. Null for an ordinary page.
+    /// </summary>
+    public IReadOnlyList<Page>? Tabs { get; init; }
+
+    /// <summary>
+    /// The entry this page is a tab of (Billing, for Invoices). Such a page isn't on the menus itself; its entry is,
+    /// and is the one lit while the page is open. Null for a page with an entry of its own.
+    /// </summary>
+    public Page? Under { get; init; }
+
+    /// <summary>
     /// Forms to read and fill in (Settings) keep a comfortable width on a big screen; everything else uses the
     /// whole window, as lists, boards and calendars should.
     /// </summary>

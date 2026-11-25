@@ -67,7 +67,8 @@ Check("The app starts with the dock, holding the usual pages with Overview lit",
 var firstRoundBytes = 0L;
 for (var round = 1; round <= 2; round++)
 {
-    foreach (var module in vm.Modules.Where(m => m.Key != Page.Overview).ToList())
+    // Every page: an entry that is several pages in one (Billing) has none of its own, and its tabs are in the list.
+    foreach (var module in vm.Modules.Where(m => m.Key != Page.Overview && m.Tabs is null).ToList())
     {
         var (page, view, open) = OpenAndLeave(vm, window, module);
         var kept = module.Main.IsBuilt;

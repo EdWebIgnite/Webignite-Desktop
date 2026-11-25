@@ -46,6 +46,7 @@ public partial class MainViewModel
     /// <summary>Ctrl+click or middle click in the sidebar: the page in a tab of its own, beside the one on screen.</summary>
     public PageHost OpenInNewTab(Module module)
     {
+        module = Lands(module); // Billing in a new tab is the Billing tab used last
         var host = Tabs.Contains(module.Main) ? module.NewHost() : module.Main;
         if (!Open.Contains(host))
             Open.Add(host);
