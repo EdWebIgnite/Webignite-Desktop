@@ -121,7 +121,7 @@ public sealed partial class AreaTile(AppEntry entry, bool pinned, AreaViewModel 
     private void Pin() => page.Pin(this);
 }
 
-/// <summary>One of the four tabs across the top of the window.</summary>
+/// <summary>One of the tabs across the top of the window.</summary>
 public sealed partial class AreaTab(AppArea area, Action<AppArea> pick) : ObservableObject
 {
     public AppArea Area { get; } = area;

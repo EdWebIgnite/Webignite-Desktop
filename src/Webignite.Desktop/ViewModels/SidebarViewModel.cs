@@ -62,7 +62,7 @@ public sealed partial class SidebarViewModel : ObservableObject
     /// <summary>The key on the menus of a section with a sidebar of its own (Planner).</summary>
     public static string KeyOfSection(string section) => "section-" + section;
 
-    /// <summary>Whether the entry with this key shows on the menus (a tool pinned from the Tools page does).</summary>
+    /// <summary>Whether the entry with this key shows on the menus (one pinned from its area's page does).</summary>
     public bool IsOnMenus(string key) => byKey.ContainsKey(key) && !layout.IsOff(key);
 
     /// <summary>Pins an entry to the menus by its key, or takes it off again.</summary>
@@ -226,10 +226,10 @@ public sealed partial class SidebarViewModel : ObservableObject
             Change(Sidebar.PutBack(layout, Key(item)));
     }
 
-    /// <summary>Everything back on the menus; the small tools go back to the Tools page.</summary>
+    /// <summary>The usual entries that were taken off go back on the menus; what was pinned from an area's page stays.</summary>
     public void PutAllBack() => Change(Sidebar.PutAllBack(layout, tools));
 
-    /// <summary>True when something has been taken off the menus (a tool that lives on the Tools page doesn't count).</summary>
+    /// <summary>True when one of the usual entries has been taken off the menus (what lives on an area's page doesn't count).</summary>
     public bool HasTakenOff => Sidebar.HasTakenOff(layout, defaults, tools);
 
     /// <summary>Every entry that is on the menus, headings too, in the person's order, whether its group is folded or not.</summary>

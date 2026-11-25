@@ -147,7 +147,7 @@
   <Style Selector="TextBlock.problem">
     <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
-  <!-- The four areas across the top of the window: a row of tabs, the open one filled -->
+  <!-- The areas across the top of the window: a row of tabs, the open one filled -->
   <Style Selector="Border.areabar">
     <Setter Property="Background" Value="{DynamicResource Surface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />

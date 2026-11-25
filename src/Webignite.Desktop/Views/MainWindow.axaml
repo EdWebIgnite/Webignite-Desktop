@@ -383,7 +383,7 @@
     <DockPanel Grid.Column="1">
       <!-- Without the sidebar: a bar along the top (Views/MenuBarView), and the dock along the bottom (Views/DockView).
            Both are made only while their menu is the one picked (MainWindow.Menu.cs). -->
-      <!-- The four areas of the app, as tabs across the top: Mail, Business, Computer, Tools -->
+      <!-- The areas of the app, as tabs across the top: Mail, Business, Planner, Computer, Tools -->
       <Border DockPanel.Dock="Top" Classes="areabar">
         <ItemsControl ItemsSource="{Binding AreaTabs}">
           <ItemsControl.ItemsPanel>

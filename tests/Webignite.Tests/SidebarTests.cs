@@ -208,11 +208,12 @@ public sealed class SidebarOrderTests
         Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#tools", "tool-Qr", "#end", "Settings"], Sidebar.Shown(pinned, Menu));
         Assert.Same(pinned, Sidebar.TuckTools(pinned, tools));
 
-        // Put everything back: pages return, the tools go back to their page.
+        // Put the usual ones back: the page the person took off returns, the pinned tool stays pinned and the other stays on its page.
         var off = Sidebar.TakeOff(pinned, "Retainers");
         Assert.True(Sidebar.HasTakenOff(off, Menu, tools));
         var back = Sidebar.PutAllBack(off, tools);
-        Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#end", "Settings"], Sidebar.Shown(back, Menu));
+        Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#tools", "tool-Qr", "#end", "Settings"], Sidebar.Shown(back, Menu));
+        Assert.False(Sidebar.HasTakenOff(back, Menu, tools));
         Assert.Same(back, Sidebar.PutAllBack(back, tools));
     }
 

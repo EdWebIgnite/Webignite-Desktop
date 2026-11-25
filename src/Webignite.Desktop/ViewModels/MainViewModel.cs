@@ -260,9 +260,9 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
             // The pages behind the tabs across the top: everything in an area as tiles. The tabs open them; they
             // aren't on the sidebar themselves, which is the shortlist of what the person pinned.
-            new Module(Page.Business, "Business", () => new AreaViewModel(services, AppArea.Business), "Overview"),
-            new Module(Page.Computer, "Computer", () => new AreaViewModel(services, AppArea.Computer), "Folder"),
-            new Module(Page.Tools, "Tools", () => new AreaViewModel(services, AppArea.Tools), "Tools"),
+            new Module(Page.Business, "Business", () => new AreaViewModel(services, AppArea.Business), "Overview") { IsArea = true },
+            new Module(Page.Computer, "Computer", () => new AreaViewModel(services, AppArea.Computer), "Folder") { IsArea = true },
+            new Module(Page.Tools, "Tools", () => new AreaViewModel(services, AppArea.Tools), "Tools") { IsArea = true },
             plannerSection,
             new Module(Page.Home, "Home", () => new PlannerHomeViewModel(services), "Home") { InPlanner = true },
             new Module(Page.Inbox, "Inbox", () => new InboxViewModel(services), "Inbox") { InPlanner = true },
@@ -318,7 +318,11 @@ public partial class MainViewModel : ViewModelBase
                 module.Group = group;
         }
         Modules = [.. nav.OfType<Module>()];
-        Sidebar = new SidebarViewModel(services.Settings, nav, ToolCatalogue.OffToStart) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        // The areas' own pages are opened by the tabs only: they are never on the menus, nor among what can be put there.
+        // Someone who has already made pages of their own keeps them on the sidebar.
+        var myPages = SidebarViewModel.KeyOf(Page.MyPages);
+        IReadOnlyList<string> offToStart = services.Settings.MyPages.Count > 0 ? [.. ToolCatalogue.OffToStart.Where(key => key != myPages)] : ToolCatalogue.OffToStart;
+        Sidebar = new SidebarViewModel(services.Settings, [.. nav.Where(item => item is not Module { IsArea: true })], offToStart) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
         services.Go.IsOnMenusAsked = Sidebar.IsOnMenus;
         services.Go.ShowOnMenusAction = Sidebar.ShowOnMenus;
         AreaTabs = [.. Enum.GetValues<AppArea>().Select(area => new AreaTab(area, a => GoTo(ToolCatalogue.AreaPage(a))))];
@@ -863,8 +867,8 @@ public partial class MainViewModel : ViewModelBase
 
     // The sidebar picks a module; the copy of it used last goes on screen.
     /// <summary>
-    /// The four tabs across the top of the window: Mail, Business, Computer, Tools. Mail opens Mail; the others open
-    /// their area's page of tiles. The tab of the area the page on screen belongs to is lit.
+    /// The tabs across the top of the window: Mail, Business, Planner, Computer, Tools. Mail opens Mail and Planner its
+    /// Home; the others open their area's page of tiles. The tab of the area the page on screen belongs to is lit.
     /// </summary>
     public IReadOnlyList<AreaTab> AreaTabs { get; private set; } = [];
 

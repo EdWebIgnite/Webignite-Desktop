@@ -97,20 +97,21 @@ public static class Sidebar
     public static SidebarLayout PutAllBack(SidebarLayout layout) => layout.Off.Count == 0 ? layout : layout with { Off = [] };
 
     /// <summary>
-    /// Everything back on the menus except the small tools, which go back to the Tools page: the menus as they are
-    /// when nothing has been taken off or pinned.
+    /// The usual entries the person took off go back on the menus. What lives on an area's page stays as it is: off
+    /// unless pinned, and a pinned one stays pinned.
     /// </summary>
     public static SidebarLayout PutAllBack(SidebarLayout layout, IReadOnlyList<string> tools) =>
-        layout.Off.Count == tools.Count && tools.All(layout.IsOff) ? layout : layout with { Off = [.. tools] };
+        layout.Off.All(key => tools.Contains(key, StringComparer.Ordinal)) ? layout
+            : layout with { Off = [.. layout.Off.Where(key => tools.Contains(key, StringComparer.Ordinal))] };
 
     /// <summary>
-    /// The first time the Tools page exists, the small tools come off the menus: they live on that page, and the
-    /// ones the person pins there show on the menus again. Done once, so a pinned tool stays pinned.
+    /// The first time the areas' pages exist, what isn't used every day comes off the menus: it lives on its area's
+    /// page, and what the person pins there shows on the menus again. Done once, so a pinned one stays pinned.
     /// </summary>
     public static SidebarLayout TuckTools(SidebarLayout layout, IReadOnlyList<string> tools) =>
         layout.ToolsTucked ? layout : layout with { ToolsTucked = true, Off = [.. layout.Off.Union(tools, StringComparer.Ordinal)] };
 
-    /// <summary>Whether anything other than a tool that lives on the Tools page has been taken off the menus.</summary>
+    /// <summary>Whether one of the usual entries has been taken off the menus (one that lives on an area's page doesn't count).</summary>
     public static bool HasTakenOff(SidebarLayout layout, IReadOnlyList<string> defaults, IReadOnlyList<string> tools) =>
         TakenOff(layout, defaults).Any(key => !tools.Contains(key, StringComparer.Ordinal));
 

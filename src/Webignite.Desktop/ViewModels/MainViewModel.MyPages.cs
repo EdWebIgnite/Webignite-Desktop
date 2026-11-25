@@ -11,6 +11,7 @@ public partial class MainViewModel
     private MyPagesViewModel? watchedMyPages;
 
     private readonly Dictionary<string, MyPageGroupLink> myPageGroups = [];
+    private int? myPagesListed;
 
     /// <summary>
     /// Lists the person's pages under My pages in the sidebar, keeping the entries already there: first the pages
@@ -19,6 +20,10 @@ public partial class MainViewModel
     private void ListMyPages()
     {
         var pages = services.Settings.MyPages;
+        // A page the person has just made goes on the sidebar, even when All my pages was left on its area's page.
+        if (myPagesListed is { } before && pages.Count > before)
+            Sidebar.ShowOnMenus(SidebarViewModel.KeyOf(Page.MyPages), true);
+        myPagesListed = pages.Count;
         var links = new List<SubLink>();
         var groupsSeen = new HashSet<string>();
         var anyGrouped = pages.Any(p => p.ClientId is not null || p.ProjectId is not null);

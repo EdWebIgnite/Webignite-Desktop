@@ -1,10 +1,11 @@
 namespace Webignite.Desktop.ViewModels;
 
-/// <summary>The four areas of the app, as the tabs across the top of the window.</summary>
+/// <summary>The areas of the app, as the tabs across the top of the window.</summary>
 public enum AppArea
 {
     Mail,
     Business,
+    Planner,
     Computer,
     Tools,
 }
@@ -43,7 +44,7 @@ public static class ToolCatalogue
         new("Mail", "Mail", AppArea.Mail, "Mail", "Every mailbox in one place.", Page: Page.Mail, Starts: true),
 
         new("Overview", "Overview", AppArea.Business, Day, "What needs you today: money in, what's owed and what's late.", Page: Page.Overview, Starts: true),
-        new("Planner", "Planner", AppArea.Business, Day, "Projects, tasks, your calendar, diary and time.", Section: "planner", Starts: true),
+        new("Planner", "Planner", AppArea.Planner, "Planner", "Projects, tasks, your calendar, diary and time.", Section: "planner", Starts: true),
         new("All my pages", "Tiles", AppArea.Business, Day, "Pages you put together yourself from widgets.", Page: Page.MyPages),
         new("Clients", "Clients", AppArea.Business, Clients, "Each client with their quotes, invoices, mail, files and logins.", Page: Page.Clients, Starts: true),
         new("Contacts", "Contacts", AppArea.Business, Clients, "The people you deal with, linked to their clients.", Page: Page.Contacts),
@@ -82,6 +83,7 @@ public static class ToolCatalogue
     {
         AppArea.Mail => "Mail",
         AppArea.Business => "Business",
+        AppArea.Planner => "Planner",
         AppArea.Computer => "Computer",
         _ => "Tools",
     };
@@ -90,14 +92,16 @@ public static class ToolCatalogue
     {
         AppArea.Mail => "Mail",
         AppArea.Business => "Overview",
+        AppArea.Planner => "Planner",
         AppArea.Computer => "Folder",
         _ => "Tools",
     };
 
-    /// <summary>The page a tab opens: Mail itself, or the area's page of tiles.</summary>
+    /// <summary>The page a tab opens: Mail itself, Planner's Home (with Planner's own sidebar), or the area's page of tiles.</summary>
     public static Page AreaPage(AppArea area) => area switch
     {
         AppArea.Mail => Page.Mail,
+        AppArea.Planner => Page.Home,
         AppArea.Business => Page.Business,
         AppArea.Computer => Page.Computer,
         _ => Page.Tools,
@@ -105,10 +109,12 @@ public static class ToolCatalogue
 
     /// <summary>
     /// The area a page belongs to, so its tab is lit while the page is open: its own area, an area's page of tiles,
-    /// or Business for the Planner pages. Settings belongs to none.
+    /// or Planner for the Planner pages. Settings belongs to none.
     /// </summary>
     public static AppArea? AreaOf(Page page, bool inPlanner)
     {
+        if (inPlanner)
+            return AppArea.Planner;
         if (All.FirstOrDefault(e => e.Page == page) is { } entry)
             return entry.Area;
         return page switch
@@ -116,7 +122,7 @@ public static class ToolCatalogue
             Page.Business => AppArea.Business,
             Page.Computer => AppArea.Computer,
             Page.Tools => AppArea.Tools,
-            _ => inPlanner ? AppArea.Business : null,
+            _ => null,
         };
     }
 
@@ -131,13 +137,6 @@ public static class ToolCatalogue
         return new ToolLink(kind, entry.Title, entry.Icon);
     }
 
-    /// <summary>
-    /// The menu keys of what starts off the sidebar: everything not marked to start there, and the areas' own pages,
-    /// which the tabs open.
-    /// </summary>
-    public static IReadOnlyList<string> OffToStart { get; } =
-    [
-        .. All.Where(t => !t.Starts).Select(t => t.MenuKey),
-        SidebarViewModel.KeyOf(Page.Business), SidebarViewModel.KeyOf(Page.Computer), SidebarViewModel.KeyOf(Page.Tools),
-    ];
+    /// <summary>The menu keys of what starts off the sidebar: everything not marked to start there.</summary>
+    public static IReadOnlyList<string> OffToStart { get; } = [.. All.Where(t => !t.Starts).Select(t => t.MenuKey)];
 }
