@@ -258,6 +258,11 @@ public partial class MainViewModel : ViewModelBase
         [
             new Module(Page.Overview, "Overview", () => BuildOverview(services), "Overview"),
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
+            // The pages behind the tabs across the top: everything in an area as tiles. The tabs open them; they
+            // aren't on the sidebar themselves, which is the shortlist of what the person pinned.
+            new Module(Page.Business, "Business", () => new AreaViewModel(services, AppArea.Business), "Overview"),
+            new Module(Page.Computer, "Computer", () => new AreaViewModel(services, AppArea.Computer), "Folder"),
+            new Module(Page.Tools, "Tools", () => new AreaViewModel(services, AppArea.Tools), "Tools"),
             plannerSection,
             new Module(Page.Home, "Home", () => new PlannerHomeViewModel(services), "Home") { InPlanner = true },
             new Module(Page.Inbox, "Inbox", () => new InboxViewModel(services), "Inbox") { InPlanner = true },
@@ -280,8 +285,7 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
             new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
             new Module(Page.Notes, "Notes", () => new NotesViewModel(services), "Notes", fullBleed: true),
-            new Module(Page.Tools, "Tools", () => new ToolboxViewModel(services), "Tools"),
-            // The small tools live on the Tools page; the ones pinned there show here too, under their heading.
+            // The small tools live on their area's page; the ones pinned there show here too, under their heading.
             ToolCatalogue.Link(ToolKind.Compare),
             ToolCatalogue.Link(ToolKind.Duplicates),
             ToolCatalogue.Link(ToolKind.Calculator),
@@ -314,9 +318,10 @@ public partial class MainViewModel : ViewModelBase
                 module.Group = group;
         }
         Modules = [.. nav.OfType<Module>()];
-        Sidebar = new SidebarViewModel(services.Settings, nav, ToolCatalogue.MenuKeys) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        Sidebar = new SidebarViewModel(services.Settings, nav, ToolCatalogue.OffToStart) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
         services.Go.IsOnMenusAsked = Sidebar.IsOnMenus;
         services.Go.ShowOnMenusAction = Sidebar.ShowOnMenus;
+        AreaTabs = [.. Enum.GetValues<AppArea>().Select(area => new AreaTab(area, a => GoTo(ToolCatalogue.AreaPage(a))))];
         Sidebar.LayoutChanged += MenuPart.MenusChanged;
         services.Go.EditMenuAction = () => MenuPart.EditMenuCommand.Execute(null);
         Open = [.. Modules.Select(m => m.Main)];
@@ -857,8 +862,22 @@ public partial class MainViewModel : ViewModelBase
     }
 
     // The sidebar picks a module; the copy of it used last goes on screen.
+    /// <summary>
+    /// The four tabs across the top of the window: Mail, Business, Computer, Tools. Mail opens Mail; the others open
+    /// their area's page of tiles. The tab of the area the page on screen belongs to is lit.
+    /// </summary>
+    public IReadOnlyList<AreaTab> AreaTabs { get; private set; } = [];
+
+    private void ShowArea(Module? on)
+    {
+        var area = on is null ? null : ToolCatalogue.AreaOf(on.Key, on.InPlanner);
+        foreach (var tab in AreaTabs)
+            tab.IsOn = tab.Area == area;
+    }
+
     partial void OnSelectedChanged(Module value)
     {
+        ShowArea(value);
         if (Current?.Module != value)
             Current = TabFor(value) ?? LastUsed(value);
         // A Planner page brings the Planner sidebar up; any other page puts the main one back.

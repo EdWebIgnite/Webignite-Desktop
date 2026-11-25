@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Webignite.Desktop.ViewModels"
              xmlns:c="using:Webignite.Desktop.Controls"
-             x:Class="Webignite.Desktop.Views.ToolboxView"
-             x:DataType="vm:ToolboxViewModel">
+             x:Class="Webignite.Desktop.Views.AreaView"
+             x:DataType="vm:AreaViewModel">
   <UserControl.Styles>
     <!-- A tool's tile: the whole of it opens the tool; the pin sits on top in its corner -->
     <Style Selector="Border.tooltile">
@@ -12,7 +12,7 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Width" Value="272" />
-      <Setter Property="Height" Value="112" />
+      <Setter Property="Height" Value="96" />
       <Setter Property="Margin" Value="0,0,14,14" />
     </Style>
     <Style Selector="Border.tooltile:pointerover">
@@ -57,62 +57,58 @@
       <Setter Property="Foreground" Value="{DynamicResource Primary}" />
     </Style>
   </UserControl.Styles>
-  <StackPanel Spacing="16">
+  <StackPanel Spacing="18">
     <DockPanel>
-      <!-- Finds a tool by its name or by what it does, across every tab -->
+      <!-- Finds a page or tool by its name or by what it does, in any area -->
       <Panel DockPanel.Dock="Right" Width="280" VerticalAlignment="Center">
-        <TextBox Text="{Binding Find}" PlaceholderText="Find a tool" Padding="32,6,8,6" />
+        <TextBox Text="{Binding Find}" PlaceholderText="Find a page or tool" Padding="32,6,8,6" />
         <c:Icon Data="{StaticResource Icon.Search}" Size="14" Foreground="{DynamicResource Muted}" HorizontalAlignment="Left"
                 VerticalAlignment="Center" Margin="11,0,0,0" IsHitTestVisible="False" />
       </Panel>
       <StackPanel Spacing="4">
-        <TextBlock Classes="h1" Text="Tools" />
+        <TextBlock Classes="h1" Text="{Binding Title}" />
         <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" />
       </StackPanel>
     </DockPanel>
 
-    <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
-      <ItemsControl ItemsSource="{Binding Tabs}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:ToolTabChoice">
-            <Button Classes="viewtab" Classes.on="{Binding IsOn}" Content="{Binding Title}" Command="{Binding PickCommand}" />
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </Border>
+    <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Search}" Title="Nothing by that name"
+                  Text="Try another word, such as invoice, PDF or password." />
 
-    <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Search}" Title="No tool by that name"
-                  Text="Try another word, such as PDF, colour or password." />
-
-    <ItemsControl ItemsSource="{Binding Tiles}">
-      <ItemsControl.ItemsPanel>
-        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-      </ItemsControl.ItemsPanel>
+    <ItemsControl ItemsSource="{Binding Groups}">
       <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="vm:ToolTile">
-          <Border Classes="tooltile">
-            <Panel>
-              <Button Classes="tileopen" Command="{Binding OpenCommand}">
-                <DockPanel>
-                  <Border DockPanel.Dock="Left" Classes="tileicon" Margin="0,0,12,0" VerticalAlignment="Top">
-                    <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
-                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <DataTemplate x:DataType="vm:AreaGroup">
+          <StackPanel Spacing="10" Margin="0,0,0,10">
+            <TextBlock Classes="section" Text="{Binding Heading}" />
+            <ItemsControl ItemsSource="{Binding Tiles}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AreaTile">
+                  <Border Classes="tooltile">
+                    <Panel>
+                      <Button Classes="tileopen" Command="{Binding OpenCommand}">
+                        <DockPanel>
+                          <Border DockPanel.Dock="Left" Classes="tileicon" Margin="0,0,12,0" VerticalAlignment="Top">
+                            <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                          <StackPanel Spacing="4" Margin="0,0,22,0">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" TextWrapping="Wrap" MaxLines="3"
+                                       TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </DockPanel>
+                      </Button>
+                      <Button Classes="tilepin" Classes.on="{Binding IsPinned}" Command="{Binding PinCommand}" ToolTip.Tip="{Binding PinTip}">
+                        <c:Icon Data="{StaticResource Icon.Pin}" Size="14" />
+                      </Button>
+                    </Panel>
                   </Border>
-                  <StackPanel Spacing="4" Margin="0,0,22,0">
-                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" TextWrapping="Wrap" MaxLines="3"
-                               TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                </DockPanel>
-              </Button>
-              <Button Classes="tilepin" Classes.on="{Binding IsPinned}" Command="{Binding PinCommand}" ToolTip.Tip="{Binding PinTip}">
-                <c:Icon Data="{StaticResource Icon.Pin}" Size="14" />
-              </Button>
-            </Panel>
-          </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>

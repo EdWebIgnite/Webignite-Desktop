@@ -246,37 +246,50 @@ void SaveLooks(string name)
 
 Save("overview-start");
 
-// The Tools page: every small tool as a tile under tabs, off the sidebar until pinned there.
+// The app in four areas: tabs across the top (Mail, Business, Computer, Tools), each area's page of tiles, and the
+// sidebar as the shortlist of what is pinned.
 {
-    Check("The small tools start on the Tools page, not on the sidebar",
-        !vm.Sidebar.OnMenus().OfType<ToolLink>().Any() && vm.Sidebar.OnMenus().OfType<Module>().Any(m => m.Key == Page.Tools)
-        && !vm.Sidebar.OnMenus().OfType<Module>().Any(m => m.Key is Page.Pdf or Page.Crawler or Page.SiteCheck or Page.Markup));
-    Open(Page.Tools);
-    var toolbox = (ToolboxViewModel)vm[Page.Tools].Main.Page;
+    Check("The sidebar starts as a shortlist: the few everyday pages, no small tools",
+        !vm.Sidebar.OnMenus().OfType<ToolLink>().Any()
+        && vm.Sidebar.OnMenus().OfType<Module>().Where(m => !m.InPlanner).Select(m => m.Key).Order().SequenceEqual(
+            new[] { Page.Overview, Page.Mail, Page.Clients, Page.Quotes, Page.Invoices, Page.Files, Page.Notes, Page.Settings }.Order()));
+    Check("Four tabs across the top, the one for the page on screen lit",
+        vm.AreaTabs.Select(t => t.Title).SequenceEqual(["Mail", "Business", "Computer", "Tools"]) && vm.AreaTabs.Single(t => t.IsOn).Area == AppArea.Business);
+    Save("areas-start");
+    vm.AreaTabs[1].PickCommand.Execute(null);
+    var business = (AreaViewModel)vm[Page.Business].Main.Page;
     Dispatcher.UIThread.RunJobs();
-    Check("The Tools page opens on Computer, with a tile for each tool there", toolbox.Tab == ToolTab.Computer && toolbox.Tiles.Count == 8
-        && toolbox.Tiles.All(t => !t.IsPinned) && toolbox.Tabs.Count == 3 && toolbox.Tabs[0].IsOn);
-    Save("tools");
-    toolbox.Tabs[1].PickCommand.Execute(null);
+    Check("Business lists its pages under Day to day, Clients and Billing, the ones on the sidebar shown as pinned",
+        business.Groups.Select(g => g.Heading).SequenceEqual(["Day to day", "Clients", "Billing"])
+        && business.Groups[2].Tiles.Single(t => t.Title == "Invoices").IsPinned && !business.Groups[2].Tiles.Single(t => t.Title == "Money").IsPinned);
+    Save("area-business");
+    vm.AreaTabs[2].PickCommand.Execute(null);
+    var computer = (AreaViewModel)vm[Page.Computer].Main.Page;
     Dispatcher.UIThread.RunJobs();
-    Check("The Web tab lists the website tools", toolbox.Tiles.Any(t => t.Title == "Site crawler") && toolbox.Tiles.All(t => t.Entry.Tab == ToolTab.Web));
-    Save("tools-web");
-    toolbox.Tabs[0].PickCommand.Execute(null);
-    var calculatorTile = toolbox.Tiles.First(t => t.Title == "Calculator");
+    Check("Computer is lit and lists files, notes and the small tools", vm.AreaTabs[2].IsOn && computer.Groups.Count == 2
+        && computer.Groups[1].Tiles.Any(t => t.Title == "Calculator"));
+    var calculatorTile = computer.Groups[1].Tiles.First(t => t.Title == "Calculator");
     calculatorTile.PinCommand.Execute(null);
-    toolbox.Tiles.First(t => t.Title == "PDF tools").PinCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
-    Check("A pinned tool shows in the sidebar too, and the page says how many are pinned",
+    Check("A pinned tool shows in the sidebar, and the page says how many are pinned",
         calculatorTile.IsPinned && vm.Sidebar.OnMenus().OfType<ToolLink>().Single().Kind == ToolKind.Calculator
-        && vm.Sidebar.OnMenus().OfType<Module>().Any(m => m.Key == Page.Pdf) && toolbox.Summary == "2 tools are pinned to the sidebar.");
-    Save("tools-pinned");
-    toolbox.Find = "pdf";
+        && computer.Summary == "3 of these are pinned to the sidebar.");
+    Save("area-computer");
+    vm.AreaTabs[3].PickCommand.Execute(null);
+    var toolsArea = (AreaViewModel)vm[Page.Tools].Main.Page;
     Dispatcher.UIThread.RunJobs();
-    Check("Typing finds tools on any tab by name or by what they do",
-        toolbox.Tiles.Select(t => t.Title).SequenceEqual(["PDF tools", "Page to PDF or picture"]) && toolbox.Tabs.All(t => !t.IsOn));
-    Save("tools-find");
-    toolbox.Find = "";
-    // Back as it was for the rest of the run, which finds the tools on the menus.
+    Check("Tools lists the website tools and the pictures and brand tools", toolsArea.Groups.Select(g => g.Heading).SequenceEqual(["Websites", "Pictures and brand"]));
+    Save("area-tools");
+    toolsArea.Find = "pdf";
+    Dispatcher.UIThread.RunJobs();
+    Check("Typing finds pages and tools in any area by name or by what they do",
+        toolsArea.Groups.Single().Tiles.Select(t => t.Title).SequenceEqual(["PDF tools", "Page to PDF or picture"]));
+    Save("area-find");
+    toolsArea.Find = "";
+    vm.AreaTabs[0].PickCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The Mail tab opens Mail", vm.Selected.Key == Page.Mail && vm.AreaTabs[0].IsOn);
+    // Back as it was for the rest of the run, which finds everything on the menus.
     foreach (var entry in ToolCatalogue.All)
         vm.Sidebar.ShowOnMenus(entry.MenuKey, true);
     Dispatcher.UIThread.RunJobs();

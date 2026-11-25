@@ -13,7 +13,7 @@ public enum Page
     Quotes, Invoices, Money, Reports,
     Home, Projects, Notes, Calendar, Planner, Time, MyPages,
     SiteCheck, Crawler, Markup, Pdf,
-    Tools,
+    Business, Computer, Tools,
     Settings,
     Inbox,
     Diary,

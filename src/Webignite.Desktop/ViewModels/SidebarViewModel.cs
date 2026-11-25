@@ -21,7 +21,7 @@ public sealed partial class SidebarViewModel : ObservableObject
     private readonly string[] tools;
 
     /// <param name="all">Every entry in the app's own order: pages and the group headings between them.</param>
-    /// <param name="tools">The keys of what lives on the Tools page: off the menus unless pinned there.</param>
+    /// <param name="tools">The keys of what starts off the menus: it lives on its area's page, and shows here once pinned there.</param>
     public SidebarViewModel(AppSettings settings, IReadOnlyList<object> all, IReadOnlyList<string>? tools = null)
     {
         this.settings = settings;
@@ -30,7 +30,7 @@ public sealed partial class SidebarViewModel : ObservableObject
         this.tools = [.. (tools ?? []).Where(byKey.ContainsKey)];
         var groups = all.OfType<NavGroup>().Where(g => g.CanFold).ToList();
         layout = Sidebar.Reconcile(settings.Sidebar, [.. groups.Select(g => g.Key)]);
-        // Once: the small tools move from the menus to the Tools page. Kept, so a tool pinned later stays pinned.
+        // Once: the menus become the shortlist, and the rest moves to the areas' pages. Kept, so what is pinned later stays pinned.
         if (this.tools.Length > 0 && Sidebar.TuckTools(layout, this.tools) is var tucked && tucked != layout)
         {
             layout = tucked;
@@ -59,6 +59,9 @@ public sealed partial class SidebarViewModel : ObservableObject
     /// <summary>A small tool's key on the menus.</summary>
     public static string KeyOf(ToolKind kind) => "tool-" + kind;
 
+    /// <summary>The key on the menus of a section with a sidebar of its own (Planner).</summary>
+    public static string KeyOfSection(string section) => "section-" + section;
+
     /// <summary>Whether the entry with this key shows on the menus (a tool pinned from the Tools page does).</summary>
     public bool IsOnMenus(string key) => byKey.ContainsKey(key) && !layout.IsOff(key);
 
@@ -78,7 +81,7 @@ public sealed partial class SidebarViewModel : ObservableObject
         NavGroup group => Sidebar.Heading(group.Key),
         Module module => KeyOf(module.Key),
         ToolLink tool => KeyOf(tool.Kind),
-        SectionLink section => "section-" + section.Key,
+        SectionLink section => KeyOfSection(section.Key),
         _ => throw new ArgumentException("Not a sidebar entry", nameof(item)),
     };
 

@@ -383,6 +383,24 @@
     <DockPanel Grid.Column="1">
       <!-- Without the sidebar: a bar along the top (Views/MenuBarView), and the dock along the bottom (Views/DockView).
            Both are made only while their menu is the one picked (MainWindow.Menu.cs). -->
+      <!-- The four areas of the app, as tabs across the top: Mail, Business, Computer, Tools -->
+      <Border DockPanel.Dock="Top" Classes="areabar">
+        <ItemsControl ItemsSource="{Binding AreaTabs}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="4" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:AreaTab">
+              <Button Classes="areatab" Classes.on="{Binding IsOn}" Command="{Binding PickCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="15" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
       <ContentControl x:Name="MenuBarHost" DockPanel.Dock="Top" />
       <ContentControl x:Name="DockHost" DockPanel.Dock="Bottom" ZIndex="5" />
       <Border DockPanel.Dock="Top" Classes="tabstrip" IsVisible="{Binding ShowTabs}">
