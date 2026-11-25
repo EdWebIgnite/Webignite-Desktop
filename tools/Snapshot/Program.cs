@@ -2939,6 +2939,24 @@ Check("Clipboard history is gone from the tools and the widgets", vm.Sidebar.OnM
     dropHint.IsVisible = true;
     SaveWindow(chatWindow, "chat-drop");
     dropHint.IsVisible = false;
+    // Sync has stopped on this PC: the chat says so across the top, as nothing else here would look wrong while the
+    // other person sees this PC as last seen days ago. Set straight into the app's own note of it, as a real failed
+    // sync would need a server that says no and ten minutes of it.
+    {
+        Check("While sync works the chat says nothing about it", !chatWindow.Chat.HasSyncTrouble && services.SyncTrouble is null);
+        var noted = typeof(AppServices).GetField("syncTrouble", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        noted.SetValue(services, new Webignite.Core.Sync.SyncTrouble("Sign in again.", DateTimeOffset.UtcNow.AddDays(-5)));
+        chatWindow.Chat.ShowPresence();
+        Dispatcher.UIThread.RunJobs();
+        Check("With sync stopped, the chat says since when and why, with a way to Account and sync",
+            chatWindow.Chat.HasSyncTrouble && chatWindow.Chat.SyncTroubleLine!.StartsWith("Chat and shared projects stopped syncing on this PC at ", StringComparison.Ordinal)
+            && chatWindow.Chat.SyncTroubleLine.EndsWith("Sign in again.", StringComparison.Ordinal));
+        SaveWindow(chatWindow, "chat-sync-stopped");
+        noted.SetValue(services, null);
+        chatWindow.Chat.ShowPresence();
+        Dispatcher.UIThread.RunJobs();
+        Check("Syncing again, the line goes", !chatWindow.Chat.HasSyncTrouble);
+    }
     // A file in a message: right-click to open, copy or save it.
     var fileButton = chatView.GetVisualDescendants().OfType<Avalonia.Controls.Button>().First(b => b.Classes.Contains("chatfile"));
     fileButton.RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs());
