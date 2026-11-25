@@ -84,7 +84,7 @@ public sealed partial class MainMenuPart(AppServices services, MainViewModel mai
 
     public bool IsMenuBrowsing => !IsMenuEditing;
 
-    /// <summary>True when something has been taken off, so Put everything back has something to do.</summary>
+    /// <summary>True when one of the usual entries has been taken off, so Put the usual ones back has something to do.</summary>
     public bool HasMenuTakenOff => main.Sidebar.HasTakenOff;
 
     [RelayCommand]

@@ -258,6 +258,11 @@ public partial class MainViewModel : ViewModelBase
         [
             new Module(Page.Overview, "Overview", () => BuildOverview(services), "Overview"),
             new Module(Page.Mail, "Mail", () => new MailViewModel(services), "Mail", fullBleed: true),
+            // The pages behind the tabs across the top: everything in an area as tiles. The tabs open them; they
+            // aren't on the sidebar themselves, which is the shortlist of what the person pinned.
+            new Module(Page.Business, "Business", () => new AreaViewModel(services, AppArea.Business), "Overview") { IsArea = true },
+            new Module(Page.Computer, "Computer", () => new AreaViewModel(services, AppArea.Computer), "Folder") { IsArea = true },
+            new Module(Page.Tools, "Tools", () => new AreaViewModel(services, AppArea.Tools), "Tools") { IsArea = true },
             plannerSection,
             new Module(Page.Home, "Home", () => new PlannerHomeViewModel(services), "Home") { InPlanner = true },
             new Module(Page.Inbox, "Inbox", () => new InboxViewModel(services), "Inbox") { InPlanner = true },
@@ -280,26 +285,27 @@ public partial class MainViewModel : ViewModelBase
             new Module(Page.Files, "Files", () => new FilesViewModel(services), "Folder", fullBleed: true),
             new Module(Page.Pdf, "PDF tools", () => new PdfViewModel(services), "Quotes", fullBleed: true),
             new Module(Page.Notes, "Notes", () => new NotesViewModel(services), "Notes", fullBleed: true),
-            new ToolLink(ToolKind.Compare, "Compare", "Compare"),
-            new ToolLink(ToolKind.Duplicates, "Duplicate files", "Duplicates"),
-            new ToolLink(ToolKind.Calculator, "Calculator", "Calculator"),
-            new ToolLink(ToolKind.Passwords, "Password generator", "Key"),
-            new ToolLink(ToolKind.Colours, "Colours", "Palette"),
-            new ToolLink(ToolKind.Snippets, "Text snippets", "Snippets"),
-            new ToolLink(ToolKind.ScreenText, "Text from the screen", "ScreenText"),
+            // The small tools live on their area's page; the ones pinned there show here too, under their heading.
+            ToolCatalogue.Link(ToolKind.Compare),
+            ToolCatalogue.Link(ToolKind.Duplicates),
+            ToolCatalogue.Link(ToolKind.Calculator),
+            ToolCatalogue.Link(ToolKind.Passwords),
+            ToolCatalogue.Link(ToolKind.Colours),
+            ToolCatalogue.Link(ToolKind.Snippets),
+            ToolCatalogue.Link(ToolKind.ScreenText),
             new NavGroup("web-tools", "WEB TOOLS") { Icon = "SiteCheck" },
             new Module(Page.SiteCheck, "Site check", () => BuildSiteCheck(services), "SiteCheck"),
             new Module(Page.Crawler, "Site crawler", () => new CrawlerViewModel(services), "Crawler"),
             new Module(Page.Markup, "Mark-up", () => new MarkupViewModel(services), "Markup"),
-            new ToolLink(ToolKind.Images, "Website images", "Picture"),
-            new ToolLink(ToolKind.Logos, "Logos and brand sheet", "Logos"),
-            new ToolLink(ToolKind.Social, "Social images", "Social"),
-            new ToolLink(ToolKind.Qr, "QR code", "Qr"),
-            new ToolLink(ToolKind.WebHelpers, "Web helpers", "Code"),
-            new ToolLink(ToolKind.Dns, "DNS records", "Dns"),
-            new ToolLink(ToolKind.Browser, "Browser and phone preview", "Browser"),
-            new ToolLink(ToolKind.PageCapture, "Page to PDF or picture", "PageCapture"),
-            new ToolLink(ToolKind.Ruler, "Screen ruler", "Ruler"),
+            ToolCatalogue.Link(ToolKind.Images),
+            ToolCatalogue.Link(ToolKind.Logos),
+            ToolCatalogue.Link(ToolKind.Social),
+            ToolCatalogue.Link(ToolKind.Qr),
+            ToolCatalogue.Link(ToolKind.WebHelpers),
+            ToolCatalogue.Link(ToolKind.Dns),
+            ToolCatalogue.Link(ToolKind.Browser),
+            ToolCatalogue.Link(ToolKind.PageCapture),
+            ToolCatalogue.Link(ToolKind.Ruler),
             new NavGroup("end", ""),
             new Module(Page.Settings, "Settings", () => new SettingsViewModel(services), "Settings", readingWidth: true),
         ];
@@ -312,7 +318,22 @@ public partial class MainViewModel : ViewModelBase
                 module.Group = group;
         }
         Modules = [.. nav.OfType<Module>()];
-        Sidebar = new SidebarViewModel(services.Settings, nav) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        // The areas' own pages are opened by the tabs only: they are never on the menus, nor among what can be put there.
+        // When the rest moves to the areas' pages, someone who has made pages of their own keeps them on the sidebar,
+        // and someone who uses the dock keeps what is on it.
+        IReadOnlyList<string> Keep(IReadOnlyList<string> defaults)
+        {
+            var appearance = services.Settings.Appearance;
+            return
+            [
+                .. services.Settings.MyPages.Count > 0 ? [SidebarViewModel.KeyOf(Page.MyPages)] : Array.Empty<string>(),
+                .. appearance.Menu == Webignite.Core.Layout.MenuKind.Dock ? Webignite.Core.Layout.Sidebar.OnDock(appearance.Dock ?? Webignite.Core.Layout.DockPages.Usual, defaults) : [],
+            ];
+        }
+        Sidebar = new SidebarViewModel(services.Settings, [.. nav.Where(item => item is not Module { IsArea: true })], ToolCatalogue.OffToStart, Keep) { EditAsked = () => MenuPart.EditMenuCommand.Execute(null) };
+        services.Go.IsOnMenusAsked = Sidebar.IsOnMenus;
+        services.Go.ShowOnMenusAction = Sidebar.ShowOnMenus;
+        AreaTabs = [.. Enum.GetValues<AppArea>().Select(area => new AreaTab(area, a => GoTo(ToolCatalogue.AreaPage(a))))];
         Sidebar.LayoutChanged += MenuPart.MenusChanged;
         services.Go.EditMenuAction = () => MenuPart.EditMenuCommand.Execute(null);
         Open = [.. Modules.Select(m => m.Main)];
@@ -853,8 +874,22 @@ public partial class MainViewModel : ViewModelBase
     }
 
     // The sidebar picks a module; the copy of it used last goes on screen.
+    /// <summary>
+    /// The tabs across the top of the window: Mail, Business, Planner, Computer, Tools. Mail opens Mail and Planner its
+    /// Home; the others open their area's page of tiles. The tab of the area the page on screen belongs to is lit.
+    /// </summary>
+    public IReadOnlyList<AreaTab> AreaTabs { get; private set; } = [];
+
+    private void ShowArea(Module? on)
+    {
+        var area = on is null ? null : ToolCatalogue.AreaOf(on.Key, on.InPlanner);
+        foreach (var tab in AreaTabs)
+            tab.IsOn = tab.Area == area;
+    }
+
     partial void OnSelectedChanged(Module value)
     {
+        ShowArea(value);
         if (Current?.Module != value)
             Current = TabFor(value) ?? LastUsed(value);
         // A Planner page brings the Planner sidebar up; any other page puts the main one back.

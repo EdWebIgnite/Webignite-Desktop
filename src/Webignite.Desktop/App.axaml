@@ -46,6 +46,7 @@
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
     <DataTemplate DataType="vm:MailViewModel"><v:MailView /></DataTemplate>
     <DataTemplate DataType="vm:InboxViewModel"><v:InboxView /></DataTemplate>
+    <DataTemplate DataType="vm:AreaViewModel"><v:AreaView /></DataTemplate>
   </Application.DataTemplates>
 
   <Application.Styles>

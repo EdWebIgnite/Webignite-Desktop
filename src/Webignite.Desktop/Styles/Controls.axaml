@@ -147,6 +147,18 @@
   <Style Selector="TextBlock.problem">
     <Setter Property="Foreground" Value="{DynamicResource Attention}" />
   </Style>
+  <!-- The areas across the top of the window: a row of tabs, the open one filled -->
+  <Style Selector="Border.areabar">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="16,8" />
+  </Style>
+  <Style Selector="c|AreaBar">
+    <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    <Setter Property="OnForeground" Value="{DynamicResource Text}" />
+    <Setter Property="OnBackground" Value="{DynamicResource Surface2}" />
+  </Style>
   <!-- A view tab under a page's heading (a project's List and Board), as Asana's: words, the open one underlined -->
   <Style Selector="Button.viewtab">
     <Setter Property="Background" Value="Transparent" />

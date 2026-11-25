@@ -246,6 +246,63 @@ void SaveLooks(string name)
 
 Save("overview-start");
 
+// The app in five areas: tabs across the top (Mail, Business, Planner, Computer, Tools), a page of tiles for
+// Business, Computer and Tools, and the sidebar as the shortlist of what is pinned.
+{
+    Check("The sidebar starts as a shortlist: the few everyday pages, no small tools",
+        !vm.Sidebar.OnMenus().OfType<ToolLink>().Any()
+        && vm.Sidebar.OnMenus().OfType<Module>().Where(m => !m.InPlanner).Select(m => m.Key).Order().SequenceEqual(
+            new[] { Page.Overview, Page.Mail, Page.Clients, Page.Quotes, Page.Invoices, Page.Files, Page.Notes, Page.Settings }.Order()));
+    Check("Five tabs across the top, the one for the page on screen lit",
+        vm.AreaTabs.Select(t => t.Title).SequenceEqual(["Mail", "Business", "Planner", "Computer", "Tools"]) && vm.AreaTabs.Single(t => t.IsOn).Area == AppArea.Business);
+    Check("The areas' own pages are opened by the tabs only: never on the menus, nor among what can be put there",
+        !vm.Sidebar.OnMenus().OfType<Module>().Any(m => m.IsArea) && !vm.Sidebar.CanTakeOff(vm[Page.Business]) && !vm.Sidebar.IsOnMenus("Tools"));
+    Save("areas-start");
+    vm.AreaTabs[1].PickCommand.Execute(null);
+    var business = (AreaViewModel)vm[Page.Business].Main.Page;
+    Dispatcher.UIThread.RunJobs();
+    Check("Business lists its pages under Day to day, Clients and Billing, the ones on the sidebar shown as pinned",
+        business.Groups.Select(g => g.Heading).SequenceEqual(["Day to day", "Clients", "Billing"])
+        && business.Groups[2].Tiles.Single(t => t.Title == "Invoices").IsPinned && !business.Groups[2].Tiles.Single(t => t.Title == "Money").IsPinned);
+    Save("area-business");
+    vm.AreaTabs[2].PickCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The Planner tab opens Planner's Home with Planner's own sidebar, and stays lit on its pages",
+        vm.Selected.Key == Page.Home && vm.AreaTabs[2].IsOn && vm.AreaTabs.Count(t => t.IsOn) == 1);
+    Save("area-planner");
+    vm.AreaTabs[3].PickCommand.Execute(null);
+    var computer = (AreaViewModel)vm[Page.Computer].Main.Page;
+    Dispatcher.UIThread.RunJobs();
+    Check("Computer is lit and lists files, notes and the small tools", vm.AreaTabs[3].IsOn && computer.Groups.Count == 2
+        && computer.Groups[1].Tiles.Any(t => t.Title == "Calculator"));
+    var calculatorTile = computer.Groups[1].Tiles.First(t => t.Title == "Calculator");
+    calculatorTile.PinCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("A pinned tool shows in the sidebar, and the page says how many are pinned",
+        calculatorTile.IsPinned && vm.Sidebar.OnMenus().OfType<ToolLink>().Single().Kind == ToolKind.Calculator
+        && computer.Summary == "3 of these are pinned to the sidebar.");
+    Save("area-computer");
+    vm.AreaTabs[4].PickCommand.Execute(null);
+    var toolsArea = (AreaViewModel)vm[Page.Tools].Main.Page;
+    Dispatcher.UIThread.RunJobs();
+    Check("Tools lists the website tools and the pictures and brand tools", toolsArea.Groups.Select(g => g.Heading).SequenceEqual(["Websites", "Pictures and brand"]));
+    Save("area-tools");
+    toolsArea.Find = "pdf";
+    Dispatcher.UIThread.RunJobs();
+    Check("Typing finds pages and tools in any area by name or by what they do",
+        toolsArea.Groups.Single().Tiles.Select(t => t.Title).SequenceEqual(["PDF tools", "Page to PDF or picture"]));
+    Save("area-find");
+    toolsArea.Find = "";
+    vm.AreaTabs[0].PickCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The Mail tab opens Mail", vm.Selected.Key == Page.Mail && vm.AreaTabs[0].IsOn);
+    // Back as it was for the rest of the run, which finds everything on the menus.
+    foreach (var entry in ToolCatalogue.All)
+        vm.Sidebar.ShowOnMenus(entry.MenuKey, true);
+    Dispatcher.UIThread.RunJobs();
+    Open(Page.Overview);
+}
+
 vm.ToggleShortcutsCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
 Check("F1 lists the shortcuts under headings, with a box to search them",
@@ -2274,9 +2331,9 @@ void SaveWindow(Avalonia.Controls.Window shown, string name)
     Console.WriteLine("Saved " + name);
 }
 Check("A new install opens with the dock as its menu", startsWithDock);
-Check("Tools are in the sidebar under Computer and Web tools, not on a page of their own",
+Check("Tools pinned to the sidebar sit under Computer and Web tools, beside Files and Notes",
     vm.Sidebar.Items.OfType<ToolLink>().Select(t => t.Group?.Key).SequenceEqual(["computer", "computer", "computer", "computer", "computer", "computer", "computer", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools", "web-tools"])
-    && vm.Modules.All(m => m.Title != "Tools") && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
+    && vm[Page.Files].Group?.Key == "computer" && vm[Page.Notes].Group?.Key == "computer");
 vm.SelectedNav = vm.Sidebar.Items.OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
 var calculatorWindow = window.ShowTool(ToolKind.Calculator, services);
 Check("Clicking a tool opens its window and leaves the page as it was", vm.Selected.Key == Page.Overview && calculatorWindow.IsVisible);
@@ -3203,7 +3260,8 @@ Save("invoice-sum");
 {
     var was = services.Settings.Appearance;
     var calculator = vm.Sidebar.OnMenus().OfType<ToolLink>().First(t => t.Kind == ToolKind.Calculator);
-    var retainers = vm[Page.Retainers];
+    var notes = vm[Page.Notes];
+    var quotes = vm[Page.Quotes];
     var before = vm.Sidebar.Items.Count;
     vm.Sidebar.EditCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
@@ -3212,11 +3270,16 @@ Save("invoice-sum");
     MenuEntry InMenu(object item) => vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Concat(vm.MenuPart.MenuAvailable).First(e => ReferenceEquals(e.Item, item));
     Check("Each entry is listed once while editing", vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).GroupBy(e => e.Item).All(g => g.Count() == 1));
     vm.MenuPart.PickFromMenuCommand.Execute(InMenu(calculator));
-    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(retainers));
+    Dispatcher.UIThread.RunJobs();
+    Check("A tool that lives on its area's page comes off without anything to put back: it was never one of the usual ones",
+        vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Calculator"]) && vm.Sidebar.IsOff(calculator) && !vm.MenuPart.HasMenuTakenOff);
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(calculator));
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(notes));
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(quotes));
     Dispatcher.UIThread.RunJobs();
     Check("A click takes an entry off: it moves to Available, and the page on screen stays",
-        vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Recurring", "Calculator"]) && vm.Selected.Key != Page.Retainers && vm.MenuPart.IsMenuOpen && vm.MenuPart.HasMenuTakenOff
-        && vm.Sidebar.IsOff(calculator) && vm.Sidebar.IsOff(retainers));
+        vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Quotes", "Notes"]) && vm.Selected.Key != Page.Quotes && vm.MenuPart.IsMenuOpen && vm.MenuPart.HasMenuTakenOff
+        && vm.Sidebar.IsOff(notes) && vm.Sidebar.IsOff(quotes));
     var settingsEntry = InMenu(vm[Page.Settings]);
     vm.MenuPart.PickFromMenuCommand.Execute(settingsEntry);
     Check("Settings always stays", !settingsEntry.ShowsMinus && !vm.Sidebar.IsOff(vm[Page.Settings]) && settingsEntry.EditTip == "This one always stays");
@@ -3224,27 +3287,30 @@ Save("invoice-sum");
     vm.MenuPart.DoneEditingMenuCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
     Check("Done closes it, and the sidebar no longer lists what was taken off",
-        !vm.MenuPart.IsMenuOpen && !vm.MenuPart.IsMenuEditing && vm.Sidebar.Items.Count == before - 2 && !vm.Sidebar.Items.Contains(calculator) && !vm.Sidebar.Items.Contains(retainers));
+        !vm.MenuPart.IsMenuOpen && !vm.MenuPart.IsMenuEditing && vm.Sidebar.Items.Count == before - 2 && !vm.Sidebar.Items.Contains(notes) && !vm.Sidebar.Items.Contains(quotes));
     Save("menu-edit-sidebar");
-    Check("A page taken off is still there to open, by search or a link", vm.Modules.Contains(retainers));
-    services.Settings.Appearance = was with { Menu = MenuKind.Dock, Dock = ["Overview", "Retainers", "Clients"] };
+    Check("A page taken off is still there to open, by search or a link", vm.Modules.Contains(quotes));
+    services.Settings.Appearance = was with { Menu = MenuKind.Dock, Dock = ["Overview", "Quotes", "Clients"] };
     Dispatcher.UIThread.RunJobs();
     Check("It is off the dock too", vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Clients"]));
     vm.MenuPart.ToggleMenuCommand.Execute(null);
-    Check("And off the open menu, which offers to edit", vm.MenuPart.IsMenuOpen && vm.MenuPart.IsMenuBrowsing && vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).All(e => e.Title is not ("Retainers" or "Calculator")) && vm.MenuPart.MenuAvailable.Count == 0);
+    Check("And off the open menu, which offers to edit", vm.MenuPart.IsMenuOpen && vm.MenuPart.IsMenuBrowsing && vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).All(e => e.Title is not ("Quotes" or "Notes")) && vm.MenuPart.MenuAvailable.Count == 0);
     vm.MenuPart.EditMenuCommand.Execute(null);
-    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(retainers));
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(quotes));
     Dispatcher.UIThread.RunJobs();
     Check("Clicking it under Available puts it back where it was, on the dock as well",
-        !vm.Sidebar.IsOff(retainers) && vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Retainers", "Clients"]) && vm.MenuPart.MenuAvailable.Count == 1);
-    // Dragging the calculator out of Available onto another tool puts it back just there.
-    var passwords = vm.Sidebar.OnMenus().OfType<ToolLink>().First(t => t.Kind == ToolKind.Passwords);
-    vm.MenuPart.MoveInMenu(InMenu(calculator), InMenu(passwords), below: true);
-    var tools = vm.Sidebar.OnMenus().OfType<ToolLink>().ToList();
-    Check("An entry dragged out of Available lands where it is dropped", !vm.Sidebar.IsOff(calculator) && tools.IndexOf(calculator) == tools.IndexOf(passwords) + 1 && !vm.MenuPart.HasMenuTakenOff);
+        !vm.Sidebar.IsOff(quotes) && vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Quotes", "Clients"]) && vm.MenuPart.MenuAvailable.Count == 1);
+    // Dragging Notes out of Available onto Files puts it back just there.
+    var files = vm[Page.Files];
+    vm.MenuPart.MoveInMenu(InMenu(notes), InMenu(files), below: true);
+    var entries = vm.Sidebar.OnMenus().ToList();
+    Check("An entry dragged out of Available lands where it is dropped", !vm.Sidebar.IsOff(notes) && entries.IndexOf(notes) == entries.IndexOf(files) + 1 && !vm.MenuPart.HasMenuTakenOff);
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(notes));
     vm.MenuPart.PickFromMenuCommand.Execute(InMenu(calculator));
     vm.MenuPart.PutAllBackOnMenuCommand.Execute(null);
-    Check("Put everything back empties Available", !vm.MenuPart.HasMenuTakenOff && vm.MenuPart.MenuAvailable.Count == 0);
+    Check("Put the usual ones back returns the page that was taken off and leaves the tool on its area's page",
+        !vm.MenuPart.HasMenuTakenOff && !vm.Sidebar.IsOff(notes) && vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Calculator"]));
+    vm.MenuPart.PickFromMenuCommand.Execute(InMenu(calculator));
     vm.MenuPart.CloseMenuCommand.Execute(null);
     Check("Closing the menu ends the editing", !vm.MenuPart.IsMenuOpen && !vm.MenuPart.IsMenuEditing);
     vm.Sidebar.ResetCommand.Execute(null);

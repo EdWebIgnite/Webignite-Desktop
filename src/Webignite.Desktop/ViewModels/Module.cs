@@ -40,6 +40,12 @@ public sealed partial class Module : ObservableObject
     public bool InPlanner { get; init; }
 
     /// <summary>
+    /// An area's page of tiles (Business, Computer, Tools). The tab across the top opens it; it is never on the
+    /// sidebar, the Menu button or the dock.
+    /// </summary>
+    public bool IsArea { get; init; }
+
+    /// <summary>
     /// Forms to read and fill in (Settings) keep a comfortable width on a big screen; everything else uses the
     /// whole window, as lists, boards and calendars should.
     /// </summary>

@@ -29,6 +29,12 @@ public sealed record SidebarLayout
     /// </summary>
     public IReadOnlyList<string> Off { get; init; } = [];
 
+    /// <summary>
+    /// The small tools have been moved off the menus onto the Tools page once (<see cref="Sidebar.TuckTools"/>).
+    /// After that, which of them show on the menus is the person's choice, kept in <see cref="Off"/> like the rest.
+    /// </summary>
+    public bool ToolsTucked { get; init; }
+
     public bool IsOpen(string group) => !Folded.Contains(group, StringComparer.Ordinal);
 
     public bool IsOff(string key) => Off.Contains(key, StringComparer.Ordinal);
@@ -89,6 +95,45 @@ public static class Sidebar
 
     /// <summary>Everything back on the menus.</summary>
     public static SidebarLayout PutAllBack(SidebarLayout layout) => layout.Off.Count == 0 ? layout : layout with { Off = [] };
+
+    /// <summary>
+    /// The usual entries the person took off go back on the menus. What lives on an area's page stays as it is: off
+    /// unless pinned, and a pinned one stays pinned.
+    /// </summary>
+    public static SidebarLayout PutAllBack(SidebarLayout layout, IReadOnlyList<string> tools) =>
+        layout.Off.All(key => tools.Contains(key, StringComparer.Ordinal)) ? layout
+            : layout with { Off = [.. layout.Off.Where(key => tools.Contains(key, StringComparer.Ordinal))] };
+
+    /// <summary>
+    /// The first time the areas' pages exist, what isn't used every day comes off the menus: it lives on its area's
+    /// page, and what the person pins there shows on the menus again. Done once, so a pinned one stays pinned.
+    /// </summary>
+    public static SidebarLayout TuckTools(SidebarLayout layout, IReadOnlyList<string> tools) =>
+        layout.ToolsTucked ? layout : layout with { ToolsTucked = true, Off = [.. layout.Off.Union(tools, StringComparer.Ordinal)] };
+
+    /// <summary>
+    /// The menu keys of what is on the dock: a page by its name, a tool, and for a group everything under its heading.
+    /// Someone who uses the dock keeps these on the menus when the rest moves to the areas' pages, as the dock is
+    /// their shortlist already and only shows what is on the menus.
+    /// </summary>
+    public static List<string> OnDock(IReadOnlyList<string> dock, IReadOnlyList<string> defaults)
+    {
+        var keys = new List<string>();
+        foreach (var name in dock)
+        {
+            if (DockKeys.AsTool(name) is { } tool)
+                keys.Add("tool-" + tool);
+            else if (DockKeys.AsGroup(name) is { } group)
+                keys.AddRange(defaults.Where(key => !IsHeading(key) && GroupOf(defaults, key) == group));
+            else
+                keys.Add(name);
+        }
+        return keys;
+    }
+
+    /// <summary>Whether one of the usual entries has been taken off the menus (one that lives on an area's page doesn't count).</summary>
+    public static bool HasTakenOff(SidebarLayout layout, IReadOnlyList<string> defaults, IReadOnlyList<string> tools) =>
+        TakenOff(layout, defaults).Any(key => !tools.Contains(key, StringComparer.Ordinal));
 
     /// <summary>
     /// What the menus show, top to bottom: the entries in the person's order without those taken off, and

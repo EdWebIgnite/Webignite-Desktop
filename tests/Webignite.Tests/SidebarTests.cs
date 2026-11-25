@@ -196,6 +196,50 @@ public sealed class SidebarOrderTests
     }
 
     [Fact]
+    public void The_small_tools_move_to_the_tools_page_once_and_a_pinned_one_stays_pinned()
+    {
+        string[] tools = ["tool-Calculator", "tool-Qr"];
+        var tucked = Sidebar.TuckTools(new SidebarLayout(), tools);
+        Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#end", "Settings"], Sidebar.Shown(tucked, Menu));
+        Assert.False(Sidebar.HasTakenOff(tucked, Menu, tools)); // nothing the person took off
+
+        // Pinned on the Tools page: back on the menus, under its heading, and it stays there the next time the app starts.
+        var pinned = Sidebar.PutBack(tucked, "tool-Qr");
+        Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#tools", "tool-Qr", "#end", "Settings"], Sidebar.Shown(pinned, Menu));
+        Assert.Same(pinned, Sidebar.TuckTools(pinned, tools));
+
+        // Put the usual ones back: the page the person took off returns, the pinned tool stays pinned and the other stays on its page.
+        var off = Sidebar.TakeOff(pinned, "Retainers");
+        Assert.True(Sidebar.HasTakenOff(off, Menu, tools));
+        var back = Sidebar.PutAllBack(off, tools);
+        Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#tools", "tool-Qr", "#end", "Settings"], Sidebar.Shown(back, Menu));
+        Assert.False(Sidebar.HasTakenOff(back, Menu, tools));
+        Assert.Same(back, Sidebar.PutAllBack(back, tools));
+    }
+
+    [Fact]
+    public void What_is_on_the_dock_stays_on_the_menus_when_the_rest_moves_to_the_areas_pages()
+    {
+        // A page by name, a tool, and a group with everything under its heading.
+        Assert.Equal(["Overview", "tool-Qr"], Sidebar.OnDock(["Overview", DockKeys.Tool("Qr")], Menu));
+        Assert.Equal(["Clients", "Retainers"], Sidebar.OnDock([DockKeys.Group("work")], Menu));
+
+        string[] tools = ["Retainers", "tool-Calculator", "tool-Qr"];
+        var kept = Sidebar.OnDock(["Overview", "Retainers", DockKeys.Tool("Qr")], Menu);
+        var tucked = Sidebar.TuckTools(new SidebarLayout(), [.. tools.Except(kept)]);
+        Assert.Equal(["Overview", "#work", "Clients", "Retainers", "#tools", "tool-Qr", "#end", "Settings"], Sidebar.Shown(tucked, Menu));
+    }
+
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("pdf", true)]
+    [InlineData("split shrink", true)]
+    [InlineData("SHRINK pdf", true)]
+    [InlineData("colour", false)]
+    public void A_tool_is_found_by_words_from_its_name_or_what_it_does(string typed, bool found) =>
+        Assert.Equal(found, ToolShelf.Matches(typed, "PDF tools", "Join, split, reorder and shrink PDF files."));
+
+    [Fact]
     public void Settings_planners_home_and_headings_always_stay()
     {
         Assert.False(Sidebar.CanTakeOff("Settings"));

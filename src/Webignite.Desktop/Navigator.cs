@@ -13,6 +13,7 @@ public enum Page
     Quotes, Invoices, Money, Reports,
     Home, Projects, Notes, Calendar, Planner, Time, MyPages,
     SiteCheck, Crawler, Markup, Pdf,
+    Business, Computer, Tools,
     Settings,
     Inbox,
     Diary,
@@ -200,6 +201,15 @@ public sealed class Navigator
 
     /// <summary>Opens a small tool (the calculator, the QR codes) in a window of its own.</summary>
     public void Tool(ViewModels.ToolKind kind) => OpenToolAction?.Invoke(kind);
+
+    internal Func<string, bool>? IsOnMenusAsked { get; set; }
+    internal Action<string, bool>? ShowOnMenusAction { get; set; }
+
+    /// <summary>Whether a page or tool (by its menu key) shows on the menus: a tool pinned on the Tools page does.</summary>
+    public bool IsOnMenus(string key) => IsOnMenusAsked?.Invoke(key) == true;
+
+    /// <summary>Pins a page or tool to the menus, or takes it off again. The Tools page's pin does this.</summary>
+    public void ShowOnMenus(string key, bool show) => ShowOnMenusAction?.Invoke(key, show);
 
     internal Action? OpenChatAction { get; set; }
 

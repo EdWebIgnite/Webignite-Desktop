@@ -1,0 +1,116 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Webignite.Desktop.ViewModels"
+             xmlns:c="using:Webignite.Desktop.Controls"
+             x:Class="Webignite.Desktop.Views.AreaView"
+             x:DataType="vm:AreaViewModel">
+  <UserControl.Styles>
+    <!-- A tool's tile: the whole of it opens the tool; the pin sits on top in its corner -->
+    <Style Selector="Border.tooltile">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Width" Value="272" />
+      <Setter Property="Height" Value="96" />
+      <Setter Property="Margin" Value="0,0,14,14" />
+    </Style>
+    <Style Selector="Border.tooltile:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource Line2}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
+    </Style>
+    <Style Selector="Button.tileopen">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="16,14" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.tileopen:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.tileicon">
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Background" Value="{DynamicResource Surface2}" />
+    </Style>
+    <!-- The pin: faint until the tile is under the mouse or it is pinned -->
+    <Style Selector="Button.tilepin">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="Margin" Value="6" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="Border.tooltile:pointerover Button.tilepin, Button.tilepin.on">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.tilepin.on">
+      <Setter Property="Foreground" Value="{DynamicResource Primary}" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="18">
+    <DockPanel>
+      <!-- Finds a page or tool by its name or by what it does, in any area -->
+      <Panel DockPanel.Dock="Right" Width="280" VerticalAlignment="Center">
+        <TextBox Text="{Binding Find}" PlaceholderText="Find a page or tool" Padding="32,6,8,6" />
+        <c:Icon Data="{StaticResource Icon.Search}" Size="14" Foreground="{DynamicResource Muted}" HorizontalAlignment="Left"
+                VerticalAlignment="Center" Margin="11,0,0,0" IsHitTestVisible="False" />
+      </Panel>
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="{Binding Title}" />
+        <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" />
+      </StackPanel>
+    </DockPanel>
+
+    <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{StaticResource Icon.Search}" Title="Nothing by that name"
+                  Text="Try another word, such as invoice, PDF or password." />
+
+    <ItemsControl ItemsSource="{Binding Groups}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:AreaGroup">
+          <StackPanel Spacing="10" Margin="0,0,0,10">
+            <TextBlock Classes="section" Text="{Binding Heading}" />
+            <ItemsControl ItemsSource="{Binding Tiles}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AreaTile">
+                  <Border Classes="tooltile">
+                    <Panel>
+                      <Button Classes="tileopen" Command="{Binding OpenCommand}">
+                        <DockPanel>
+                          <Border DockPanel.Dock="Left" Classes="tileicon" Margin="0,0,12,0" VerticalAlignment="Top">
+                            <c:Icon Data="{Binding Icon, Converter={x:Static c:IconConverter.Instance}}" Size="18"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                          <StackPanel Spacing="4" Margin="0,0,22,0">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding About}" TextWrapping="Wrap" MaxLines="3"
+                                       TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </DockPanel>
+                      </Button>
+                      <Button Classes="tilepin" Classes.on="{Binding IsPinned}" Command="{Binding PinCommand}" ToolTip.Tip="{Binding PinTip}">
+                        <c:Icon Data="{StaticResource Icon.Pin}" Size="14" />
+                      </Button>
+                    </Panel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>
