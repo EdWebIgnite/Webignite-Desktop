@@ -4,7 +4,7 @@ using Webignite.Desktop.ViewModels;
 
 namespace Webignite.Desktop.Views;
 
-/// <summary>The whole menu, opened over the page by the Menu button, the dock's More or Ctrl+M.</summary>
+/// <summary>The whole menu, opened over the page by the dock's More or Ctrl+M.</summary>
 public partial class MenuOverlayView : UserControl
 {
     public MenuOverlayView()

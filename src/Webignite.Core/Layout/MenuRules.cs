@@ -6,17 +6,29 @@ using Webignite.Core.Retainers;
 
 namespace Webignite.Core.Layout;
 
-/// <summary>How the app's pages are reached: the sidebar, one Menu button, or a dock along the bottom.</summary>
+/// <summary>How the app's pages are reached: the sidebar, or a dock along the bottom.</summary>
 public enum MenuKind
 {
     /// <summary>The list down the left, as the app has always had.</summary>
     Sidebar,
 
-    /// <summary>One button; the whole menu opens over the page when it is pressed.</summary>
+    /// <summary>
+    /// One button that opened the whole menu over the page. No longer offered (nobody used it), but a PC that saved
+    /// it must still read its settings, so the name stays and <see cref="MenuKinds.Offered"/> turns it into the dock.
+    /// </summary>
     Button,
 
     /// <summary>A bar of the pages used most along the bottom, with the rest behind More.</summary>
     Dock,
+}
+
+public static class MenuKinds
+{
+    /// <summary>
+    /// The menu to show for what was saved: the sidebar or the dock. The Menu button is gone, and the dock is the
+    /// nearest to it: the page keeps the whole width and More opens the same menu the button did.
+    /// </summary>
+    public static MenuKind Offered(MenuKind saved) => saved == MenuKind.Button ? MenuKind.Dock : saved;
 }
 
 /// <summary>The few words beside a page in the menu saying how things stand there, and whether something is late.</summary>

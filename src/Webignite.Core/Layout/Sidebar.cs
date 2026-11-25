@@ -24,7 +24,7 @@ public sealed record SidebarLayout
     public IReadOnlyList<string> Order { get; init; } = [];
 
     /// <summary>
-    /// Pages and tools taken off the menus: the sidebar, the Menu button and the dock alike. They keep their
+    /// Pages and tools taken off the menus: the sidebar, the open menu and the dock alike. They keep their
     /// place in <see cref="Order"/>, so one put back returns to where it was. Search and shortcuts still reach them.
     /// </summary>
     public IReadOnlyList<string> Off { get; init; } = [];

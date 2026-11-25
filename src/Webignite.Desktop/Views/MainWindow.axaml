@@ -39,7 +39,7 @@
 
   <Grid ColumnDefinitions="Auto,*">
 
-    <!-- The sidebar, in its three widths. Not shown at all when the menu is the Menu button or the dock. -->
+    <!-- The sidebar, in its three widths. Not shown at all when the menu is the dock. -->
     <Panel Grid.Column="0" IsVisible="{Binding MenuPart.IsSidebarMenu}">
     <!-- The sidebar tucked away: a thin strip with the button that brings it back (or Ctrl+B). -->
     <Border Grid.Column="0" Width="44" Background="{DynamicResource Nav}" Padding="6,18" IsVisible="{Binding Sidebar.IsHidden}">

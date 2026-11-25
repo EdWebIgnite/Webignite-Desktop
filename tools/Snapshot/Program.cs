@@ -102,7 +102,7 @@ services.Settings.PriceList = PriceList.Save(PriceList.Save(PriceList.Save([], "
     "Hosting, yearly", [new Line { Description = "Website hosting, 12 months", Quantity = 1, UnitPrice = 2400m }]);
 // Pages change at once here: the script doesn't wait for fades to finish.
 // A new install opens with the dock. The screens here were drawn with the sidebar, which has the most on it, so this
-// run picks the sidebar; the dock and the Menu button get their own screens further down, and the memory check
+// run picks the sidebar; the dock and its open menu get their own screens further down, and the memory check
 // (tools/Measure) starts the app as a new install does, with the dock.
 var startsWithDock = new AppearanceSettings().Menu == Webignite.Core.Layout.MenuKind.Dock;
 services.Settings.Appearance = new AppearanceSettings { Motion = Motion.Off, Menu = Webignite.Core.Layout.MenuKind.Sidebar };
@@ -3045,14 +3045,20 @@ vm.Invoices.Editor!.Lines[0].Price = "3 x 650";
 Save("invoice-sum");
 
 // Site check, with made-up results (no network here)
-// The two menus that aren't the sidebar (Settings, Look and feel, Menu), in Classic and in Airy.
+// The menu that isn't the sidebar (Settings, Look and feel, Menu): the dock, and the whole menu behind its More, in
+// Classic and in Airy.
 {
     var was = services.Settings.Appearance;
     Open(Page.Overview);
+    // The Menu button is no longer offered: a PC that saved it gets the dock, and Settings can't pick it.
     services.Settings.Appearance = was with { Menu = MenuKind.Button };
     Dispatcher.UIThread.RunJobs();
-    Check("With the Menu button the sidebar is gone and a bar along the top takes its place", vm.MenuPart.IsButtonMenu && vm.MenuPart.HasMenuBar && !vm.MenuPart.IsSidebarMenu && !vm.MenuPart.IsMenuOpen);
-    Save("menu-button");
+    Check("A PC that had the Menu button gets the dock", services.Settings.Appearance.Menu == MenuKind.Dock && vm.MenuPart.IsDockMenu);
+    services.Settings.Appearance = was with { Menu = MenuKind.Dock };
+    Dispatcher.UIThread.RunJobs();
+    Check("With the dock the sidebar is gone, and a bar along the top takes its place with no Menu button on it",
+        vm.MenuPart.IsDockMenu && vm.MenuPart.HasMenuBar && !vm.MenuPart.IsSidebarMenu && !vm.MenuPart.IsMenuOpen
+        && !window.GetVisualDescendants().OfType<MenuBarView>().Single().GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => t.Text == "Menu"));
     vm.MenuPart.ToggleMenuCommand.Execute(null);
     Check("The menu lists every group the sidebar has, and Planner's own pages",
         vm.MenuPart.IsMenuOpen && vm.MenuPart.MenuColumns.Count >= 6 && vm.MenuPart.MenuColumns[0].Title == "Start" && vm.MenuPart.MenuColumns.Any(c => c.Title == "Planner")
@@ -3060,7 +3066,7 @@ Save("invoice-sum");
     Check("The menu says how things stand beside its pages", vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Any(e => e.HasFigure));
     Check("Recurring, money and clients have their figures too",
         vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.HasFigure && e.PageKey is "Retainers" or "Money" or "Clients") == 3);
-    Save("menu-button-open");
+    Save("menu-open");
     Check("Settings comes last in the menu", vm.MenuPart.MenuColumns[^1].Entries.Any(e => e.PageKey == "Settings") && !vm.MenuPart.MenuColumns[^1].CanFold);
     {
         var tools = vm.MenuPart.MenuColumns.First(c => c.Title == "Web tools");
@@ -3070,7 +3076,7 @@ Save("invoice-sum");
         Check("A click on a group's heading folds it shut, and the menu stays open",
             vm.MenuPart.IsMenuOpen && vm.MenuPart.MenuColumns.First(c => c.Title == "Web tools") is { IsFolded: true, Entries.Count: > 0 }
             && services.Settings.Appearance.MenuFolded is { Count: 2 });
-        Save("menu-button-open-folded");
+        Save("menu-open-folded");
         vm.MenuPart.ToggleMenuCommand.Execute(null);
         vm.MenuPart.ToggleMenuCommand.Execute(null);
         Check("It opens as it was left", vm.MenuPart.MenuColumns.First(c => c.Title == "Computer").IsFolded);
@@ -3249,10 +3255,9 @@ Save("invoice-sum");
     services.Settings.Appearance = was with { Menu = MenuKind.Dock, Style = LookStyle.Airy, Sidebar = SidebarTone.Light };
     Dispatcher.UIThread.RunJobs();
     Save("menu-dock-airy");
-    services.Settings.Appearance = was with { Menu = MenuKind.Button, Style = LookStyle.Airy };
     vm.MenuPart.ToggleMenuCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
-    Save("menu-button-open-airy");
+    Save("menu-open-airy");
     vm.MenuPart.CloseMenuCommand.Execute(null);
     services.Settings.Appearance = was;
     Dispatcher.UIThread.RunJobs();

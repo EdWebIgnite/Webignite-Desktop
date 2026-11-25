@@ -130,11 +130,10 @@
           <StackPanel Orientation="Horizontal">
             <Button Classes="segment" Classes.on="{Binding IsMenuDock}" Content="Dock" Command="{Binding UseMenuCommand}" CommandParameter="Dock" />
             <Button Classes="segment" Classes.on="{Binding IsMenuSidebar}" Content="Sidebar" Command="{Binding UseMenuCommand}" CommandParameter="Sidebar" />
-            <Button Classes="segment" Classes.on="{Binding IsMenuButton}" Content="Menu button" Command="{Binding UseMenuCommand}" CommandParameter="Button" />
           </StackPanel>
         </Border>
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
-                   Text="How you get to pages. Dock, which the app starts with, puts the pages you use most in a bar along the bottom, with the rest behind More; right-click a page in the menu to add it to the dock, or one on the dock to take it off. Sidebar is the list down the left. Menu button leaves the page the whole width, and one button (or Ctrl+M) opens every page, tool and project over it, with how things stand beside each." />
+                   Text="How you get to pages. Dock, which the app starts with, puts the pages you use most in a bar along the bottom, with the rest behind More; right-click a page in the menu to add it to the dock, or one on the dock to take it off. More (or Ctrl+M) opens every page, tool and project over the page, with how things stand beside each. Sidebar is the list down the left." />
         <!-- The dock's own choices: a strip of its own or floating, and what sits beside it. -->
         <StackPanel Spacing="10" IsVisible="{Binding IsMenuDock}">
           <TextBlock Classes="label" Text="Where the dock sits" />

@@ -41,7 +41,7 @@ public sealed partial class Module : ObservableObject
 
     /// <summary>
     /// An area's page of tiles (Business, Computer, Tools). The tab across the top opens it; it is never on the
-    /// sidebar, the Menu button or the dock.
+    /// sidebar, the open menu or the dock.
     /// </summary>
     public bool IsArea { get; init; }
 
