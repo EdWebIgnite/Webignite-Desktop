@@ -177,6 +177,9 @@ public sealed class AppServices : IDisposable
     }
 
     private string? lastSyncProblem;
+
+    /// <summary>The last sync didn't get through to the server; the chat then waits for the minute's sync instead of trying every few seconds.</summary>
+    public bool SyncInTrouble => lastSyncProblem is not null;
     private DateTimeOffset? lastFullSync;
 
     /// <summary>

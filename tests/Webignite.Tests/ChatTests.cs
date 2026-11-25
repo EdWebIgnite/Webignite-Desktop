@@ -128,13 +128,21 @@ public sealed class ChatTests
     }
 
     [Fact]
-    public void Chat_is_looked_for_every_few_seconds_while_the_window_is_open_or_messages_went_lately()
+    public void Chat_listens_every_few_seconds_from_the_moment_the_app_is_open_while_the_person_is_at_the_PC()
     {
         var now = new DateTimeOffset(2026, 11, 11, 9, 0, 0, TimeSpan.Zero);
-        Assert.True(ChatTiming.IsLively(chatOpen: true, lastMessage: null, now));
-        Assert.True(ChatTiming.IsLively(chatOpen: false, lastMessage: now.AddMinutes(-3), now));
-        Assert.False(ChatTiming.IsLively(chatOpen: false, lastMessage: now.AddMinutes(-30), now));
-        Assert.False(ChatTiming.IsLively(chatOpen: false, lastMessage: null, now));
+        var idle = now.AddHours(-2); // the PC left alone
+        // Just opened, the chat window not on screen, nothing said yet: it listens all the same.
+        Assert.True(ChatTiming.IsLively(chatOpen: false, lastMessage: null, lastActive: now, now));
+        Assert.True(ChatTiming.IsLively(chatOpen: false, lastMessage: null, lastActive: now.AddMinutes(-9), now));
+        // The window open, or a message lately, keeps it going with the PC left alone.
+        Assert.True(ChatTiming.IsLively(chatOpen: true, lastMessage: null, idle, now));
+        Assert.True(ChatTiming.IsLively(chatOpen: false, lastMessage: now.AddMinutes(-3), idle, now));
+        // Left alone and quiet, it is the minute's sync.
+        Assert.False(ChatTiming.IsLively(chatOpen: false, lastMessage: now.AddMinutes(-30), idle, now));
+        Assert.False(ChatTiming.IsLively(chatOpen: false, lastMessage: null, idle, now));
+        // And with the server out of reach it doesn't try every few seconds, whatever else.
+        Assert.False(ChatTiming.IsLively(chatOpen: true, lastMessage: now, lastActive: now, now, reachable: false));
         Assert.True(ChatTiming.Lively <= TimeSpan.FromSeconds(10));
     }
 
