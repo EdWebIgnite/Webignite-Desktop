@@ -91,7 +91,34 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHo
 
     public string TodayText => DateTime.Today.ToString("dddd, d MMMM");
 
+    /// <summary>How many of today's things show before "Show more": a long day is not drawn row by row until asked for.</summary>
+    private const int TodayFirstShown = 12;
+
+    private List<AgendaItemViewModel> allToday = [];
+    private bool showAllToday;
+
+    /// <summary>Today as shown, in order of the day: the first few until asked for all.</summary>
     public ObservableCollection<AgendaItemViewModel> Today { get; } = [];
+
+    /// <summary>"Show 7 more" under Today, or "Show fewer"; empty when the day fits.</summary>
+    public string MoreTodayText => allToday.Count <= TodayFirstShown ? "" : showAllToday ? "Show fewer" : $"Show {allToday.Count - TodayFirstShown} more";
+    public bool HasMoreToday => MoreTodayText.Length > 0;
+
+    [RelayCommand]
+    private void ToggleTodayList()
+    {
+        showAllToday = !showAllToday;
+        ShowTodayList();
+    }
+
+    private void ShowTodayList()
+    {
+        Today.Clear();
+        foreach (var item in showAllToday ? allToday : allToday.Take(TodayFirstShown))
+            Today.Add(item);
+        OnPropertyChanged(nameof(MoreTodayText));
+        OnPropertyChanged(nameof(HasMoreToday));
+    }
 
     /// <summary>How many Needs you lines show before "Show more": the most pressing come first.</summary>
     private const int FirstShown = 6;
@@ -185,10 +212,9 @@ public sealed partial class OverviewViewModel : ViewModelBase, IRefreshable, IHo
         var tasks = services.Store.ListTasks();
         var documents = services.Documents.List();
 
-        Today.Clear();
         // Overview hears of a change through RepliesChanged, so the list needs nothing more from the item cleared.
-        foreach (var item in TodayList.Items(services, () => { }))
-            Today.Add(item);
+        allToday = [.. TodayList.Items(services, () => { })];
+        ShowTodayList();
         var overdueTasks = tasks.Count(t => TaskGroups.Of(t, today) == TaskGroup.Overdue);
         OverdueText = overdueTasks switch { 0 => "", 1 => "1 overdue to-do", _ => $"{overdueTasks} overdue to-dos" };
 
