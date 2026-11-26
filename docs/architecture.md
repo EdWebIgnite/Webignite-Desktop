@@ -127,6 +127,7 @@ flowchart LR
         clients["Clients<br/>Client, ClientSummary, Onboarding,<br/>ClientRecords, Monogram, SiteLogins"]
         mailc["Mail<br/>MailThreads, MailRules, Snooze, SendLater,<br/>SavedReplies, ClientMail, NewMail, Outgoing"]
         finance["Finance<br/>Ledger, Projection, Trends,<br/>RecurringExpenses"]
+        books["Books<br/>Accounts, ChartOfAccounts, Journal,<br/>BookReports, TaxYears"]
         time["Time<br/>TimeRules, TimeRates, TimeInvoice"]
         tasks["Tasks<br/>TaskGroups, AutomaticTasks"]
         overview["Overview<br/>MorningSummary, OverviewCards"]
@@ -137,6 +138,7 @@ flowchart LR
     end
     overview --> documents
     overview --> finance
+    books --> finance
     overview --> mailc
     tasks --> documents
     clients --> documents
@@ -244,6 +246,7 @@ flowchart LR
 | My pages | All my pages, each page the person made by name, New page (all one page; see My pages above) |
 | Client work | Clients, Contacts, Recurring (retainers, with Domains and hosting as a tab inside it: `RetainersViewModel.IsRenewals` shows a `RenewalsViewModel`; `MainViewModel.GoTo` opens the right tab) |
 | Billing | Quotes, Invoices, Money (with Reports as a tab inside it: `MoneyViewModel.IsReports` shows a `ReportsViewModel`; and Expected, `MoneyViewModel.IsExpected` showing an `ExpectedIncomeViewModel`: money that may come in, typed by hand with a month and how sure, ticked off as come in or lost. Rules in `Finance/Expected.cs`; kept in the setting `expected-income`, which is not a shared setting, so it stays on the PC it was typed on) |
+| Books | Double-entry books under the money pages, so Webignite can be the business's own accounting and its accountant can work from it (`Core/Books`). A chart of accounts with plain names and no VAT (`ChartOfAccounts.Default`; the accounts with an `AccountRole` are the ones the app posts to), journal entries that must balance (`Journals.Problem`), the journal for an amount typed on the money page (`Journals.FromMoneyEntry`), and the reports made from journals: trial balance, profit and loss, and the balance sheet with this tax year's profit on its own line (`BookReports`). South Africa's tax year runs 1 March to the end of February (`TaxYears`). Rules only so far: nothing is stored or shown yet; the next steps post invoices, payments and expenses and put screens on top. |
 | Planner (its own sidebar) | Back arrow, Home, My tasks, Projects, WORK (each running project, Templates, + for a new project), PLAN (Calendar, Week, Diary, Time) |
 | Computer | Files, PDF tools, Notes; the tools Compare, Duplicate files, Calculator, Password generator, Colours, Text snippets, Text from the screen |
 | Web tools | Site check, Site crawler, Mark-up; the tools Website images, Logos and brand sheet, Social images, QR code, Web helpers, DNS records, Page to PDF or picture, Screen ruler |
