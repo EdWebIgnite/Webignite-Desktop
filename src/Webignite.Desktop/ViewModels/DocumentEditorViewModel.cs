@@ -61,6 +61,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
     public string DueLabel => Kind == DocumentKind.Quote ? "Expires" : "Due";
     public string NumberNote =>
         stored?.Document.Origin == DocumentOrigin.Xero ? "Made in Xero and brought in here. Change it in Xero; it updates here every few hours."
+        : stored is { Xero.State: XeroWriteState.Editing, ChangedByAssistant: not null }
+            ? $"{(stored.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude")} changed draft {stored.Xero.Number}; Xero still has the old copy. Check it, then Update draft in Xero puts the change in, or Discard changes keeps Xero's."
         : stored?.Xero.State == XeroWriteState.Editing ? $"Changing draft {stored.Xero.Number} here. Update draft in Xero puts the change in."
         : stored is not null && XeroEdits.CanChange(stored) ? "A draft in Xero. Change this draft to edit it here and update Xero."
         : stored?.Xero.Number is not null ? "Created in Xero. Changes are made in Xero from here on."

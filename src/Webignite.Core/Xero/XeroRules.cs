@@ -67,7 +67,7 @@ public static class XeroEdits
 
     /// <summary>Starts changing it here, or null when it can't be changed (it moved on meanwhile).</summary>
     public static StoredDocument? StartChanging(StoredDocument stored) =>
-        CanChange(stored) ? stored with { Xero = stored.Xero with { State = XeroWriteState.Editing, Problems = [] }, BeforeChange = stored.Document } : null;
+        CanChange(stored) ? stored with { Xero = stored.Xero with { State = XeroWriteState.Editing, Problems = [] }, BeforeChange = stored.Document, ChangedByAssistant = null } : null;
 
     /// <summary>
     /// Stops changing: the document goes back to how it was (as Xero has it) and is checked again. Used for Discard
@@ -79,6 +79,7 @@ public static class XeroEdits
         {
             Document = stored.BeforeChange ?? stored.Document,
             BeforeChange = null,
+            ChangedByAssistant = null,
             Xero = stored.Xero with { State = XeroWriteState.Verified, Problems = [], Status = xeroStatus ?? stored.Xero.Status },
         };
 }

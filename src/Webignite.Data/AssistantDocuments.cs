@@ -19,7 +19,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
     public sealed record Prepared(string Id, string Kind, string Customer, string Date, string DueOrExpiry, string Total,
         IReadOnlyList<string> StillNeeded, string Message);
 
-    /// <param name="CanChange">Whether change_document may change it: only while it has not reached Xero.</param>
+    /// <param name="CanChange">Whether change_document may change it: while it has not reached Xero, or is a draft there nobody has approved or emailed.</param>
     public sealed record Listed(string Id, string Kind, string? Number, string Customer, string? Reference, string Date, string Total,
         string Status, IReadOnlyList<string> Lines, bool CanChange = false, string? Notes = null, string? Discount = null);
 
@@ -79,9 +79,10 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
     }
 
     /// <summary>
-    /// Changes a quote or invoice that has not reached Xero: its lines (all of them, when given), reference, notes
-    /// or discount. What is left out stays as it is. The customer and their address are never changed here. It
-    /// waits under To approve afterwards, marked as changed, whoever made it first.
+    /// Changes a quote or invoice that has not reached Xero, or is a draft there that Webignite made and nobody has
+    /// approved or emailed: its lines (all of them, when given), reference, notes or discount. What is left out stays
+    /// as it is. The customer and their address are never changed here. It waits under To approve afterwards, marked
+    /// as changed. A draft in Xero keeps Xero's copy until Eddie clicks Update draft in Xero; nothing goes to Xero here.
     /// </summary>
     public Prepared Change(string id, DocumentSource source, IReadOnlyList<DraftLine>? lines = null, string? reference = null, string? notes = null,
         decimal? discountPercent = null, decimal? discountAmount = null)
@@ -99,17 +100,24 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         if (store.Get((id ?? "").Trim()) is not { } found)
             throw new ArgumentException("No quote or invoice has that id. Use list_documents to find it.");
         if (!Approvals.AssistantMayChange(found))
-            throw new ArgumentException($"That {Word(found)} is already in Xero ({StatusText(found)}), so Eddie changes it in Webignite, where Xero's copy is kept in step. Tell Eddie what should change.");
+            throw new ArgumentException(found.Xero.State == XeroWriteState.Editing
+                ? $"Eddie is changing that {Word(found)} in Webignite right now, so it wasn't changed. Tell Eddie what should change."
+                : $"That {Word(found)} is already in Xero ({StatusText(found)}), so it can't be changed: once approved or emailed, Xero keeps it as it is. Tell Eddie what should change; a copy can be prepared with prepare_document.");
+        var xeroDraft = !Approvals.AssistantMayChangeHere(found);
 
         string? problem = null;
         var saved = store.Update(found.Id, current =>
         {
             // Read again inside the save: it may have gone to Xero in the moment between.
-            if (!Approvals.AssistantMayChange(current))
+            if (!Approvals.AssistantMayChange(current) || Approvals.AssistantMayChangeHere(current) == xeroDraft)
             {
-                problem = $"That {Word(current)} has just gone to Xero, so it wasn't changed.";
+                problem = $"That {Word(current)} has just moved on (gone to Xero, or been approved or emailed), so it wasn't changed.";
                 return null;
             }
+            // A draft in Xero: the change is kept here beside Xero's copy (BeforeChange), as when Eddie changes it, and
+            // goes to Xero only when he clicks Update draft in Xero.
+            if (xeroDraft && current.Xero.State != XeroWriteState.Editing)
+                current = XeroEdits.StartChanging(current)!;
             var document = current.Document;
             if (lines is not null)
                 document = document with { Lines = Lines(lines) };
@@ -126,11 +134,13 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             // The totals are kept on the document, so they are worked out again from the lines and the discount.
             document = DocumentDefaults.Complete(document with { Subtotal = null, Total = null },
                 store.GetSetting<DocumentSettings>("documents") ?? new DocumentSettings(), DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
-            return current with
-            {
-                Document = document, Status = DocumentStatus.AwaitingApproval, Source = source, OffApprovals = null,
-                ChangedByAssistant = clock.GetUtcNow(),
-            };
+            return xeroDraft
+                ? current with { Document = document, Source = source, OffApprovals = null, ChangedByAssistant = clock.GetUtcNow() }
+                : current with
+                {
+                    Document = document, Status = DocumentStatus.AwaitingApproval, Source = source, OffApprovals = null,
+                    ChangedByAssistant = clock.GetUtcNow(),
+                };
         });
         if (problem is not null || saved is null)
             throw new ArgumentException(problem ?? "It couldn't be changed. Use list_documents to see where it stands.");
@@ -138,7 +148,9 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         var problems = DocumentValidator.Validate(saved.Document);
         return new Prepared(saved.Id, Word(saved), saved.Document.Customer.Name, saved.Document.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "",
             saved.Document.DueOrExpiryDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", Money.Rand(saved.Document.Total ?? 0), problems,
-            "Changed in Webignite. It waits under To approve for Eddie to check, marked as changed. Nothing has gone to Xero, and it is not sent to the customer."
+            (xeroDraft
+                ? $"Changed in Webignite. Xero still has the old copy of draft {saved.Xero.Number}: it waits under To approve for Eddie to check, then he clicks Update draft in Xero (or Discard changes to keep Xero's). It is not sent to the customer."
+                : "Changed in Webignite. It waits under To approve for Eddie to check, marked as changed. Nothing has gone to Xero, and it is not sent to the customer.")
             + (problems.Count > 0 ? " It still needs: " + string.Join(" ", problems) : ""));
     }
 
@@ -184,6 +196,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         { Delivery.Emailed: not null } => "emailed to the customer",
         { Delivery.Approved: not null } => "approved in Xero, not emailed",
         { Xero.State: XeroWriteState.Verified } => "draft in Xero",
+        { Xero.State: XeroWriteState.Editing, ChangedByAssistant: not null } => "draft in Xero, changed here and waiting for Eddie to update Xero",
         { Xero.State: XeroWriteState.Editing } => "draft in Xero, being changed by Eddie",
         { Status: DocumentStatus.AwaitingApproval } => "waiting for Eddie under To approve, not in Xero yet",
         { Xero.Id: not null } => "in Xero",

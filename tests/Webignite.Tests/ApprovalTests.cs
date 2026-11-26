@@ -70,9 +70,63 @@ public sealed class ApprovalTests : IDisposable
     }
 
     [Fact]
-    public void An_assistant_cant_change_what_is_in_Xero_or_ask_for_nothing()
+    public void An_assistant_changes_a_draft_in_Xero_and_Xero_keeps_its_copy_until_Eddie_updates_it()
     {
-        var inXero = store.Save(Doc().WithXero(x => x with { State = XeroWriteState.Verified, Id = "x1" }) with { Status = DocumentStatus.InXero });
+        var draft = store.Save(Doc(DocumentKind.Quote).WithXero(x => x with { State = XeroWriteState.Verified, Id = "x1", Number = "QU-0042", Status = "DRAFT" })
+            with { Status = DocumentStatus.InXero });
+        Assert.True(documents.List().Single().CanChange);
+        // Compared as JSON: a document read back from the store holds its lists in another kind of list.
+        static string Json(Document? d) => System.Text.Json.JsonSerializer.Serialize(d, DocumentJson.Options);
+        var xeros = Json(store.Get(draft.Id)!.Document);
+
+        var changed = documents.Change(draft.Id, DocumentSource.ChatGpt, [new("Home page design", 1, 5200m, "Design")], notes: "Half up front.");
+        Assert.Contains("Update draft in Xero", changed.Message, StringComparison.Ordinal);
+
+        var stored = store.Get(draft.Id)!;
+        // Changed here, beside Xero's copy, exactly as when Eddie clicks Change this draft.
+        Assert.Equal(XeroWriteState.Editing, stored.Xero.State);
+        Assert.Equal(xeros, Json(stored.BeforeChange));
+        Assert.Equal("Half up front.", stored.Document.Notes);
+        Assert.Equal(5200m, stored.Document.Total);
+        Assert.Equal(DocumentStatus.InXero, stored.Status);
+        Assert.NotNull(stored.ChangedByAssistant);
+        var why = Approvals.Why(stored)!;
+        Assert.Equal(WaitingKind.XeroDraft, why.Kind);
+        Assert.Contains("ChatGPT changed this draft quote", why.Reason, StringComparison.Ordinal);
+        Assert.False(Approvals.CanReject(why)); // it is in Xero: Discard changes, not Reject
+
+        // A second change keeps Xero's copy as it was, not the first change.
+        documents.Change(draft.Id, DocumentSource.Claude, reference: "Website");
+        stored = store.Get(draft.Id)!;
+        Assert.Equal(xeros, Json(stored.BeforeChange));
+        Assert.Equal("Website", stored.Document.Reference);
+        Assert.Equal("Half up front.", stored.Document.Notes);
+
+        // Discard changes puts Xero's copy back, and nothing says an assistant changed it any more.
+        var discarded = XeroEdits.StopChanging(stored)!;
+        Assert.Equal(xeros, Json(discarded.Document));
+        Assert.Null(discarded.ChangedByAssistant);
+        Assert.Equal(XeroWriteState.Verified, discarded.Xero.State);
+    }
+
+    [Fact]
+    public void An_assistant_doesnt_change_a_draft_Eddie_is_changing_or_one_made_in_Xero()
+    {
+        var eddies = store.Save(XeroEdits.StartChanging(Doc(DocumentKind.Quote).WithXero(x => x with { State = XeroWriteState.Verified, Id = "x1", Status = "DRAFT" }))!);
+        var refused = Assert.Throws<ArgumentException>(() => documents.Change(eddies.Id, DocumentSource.Claude, notes: "Changed"));
+        Assert.Contains("Eddie is changing", refused.Message, StringComparison.Ordinal);
+
+        var fromXero = store.Save(Doc(DocumentKind.Quote).WithXero(x => x with { State = XeroWriteState.Verified, Id = "x2", Status = "DRAFT" })
+            with { Document = Samples.Completed(Samples.NewInvoice() with { Kind = DocumentKind.Quote, Origin = DocumentOrigin.Xero }) });
+        Assert.Throws<ArgumentException>(() => documents.Change(fromXero.Id, DocumentSource.Claude, notes: "Changed"));
+        Assert.Null(store.Get(fromXero.Id)!.ChangedByAssistant);
+    }
+
+    [Fact]
+    public void An_assistant_cant_change_what_is_approved_or_emailed_or_ask_for_nothing()
+    {
+        var inXero = store.Save(Doc().WithXero(x => x with { State = XeroWriteState.Verified, Id = "x1" })
+            with { Status = DocumentStatus.InXero, Delivery = new() { Emailed = DateTimeOffset.UtcNow } });
         var refused = Assert.Throws<ArgumentException>(() => documents.Change(inXero.Id, DocumentSource.Claude, notes: "Changed"));
         Assert.Contains("already in Xero", refused.Message, StringComparison.Ordinal);
         Assert.Null(store.Get(inXero.Id)!.Document.Notes);

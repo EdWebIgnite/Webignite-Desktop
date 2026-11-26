@@ -47,7 +47,21 @@ public static class Approvals
     /// is Eddie's to change in the app, where Xero's copy is kept in step.
     /// </summary>
     public static bool AssistantMayChange(StoredDocument s) =>
+        AssistantMayChangeHere(s) || AssistantMayChangeXeroDraft(s);
+
+    /// <summary>One that has never reached Xero: changed in place, then it waits under To approve to be created in Xero.</summary>
+    public static bool AssistantMayChangeHere(StoredDocument s) =>
         s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: DocumentOrigin.New };
+
+    /// <summary>
+    /// A draft in Xero that Webignite made and nobody has approved, emailed or settled (<see cref="XeroEdits.CanChange"/>),
+    /// or one Claude or ChatGPT is already changing. The change is kept here, and Xero keeps its copy until Eddie
+    /// checks it and clicks Update draft in Xero. Not one Eddie is changing himself in the app.
+    /// </summary>
+    public static bool AssistantMayChangeXeroDraft(StoredDocument s) =>
+        XeroEdits.CanChange(s)
+        || s is { Xero.State: XeroWriteState.Editing, ChangedByAssistant: not null, Delivery: { Approved: null, Emailed: null }, Settled: null }
+            && s.Document.Origin != DocumentOrigin.Xero;
 
     /// <summary>
     /// Whether Eddie can delete it here: only while it has never reached Xero. Once Xero has it, it is voided or
@@ -68,6 +82,8 @@ public static class Approvals
                 new(s, WaitingKind.XeroProblem, "It isn't clear whether Xero got it. Open it and use Check Xero."),
             { Xero.State: XeroWriteState.Mismatch } =>
                 new(s, WaitingKind.XeroProblem, "Xero's copy differs from this one. Open it to see how."),
+            { Xero.State: XeroWriteState.Editing, ChangedByAssistant: not null } =>
+                new(s, WaitingKind.XeroDraft, $"{by} changed this draft {what}; Xero still has the old copy. Open it to check, then Update draft in Xero, or Discard changes to keep Xero's."),
             { Xero.State: XeroWriteState.Editing } =>
                 new(s, WaitingKind.XeroDraft, "Being changed here; Xero still has the old copy. Open it and use Update draft in Xero."),
             // Drafts made in Xero itself are dealt with in Xero.
