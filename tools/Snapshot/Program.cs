@@ -289,7 +289,8 @@ Save("overview-start");
         vm.BillingTabs[4].PickCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
         Save("billing-recurring");
-        Open(Page.Contacts);
+        // Overview, not Contacts: opening Contacts this early would make its people before the sample clients exist.
+        Open(Page.Overview);
         Check("Away from Clients and billing its tabs are gone", !vm.ShowBillingTabs);
         vm.SelectedNav = billing;
         Check("Clients and billing comes back to the tab used last", vm.Selected.Key == Page.Retainers);
