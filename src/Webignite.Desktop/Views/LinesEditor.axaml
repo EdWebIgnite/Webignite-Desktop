@@ -22,7 +22,7 @@
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:LineRowViewModel">
           <Grid ColumnDefinitions="200,*,90,130,130,44" Margin="12,8,4,0">
-            <TextBox Grid.Column="0" Text="{Binding Item}" PlaceholderText="e.g. WordPress setup" MaxLength="50" Margin="0,0,8,0"
+            <TextBox Grid.Column="0" Text="{Binding Item}" PlaceholderText="{Binding ItemHint}" MaxLength="50" Margin="0,0,8,0"
                      ToolTip.Tip="Shown in Xero's Item column. Webignite adds it to Xero's Products and Services if it isn't there yet." />
             <TextBox Grid.Column="1" Text="{Binding Description}" PlaceholderText="{Binding $parent[v:LinesEditor].Placeholder}" TextWrapping="Wrap" Margin="0,0,8,0" />
             <TextBox Grid.Column="2" Text="{Binding Quantity}" LostFocus="SettleSum" HorizontalContentAlignment="Right" Margin="0,0,8,0" />

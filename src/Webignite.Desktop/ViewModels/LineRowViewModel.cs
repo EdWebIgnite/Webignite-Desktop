@@ -32,6 +32,10 @@ public partial class LineRowViewModel : ViewModelBase
     [ObservableProperty]
     public partial string Price { get; set; } = "";
 
+    /// <summary>The first line shows an example item; the rest stay quiet.</summary>
+    [ObservableProperty]
+    public partial string ItemHint { get; set; } = "";
+
     public string AmountText => ToLine() is { } line ? Money.Rand(line.Amount()) : "";
 
     partial void OnDescriptionChanged(string value) => changed();
@@ -48,13 +52,20 @@ public partial class LineRowViewModel : ViewModelBase
         changed();
     }
 
-    /// <summary>Puts the answer in place of a sum, once the box is left.</summary>
+    /// <summary>
+    /// Puts the answer in place of a sum once the box is left, and tidies an amount typed loosely: "R650" becomes
+    /// "650.00" and "3,5" becomes "3.5".
+    /// </summary>
     public void Settle()
     {
         if (Calculator.LooksLikeSum(Quantity) && Calculator.Evaluate(Quantity) is { Ok: true } q)
             Quantity = Calculator.Plain(q.Value!.Value);
+        else if (Calculator.Amount(Quantity) is { } quantity)
+            Quantity = Calculator.Plain(quantity);
         if (Calculator.LooksLikeSum(Price) && Calculator.Evaluate(Price) is { Ok: true } p)
-            Price = Calculator.Plain(Money.Cents(p.Value!.Value));
+            Price = Money.Cents(p.Value!.Value).ToString("0.00", CultureInfo.InvariantCulture);
+        else if (Calculator.Amount(Price) is { } price)
+            Price = Money.Cents(price).ToString("0.00", CultureInfo.InvariantCulture);
     }
 
     public static LineRowViewModel From(Line line, Action changed) => new(changed)

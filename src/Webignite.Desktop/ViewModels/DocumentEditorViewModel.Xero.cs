@@ -19,7 +19,7 @@ public partial class DocumentEditorViewModel
     public ObservableCollection<XeroContact> ContactChoices { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(CanVoid), nameof(CanCredit), nameof(CanRecordPayment), nameof(CanAttach), nameof(CanType))]
+    [NotifyPropertyChangedFor(nameof(CanCreate), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanDecideQuote), nameof(CanVoid), nameof(CanCredit), nameof(CanRecordPayment), nameof(CanAttach), nameof(CanType), nameof(CanPickDates))]
     public partial bool XeroBusy { get; set; }
 
     [ObservableProperty]
@@ -288,7 +288,7 @@ public partial class DocumentEditorViewModel
         foreach (var name in new[]
         {
             nameof(CanDelete), nameof(XeroState), nameof(IsEditable), nameof(IsVerified), nameof(XeroHint), nameof(CanCreate), nameof(ShowCreate), nameof(ShowCheck),
-            nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanType), nameof(CanDecideQuote), nameof(Links), nameof(HasLinks),
+            nameof(IsChangingInXero), nameof(CanUpdate), nameof(CanChangeDraft), nameof(CanType), nameof(CanPickDates), nameof(CanDecideQuote), nameof(Links), nameof(HasLinks),
             nameof(CanVoid), nameof(VoidLabel), nameof(VoidQuestion), nameof(CanCredit), nameof(CreditHint), nameof(CreditNotesText), nameof(HasCreditNotes),
             nameof(CanRecordPayment), nameof(PaymentHint), nameof(CanAttach), nameof(AttachmentsText), nameof(HasAttachments),
             nameof(ShowStartOver), nameof(HasXeroLink), nameof(XeroStatus), nameof(HasXeroStatus), nameof(XeroStatusIsProblem),
