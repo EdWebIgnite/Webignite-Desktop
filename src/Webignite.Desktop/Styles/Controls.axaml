@@ -109,6 +109,24 @@
     <Setter Property="TextAlignment" Value="Right" />
   </Style>
 
+  <!-- A figure at the top of a list that is also a button: it shows the rows behind it (Quotes and Invoices). -->
+  <Style Selector="Button.tile">
+    <Setter Property="Background" Value="{DynamicResource Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="18,14" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Selection}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+  </Style>
+  <Style Selector="Button.tile.on /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+  </Style>
   <Style Selector="Border.card">
     <Setter Property="Background" Value="{DynamicResource Surface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Line}" />

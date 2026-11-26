@@ -91,6 +91,10 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
 
     public bool IsFiltered => Filter.IsActive;
 
+    /// <summary>The three figures at the top; clicking one shows the rows behind it, clicking it again shows all.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<DocumentTileRow> Tiles { get; set; } = [];
+
     /// <summary>The line under a short list, or null when the list is long, filtered or empty.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasHint))]
@@ -192,10 +196,24 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
             Rows.Add(new DocumentRow(stored, today));
         IsEmpty = all.Count == 0;
         Headline = DocumentHeadline.For(Kind, all, today);
+        Tiles = [.. DocumentTiles.For(Kind, all, today).Select(t => new DocumentTileRow(t, Show == t.Show, () => Show = Show == t.Show ? DocumentShow.All : t.Show))];
         Hint = ListHints.Shows(Rows.Count, Filter.IsActive) ? DocumentHeadline.Hint(Kind, all, today) : null;
         Summary = Filter.IsActive ? $"{shown.Count} of {all.Count}, {Money.Rand(shown.Sum(d => d.Document.Total ?? 0))}" : "";
         OnPropertyChanged(nameof(NoMatches));
         OnPropertyChanged(nameof(ShowTable));
         OnPropertyChanged(nameof(IsFiltered));
     }
+}
+
+/// <summary>One figure at the top of the quote or invoice list, as a button that shows the rows behind it.</summary>
+public sealed partial class DocumentTileRow(DocumentTile tile, bool isOn, Action pick)
+{
+    public string Label => tile.Label;
+    public string Amount => tile.Amount;
+    public string Count => tile.Count;
+    public bool Problem => tile.Problem;
+    public bool IsOn => isOn;
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void Pick() => pick();
 }

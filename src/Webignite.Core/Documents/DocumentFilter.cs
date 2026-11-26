@@ -17,6 +17,12 @@ public enum DocumentShow
 
     /// <summary>Paid invoices, or quotes the client accepted.</summary>
     Settled,
+
+    /// <summary>Invoices with money still owed on them, due or not.</summary>
+    Owing,
+
+    /// <summary>Quotes out with the client, waiting for an answer.</summary>
+    Waiting,
 }
 
 /// <summary>Which dates the list shows.</summary>
@@ -49,6 +55,8 @@ public sealed record DocumentFilter(string Text = "", DocumentShow Show = Docume
             DocumentShow.InXero => stored.Status == DocumentStatus.InXero,
             DocumentShow.Overdue => Receivables.IsOverdue(stored, today),
             DocumentShow.Settled => Settlements.IsGood(stored.Settled?.As),
+            DocumentShow.Owing => Receivables.IsOpenInvoice(stored) && Receivables.Outstanding(stored) > 0,
+            DocumentShow.Waiting => Receivables.IsOpenQuote(stored, today),
             _ => true,
         };
         return shows && InPeriod(stored.Document.Date, today) && Words().All(word => Found(stored, word));

@@ -5,7 +5,7 @@ namespace Webignite.Desktop.ViewModels;
 /// <summary>One line in the quotes or invoices list.</summary>
 public sealed record DocumentRow(StoredDocument Stored, DateOnly Today)
 {
-    public string Number => Stored.Xero.Number ?? "Not in Xero yet";
+    public string Number => Stored.Xero.Number ?? "No number yet";
     public string Customer => string.IsNullOrWhiteSpace(Stored.Document.Customer.Name) ? "No customer yet" : Stored.Document.Customer.Name;
     public string CustomerName => Stored.Document.Customer.Name ?? "";
     public bool IsQuote => Stored.Document.Kind == DocumentKind.Quote;

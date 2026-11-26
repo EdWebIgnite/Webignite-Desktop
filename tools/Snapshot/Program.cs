@@ -366,7 +366,16 @@ Check("Domains and hosting is a tab on Recurring, and gone from the sidebar", vm
 Save("empty-domains");
 
 Open(Page.Invoices);
+Check("Invoices open on three figures: owed, overdue and paid this month",
+    vm.Invoices.Tiles.Count == 3 && vm.Invoices.Tiles[0].Label == "Owed to you" && vm.Invoices.Tiles[1].Problem);
 Save("invoices");
+vm.Invoices.Tiles[1].PickCommand.Execute(null);
+Dispatcher.UIThread.RunJobs();
+Check("Clicking a figure shows the rows behind it, and again shows all",
+    vm.Invoices.Show == Webignite.Core.Documents.DocumentShow.Overdue && vm.Invoices.Rows.Count == 1 && vm.Invoices.Tiles[1].IsOn);
+Save("invoices-overdue-tile");
+vm.Invoices.Tiles[1].PickCommand.Execute(null);
+Check("Clicking it again shows all", vm.Invoices.Show == Webignite.Core.Documents.DocumentShow.All);
 Wait(vm.Invoices.BringInFromXeroCommand.ExecuteAsync(null), "Bringing quotes and invoices in from Xero by hand");
 Check("Bringing invoices in without Xero says to connect it", vm.Invoices.XeroMessage == "Connect Xero in Settings first.");
 Save("invoices-bring-in-from-xero");
