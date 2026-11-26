@@ -5,9 +5,9 @@ public enum AccountType { Asset, Liability, Equity, Income, Expense }
 
 /// <summary>
 /// What an account is for, where the app needs to find one by its job rather than its code: the bank, money clients
-/// owe, money owed to suppliers, and the owner's and earned equity. Most accounts are Other.
+/// owe, money owed to suppliers, the director's loan, and the shareholders' and earned equity. Most accounts are Other.
 /// </summary>
-public enum AccountRole { Other, Bank, Debtors, Creditors, OwnersCapital, Drawings, RetainedEarnings }
+public enum AccountRole { Other, Bank, Debtors, Creditors, DirectorsLoan, ShareCapital, Dividends, RetainedEarnings }
 
 /// <summary>One account in the books. Eddie sees its name; the code is for the accountant and for sorting.</summary>
 public sealed record Account(string Code, string Name, AccountType Type, AccountRole Role = AccountRole.Other)
@@ -17,8 +17,9 @@ public sealed record Account(string Code, string Name, AccountType Type, Account
 }
 
 /// <summary>
-/// The chart of accounts a new set of books starts with: plain names a small South African web business uses, and
-/// no VAT accounts, as Webignite isn't VAT registered. The accountant can add and rename accounts; the ones with a
+/// The chart of accounts a new set of books starts with: plain names a small South African (Pty) Ltd web business
+/// uses, and no VAT accounts, as Webignite isn't VAT registered. Money a director puts in or takes out goes through
+/// the director's loan account, as a company has no drawings. The accountant can add and rename accounts; the ones with a
 /// role are what the app posts to, so they stay.
 /// </summary>
 public static class ChartOfAccounts
@@ -31,11 +32,11 @@ public static class ChartOfAccounts
 
         new("2000", "Money owed to suppliers (creditors)", AccountType.Liability, AccountRole.Creditors),
         new("2100", "Credit card", AccountType.Liability),
-        new("2200", "Loan from owner", AccountType.Liability),
-        new("2300", "Income tax owed to SARS", AccountType.Liability),
+        new("2200", "Director's loan account", AccountType.Liability, AccountRole.DirectorsLoan),
+        new("2300", "Company tax owed to SARS", AccountType.Liability),
 
-        new("3000", "Owner's capital", AccountType.Equity, AccountRole.OwnersCapital),
-        new("3100", "Drawings", AccountType.Equity, AccountRole.Drawings),
+        new("3000", "Share capital", AccountType.Equity, AccountRole.ShareCapital),
+        new("3100", "Dividends paid", AccountType.Equity, AccountRole.Dividends),
         new("3900", "Retained earnings", AccountType.Equity, AccountRole.RetainedEarnings),
 
         new("4000", "Website design and development", AccountType.Income),

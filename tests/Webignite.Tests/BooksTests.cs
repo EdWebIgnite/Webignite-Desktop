@@ -15,7 +15,7 @@ public sealed class BooksTests
     [Fact]
     public void The_default_chart_has_one_account_for_each_job_the_app_posts_to_and_no_VAT()
     {
-        foreach (var role in new[] { AccountRole.Bank, AccountRole.Debtors, AccountRole.Creditors, AccountRole.OwnersCapital, AccountRole.Drawings, AccountRole.RetainedEarnings })
+        foreach (var role in new[] { AccountRole.Bank, AccountRole.Debtors, AccountRole.Creditors, AccountRole.DirectorsLoan, AccountRole.ShareCapital, AccountRole.Dividends, AccountRole.RetainedEarnings })
             Assert.Single(Chart, a => a.Role == role);
         Assert.Equal(Chart.Count, Chart.Select(a => a.Code).Distinct().Count());
         Assert.DoesNotContain(Chart, a => a.Name.Contains("VAT", StringComparison.OrdinalIgnoreCase));
@@ -58,12 +58,12 @@ public sealed class BooksTests
             Entry("invoice", new(2026, 4, 1), JournalLine.Dr("1100", 8000m), JournalLine.Cr("4000", 8000m)),
             Entry("hosting", new(2026, 5, 1), JournalLine.Dr("1000", 1500m), JournalLine.Cr("4100", 1500m)),
             Entry("card", new(2026, 6, 1), JournalLine.Dr("6000", 500m), JournalLine.Cr("2100", 500m)),
-            Entry("drawings", new(2026, 7, 1), JournalLine.Dr("3100", 1000m), JournalLine.Cr("1000", 1000m)),
+            Entry("dividend", new(2026, 7, 1), JournalLine.Dr("3100", 1000m), JournalLine.Cr("1000", 1000m)),
         ];
 
         var trial = BookReports.Trial(Chart, entries, Day);
         Assert.True(trial.Balances);
-        Assert.Equal(25000m, trial.TotalDebit); // bank 13 500, debtors 8 000, software 2 000, hosting 500, drawings 1 000
+        Assert.Equal(25000m, trial.TotalDebit); // bank 13 500, debtors 8 000, software 2 000, hosting 500, dividends 1 000
 
         var profit = BookReports.Profit(Chart, entries, TaxYears.Start(Day), Day);
         Assert.Equal(9500m, profit.TotalIncome);
@@ -76,7 +76,7 @@ public sealed class BooksTests
         Assert.Equal(500m, sheet.TotalLiabilities);
         Assert.Equal(9000m, sheet.ProfitThisYear);
         Assert.Equal(3000m, sheet.Equity.Single(e => e.Account.Role == AccountRole.RetainedEarnings).Amount);
-        Assert.Equal(-1000m, sheet.Equity.Single(e => e.Account.Role == AccountRole.Drawings).Amount);
+        Assert.Equal(-1000m, sheet.Equity.Single(e => e.Account.Role == AccountRole.Dividends).Amount);
     }
 
     [Theory]
