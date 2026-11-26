@@ -52,6 +52,34 @@
             <TextBlock Text="{Binding CheckText}" TextWrapping="Wrap" VerticalAlignment="Center" />
           </DockPanel>
         </Border>
+        <!-- Changes Claude or ChatGPT suggested: nothing changes on the client until one is accepted. -->
+        <Border Classes="card pending" IsVisible="{Binding HasSuggestions}">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{Binding SuggestionHeading}" TextWrapping="Wrap" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding SuggestedChanges}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SuggestedChangeRow">
+                  <Grid ColumnDefinitions="110,*,Auto" Margin="0,4">
+                    <TextBlock Classes="label" Text="{Binding Label}" VerticalAlignment="Top" Margin="0,2,8,0" />
+                    <StackPanel Grid.Column="1" Spacing="2">
+                      <TextBlock Classes="muted" Text="{Binding Before}" TextWrapping="Wrap" TextDecorations="Strikethrough" />
+                      <TextBlock Text="{Binding After}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="8,0,0,0">
+                      <Button Classes="quiet" Content="Accept" Command="{Binding AcceptCommand}" />
+                      <Button Classes="link" Content="No" Command="{Binding TurnDownCommand}" VerticalAlignment="Center"
+                              ToolTip.Tip="Leave this detail as it is" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="primary" Content="Accept all" Command="{Binding AcceptAllCommand}" />
+              <Button Classes="link" Content="Turn them all down" Command="{Binding TurnDownAllCommand}" VerticalAlignment="Center" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
         <!-- A saved client's details to read; Edit opens the form below. -->
         <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding !EditingDetails}">
           <StackPanel Spacing="12">

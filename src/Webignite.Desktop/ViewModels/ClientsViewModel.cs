@@ -198,6 +198,8 @@ public sealed partial class ClientRow(ClientSummary summary) : ViewModelBase
             var quotes = Summary.Documents.Count(d => d.Document.Kind == DocumentKind.Quote);
             var invoices = Summary.Documents.Count(d => d.Document.Kind == DocumentKind.Invoice);
             var parts = new List<string>();
+            if (Client.Suggested is { } waiting && ClientSuggestions.Changes(Client, waiting).Count > 0)
+                parts.Add(waiting.NewClient ? $"added by {waiting.Who}, to check" : $"changes from {waiting.Who} to check");
             if (quotes > 0) parts.Add(quotes == 1 ? "1 quote" : $"{quotes} quotes");
             if (invoices > 0) parts.Add(invoices == 1 ? "1 invoice" : $"{invoices} invoices");
             if (Summary.OpenTasks.Count > 0) parts.Add(Summary.OpenTasks.Count == 1 ? "1 to-do" : $"{Summary.OpenTasks.Count} to-dos");

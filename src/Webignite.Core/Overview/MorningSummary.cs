@@ -121,6 +121,16 @@ public static class MorningSummary
             lines.Add(new(waiting == 1 ? "1 quote or invoice is waiting for your approval." : $"{waiting} quotes and invoices are waiting for your approval.",
                 SummaryTarget.Approvals));
 
+        // Client details Claude or ChatGPT suggested: nothing changed yet, so they wait for a yes.
+        foreach (var client in input.Clients.Where(c => c.Suggested is { } s && ClientSuggestions.Changes(c, s).Count > 0).OrderBy(c => c.Suggested!.At))
+        {
+            var suggested = client.Suggested!;
+            lines.Add(new(suggested.NewClient
+                    ? $"{suggested.Who} added {client.Called} as a client. Check their details."
+                    : $"{suggested.Who} suggested changes to the details of {client.Called}. Accept or turn them down on their page.",
+                SummaryTarget.Clients, Client: client) { Key = $"client:{client.Id}:suggested:{suggested.At.UtcTicks}" });
+        }
+
         foreach (var chase in chases.Where(c => c.Kind == ChaseKind.FollowUp).Take(MaxChaseLines))
             lines.Add(new($"{chase.Number} for {chase.Customer} was emailed {Days(chase.Days)} ago with no answer yet.", SummaryTarget.Chase, Chase: chase));
 

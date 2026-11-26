@@ -954,19 +954,23 @@ SaveLooks("client");
     Check("Cancel puts the details back and closes the form", !shown.EditingDetails && shown.Phone == "082 555 0142");
 }
 {
-    // Claude changes the client's email (a mail could have tricked it): the page asks for a check until It's right.
+    // Claude suggests a new email and phone: nothing changes until Eddie accepts, one change or all of them.
     var shown = vm.Clients.Detail!;
     var name = vm.Clients.Rows[0].Client.Name;
     var connector = new Webignite.Services.AssistantBusiness(services.Store);
-    var before = services.Clients.Find(name)!.Email;
-    connector.UpdateClient(name, email: "accounts@new-address.co.za");
+    var before = services.Clients.Find(name)!;
+    connector.UpdateClient(name, email: "accounts@bosveldbuilders.co.za", phone: "082 555 0199");
     shown.Refresh();
     Dispatcher.UIThread.RunJobs();
-    Check("A client email changed by Claude asks for a check on their page", shown.HasCheck && shown.Email == "accounts@new-address.co.za");
-    Save("client-check");
-    shown.ItsRightCommand.Execute(null);
-    Check("It's right clears the check", !shown.HasCheck && services.Clients.Find(name)!.Check is null);
-    services.Clients.Change(services.Clients.Find(name)!.Id, c => c with { Email = before });
+    Check("Client details Claude suggests wait on the page and change nothing yet",
+        shown.HasSuggestions && shown.SuggestedChanges.Count == 2 && services.Clients.Find(name)!.Email == before.Email && shown.Email == before.Email);
+    Save("client-suggested");
+    shown.SuggestedChanges.First(c => c.Label == "Phone").TurnDownCommand.Execute(null);
+    Check("Turning one down leaves the rest", shown.SuggestedChanges.Count == 1 && services.Clients.Find(name)!.Phone == before.Phone);
+    shown.AcceptAllCommand.Execute(null);
+    Check("Accepting makes the change", !shown.HasSuggestions && services.Clients.Find(name)!.Email == "accounts@bosveldbuilders.co.za"
+        && shown.Facts.Any(f => f.Value == "accounts@bosveldbuilders.co.za"));
+    services.Clients.Change(before.Id, c => c with { Email = before.Email });
     shown.Refresh();
 }
 {

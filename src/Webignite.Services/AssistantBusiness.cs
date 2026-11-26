@@ -69,7 +69,13 @@ public sealed class AssistantBusiness
     public sealed record ClientNoteLine(string Date, string Text);
 
     public sealed record ClientDetail(ClientLine Client, string? Address, string? Notes, IReadOnlyList<ClientNoteLine> Log,
-        IReadOnlyList<PersonLine> People, IReadOnlyList<string> NoteTitles, IReadOnlyList<RenewalLine> Renewals, IReadOnlyList<RetainerLine> Retainers);
+        IReadOnlyList<PersonLine> People, IReadOnlyList<string> NoteTitles, IReadOnlyList<RenewalLine> Renewals, IReadOnlyList<RetainerLine> Retainers)
+    {
+        /// <summary>Changes suggested to the details that Eddie hasn't accepted yet: what it says now and what it would say.</summary>
+        public IReadOnlyList<SuggestedLine> WaitingForEddie { get; init; } = [];
+    }
+
+    public sealed record SuggestedLine(string Detail, string Now, string Suggested);
 
     public IReadOnlyList<ClientLine> ListClients(string? search = null, int limit = 100) =>
         [.. clients.List()
@@ -90,82 +96,90 @@ public sealed class AssistantBusiness
             [.. contacts.ForClient(found.Id).Select(Line)],
             [.. notes.List().Where(n => n.Deleted is null && n.ClientId == found.Id).Select(n => NoteRules.Name(n))],
             [.. store.ListRenewals().Where(r => ClientDirectory.Key(r.ClientName ?? "") == key).Select(Line)],
-            [.. store.ListRetainers().Where(r => ClientDirectory.Key(r.ClientName) == key).Select(Line)]);
+            [.. store.ListRetainers().Where(r => ClientDirectory.Key(r.ClientName) == key).Select(Line)])
+        {
+            WaitingForEddie = found.Suggested is { } waiting
+                ? [.. ClientSuggestions.Changes(found, waiting).Select(c => new SuggestedLine(c.Label, c.Before, c.After))]
+                : [],
+        };
     }
 
-    /// <summary>A new client. If one with the same name is already there, that one is given back instead.</summary>
+    private static void CheckDetails(string? name, string? contactPerson, string? email, string? phone, string? website, string? address, string? notes) =>
+        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(contactPerson, "the contact person", Short),
+            AssistantLimits.TooLong(email, "the email", Short), AssistantLimits.TooLong(phone, "the phone number", Short),
+            AssistantLimits.TooLong(website, "the website", Short), AssistantLimits.TooLong(address, "the address", 2000),
+            AssistantLimits.TooLong(notes, "the notes", Long));
+
+    // What an assistant gives, as a suggestion: details left out aren't part of it.
+    private ClientSuggestion Suggestion(bool newClient, string? name, string? contactPerson, string? email, string? phone, string? website,
+        string? address, string? notes, decimal? hourlyRate) => new()
+    {
+        Who = Who,
+        At = clock.GetUtcNow(),
+        NewClient = newClient,
+        Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim(),
+        ContactPerson = contactPerson?.Trim(),
+        Email = email?.Trim(),
+        Phone = phone?.Trim(),
+        Website = website?.Trim(),
+        Address = address?.Trim(),
+        Notes = notes?.Trim(),
+        HourlyRate = hourlyRate,
+    };
+
+    // Lays a suggestion over what's waiting on the client already. Nothing on the client itself changes.
+    private Client Suggest(Client found, ClientSuggestion incoming)
+    {
+        var merged = ClientSuggestions.Merge(found.Suggested, incoming);
+        if (ClientSuggestions.Changes(found, merged).Count == 0 && !merged.NewClient)
+            return found;
+        var saved = clients.Change(found.Id, c => c with { Suggested = ClientSuggestions.Merge(c.Suggested, incoming) }) ?? found;
+        Changed("clients");
+        return saved;
+    }
+
+    /// <summary>
+    /// A new client, by name only: the other details wait on their page as suggestions until Eddie accepts them. If one
+    /// with the same name is already there, that one is given back, with any details given waiting on it the same way.
+    /// </summary>
     public ClientDetail AddClient(string name, string? contactPerson = null, string? email = null, string? phone = null, string? website = null,
         string? address = null, string? notes = null, decimal? hourlyRate = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Give the client a name.");
-        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(contactPerson, "the contact person", Short),
-            AssistantLimits.TooLong(email, "the email", Short), AssistantLimits.TooLong(phone, "the phone number", Short),
-            AssistantLimits.TooLong(website, "the website", Short), AssistantLimits.TooLong(address, "the address", 2000),
-            AssistantLimits.TooLong(notes, "the notes", Long));
+        CheckDetails(name, contactPerson, email, phone, website, address, notes);
         if (clients.Find(name) is { } existing)
-            return GetClient(existing.Id);
-        var (saved, problems) = clients.SaveDetails(new Client
         {
-            Id = Client.NewId(),
-            Name = name.Trim(),
-            ContactPerson = Blank(contactPerson),
-            Email = Blank(email),
-            Phone = Blank(phone),
-            Website = Blank(website),
-            Address = Blank(address),
-            Notes = Blank(notes),
-            HourlyRate = hourlyRate,
-        });
+            Suggest(existing, Suggestion(false, null, Blank(contactPerson), Blank(email), Blank(phone), Blank(website), Blank(address), Blank(notes), hourlyRate));
+            return GetClient(existing.Id);
+        }
+        var (saved, problems) = clients.SaveDetails(new Client { Id = Client.NewId(), Name = name.Trim() });
         if (saved is null)
             throw new ArgumentException(string.Join(" ", problems));
+        clients.Change(saved.Id, c => c with
+        {
+            Suggested = Suggestion(true, null, Blank(contactPerson), Blank(email), Blank(phone), Blank(website), Blank(address), Blank(notes), hourlyRate),
+        });
         Changed("clients");
         return GetClient(saved.Id);
     }
 
-    /// <summary>Changes a client's details. Only what's given changes; an empty value clears that detail.</summary>
+    /// <summary>
+    /// Suggests changes to a client's details. Only what's given is suggested; an empty value suggests clearing that
+    /// detail. Nothing changes until Eddie accepts it on the client's page.
+    /// </summary>
     public ClientDetail UpdateClient(string client, string? name = null, string? contactPerson = null, string? email = null, string? phone = null,
         string? website = null, string? address = null, string? notes = null, decimal? hourlyRate = null)
     {
         var found = FindClient(client);
-        Check(AssistantLimits.TooLong(name, "the name", Short), AssistantLimits.TooLong(contactPerson, "the contact person", Short),
-            AssistantLimits.TooLong(email, "the email", Short), AssistantLimits.TooLong(phone, "the phone number", Short),
-            AssistantLimits.TooLong(website, "the website", Short), AssistantLimits.TooLong(address, "the address", 2000),
-            AssistantLimits.TooLong(notes, "the notes", Long), AssistantLimits.Emptying(found.Notes, notes, "a client's notes"),
-            AssistantLimits.Emptying(found.Email, email, "a client's email"));
-        var edited = found with
-        {
-            Name = string.IsNullOrWhiteSpace(name) ? found.Name : name.Trim(),
-            ContactPerson = contactPerson is null ? found.ContactPerson : Blank(contactPerson),
-            Email = email is null ? found.Email : Blank(email),
-            Phone = phone is null ? found.Phone : Blank(phone),
-            Website = website is null ? found.Website : Blank(website),
-            Address = address is null ? found.Address : Blank(address),
-            Notes = notes is null ? found.Notes : Blank(notes),
-            HourlyRate = hourlyRate ?? found.HourlyRate,
-        };
-        var (saved, problems) = clients.SaveDetails(edited, found);
-        if (saved is null)
+        CheckDetails(name, contactPerson, email, phone, website, address, notes);
+        if (!string.IsNullOrWhiteSpace(name) && ClientDirectory.Check(found with { Name = name.Trim() }, clients.List()) is { Count: > 0 } problems)
             throw new ArgumentException(string.Join(" ", problems));
-        if (notes is not null && !string.IsNullOrWhiteSpace(found.Notes) && found.Notes != saved.Notes)
-            KeepOld("clients", saved.Id, $"Replaced the notes on {saved.Name}", "client-notes", found.Notes);
-        if (!string.Equals(found.Email ?? "", saved.Email ?? "", StringComparison.OrdinalIgnoreCase))
-            saved = Flag(saved, "client-email", found.Email, $"{Who} changed the email from {Shown(found.Email)} to {Shown(saved.Email)}.");
-        if (found.Name != saved.Name)
-            saved = Flag(saved, "client-name", found.Name, $"{Who} changed the name from {found.Name} to {saved.Name}.");
-        Changed("clients");
-        return GetClient(saved.Id);
+        Suggest(found, Suggestion(false, name, contactPerson, email, phone, website, address, notes, hourlyRate));
+        return GetClient(found.Id);
     }
 
     private static string Shown(string? value) => string.IsNullOrWhiteSpace(value) ? "nothing" : value;
-
-    // An email or name changed by an assistant: kept to put back, noted in the client's history, and marked on the
-    // client so the email and Xero steps wait until Eddie says it's right.
-    private Client Flag(Client client, string field, string? before, string what)
-    {
-        KeepOld("clients", client.Id, what, field, before);
-        return clients.Change(client.Id, c => ClientRecords.AddNote(c, what, Today) with { Check = new ClientCheck(what, clock.GetUtcNow(), Who) }) ?? client;
-    }
 
     /// <summary>A dated note in the client's history, e.g. what was agreed on a call.</summary>
     public ClientDetail AddClientNote(string client, string text, string from, string? date = null)

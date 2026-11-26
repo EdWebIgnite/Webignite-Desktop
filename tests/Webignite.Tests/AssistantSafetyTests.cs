@@ -98,22 +98,25 @@ public sealed class AssistantSafetyTests : IDisposable
     }
 
     [Fact]
-    public void A_client_email_or_name_changed_by_them_waits_for_a_check_and_can_be_put_back()
+    public void A_client_email_or_name_they_suggest_changes_nothing_until_Eddie_accepts_it()
     {
-        business.AddClient("Karoo Coffee Roasters", email: "accounts@karoo.co.za");
-        var changed = business.UpdateClient("Karoo", email: "accounts@kar00.co.za");
-        Assert.Equal("accounts@kar00.co.za", changed.Client.Email);
-
         var clients = new ClientService(store);
-        var stored = clients.Find("Karoo Coffee Roasters")!;
-        Assert.NotNull(stored.Check);
-        Assert.Contains("accounts@karoo.co.za", stored.Check!.What, StringComparison.Ordinal);
-        Assert.Contains(stored.Log, n => n.Text.Contains("kar00", StringComparison.Ordinal));
-        Assert.Throws<ArgumentException>(() => business.UpdateClient("Karoo", email: ""));
+        var added = business.AddClient("Karoo Coffee Roasters", email: "accounts@karoo.co.za");
+        clients.Accept(added.Client.Id);
 
-        Assert.Null(PutBack().Apply(AssistantLog.List(store).First(e => e.Field == "client-email")));
-        stored = clients.Find("Karoo Coffee Roasters")!;
-        Assert.Equal("accounts@karoo.co.za", stored.Email);
+        var changed = business.UpdateClient("Karoo", email: "accounts@kar00.co.za", name: "Karoo Roasters");
+        Assert.Equal("accounts@karoo.co.za", changed.Client.Email);
+        Assert.Equal("Karoo Coffee Roasters", changed.Client.Name);
+        Assert.Equal(["Name", "Email"], changed.WaitingForEddie.Select(w => w.Detail));
+        // A name another client already has can't even be suggested.
+        business.AddClient("Bosveld Builders");
+        Assert.Throws<ArgumentException>(() => business.UpdateClient("Karoo", name: "Bosveld Builders"));
+
+        // Turned down, the client is as it was and nothing waits.
+        clients.TurnDown(added.Client.Id);
+        var stored = clients.Get(added.Client.Id)!;
+        Assert.Equal(("Karoo Coffee Roasters", "accounts@karoo.co.za"), (stored.Name, stored.Email));
+        Assert.Null(stored.Suggested);
         Assert.Null(stored.Check);
     }
 

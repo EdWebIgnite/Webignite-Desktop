@@ -54,6 +54,32 @@ public sealed class ClientService(LocalStore store, TimeProvider? clock = null)
         return (saved, []);
     }
 
+    /// <summary>
+    /// Makes changes Claude or ChatGPT suggested (all of them when none are named) and takes them off what's waiting.
+    /// Applied to the client as stored now. Returns the problems instead when it can't be done, e.g. a name another
+    /// client has, and nothing is changed.
+    /// </summary>
+    public (Client? Saved, IReadOnlyList<string> Problems) Accept(string id, IReadOnlyCollection<string>? fields = null)
+    {
+        if (store.GetClient(id) is not { Suggested: { } waiting } current)
+            return (store.GetClient(id), []);
+        var taking = fields ?? [.. ClientSuggestions.Changes(current, waiting).Select(c => c.Field)];
+        var problems = ClientDirectory.Check(ClientSuggestions.Apply(current, waiting, taking), store.ListClients());
+        if (problems.Count > 0)
+            return (null, problems);
+        var saved = store.UpdateClient(id, c => c.Suggested is { } still
+            ? ClientSuggestions.Apply(c, still, taking) with { Suggested = ClientSuggestions.Without(ClientSuggestions.Apply(c, still, taking), still, taking) }
+            : c);
+        if (saved is not null)
+            KeepPeopleInStep(saved);
+        return (saved, []);
+    }
+
+    /// <summary>Turns down suggested changes (all of them when none are named): the client stays as it is.</summary>
+    public Client? TurnDown(string id, IReadOnlyCollection<string>? fields = null) =>
+        store.UpdateClient(id, c => c.Suggested is not { } still ? c
+            : c with { Suggested = fields is null ? null : ClientSuggestions.Without(c, still, fields) });
+
     /// <summary>Raised when a client page's details change a person in Contacts, so the Contacts page catches up.</summary>
     public event Action? PeopleChanged;
 

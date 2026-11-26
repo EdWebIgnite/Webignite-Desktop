@@ -39,12 +39,24 @@ public sealed class AssistantBusinessTests : IDisposable
         Assert.Equal(added.Client.Id, again.Client.Id);
         Assert.Single(business.ListClients());
 
+        // A client an assistant adds has only its name until Eddie accepts the rest.
+        Assert.Null(added.Client.ContactPerson);
+        Assert.Equal(["Contact person", "Email", "Hourly rate"], added.WaitingForEddie.Select(w => w.Detail));
+        var clients = new ClientService(store);
+        clients.Accept(added.Client.Id);
+
         store.SaveSiteLogin(new SiteLogin { Id = "l", ClientId = added.Client.Id, Site = "WordPress", UserName = "anna", Password = "secret-pass" });
         var changed = business.UpdateClient("karoo", phone: "082 555 0100", website: "");
         var noted = business.AddClientNote("Karoo", "Wants a shop by March.", "Claude", "2026-10-30");
 
-        Assert.Equal("082 555 0100", changed.Client.Phone);
+        // Suggested only: the phone waits for Eddie, and the client is as it was.
+        Assert.Null(changed.Client.Phone);
         Assert.Equal("Anna", changed.Client.ContactPerson);
+        Assert.Equal([new AssistantBusiness.SuggestedLine("Phone", "", "082 555 0100")], changed.WaitingForEddie);
+        var (accepted, problems) = clients.Accept(added.Client.Id, [ClientSuggestions.Phone]);
+        Assert.Empty(problems);
+        Assert.Equal("082 555 0100", accepted!.Phone);
+        Assert.Null(accepted.Suggested);
         Assert.Equal(new BusinessNote("2026-10-30", "Wants a shop by March. (Claude)"), new BusinessNote(noted.Log[0].Date, noted.Log[0].Text));
         Assert.DoesNotContain("secret-pass", System.Text.Json.JsonSerializer.Serialize(noted), StringComparison.Ordinal);
         Assert.Contains("clients", AssistantSignal.Read(store)!.Areas);
