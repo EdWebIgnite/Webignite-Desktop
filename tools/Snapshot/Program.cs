@@ -415,7 +415,11 @@ invoice.Lines[1].Description = "Content updates (hours)";
 invoice.Lines[1].Quantity = "3,5";
 invoice.Lines[1].Price = "R650";
 invoice.Notes = "Please pay by EFT to FNB, account 62xxxxxxx. Thank you!";
+invoice.FieldRows.Single(f => f.Name == "Project").Value = "Coffee shop website";
 invoice.SaveCommand.Execute(null);
+Check("A quote or invoice has Project to fill in, kept on the document and printed for the client",
+    invoice.HasFields && Webignite.Core.Documents.DocumentFields.Value(invoice.Build(), "Project") == "Coffee shop website"
+    && Webignite.Core.Documents.DocumentFields.XeroReference(invoice.Build()) == "Website November · Project: Coffee shop website");
 Save("invoice-editor");
 SaveLooks("invoice-editor");
 // Items for Xero's Item column, a number of our own and a discount on the whole invoice.
@@ -578,6 +582,15 @@ settingsPage.Open("shortcuts");
 Dispatcher.UIThread.RunJobs();
 Check("Settings has the shortcuts in a section of their own", settingsPage.ShowShortcuts && settingsPage.Shortcuts.Groups.Count > 5);
 Save("settings-shortcuts");
+settingsPage.Open("documents");
+settingsPage.NewFieldName = "PO number";
+settingsPage.AddFieldCommand.Execute(null);
+settingsPage.DocumentFieldRows.Single(f => f.Name == "PO number").Print = false;
+Dispatcher.UIThread.RunJobs();
+Check("Fields of your own on quotes and invoices: Project to begin with, more added, each printed or for us only",
+    services.Settings.Documents.Fields.Select(f => (f.Name, f.Print)).SequenceEqual([("Project", true), ("PO number", false)]));
+Save("settings-documents");
+settingsPage.DocumentFieldRows.Single(f => f.Name == "PO number").RemoveCommand.Execute(null);
 settingsPage.Open("emails");
 Save("settings-emails");
 // How quote and invoice mails look: the details for the branded layout, below the wording.
@@ -1109,6 +1122,7 @@ vm.Clients.Detail!.BackCommand.Execute(null);
                 ],
                 DocumentDiscountPercent = 5,
                 Notes = "Thank you for the quick sign-off on the proofs.",
+                Fields = [new Webignite.Core.Documents.DocumentField("Project", "Paarl Wine Route website")],
             },
         };
         sample = sample with { Document = Webignite.Core.Documents.DocumentDefaults.Complete(sample.Document, new Webignite.Core.Documents.DocumentSettings(), new DateOnly(2026, 11, 18)) };
@@ -1120,6 +1134,7 @@ vm.Clients.Detail!.BackCommand.Execute(null);
         };
         var sampleSheet = Webignite.Core.Documents.DocumentSheets.Build(sample, sampleBrand,
             new Webignite.Core.Clients.Client { Id = "g3", Name = "Francois Booysens", Company = "G3", Address = "12 Main Road\nPaarl, 7646" });
+        Check("The project prints among the invoice's details", sampleSheet.Facts.Any(f => f.Label == "Project" && f.Value == "Paarl Wine Route website"));
         var samplePdf = Webignite.Tools.DocumentPdfMaker.Make(sampleSheet);
         var (samplePages, samplePageCount) = Webignite.Tools.PdfPages.Render(samplePdf, 1190, 2);
         Check("Webignite's own invoice PDF runs onto a second page when the lines need it", samplePageCount == 2 && samplePages.Count == 2);

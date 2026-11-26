@@ -84,7 +84,8 @@ public static class XeroPayload
         ["LineItems"] = lines,
         // Xero spells this differently for quotes and invoices.
         ["LineAmountTypes"] = quote ? "NOTAX" : "NoTax",
-        ["Reference"] = doc.Reference ?? "",
+        // Project and the other printed fields of Eddie's own go after the reference, as Xero makes the PDF that is mailed.
+        ["Reference"] = DocumentFields.XeroReference(doc),
     };
 
     /// <summary>
