@@ -62,12 +62,12 @@
         </StackPanel>
         <StackPanel Grid.Column="6">
           <TextBlock Classes="label" Text="Date" />
-          <CalendarDatePicker SelectedDate="{Binding DateValue}" IsVisible="{Binding CanPickDates}" HorizontalAlignment="Stretch" />
+          <c:DateBox SelectedDate="{Binding DateValue}" IsVisible="{Binding CanPickDates}" HorizontalAlignment="Stretch" />
           <TextBlock Text="{Binding DateText}" Margin="0,7,0,0" IsVisible="{Binding !CanPickDates}" />
         </StackPanel>
         <StackPanel Grid.Column="8">
           <TextBlock Classes="label" Text="{Binding DueLabel}" />
-          <CalendarDatePicker SelectedDate="{Binding DueValue}" IsVisible="{Binding CanPickDates}" HorizontalAlignment="Stretch" />
+          <c:DateBox SelectedDate="{Binding DueValue}" IsVisible="{Binding CanPickDates}" HorizontalAlignment="Stretch" />
           <TextBlock Text="{Binding DueText}" Margin="0,7,0,0" IsVisible="{Binding !CanPickDates}" />
         </StackPanel>
         <!-- Fields of Eddie's own (Project to begin with), as set up in Settings, Quotes and invoices. -->
