@@ -40,21 +40,21 @@
     <UniformGrid Columns="3">
       <Border Classes="card" Margin="0,0,12,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="RECEIVED" />
+          <TextBlock Classes="label" Text="Came in" />
           <TextBlock Classes="figure" Text="{Binding Received}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Before expenses." />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="6,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="EXPENSES" />
+          <TextBlock Classes="label" Text="Went out" />
           <TextBlock Classes="figure" Text="{Binding Expenses}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Including monthly ones." />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="12,0,0,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="LEFT OVER" />
+          <TextBlock Classes="label" Text="Left over" />
           <TextBlock Classes="figure" Classes.short="{Binding IsShort}" Text="{Binding LeftOver}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Received less expenses." />
         </StackPanel>
@@ -72,7 +72,7 @@
             <Button Classes="quiet" Content="Read Xero now" Command="{Binding ReadBillsNowCommand}" IsEnabled="{Binding !ReadingBills}" />
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="BILLS TO PAY" />
+            <TextBlock Classes="label" Text="Bills to pay" />
             <TextBlock Text="{Binding BillsSummary}" TextWrapping="Wrap" />
           </StackPanel>
         </DockPanel>
@@ -83,17 +83,17 @@
               <TextBlock FontWeight="SemiBold" Text="{Binding BillFileName, StringFormat='Bill from {0}'}" />
             </DockPanel>
             <Grid ColumnDefinitions="2*,12,*,12,150,12,150" RowDefinitions="Auto,Auto,8,Auto,Auto">
-              <TextBlock Classes="label" Text="FROM" />
+              <TextBlock Classes="label" Text="From" />
               <TextBox Grid.Row="1" Text="{Binding BillSupplier}" PlaceholderText="Supplier" />
-              <TextBlock Grid.Column="2" Classes="label" Text="THEIR NUMBER" />
+              <TextBlock Grid.Column="2" Classes="label" Text="Their number" />
               <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding BillNumber}" />
-              <TextBlock Grid.Column="4" Classes="label" Text="DATE" />
+              <TextBlock Grid.Column="4" Classes="label" Text="Date" />
               <c:DateBox Grid.Row="1" Grid.Column="4" SelectedDate="{Binding BillDate}" HorizontalAlignment="Stretch" />
               <TextBlock Grid.Column="6" Classes="label" Text="DUE" />
               <c:DateBox Grid.Row="1" Grid.Column="6" SelectedDate="{Binding BillDue}" HorizontalAlignment="Stretch" />
               <TextBlock Grid.Row="3" Classes="label" Text="WHAT IT'S FOR" />
               <TextBox Grid.Row="4" Text="{Binding BillDescription}" />
-              <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="EXPENSE ACCOUNT" />
+              <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="Expense account" />
               <ComboBox Grid.Row="4" Grid.Column="2" ItemsSource="{Binding ExpenseAccounts}" SelectedItem="{Binding BillAccount}"
                         PlaceholderText="Pick one" HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
@@ -137,125 +137,6 @@
         <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding BillsRead}" IsVisible="{Binding XeroConnected}" />
       </StackPanel>
     </Border>
-
-    <!-- Income projection -->
-    <Border Classes="card">
-      <StackPanel Spacing="14">
-        <DockPanel>
-          <!-- Where the figures come from: set once, so out of the way -->
-          <Button DockPanel.Dock="Right" Classes="quiet" Margin="8,0,0,0" VerticalAlignment="Top" ToolTip.Tip="Where expected and came-in figures come from">
-            <TextBlock Text="···" />
-            <Button.Flyout>
-              <MenuFlyout Placement="BottomEdgeAlignedRight">
-                <MenuItem Header="Expected amounts">
-                  <MenuItem Header="Work them out" ToggleType="Radio" IsChecked="{Binding IsAuto, Mode=OneWay}" Command="{Binding UseAutoCommand}"
-                            ToolTip.Tip="Invoices due each month, plus retainers and charged renewals still to be invoiced." />
-                  <MenuItem Header="Type them in" ToggleType="Radio" IsChecked="{Binding IsManual, Mode=OneWay}" Command="{Binding UseManualCommand}"
-                            ToolTip.Tip="Type what you expect each month in the table below." />
-                </MenuItem>
-                <MenuItem Header="Came in from">
-                  <MenuItem Header="Money received" ToggleType="Radio" IsChecked="{Binding FromMoney, Mode=OneWay}" Command="{Binding CameInFromMoneyCommand}"
-                            ToolTip.Tip="What you add under Money received on this page." />
-                  <MenuItem Header="Xero payments" ToggleType="Radio" IsChecked="{Binding FromXero, Mode=OneWay}" Command="{Binding CameInFromXeroCommand}"
-                            ToolTip.Tip="Invoices Xero says were paid, on the day they were paid." />
-                </MenuItem>
-              </MenuFlyout>
-            </Button.Flyout>
-          </Button>
-          <Border DockPanel.Dock="Right" Classes="segments" VerticalAlignment="Top">
-            <StackPanel Orientation="Horizontal">
-              <Button Classes="segment" Classes.on="{Binding ChartBars}" Content="Bars"
-                      Command="{Binding ShowChartCommand}" CommandParameter="{x:Static fin:ChartStyle.Bars}" />
-              <Button Classes="segment" Classes.on="{Binding ChartFilled}" Content="Filled"
-                      Command="{Binding ShowChartCommand}" CommandParameter="{x:Static fin:ChartStyle.Filled}" />
-              <Button Classes="segment" Classes.on="{Binding ChartLines}" Content="Lines"
-                      Command="{Binding ShowChartCommand}" CommandParameter="{x:Static fin:ChartStyle.Lines}" />
-            </StackPanel>
-          </Border>
-          <StackPanel Spacing="4">
-            <TextBlock Classes="h2" Text="Income: expected and came in" />
-            <TextBlock Classes="muted" Text="{Binding IncomeSummary}" />
-          </StackPanel>
-        </DockPanel>
-
-        <c:IncomeChart Months="{Binding ProjectionMonths}" ChartStyle="{Binding ChartStyle}" Height="220" />
-
-        <DockPanel>
-          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="6" Margin="0,0,20,8" VerticalAlignment="Center">
-            <Border Width="12" Height="12" CornerRadius="3" Background="{DynamicResource Primary}" Opacity="0.25" />
-            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Expected" />
-            <Border Width="12" Height="12" CornerRadius="3" Background="{DynamicResource Primary}" Margin="10,0,0,0" />
-            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Came in" />
-          </StackPanel>
-        </DockPanel>
-      </StackPanel>
-    </Border>
-
-    <Grid ColumnDefinitions="3*,24,2*">
-      <Border Grid.Column="0" Classes="card" Padding="0" VerticalAlignment="Top">
-        <StackPanel>
-          <TextBlock Classes="h2" Text="Month by month" Margin="20,16,20,10" />
-          <!-- Each column has a faint line on its left and the same padding in the heading and the rows, so a figure
-               sits under its heading and the last column doesn't drift off on a wide window. -->
-          <Border Classes="stickyhead">
-            <Grid ColumnDefinitions="130,*,*,1.2*">
-              <TextBlock Grid.Column="0" Classes="label" Text="Month" Margin="20,0,12,0" VerticalAlignment="Center" />
-              <Border Grid.Column="1" Classes="colline"><TextBlock Classes="label" Text="Expected" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
-              <Border Grid.Column="2" Classes="colline"><TextBlock Classes="label" Text="Came in" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
-              <Border Grid.Column="3" Classes="colline"><TextBlock Classes="label" Text="Difference" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
-            </Grid>
-          </Border>
-          <ItemsControl ItemsSource="{Binding IncomeRows}" Margin="0,0,0,8">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:IncomeMonthRow">
-                <Border Classes="taskrow" Padding="0" MinHeight="38">
-                  <Grid ColumnDefinitions="130,*,*,1.2*">
-                    <TextBlock Grid.Column="0" Text="{Binding Title}" FontWeight="{Binding IsCurrent, Converter={x:Static vm:MoneyViewModel.BoldIf}}"
-                               Classes.muted="{Binding IsFuture}" Margin="20,0,12,0" VerticalAlignment="Center" />
-                    <Border Grid.Column="1" Classes="colline">
-                      <Panel>
-                        <TextBlock Classes="amount" Text="{Binding Expected}" IsVisible="{Binding IsAuto}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                        <TextBox Text="{Binding ManualText}" IsVisible="{Binding IsManual}" PlaceholderText="Amount"
-                                 HorizontalAlignment="Right" Width="120" TextAlignment="Right" Padding="8,2" MinHeight="26" VerticalAlignment="Center" />
-                      </Panel>
-                    </Border>
-                    <Border Grid.Column="2" Classes="colline">
-                      <TextBlock Classes="amount" Text="{Binding CameIn}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    </Border>
-                    <Border Grid.Column="3" Classes="colline">
-                      <TextBlock Classes="muted" Classes.short="{Binding IsShort}" FontSize="{DynamicResource Text12}" Text="{Binding Gap}"
-                                 HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    </Border>
-                  </Grid>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-      </Border>
-
-      <Border Grid.Column="2" Classes="card" Padding="0" VerticalAlignment="Top">
-        <StackPanel>
-          <StackPanel Margin="20,16,20,10" Spacing="4">
-            <TextBlock Classes="h2" Text="{Binding ExpectedTitle}" />
-            <TextBlock Classes="muted" Text="{Binding ExpectedNote}" TextWrapping="Wrap" />
-          </StackPanel>
-          <ItemsControl ItemsSource="{Binding ExpectedItems}" Margin="0,0,0,8" IsVisible="{Binding HasExpectedItems}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ExpectedItemRow">
-                <Border Classes="taskrow">
-                  <Grid ColumnDefinitions="56,*,Auto">
-                    <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" Text="{Binding What}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0,0,0" />
-                  </Grid>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-      </Border>
-    </Grid>
 
     <Grid ColumnDefinitions="*,24,*">
       <!-- Received -->
@@ -375,6 +256,127 @@
         <Border Height="8" />
       </StackPanel>
     </Border>
+
+    <!-- How the months compare: what was expected and what came in, further down as it is looked at less often. -->
+    <!-- Income projection -->
+    <Border Classes="card">
+      <StackPanel Spacing="14">
+        <DockPanel>
+          <!-- Where the figures come from: set once, so out of the way -->
+          <Button DockPanel.Dock="Right" Classes="quiet" Margin="8,0,0,0" VerticalAlignment="Top" ToolTip.Tip="Where expected and came-in figures come from">
+            <TextBlock Text="···" />
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="Expected amounts">
+                  <MenuItem Header="Work them out" ToggleType="Radio" IsChecked="{Binding IsAuto, Mode=OneWay}" Command="{Binding UseAutoCommand}"
+                            ToolTip.Tip="Invoices due each month, plus retainers and charged renewals still to be invoiced." />
+                  <MenuItem Header="Type them in" ToggleType="Radio" IsChecked="{Binding IsManual, Mode=OneWay}" Command="{Binding UseManualCommand}"
+                            ToolTip.Tip="Type what you expect each month in the table below." />
+                </MenuItem>
+                <MenuItem Header="Came in from">
+                  <MenuItem Header="Money received" ToggleType="Radio" IsChecked="{Binding FromMoney, Mode=OneWay}" Command="{Binding CameInFromMoneyCommand}"
+                            ToolTip.Tip="What you add under Money received on this page." />
+                  <MenuItem Header="Xero payments" ToggleType="Radio" IsChecked="{Binding FromXero, Mode=OneWay}" Command="{Binding CameInFromXeroCommand}"
+                            ToolTip.Tip="Invoices Xero says were paid, on the day they were paid." />
+                </MenuItem>
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <Border DockPanel.Dock="Right" Classes="segments" VerticalAlignment="Top">
+            <StackPanel Orientation="Horizontal">
+              <Button Classes="segment" Classes.on="{Binding ChartBars}" Content="Bars"
+                      Command="{Binding ShowChartCommand}" CommandParameter="{x:Static fin:ChartStyle.Bars}" />
+              <Button Classes="segment" Classes.on="{Binding ChartFilled}" Content="Filled"
+                      Command="{Binding ShowChartCommand}" CommandParameter="{x:Static fin:ChartStyle.Filled}" />
+              <Button Classes="segment" Classes.on="{Binding ChartLines}" Content="Lines"
+                      Command="{Binding ShowChartCommand}" CommandParameter="{x:Static fin:ChartStyle.Lines}" />
+            </StackPanel>
+          </Border>
+          <StackPanel Spacing="4">
+            <TextBlock Classes="h2" Text="Income: expected and came in" />
+            <TextBlock Classes="muted" Text="{Binding IncomeSummary}" />
+          </StackPanel>
+        </DockPanel>
+
+        <c:IncomeChart Months="{Binding ProjectionMonths}" ChartStyle="{Binding ChartStyle}" Height="220" />
+
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="6" Margin="0,0,20,8" VerticalAlignment="Center">
+            <Border Width="12" Height="12" CornerRadius="3" Background="{DynamicResource Primary}" Opacity="0.25" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Expected" />
+            <Border Width="12" Height="12" CornerRadius="3" Background="{DynamicResource Primary}" Margin="10,0,0,0" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Came in" />
+          </StackPanel>
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
+    <Grid ColumnDefinitions="3*,24,2*">
+      <Border Grid.Column="0" Classes="card" Padding="0" VerticalAlignment="Top">
+        <StackPanel>
+          <TextBlock Classes="h2" Text="Month by month" Margin="20,16,20,10" />
+          <!-- Each column has a faint line on its left and the same padding in the heading and the rows, so a figure
+               sits under its heading and the last column doesn't drift off on a wide window. -->
+          <Border Classes="stickyhead">
+            <Grid ColumnDefinitions="130,*,*,1.2*">
+              <TextBlock Grid.Column="0" Classes="label" Text="Month" Margin="20,0,12,0" VerticalAlignment="Center" />
+              <Border Grid.Column="1" Classes="colline"><TextBlock Classes="label" Text="Expected" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
+              <Border Grid.Column="2" Classes="colline"><TextBlock Classes="label" Text="Came in" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
+              <Border Grid.Column="3" Classes="colline"><TextBlock Classes="label" Text="Difference" HorizontalAlignment="Right" VerticalAlignment="Center" /></Border>
+            </Grid>
+          </Border>
+          <ItemsControl ItemsSource="{Binding IncomeRows}" Margin="0,0,0,8">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:IncomeMonthRow">
+                <Border Classes="taskrow" Padding="0" MinHeight="38">
+                  <Grid ColumnDefinitions="130,*,*,1.2*">
+                    <TextBlock Grid.Column="0" Text="{Binding Title}" FontWeight="{Binding IsCurrent, Converter={x:Static vm:MoneyViewModel.BoldIf}}"
+                               Classes.muted="{Binding IsFuture}" Margin="20,0,12,0" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Classes="colline">
+                      <Panel>
+                        <TextBlock Classes="amount" Text="{Binding Expected}" IsVisible="{Binding IsAuto}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding ManualText}" IsVisible="{Binding IsManual}" PlaceholderText="Amount"
+                                 HorizontalAlignment="Right" Width="120" TextAlignment="Right" Padding="8,2" MinHeight="26" VerticalAlignment="Center" />
+                      </Panel>
+                    </Border>
+                    <Border Grid.Column="2" Classes="colline">
+                      <TextBlock Classes="amount" Text="{Binding CameIn}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="3" Classes="colline">
+                      <TextBlock Classes="muted" Classes.short="{Binding IsShort}" FontSize="{DynamicResource Text12}" Text="{Binding Gap}"
+                                 HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </Border>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Column="2" Classes="card" Padding="0" VerticalAlignment="Top">
+        <StackPanel>
+          <StackPanel Margin="20,16,20,10" Spacing="4">
+            <TextBlock Classes="h2" Text="{Binding ExpectedTitle}" />
+            <TextBlock Classes="muted" Text="{Binding ExpectedNote}" TextWrapping="Wrap" />
+          </StackPanel>
+          <ItemsControl ItemsSource="{Binding ExpectedItems}" Margin="0,0,0,8" IsVisible="{Binding HasExpectedItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ExpectedItemRow">
+                <Border Classes="taskrow">
+                  <Grid ColumnDefinitions="56,*,Auto">
+                    <TextBlock Grid.Column="0" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding What}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </Grid>
+
     </StackPanel>
   </StackPanel>
 </UserControl>

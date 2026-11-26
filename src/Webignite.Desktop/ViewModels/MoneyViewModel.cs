@@ -72,7 +72,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
     public string Blurb => IsExpected ? "What you think is coming, typed by hand. Only on this PC."
         : IsReports
         ? "Worked out from what you enter under Month."
-        : "What came in and what went out, kept on this PC, and the bills you owe, read from Xero.";
+        : "Money in and out this month, and the bills you owe.";
 
     partial void OnIsReportsChanged(bool value)
     {

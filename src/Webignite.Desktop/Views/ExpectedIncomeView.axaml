@@ -9,21 +9,21 @@
     <UniformGrid Columns="3">
       <Border Classes="card" Margin="0,0,12,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="LIKELY" />
+          <TextBlock Classes="label" Text="Likely" />
           <TextBlock Classes="figure" Text="{Binding Likely}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Each line counted by how sure it is." TextWrapping="Wrap" />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="6,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="IF ALL OF IT COMES IN" />
+          <TextBlock Classes="label" Text="If all of it comes in" />
           <TextBlock Classes="figure" Text="{Binding Possible}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding CountLine}" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
       <Border Classes="card" Margin="12,0,0,0">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="TICKED OFF THIS YEAR" />
+          <TextBlock Classes="label" Text="Ticked off this year" />
           <TextBlock Classes="figure" Text="{Binding CameIn}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="Lines you marked as come in." TextWrapping="Wrap" />
         </StackPanel>
