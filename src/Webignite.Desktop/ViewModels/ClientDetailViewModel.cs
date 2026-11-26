@@ -24,6 +24,7 @@ public partial class ClientDetailViewModel : ViewModelBase
         this.isNew = isNew;
         this.services = services;
         this.close = close;
+        EditingDetails = isNew;
         ShowDetails(client);
         Refresh();
     }
@@ -42,6 +43,36 @@ public partial class ClientDetailViewModel : ViewModelBase
         Address = shown.Address ?? "";
         Notes = shown.Notes ?? "";
         HourlyRate = shown.HourlyRate is { } rate ? rate.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "";
+        OnPropertyChanged(nameof(Facts));
+        OnPropertyChanged(nameof(HasFacts));
+        OnPropertyChanged(nameof(ShownNotes));
+        OnPropertyChanged(nameof(HasShownNotes));
+    }
+
+    /// <summary>
+    /// The details as a short read-only list, the way a saved client is shown, so the page leads with them and their
+    /// work rather than a form. Edit opens the form; a new client starts in it.
+    /// </summary>
+    [ObservableProperty] public partial bool EditingDetails { get; set; }
+
+    public IReadOnlyList<ClientFact> Facts => ClientFacts.Of(client);
+    public bool HasFacts => Facts.Count > 0;
+    public string ShownNotes => client.Notes?.Trim() ?? "";
+    public bool HasShownNotes => ShownNotes.Length > 0;
+
+    [RelayCommand]
+    private void EditDetails() => EditingDetails = true;
+
+    /// <summary>Puts the details back as stored and closes the form.</summary>
+    [RelayCommand]
+    private void CancelEdit()
+    {
+        if (isNew)
+            return;
+        Problems.Clear();
+        OnPropertyChanged(nameof(HasProblems));
+        ShowDetails(services.Clients.Get(client.Id) ?? client);
+        EditingDetails = false;
     }
 
     /// <summary>The client's hourly rate as typed, e.g. "650". Blank means none.</summary>
@@ -149,7 +180,11 @@ public partial class ClientDetailViewModel : ViewModelBase
     private static string? Blank(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     [RelayCommand]
-    private void Save() => TrySave();
+    private void Save()
+    {
+        if (TrySave())
+            EditingDetails = false;
+    }
 
     private bool TrySave()
     {

@@ -4,8 +4,8 @@ using Webignite.Desktop.ViewModels;
 namespace Webignite.Desktop.Tests;
 
 /// <summary>
-/// Billing is one entry on the menus. Quotes, Invoices, Money and Recurring are its tabs: each still a page of its
-/// own, reached by the tabs across the top of them and by every jump that went to them before.
+/// Clients and billing is one entry on the menus. Clients, Quotes, Invoices, Money and Recurring are its tabs: each
+/// still a page of its own, reached by the tabs across the top of them and by every jump that went to them before.
 /// </summary>
 public sealed class BillingTests
 {
@@ -18,21 +18,22 @@ public sealed class BillingTests
     private static Module Billing(MainViewModel main) => main.Modules.Single(m => m.Key == Page.Billing);
 
     [Fact]
-    public Task Billing_is_one_entry_and_its_four_pages_are_not_on_the_menus() => Ui.Run(() =>
+    public Task Billing_is_one_entry_and_its_five_pages_are_not_on_the_menus() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var main = Open(app);
 
         var onMenus = main.Sidebar.OnMenus().OfType<Module>().Select(m => m.Key).ToList();
         Assert.Contains(Page.Billing, onMenus);
-        Assert.DoesNotContain(onMenus, page => page is Page.Quotes or Page.Invoices or Page.Money or Page.Retainers);
+        Assert.DoesNotContain(onMenus, page => page is Page.Clients or Page.Quotes or Page.Invoices or Page.Money or Page.Retainers);
+        Assert.Equal("Clients and billing", main.Modules.Single(m => m.Key == Page.Billing).Title);
         // Nor among what can be put there.
-        foreach (var page in new[] { Page.Quotes, Page.Invoices, Page.Money, Page.Retainers })
+        foreach (var page in new[] { Page.Clients, Page.Quotes, Page.Invoices, Page.Money, Page.Retainers })
             Assert.False(main.Sidebar.CanTakeOff(main[page]));
     });
 
     [Fact]
-    public Task Opening_Billing_opens_Invoices_with_the_four_tabs_above_it() => Ui.Run(() =>
+    public Task Opening_Billing_opens_Clients_with_the_five_tabs_above_it() => Ui.Run(() =>
     {
         using var app = new TestApp();
         var main = Open(app);
@@ -40,10 +41,10 @@ public sealed class BillingTests
 
         main.SelectedNav = Billing(main);
 
-        Assert.Equal(Page.Invoices, main.Selected.Key);
+        Assert.Equal(Page.Clients, main.Selected.Key);
         Assert.True(main.ShowBillingTabs);
-        Assert.Equal(["Quotes", "Invoices", "Money", "Recurring"], main.BillingTabs.Select(t => t.Title));
-        Assert.Equal("Invoices", main.BillingTabs.Single(t => t.IsOn).Title);
+        Assert.Equal(["Clients", "Quotes", "Invoices", "Money", "Recurring"], main.BillingTabs.Select(t => t.Title));
+        Assert.Equal("Clients", main.BillingTabs.Single(t => t.IsOn).Title);
         // The sidebar lights Billing, and the Business tab is lit across the top.
         Assert.Same(Billing(main), main.SelectedNav);
         Assert.Equal(AppArea.Business, main.AreaTabs.Single(t => t.IsOn).Area);
@@ -62,7 +63,7 @@ public sealed class BillingTests
         Assert.Equal("Money", main.BillingTabs.Single(t => t.IsOn).Title);
         Assert.Same(Billing(main), main.SelectedNav);
 
-        main.Selected = main[Page.Clients];
+        main.Selected = main[Page.Contacts];
         Assert.False(main.ShowBillingTabs);
         Assert.DoesNotContain(main.BillingTabs, t => t.IsOn);
 
@@ -84,10 +85,13 @@ public sealed class BillingTests
         app.Services.Go.To(Page.Retainers);
         Assert.Equal("Recurring", main.BillingTabs.Single(t => t.IsOn).Title);
 
-        // And a jump to Billing itself opens the tab used last.
         app.Services.Go.To(Page.Clients);
+        Assert.Equal("Clients", main.BillingTabs.Single(t => t.IsOn).Title);
+
+        // And a jump to Billing itself opens the tab used last.
+        app.Services.Go.To(Page.Contacts);
         app.Services.Go.To(Page.Billing);
-        Assert.Equal(Page.Retainers, main.Selected.Key);
+        Assert.Equal(Page.Clients, main.Selected.Key);
     });
 
     [Fact]
@@ -98,8 +102,10 @@ public sealed class BillingTests
         app.Services.Settings.Appearance = app.Services.Settings.Appearance with { Menu = MenuKind.Dock, Dock = ["Overview", "Invoices", "Quotes", "Clients", "Money"] };
         var main = new MainViewModel(app.Services);
 
-        Assert.Equal(["Overview", "Billing", "Clients"], main.MenuPart.Dock.Select(e => e.PageKey));
+        Assert.Equal(["Overview", "Billing"], main.MenuPart.Dock.Select(e => e.PageKey));
         main.Selected = main[Page.Quotes];
+        Assert.Equal("Billing", main.MenuPart.Dock.Single(e => e.IsCurrent).PageKey);
+        main.Selected = main[Page.Clients];
         Assert.Equal("Billing", main.MenuPart.Dock.Single(e => e.IsCurrent).PageKey);
     });
 }

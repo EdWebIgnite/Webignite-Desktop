@@ -269,11 +269,12 @@ public partial class MainViewModel : ViewModelBase
             new NavGroup("my-pages", "MY PAGES") { Icon = "Panels" },
             new Module(Page.MyPages, "All my pages", () => new MyPagesViewModel(services), "Tiles"),
             new NavGroup("client-work", "CLIENT WORK") { Icon = "Clients" },
-            new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true),
             new Module(Page.Contacts, "Contacts", () => new ContactsViewModel(services), "Contacts", fullBleed: true),
-            // Billing is one entry: quotes, invoices, money and what recurs are its tabs. It has no page of its own;
-            // opening it opens the tab used last. The four pages are as they were, only not on the menus themselves.
-            new Module(Page.Billing, "Billing", () => new TabsOnlyViewModel(), "Invoices") { Tabs = BillingTabPages },
+            // Clients and billing is one entry: clients, quotes, invoices, money and what recurs are its tabs, so a
+            // client and what they're billed are never in different places. It has no page of its own; opening it
+            // opens the tab used last. The five pages are as they were, only not on the menus themselves.
+            new Module(Page.Billing, "Clients and billing", () => new TabsOnlyViewModel(), "Clients") { Tabs = BillingTabPages },
+            new Module(Page.Clients, "Clients", () => new ClientsViewModel(services), "Clients", fullBleed: true) { Under = Page.Billing },
             new Module(Page.Quotes, "Quotes", () => new DocumentsViewModel(DocumentKind.Quote, services), "Quotes") { Under = Page.Billing },
             new Module(Page.Invoices, "Invoices", () => new DocumentsViewModel(DocumentKind.Invoice, services), "Invoices") { Under = Page.Billing },
             new Module(Page.Money, "Money", () => new MoneyViewModel(services), "Money") { Under = Page.Billing },
@@ -902,7 +903,7 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// The tabs across the top of Billing's pages: Quotes, Invoices, Money and Recurring, the one on screen lit, with
+    /// The tabs across the top of Billing's pages: Clients, Quotes, Invoices, Money and Recurring, the one on screen lit, with
     /// how many wait to be approved after Quotes and Invoices.
     /// </summary>
     public IReadOnlyList<PageTab> BillingTabs { get; private set; } = [];
@@ -910,10 +911,10 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>One of Billing's pages is on screen, so its tabs show above it.</summary>
     public bool ShowBillingTabs => Selected?.Under == Page.Billing;
 
-    private static readonly Page[] BillingTabPages = [Page.Quotes, Page.Invoices, Page.Money, Page.Retainers];
+    private static readonly Page[] BillingTabPages = [Page.Clients, Page.Quotes, Page.Invoices, Page.Money, Page.Retainers];
 
-    // The tab each several-pages-in-one entry was last on, so opening the entry goes back there. Invoices to begin with.
-    private readonly Dictionary<Page, Page> lastTab = new() { [Page.Billing] = Page.Invoices };
+    // The tab each several-pages-in-one entry was last on, so opening the entry goes back there. Clients to begin with.
+    private readonly Dictionary<Page, Page> lastTab = new() { [Page.Billing] = Page.Clients };
 
     /// <summary>The entry on the menus that stands for a page: the page itself, or the entry it is a tab of (Billing, for Invoices).</summary>
     public Module OnMenusFor(Module module) => module.Under is { } lead ? Modules.First(m => m.Key == lead) : module;

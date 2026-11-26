@@ -150,18 +150,18 @@ public static class DockPages
     public const int Most = 12;
 
     /// <summary>What the dock holds until the person changes it.</summary>
-    public static readonly IReadOnlyList<string> Usual = ["Overview", "Mail", "Home", "Clients", "Billing", "Files", "Notes"];
+    public static readonly IReadOnlyList<string> Usual = ["Overview", "Mail", "Home", "Billing", "Files", "Notes"];
 
     /// <summary>The dock as saved, without pages the app no longer has, or the usual ones when nothing is saved.</summary>
     public static IReadOnlyList<string> Shown(IReadOnlyList<string>? saved, IReadOnlyCollection<string> known) =>
         [.. Moved(saved ?? Usual).Where(known.Contains).Distinct().Take(Most)];
 
     /// <summary>
-    /// A dock saved before quotes, invoices, money and what recurs became tabs of one Billing entry: Billing stands
-    /// where the first of them stood, once.
+    /// A dock saved before clients, quotes, invoices, money and what recurs became tabs of one entry (Clients and
+    /// billing, kept as "Billing"): it stands where the first of them stood, once.
     /// </summary>
     public static IReadOnlyList<string> Moved(IReadOnlyList<string> dock) =>
-        [.. dock.Select(page => page is "Quotes" or "Invoices" or "Money" or "Retainers" ? "Billing" : page).Distinct()];
+        [.. dock.Select(page => page is "Clients" or "Quotes" or "Invoices" or "Money" or "Retainers" ? "Billing" : page).Distinct()];
 
     public static bool CanAdd(IReadOnlyList<string> dock, string page) => !dock.Contains(page) && dock.Count < Most;
 
