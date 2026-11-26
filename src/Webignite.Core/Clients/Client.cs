@@ -73,6 +73,9 @@ public sealed record Client
     /// </summary>
     public ClientCheck? Check { get; init; }
 
+    /// <summary>Changes to the details Claude or ChatGPT suggested, waiting for Eddie to accept them (<see cref="ClientSuggestions"/>).</summary>
+    public ClientSuggestion? Suggested { get; init; }
+
     public static string NewId() => Guid.CreateVersion7().ToString("N");
 }
 

@@ -364,6 +364,7 @@ public partial class ClientDetailViewModel : ViewModelBase
             ShowDetails(fresh);
         OnPropertyChanged(nameof(CheckText));
         OnPropertyChanged(nameof(HasCheck));
+        LoadSuggestions();
         LoadOnboarding();
         LoadRecords();
         LoadProjects();

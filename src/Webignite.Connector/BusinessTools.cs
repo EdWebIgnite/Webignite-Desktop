@@ -33,7 +33,8 @@ public sealed class BusinessTools(AssistantBusiness business)
     public string GetClient([Description(ClientHint)] string client) => Run(() => business.GetClient(client));
 
     [McpServerTool(Name = "add_client", Title = "Add a client", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Adds a client. If one with the same name is already there, that one comes back instead.")]
+    [Description("Adds a client by name. The other details you give wait on the client's page as suggestions until Eddie accepts them, "
+        + "so tell him to check them. If one with the same name is already there, that one comes back instead, with the details waiting on it the same way.")]
     public string AddClient(
         [Description("The business's name.")] string name,
         [Description("Who to deal with there.")] string? contact_person = null,
@@ -44,10 +45,11 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("Anything worth knowing about them.")] string? notes = null,
         [Description("Eddie's hourly rate for them, in Rand.")] decimal? hourly_rate = null,
         McpServer? server = null) =>
-        Write(server, $"Added the client {name}", () => business.AddClient(name, contact_person, email, phone, website, address, notes, hourly_rate));
+        Write(server, $"Added the client {name}, details to check", () => business.AddClient(name, contact_person, email, phone, website, address, notes, hourly_rate));
 
-    [McpServerTool(Name = "update_client", Title = "Change a client", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = false)]
-    [Description("Changes a client's details. " + Changes + " An empty value clears that detail.")]
+    [McpServerTool(Name = "update_client", Title = "Suggest changes to a client", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Suggests changes to a client's details. Nothing changes until Eddie accepts them on the client's page; "
+        + "what's still waiting comes back as waiting_for_eddie. Only what you give is suggested. An empty value suggests clearing that detail.")]
     public string UpdateClient(
         [Description(ClientHint)] string client,
         [Description("A new name.")] string? name = null,
@@ -59,7 +61,7 @@ public sealed class BusinessTools(AssistantBusiness business)
         [Description("Notes about them, in place of the old ones.")] string? notes = null,
         [Description("Eddie's hourly rate for them, in Rand.")] decimal? hourly_rate = null,
         McpServer? server = null) =>
-        Write(server, $"Changed the client {client}", () => business.UpdateClient(client, name, contact_person, email, phone, website, address, notes, hourly_rate));
+        Write(server, $"Suggested changes to the client {client}", () => business.UpdateClient(client, name, contact_person, email, phone, website, address, notes, hourly_rate));
 
     [McpServerTool(Name = "add_client_note", Title = "Add to a client's history", ReadOnly = false, Destructive = false, OpenWorld = false)]
     [Description("Adds a dated note to a client's history, e.g. what was agreed on a call. Signed as from you.")]

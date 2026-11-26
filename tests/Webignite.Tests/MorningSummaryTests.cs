@@ -125,6 +125,22 @@ public sealed class MorningSummaryTests
         Assert.Empty(MorningSummary.Build(new SummaryInput { Today = Today }));
     }
 
+    [Fact]
+    public void Client_details_an_assistant_suggested_wait_in_needs_you_until_dealt_with()
+    {
+        var suggested = new Webignite.Core.Clients.Client
+        {
+            Id = "k", Name = "Karoo Coffee Roasters",
+            Suggested = new Webignite.Core.Clients.ClientSuggestion { Who = "ChatGPT", Phone = "082 555 0100" },
+        };
+        var line = Assert.Single(MorningSummary.Build(new SummaryInput { Today = Today, Clients = [suggested] }));
+        Assert.Equal("ChatGPT suggested changes to the details of Karoo Coffee Roasters. Accept or turn them down on their page.", line.Text);
+        Assert.Equal(SummaryTarget.Clients, line.Target);
+        Assert.Same(suggested, line.Client);
+        // A suggestion that changes nothing says nothing.
+        Assert.Empty(MorningSummary.Build(new SummaryInput { Today = Today, Clients = [suggested with { Phone = "082 555 0100" }] }));
+    }
+
     [Theory]
     [InlineData(0, "today")]
     [InlineData(1, "yesterday")]
