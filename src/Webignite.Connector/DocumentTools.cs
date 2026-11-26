@@ -47,6 +47,7 @@ public sealed class DocumentTools(AssistantDocuments documents)
         [Description("The lines. Each has a short item name (Xero's Item column, e.g. WordPress setup), a description of what's included, and for priced lines a quantity and unit_price in Rand. A line with no price is a heading or note.")] DraftLineInput[] lines,
         [Description("The customer's email address, if known. Leave out to use the one saved on the client in Webignite.")] string? customer_email = null,
         [Description("Reference shown on the document, e.g. Website November.")] string? reference = null,
+        [Description("The project it's for, e.g. the end client's site on white-label work. Printed on the document.")] string? project = null,
         [Description("Notes for the client printed on the document.")] string? notes = null,
         [Description("A discount on the whole document as a percentage, e.g. 10. Shown as a discount line before the total. Leave out for none.")] decimal? discount_percent = null,
         [Description("A discount on the whole document in Rand, e.g. 1000, instead of a percentage. Leave out for none.")] decimal? discount_amount = null,
@@ -56,7 +57,7 @@ public sealed class DocumentTools(AssistantDocuments documents)
         {
             return Json(documents.Draft(kind, customer,
                 lines.Select(l => new AssistantDocuments.DraftLine(l.Description, l.Quantity, l.UnitPrice, l.Item)).ToList(),
-                Source(server), customer_email, reference, notes, discount_percent, discount_amount));
+                Source(server), customer_email, reference, notes, discount_percent, discount_amount, project));
         }
         catch (ArgumentException e)
         {
@@ -65,7 +66,7 @@ public sealed class DocumentTools(AssistantDocuments documents)
     }
 
     [McpServerTool(Name = "change_document", Title = "Change a quote or invoice", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Changes a quote or invoice in place (can_change is true in list_documents): its lines, reference, notes or discount. "
+    [Description("Changes a quote or invoice in place (can_change is true in list_documents): its lines, reference, project, notes or discount. "
         + "Use this when Eddie wants one adjusted, in place of preparing another. Leave out whatever should stay as it is. "
         + "When lines are given they replace all the lines, so send every line the document should end up with: read them from "
         + "list_documents first and change only what Eddie asked for. The customer can't be changed here. "
@@ -76,6 +77,7 @@ public sealed class DocumentTools(AssistantDocuments documents)
         [Description("The document's id, from list_documents or prepare_document.")] string id,
         [Description("Every line the document should have, replacing the ones it has. Leave out to keep the lines as they are.")] DraftLineInput[]? lines = null,
         [Description("The new reference. Leave out to keep it; an empty string clears it.")] string? reference = null,
+        [Description("The project it's for. Leave out to keep it; an empty string clears it.")] string? project = null,
         [Description("The new notes for the client. Leave out to keep them; an empty string clears them.")] string? notes = null,
         [Description("A discount on the whole document as a percentage, e.g. 10; 0 takes the discount off. Leave out to keep it as it is.")] decimal? discount_percent = null,
         [Description("A discount on the whole document in Rand, instead of a percentage; 0 takes the discount off. Leave out to keep it as it is.")] decimal? discount_amount = null,
@@ -85,7 +87,7 @@ public sealed class DocumentTools(AssistantDocuments documents)
         {
             return Json(documents.Change(id, Source(server),
                 lines?.Select(l => new AssistantDocuments.DraftLine(l.Description, l.Quantity, l.UnitPrice, l.Item)).ToList(),
-                reference, notes, discount_percent, discount_amount));
+                reference, notes, discount_percent, discount_amount, project));
         }
         catch (ArgumentException e)
         {

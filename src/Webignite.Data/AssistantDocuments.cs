@@ -21,10 +21,11 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
 
     /// <param name="CanChange">Whether change_document may change it: while it has not reached Xero, or is a draft there nobody has approved or emailed.</param>
     public sealed record Listed(string Id, string Kind, string? Number, string Customer, string? Reference, string Date, string Total,
-        string Status, IReadOnlyList<string> Lines, bool CanChange = false, string? Notes = null, string? Discount = null);
+        string Status, IReadOnlyList<string> Lines, bool CanChange = false, string? Notes = null, string? Discount = null, string? Project = null);
 
     public Prepared Draft(string kind, string customer, IReadOnlyList<DraftLine> lines, DocumentSource source,
-        string? customerEmail = null, string? reference = null, string? notes = null, decimal? discountPercent = null, decimal? discountAmount = null)
+        string? customerEmail = null, string? reference = null, string? notes = null, decimal? discountPercent = null, decimal? discountAmount = null,
+        string? project = null)
     {
         if (discountPercent is not null && discountAmount is not null)
             throw new ArgumentException("Give the discount as a percentage or an amount, not both.");
@@ -63,6 +64,8 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             DocumentDiscountAmount = discountAmount is { } off ? Money.Cents(off) : null,
             Lines = Lines(lines),
         }, settings, DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
+        if (!string.IsNullOrWhiteSpace(project))
+            document = DocumentFields.With(document, DocumentFields.Project, project);
 
         var stored = store.Save(new StoredDocument
         {
@@ -85,7 +88,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
     /// as changed. A draft in Xero keeps Xero's copy until Eddie clicks Update draft in Xero; nothing goes to Xero here.
     /// </summary>
     public Prepared Change(string id, DocumentSource source, IReadOnlyList<DraftLine>? lines = null, string? reference = null, string? notes = null,
-        decimal? discountPercent = null, decimal? discountAmount = null)
+        decimal? discountPercent = null, decimal? discountAmount = null, string? project = null)
     {
         if (discountPercent is not null && discountAmount is not null)
             throw new ArgumentException("Give the discount as a percentage or an amount, not both.");
@@ -95,8 +98,8 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             throw new ArgumentException("Give every line the document should have, at least one with a description. Leave lines out to keep them as they are.");
         if (lines?.Any(l => l.UnitPrice is < 0 || l.Quantity is < 0) == true)
             throw new ArgumentException("Quantities and prices can't be negative. Use a separate credit note in Xero for refunds.");
-        if (lines is null && reference is null && notes is null && discountPercent is null && discountAmount is null)
-            throw new ArgumentException("Say what to change: lines, reference, notes or a discount.");
+        if (lines is null && reference is null && notes is null && discountPercent is null && discountAmount is null && project is null)
+            throw new ArgumentException("Say what to change: lines, reference, project, notes or a discount.");
         if (store.Get((id ?? "").Trim()) is not { } found)
             throw new ArgumentException("No quote or invoice has that id. Use list_documents to find it.");
         if (!Approvals.AssistantMayChange(found))
@@ -125,6 +128,8 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
                 document = document with { Reference = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim() };
             if (notes is not null)
                 document = document with { Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim() };
+            if (project is not null)
+                document = DocumentFields.With(document, DocumentFields.Project, project);
             if (discountPercent is not null || discountAmount is not null)
                 document = document with
                 {
@@ -187,7 +192,8 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
                 s.Document.Lines.Select(l => (string.IsNullOrWhiteSpace(l.Product) ? "" : l.Product + ": ")
                     + (l.IsPriced ? $"{l.Description}: {l.Quantity:0.##} x {Money.Rand(l.UnitPrice ?? 0)}" : l.Description)).ToList(),
                 Approvals.AssistantMayChange(s), s.Document.Notes,
-                s.Document.DocumentDiscountPercent is { } percent ? $"{percent:0.##}%" : s.Document.DocumentDiscountAmount is { } amount ? Money.Rand(amount) : null))
+                s.Document.DocumentDiscountPercent is { } percent ? $"{percent:0.##}%" : s.Document.DocumentDiscountAmount is { } amount ? Money.Rand(amount) : null,
+                DocumentFields.Value(s.Document, DocumentFields.Project) is { Length: > 0 } project ? project : null))
             .ToList();
     }
 

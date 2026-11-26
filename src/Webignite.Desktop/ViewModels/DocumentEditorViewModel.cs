@@ -25,6 +25,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         this.services = services;
         this.close = close;
         documentSettings = services.Settings.Documents;
+        LoadFields(new Document { Kind = kind, Origin = DocumentOrigin.New, Customer = new Customer { Name = "" }, Lines = [] });
         Lines.Add(NewRow());
         Recalculate();
         changed = false;
@@ -46,6 +47,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         Notes = doc.Notes ?? "";
         NumberText = doc.Number ?? "";
         DiscountText = DocumentDiscount.Show(doc);
+        LoadFields(doc);
         Lines.Clear();
         foreach (var line in doc.Lines)
             Lines.Add(LineRowViewModel.From(line, Recalculate));
@@ -127,7 +129,11 @@ public partial class DocumentEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial string SaveState { get; set; } = "";
 
-    partial void OnCustomerNameChanged(string value) => Recalculate();
+    partial void OnCustomerNameChanged(string value)
+    {
+        OfferProjects();
+        Recalculate();
+    }
 
     partial void OnReferenceChanged(string value) => Recalculate();
 
@@ -303,6 +309,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
             Date = stored?.Document.Date,
             DueOrExpiryDate = stored?.Document.DueOrExpiryDate,
             Lines = Lines.Select(row => row.ToLine()).OfType<Line>().ToList(),
+            Fields = TypedFields(),
         }, documentSettings, DateOnly.FromDateTime(DateTime.Today));
     }
 

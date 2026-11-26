@@ -275,6 +275,7 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         var documents = services.Settings.Documents;
         InvoiceDueDays = documents.InvoiceDueDays.ToString();
         QuoteExpiryDays = documents.QuoteExpiryDays.ToString();
+        LoadFields();
         ClientId = services.Settings.Xero.ClientId ?? "";
         UpdateXeroStatus();
         LoadTemplates(services.Settings.EmailTemplates);

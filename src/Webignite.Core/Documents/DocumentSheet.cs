@@ -38,7 +38,8 @@ public static class DocumentSheets
 {
     /// <summary>
     /// The sheet for a stored quote or invoice. A client known by a company is addressed as the company, attention
-    /// the person; otherwise as the customer on the document.
+    /// the person; otherwise as the customer on the document. Fields of Eddie's own (Project) print after the
+    /// reference, unless set up as for us only.
     /// </summary>
     public static DocumentSheet Build(StoredDocument stored, MailBrand brand, Client? client)
     {
@@ -56,6 +57,8 @@ public static class DocumentSheets
             facts.Add(new(quote ? "Valid until" : "Due", Day(until)));
         if (!string.IsNullOrWhiteSpace(doc.Reference))
             facts.Add(new("Reference", doc.Reference.Trim()));
+        foreach (var field in DocumentFields.Printed(doc))
+            facts.Add(new(field.Name, field.Value));
 
         var totals = new List<SheetTotal>();
         var discount = doc.Discount();

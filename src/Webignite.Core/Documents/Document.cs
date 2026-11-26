@@ -30,6 +30,9 @@ public sealed record Document
     public decimal? AmountPaid { get; init; }
     public decimal? BalanceDue { get; init; }
 
+    /// <summary>Fields of Eddie's own, e.g. Project for white-label work (<see cref="DocumentFields"/>).</summary>
+    public IReadOnlyList<DocumentField> Fields { get; init; } = [];
+
     public decimal LinesTotal() => Lines.Sum(line => line.Amount());
 
     public decimal Discount()
