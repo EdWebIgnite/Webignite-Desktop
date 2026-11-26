@@ -19,7 +19,7 @@ public sealed class AreaTabsTests
         var main = new MainViewModel(app.Services);
 
         Assert.Equal(["Mail", "Business", "Planner", "Computer", "Tools"], main.AreaTabs.Select(t => t.Title));
-        Assert.Equal([Page.Overview, Page.Mail, Page.Clients, Page.Billing, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
+        Assert.Equal([Page.Overview, Page.Mail, Page.Billing, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
         Assert.Contains(main.Sidebar.OnMenus(), item => item is SectionLink);
         Assert.Empty(main.Sidebar.OnMenus().OfType<ToolLink>());
     });
@@ -124,7 +124,7 @@ public sealed class AreaTabsTests
         var main = new MainViewModel(app.Services);
 
         Assert.Equal(DockPages.Usual, main.MenuPart.Dock.Select(e => e.PageKey));
-        Assert.Equal([Page.Overview, Page.Mail, Page.Clients, Page.Billing, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
+        Assert.Equal([Page.Overview, Page.Mail, Page.Billing, Page.Files, Page.Notes, Page.Settings], OnSidebar(main));
     });
 
     [Fact]
@@ -139,7 +139,7 @@ public sealed class AreaTabsTests
         Assert.DoesNotContain(Page.Contacts, OnSidebar(main));
 
         main.Selected = main[Page.Business];
-        Assert.Equal("4 of these are pinned to the menu.", ((AreaViewModel)main.Current.Page).Summary);
+        Assert.Equal("3 of these are pinned to the menu.", ((AreaViewModel)main.Current.Page).Summary);
     });
 
     [Fact]

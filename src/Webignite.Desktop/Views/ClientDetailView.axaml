@@ -52,7 +52,39 @@
             <TextBlock Text="{Binding CheckText}" TextWrapping="Wrap" VerticalAlignment="Center" />
           </DockPanel>
         </Border>
-        <Border Classes="card" VerticalAlignment="Top">
+        <!-- A saved client's details to read; Edit opens the form below. -->
+        <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding !EditingDetails}">
+          <StackPanel Spacing="12">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="quiet" Content="Edit" Command="{Binding EditDetailsCommand}" VerticalAlignment="Center"
+                      ToolTip.Tip="Change their name, contact details, rate or notes" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <c:Icon Classes="cardicon" Data="{StaticResource Icon.Clients}" />
+                <TextBlock Classes="h2" Text="Details" VerticalAlignment="Center" />
+              </StackPanel>
+            </DockPanel>
+            <TextBlock Classes="muted" Text="Only a name so far. Edit to add how to reach them." TextWrapping="Wrap" IsVisible="{Binding !HasFacts}" />
+            <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="cc:ClientFact">
+                  <Grid ColumnDefinitions="130,*" Margin="0,3">
+                    <TextBlock Classes="label" Text="{Binding Label}" VerticalAlignment="Top" Margin="0,1,8,0" />
+                    <SelectableTextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Spacing="4" IsVisible="{Binding HasShownNotes}">
+              <TextBlock Classes="label" Text="Notes" />
+              <SelectableTextBlock Text="{Binding ShownNotes}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <c:SavedNote Stamp="{Binding SavedStamp}" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding SaveState}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding EditingDetails}">
           <StackPanel Spacing="12">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <c:Icon Classes="cardicon" Data="{StaticResource Icon.Clients}" />
@@ -122,6 +154,7 @@
               </StackPanel>
               <StackPanel Orientation="Horizontal" Spacing="12">
                 <Button Classes="quiet" Content="Save" Command="{Binding SaveCommand}" />
+                <Button Classes="link" Content="Cancel" Command="{Binding CancelEditCommand}" IsVisible="{Binding IsSaved}" VerticalAlignment="Center" />
                 <c:SavedNote Stamp="{Binding SavedStamp}" />
                 <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding SaveState}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
               </StackPanel>

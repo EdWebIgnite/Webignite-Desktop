@@ -252,7 +252,7 @@ Save("overview-start");
     Check("The sidebar starts as a shortlist: the few everyday pages, no small tools",
         !vm.Sidebar.OnMenus().OfType<ToolLink>().Any()
         && vm.Sidebar.OnMenus().OfType<Module>().Where(m => !m.InPlanner).Select(m => m.Key).Order().SequenceEqual(
-            new[] { Page.Overview, Page.Mail, Page.Clients, Page.Billing, Page.Files, Page.Notes, Page.Settings }.Order()));
+            new[] { Page.Overview, Page.Mail, Page.Billing, Page.Files, Page.Notes, Page.Settings }.Order()));
     Check("Five tabs across the top, the one for the page on screen lit",
         vm.AreaTabs.Select(t => t.Title).SequenceEqual(["Mail", "Business", "Planner", "Computer", "Tools"]) && vm.AreaTabs.Single(t => t.IsOn).Area == AppArea.Business);
     Check("The areas' own pages are opened by the tabs only: never on the menus, nor among what can be put there",
@@ -261,36 +261,40 @@ Save("overview-start");
     vm.AreaTabs[1].PickCommand.Execute(null);
     var business = (AreaViewModel)vm[Page.Business].Main.Page;
     Dispatcher.UIThread.RunJobs();
-    Check("Business lists its pages under Day to day, Clients and Billing, the ones on the sidebar shown as pinned",
-        business.Groups.Select(g => g.Heading).SequenceEqual(["Day to day", "Clients", "Billing"])
-        && business.Groups[2].Tiles.Single(t => t.Title == "Billing").IsPinned && !business.Groups[2].Tiles.Single(t => t.Title == "Studio").IsPinned);
+    Check("Business lists its pages under Day to day and Clients, the ones on the sidebar shown as pinned",
+        business.Groups.Select(g => g.Heading).SequenceEqual(["Day to day", "Clients"])
+        && business.Groups[1].Tiles.Single(t => t.Title == "Clients and billing").IsPinned && !business.Groups[1].Tiles.Single(t => t.Title == "Studio").IsPinned);
     Save("area-business");
-    // Billing is one entry: quotes, invoices, money and what recurs are tabs across the top of it.
+    // Clients and billing is one entry: clients, quotes, invoices, money and what recurs are tabs across the top of it.
     {
         var billing = vm.Modules.Single(m => m.Key == Page.Billing);
-        business.Groups[2].Tiles.Single(t => t.Title == "Billing").OpenCommand.Execute(null);
+        business.Groups[1].Tiles.Single(t => t.Title == "Clients and billing").OpenCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
-        Check("Billing opens on Invoices, with Quotes, Invoices, Money and Recurring as tabs above it and the sidebar's Billing lit",
-            vm.Selected.Key == Page.Invoices && vm.ShowBillingTabs && vm.BillingTabs.Select(t => t.Module.Title).SequenceEqual(["Quotes", "Invoices", "Money", "Recurring"])
-            && vm.BillingTabs.Single(t => t.IsOn).Module.Key == Page.Invoices && ReferenceEquals(vm.SelectedNav, billing) && vm.AreaTabs[1].IsOn);
-        Check("The four pages aren't on the menus themselves, and Billing has no page of its own",
+        Check("Clients and billing opens on Clients, with Clients, Quotes, Invoices, Money and Recurring as tabs above it and its sidebar entry lit",
+            vm.Selected.Key == Page.Clients && vm.ShowBillingTabs && vm.BillingTabs.Select(t => t.Module.Title).SequenceEqual(["Clients", "Quotes", "Invoices", "Money", "Recurring"])
+            && vm.BillingTabs.Single(t => t.IsOn).Module.Key == Page.Clients && ReferenceEquals(vm.SelectedNav, billing) && vm.AreaTabs[1].IsOn);
+        Check("The five pages aren't on the menus themselves, and the entry has no page of its own",
             !vm.Sidebar.OnMenus().OfType<Module>().Any(m => m.Under is not null) && !billing.Main.IsBuilt);
+        Save("billing-clients");
+        vm.BillingTabs[2].PickCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
         Save("billing-invoices");
-        vm.BillingTabs[0].PickCommand.Execute(null);
+        vm.BillingTabs[1].PickCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
         Check("A tab opens its page", vm.Selected.Key == Page.Quotes && vm.BillingTabs.Single(t => t.IsOn).Module.Key == Page.Quotes && ReferenceEquals(vm.SelectedNav, billing));
         Save("billing-quotes");
-        vm.BillingTabs[2].PickCommand.Execute(null);
-        Dispatcher.UIThread.RunJobs();
-        Save("billing-money");
         vm.BillingTabs[3].PickCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
+        Save("billing-money");
+        vm.BillingTabs[4].PickCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
         Save("billing-recurring");
-        Open(Page.Clients);
-        Check("Away from Billing its tabs are gone", !vm.ShowBillingTabs);
+        // Overview, not Contacts: opening Contacts this early would make its people before the sample clients exist.
+        Open(Page.Overview);
+        Check("Away from Clients and billing its tabs are gone", !vm.ShowBillingTabs);
         vm.SelectedNav = billing;
-        Check("Billing comes back to the tab used last", vm.Selected.Key == Page.Retainers);
-        vm.BillingTabs[1].PickCommand.Execute(null);
+        Check("Clients and billing comes back to the tab used last", vm.Selected.Key == Page.Retainers);
+        vm.BillingTabs[2].PickCommand.Execute(null);
         Open(Page.Overview);
     }
     vm.AreaTabs[2].PickCommand.Execute(null);
@@ -544,7 +548,7 @@ Check("The folded sidebar shows each group as one icon, not every page",
     vm.Sidebar.IconPages.OfType<NavGroup>().Select(g => g.Key).SequenceEqual(["my-pages", "client-work", "computer", "web-tools"])
     && vm.Sidebar.IconPages.OfType<Module>().Select(m => m.Key).SequenceEqual([Page.Overview, Page.Mail, Page.Settings]));
 var clientWork = vm.Sidebar.IconPages.OfType<NavGroup>().First(g => g.Key == "client-work");
-Check("A group's list has its pages", clientWork.Entries.Select(e => e.Title).SequenceEqual(["Clients", "Contacts", "Billing", "Studio"]));
+Check("A group's list has its pages", clientWork.Entries.Select(e => e.Title).SequenceEqual(["Contacts", "Clients and billing", "Studio"]));
 var groupIcon = window.GetVisualDescendants().OfType<Avalonia.Controls.Panel>()
     .First(p => p.DataContext == clientWork && Avalonia.Controls.Primitives.FlyoutBase.GetAttachedFlyout(p) is not null);
 Avalonia.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(groupIcon);
@@ -935,8 +939,20 @@ Wait(vm.Clients.BringInFromXeroCommand.ExecuteAsync(null), "Bringing clients in 
 Check("Bringing clients in without Xero says to connect it", vm.Clients.XeroMessage == "Connect Xero in Settings first.");
 vm.Clients.XeroMessage = "";
 vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
+Check("A saved client's details show as a short list to read, not a form",
+    !vm.Clients.Detail!.EditingDetails && vm.Clients.Detail.Facts.Any(f => f.Label == "Phone") && vm.Clients.Detail.HasShownNotes);
 Save("client");
 SaveLooks("client");
+{
+    var shown = vm.Clients.Detail!;
+    shown.EditDetailsCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("Edit opens the details form", shown.EditingDetails);
+    Save("client-edit");
+    shown.Phone = "000";
+    shown.CancelEditCommand.Execute(null);
+    Check("Cancel puts the details back and closes the form", !shown.EditingDetails && shown.Phone == "082 555 0142");
+}
 {
     // Claude changes the client's email (a mail could have tricked it): the page asks for a check until It's right.
     var shown = vm.Clients.Detail!;
@@ -3110,8 +3126,8 @@ Save("invoice-sum");
         vm.MenuPart.IsMenuOpen && vm.MenuPart.MenuColumns.Count >= 6 && vm.MenuPart.MenuColumns[0].Title == "Start" && vm.MenuPart.MenuColumns.Any(c => c.Title == "Planner")
         && vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.IsCurrent) == 1);
     Check("The menu says how things stand beside its pages", vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Any(e => e.HasFigure));
-    Check("Recurring, money and clients have their figures too",
-        vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.HasFigure && e.PageKey is "Billing" or "Clients") == 2);
+    Check("Clients and billing has its figure too",
+        vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).Count(e => e.HasFigure && e.PageKey is "Billing") == 1);
     Save("menu-open");
     Check("Settings comes last in the menu", vm.MenuPart.MenuColumns[^1].Entries.Any(e => e.PageKey == "Settings") && !vm.MenuPart.MenuColumns[^1].CanFold);
     {
@@ -3332,7 +3348,7 @@ Save("invoice-sum");
     vm.MenuPart.PickFromMenuCommand.Execute(InMenu(billingEntry));
     Dispatcher.UIThread.RunJobs();
     Check("A click takes an entry off: it moves to Available, and the page on screen stays",
-        vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Billing", "Notes"]) && vm.Selected.Under != Page.Billing && vm.MenuPart.IsMenuOpen && vm.MenuPart.HasMenuTakenOff
+        vm.MenuPart.MenuAvailable.Select(e => e.Title).SequenceEqual(["Clients and billing", "Notes"]) && vm.Selected.Under != Page.Billing && vm.MenuPart.IsMenuOpen && vm.MenuPart.HasMenuTakenOff
         && vm.Sidebar.IsOff(notes) && vm.Sidebar.IsOff(billingEntry));
     var settingsEntry = InMenu(vm[Page.Settings]);
     vm.MenuPart.PickFromMenuCommand.Execute(settingsEntry);
@@ -3344,16 +3360,16 @@ Save("invoice-sum");
         !vm.MenuPart.IsMenuOpen && !vm.MenuPart.IsMenuEditing && vm.Sidebar.Items.Count == before - 2 && !vm.Sidebar.Items.Contains(notes) && !vm.Sidebar.Items.Contains(billingEntry));
     Save("menu-edit-sidebar");
     Check("A page taken off is still there to open, by search or a link", vm.Modules.Contains(billingEntry));
-    services.Settings.Appearance = was with { Menu = MenuKind.Dock, Dock = ["Overview", "Billing", "Clients"] };
+    services.Settings.Appearance = was with { Menu = MenuKind.Dock, Dock = ["Overview", "Billing", "Contacts"] };
     Dispatcher.UIThread.RunJobs();
-    Check("It is off the dock too", vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Clients"]));
+    Check("It is off the dock too", vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Contacts"]));
     vm.MenuPart.ToggleMenuCommand.Execute(null);
-    Check("And off the open menu, which offers to edit", vm.MenuPart.IsMenuOpen && vm.MenuPart.IsMenuBrowsing && vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).All(e => e.Title is not ("Billing" or "Notes")) && vm.MenuPart.MenuAvailable.Count == 0);
+    Check("And off the open menu, which offers to edit", vm.MenuPart.IsMenuOpen && vm.MenuPart.IsMenuBrowsing && vm.MenuPart.MenuColumns.SelectMany(c => c.Entries).All(e => e.Title is not ("Clients and billing" or "Notes")) && vm.MenuPart.MenuAvailable.Count == 0);
     vm.MenuPart.EditMenuCommand.Execute(null);
     vm.MenuPart.PickFromMenuCommand.Execute(InMenu(billingEntry));
     Dispatcher.UIThread.RunJobs();
     Check("Clicking it under Available puts it back where it was, on the dock as well",
-        !vm.Sidebar.IsOff(billingEntry) && vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Billing", "Clients"]) && vm.MenuPart.MenuAvailable.Count == 1);
+        !vm.Sidebar.IsOff(billingEntry) && vm.MenuPart.Dock.Select(e => e.PageKey).SequenceEqual(["Overview", "Billing", "Contacts"]) && vm.MenuPart.MenuAvailable.Count == 1);
     // Dragging Notes out of Available onto Files puts it back just there.
     var files = vm[Page.Files];
     vm.MenuPart.MoveInMenu(InMenu(notes), InMenu(files), below: true);

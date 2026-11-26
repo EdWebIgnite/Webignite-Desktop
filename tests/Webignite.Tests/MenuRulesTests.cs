@@ -8,8 +8,8 @@ public sealed class MenuRulesTests
     [Fact]
     public void The_dock_starts_with_the_usual_pages_and_keeps_only_ones_the_app_has()
     {
-        string[] known = ["Overview", "Mail", "Clients", "Billing", "Files", "Notes"];
-        Assert.Equal(["Overview", "Mail", "Clients", "Billing", "Files", "Notes"], DockPages.Shown(null, known));
+        string[] known = ["Overview", "Mail", "Billing", "Files", "Notes"];
+        Assert.Equal(["Overview", "Mail", "Billing", "Files", "Notes"], DockPages.Shown(null, known));
         Assert.Equal(["Notes", "Mail"], DockPages.Shown(["Notes", "Gone", "Mail", "Notes"], known));
         Assert.Empty(DockPages.Shown([], known));
         Assert.Equal(DockPages.Most, DockPages.Shown([.. Enumerable.Range(1, 30).Select(i => "P" + i)], [.. Enumerable.Range(1, 30).Select(i => "P" + i)]).Count);
@@ -227,11 +227,12 @@ public sealed class MenuRulesTests
         Assert.Equal(shown, MenuKinds.Offered(saved));
 
     [Fact]
-    public void A_dock_saved_with_quotes_invoices_and_money_on_it_has_billing_where_the_first_stood()
+    public void A_dock_saved_with_clients_quotes_invoices_and_money_on_it_has_billing_where_the_first_stood()
     {
-        string[] known = ["Overview", "Mail", "Clients", "Billing", "Files"];
-        Assert.Equal(["Overview", "Billing", "Clients", "Files"], DockPages.Shown(["Overview", "Invoices", "Clients", "Quotes", "Money", "Files", "Retainers"], known));
+        string[] known = ["Overview", "Mail", "Billing", "Files"];
+        Assert.Equal(["Overview", "Billing", "Files"], DockPages.Shown(["Overview", "Invoices", "Clients", "Quotes", "Money", "Files", "Retainers"], known));
         Assert.Equal(["Billing"], DockPages.Moved(["Money"]));
+        Assert.Equal(["Mail", "Billing"], DockPages.Moved(["Mail", "Clients"]));
         Assert.Equal(["Overview", "Mail"], DockPages.Moved(["Overview", "Mail"]));
     }
 

@@ -33,7 +33,6 @@ public static class ToolCatalogue
 {
     private const string Day = "Day to day";
     private const string Clients = "Clients";
-    private const string Billing = "Billing";
     private const string Kept = "Files and notes";
     private const string Small = "Small tools";
     private const string Sites = "Websites";
@@ -46,11 +45,10 @@ public static class ToolCatalogue
         new("Overview", "Overview", AppArea.Business, Day, "What needs you today: money in, what's owed and what's late.", Page: Page.Overview, Starts: true),
         new("Planner", "Planner", AppArea.Planner, "Planner", "Projects, tasks, your calendar, diary and time.", Section: "planner", Starts: true),
         new("All my pages", "Tiles", AppArea.Business, Day, "Pages you put together yourself from widgets.", Page: Page.MyPages),
-        new("Clients", "Clients", AppArea.Business, Clients, "Each client with their quotes, invoices, mail, files and logins.", Page: Page.Clients, Starts: true),
         new("Contacts", "Contacts", AppArea.Business, Clients, "The people you deal with, linked to their clients.", Page: Page.Contacts),
-        new("Billing", "Invoices", AppArea.Business, Billing, "Quotes, invoices, money, retainers, hosting and domains, on tabs.",
+        new("Clients and billing", "Clients", AppArea.Business, Clients, "Clients, their quotes and invoices, money and what recurs, on tabs.",
             Page: Page.Billing, Starts: true),
-        new("Studio", "Studio", AppArea.Business, Billing, "How the work links up, from first quote to paid.", Page: Page.Studio),
+        new("Studio", "Studio", AppArea.Business, Clients, "How the work links up, from first quote to paid.", Page: Page.Studio),
 
         new("Files", "Folder", AppArea.Computer, Kept, "Your folders and client files, with tags and quick look.", Page: Page.Files, Starts: true),
         new("Notes", "Notes", AppArea.Computer, Kept, "Notebooks, checklists and notes about clients and projects.", Page: Page.Notes, Starts: true),
@@ -117,8 +115,8 @@ public static class ToolCatalogue
             return entry.Area;
         return page switch
         {
-            // Billing's tabs: quotes, invoices, money and what recurs.
-            Page.Quotes or Page.Invoices or Page.Money or Page.Retainers => AppArea.Business,
+            // The tabs of Clients and billing: clients, quotes, invoices, money and what recurs.
+            Page.Clients or Page.Quotes or Page.Invoices or Page.Money or Page.Retainers => AppArea.Business,
             Page.Business => AppArea.Business,
             Page.Computer => AppArea.Computer,
             Page.Tools => AppArea.Tools,
