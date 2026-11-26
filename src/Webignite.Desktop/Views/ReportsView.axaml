@@ -15,15 +15,15 @@
           <TextBlock Classes="h2" Text="{Binding TaxYearTitle}" />
           <UniformGrid Columns="3">
             <StackPanel Spacing="4">
-              <TextBlock Classes="label" Text="RECEIVED" />
+              <TextBlock Classes="label" Text="Came in" />
               <TextBlock Classes="figure" Text="{Binding TaxYearReceived}" />
             </StackPanel>
             <StackPanel Spacing="4">
-              <TextBlock Classes="label" Text="EXPENSES" />
+              <TextBlock Classes="label" Text="Went out" />
               <TextBlock Classes="figure" Text="{Binding TaxYearExpenses}" />
             </StackPanel>
             <StackPanel Spacing="4">
-              <TextBlock Classes="label" Text="LEFT OVER" />
+              <TextBlock Classes="label" Text="Left over" />
               <TextBlock Classes="figure" Classes.short="{Binding TaxYearShort}" Text="{Binding TaxYearLeftOver}" />
             </StackPanel>
           </UniformGrid>
