@@ -25,6 +25,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         this.services = services;
         this.close = close;
         documentSettings = services.Settings.Documents;
+        Lines.CollectionChanged += (_, _) => MarkFirstLine();
         LoadFields(new Document { Kind = kind, Origin = DocumentOrigin.New, Customer = new Customer { Name = "" }, Lines = [] });
         Lines.Add(NewRow());
         Recalculate();
@@ -48,6 +49,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
         NumberText = doc.Number ?? "";
         DiscountText = DocumentDiscount.Show(doc);
         LoadFields(doc);
+        ShowDates(doc);
+        dueFollows = false;
         Lines.Clear();
         foreach (var line in doc.Lines)
             Lines.Add(LineRowViewModel.From(line, Recalculate));
@@ -132,6 +135,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     partial void OnCustomerNameChanged(string value)
     {
         OfferProjects();
+        CustomerChanged();
         Recalculate();
     }
 
@@ -218,7 +222,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         stored = latest;
         OnPropertyChanged(nameof(CanDelete));
         changed = false;
-        SaveState = $"Saved on this PC at {stored.Updated.ToLocalTime():HH:mm}";
+        SaveState = $"Saved {stored.Updated.ToLocalTime():HH:mm}";
         SavedStamp++;
         OnPropertyChanged(nameof(Title));
     }
@@ -255,6 +259,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     /// </summary>
     public void Keep()
     {
+        StopSaveTimer();
         if (!deleted && changed && HasContent)
             Save();
     }
@@ -285,6 +290,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     [RelayCommand]
     private void Back()
     {
+        StopSaveTimer();
         if (HasContent && !deleted)
             Save();
         close();
@@ -306,8 +312,8 @@ public partial class DocumentEditorViewModel : ViewModelBase
             Customer = (stored?.Document.Customer ?? new Customer { Name = "" }) with { Name = CustomerName.Trim() },
             Reference = string.IsNullOrWhiteSpace(Reference) ? null : Reference.Trim(),
             Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
-            Date = stored?.Document.Date,
-            DueOrExpiryDate = stored?.Document.DueOrExpiryDate,
+            Date = Day(DateValue) ?? stored?.Document.Date,
+            DueOrExpiryDate = Day(DueValue) ?? stored?.Document.DueOrExpiryDate,
             Lines = Lines.Select(row => row.ToLine()).OfType<Line>().ToList(),
             Fields = TypedFields(),
         }, documentSettings, DateOnly.FromDateTime(DateTime.Today));
@@ -321,13 +327,17 @@ public partial class DocumentEditorViewModel : ViewModelBase
             return;
         changed = true;
         var doc = Build();
+        if (DateValue is null && doc.Date is not null)
+            ShowDates(doc);
         Subtotal = Money.Rand(doc.Subtotal ?? 0);
         DiscountShown = doc.Discount() is > 0 and var off ? "− " + Money.Rand(off) : "";
         DiscountLabel = DocumentDiscount.Label(doc);
         Total = Money.Rand(doc.Total ?? 0);
         DateText = doc.Date?.ToString("d MMM yyyy") ?? "";
         DueText = doc.DueOrExpiryDate?.ToString("d MMM yyyy") ?? "";
-        SaveState = "";
+        if (!SaveState.StartsWith("Saved ", StringComparison.Ordinal))
+            SaveState = "";
+        SaveSoon();
 
         OnPropertyChanged(nameof(CanCopy));
         Problems.Clear();
