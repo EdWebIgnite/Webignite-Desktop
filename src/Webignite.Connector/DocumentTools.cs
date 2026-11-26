@@ -64,12 +64,14 @@ public sealed class DocumentTools(AssistantDocuments documents)
         }
     }
 
-    [McpServerTool(Name = "change_document", Title = "Change a quote or invoice not yet in Xero", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Changes a quote or invoice that has not reached Xero yet (can_change is true in list_documents): its lines, reference, "
-        + "notes or discount. Use this when Eddie wants one adjusted, in place of preparing another. Leave out whatever should stay as it is. "
+    [McpServerTool(Name = "change_document", Title = "Change a quote or invoice", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Changes a quote or invoice in place (can_change is true in list_documents): its lines, reference, notes or discount. "
+        + "Use this when Eddie wants one adjusted, in place of preparing another. Leave out whatever should stay as it is. "
         + "When lines are given they replace all the lines, so send every line the document should end up with: read them from "
-        + "list_documents first and change only what Eddie asked for. The customer can't be changed here. It then waits under "
-        + "To approve, marked as changed, for Eddie to check. One already in Xero is refused: Eddie changes that in the app.")]
+        + "list_documents first and change only what Eddie asked for. The customer can't be changed here. "
+        + "It works on one not in Xero yet, and on a draft in Xero nobody has approved or emailed; for a draft in Xero, Xero keeps its copy "
+        + "until Eddie checks the change and clicks Update draft in Xero. Either way it waits under To approve, marked as changed, and "
+        + "nothing goes to Xero or the customer from here. One already approved or emailed is refused: prepare a new one instead.")]
     public string ChangeDocument(
         [Description("The document's id, from list_documents or prepare_document.")] string id,
         [Description("Every line the document should have, replacing the ones it has. Leave out to keep the lines as they are.")] DraftLineInput[]? lines = null,
