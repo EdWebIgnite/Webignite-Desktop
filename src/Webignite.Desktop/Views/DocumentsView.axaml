@@ -22,13 +22,31 @@
                 ToolTip.Tip="Quotes and invoices made in Xero itself come in every few hours. This reads Xero now." />
         <StackPanel Spacing="4">
           <TextBlock Classes="h1" Text="{Binding Title}" />
-          <TextBlock Classes="headline" Text="{Binding Headline}" IsVisible="{Binding HasAny}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding XeroMessage}" IsVisible="{Binding HasXeroMessage}" />
         </StackPanel>
       </DockPanel>
 
       <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{Binding EmptyIcon, Converter={x:Static c:IconConverter.Instance}}"
                     Title="{Binding EmptyTitle}" Text="{Binding EmptyText}" ActionText="{Binding NewLabel}" Command="{Binding NewCommand}" />
+
+      <!-- Where things stand: three figures, each showing the rows behind it. -->
+      <ItemsControl ItemsSource="{Binding Tiles}" IsVisible="{Binding HasAny}" Margin="-6,0">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:DocumentTileRow">
+            <Button Classes="tile" Classes.on="{Binding IsOn}" Command="{Binding PickCommand}" Margin="6,0"
+                    ToolTip.Tip="Show these, or click again to show all">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="label" Text="{Binding Label}" />
+                <TextBlock Classes="figure" Classes.short="{Binding Problem}" Text="{Binding Amount}" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Count}" />
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
 
       <!-- Search and filters -->
       <StackPanel Spacing="12" IsVisible="{Binding HasAny}">
@@ -37,7 +55,7 @@
           <Button DockPanel.Dock="Right" Classes="link" Content="Clear" Command="{Binding ClearFiltersCommand}"
                   IsVisible="{Binding IsFiltered}" VerticalAlignment="Center" />
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBox Text="{Binding Search}" Width="300" PlaceholderText="Search by customer, number, line or amount" />
+            <TextBox Text="{Binding Search}" Width="300" PlaceholderText="Search customer, number or amount" />
             <ComboBox ItemsSource="{x:Static vm:DocumentsViewModel.PeriodChoices}" SelectedItem="{Binding PeriodChoice}" Width="150" />
           </StackPanel>
         </DockPanel>
