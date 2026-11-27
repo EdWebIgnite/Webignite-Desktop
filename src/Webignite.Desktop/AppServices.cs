@@ -111,6 +111,10 @@ public sealed class AppServices : IDisposable
     public ChatGptTunnelRunner ChatGpt => chatGpt ??= new ChatGptTunnelRunner(Settings, Secrets);
     private ProjectService? projects;
 
+    /// <summary>Receipts kept with expenses, in the receipts folder on this PC.</summary>
+    public ReceiptFiles Receipts => receipts ??= new ReceiptFiles();
+    private ReceiptFiles? receipts;
+
     /// <summary>Inbox: what your partner did on tasks you follow, mentions and likes.</summary>
     public InboxService Inbox => inbox ??= new InboxService(Store, () => Me().Id, Team);
     private InboxService? inbox;
