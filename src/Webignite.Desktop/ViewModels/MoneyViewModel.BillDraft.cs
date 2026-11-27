@@ -26,6 +26,24 @@ public partial class MoneyViewModel
     [ObservableProperty] public partial string BillTotal { get; set; } = "";
     [ObservableProperty] public partial string BillDescription { get; set; } = "";
     [ObservableProperty] public partial XeroSalesAccount? BillAccount { get; set; }
+
+    /// <summary>What the bill was for, when it is kept in Webignite; it says which expense account the books use.</summary>
+    [ObservableProperty] public partial string BillCategory { get; set; } = ExpenseCategories.All[0];
+
+    /// <summary>Starts a bill typed in by hand, with no PDF, to keep in Webignite.</summary>
+    [RelayCommand]
+    private void StartBillByHand()
+    {
+        billPdf = null;
+        billPdfName = null;
+        OnPropertyChanged(nameof(BillFileName));
+        BillSupplier = BillNumber = BillTotal = BillDescription = "";
+        BillDate = DateTime.Today;
+        BillDue = null;
+        AskAddSupplier = false;
+        SayBill("", problem: false);
+        DraftingBill = true;
+    }
     [ObservableProperty] public partial string BillMessage { get; set; } = "";
     [ObservableProperty] public partial bool BillMessageIsProblem { get; set; }
     [ObservableProperty] public partial bool AskAddSupplier { get; set; }
@@ -55,7 +73,7 @@ public partial class MoneyViewModel
                 // Not readable as a PDF: the boxes stay empty to fill in.
             }
             IReadOnlyList<string> suppliers = [];
-            if (services.XeroApi is { } api)
+            if (services.XeroApi is { } api && !OwnBills)
             {
                 suppliers = [.. (await api.ContactsAsync()).Where(c => c.Active).Select(c => c.Name)];
                 if (ExpenseAccounts.Count == 0)
@@ -73,7 +91,7 @@ public partial class MoneyViewModel
             if (text.Trim().Length == 0)
                 SayBill("Couldn't read any words in this PDF (it may be a scan). Fill in the details.", problem: true);
             else
-                SayBill("Read from the PDF. Check each box before it goes to Xero.", problem: false);
+                SayBill(OwnBills ? "Read from the PDF. Check each box, then keep it." : "Read from the PDF. Check each box before it goes to Xero.", problem: false);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or XeroException or HttpRequestException or TaskCanceledException)
         {
@@ -113,6 +131,11 @@ public partial class MoneyViewModel
         if (BillReader.Check(bill) is { } problem)
         {
             SayBill(problem, problem: true);
+            return;
+        }
+        if (OwnBills)
+        {
+            KeepOwnBill(bill);
             return;
         }
         if (BillAccount is not { } account)
@@ -155,6 +178,38 @@ public partial class MoneyViewModel
         {
             BillBusy = false;
         }
+    }
+
+    // Kept in Webignite: owed until it is marked paid, with the supplier's PDF kept as its file.
+    private void KeepOwnBill(BillDraft draft)
+    {
+        var bill = new SupplierBill
+        {
+            Id = SupplierBill.NewId(), Supplier = draft.Supplier, Number = draft.Number, Date = draft.Date!.Value, Due = draft.Due,
+            Total = draft.Total!.Value, Category = BillCategory, Description = draft.Description, Created = DateTimeOffset.UtcNow,
+        };
+        if (SupplierBills.Check(bill) is { } problem)
+        {
+            SayBill(problem, problem: true);
+            return;
+        }
+        try
+        {
+            if (billPdf is { } pdf && billPdfName is { } name)
+                bill = bill with { Receipt = services.Receipts.Keep(bill.Id, name, pdf) };
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Webignite.Data.AppLog.Write("Keeping a bill's PDF", e);
+            SayBill("Couldn't keep the PDF: " + e.Message, problem: true);
+            return;
+        }
+        services.Store.SaveSupplierBill(bill);
+        DraftingBill = false;
+        billPdf = null;
+        billPdfName = null;
+        RefreshOwnBills();
+        BillsRead = $"Bill from {bill.Supplier} for {Money.Rand(bill.Total)} kept. Mark it paid when you've paid it.";
     }
 
     private void SayBill(string text, bool problem)

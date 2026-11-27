@@ -101,6 +101,10 @@ public sealed partial class LocalStore : IDisposable
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS supplier_bills (
+                id TEXT PRIMARY KEY,
+                payload BLOB NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS retainers (
                 id TEXT PRIMARY KEY,
                 payload BLOB NOT NULL

@@ -34,6 +34,12 @@ public sealed record MoneyEntry
     /// </summary>
     public string? DocumentId { get; init; }
 
+    /// <summary>
+    /// The supplier's bill kept in Webignite this paid, when it came from paying one. The books take the payment from
+    /// the bill, so this entry isn't counted twice.
+    /// </summary>
+    public string? BillId { get; init; }
+
     /// <summary>The slip, invoice or photo that shows what was paid, kept in the receipts folder (<see cref="Receipts"/>).</summary>
     public EntryReceipt? Receipt { get; init; }
 

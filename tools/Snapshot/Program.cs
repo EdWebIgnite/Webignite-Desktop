@@ -6316,6 +6316,35 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Dispatcher.UIThread.RunJobs();
     Check("The list says Sent and Not sent yet rather than Xero", vm.Invoices.ShowChips.Any(c => c.Label == "Sent") || vm.Invoices.Rows.Any(r => r.Number == ownNumber));
     Save("own-invoices-list");
+    {
+        // Bills follow the same switch: kept here, owed until marked paid, and paying one adds it to the month.
+        Open(Page.Money);
+        var ownBillsPage = (MoneyViewModel)window.GetVisualDescendants().OfType<MoneyView>().First().DataContext!;
+        ownBillsPage.Refresh();
+        Check("With quotes and invoices made here, bills are kept here too", ownBillsPage.OwnBills && !ownBillsPage.HasBills);
+        ownBillsPage.StartBillByHandCommand.Execute(null);
+        ownBillsPage.BillSupplier = "xneelo (Pty) Ltd";
+        ownBillsPage.BillNumber = "INV-7790";
+        ownBillsPage.BillTotal = "1899.00";
+        ownBillsPage.BillDue = DateTime.Today.AddDays(-2);
+        ownBillsPage.BillDate = DateTime.Today.AddDays(-9);
+        ownBillsPage.BillCategory = "Hosting and servers";
+        ownBillsPage.BillDescription = "Dedicated server, November";
+        Wait(ownBillsPage.DraftBillCommand.ExecuteAsync(null), "Keeping a bill");
+        var keptBill = store.ListSupplierBills().SingleOrDefault(b => b.Number == "INV-7790");
+        Check("A bill typed in is kept, owed and overdue, under its kind of expense",
+            keptBill is { Total: 1899m, Category: "Hosting and servers", Paid: null } && ownBillsPage.OwnBillRows.Single().IsOverdue && ownBillsPage.BillsSummary.Contains("overdue", StringComparison.Ordinal));
+        Save("money-own-bills");
+        ownBillsPage.OwnBillRows.Single().PayCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        var paidBill = store.GetSupplierBill(keptBill!.Id);
+        Check("Marking it paid adds the expense to the month, linked to the bill, and nothing is owed",
+            paidBill is { Paid: not null } && ownBillsPage.ExpenseRows.Any(r => r.Party == "xneelo (Pty) Ltd" && r.Amount == Webignite.Core.Documents.Money.Rand(1899m))
+            && ownBillsPage.BillsSummary == "No bills to pay." && !ownBillsPage.OwnBillRows.Single().IsOwed);
+        if (paidBill?.PaidEntryId is { } paidEntry)
+            store.DeleteEntry(paidEntry);
+        store.DeleteSupplierBill(keptBill.Id);
+    }
     services.Settings.Documents = services.Settings.Documents with { MakeInWebignite = false };
 }
 

@@ -1,4 +1,4 @@
-# Webignite Desktop: where we are (handover, 27 Nov 2026)
+# Webignite Desktop: where we are (handover, 27 Nov 2026, evening)
 
 For the next working session. Read this with `CLAUDE.md` (the house rules), `docs/architecture.md` (the map of the app, kept up to date in every PR) and `docs/adding-things.md` (recipes).
 
@@ -38,8 +38,8 @@ The plan:
 
 1. Done: invoicing in Webignite (steps 1 and 2 below).
 2. Done: project name and your own fields on quotes and invoices.
-3. **In progress:** the client page as the hub.
-4. Next: expenses and supplier bills, with receipts.
+3. Done: the client page as the hub.
+4. Done: expenses with receipts, supplier bills kept here. Still to come: bills and money entries going between the two PCs.
 5. Next: FNB statement import (CSV/OFX), auto-matching to invoices and expenses, learning from corrections.
 6. Reports for us (profit by month and tax year, cash, debtors and creditors, provisional tax helper), and an accountant's corner for the sister: trial balance, journals, closing a period, Excel exports, and her own login with an accountant role.
 7. Bring in the Xero and QuickBooks history, remove duplicates (both were run at the same time), and check the totals.
@@ -50,7 +50,7 @@ Answers Eddie gave:
 - His sister will probably work on her own PC, with an accountant role.
 - The business is a (Pty) Ltd. The books use share capital, director's loan account and dividends.
 
-## Merged in this session (PRs #335 to #355)
+## Merged in the session before (PRs #335 to #358)
 
 - **Layout and memory:**
   - #335: five areas as tabs across the top (Mail, Business, Planner, Computer, Tools), a page of tiles for each area, and the sidebar as a pinned shortlist.
@@ -81,20 +81,25 @@ Answers Eddie gave:
   - #354: issue with numbering that carries on from current numbers, email with our own PDF, lock once issued, record payments.
   - #355: void, credit notes (CN-0001 on), quote accepted or declined, payments shown in Money, books worked out from the invoices (`Books/Postings.cs`).
 
-## In progress: the client page as the hub
+## Done this session (PRs #359 to #366)
 
-On branch `claude/client-hub` (not yet a PR):
+- #359: the client page as the hub: money strip (owes, overdue, paid and invoiced this tax year, usually pays in), quick actions together.
+- #360: expenses keep their receipts (`ReceiptFiles`, `Receipts`).
+- #361, #362: mail run-through: assistant drafts replace their earlier copy, a mail that comes back unsent never replaces one being written, From changes, stale drafts, the signature logo on assistant drafts, mail pushed during a check, search off the screen thread, waiting for a send before closing, linked pictures in forwards.
+- #363: Cc, Bcc and Reply-To as buttons; Avalonia's own warnings and errors go to the log (`AvaloniaLog`).
+- #364: one list of projects per client: their Planner projects, with For (an agency's end client) and their own rate; the old list on the client moved across at start-up.
+- #365: file mail under a client's project (IMAP keyword, Projects list in Mail's folder list).
+- #366: supplier bills kept in Webignite when the invoicing switch is on; Paid adds the expense.
 
-- **Done:** `Core/Clients/ClientMoney.cs`, with tests. It gives what the client owes and how much is overdue, what they paid and were invoiced this tax year, and how many days they usually take to pay (`ClientMoney.PaysIn`).
-- **To do:**
-  1. A money strip at the top of the client page, replacing the one-line "Owed" text: owes and overdue, paid this tax year, invoiced this tax year, "Usually pays in 14 days".
-  2. Quick actions together: New quote, New invoice, Draft statement, Write to them.
-  3. Their Planner projects in the Projects row (projects with that `ClientId`), each opening with `services.Go.Project(id)`.
-  4. Snapshot checks and screenshots, `docs/architecture.md`, PR.
+## Open problem: the draft window on Windows
+
+A mail in its own window (`ComposeWindow`) doesn't lay itself out again when it grows, maximised or dragged; the new area shows what's behind it. A popped-out page window is fine, and on Linux (real X11 windows, tried with a throwaway harness under Xvfb) it resizes fine. #361 stopped disposing text layouts in `RichTextEditor` (not the cause). #363 sends Avalonia's warnings to the log: ask Eddie for `%LOCALAPPDATA%\Webignite\logs` after maximising a draft on 0.2.328 or later, and look for `Avalonia` lines.
 
 ## Still open
 
 - Instant push from the sync server: parked by Eddie.
+- Update the sync server for the recent changes: Eddie wants it, not yet. Check what changed since the server last moved, then give exact steps for the NAS.
+- Money entries, receipts and supplier bills stay on the PC they were made on; they don't sync yet.
 - Task #90, licences and subscriptions: on hold (only Eddie and Jaco use the app).
 - Task #102, the NAS sync server guide: mostly done. The NAS is at 192.168.50.42, reserved in the ASUS router, with port 443 forwarded to it.
 - Asked but never answered: merge the two top bars into one row when the dock is in use.
@@ -107,5 +112,5 @@ On branch `claude/client-hub` (not yet a PR):
 
 1. Branch from `origin/main`, build, test, snapshot (and measure when styles or animations change).
 2. Push, open the PR, subscribe to its activity, and set a 50-minute safety check-in.
-3. When CI is green: squash-merge with `expectedHeadSha`, unsubscribe, delete the check-in, and reset `claude/lucid-feynman-ku7i1w` to `origin/main`.
+3. When CI is green: squash-merge with `expectedHeadSha`, unsubscribe, delete the check-in, and reset the session branch to `origin/main`.
 4. Commits end with the Co-Authored-By and Claude-Session lines. PR bodies end with the Claude Code line and the session link. No model names anywhere else.
