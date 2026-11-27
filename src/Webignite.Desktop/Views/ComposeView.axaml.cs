@@ -76,6 +76,11 @@ public partial class ComposeView : UserControl
     {
         base.OnAttachedToVisualTree(e);
         Editor.Spelling = App.Services?.Spelling;
+        if (watched is null && Compose is { } composer)
+        {
+            watched = composer;
+            watched.FieldOpened += FocusField;
+        }
     }
 
     // Each colour is its own button; the colours are what the mail will carry, not the app's own look.
@@ -338,6 +343,33 @@ public partial class ComposeView : UserControl
     }
 
     private ComposeViewModel? Compose => DataContext as ComposeViewModel;
+
+    private ComposeViewModel? watched;
+
+    // Cc, Bcc or Reply-To clicked: its box opens with the caret in it.
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (watched is not null)
+            watched.FieldOpened -= FocusField;
+        watched = Compose;
+        if (watched is not null)
+            watched.FieldOpened += FocusField;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (watched is not null)
+            watched.FieldOpened -= FocusField;
+        watched = null;
+    }
+
+    private void FocusField(string field)
+    {
+        var box = field switch { "cc" => CcBox, "bcc" => BccBox, _ => ReplyToBox };
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => box.Box.Focus(), Avalonia.Threading.DispatcherPriority.Background);
+    }
 
     // Suggest names and addresses only while the person is typing in the box, not when it's filled in for them.
     private void Watch(AddressBox address, AddressField field)

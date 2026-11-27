@@ -36,7 +36,8 @@ internal sealed class Program
             .WithDeveloperTools()
 #endif
             .WithInterFont()
-            .LogToTrace();
+            .LogToTrace()
+            .AfterSetup(_ => Avalonia.Logging.Logger.Sink = new AvaloniaLog(Avalonia.Logging.Logger.Sink));
 
     /// <summary>
     /// Anything that would otherwise close the app without a word is written to the log, and the person is told

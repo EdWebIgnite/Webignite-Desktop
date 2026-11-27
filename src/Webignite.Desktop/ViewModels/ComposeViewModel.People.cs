@@ -43,7 +43,7 @@ public partial class ComposeViewModel
                 break;
             case AddressField.Bcc:
                 Bcc = AddressBook.Add(Bcc, people);
-                ShowCc = true;
+                ShowBcc = true;
                 break;
             default:
                 To = AddressBook.Add(To, people);

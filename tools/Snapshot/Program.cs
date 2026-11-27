@@ -6206,6 +6206,12 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     if (composeWindow is not null)
     {
         SaveWindow(composeWindow, "mail-compose-window");
+        var fresh = writing.Composer!;
+        Check("A new mail shows Cc, Bcc and Reply-To as buttons, with no boxes for them", !fresh.ShowCc && !fresh.ShowBcc && !fresh.ShowReplyTo);
+        fresh.OpenBccCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Check("Clicking Bcc opens only the Bcc box", fresh is { ShowBcc: true, ShowCc: false, ShowReplyTo: false });
+        SaveWindow(composeWindow, "mail-compose-window-bcc");
         // Made big (as when maximised), the mail and its boxes stretch to fill the window.
         composeWindow.WindowState = Avalonia.Controls.WindowState.Maximized;
         composeWindow.Width = 1600;

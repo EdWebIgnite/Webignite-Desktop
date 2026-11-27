@@ -47,7 +47,10 @@ public partial class ComposeViewModel : ViewModelBase
         Cc = Recipients.Format(mail.Cc);
         Bcc = Recipients.Format(mail.Bcc);
         ReplyTo = Recipients.Format(mail.ReplyTo);
-        ShowCc = mail.Cc.Count + mail.Bcc.Count + mail.ReplyTo.Count > 0;
+        // Cc, Bcc and Reply-To each open on their own, only when they hold someone or are clicked.
+        ShowCc = mail.Cc.Count > 0;
+        ShowBcc = mail.Bcc.Count > 0;
+        ShowReplyTo = mail.ReplyTo.Count > 0;
         Subject = mail.Subject;
         Document = Writing(mail, From);
         foreach (var attachment in mail.Attachments)
@@ -80,6 +83,11 @@ public partial class ComposeViewModel : ViewModelBase
     [ObservableProperty] public partial string Bcc { get; set; } = "";
     [ObservableProperty] public partial string ReplyTo { get; set; } = "";
     [ObservableProperty] public partial bool ShowCc { get; set; }
+    [ObservableProperty] public partial bool ShowBcc { get; set; }
+    [ObservableProperty] public partial bool ShowReplyTo { get; set; }
+
+    /// <summary>Asks the page to put the caret in a field just opened: "cc", "bcc" or "replyto".</summary>
+    public event Action<string>? FieldOpened;
     [ObservableProperty] public partial string Subject { get; set; } = "";
 
     /// <summary>What is being written, signature included. The editor changes it in place and bumps <see cref="BodyRevision"/>.</summary>
@@ -173,7 +181,25 @@ public partial class ComposeViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ToggleCc() => ShowCc = !ShowCc;
+    private void OpenCc()
+    {
+        ShowCc = true;
+        FieldOpened?.Invoke("cc");
+    }
+
+    [RelayCommand]
+    private void OpenBcc()
+    {
+        ShowBcc = true;
+        FieldOpened?.Invoke("bcc");
+    }
+
+    [RelayCommand]
+    private void OpenReplyTo()
+    {
+        ShowReplyTo = true;
+        FieldOpened?.Invoke("replyto");
+    }
 
     [RelayCommand]
     private void ToggleQuote() => ShowQuote = !ShowQuote;
