@@ -107,7 +107,13 @@
       </DockPanel>
       <DockPanel>
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="To" VerticalAlignment="Center" />
-        <Button DockPanel.Dock="Right" Classes="link" Content="Cc, Bcc, Reply-To" Command="{Binding ToggleCcCommand}" IsVisible="{Binding !ShowCc}" />
+        <!-- Cc, Bcc and Reply-To are buttons until clicked, so the boxes above the mail take room only when used. -->
+        <Button DockPanel.Dock="Right" Classes="link" Content="Reply-To" Command="{Binding OpenReplyToCommand}" IsVisible="{Binding !ShowReplyTo}" Padding="6,2"
+                ToolTip.Tip="Have replies go somewhere other than to you" />
+        <Button DockPanel.Dock="Right" Classes="link" Content="Bcc" Command="{Binding OpenBccCommand}" IsVisible="{Binding !ShowBcc}" Padding="6,2"
+                ToolTip.Tip="Send a copy without the others seeing" />
+        <Button DockPanel.Dock="Right" Classes="link" Content="Cc" Command="{Binding OpenCcCommand}" IsVisible="{Binding !ShowCc}" Padding="6,2"
+                ToolTip.Tip="Send a copy to someone else" />
         <Button x:Name="PeopleButton" DockPanel.Dock="Right" Classes="quiet icon" Margin="6,0,4,0" ToolTip.Tip="Contacts: pick people and groups">
           <c:Icon Data="{StaticResource Icon.Contacts}" Size="16" />
           <Button.Flyout>
@@ -145,11 +151,11 @@
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Cc" VerticalAlignment="Center" />
         <c:AddressBox x:Name="CcBox" Names="{Binding KnownNames}" Text="{Binding Cc}" />
       </DockPanel>
-      <DockPanel IsVisible="{Binding ShowCc}">
+      <DockPanel IsVisible="{Binding ShowBcc}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Bcc" VerticalAlignment="Center" />
         <c:AddressBox x:Name="BccBox" Names="{Binding KnownNames}" Text="{Binding Bcc}" PlaceholderText="Get a copy without the others seeing" />
       </DockPanel>
-      <DockPanel IsVisible="{Binding ShowCc}">
+      <DockPanel IsVisible="{Binding ShowReplyTo}">
         <TextBlock DockPanel.Dock="Left" Width="64" Classes="muted" Text="Reply-To" VerticalAlignment="Center" />
         <c:AddressBox x:Name="ReplyToBox" Names="{Binding KnownNames}" Text="{Binding ReplyTo}" PlaceholderText="Where replies go, when not to you" />
       </DockPanel>
