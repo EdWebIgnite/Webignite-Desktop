@@ -275,6 +275,10 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
         var documents = services.Settings.Documents;
         InvoiceDueDays = documents.InvoiceDueDays.ToString();
         QuoteExpiryDays = documents.QuoteExpiryDays.ToString();
+        OnItsOwn = documents.OnItsOwn;
+        var stored = services.Documents.List();
+        NextQuoteNumber = DocumentNumbers.Next(DocumentKind.Quote, stored, documents.NextQuoteNumber);
+        NextInvoiceNumber = DocumentNumbers.Next(DocumentKind.Invoice, stored, documents.NextInvoiceNumber);
         LoadFields();
         ClientId = services.Settings.Xero.ClientId ?? "";
         UpdateXeroStatus();
@@ -584,6 +588,16 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
     [ObservableProperty]
     public partial string DefaultsMessage { get; set; } = "";
 
+    /// <summary>New quotes and invoices are finished, sent and paid here, never put in Xero.</summary>
+    [ObservableProperty]
+    public partial bool OnItsOwn { get; set; }
+
+    [ObservableProperty]
+    public partial string NextQuoteNumber { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string NextInvoiceNumber { get; set; } = "";
+
     [ObservableProperty]
     public partial string ClientId { get; set; }
 
@@ -605,8 +619,25 @@ public partial class SettingsViewModel : ViewModelBase, IRefreshable, IHoldsWork
             DefaultsMessage = "Use whole days between 0 and 365.";
             return;
         }
-        services.Settings.Documents = services.Settings.Documents with { InvoiceDueDays = due, QuoteExpiryDays = expiry };
-        DefaultsMessage = "Saved. New documents will use these.";
+        if (DocumentNumbers.Parse(NextQuoteNumber) is null || DocumentNumbers.Parse(NextInvoiceNumber) is null)
+        {
+            DefaultsMessage = "The next numbers need digits in them, like QU-1025 or INV-0113.";
+            return;
+        }
+        services.Settings.Documents = services.Settings.Documents with
+        {
+            InvoiceDueDays = due,
+            QuoteExpiryDays = expiry,
+            OnItsOwn = OnItsOwn,
+            NextQuoteNumber = NextQuoteNumber.Trim(),
+            NextInvoiceNumber = NextInvoiceNumber.Trim(),
+        };
+        var stored = services.Documents.List();
+        NextQuoteNumber = DocumentNumbers.Next(DocumentKind.Quote, stored, NextQuoteNumber);
+        NextInvoiceNumber = DocumentNumbers.Next(DocumentKind.Invoice, stored, NextInvoiceNumber);
+        DefaultsMessage = OnItsOwn
+            ? $"Saved. New quotes and invoices are finished here; the next ones are {NextQuoteNumber} and {NextInvoiceNumber}."
+            : "Saved. New documents will use these.";
     }
 
     private bool CanConnect() => !IsConnecting;

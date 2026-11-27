@@ -51,8 +51,8 @@ public sealed record DocumentFilter(string Text = "", DocumentShow Show = Docume
     {
         var shows = Show switch
         {
-            DocumentShow.NotInXero => stored.Status != DocumentStatus.InXero,
-            DocumentShow.InXero => stored.Status == DocumentStatus.InXero,
+            DocumentShow.NotInXero => stored.Status is DocumentStatus.Draft or DocumentStatus.AwaitingApproval,
+            DocumentShow.InXero => stored.Status is DocumentStatus.InXero or DocumentStatus.Issued,
             DocumentShow.Overdue => Receivables.IsOverdue(stored, today),
             DocumentShow.Settled => Settlements.IsGood(stored.Settled?.As),
             DocumentShow.Owing => Receivables.IsOpenInvoice(stored) && Receivables.Outstanding(stored) > 0,
@@ -93,7 +93,7 @@ public sealed record DocumentFilter(string Text = "", DocumentShow Show = Docume
         if (AsAmount(word) is { } amount)
             return stored.Document.Total == amount || stored.Document.Lines.Any(l => l.Amount() == amount);
         var doc = stored.Document;
-        return Has(doc.Customer.Name, word) || Has(stored.Xero.Number, word) || Has(doc.Reference, word)
+        return Has(doc.Customer.Name, word) || Has(stored.Number, word) || Has(doc.Reference, word)
             || doc.Lines.Any(l => Has(l.Description, word));
     }
 

@@ -53,8 +53,8 @@
         </StackPanel>
         <StackPanel Grid.Column="2">
           <TextBlock Classes="label" Text="Number" />
-          <TextBox Text="{Binding NumberText}" PlaceholderText="Xero's next" MaxLength="255"
-                   ToolTip.Tip="Leave empty and Xero gives it the next number, or type your own, e.g. WEB-2026-014" />
+          <TextBox Text="{Binding NumberText}" PlaceholderText="{Binding NumberPlaceholder}" MaxLength="255"
+                   ToolTip.Tip="Leave empty for the next number, or type your own, e.g. WEB-2026-014" />
         </StackPanel>
         <StackPanel Grid.Column="4">
           <TextBlock Classes="label" Text="Reference" />
@@ -182,12 +182,12 @@
         </Border>
         <Border Classes="pending" IsVisible="{Binding RecordingPayment}">
           <StackPanel Spacing="8">
-            <TextBlock FontWeight="SemiBold" Text="Record a payment in Xero" />
+            <TextBlock FontWeight="SemiBold" Text="Record a payment" />
             <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PaymentHint}" />
             <Grid ColumnDefinitions="140,12,170,12,*">
               <TextBox Text="{Binding PaymentAmountText}" PlaceholderText="Amount (R)" />
               <c:DateBox Grid.Column="2" SelectedDate="{Binding PaymentDay}" Latest="{x:Static sys:DateTime.Today}" HorizontalAlignment="Stretch" />
-              <ComboBox Grid.Column="4" ItemsSource="{Binding BankAccounts}" SelectedItem="{Binding PaymentAccount}"
+              <ComboBox Grid.Column="4" ItemsSource="{Binding BankAccounts}" SelectedItem="{Binding PaymentAccount}" IsVisible="{Binding ShowBankAccount}"
                         PlaceholderText="Bank account it went into" HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="xero:XeroBankAccount">
@@ -255,7 +255,10 @@
               <Binding Path="IsEditable" />
             </MultiBinding>
           </Border.IsVisible>
-          <TextBlock Foreground="{DynamicResource Ok}" FontWeight="SemiBold" Text="Everything adds up. Ready for Xero." />
+          <TextBlock Foreground="{DynamicResource Ok}" FontWeight="SemiBold" Text="{Binding ReadyText}" />
+        </Border>
+        <Border Classes="pending" IsVisible="{Binding HasOwnStatus}">
+          <TextBlock TextWrapping="Wrap" Text="{Binding OwnStatus}" />
         </Border>
       </StackPanel>
 
@@ -282,6 +285,11 @@
                   IsVisible="{Binding ShowCreate}" IsEnabled="{Binding CanCreate}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding XeroHint}"
                      IsVisible="{Binding ShowCreate}" />
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
+                  Content="Finish" Command="{Binding FinishCommand}" IsVisible="{Binding ShowFinish}" IsEnabled="{Binding CanFinish}"
+                  ToolTip.Tip="Gives it its number and makes it the client's document. Nothing is sent yet, and nothing goes to Xero." />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding ShowFinish}"
+                     Text="It gets its number here. Emailing it comes next, with Webignite's own PDF." />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding ShowCreate}"
                      Text="It goes in as a draft. Approving and sending stay with you." />
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
@@ -302,6 +310,9 @@
                   Content="{Binding EmailButtonText}" Command="{Binding StartEmailCommand}" IsVisible="{Binding ShowEmail}" IsEnabled="{Binding !XeroBusy}" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding EmailedText}" IsVisible="{Binding HasEmailedText}" />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Mark as sent" Command="{Binding MarkSentCommand}" IsVisible="{Binding CanMarkSent}"
+                  ToolTip.Tip="The client got it another way, such as by hand or WhatsApp. Nothing is emailed." />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="See as PDF" Command="{Binding SeePdfCommand}"
                   ToolTip.Tip="Webignite's own PDF of this, with your logo, banking details and PayFast link. Nothing is sent." />
           <Grid ColumnDefinitions="*,8,*" IsVisible="{Binding CanDecideQuote}">
@@ -320,6 +331,12 @@
                   ToolTip.Tip="A credit note against this invoice, as a draft in Xero for you to approve and allocate there." />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="{Binding VoidLabel}" Command="{Binding StartVoidCommand}" IsVisible="{Binding CanVoid}" />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Cancel this invoice" Command="{Binding CancelOwnCommand}" IsVisible="{Binding CanCancelOwn}"
+                  ToolTip.Tip="It's no longer owed. Its number stays used, and a note lets you undo it." />
+          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Change it" Command="{Binding ReopenCommand}" IsVisible="{Binding CanReopen}"
+                  ToolTip.Tip="Puts it back to a draft with its number kept. Only while the client hasn't had it." />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Delete" Command="{Binding DeleteCommand}" IsVisible="{Binding CanDelete}"
                   ToolTip.Tip="It has not gone to Xero, so it is only deleted here. A note lets you put it back." />

@@ -9,7 +9,7 @@ namespace Webignite.Core.Documents;
 public static class DocumentHeadline
 {
     /// <summary>
-    /// "4 invoices, R 5 600.00 owed, 1 overdue, 1 not in Xero yet" or "3 quotes, R 14 500.00 waiting on clients,
+    /// "4 invoices, R 5 600.00 owed, 1 overdue, 1 draft" or "3 quotes, R 14 500.00 waiting on clients,
     /// 1 accepted". Parts with nothing to say are left out.
     /// </summary>
     public static string For(DocumentKind kind, IReadOnlyCollection<StoredDocument> documents, DateOnly today)
@@ -37,9 +37,9 @@ public static class DocumentHeadline
                 parts.Add($"{accepted} accepted");
         }
 
-        var onThisPc = mine.Count(d => d.Status != DocumentStatus.InXero);
+        var onThisPc = mine.Count(d => d.Status is DocumentStatus.Draft or DocumentStatus.AwaitingApproval);
         if (onThisPc > 0)
-            parts.Add($"{onThisPc} not in Xero yet");
+            parts.Add(onThisPc == 1 ? "1 draft" : $"{onThisPc} drafts");
         return string.Join(", ", parts);
     }
 
@@ -55,7 +55,7 @@ public static class DocumentHeadline
             parts.Add(doc.Reference.Trim());
 
         if (stored.Settled?.As == Settlement.Paid)
-            parts.Add(stored.Xero.PaidOn is { } paid ? "Paid " + Day(paid) : "Paid");
+            parts.Add(Receivables.PaidOn(stored) is { } paid ? "Paid " + Day(paid) : "Paid");
         else if (stored.Settled?.As is null && doc.DueOrExpiryDate is { } due)
         {
             var word = doc.Kind == DocumentKind.Quote ? "Expires" : "Due";
@@ -109,11 +109,11 @@ public static class DocumentHeadline
                 : $"{overdue.Count} invoices are overdue, {amount} in all.", "Show overdue", DocumentShow.Overdue);
         }
 
-        var onThisPc = mine.Count(d => d.Status != DocumentStatus.InXero);
+        var onThisPc = mine.Count(d => d.Status is DocumentStatus.Draft or DocumentStatus.AwaitingApproval);
         if (onThisPc > 0)
             return new(onThisPc == 1
-                ? $"1 {noun} is still on this PC. Open it and send it to Xero as a draft when it's ready."
-                : $"{onThisPc} {noun}s are still on this PC. Open one and send it to Xero as a draft when it's ready.",
+                ? $"1 {noun} is still a draft. Open it and finish it when it's ready."
+                : $"{onThisPc} {noun}s are still drafts. Open one and finish it when it's ready.",
                 onThisPc == 1 ? "Show it" : "Show them", DocumentShow.NotInXero);
 
         var drafts = mine.Count(d => d.Settled is null && XeroStatuses.IsDraft(d.Xero.Status));

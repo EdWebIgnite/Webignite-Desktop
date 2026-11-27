@@ -67,7 +67,7 @@ public sealed class ListHintTests
         var hint = DocumentHeadline.Hint(DocumentKind.Invoice,
             [Invoice(1500, Today.AddDays(10)), Invoice(400, Today.AddDays(5), DocumentStatus.Draft)], Today);
         Assert.NotNull(hint);
-        Assert.Equal("1 invoice is still on this PC. Open it and send it to Xero as a draft when it's ready.", hint.Text);
+        Assert.Equal("1 invoice is still a draft. Open it and finish it when it's ready.", hint.Text);
         Assert.Equal(DocumentShow.NotInXero, hint.Show);
         Assert.Equal("Show it", hint.ActionText);
     }

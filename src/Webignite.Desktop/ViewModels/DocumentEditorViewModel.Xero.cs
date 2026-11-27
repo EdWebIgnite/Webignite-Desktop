@@ -40,7 +40,7 @@ public partial class DocumentEditorViewModel
     public partial string ContactSearch { get; set; } = "";
 
     public XeroWriteState XeroState => stored?.Xero.State ?? XeroWriteState.None;
-    public bool IsEditable => XeroState is XeroWriteState.None or XeroWriteState.Editing;
+    public bool IsEditable => XeroState is XeroWriteState.None or XeroWriteState.Editing && stored?.Status != DocumentStatus.Issued;
 
     /// <summary>A draft already in Xero being changed here.</summary>
     public bool IsChangingInXero => XeroState == XeroWriteState.Editing;
@@ -59,7 +59,7 @@ public partial class DocumentEditorViewModel
         : "";
 
     public bool CanCreate => XeroState == XeroWriteState.None && !XeroBusy && XeroHint.Length == 0;
-    public bool ShowCreate => XeroState == XeroWriteState.None;
+    public bool ShowCreate => XeroState == XeroWriteState.None && !IsOwn;
     public bool CanUpdate => IsChangingInXero && !XeroBusy && XeroHint.Length == 0;
 
     /// <summary>A draft Webignite put in Xero that nobody has approved or emailed: Change this draft unlocks it.</summary>
@@ -292,6 +292,8 @@ public partial class DocumentEditorViewModel
             nameof(CanVoid), nameof(VoidLabel), nameof(VoidQuestion), nameof(CanCredit), nameof(CreditHint), nameof(CreditNotesText), nameof(HasCreditNotes),
             nameof(CanRecordPayment), nameof(PaymentHint), nameof(CanAttach), nameof(AttachmentsText), nameof(HasAttachments),
             nameof(ShowStartOver), nameof(HasXeroLink), nameof(XeroStatus), nameof(HasXeroStatus), nameof(XeroStatusIsProblem),
+            nameof(IsOwn), nameof(IsIssued), nameof(ShowFinish), nameof(CanFinish), nameof(OwnStatus), nameof(HasOwnStatus), nameof(CanReopen), nameof(CanMarkSent),
+            nameof(CanCancelOwn), nameof(ShowBankAccount), nameof(NumberPlaceholder), nameof(ReadyText), nameof(Title), nameof(NumberNote),
         })
             OnPropertyChanged(name);
         RefreshEmail();
@@ -310,12 +312,12 @@ public partial class DocumentEditorViewModel
     [ObservableProperty]
     public partial bool ConfirmingApprove { get; set; }
 
-    public bool ShowEmail => stored is not null && XeroSending.CannotSend(stored) is null;
+    public bool ShowEmail => stored is not null && (IsIssued ? !Settlements.IsCancelled(stored.Settled?.As) : XeroSending.CannotSend(stored) is null);
 
     public string EmailButtonText =>
         stored?.Delivery.Emailed is not null ? "Email again"
         : Kind == DocumentKind.Quote ? "Email the quote"
-        : stored?.Delivery.Approved is null ? "Approve and email" : "Email the invoice";
+        : stored?.Delivery.Approved is null && !IsIssued ? "Approve and email" : "Email the invoice";
 
     public string EmailedText => stored?.Delivery.Emailed is { } when
         ? (string.IsNullOrWhiteSpace(stored.Delivery.EmailedTo) ? "Emailed" : $"Emailed to {stored.Delivery.EmailedTo}") + $" on {when.ToLocalTime():d MMM} at {when.ToLocalTime():HH:mm}."
@@ -342,6 +344,8 @@ public partial class DocumentEditorViewModel
             ShowXero(check, problem: true);
             return Task.CompletedTask;
         }
+        if (IsIssued)
+            return PrepareOwnEmail();
         if (Kind == DocumentKind.Invoice && stored?.Delivery.Approved is null)
         {
             ConfirmingApprove = true;
@@ -453,7 +457,7 @@ public partial class DocumentEditorViewModel
     public sealed record DocumentLink(string Text, StoredDocument Target);
 
     /// <summary>A sent quote with no answer yet: Client accepted and Client declined can be clicked.</summary>
-    public bool CanDecideQuote => stored is not null && QuoteOutcomes.CanDecide(stored) && !XeroBusy;
+    public bool CanDecideQuote => stored is not null && (QuoteOutcomes.CanDecide(stored) || OwnDocuments.CanDecide(stored)) && !XeroBusy;
 
     public IReadOnlyList<DocumentLink> Links
     {
@@ -463,7 +467,7 @@ public partial class DocumentEditorViewModel
                 return [];
             if (Kind == DocumentKind.Quote)
                 return QuoteOutcomes.InvoicesFrom(stored, services.Documents.List(DocumentKind.Invoice))
-                    .Select(i => new DocumentLink(i.Xero.Number is { } n ? "Invoiced as " + n : "Draft invoice made from it", i)).ToList();
+                    .Select(i => new DocumentLink(i.Number is { } n ? "Invoiced as " + n : "Draft invoice made from it", i)).ToList();
             return stored.FromQuote is { } id && services.Documents.Get(id) is { } quote
                 ? [new DocumentLink("Made from quote " + QuoteOutcomes.Name(quote), quote)]
                 : [];
@@ -483,6 +487,11 @@ public partial class DocumentEditorViewModel
 
     private async Task DecideQuote(bool accepted)
     {
+        if (stored is not null && IsIssued)
+        {
+            DecideOwn(accepted);
+            return;
+        }
         if (stored is null || services.XeroSending is not { } sending)
         {
             ShowXero("Connect Xero in Settings first.", problem: true);

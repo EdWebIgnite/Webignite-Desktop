@@ -12,7 +12,7 @@ public static class DocumentCopies
         var from = source.Document;
         var reference = from.Reference;
         // An invoice made from a quote says which quote, unless the quote already had its own reference.
-        if (kind == DocumentKind.Invoice && from.Kind == DocumentKind.Quote && string.IsNullOrWhiteSpace(reference) && source.Xero.Number is { } quoteNumber)
+        if (kind == DocumentKind.Invoice && from.Kind == DocumentKind.Quote && string.IsNullOrWhiteSpace(reference) && source.Number is { } quoteNumber)
             reference = quoteNumber;
 
         var document = DocumentDefaults.Complete(new Document

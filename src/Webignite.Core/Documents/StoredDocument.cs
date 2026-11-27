@@ -10,6 +10,9 @@ public enum DocumentStatus
 
     /// <summary>Created in Xero as a draft.</summary>
     InXero,
+
+    /// <summary>Finished in Webignite with its number, without Xero: sent, paid and answered here (<see cref="OwnDocuments"/>).</summary>
+    Issued,
 }
 
 /// <summary>
@@ -78,6 +81,13 @@ public sealed record StoredDocument
     /// <summary>Its copy in Xero and what Xero last said about it.</summary>
     public XeroLink Xero { get; init; } = new();
 
+    /// <summary>When it was finished here without Xero, and the payments recorded here.</summary>
+    public OwnState Own { get; init; } = new();
+
+    /// <summary>Its number as the client knows it: Xero's, or the one it was finished with here. Null while it is a draft.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? Number => Xero.Number ?? (Status == DocumentStatus.Issued ? Document.Number : null);
+
     /// <summary>Approving, emailing and chasing it.</summary>
     public Delivery Delivery { get; init; } = new();
 
@@ -107,6 +117,22 @@ public sealed record StoredDocument
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");
 }
+
+/// <summary>A quote or invoice finished in Webignite without Xero.</summary>
+public sealed record OwnState
+{
+    /// <summary>When it was finished and given its number.</summary>
+    public DateTimeOffset? Issued { get; init; }
+
+    /// <summary>When it was marked as given to the client some other way than emailed from here (by hand, or for an old one brought in).</summary>
+    public DateTimeOffset? Sent { get; init; }
+
+    /// <summary>Money the client paid against it, as recorded here, oldest first.</summary>
+    public IReadOnlyList<OwnPayment> Payments { get; init; } = [];
+}
+
+/// <summary>A payment recorded here against an invoice finished here.</summary>
+public sealed record OwnPayment(decimal Amount, DateOnly On, string? Note = null);
 
 /// <summary>A file attached to a quote or invoice in Xero.</summary>
 public sealed record XeroAttachment

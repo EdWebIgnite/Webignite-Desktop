@@ -513,6 +513,39 @@ vm.Invoices.Editor = null;
     store.DeleteDocument(sentQuote.Id);
 }
 {
+    // Without Xero (Settings, New documents): Finish gives the next number after Xero's, then a payment is recorded here.
+    services.Settings.Documents = services.Settings.Documents with { OnItsOwn = true };
+    vm.Invoices.NewCommand.Execute(null);
+    var own = vm.Invoices.Editor!;
+    own.CustomerName = "Karoo Coffee Roasters";
+    own.Reference = "Website December";
+    own.Lines[0].Description = "Website hosting, December";
+    own.Lines[0].Price = "450";
+    Dispatcher.UIThread.RunJobs();
+    var expected = DocumentNumbers.Next(DocumentKind.Invoice, store.List(DocumentKind.Invoice), null);
+    Check("Without Xero the editor offers Finish, not Create draft in Xero, and says the number it will get",
+        own.ShowFinish && own.CanFinish && !own.ShowCreate && own.NumberNote.Contains(expected, StringComparison.Ordinal));
+    Save("invoice-own-draft");
+    own.FinishCommand.Execute(null);
+    var finished = store.List(DocumentKind.Invoice).First(d => d.Document.Reference == "Website December");
+    Check("Finish gives the invoice the next number and locks it, with nothing sent to Xero",
+        finished.Status == DocumentStatus.Issued && finished.Number == expected && finished.Xero.Id is null && !own.IsEditable && own.ShowEmail && own.CanMarkSent);
+    Save("invoice-own-finished");
+    own.MarkSentCommand.Execute(null);
+    own.StartPaymentCommand.Execute(null);
+    own.PaymentAmountText = "200";
+    Dispatcher.UIThread.RunJobs();
+    Check("Recording a payment here asks for no Xero bank account", own.RecordingPayment && !own.ShowBankAccount);
+    Save("invoice-own-payment");
+    own.RecordPaymentCommand.Execute(null);
+    var part = store.Get(finished.Id)!;
+    Check("The payment is recorded here and the rest is still owed", Receivables.Outstanding(part) == 250m && Receivables.StatusText(part, DateOnly.FromDateTime(DateTime.Today)) == "Part paid");
+    Save("invoice-own-part-paid");
+    vm.Invoices.Editor = null;
+    store.DeleteDocument(finished.Id);
+    services.Settings.Documents = services.Settings.Documents with { OnItsOwn = false };
+}
+{
     // An approved invoice put right: a credit note drafted in Xero, or voiding it, each asked first.
     var approved = store.Save(store.Get(verified.Id)! with
     {

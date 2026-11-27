@@ -48,7 +48,7 @@ public partial class ApprovalsViewModel(AppServices services) : ViewModelBase, I
         if (services.Documents.TakeOffApprovals(row.Item, DateTimeOffset.UtcNow) is not { } off)
             return;
         Refresh();
-        var name = off.Xero.Number ?? (off.Document.Kind == DocumentKind.Quote ? "the quote" : "the invoice");
+        var name = off.Number ?? (off.Document.Kind == DocumentKind.Quote ? "the quote" : "the invoice");
         services.OfferUndo($"Took {name} off To approve", () =>
         {
             services.Documents.PutBackOnApprovals(off.Id);
@@ -75,7 +75,7 @@ public partial class ApprovalRowViewModel(WaitingItem item, ApprovalsViewModel o
     public WaitingItem Item => item;
     public string What => item.Stored.Document.Kind == DocumentKind.Quote ? "Quote" : "Invoice";
     public bool IsQuote => item.Stored.Document.Kind == DocumentKind.Quote;
-    public string Title => (item.Stored.Xero.Number is { } n ? n + "  ·  " : "")
+    public string Title => (item.Stored.Number is { } n ? n + "  ·  " : "")
         + (string.IsNullOrWhiteSpace(item.Stored.Document.Customer.Name) ? "No customer yet" : item.Stored.Document.Customer.Name);
     public string Total => Money.Rand(item.Stored.Document.Total ?? 0);
     public string Reason => item.Reason;

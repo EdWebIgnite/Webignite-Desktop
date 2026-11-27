@@ -5,14 +5,14 @@ namespace Webignite.Desktop.ViewModels;
 /// <summary>One line in the quotes or invoices list.</summary>
 public sealed record DocumentRow(StoredDocument Stored, DateOnly Today)
 {
-    public string Number => Stored.Xero.Number ?? "No number yet";
+    public string Number => Stored.Number ?? "No number yet";
     public string Customer => string.IsNullOrWhiteSpace(Stored.Document.Customer.Name) ? "No customer yet" : Stored.Document.Customer.Name;
     public string CustomerName => Stored.Document.Customer.Name ?? "";
     public bool IsQuote => Stored.Document.Kind == DocumentKind.Quote;
     public bool InXero => Stored.Xero.Id is { Length: > 0 };
     /// <summary>Never reached Xero, so it can be deleted here.</summary>
     public bool CanDelete => Approvals.CanDelete(Stored);
-    public bool HasNumber => Stored.Xero.Number is { Length: > 0 };
+    public bool HasNumber => Stored.Number is { Length: > 0 };
     public string Date => Stored.Document.Date?.ToString("d MMM yyyy") ?? "";
     public string Total => Money.Rand(Stored.Document.Total ?? 0);
 
@@ -32,7 +32,7 @@ public sealed record DocumentRow(StoredDocument Stored, DateOnly Today)
     public bool IsOverdue => Receivables.IsOverdue(Stored, Today);
 
     /// <summary>What's still owed, for part-paid invoices.</summary>
-    public string? Owing => Stored.Xero.AmountPaid > 0 && Receivables.Outstanding(Stored) > 0 ? Money.Rand(Receivables.Outstanding(Stored)) + " still owed" : null;
+    public string? Owing => Receivables.PaidSoFar(Stored) > 0 && Receivables.Outstanding(Stored) > 0 ? Money.Rand(Receivables.Outstanding(Stored)) + " still owed" : null;
 
     public bool IsInXero => Stored.Status == DocumentStatus.InXero;
 }

@@ -20,7 +20,7 @@ public static class DocumentTiles
         {
             var owing = mine.Where(d => Receivables.Outstanding(d) > 0).ToList();
             var overdue = owing.Where(d => Receivables.IsOverdue(d, today)).ToList();
-            var paid = mine.Where(d => d.Settled?.As == Settlement.Paid && d.Xero.PaidOn is { } on && Dates.MonthStart(on) == Dates.MonthStart(today)).ToList();
+            var paid = mine.Where(d => d.Settled?.As == Settlement.Paid && Receivables.PaidOn(d) is { } on && Dates.MonthStart(on) == Dates.MonthStart(today)).ToList();
             return
             [
                 new("Owed to you", Money.Rand(Receivables.Owed(owing)), Count(owing.Count, "invoice"), DocumentShow.Owing),
@@ -31,7 +31,8 @@ public static class DocumentTiles
         var waiting = mine.Where(d => Receivables.IsOpenQuote(d, today)).ToList();
         var accepted = mine.Where(d => d.Settled?.As is Settlement.Accepted or Settlement.Invoiced && d.Settled.On is var at
             && Dates.MonthStart(DateOnly.FromDateTime(at.ToLocalTime().DateTime)) == Dates.MonthStart(today)).ToList();
-        var drafts = mine.Where(d => d.Status != DocumentStatus.InXero || (d.Settled is null && d.Delivery.Emailed is null && d.Xero.Status != XeroStatuses.Sent)).ToList();
+        var drafts = mine.Where(d => d.Status is DocumentStatus.Draft or DocumentStatus.AwaitingApproval
+            || (d.Settled is null && d.Delivery.Emailed is null && d.Own.Sent is null && d.Xero.Status != XeroStatuses.Sent)).ToList();
         return
         [
             new("Waiting on clients", Money.Rand(waiting.Sum(d => d.Document.Total ?? 0)), Count(waiting.Count, "quote"), DocumentShow.Waiting),

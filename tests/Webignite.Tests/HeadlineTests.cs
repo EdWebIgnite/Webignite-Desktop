@@ -77,7 +77,7 @@ public sealed class HeadlineTests
             Invoice(2725m, Today.AddDays(30), DocumentStatus.Draft),
         };
 
-        Assert.Equal($"4 invoices, {Money.Rand(5600m)} owed, 1 overdue, 1 not in Xero yet", DocumentHeadline.For(DocumentKind.Invoice, documents, Today));
+        Assert.Equal($"4 invoices, {Money.Rand(5600m)} owed, 1 overdue, 1 draft", DocumentHeadline.For(DocumentKind.Invoice, documents, Today));
     }
 
     [Fact]

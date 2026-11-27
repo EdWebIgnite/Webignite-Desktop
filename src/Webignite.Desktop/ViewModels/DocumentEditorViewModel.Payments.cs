@@ -25,9 +25,14 @@ public partial class DocumentEditorViewModel
     [ObservableProperty]
     public partial XeroBankAccount? PaymentAccount { get; set; }
 
-    public bool CanRecordPayment => stored is not null && InvoicePayments.CanRecord(stored) && !XeroBusy && !RecordingPayment;
+    public bool CanRecordPayment => stored is not null && (InvoicePayments.CanRecord(stored) || OwnDocuments.CanPay(stored)) && !XeroBusy && !RecordingPayment;
 
-    public string PaymentHint => stored is null ? "" : $"{Money.Rand(InvoicePayments.Due(stored))} is still owed. It's recorded in Xero against this invoice.";
+    public string PaymentHint => stored is null ? ""
+        : IsIssued ? $"{Money.Rand(OwnDocuments.Due(stored))} is still owed. It's recorded here against this invoice."
+        : $"{Money.Rand(InvoicePayments.Due(stored))} is still owed. It's recorded in Xero against this invoice.";
+
+    /// <summary>Xero's bank accounts are only asked for when the payment goes into Xero.</summary>
+    public bool ShowBankAccount => !IsIssued;
 
     partial void OnRecordingPaymentChanged(bool value) => OnPropertyChanged(nameof(CanRecordPayment));
 
@@ -36,10 +41,10 @@ public partial class DocumentEditorViewModel
     {
         if (stored is null)
             return;
-        PaymentAmountText = InvoicePayments.Due(stored).ToString("0.00", CultureInfo.CurrentCulture);
+        PaymentAmountText = (IsIssued ? OwnDocuments.Due(stored) : InvoicePayments.Due(stored)).ToString("0.00", CultureInfo.CurrentCulture);
         PaymentDay = DateTime.Today;
         RecordingPayment = true;
-        if (BankAccounts.Count > 0 || services.XeroApi is not { } api)
+        if (IsIssued || BankAccounts.Count > 0 || services.XeroApi is not { } api)
             return;
         try
         {
@@ -64,6 +69,11 @@ public partial class DocumentEditorViewModel
             return Task.CompletedTask;
         var amount = Money.Parse(PaymentAmountText);
         DateOnly? day = PaymentDay is { } d ? DateOnly.FromDateTime(d) : null;
+        if (IsIssued)
+        {
+            PayOwn(amount, day);
+            return Task.CompletedTask;
+        }
         if (InvoicePayments.Check(stored, amount, day, PaymentAccount?.Id, DateOnly.FromDateTime(DateTime.Today)) is { } problem)
         {
             ShowXero(problem, problem: true);

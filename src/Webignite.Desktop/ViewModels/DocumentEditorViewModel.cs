@@ -62,7 +62,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
     }
 
     public DocumentKind Kind { get; }
-    public string Title => stored?.Xero.Number ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
+    public string Title => stored?.Number ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
     public string DueLabel => Kind == DocumentKind.Quote ? "Expires" : "Due";
     public string NumberNote =>
         stored?.Document.Origin == DocumentOrigin.Xero ? "Made in Xero and brought in here. Change it in Xero; it updates here every few hours."
@@ -70,7 +70,9 @@ public partial class DocumentEditorViewModel : ViewModelBase
             ? $"{(stored.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude")} changed draft {stored.Xero.Number}; Xero still has the old copy. Check it, then Update draft in Xero puts the change in, or Discard changes keeps Xero's."
         : stored?.Xero.State == XeroWriteState.Editing ? $"Changing draft {stored.Xero.Number} here. Update draft in Xero puts the change in."
         : stored is not null && XeroEdits.CanChange(stored) ? "A draft in Xero. Change this draft to edit it here and update Xero."
+        : stored is { Status: DocumentStatus.Issued } ? "Finished here with this number. Change it puts it back to a draft while the client hasn't had it."
         : stored?.Xero.Number is not null ? "Created in Xero. Changes are made in Xero from here on."
+        : IsOwn ? (NumberText.Trim().Length > 0 ? $"It is finished as {NumberText.Trim()}." : $"It gets {NextNumber} when you finish it, unless you type another.")
         : stored is { Status: DocumentStatus.AwaitingApproval } ? $"{(stored.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude")} prepared this. Check it, change anything, then create it in Xero."
         : NumberText.Trim().Length > 0 ? $"It goes into Xero as {NumberText.Trim()}."
         : "Xero gives it the next number when it is created.";

@@ -1163,6 +1163,21 @@
             <TextBox Text="{Binding QuoteExpiryDays}" Width="120" HorizontalAlignment="Left" />
           </StackPanel>
         </StackPanel>
+        <CheckBox IsChecked="{Binding OnItsOwn}" Content="Finish, send and record payments for quotes and invoices here, without Xero" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="New ones get their number here and go out with Webignite's own PDF. Nothing goes to Xero. Ones already in Xero carry on there. Leave it off to keep using Xero as now." />
+        <WrapPanel ItemSpacing="24" LineSpacing="8">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Next quote number" />
+            <TextBox Text="{Binding NextQuoteNumber}" Width="140" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Next invoice number" />
+            <TextBox Text="{Binding NextInvoiceNumber}" Width="140" HorizontalAlignment="Left" />
+          </StackPanel>
+        </WrapPanel>
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="Carries on from the highest number you have, Xero's included. Type another to jump ahead; each quote or invoice can also have its number typed over." />
         <StackPanel Orientation="Horizontal" Spacing="12">
           <Button Classes="quiet" Content="Save" Command="{Binding SaveDefaultsCommand}" />
           <TextBlock Classes="muted" Text="{Binding DefaultsMessage}" VerticalAlignment="Center" />

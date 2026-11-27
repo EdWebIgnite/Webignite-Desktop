@@ -51,7 +51,8 @@ public static class Approvals
 
     /// <summary>One that has never reached Xero: changed in place, then it waits under To approve to be created in Xero.</summary>
     public static bool AssistantMayChangeHere(StoredDocument s) =>
-        s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: DocumentOrigin.New };
+        s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: DocumentOrigin.New }
+        && s.Status != DocumentStatus.Issued; // finished here, it is the client's document now
 
     /// <summary>
     /// A draft in Xero that Webignite made and nobody has approved, emailed or settled (<see cref="XeroEdits.CanChange"/>),
@@ -68,7 +69,8 @@ public static class Approvals
     /// deleted there (Void in Xero), so the two never disagree.
     /// </summary>
     public static bool CanDelete(StoredDocument s) =>
-        s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: not DocumentOrigin.Xero };
+        s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: not DocumentOrigin.Xero }
+        && s.Status != DocumentStatus.Issued;
 
     public static WaitingItem? Why(StoredDocument s)
     {

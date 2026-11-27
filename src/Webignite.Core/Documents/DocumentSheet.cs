@@ -45,7 +45,7 @@ public static class DocumentSheets
     {
         var doc = stored.Document;
         var quote = doc.Kind == DocumentKind.Quote;
-        var number = First(stored.Xero.Number, doc.Number);
+        var number = First(stored.Number, doc.Number);
         var total = doc.Total ?? Money.Cents(doc.NetSubtotal() + (doc.TaxTotal ?? 0));
         var paid = stored.Xero.AmountPaid ?? doc.AmountPaid ?? 0;
         var due = quote ? 0 : stored.Xero.AmountDue ?? doc.BalanceDue ?? Money.Cents(total - paid);
