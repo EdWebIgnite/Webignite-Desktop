@@ -29,7 +29,7 @@ public sealed class DocumentService(LocalStore store)
     /// A document that was deleted meanwhile is saved again, so the typing isn't lost.
     /// </summary>
     public StoredDocument SaveDraft(string id, Document document) =>
-        store.Update(id, current => current.Xero.State is XeroWriteState.None or XeroWriteState.Editing ? current with { Document = document } : null)
+        store.Update(id, current => current.Status != DocumentStatus.Issued && current.Xero.State is XeroWriteState.None or XeroWriteState.Editing ? current with { Document = document } : null)
         ?? store.Save(new StoredDocument { Id = id, Document = document });
 
     /// <summary>

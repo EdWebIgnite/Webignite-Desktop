@@ -6128,6 +6128,39 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     services.Settings.ComposeInWindow = false;
 }
 
+// Quotes and invoices made in Webignite instead of Xero: numbered here, locked, paid off here.
+{
+    services.Settings.Documents = services.Settings.Documents with { MakeInWebignite = true };
+    Open(Page.Invoices);
+    vm.Invoices.NewCommand.Execute(null);
+    var own = vm.Invoices.Editor!;
+    own.CustomerName = "Fynbos Physio";
+    own.Lines[0].Description = "Booking page changes";
+    own.Lines[0].Price = "1800";
+    Dispatcher.UIThread.RunJobs();
+    Check("With invoices made in Webignite, a draft offers Approve and email instead of Create draft in Xero",
+        own.ShowIssue && !own.ShowCreate && own.IssueButtonText == "Approve and email");
+    Save("own-invoice-draft");
+    Wait(own.IssueOnlyCommand.ExecuteAsync(null), "Making an invoice final in Webignite");
+    Dispatcher.UIThread.RunJobs();
+    var ownNumber = own.Title;
+    Check("Made final, it carries on from the numbers there are and can't be changed",
+        own.IsIssued && ownNumber.StartsWith("INV-", StringComparison.Ordinal) && !own.CanType && own.CanRecordPayment);
+    Save("own-invoice-issued");
+    Wait(own.StartPaymentCommand.ExecuteAsync(null), "Starting a payment");
+    own.PaymentAmountText = "800";
+    own.PaymentNote = "EFT";
+    Wait(own.RecordPaymentCommand.ExecuteAsync(null), "Recording part of a payment");
+    Dispatcher.UIThread.RunJobs();
+    Check("Part of it paid, the rest is still owed", own.PaymentHint.Contains("1 000.00", StringComparison.Ordinal) || own.XeroMessage.Contains("still owed", StringComparison.Ordinal));
+    Save("own-invoice-part-paid");
+    own.BackCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    Check("The list says Sent and Not sent yet rather than Xero", vm.Invoices.ShowChips.Any(c => c.Label == "Sent") || vm.Invoices.Rows.Any(r => r.Number == ownNumber));
+    Save("own-invoices-list");
+    services.Settings.Documents = services.Settings.Documents with { MakeInWebignite = false };
+}
+
 Check("The new-mail check finished", mailCheck.IsCompletedSuccessfully);
 if (failures.Count > 0)
 {

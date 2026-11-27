@@ -187,7 +187,7 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
         return store.List(only)
             .Where(s => wanted.Length == 0 || Webignite.Core.Clients.ClientDirectory.Key(s.Document.Customer.Name).Contains(wanted, StringComparison.Ordinal))
             .Take(Math.Clamp(limit <= 0 ? 20 : limit, 1, 100))
-            .Select(s => new Listed(s.Id, s.Document.Kind.ToString().ToLowerInvariant(), s.Xero.Number, s.Document.Customer.Name, s.Document.Reference,
+            .Select(s => new Listed(s.Id, s.Document.Kind.ToString().ToLowerInvariant(), OwnInvoicing.NumberOf(s), s.Document.Customer.Name, s.Document.Reference,
                 s.Document.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", Money.Rand(s.Document.Total ?? 0), StatusText(s),
                 s.Document.Lines.Select(l => (string.IsNullOrWhiteSpace(l.Product) ? "" : l.Product + ": ")
                     + (l.IsPriced ? $"{l.Description}: {l.Quantity:0.##} x {Money.Rand(l.UnitPrice ?? 0)}" : l.Description)).ToList(),

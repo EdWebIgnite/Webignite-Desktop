@@ -40,7 +40,7 @@ public partial class DocumentEditorViewModel
     public partial string ContactSearch { get; set; } = "";
 
     public XeroWriteState XeroState => stored?.Xero.State ?? XeroWriteState.None;
-    public bool IsEditable => XeroState is XeroWriteState.None or XeroWriteState.Editing;
+    public bool IsEditable => !IsIssued && XeroState is XeroWriteState.None or XeroWriteState.Editing;
 
     /// <summary>A draft already in Xero being changed here.</summary>
     public bool IsChangingInXero => XeroState == XeroWriteState.Editing;
@@ -59,7 +59,7 @@ public partial class DocumentEditorViewModel
         : "";
 
     public bool CanCreate => XeroState == XeroWriteState.None && !XeroBusy && XeroHint.Length == 0;
-    public bool ShowCreate => XeroState == XeroWriteState.None;
+    public bool ShowCreate => XeroState == XeroWriteState.None && !OwnMode && !IsIssued;
     public bool CanUpdate => IsChangingInXero && !XeroBusy && XeroHint.Length == 0;
 
     /// <summary>A draft Webignite put in Xero that nobody has approved or emailed: Change this draft unlocks it.</summary>
@@ -310,7 +310,7 @@ public partial class DocumentEditorViewModel
     [ObservableProperty]
     public partial bool ConfirmingApprove { get; set; }
 
-    public bool ShowEmail => stored is not null && XeroSending.CannotSend(stored) is null;
+    public bool ShowEmail => stored is not null && (IsIssued || XeroSending.CannotSend(stored) is null);
 
     public string EmailButtonText =>
         stored?.Delivery.Emailed is not null ? "Email again"
@@ -342,6 +342,8 @@ public partial class DocumentEditorViewModel
             ShowXero(check, problem: true);
             return Task.CompletedTask;
         }
+        if (IsIssued)
+            return PrepareOwnEmail();
         if (Kind == DocumentKind.Invoice && stored?.Delivery.Approved is null)
         {
             ConfirmingApprove = true;

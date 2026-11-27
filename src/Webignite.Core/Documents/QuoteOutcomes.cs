@@ -27,5 +27,5 @@ public static class QuoteOutcomes
 
     /// <summary>How a document is named in a link to it: its Xero number, else "(draft)".</summary>
     public static string Name(StoredDocument stored) =>
-        stored.Xero.Number ?? stored.Document.Number ?? "(draft)";
+        OwnInvoicing.NumberOf(stored) ?? stored.Document.Number ?? "(draft)";
 }

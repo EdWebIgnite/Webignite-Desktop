@@ -5,7 +5,7 @@ public enum ChaseKind { FollowUp, Reminder }
 /// <summary>A quote to follow up or an overdue invoice to remind about.</summary>
 public sealed record ChaseItem(StoredDocument Stored, ChaseKind Kind, int Days, bool Due)
 {
-    public string Number => Stored.Xero.Number ?? (Kind == ChaseKind.FollowUp ? "the quote" : "the invoice");
+    public string Number => OwnInvoicing.NumberOf(Stored) ?? (Kind == ChaseKind.FollowUp ? "the quote" : "the invoice");
     public string Customer => Stored.Document.Customer.Name;
 }
 

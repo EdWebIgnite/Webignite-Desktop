@@ -60,5 +60,5 @@ public partial class DocumentsViewModel
 
     [RelayCommand]
     private Task CopyNumber(DocumentRow row) =>
-        row.Stored.Xero.Number is { Length: > 0 } number && CopyText is { } copy ? copy(number) : Task.CompletedTask;
+        OwnInvoicing.NumberOf(row.Stored) is { Length: > 0 } number && CopyText is { } copy ? copy(number) : Task.CompletedTask;
 }

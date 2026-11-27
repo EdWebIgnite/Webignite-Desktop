@@ -42,7 +42,8 @@ public static class SharedMerge
     /// <summary>
     /// A quote or invoice: the copy changed later, but what happened to it is never undone by an older copy. Once
     /// approved, emailed, chased, settled or taken off To approve on either PC it stays so; the link to Xero keeps
-    /// whichever copy got furthest with Xero; credit notes and attachments made on either PC are all kept.
+    /// whichever copy got furthest with Xero; credit notes and attachments made on either PC are all kept, and so are
+    /// payments recorded on either PC against one made final in Webignite.
     /// </summary>
     public static StoredDocument Document(StoredDocument older, StoredDocument newer) => newer with
     {
@@ -59,7 +60,17 @@ public static class SharedMerge
         OffApprovals = newer.OffApprovals ?? older.OffApprovals,
         Xero = Further(older.Xero, newer.Xero),
         CreditNotes = [.. newer.CreditNotes.Concat(older.CreditNotes).DistinctBy(c => c.Id, StringComparer.OrdinalIgnoreCase)],
+        // Made final in Webignite on either PC: it stays so, with its number, and payments recorded on either PC all kept.
+        Status = (newer.Own ?? older.Own) is null ? newer.Status : DocumentStatus.Issued,
+        Own = Own(older.Own, newer.Own),
         Attachments = [.. newer.Attachments.Concat(older.Attachments).DistinctBy(a => a.Name, StringComparer.OrdinalIgnoreCase)],
+    };
+
+    private static OwnIssue? Own(OwnIssue? older, OwnIssue? newer) => (older, newer) switch
+    {
+        (null, _) => newer,
+        (_, null) => older,
+        _ => newer with { Payments = [.. newer.Payments.Concat(older.Payments).DistinctBy(p => (p.Date, p.Amount, p.Recorded)).OrderBy(p => p.Date)] },
     };
 
     private static DateTimeOffset? Latest(DateTimeOffset? a, DateTimeOffset? b) => a is null ? b : b is null ? a : a > b ? a : b;

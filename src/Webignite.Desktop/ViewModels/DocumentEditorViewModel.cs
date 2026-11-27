@@ -62,10 +62,12 @@ public partial class DocumentEditorViewModel : ViewModelBase
     }
 
     public DocumentKind Kind { get; }
-    public string Title => stored?.Xero.Number ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
+    public string Title => (stored is null ? null : OwnInvoicing.NumberOf(stored)) ?? (stored is null ? (Kind == DocumentKind.Quote ? "New quote" : "New invoice") : (Kind == DocumentKind.Quote ? "Draft quote" : "Draft invoice"));
     public string DueLabel => Kind == DocumentKind.Quote ? "Expires" : "Due";
     public string NumberNote =>
         stored?.Document.Origin == DocumentOrigin.Xero ? "Made in Xero and brought in here. Change it in Xero; it updates here every few hours."
+        : stored is { Status: DocumentStatus.Issued, Own: { } own } ? $"Made final in Webignite on {own.Issued.ToLocalTime():d MMM yyyy}, so it can't be changed. Make a copy to start a new one."
+        : OwnMode && stored?.Xero.Number is null ? "It gets the next number when you approve or email it."
         : stored is { Xero.State: XeroWriteState.Editing, ChangedByAssistant: not null }
             ? $"{(stored.Source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude")} changed draft {stored.Xero.Number}; Xero still has the old copy. Check it, then Update draft in Xero puts the change in, or Discard changes keeps Xero's."
         : stored?.Xero.State == XeroWriteState.Editing ? $"Changing draft {stored.Xero.Number} here. Update draft in Xero puts the change in."
@@ -346,5 +348,7 @@ public partial class DocumentEditorViewModel : ViewModelBase
         foreach (var problem in DocumentValidator.Validate(doc))
             Problems.Add(problem);
         IsReady = Problems.Count == 0;
+        OnPropertyChanged(nameof(CanIssue));
+        OnPropertyChanged(nameof(IssueHint));
     }
 }

@@ -10,6 +10,9 @@ public enum DocumentStatus
 
     /// <summary>Created in Xero as a draft.</summary>
     InXero,
+
+    /// <summary>Made final in Webignite itself, not in Xero: numbered and sent from here (<see cref="OwnInvoicing"/>).</summary>
+    Issued,
 }
 
 /// <summary>
@@ -77,6 +80,9 @@ public sealed record StoredDocument
 
     /// <summary>Its copy in Xero and what Xero last said about it.</summary>
     public XeroLink Xero { get; init; } = new();
+
+    /// <summary>When made final in Webignite instead of Xero: its number, and payments recorded here.</summary>
+    public OwnIssue? Own { get; init; }
 
     /// <summary>Approving, emailing and chasing it.</summary>
     public Delivery Delivery { get; init; } = new();

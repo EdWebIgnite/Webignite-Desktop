@@ -50,7 +50,7 @@ public static class StudioMap
         var since = today.AddYears(-1);
         var papers = documents.ToList();
         var invoiced = papers
-            .Where(d => d.Document.Kind == DocumentKind.Invoice && d.Status == DocumentStatus.InXero && !Settlements.IsCancelled(d.Settled?.As)
+            .Where(d => d.Document.Kind == DocumentKind.Invoice && d.Status is DocumentStatus.InXero or DocumentStatus.Issued && !Settlements.IsCancelled(d.Settled?.As)
                 && d.Document.Date is { } on && on > since && on <= today)
             .GroupBy(d => ClientDirectory.Key(d.Document.Customer.Name))
             .ToDictionary(g => g.Key, g => g.Sum(d => d.Document.Total ?? d.Document.LinesTotal()));
