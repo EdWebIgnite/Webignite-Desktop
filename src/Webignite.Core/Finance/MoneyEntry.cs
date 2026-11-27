@@ -28,6 +28,12 @@ public sealed record MoneyEntry
     /// <summary>Set when a monthly expense added this entry, e.g. "recurring:{id}:2026-10".</summary>
     public string? RecurringKey { get; init; }
 
+    /// <summary>
+    /// The invoice made in Webignite this payment was recorded against, when it came from Record a payment there. The
+    /// books take the payment from the invoice, so this entry isn't counted twice.
+    /// </summary>
+    public string? DocumentId { get; init; }
+
     public DateTimeOffset Created { get; init; }
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");

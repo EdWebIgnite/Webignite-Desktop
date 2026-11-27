@@ -205,14 +205,14 @@
         </Border>
         <Border Classes="pending" IsVisible="{Binding Crediting}">
           <StackPanel Spacing="8">
-            <TextBlock FontWeight="SemiBold" Text="Draft a credit note in Xero" />
+            <TextBlock FontWeight="SemiBold" Text="{Binding CreditTitle}" />
             <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding CreditHint}" />
             <Grid ColumnDefinitions="140,12,*">
               <TextBox Text="{Binding CreditAmountText}" PlaceholderText="Amount (R)" />
               <TextBox Grid.Column="2" Text="{Binding CreditReason}" PlaceholderText="Reason, e.g. Hosting cancelled for December" />
             </Grid>
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Classes="primary" Content="Draft credit note in Xero" Command="{Binding DraftCreditCommand}" />
+              <Button Classes="primary" Content="{Binding CreditButtonText}" Command="{Binding DraftCreditCommand}" />
               <Button Classes="quiet" Content="Cancel" Command="{Binding CancelCreditCommand}" />
             </StackPanel>
           </StackPanel>
@@ -315,17 +315,17 @@
           <Grid ColumnDefinitions="*,8,*" IsVisible="{Binding CanDecideQuote}">
             <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Content="Client accepted" Command="{Binding AcceptQuoteCommand}"
-                    ToolTip.Tip="Marks the quote accepted in Xero. Make invoice then starts the invoice." />
+                    ToolTip.Tip="Marks the quote accepted. Make invoice then starts the invoice." />
             <Button Grid.Column="2" Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Content="Client declined" Command="{Binding DeclineQuoteCommand}"
-                    ToolTip.Tip="Marks the quote declined in Xero, so it isn't followed up." />
+                    ToolTip.Tip="Marks the quote declined, so it isn't followed up." />
           </Grid>
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="Record a payment" Command="{Binding StartPaymentCommand}" IsVisible="{Binding CanRecordPayment}"
                   ToolTip.Tip="Records money the client paid against this invoice in Xero." />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                  Content="Draft a credit note" Command="{Binding StartCreditCommand}" IsVisible="{Binding CanCredit}"
-                  ToolTip.Tip="A credit note against this invoice, as a draft in Xero for you to approve and allocate there." />
+                  Content="{Binding CreditStartText}" Command="{Binding StartCreditCommand}" IsVisible="{Binding CanCredit}"
+                  ToolTip.Tip="A credit note against this invoice, taking its amount off what is owed." />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                   Content="{Binding VoidLabel}" Command="{Binding StartVoidCommand}" IsVisible="{Binding CanVoid}" />
           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"

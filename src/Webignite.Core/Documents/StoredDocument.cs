@@ -27,6 +27,9 @@ public enum Settlement
     Accepted,
     Declined,
     Invoiced,
+
+    /// <summary>Credited in full by credit notes made in Webignite, with nothing paid.</summary>
+    Credited,
 }
 
 public static class Settlements
@@ -35,7 +38,7 @@ public static class Settlements
     public static bool IsGood(Settlement? s) => s is Settlement.Paid or Settlement.Accepted or Settlement.Invoiced;
 
     /// <summary>Gone in Xero: voided or deleted, so it no longer counts for anything.</summary>
-    public static bool IsCancelled(Settlement? s) => s is Settlement.Voided or Settlement.Deleted;
+    public static bool IsCancelled(Settlement? s) => s is Settlement.Voided or Settlement.Deleted or Settlement.Credited;
 
     /// <summary>The word for it: "Paid", "Accepted".</summary>
     public static string Label(Settlement s) => s.ToString();

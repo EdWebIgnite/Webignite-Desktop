@@ -7,7 +7,7 @@ public static class QuoteOutcomes
     /// A quote in Xero that went to the client and hasn't been settled, so Eddie can say the client accepted or
     /// declined it. Xero only takes either from a sent quote.
     /// </summary>
-    public static bool CanDecide(StoredDocument stored) =>
+    public static bool CanDecide(StoredDocument stored) => OwnInvoicing.CanDecide(stored) ||
         stored.Document.Kind == DocumentKind.Quote
         && stored.Xero.Id is not null
         && stored.Xero.State is Xero.XeroWriteState.Verified or Xero.XeroWriteState.Mismatch

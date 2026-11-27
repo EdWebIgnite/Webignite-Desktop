@@ -485,6 +485,12 @@ public partial class DocumentEditorViewModel
 
     private async Task DecideQuote(bool accepted)
     {
+        if (IsIssued)
+        {
+            OwnChange(s => OwnInvoicing.CanDecide(s) ? QuoteOutcomes.Decided(s, accepted, DateTimeOffset.Now) : null,
+                _ => accepted ? "Marked accepted. Use Make invoice when it's time to bill it." : "Marked declined, so it isn't followed up.");
+            return;
+        }
         if (stored is null || services.XeroSending is not { } sending)
         {
             ShowXero("Connect Xero in Settings first.", problem: true);
