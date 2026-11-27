@@ -65,7 +65,19 @@
     <Border Classes="card">
       <StackPanel Spacing="10">
         <DockPanel>
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" IsVisible="{Binding XeroConnected}" VerticalAlignment="Top">
+          <!-- Kept in Webignite: added by hand or from the supplier's PDF, and marked paid here. -->
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" IsVisible="{Binding OwnBills}" VerticalAlignment="Top">
+            <Button Classes="quiet" Content="Add a bill" Command="{Binding StartBillByHandCommand}" IsEnabled="{Binding !DraftingBill}" />
+            <Button Classes="quiet" Content="From a PDF" Click="PickBillPdf" IsEnabled="{Binding !DraftingBill}"
+                    ToolTip.Tip="Reads a supplier's PDF bill into the boxes to check, and keeps the PDF with it." />
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <StackPanel.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="XeroConnected" />
+                <Binding Path="ShowXeroBills" />
+              </MultiBinding>
+            </StackPanel.IsVisible>
             <c:Spinner IsVisible="{Binding ReadingBills}" Size="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" />
 <Button Classes="quiet" Content="Draft a bill from a PDF" Click="PickBillPdf" IsEnabled="{Binding !DraftingBill}"
                     ToolTip.Tip="Reads a supplier's PDF bill, lets you check it, then puts it in Xero as a draft with the PDF attached." />
@@ -93,9 +105,12 @@
               <c:DateBox Grid.Row="1" Grid.Column="6" SelectedDate="{Binding BillDue}" HorizontalAlignment="Stretch" />
               <TextBlock Grid.Row="3" Classes="label" Text="WHAT IT'S FOR" />
               <TextBox Grid.Row="4" Text="{Binding BillDescription}" />
-              <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="Expense account" />
+              <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="Expense account" IsVisible="{Binding ShowXeroBills}" />
+              <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="What kind" IsVisible="{Binding OwnBills}" />
+              <ComboBox Grid.Row="4" Grid.Column="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding BillCategory}"
+                        HorizontalAlignment="Stretch" IsVisible="{Binding OwnBills}" />
               <ComboBox Grid.Row="4" Grid.Column="2" ItemsSource="{Binding ExpenseAccounts}" SelectedItem="{Binding BillAccount}"
-                        PlaceholderText="Pick one" HorizontalAlignment="Stretch">
+                        PlaceholderText="Pick one" HorizontalAlignment="Stretch" IsVisible="{Binding ShowXeroBills}">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="xero:XeroSalesAccount">
                     <TextBlock Text="{Binding Name}" />
@@ -108,15 +123,51 @@
             <TextBlock TextWrapping="Wrap" FontSize="{DynamicResource Text12}" Text="{Binding BillMessage}" Classes.problem="{Binding BillMessageIsProblem}"
                        Classes.muted="{Binding !BillMessageIsProblem}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Classes="primary" Content="Draft bill in Xero" Command="{Binding DraftBillCommand}" IsEnabled="{Binding !BillBusy}"
-                      IsVisible="{Binding !AskAddSupplier}" />
+              <Button Classes="primary" Content="Keep the bill" Command="{Binding DraftBillCommand}" IsEnabled="{Binding !BillBusy}"
+                      IsVisible="{Binding OwnBills}" />
+              <Button Classes="primary" Content="Draft bill in Xero" Command="{Binding DraftBillCommand}" IsEnabled="{Binding !BillBusy}">
+                <Button.IsVisible>
+                  <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="ShowXeroBills" />
+                    <Binding Path="!AskAddSupplier" />
+                  </MultiBinding>
+                </Button.IsVisible>
+              </Button>
               <Button Classes="primary" Content="Add supplier and draft" Command="{Binding AddSupplierAndDraftCommand}" IsEnabled="{Binding !BillBusy}"
                       IsVisible="{Binding AskAddSupplier}" />
               <Button Classes="quiet" Content="Cancel" Command="{Binding CancelBillCommand}" />
             </StackPanel>
-            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="It goes in as a draft with the PDF attached. Approving and paying stay with you in Xero." />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding ShowXeroBills}"
+                       Text="It goes in as a draft with the PDF attached. Approving and paying stay with you in Xero." />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" IsVisible="{Binding OwnBills}"
+                       Text="It's owed until you mark it paid, which adds it to the month's expenses with the bill as its receipt." />
           </StackPanel>
         </Border>
+        <ItemsControl ItemsSource="{Binding OwnBillRows}" IsVisible="{Binding OwnBills}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:OwnBillRowViewModel">
+              <Border Classes="taskrow">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Classes="link" Padding="4,0" Command="{Binding OpenCommand}" IsVisible="{Binding HasFile}" ToolTip.Tip="Open the bill">
+                      <c:Icon Data="{StaticResource Icon.Paperclip}" Size="14" />
+                    </Button>
+                    <TextBlock Classes="amount" Text="{Binding Amount}" Classes.problem="{Binding IsOverdue}" VerticalAlignment="Center" Margin="8,0" />
+                    <Button Classes="quiet" Content="Paid" Command="{Binding PayCommand}" IsVisible="{Binding IsOwed}"
+                            ToolTip.Tip="Mark it paid today. It goes into this month's expenses." />
+                    <Button Classes="link" Padding="6,0" Command="{Binding DeleteCommand}" IsVisible="{Binding IsOwed}" ToolTip.Tip="Remove this bill">
+                      <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+                    </Button>
+                  </StackPanel>
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Supplier}" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Details}" Classes.problem="{Binding IsOverdue}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
         <ItemsControl ItemsSource="{Binding BillRows}" IsVisible="{Binding HasBills}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:BillRowViewModel">

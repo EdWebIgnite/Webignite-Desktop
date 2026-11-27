@@ -79,7 +79,14 @@ public static class Postings
     /// out money entries that are payments of those invoices (the invoice already has them).
     /// </summary>
     public static IReadOnlyList<JournalEntry> Books(IEnumerable<StoredDocument> documents, IEnumerable<Webignite.Core.Finance.MoneyEntry> money, IReadOnlyCollection<Account> chart) =>
-        [.. All(documents, chart).Concat(money.Where(m => m.DocumentId is null).Select(m => Journals.FromMoneyEntry(m, chart)))
+        Books(documents, money, [], chart);
+
+    /// <summary>The same, with the supplier's bills kept in Webignite: each bill and its payment, and not the expense paying it again.</summary>
+    public static IReadOnlyList<JournalEntry> Books(IEnumerable<StoredDocument> documents, IEnumerable<Webignite.Core.Finance.MoneyEntry> money,
+        IEnumerable<Webignite.Core.Finance.SupplierBill> bills, IReadOnlyCollection<Account> chart) =>
+        [.. All(documents, chart)
+            .Concat(money.Where(m => m.DocumentId is null && m.BillId is null).Select(m => Journals.FromMoneyEntry(m, chart)))
+            .Concat(bills.SelectMany(b => Webignite.Core.Finance.SupplierBills.Postings(b, chart)))
             .OrderBy(e => e.Date).ThenBy(e => e.Id, StringComparer.Ordinal)];
 
     // The invoice's income by account, after its discount, summing to its total.
