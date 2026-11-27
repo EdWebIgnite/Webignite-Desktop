@@ -228,11 +228,12 @@ public partial class MainWindow : Window
         Palettes.Apply(appearance);
         Looks.Follow(this);
         Looks.Apply(appearance);
-        Classes.Set("motion-full", appearance.Motion == Motion.Full);
-        Classes.Set("motion-reduced", appearance.Motion == Motion.Reduced);
-        Controls.Spinner.Still = appearance.Motion == Motion.Off;
-        ScrollingHost.PageTransition = FadeRise.For(appearance.Motion);
-        FullHost.PageTransition = FadeRise.For(appearance.Motion);
+        var motion = WindowsMotion.Effective(appearance.Motion);
+        Classes.Set("motion-full", motion == Motion.Full);
+        Classes.Set("motion-reduced", motion == Motion.Reduced);
+        Controls.Spinner.Still = motion == Motion.Off;
+        ScrollingHost.PageTransition = FadeRise.For(motion);
+        FullHost.PageTransition = FadeRise.For(motion);
     }
 
     // Group headings in the sidebar can't be picked or reached with the arrow keys; a click folds the group.

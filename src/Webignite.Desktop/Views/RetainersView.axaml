@@ -5,7 +5,7 @@
              x:Class="Webignite.Desktop.Views.RetainersView"
              x:DataType="vm:RetainersViewModel">
   <Panel>
-    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsListing}" />
+    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsListing}" c:Entrance.OnContent="True" />
 
     <StackPanel Spacing="18" IsVisible="{Binding IsListing}">
       <DockPanel>
