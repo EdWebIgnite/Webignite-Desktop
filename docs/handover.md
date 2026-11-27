@@ -94,7 +94,7 @@ Answers Eddie gave:
 
 ## The draft window on Windows
 
-A mail in its own window (`ComposeWindow`) didn't lay itself out again when it grew, maximised or dragged. Logs showed no layout or drawing errors; the one difference from a popped-out page (which works) was that the draft window was owned by the main window (`Show(this)`). #369 shows it as a window of its own (`Show()`, own taskbar button, placed near the main window). If Eddie still sees it, the Chat window (also owned) is the next thing to compare.
+A mail in its own window (`ComposeWindow`) didn't lay itself out again when it grew, maximised or dragged. Logs showed no layout or drawing errors; the one difference from a popped-out page (which works) was that the draft window was owned by the main window (`Show(this)`). #369 shows it as a window of its own (`Show()`, own taskbar button, placed near the main window). Eddie: still there on 0.2.334, only with Edit draft, and X never closes it (the Keep this as a draft? bar never shows, so the window stops redrawing altogether). The Chat window is fine. A draft differs from a new mail by its earlier message, which the HTML viewer (`HtmlPanel`) was handed as soon as the draft opened, though folded away; #370 hands it over only on Show the earlier message (`ShownQuoteHtml`). If it still happens, ask Eddie to edit a draft with no earlier message: if that one's fine, the viewer is confirmed; if not, look at what `RichHtml.Read` makes of the draft's HTML.
 
 ## Still open
 
