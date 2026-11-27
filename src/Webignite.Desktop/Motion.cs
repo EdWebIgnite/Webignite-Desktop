@@ -14,6 +14,28 @@ public enum Motion
     Off,
 }
 
+/// <summary>Windows' own choice about movement, which full motion gives way to.</summary>
+public static class WindowsMotion
+{
+    private const uint GetClientAreaAnimation = 0x1042;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool SystemParametersInfo(uint action, uint param, ref int value, uint winIni);
+
+    /// <summary>
+    /// The motion to use: Full gives way to Reduced when "Animation effects" is off in Windows (Accessibility,
+    /// Visual effects), so someone who asked Windows for less movement gets it here too. The other choices stand.
+    /// </summary>
+    public static Motion Effective(Motion chosen)
+    {
+        if (chosen != Motion.Full || !OperatingSystem.IsWindows())
+            return chosen;
+        var on = 1;
+        return SystemParametersInfo(GetClientAreaAnimation, 0, ref on, 0) && on == 0 ? Motion.Reduced : chosen;
+    }
+}
+
 /// <summary>Look settings kept on this PC.</summary>
 public sealed record AppearanceSettings
 {

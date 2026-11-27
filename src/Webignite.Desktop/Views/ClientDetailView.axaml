@@ -7,9 +7,9 @@
              x:DataType="vm:ClientDetailViewModel"
              x:Name="Root">
   <Panel>
-    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsShowingClient}" />
+    <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsShowingClient}" c:Entrance.OnContent="True" />
 
-    <StackPanel Spacing="18" IsVisible="{Binding IsShowingClient}">
+    <StackPanel Classes="enter" Spacing="18" IsVisible="{Binding IsShowingClient}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
           <Button Classes="quiet" Content="Draft statement" Command="{Binding DraftStatementCommand}" IsVisible="{Binding HasOwed}"
@@ -53,7 +53,7 @@
           </DockPanel>
         </Border>
         <!-- Changes Claude or ChatGPT suggested: nothing changes on the client until one is accepted. -->
-        <Border Classes="card pending" IsVisible="{Binding HasSuggestions}">
+        <Border Classes="card pending enter" IsVisible="{Binding HasSuggestions}">
           <StackPanel Spacing="10">
             <TextBlock Text="{Binding SuggestionHeading}" TextWrapping="Wrap" FontWeight="SemiBold" />
             <ItemsControl ItemsSource="{Binding SuggestedChanges}">
