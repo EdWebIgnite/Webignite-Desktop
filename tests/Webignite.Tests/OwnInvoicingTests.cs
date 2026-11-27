@@ -76,3 +76,40 @@ public sealed class OwnInvoicingTests
         Assert.Equal(DocumentStatus.Issued, merged.Status);
     }
 }
+
+public class NextNumberSetInSettingsTests
+{
+    private static StoredDocument Issued(string number, DocumentKind kind = DocumentKind.Invoice) => new()
+    {
+        Id = number,
+        Status = DocumentStatus.Issued,
+        Document = new Document { Kind = kind, Origin = DocumentOrigin.New, Customer = new Customer { Name = "G3" }, Lines = [], Number = number },
+        Own = new OwnIssue { Number = number },
+    };
+
+    [Fact]
+    public void A_number_set_in_Settings_is_used_unless_it_is_already_used_or_behind()
+    {
+        var all = new[] { Issued("INV-0112"), Issued("INV-0113") };
+
+        Assert.Equal("INV-0200", OwnInvoicing.NextNumber(DocumentKind.Invoice, all, "INV-0200"));
+        Assert.Equal("INV-0114", OwnInvoicing.NextNumber(DocumentKind.Invoice, all, "INV-0100"));
+        Assert.Equal("INV-0114", OwnInvoicing.NextNumber(DocumentKind.Invoice, all, "INV-0113"));
+        Assert.Equal("WI-0001", OwnInvoicing.NextNumber(DocumentKind.Invoice, all, "WI-0001"));
+        Assert.Equal("INV-0114", OwnInvoicing.NextNumber(DocumentKind.Invoice, all, null));
+    }
+
+    [Fact]
+    public void Making_one_final_uses_the_number_set_in_Settings()
+    {
+        var draft = new StoredDocument
+        {
+            Id = "d",
+            Document = new Document { Kind = DocumentKind.Invoice, Origin = DocumentOrigin.New, Customer = new Customer { Name = "G3" }, Lines = [] },
+        };
+
+        var issued = OwnInvoicing.Issue(draft, [Issued("INV-0112"), draft], DateTimeOffset.UnixEpoch, "INV-0200");
+
+        Assert.Equal("INV-0200", issued?.Own?.Number);
+    }
+}

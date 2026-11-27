@@ -1175,6 +1175,20 @@
       <StackPanel Spacing="10">
         <TextBlock Classes="h2" Text="Where quotes and invoices are made" />
         <CheckBox IsChecked="{Binding MakeInWebignite}" Content="Make quotes and invoices in Webignite instead of Xero" />
+        <WrapPanel ItemSpacing="24" LineSpacing="8">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Next quote number" />
+            <TextBox Text="{Binding NextQuoteNumber}" Width="140" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Next invoice number" />
+            <TextBox Text="{Binding NextInvoiceNumber}" Width="140" HorizontalAlignment="Left" />
+          </StackPanel>
+          <Button Classes="quiet" Content="Save numbers" Command="{Binding SaveNextNumbersCommand}" VerticalAlignment="Bottom" />
+        </WrapPanel>
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding NumbersMessage}" IsVisible="{Binding NumbersMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                   Text="They carry on from the highest number you have, Xero's included. Type another to jump ahead or start a new run. A number typed on a draft is used for that one if no other document has it." />
         <TextBlock Classes="muted" TextWrapping="Wrap"
                    Text="Ticked, a quote or invoice gets its number here, carrying on from the numbers you have, when you approve or email it. It goes out with Webignite's own PDF from your invoice mailbox, and payments are recorded here. Nothing new goes to Xero. Ones already in Xero carry on there. Leave it off while you still use Xero for new ones." />
       </StackPanel>

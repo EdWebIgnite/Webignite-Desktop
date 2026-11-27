@@ -16,5 +16,8 @@ public enum DocumentOrigin
 
     /// <summary>Made in Xero itself (not from Webignite) and brought in to be seen here. Changed in Xero only.</summary>
     Xero,
+
+    /// <summary>An old quote or invoice brought in from a spreadsheet, as it was: its number, figures and whether it was paid.</summary>
+    Import,
 }
 

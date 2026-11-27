@@ -203,6 +203,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
         OnPropertyChanged(nameof(NoMatches));
         OnPropertyChanged(nameof(ShowTable));
         OnPropertyChanged(nameof(IsFiltered));
+        ShowWaitingImport();
     }
 }
 

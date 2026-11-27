@@ -38,10 +38,25 @@ public static partial class OwnInvoicing
 
     /// <summary>
     /// The next number for a kind: the highest number used so far, in Xero or here, plus one, keeping its prefix and
-    /// its leading zeros. INV-0001 or QU-0001 when there are none yet.
+    /// its leading zeros. INV-0001 or QU-0001 when there are none yet. With <paramref name="from"/> (set in Settings),
+    /// that number is used instead, with its own prefix, unless it is already used or behind; then one past the
+    /// highest used with that prefix.
     /// </summary>
-    public static string NextNumber(DocumentKind kind, IEnumerable<StoredDocument> all)
+    public static string NextNumber(DocumentKind kind, IEnumerable<StoredDocument> all, string? from = null)
     {
+        if (from is not null && Numbered().Match(from.Trim()) is { Success: true } set)
+        {
+            var setPrefix = set.Groups["prefix"].Value;
+            var setDigits = set.Groups["digits"].Value;
+            var same = all.Where(s => s.Document.Kind == kind).Select(NumberOf).OfType<string>()
+                .Select(n => Numbered().Match(n.Trim()))
+                .Where(m => m.Success && string.Equals(m.Groups["prefix"].Value, setPrefix, StringComparison.OrdinalIgnoreCase))
+                .Select(m => (Value: long.Parse(m.Groups["digits"].Value, CultureInfo.InvariantCulture), Width: m.Groups["digits"].Value.Length))
+                .ToList();
+            var value = Math.Max(long.Parse(setDigits, CultureInfo.InvariantCulture), same.Count == 0 ? 1 : same.Max(u => u.Value) + 1);
+            var setWidth = Math.Max(setDigits.Length, same.Count == 0 ? 0 : same.Max(u => u.Width));
+            return setPrefix + value.ToString(CultureInfo.InvariantCulture).PadLeft(setWidth, '0');
+        }
         var fallback = kind == DocumentKind.Quote ? "QU-" : "INV-";
         var used = all.Where(s => s.Document.Kind == kind)
             .Select(NumberOf).OfType<string>()
@@ -67,14 +82,14 @@ public static partial class OwnInvoicing
     /// Makes a draft final here: it gets the next number (or the one typed on it, if no other document has that), and
     /// can no longer be changed. Returns null when it can't be issued.
     /// </summary>
-    public static StoredDocument? Issue(StoredDocument s, IReadOnlyCollection<StoredDocument> all, DateTimeOffset now)
+    public static StoredDocument? Issue(StoredDocument s, IReadOnlyCollection<StoredDocument> all, DateTimeOffset now, string? from = null)
     {
         if (!CanIssue(s))
             return null;
         var typed = s.Document.Number?.Trim();
         var taken = all.Where(o => o.Id != s.Id && o.Document.Kind == s.Document.Kind).Select(NumberOf).OfType<string>()
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var number = !string.IsNullOrEmpty(typed) && !taken.Contains(typed) ? typed : NextNumber(s.Document.Kind, all.Where(o => o.Id != s.Id));
+        var number = !string.IsNullOrEmpty(typed) && !taken.Contains(typed) ? typed : NextNumber(s.Document.Kind, all.Where(o => o.Id != s.Id), from);
         return s with
         {
             Status = DocumentStatus.Issued,

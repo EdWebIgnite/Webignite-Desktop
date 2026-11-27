@@ -17,6 +17,8 @@
             <TextBlock Text="{Binding NewLabel}" />
           </StackPanel>
         </Button>
+        <Button DockPanel.Dock="Right" Classes="quiet" Content="Old ones from a CSV…" Click="ImportClicked" VerticalAlignment="Center" Margin="0,0,8,0"
+                ToolTip.Tip="Bring in old quotes and invoices from a spreadsheet, such as a Xero or QuickBooks export, as a record. You see what comes in first." />
         <Button DockPanel.Dock="Right" Classes="quiet" Content="Bring in from Xero" Command="{Binding BringInFromXeroCommand}"
                 IsEnabled="{Binding !BringingIn}" VerticalAlignment="Center" Margin="0,0,8,0"
                 ToolTip.Tip="Quotes and invoices made in Xero itself come in every few hours. This reads Xero now." />
@@ -25,6 +27,30 @@
           <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding XeroMessage}" IsVisible="{Binding HasXeroMessage}" />
         </StackPanel>
       </DockPanel>
+
+      <Border Classes="card" IsVisible="{Binding HasImport}">
+        <StackPanel Spacing="8">
+          <TextBlock FontWeight="SemiBold" Text="Old quotes and invoices to bring in" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding ImportFrom}" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding ImportSummary}" />
+          <ItemsControl ItemsSource="{Binding ImportNotes}" IsVisible="{Binding HasImportNotes}" MaxHeight="160">
+            <ItemsControl.Template>
+              <ControlTemplate><ScrollViewer><ItemsPresenter /></ScrollViewer></ControlTemplate>
+            </ItemsControl.Template>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding}" Margin="0,1" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap"
+                     Text="They come in as they were: numbers, dates, totals and whether they were paid. Nothing is mailed and nothing goes to Xero." />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary" Content="Bring them in" Command="{Binding BringInCommand}" IsEnabled="{Binding CanBringIn}" />
+            <Button Classes="quiet" Content="Throw away" Command="{Binding ThrowAwayImportCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
 
       <c:EmptyState IsVisible="{Binding IsEmpty}" Icon="{Binding EmptyIcon, Converter={x:Static c:IconConverter.Instance}}"
                     Title="{Binding EmptyTitle}" Text="{Binding EmptyText}" ActionText="{Binding NewLabel}" Command="{Binding NewCommand}" />
