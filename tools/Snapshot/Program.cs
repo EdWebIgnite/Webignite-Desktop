@@ -1654,6 +1654,8 @@ vm.Mail.SnoozePart.CancelSnoozePickCommand.Execute(null);
     services.Settings.MailRules = new Webignite.Core.Mail.MailRuleSettings();
 }
 vm.Mail.Reader!.ReplyCommand.Execute(null);
+Check("A reply has the earlier message under it, folded away and not loaded until it's asked for",
+    vm.Mail.Composer is { HasQuote: true, ShowQuote: false, ShownQuoteHtml.Length: 0 });
 // The reply's opening comes from a saved reply, with Lerato's name filled in.
 services.Settings.SavedReplies =
 [
@@ -2315,6 +2317,11 @@ Check("The signature is in the mail once, picture and all",
             .GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => !t.Text!.Contains('@') && t.Text.Length > 0));
     Check("A drafted reply gets the signature right after the writing", body.Contains("Baie dankie!\n\nWebignite Accounts", StringComparison.Ordinal)
         && body.Split("Webignite Accounts").Length == 2);
+    Check("A mail opens with any earlier message folded away and not loaded until it's asked for",
+        !vm.Mail.Composer.ShowQuote && vm.Mail.Composer.ShownQuoteHtml.Length == 0);
+    vm.Mail.Composer.ToggleQuoteCommand.Execute(null);
+    Check("Show the earlier message loads it", vm.Mail.Composer.ShownQuoteHtml == vm.Mail.Composer.QuoteHtml);
+    vm.Mail.Composer.ToggleQuoteCommand.Execute(null);
     Save("compose-reply-signature");
 }
 // Formatting: a mail using the format bar's styles, typed straight onto the paper.

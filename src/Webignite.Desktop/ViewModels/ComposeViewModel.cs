@@ -97,7 +97,16 @@ public partial class ComposeViewModel : ViewModelBase
 
     /// <summary>The writing as plain text, for checks such as a mentioned attachment.</summary>
     public string Body => RichText.ToText(Document);
-    [ObservableProperty] public partial bool ShowQuote { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShownQuoteHtml))]
+    public partial bool ShowQuote { get; set; }
+
+    /// <summary>
+    /// The earlier message for the viewer, only once it's asked for. Folded away the viewer gets nothing, so a draft
+    /// with an earlier message opens with no HTML being laid out or drawn under it (a draft window on Windows stopped
+    /// redrawing when it was).
+    /// </summary>
+    public string ShownQuoteHtml => ShowQuote ? QuoteHtml : "";
     [ObservableProperty] public partial string Message { get; set; } = "";
     [ObservableProperty] public partial bool MessageIsProblem { get; set; }
     [ObservableProperty] public partial bool IsWorking { get; set; }
