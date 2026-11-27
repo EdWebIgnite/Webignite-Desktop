@@ -1345,6 +1345,32 @@ Check("Money shows the bills to pay from Xero", window.GetVisualDescendants().Of
     receiptPage.PickReceipt = null;
     receiptPage.Refresh();
 }
+{
+    // A bank statement brought in: each new line with what it most likely is, ticked when sure.
+    var bankPage = (MoneyViewModel)window.GetVisualDescendants().OfType<MoneyView>().First().DataContext!;
+    var statementFile = Path.Combine(data, "62000000000.csv");
+    var d = month;
+    string Fnb(DateOnly day) => day.ToString("dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+    File.WriteAllText(statementFile, string.Join("\n",
+        "2,Name,WEBIGNITE (PTY) LTD",
+        "3,Account,62000000000,Gold Business Account",
+        "5,Number,Date,Description1,Description2,Description3,Amount,Balance,Accrued Charges",
+        $"5,1,{Fnb(d.AddDays(6))},POS Purchase,Takealot,,-349.99,18034.56,0.00",
+        $"5,2,{Fnb(d.AddDays(9))},Debit Order,Adobe Systems,88231,-1150.00,16884.56,0.00",
+        $"5,3,{Fnb(d.AddDays(14))},FNB App Payment From,Lerato Dlamini,,1500.00,18384.56,0.00",
+        $"5,4,{Fnb(d.AddDays(20))},#Monthly Account Fee,,,-125.00,18259.56,0.00"));
+    Wait(bankPage.StartBankAsync(statementFile), "Reading a bank statement");
+    Check("A statement's new lines show with what each most likely is",
+        bankPage.ShowingBank && bankPage.BankLines.Count == 4
+        && bankPage.BankLines.Single(l => l.Description.Contains("Takealot", StringComparison.Ordinal)).Match.Kind == Webignite.Core.Finance.BankMatchKind.AlreadyEntered
+        && bankPage.BankLines.Single(l => l.Description.Contains("Fee", StringComparison.Ordinal)).Category == "Bank fees");
+    window.Height = 1250;
+    Dispatcher.UIThread.RunJobs();
+    Save("money-bank");
+    window.Height = 860;
+    bankPage.CancelBankCommand.Execute(null);
+    Check("Cancel adds nothing and remembers nothing", !bankPage.ShowingBank && services.Settings.Bank.Seen.Count == 0);
+}
 
 Webignite.Core.Documents.Line Priced(string description, decimal price) => new() { Description = description, Quantity = 1, UnitPrice = price };
 var seo = store.SaveRetainer(new Webignite.Core.Retainers.Retainer

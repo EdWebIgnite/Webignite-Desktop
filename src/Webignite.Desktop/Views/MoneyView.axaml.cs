@@ -25,6 +25,21 @@ public partial class MoneyView : UserControl
         Pick(money).Forget("Drafting a bill from a PDF", tell: true);
     }
 
+    /// <summary>Picks a statement downloaded from internet banking (OFX or CSV) and shows its new lines.</summary>
+    private void PickStatement(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MoneyViewModel money)
+            return;
+        PickBank(money).Forget("Bringing in a bank statement", tell: true);
+    }
+
+    private async Task PickBank(MoneyViewModel money)
+    {
+        var picked = await Picker.Files(this, "Pick the bank statement", ["*.ofx", "*.qfx", "*.csv"], kindName: "Bank statements");
+        if (picked.Count > 0)
+            await money.StartBankAsync(picked[0]);
+    }
+
     private async Task Pick(MoneyViewModel money)
     {
         var picked = await Picker.Files(this, "Pick the supplier's bill", ["*.pdf"], kindName: "PDF bills");

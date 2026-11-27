@@ -40,7 +40,7 @@ The plan:
 2. Done: project name and your own fields on quotes and invoices.
 3. Done: the client page as the hub.
 4. Done: expenses with receipts, supplier bills kept here. Still to come: bills and money entries going between the two PCs.
-5. Next: FNB statement import (CSV/OFX), auto-matching to invoices and expenses, learning from corrections.
+5. Done (first pass): FNB statement import, matching and learning. Next: try it on a real FNB download, then reports.
 6. Reports for us (profit by month and tax year, cash, debtors and creditors, provisional tax helper), and an accountant's corner for the sister: trial balance, journals, closing a period, Excel exports, and her own login with an accountant role.
 7. Bring in the Xero and QuickBooks history, remove duplicates (both were run at the same time), and check the totals.
 8. Switch Xero off.
@@ -90,6 +90,7 @@ Answers Eddie gave:
 - #364: one list of projects per client: their Planner projects, with For (an agency's end client) and their own rate; the old list on the client moved across at start-up.
 - #365: file mail under a client's project (IMAP keyword, Projects list in Mail's folder list).
 - #366: supplier bills kept in Webignite when the invoicing switch is on; Paid adds the expense.
+- #367: bank statement import (OFX or CSV, FNB's layout included), matched to invoices, bills and what's already typed in, learning the kind of expense from corrections. Not yet tried with a real FNB file: ask Eddie for one (amounts and names can be blanked) and check the reader.
 
 ## Open problem: the draft window on Windows
 

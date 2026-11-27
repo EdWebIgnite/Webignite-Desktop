@@ -21,6 +21,34 @@ public sealed class ServiceLayerTests : IDisposable
     }
 
     [Fact]
+    public void A_bank_statement_records_what_was_confirmed_and_shows_only_new_lines_next_time()
+    {
+        var documents = new DocumentService(store);
+        var import = new BankImport(store, documents);
+        var now = new DateTimeOffset(2026, 11, 27, 10, 0, 0, TimeSpan.FromHours(2));
+        store.Save(Samples.InXero("0104", 2800m).WithXero(x => x with { Status = "AUTHORISED" }));
+        var bill = store.SaveSupplierBill(new Webignite.Core.Finance.SupplierBill { Id = "b1", Supplier = "xneelo (Pty) Ltd", Date = new DateOnly(2026, 11, 1), Total = 1899m });
+        var csv = "Date,Description,Amount\n2026/11/03,FNB APP PAYMENT INV-0104,2800.00\n2026/11/04,DEBIT ORDER XNEELO,-1899.00\n2026/11/05,ADOBE SYSTEMS 1234,-1150.00\n";
+        var statement = Webignite.Core.Finance.BankStatements.Read("s.csv", csv);
+        var settings = new Webignite.Core.Finance.BankSettings();
+
+        var lines = import.Prepare(statement, settings);
+        Assert.Equal([Webignite.Core.Finance.BankMatchKind.NewExpense, Webignite.Core.Finance.BankMatchKind.Bill, Webignite.Core.Finance.BankMatchKind.Invoice],
+            lines.Select(l => l.Match.Kind));
+        foreach (var (line, match) in lines)
+            import.Apply(line, match, "Software and subscriptions", "Adobe", now);
+
+        var entries = store.ListEntries(new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30));
+        Assert.Contains(entries, e => e.Kind == Webignite.Core.Finance.EntryKind.Received && e.Amount == 2800m && e.Note == "INV-0104");
+        Assert.Contains(entries, e => e.BillId == bill.Id && e.Date == new DateOnly(2026, 11, 4));
+        Assert.Contains(entries, e => e.Category == "Software and subscriptions" && e.Party == "Adobe" && e.Amount == 1150m);
+        Assert.NotNull(store.GetSupplierBill("b1")!.Paid);
+
+        settings = settings.WithSeen(lines.Select(l => l.Line.Key));
+        Assert.Empty(import.Prepare(statement, settings));
+    }
+
+    [Fact]
     public void A_clients_old_projects_move_into_the_Planner_once_and_time_keeps_seeing_them()
     {
         var clients = new ClientService(store);
