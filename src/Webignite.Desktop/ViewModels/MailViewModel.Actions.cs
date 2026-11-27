@@ -253,6 +253,17 @@ public partial class MailViewModel
                 items.Add(new MailMenuItem("   " + project.Name, () => SetCategory(project.Keyword, !all)) { Checked = all, IsEnabled = mail.Count > 0 });
             }
         }
+        // The rest: picking one files the mail and puts the project on the list.
+        if (ProjectsToAdd.Count > 0)
+        {
+            if (items.Count > 0)
+                items.Add(MailMenuItem.Separator);
+            items.Add(new MailMenuItem("More projects") { IsEnabled = mail.Count > 0, Items = [.. ProjectsToAdd.Select(p => new MailMenuItem(p.Label, async () =>
+            {
+                ShowProject(p.ProjectId, true);
+                await SetCategory(MailProjects.Keyword(p.ProjectId), true, mail);
+            }))] });
+        }
         if (items.Count == 0)
             items.Add(new MailMenuItem("No projects yet. Add them on a client's page.") { IsEnabled = false });
         return items;

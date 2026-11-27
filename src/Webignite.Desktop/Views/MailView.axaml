@@ -405,11 +405,39 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <!-- Projects: each client's projects still going; a project shows the mail filed under it, wherever it is -->
-              <TextBlock FontWeight="SemiBold" Text="Projects" Margin="10,14,4,4" />
+              <!-- Projects: only those picked to show (what's being worked on now), under their clients; folds up. A project
+                   shows the mail filed under it, wherever it is. -->
+              <DockPanel Margin="4,14,4,4">
+                <Button DockPanel.Dock="Right" Classes="link" FontSize="{DynamicResource Text12}" Content="Add" IsVisible="{Binding HasProjectsToAdd}"
+                        ToolTip.Tip="Put a project on this list">
+                  <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedLeft">
+                      <ScrollViewer MaxHeight="380" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding ProjectsToAdd}" MinWidth="260">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MailProjectChoice">
+                              <Button Classes="folder" Padding="10,6" Command="{Binding AddCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                              </Button>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </ScrollViewer>
+                    </Flyout>
+                  </Button.Flyout>
+                </Button>
+                <Button Classes="link" Padding="6,2" Command="{Binding ToggleProjectsCommand}" HorizontalAlignment="Left"
+                        ToolTip.Tip="Fold the projects away, or show them">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <c:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" IsVisible="{Binding ProjectsOpen}" />
+                    <c:Icon Data="{StaticResource Icon.ChevronRight}" Size="12" IsVisible="{Binding ProjectsFolded}" />
+                    <TextBlock FontWeight="SemiBold" Text="Projects" />
+                  </StackPanel>
+                </Button>
+              </DockPanel>
               <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Margin="10,0,8,6" TextWrapping="Wrap" IsVisible="{Binding !HasProjectGroups}"
-                         Text="Add projects on a client's page, then file mail under them from the mail's menu." />
-              <ItemsControl ItemsSource="{Binding ProjectGroups}">
+                         Text="Add the projects you're working on, then file mail under them from the mail's menu." />
+              <ItemsControl ItemsSource="{Binding ProjectGroups}" IsVisible="{Binding ProjectsOpen}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MailProjectGroupNode">
                     <StackPanel>
@@ -422,6 +450,7 @@
                               <Button.ContextMenu>
                                 <ContextMenu>
                                   <MenuItem Header="Open in the Planner" Command="{Binding OpenInPlannerCommand}" />
+                                  <MenuItem Header="Take off this list" Command="{Binding TakeOffListCommand}" />
                                 </ContextMenu>
                               </Button.ContextMenu>
                               <StackPanel Orientation="Horizontal" Spacing="10">

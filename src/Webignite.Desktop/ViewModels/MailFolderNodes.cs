@@ -234,6 +234,23 @@ public partial class CategoryNodeViewModel(MailCategory category, MailViewModel 
         if (ProjectId is { } id)
             owner.OpenProject(id);
     }
+
+    [RelayCommand]
+    private void TakeOffList()
+    {
+        if (ProjectId is { } id)
+            owner.ShowProject(id, false);
+    }
+}
+
+/// <summary>A project that can be put on Mail's list.</summary>
+public sealed partial class MailProjectChoice(string label, string projectId, MailViewModel owner)
+{
+    public string Label => label;
+    public string ProjectId => projectId;
+
+    [RelayCommand]
+    private void Add() => owner.ShowProject(projectId, true);
 }
 
 /// <summary>A client in the Mail sidebar's Projects list, with their projects to file mail under.</summary>

@@ -5,6 +5,13 @@ namespace Webignite.Tests;
 public class MailTidyTests
 {
     [Fact]
+    public void A_size_given_twice_on_one_tag_doesnt_stop_the_mail_opening()
+    {
+        var html = MailTidy.Tidy("<table width=\"600\" width=\"100%\" style=\"width:600px; width:100%\"><tr><td>Hi</td></tr></table><img src=\"x.png\" width=\"300\" WIDTH=\"320\">");
+        Assert.Contains("Hi", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_picture_sized_in_inches_by_Word_gets_its_size_in_pixels()
     {
         var tidy = MailTidy.Tidy("<img border=0 width=240 height=84 style='width:2.5in;height:.875in' src=\"cid:logo\">");

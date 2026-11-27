@@ -156,9 +156,36 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes, IDisp
     public bool NoMessages => Messages.Count == 0;
     public bool HasCategories => Categories.Count > 0;
 
-    /// <summary>Clients and their projects still going, each a list of the mail filed under it.</summary>
+    /// <summary>The projects picked for the folder list, under their clients, each a list of the mail filed under it.</summary>
     public ObservableCollection<MailProjectGroupNode> ProjectGroups { get; } = [];
     public bool HasProjectGroups => ProjectGroups.Count > 0;
+
+    /// <summary>Projects still going that aren't on the list, to add one: "Client · Project".</summary>
+    public ObservableCollection<MailProjectChoice> ProjectsToAdd { get; } = [];
+    public bool HasProjectsToAdd => ProjectsToAdd.Count > 0;
+
+    /// <summary>The Projects list folded up to its heading (kept).</summary>
+    public bool ProjectsFolded => services.Settings.MailProjects.Folded;
+    public bool ProjectsOpen => !ProjectsFolded;
+
+    [RelayCommand]
+    private void ToggleProjects()
+    {
+        services.Settings.MailProjects = services.Settings.MailProjects with { Folded = !ProjectsFolded };
+        OnPropertyChanged(nameof(ProjectsFolded));
+        OnPropertyChanged(nameof(ProjectsOpen));
+    }
+
+    /// <summary>Puts a project on Mail's list, or takes it off (its mail stays filed under it).</summary>
+    internal void ShowProject(string projectId, bool shown)
+    {
+        services.Settings.MailProjects = services.Settings.MailProjects.With(projectId, shown) with { Folded = shown ? false : ProjectsFolded };
+        if (!shown && CurrentCategory?.ProjectId == projectId)
+            CurrentCategory = null;
+        LoadCategories();
+        OnPropertyChanged(nameof(ProjectsFolded));
+        OnPropertyChanged(nameof(ProjectsOpen));
+    }
 
     // Categories and projects alike: both show the mail carrying their keyword.
     private IEnumerable<CategoryNodeViewModel> KeywordNodes => Categories.Concat(ProjectGroups.SelectMany(g => g.Projects));
@@ -317,11 +344,20 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes, IDisp
         foreach (var category in categories)
             Categories.Add(new CategoryNodeViewModel(category, this));
         OnPropertyChanged(nameof(HasCategories));
+        // Only the projects picked for the list: what's being worked on now, so it stays short.
+        var shown = services.Settings.MailProjects.Shown.ToHashSet(StringComparer.Ordinal);
+        var projects = services.Projects.Projects();
+        var clients = services.Clients.List();
         ProjectGroups.Clear();
-        foreach (var group in MailProjects.Groups(services.Projects.Projects(), services.Clients.List()))
+        foreach (var group in MailProjects.Groups(projects, clients, p => shown.Contains(p.Id)))
             ProjectGroups.Add(new MailProjectGroupNode(group.Client, [.. group.Projects.Select(p =>
                 new CategoryNodeViewModel(new MailCategory(MailProjects.Keyword(p.Id), Webignite.Core.Clients.ClientPlanner.Title(p), "grey"), this) { ProjectId = p.Id })]));
+        ProjectsToAdd.Clear();
+        foreach (var group in MailProjects.Groups(projects, clients, p => !shown.Contains(p.Id)))
+            foreach (var p in group.Projects)
+                ProjectsToAdd.Add(new MailProjectChoice($"{group.Client} · {Webignite.Core.Clients.ClientPlanner.Title(p)}", p.Id, this));
         OnPropertyChanged(nameof(HasProjectGroups));
+        OnPropertyChanged(nameof(HasProjectsToAdd));
     }
 
     internal void MarkCurrent()
