@@ -24,7 +24,7 @@
                   </Grid>
                 </Button>
               </Grid>
-              <ContentPresenter Content="{TemplateBinding Content}" IsVisible="{TemplateBinding IsOpen}" Margin="26,0,18,16" />
+              <ContentPresenter Content="{TemplateBinding Content}" IsVisible="{TemplateBinding IsOpen}" Margin="26,0,18,16" c:Entrance.OnShow="True" />
             </StackPanel>
           </Border>
         </ControlTemplate>

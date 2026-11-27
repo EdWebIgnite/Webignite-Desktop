@@ -126,7 +126,8 @@ public sealed class AreaBar : Control
         {
             Duration = TimeSpan.FromMilliseconds(220),
             Easing = new CubicEaseOut(),
-            FillMode = FillMode.Forward,
+            // Slide ends at 1, its own default, so nothing holds the bar once the slide has run.
+            FillMode = FillMode.None,
             Children =
             {
                 new KeyFrame { Cue = new Cue(0), Setters = { new Avalonia.Styling.Setter(SlideProperty, 0d) } },

@@ -9,7 +9,7 @@
     <ContentControl Content="{Binding Editor}" IsVisible="{Binding !IsListing}" c:Entrance.OnContent="True" />
 
     <!-- Down and Up move between rows, Enter opens one. Esc going back is in MainViewModel.GoBack. -->
-    <StackPanel Classes="enter" Spacing="18" IsVisible="{Binding IsListing}" c:ListKeys.IsEnabled="True">
+    <StackPanel Spacing="18" IsVisible="{Binding IsListing}" c:ListKeys.IsEnabled="True" c:Entrance.OnShow="True">
       <DockPanel>
         <Button DockPanel.Dock="Right" Classes="primary" Command="{Binding NewCommand}" VerticalAlignment="Center" ToolTip.Tip="Start a new one (Ctrl+N)">
           <StackPanel Orientation="Horizontal" Spacing="6">
