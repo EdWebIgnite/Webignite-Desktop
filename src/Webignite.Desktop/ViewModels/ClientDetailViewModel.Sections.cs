@@ -95,7 +95,13 @@ public partial class ClientDetailViewModel
 
     public string ChecklistSummary => HasOnboarding ? Onboarding.Progress(client) : "Not started";
 
-    public string ProjectsSummary => TimeSummary.TrimEnd('.');
+    public string ProjectsSummary => PlannerProjects.Count switch
+    {
+        0 => TimeSummary.TrimEnd('.'),
+        var n => $"{(n == 1 ? "1 project" : $"{n} projects")} in the Planner, {LowerFirst(TimeSummary.TrimEnd('.'))}",
+    };
+
+    private static string LowerFirst(string text) => text.Length == 0 ? text : char.ToLowerInvariant(text[0]) + text[1..];
 
     public string LoginsSummary => Logins.Count switch { 0 => "None yet", 1 => "1 saved", var n => $"{n} saved" };
 
