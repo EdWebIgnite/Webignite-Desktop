@@ -16,6 +16,16 @@ public sealed class ClientService(LocalStore store, TimeProvider? clock = null)
 
     public Client? Get(string id) => store.GetClient(id);
 
+    /// <summary>
+    /// Every client with their projects as time logging and invoicing see them: their projects in the Planner
+    /// (<see cref="ClientPlanner.ForTime"/>). Read only; change a project through the Planner.
+    /// </summary>
+    public IReadOnlyList<Client> ForTime()
+    {
+        var projects = store.ListProjects();
+        return [.. store.ListClients().Select(c => ClientPlanner.WithPlannerProjects(c, projects))];
+    }
+
     /// <summary>The client with this name, matched the way names always are.</summary>
     public Client? Find(string? name) => ClientDirectory.Find(store.ListClients(), name);
 

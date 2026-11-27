@@ -614,6 +614,7 @@ public sealed class AppServices : IDisposable
         Store.DraftRetainerInvoices(documents, today);
         Store.AddRecurringExpenses(today);
         Store.RaiseRenewals(documents, today);
+        Projects.MergeClientProjects(Clients.List());
     }
 
     /// <summary>Opens a link in the person's own default browser. Nothing is embedded in the app.</summary>

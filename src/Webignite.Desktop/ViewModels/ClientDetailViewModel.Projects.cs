@@ -1,13 +1,15 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Webignite.Core.Clients;
-using Webignite.Core.Time;
 using Webignite.Core;
+using Webignite.Core.Clients;
+using Webignite.Core.Projects;
+using Webignite.Core.Time;
 
 namespace Webignite.Desktop.ViewModels;
 
-// Projects on a client's page, for logging time against, with the time spent on each. Saved straight away.
+// A client's projects: one list, kept in the Planner, used for tasks, time and mail. Each shows when it's due, the
+// time logged on it and its own rate; ticking it finished marks it Done in the Planner. Saved straight away.
 public partial class ClientDetailViewModel
 {
     public ObservableCollection<ClientProjectRow> ProjectRows { get; } = [];
@@ -16,6 +18,9 @@ public partial class ClientDetailViewModel
     [NotifyCanExecuteChangedFor(nameof(AddProjectCommand))]
     public partial string NewProjectName { get; set; } = "";
 
+    /// <summary>Who a new project is for, when the client is an agency passing on its own client's work.</summary>
+    [ObservableProperty] public partial string NewProjectFor { get; set; } = "";
+
     /// <summary>"12 h 30 min in all, 3 h this month" for the client.</summary>
     [ObservableProperty] public partial string TimeSummary { get; set; } = "";
 
@@ -23,22 +28,23 @@ public partial class ClientDetailViewModel
 
     private void LoadProjects()
     {
+        ProjectRows.Clear();
+        if (isNew)
+        {
+            TimeSummary = "No time logged yet.";
+            OnPropertyChanged(nameof(HasProjects));
+            return;
+        }
         // All time for the client: a small business logs a few thousand entries at most, so reading them is cheap.
         var entries = services.Store.ListTime(DateOnly.MinValue, DateOnly.MaxValue).Where(e => e.ClientId == client.Id).ToList();
         var month = Dates.MonthStart(Today);
         var all = entries.Sum(e => e.Minutes);
         var thisMonth = entries.Where(e => e.Date >= month).Sum(e => e.Minutes);
         TimeSummary = all == 0 ? "No time logged yet." : $"{TimeRules.Format(all)} in all, {TimeRules.Format(thisMonth)} this month.";
-        ProjectRows.Clear();
-        foreach (var project in client.Projects.OrderBy(p => p.Finished))
-            ProjectRows.Add(new ClientProjectRow(project, TimeRules.Format(entries.Where(e => e.ProjectId == project.Id).Sum(e => e.Minutes)), this));
+        foreach (var project in ClientPlanner.For(services.Projects.Projects(), client.Id))
+            ProjectRows.Add(new ClientProjectRow(project, TimeRules.Format(entries.Where(e => e.ProjectId == project.Id).Sum(e => e.Minutes)), Today, this));
         OnPropertyChanged(nameof(HasProjects));
-    }
-
-    private void SaveProjects(Func<IReadOnlyList<ClientProject>, IReadOnlyList<ClientProject>> change)
-    {
-        client = services.Clients.Change(client.Id, c => c with { Projects = change(c.Projects) }) ?? client;
-        LoadProjects();
+        OnPropertyChanged(nameof(ProjectsSummary));
     }
 
     private bool CanAddProject() => IsSaved && !string.IsNullOrWhiteSpace(NewProjectName);
@@ -46,42 +52,67 @@ public partial class ClientDetailViewModel
     [RelayCommand(CanExecute = nameof(CanAddProject))]
     private void AddProject()
     {
-        SaveProjects(projects => [.. projects, new ClientProject { Id = ClientProject.NewId(), Name = NewProjectName.Trim() }]);
-        NewProjectName = "";
+        var (saved, problems) = services.Projects.Add(new Project
+        {
+            Id = ProjectRules.NewId(), Name = NewProjectName.Trim(), ClientId = client.Id, Shared = true,
+            For = string.IsNullOrWhiteSpace(NewProjectFor) ? null : NewProjectFor.Trim(),
+        });
+        if (saved is null)
+        {
+            services.ShowNote?.Invoke("Couldn't add the project", string.Join(" ", problems), null);
+            return;
+        }
+        NewProjectName = NewProjectFor = "";
+        LoadProjects();
     }
 
     /// <summary>Sets or clears a project's own hourly rate. Returns false when the text isn't an amount.</summary>
-    internal bool SetProjectRate(ClientProject project, string text)
+    internal bool SetProjectRate(Project project, string text)
     {
         if (!TimeRules.TryParseRate(text, out var rate))
             return false;
         if (rate != project.HourlyRate)
-            SaveProjects(projects => projects.Select(p => p.Id == project.Id ? p with { HourlyRate = rate } : p).ToList());
+            ChangeProject(project.Id, p => p with { HourlyRate = rate });
         return true;
     }
 
-    internal void SetProjectFinished(ClientProject project, bool finished) =>
-        SaveProjects(projects => projects.Select(p => p.Id == project.Id ? p with { Finished = finished } : p).ToList());
+    internal void SetProjectFinished(Project project, bool finished) =>
+        ChangeProject(project.Id, p => p with { Status = finished ? ProjectStatus.Done : p.Status == ProjectStatus.Done ? ProjectStatus.Active : p.Status });
+
+    internal void OpenProject(Project project) => services.Go.Project(project.Id);
+
+    private void ChangeProject(string id, Func<Project, Project> change)
+    {
+        var (_, problems) = services.Projects.Change(id, change);
+        if (problems.Count > 0)
+            services.ShowNote?.Invoke("Couldn't change the project", string.Join(" ", problems), null);
+        LoadProjects();
+    }
 }
 
-/// <summary>A project on the client's page. Ticking it finished keeps its time but stops offering it on the Time page.</summary>
+/// <summary>A project on the client's page. Its name opens it in the Planner; ticking it finished marks it Done there.</summary>
 public sealed partial class ClientProjectRow : ObservableObject
 {
-    private readonly ClientProject project;
+    private readonly Project project;
     private readonly ClientDetailViewModel owner;
+    private bool finished;
 
-    public ClientProjectRow(ClientProject project, string time, ClientDetailViewModel owner)
+    public ClientProjectRow(Project project, string time, DateOnly today, ClientDetailViewModel owner)
     {
         this.project = project;
         this.owner = owner;
         Time = time;
-        finished = project.Finished;
+        finished = project.Status == ProjectStatus.Done;
+        Line = ClientPlanner.Line(project, today, d => d.ToString(d.Year == today.Year ? "d MMM" : "d MMM yyyy"));
+        IsLate = ClientPlanner.IsLate(project, today);
     }
 
-    private bool finished;
-
     public string Name => project.Name;
+    public string For => string.IsNullOrWhiteSpace(project.For) ? "" : "For " + project.For.Trim();
+    public bool HasFor => For.Length > 0;
     public string Time { get; }
+    public string Line { get; }
+    public bool IsLate { get; }
 
     /// <summary>The project's own hourly rate as typed; blank uses the client's rate. Saved when the box loses focus.</summary>
     public string Rate
@@ -101,4 +132,7 @@ public sealed partial class ClientProjectRow : ObservableObject
                 owner.SetProjectFinished(project, value);
         }
     }
+
+    [RelayCommand]
+    private void Open() => owner.OpenProject(project);
 }

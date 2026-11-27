@@ -21,6 +21,25 @@ public sealed class ServiceLayerTests : IDisposable
     }
 
     [Fact]
+    public void A_clients_old_projects_move_into_the_Planner_once_and_time_keeps_seeing_them()
+    {
+        var clients = new ClientService(store);
+        var projects = new ProjectService(store, () => "me", attachmentsFolder: Path.Combine(folder, "attachments"));
+        var studio = clients.Add("Studio Nine");
+        clients.Change(studio.Id, c => c with { Projects = [new ClientProject { Id = "p1", Name = "New website", HourlyRate = 700m }] });
+
+        Assert.Equal(1, projects.MergeClientProjects(clients.List()));
+        Assert.Equal(0, projects.MergeClientProjects(clients.List()));
+        var moved = projects.Get("p1")!;
+        Assert.Equal(studio.Id, moved.ClientId);
+        Assert.Equal(700m, moved.HourlyRate);
+
+        projects.Change("p1", p => p with { For = "Karoo Coffee" });
+        var forTime = clients.ForTime().Single(c => c.Id == studio.Id);
+        Assert.Equal("New website for Karoo Coffee", Assert.Single(forTime.Projects).Name);
+    }
+
+    [Fact]
     public void Saving_the_client_details_keeps_notes_and_projects_added_meanwhile()
     {
         var clients = new ClientService(store);
