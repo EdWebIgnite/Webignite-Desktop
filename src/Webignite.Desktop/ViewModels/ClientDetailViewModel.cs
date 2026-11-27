@@ -368,6 +368,7 @@ public partial class ClientDetailViewModel : ViewModelBase
         LoadOnboarding();
         LoadRecords();
         LoadProjects();
+        LoadPlannerProjects();
         Documents.Clear();
         Tasks.Clear();
         Events.Clear();
@@ -384,7 +385,10 @@ public partial class ClientDetailViewModel : ViewModelBase
             foreach (var ev in summary.UpcomingEvents)
                 Events.Add(new ClientEventViewModel(ev));
             Owed = summary.Owed == 0 ? "" : $"{Money.Rand(summary.Owed)} invoiced and not yet marked paid";
+            LoadMoney(summary.Documents);
         }
+        else
+            ShowMoney = false;
         OnPropertyChanged(nameof(HasDocuments));
         OnPropertyChanged(nameof(HasTasks));
         OnPropertyChanged(nameof(HasEvents));

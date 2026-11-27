@@ -11,7 +11,14 @@
 
     <StackPanel Spacing="18" IsVisible="{Binding IsShowingClient}" c:Entrance.OnShow="True">
       <DockPanel>
+        <!-- What you do with a client, together: write, send a statement, quote, invoice. -->
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+          <Button Classes="quiet" Command="{Binding WriteMailCommand}" IsVisible="{Binding CanWriteMail}" ToolTip.Tip="A new mail to them">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <c:Icon Data="{StaticResource Icon.Mail}" Size="16" VerticalAlignment="Center" />
+              <TextBlock Text="Write to them" />
+            </StackPanel>
+          </Button>
           <Button Classes="quiet" Content="Draft statement" Command="{Binding DraftStatementCommand}" IsVisible="{Binding HasOwed}"
                   ToolTip.Tip="Lists their unpaid invoices from Xero in a mail for you to check and send" />
           <Button Classes="quiet" Command="{Binding NewQuoteCommand}">
@@ -34,12 +41,31 @@
             <c:Monogram Text="{Binding Title}" Size="48" IsVisible="{Binding IsSaved}" />
             <StackPanel Spacing="2" VerticalAlignment="Center">
               <TextBlock Classes="h1" Text="{Binding Title}" />
-              <TextBlock Classes="muted" Text="{Binding Owed}" IsVisible="{Binding HasOwed}" />
             </StackPanel>
           </StackPanel>
         </StackPanel>
       </DockPanel>
 
+      <!-- Their money at a glance, from their invoices in Xero and in Webignite. -->
+      <Border Classes="card" IsVisible="{Binding ShowMoney}">
+        <Grid ColumnDefinitions="*,*,*">
+          <StackPanel Grid.Column="0" Spacing="4">
+            <TextBlock Classes="label" Text="OWES YOU" />
+            <TextBlock Classes="figure" Text="{Binding OwesText}" />
+            <TextBlock Classes="muted" Classes.problem="{Binding HasOverdue}" FontSize="{DynamicResource Text12}" Text="{Binding OverdueText}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Spacing="4">
+            <TextBlock Classes="label" Text="PAID THIS TAX YEAR" />
+            <TextBlock Classes="figure" Text="{Binding PaidThisYearText}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PaysInText}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Spacing="4">
+            <TextBlock Classes="label" Text="INVOICED THIS TAX YEAR" />
+            <TextBlock Classes="figure" Text="{Binding InvoicedThisYearText}" />
+            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding TaxYearText}" />
+          </StackPanel>
+        </Grid>
+      </Border>
 
       <Grid x:Name="Columns" ColumnDefinitions="*,24,1.25*" RowDefinitions="Auto,Auto">
         <!-- Details, its own card -->
@@ -392,6 +418,23 @@
             </c:FoldSection>
             <c:FoldSection Key="projects" Title="Projects and time" Icon="{StaticResource Icon.Time}" Summary="{Binding ProjectsSummary}" IsVisible="{Binding IsSaved}">
               <StackPanel Spacing="10">
+                <!-- Their projects in the Planner, each opening there. -->
+                <StackPanel Spacing="2" IsVisible="{Binding HasPlannerProjects}">
+                  <TextBlock Classes="label" Text="IN THE PLANNER" />
+                  <ItemsControl ItemsSource="{Binding PlannerProjects}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ClientPlannerRow">
+                        <DockPanel Margin="0,2">
+                          <TextBlock DockPanel.Dock="Right" Classes="muted" Classes.short="{Binding IsLate}" FontSize="{DynamicResource Text12}"
+                                     Text="{Binding Line}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                          <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,2" HorizontalAlignment="Left"
+                                  ToolTip.Tip="Open this project in the Planner" />
+                        </DockPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+                <TextBlock Classes="label" Text="FOR LOGGING TIME" IsVisible="{Binding HasPlannerProjects}" Margin="0,6,0,0" />
                 <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasProjects}"
                            Text="Add a project, like New website or Monthly SEO, to log time against it on the Time page." />
                 <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" IsVisible="{Binding HasProjects}" Text="Tick a project when it's finished. Its time is kept." />

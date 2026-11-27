@@ -988,6 +988,9 @@ vm.Clients.OpenCommand.Execute(vm.Clients.Rows[0]);
 Check("A saved client's details show as a short list to read, not a form",
     !vm.Clients.Detail!.EditingDetails && vm.Clients.Detail.Facts.Any(f => f.Label == "Phone") && vm.Clients.Detail.HasShownNotes);
 Save("client");
+Check("A client's page opens on their money: what they owe, what they paid and were invoiced this tax year",
+    vm.Clients.Detail!.ShowMoney && vm.Clients.Detail.OwesText == Webignite.Core.Documents.Money.Rand(0) && vm.Clients.Detail.PaidThisYearText == Webignite.Core.Documents.Money.Rand(7250m)
+    && vm.Clients.Detail.TaxYearText.StartsWith("Since 1 ", StringComparison.Ordinal));
 SaveLooks("client");
 {
     var shown = vm.Clients.Detail!;
@@ -4058,6 +4061,30 @@ Save("site-check");
         Add("Colours and fonts", design.Id, team.Partner!.Id, new DateOnly(2026, 11, 14));
         var pages = Add("Build the five pages", build.Id, team.Partner.Id, new DateOnly(2026, 11, 26));
         Add("Contact form to info@", build.Id);
+        {
+            // The client's page lists their projects in the Planner, and one click opens the project there.
+            Open(Page.Clients);
+            vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Id == bosveldId));
+            Dispatcher.UIThread.RunJobs();
+            var hubClient = vm.Clients.Detail!;
+            var wasOpen = hubClient.Sections.IsOpen("projects");
+            if (!wasOpen)
+                hubClient.Sections.Toggle("projects");
+            Dispatcher.UIThread.RunJobs();
+            Check("A client's page lists their projects in the Planner, with when each is due",
+                hubClient.PlannerProjects.Select(p => p.Name).SequenceEqual(["Bosveld Builders website"]) && hubClient.PlannerProjects[0].Line.StartsWith("Due 4 Dec", StringComparison.Ordinal)
+                && hubClient.ProjectsSummary.StartsWith("1 project in the Planner", StringComparison.Ordinal));
+            if (window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.FoldSection>().FirstOrDefault(r => r.Key == "projects") is { } projectsRow)
+                Avalonia.Controls.ControlExtensions.BringIntoView(projectsRow);
+            Dispatcher.UIThread.RunJobs();
+            Save("client-planner-projects");
+            hubClient.PlannerProjects[0].OpenCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Check("Clicking one opens it in the Planner", vm.Selected.Key == Page.Projects
+                && ((ProjectsViewModel)vm[Page.Projects].Main.Page).Showing == site.Id);
+            if (!wasOpen)
+                hubClient.Sections.Toggle("projects");
+        }
         Open(Page.Projects);
         var projectsPage = (ProjectsViewModel)vm[Page.Projects].Main.Page;
         projectsPage.OpenProject(site.Id);
