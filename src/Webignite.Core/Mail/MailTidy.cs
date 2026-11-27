@@ -25,6 +25,14 @@ public static partial class MailTidy
     public const int PictureFrom = 40;
 
     // A paragraph holding nothing but a space is how Word writes a blank line; the viewer gives it no height.
+    private static Dictionary<string, string> Last(MatchCollection matches)
+    {
+        var found = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (Match m in matches)
+            found[m.Groups["name"].Value.ToLowerInvariant()] = m.Groups["v"].Value.Trim();
+        return found;
+    }
+
     [GeneratedRegex(@"(?<open><p\b[^>]*>(?:\s*<(?:span|b|i|font)\b[^>]*>)*)\s*(?:&nbsp;|\u00A0)\s*(?<close>(?:</(?:span|b|i|font)>\s*)*</p>)", RegexOptions.IgnoreCase)]
     private static partial Regex BlankParagraphs();
 
@@ -138,8 +146,9 @@ public static partial class MailTidy
         var style = StyleAttribute().Match(attributes) is { Success: true } s ? s.Groups["v"].Value : "";
         style = OtherUnits().Replace(style, m => m.Groups["name"].Value + ":" +
             Px(Pixels(double.Parse(m.Groups["n"].Value, CultureInfo.InvariantCulture), m.Groups["unit"].Value)));
-        var styled = Declarations().Matches(style).ToDictionary(m => m.Groups["name"].Value.ToLowerInvariant(), m => m.Groups["v"].Value.Trim(), StringComparer.Ordinal);
-        var typed = SizeAttribute().Matches(attributes).ToDictionary(m => m.Groups["name"].Value.ToLowerInvariant(), m => m.Groups["v"].Value.Trim(), StringComparer.Ordinal);
+        // A size given twice (Outlook and some builders write width="600" width="100%") counts once: the last, as browsers do.
+        var styled = Last(Declarations().Matches(style));
+        var typed = Last(SizeAttribute().Matches(attributes));
         // How wide it asks to be, in pixels; null when it doesn't say, or says so as a share of the room.
         double? width = PixelsOf(styled.GetValueOrDefault("width")) ?? PixelsOf(typed.GetValueOrDefault("width"));
 

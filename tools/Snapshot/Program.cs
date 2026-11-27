@@ -4165,9 +4165,16 @@ Save("site-check");
             Open(Page.Mail);
             vm.Mail.Reload();
             Dispatcher.UIThread.RunJobs();
+            Check("Mail's Projects list starts empty: only projects you add show there",
+                !vm.Mail.HasProjectGroups && vm.Mail.ProjectsToAdd.Any(p => p.Label == "Bosveld Builders · Bosveld Builders website"));
+            vm.Mail.ProjectsToAdd.First(p => p.Label == "Bosveld Builders · Bosveld Builders website").AddCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
             var bosveldGroup = vm.Mail.ProjectGroups.FirstOrDefault(g => g.Client == "Bosveld Builders");
-            Check("Mail's sidebar lists each client's projects to file mail under",
-                bosveldGroup is not null && bosveldGroup.Projects.Any(p => p.Name == "Bosveld Builders website"));
+            Check("A project added shows under its client, and only that one",
+                bosveldGroup is not null && bosveldGroup.Projects.Select(p => p.Name).SequenceEqual(["Bosveld Builders website"]) && vm.Mail.ProjectGroups.Count == 1);
+            vm.Mail.ToggleProjectsCommand.Execute(null);
+            Check("The Projects list folds up and stays folded", vm.Mail.ProjectsFolded && services.Settings.MailProjects.Folded);
+            vm.Mail.ToggleProjectsCommand.Execute(null);
             var siteNode = bosveldGroup!.Projects.First(p => p.Name == "Bosveld Builders website");
             vm.Mail.Open(siteNode);
             Dispatcher.UIThread.RunJobs();
@@ -4176,7 +4183,8 @@ Save("site-check");
             Wait(vm.Mail.Select(vm.Mail.Messages[0]), "Opening the filed mail");
             var projectMenu = vm.Mail.ProjectMenu();
             Check("The mail's Projects menu ticks the project it's filed under, under its client",
-                projectMenu.Any(i => i.Header == "Bosveld Builders" && !i.IsEnabled) && projectMenu.Any(i => i.Header.Trim() == "Bosveld Builders website" && i.Checked == true));
+                projectMenu.Any(i => i.Header == "Bosveld Builders" && !i.IsEnabled) && projectMenu.Any(i => i.Header.Trim() == "Bosveld Builders website" && i.Checked == true)
+                && projectMenu.Any(i => i.Header == "More projects"));
             Check("The open mail shows the project it's filed under beside its categories", vm.Mail.Reader?.Categories.Any(c => c.Name == "Bosveld Builders website") == true);
             if (window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().FirstOrDefault(b => b.DataContext is CategoryNodeViewModel { ProjectId: not null }) is { } projectButton)
                 Avalonia.Controls.ControlExtensions.BringIntoView(projectButton, new Avalonia.Rect(0, 0, 10, 60));

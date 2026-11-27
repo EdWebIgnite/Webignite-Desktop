@@ -136,6 +136,13 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>The mail categories you made, with their colours. The mail itself carries them as keywords on the server.</summary>
+    /// <summary>The projects Mail's folder list shows (picked by hand) and whether the list is folded.</summary>
+    public MailProjectSettings MailProjects
+    {
+        get => store.GetSetting<MailProjectSettings>("mail-projects") ?? new MailProjectSettings();
+        set => store.SetSetting("mail-projects", value);
+    }
+
     /// <summary>Bank statement lines already brought in, and what was learnt from corrections (on this PC).</summary>
     public Webignite.Core.Finance.BankSettings Bank
     {

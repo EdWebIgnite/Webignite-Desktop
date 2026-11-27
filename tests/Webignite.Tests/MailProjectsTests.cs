@@ -34,5 +34,14 @@ public sealed class MailProjectsTests
         Assert.Equal(["Atlas Design", "Zebra Studio", "Not for a client"], groups.Select(g => g.Client));
         Assert.Equal(["2"], groups[0].Projects.Select(p => p.Id));
         Assert.Equal(["4"], groups[2].Projects.Select(p => p.Id));
+        Assert.Equal(["Zebra Studio"], MailProjects.Groups(projects, clients, p => p.Id == "1").Select(g => g.Client));
+    }
+
+    [Fact]
+    public void Projects_are_put_on_Mails_list_and_taken_off_by_hand()
+    {
+        var settings = new MailProjectSettings().With("a", true).With("b", true).With("a", true);
+        Assert.Equal(["a", "b"], settings.Shown);
+        Assert.Equal(["b"], settings.With("a", false).Shown);
     }
 }

@@ -3,6 +3,21 @@ using Webignite.Core.Projects;
 
 namespace Webignite.Core.Mail;
 
+/// <summary>
+/// The projects Mail's folder list shows, picked by the person (only what they're working on now), and whether the
+/// list is folded up. Setting <c>mail-projects</c>.
+/// </summary>
+public sealed record MailProjectSettings
+{
+    public IReadOnlyList<string> Shown { get; init; } = [];
+    public bool Folded { get; init; }
+
+    public MailProjectSettings With(string projectId, bool shown) => this with
+    {
+        Shown = shown ? (Shown.Contains(projectId) ? Shown : [.. Shown, projectId]) : [.. Shown.Where(id => id != projectId)],
+    };
+}
+
 /// <summary>A client's name and their projects still going, for filing mail under.</summary>
 public sealed record ProjectGroup(string Client, IReadOnlyList<Project> Projects);
 
@@ -29,10 +44,10 @@ public static class MailProjects
     /// Projects still going, grouped under their client by name, the clients in alphabetical order and each one's
     /// projects as the client's page lists them. Projects for no client come last, under "Not for a client".
     /// </summary>
-    public static IReadOnlyList<ProjectGroup> Groups(IEnumerable<Project> projects, IEnumerable<Client> clients)
+    public static IReadOnlyList<ProjectGroup> Groups(IEnumerable<Project> projects, IEnumerable<Client> clients, Func<Project, bool>? only = null)
     {
         var names = clients.ToDictionary(c => c.Id, c => c.Name, StringComparer.Ordinal);
-        var going = projects.Where(p => p.Deleted is null && p.Status != ProjectStatus.Done).ToList();
+        var going = projects.Where(p => p.Deleted is null && p.Status != ProjectStatus.Done && (only is null || only(p))).ToList();
         var groups = going.Where(p => p.ClientId is { } id && names.ContainsKey(id))
             .GroupBy(p => p.ClientId!)
             .Select(g => new ProjectGroup(names[g.Key], ClientPlanner.For(g, g.Key)))
