@@ -6279,9 +6279,9 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     if (writing.Composer is { } newMail)
         newMail.Subject = "Proofs for Friday";
     Dispatcher.UIThread.RunJobs();
-    var composeWindow = (Avalonia.Application.Current!.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.Windows
-        .OfType<ComposeWindow>().FirstOrDefault() ?? window.OwnedWindows.OfType<ComposeWindow>().FirstOrDefault();
-    Check("A new mail opens in a window of its own, named after its subject", composeWindow is { Title: "Proofs for Friday" } && writing is { ComposerOut: true, ShowComposerHere: false });
+    var composeWindow = window.ComposeWindows.FirstOrDefault();
+    Check("A new mail opens in a window of its own, named after its subject, not tied to the main window",
+        composeWindow is { Title: "Proofs for Friday", Owner: null } && writing is { ComposerOut: true, ShowComposerHere: false });
     if (composeWindow is not null)
     {
         SaveWindow(composeWindow, "mail-compose-window");
@@ -6303,7 +6303,7 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     }
     writing.Composer!.DiscardCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
-    Check("Closing the mail closes its window", writing.Composer is null && !window.OwnedWindows.OfType<ComposeWindow>().Any());
+    Check("Closing the mail closes its window", writing.Composer is null && window.ComposeWindows.Count == 0);
     services.Settings.ComposeInWindow = false;
 }
 

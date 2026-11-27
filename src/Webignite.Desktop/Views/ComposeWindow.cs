@@ -22,7 +22,7 @@ public sealed class ComposeWindow : Window
         Height = 720;
         MinWidth = 440;
         MinHeight = 420;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        WindowStartupLocation = WindowStartupLocation.Manual;
         Background = this.TryFindResource("Canvas", out var canvas) && canvas is IBrush brush ? brush : Brushes.WhiteSmoke;
         var view = new ComposeView { DataContext = composer };
         // The window's own title and X stand in for the composer's heading row, which gives the mail another line.

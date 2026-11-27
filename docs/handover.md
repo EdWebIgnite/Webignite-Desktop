@@ -92,9 +92,9 @@ Answers Eddie gave:
 - #366: supplier bills kept in Webignite when the invoicing switch is on; Paid adds the expense.
 - #367: bank statement import (OFX or CSV, FNB's layout included), matched to invoices, bills and what's already typed in, learning the kind of expense from corrections. Not yet tried with a real FNB file: ask Eddie for one (amounts and names can be blanked) and check the reader.
 
-## Open problem: the draft window on Windows
+## The draft window on Windows
 
-A mail in its own window (`ComposeWindow`) doesn't lay itself out again when it grows, maximised or dragged; the new area shows what's behind it. A popped-out page window is fine, and on Linux (real X11 windows, tried with a throwaway harness under Xvfb) it resizes fine. #361 stopped disposing text layouts in `RichTextEditor` (not the cause). #363 sends Avalonia's warnings to the log: ask Eddie for `%LOCALAPPDATA%\Webignite\logs` after maximising a draft on 0.2.328 or later, and look for `Avalonia` lines.
+A mail in its own window (`ComposeWindow`) didn't lay itself out again when it grew, maximised or dragged. Logs showed no layout or drawing errors; the one difference from a popped-out page (which works) was that the draft window was owned by the main window (`Show(this)`). #369 shows it as a window of its own (`Show()`, own taskbar button, placed near the main window). If Eddie still sees it, the Chat window (also owned) is the next thing to compare.
 
 ## Still open
 
