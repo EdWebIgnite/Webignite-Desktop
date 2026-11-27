@@ -34,10 +34,16 @@ public sealed record MoneyEntry
     /// </summary>
     public string? DocumentId { get; init; }
 
+    /// <summary>The slip, invoice or photo that shows what was paid, kept in the receipts folder (<see cref="Receipts"/>).</summary>
+    public EntryReceipt? Receipt { get; init; }
+
     public DateTimeOffset Created { get; init; }
 
     public static string NewId() => Guid.CreateVersion7().ToString("N");
 }
+
+/// <summary>A receipt kept with an expense: its file's name as it was attached, and its size.</summary>
+public sealed record EntryReceipt(string FileName, long Size);
 
 /// <summary>An expense that comes back every month, set up once.</summary>
 public sealed record RecurringExpense

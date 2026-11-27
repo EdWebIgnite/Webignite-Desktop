@@ -190,8 +190,11 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
             OutMessage = problem;
             return;
         }
-        services.Store.SaveEntry(entry);
+        if (WithReceipt(entry, OutReceiptPath, text => OutMessage = text) is not { } kept)
+            return;
+        services.Store.SaveEntry(kept);
         OutAmount = OutTo = OutMessage = "";
+        OutReceiptPath = null;
         ShowMonth(Dates.MonthStart(entry.Date));
     }
 
@@ -274,6 +277,7 @@ public partial class MoneyViewModel : ViewModelBase, IRefreshable, IDisposable
         foreach (var e in entries.Where(e => e.Kind == EntryKind.Expense).OrderByDescending(e => e.Date))
             ExpenseRows.Add(new EntryRowViewModel(e, this));
 
+        MissingReceipts = Receipts.MissingLine(entries);
         var totals = Ledger.Months(entries, Month, 1)[0];
         Received = Money.Rand(totals.Received);
         Expenses = Money.Rand(totals.Expenses);
@@ -312,6 +316,16 @@ public partial class EntryRowViewModel(MoneyEntry entry, MoneyViewModel owner) :
         .Where(s => !string.IsNullOrWhiteSpace(s)));
     public bool HasDetail => Detail.Length > 0;
     public string Amount => Money.Rand(entry.Amount);
+
+    public bool HasReceipt => entry.Receipt is not null;
+    public bool NeedsReceipt => Receipts.IsMissing(entry);
+    public string ReceiptTip => entry.Receipt is { } receipt ? $"Open the receipt, {receipt.FileName}" : "";
+
+    [RelayCommand]
+    private void OpenReceipt() => owner.OpenReceipt(entry);
+
+    [RelayCommand]
+    private Task AddReceipt() => owner.AddReceipt(entry);
 
     /// <summary>On its way out after Delete: the row fades before it is removed.</summary>
     [ObservableProperty]

@@ -1313,6 +1313,38 @@ Check("Money shows the bills to pay from Xero", window.GetVisualDescendants().Of
     Save("money-bill-from-pdf");
     billPage.CancelBillCommand.Execute(null);
 }
+{
+    // A receipt kept with an expense: picked as it's added, then opened from its row; ones without say so.
+    var receiptPage = (MoneyViewModel)window.GetVisualDescendants().OfType<MoneyView>().First().DataContext!;
+    var slip = Path.Combine(data, "Builders slip.jpg");
+    File.WriteAllBytes(slip, [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3]);
+    receiptPage.PickReceipt = () => Task.FromResult<string?>(slip);
+    receiptPage.PickOutReceiptCommand.Execute(null);
+    receiptPage.OutAmount = "612.40";
+    receiptPage.OutTo = "Builders Warehouse";
+    receiptPage.OutCategory = "Office";
+    Dispatcher.UIThread.RunJobs();
+    Check("A picked receipt shows by name before the expense is added", receiptPage.HasOutReceipt && receiptPage.OutReceiptName == "Builders slip.jpg");
+    receiptPage.AddExpenseCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    var withSlip = receiptPage.ExpenseRows.FirstOrDefault(r => r.Party == "Builders Warehouse");
+    var kept = store.ListEntries(month, month.AddMonths(1).AddDays(-1)).FirstOrDefault(e => e.Party == "Builders Warehouse");
+    Check("An expense keeps a copy of its receipt, and its row opens it", withSlip is { HasReceipt: true, NeedsReceipt: false } && !receiptPage.HasOutReceipt
+        && kept is not null && services.Receipts.PathOf(kept) is { } keptPath && File.Exists(keptPath) && keptPath != slip);
+    Check("Expenses with no receipt are counted and offer Add receipt",
+        receiptPage.MissingReceipts == "1 expense has no receipt yet." && receiptPage.ExpenseRows.Any(r => r.NeedsReceipt));
+    window.Height = 1250;
+    Dispatcher.UIThread.RunJobs();
+    if (window.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().FirstOrDefault(t => t.Text == "Expenses" && t.Classes.Contains("h2")) is { } expensesTitle)
+        Avalonia.Controls.ControlExtensions.BringIntoView(expensesTitle);
+    Dispatcher.UIThread.RunJobs();
+    Save("money-receipts");
+    window.Height = 860;
+    if (kept is not null)
+        store.DeleteEntry(kept.Id);
+    receiptPage.PickReceipt = null;
+    receiptPage.Refresh();
+}
 
 Webignite.Core.Documents.Line Priced(string description, decimal price) => new() { Description = description, Quantity = 1, UnitPrice = price };
 var seo = store.SaveRetainer(new Webignite.Core.Retainers.Retainer

@@ -181,17 +181,32 @@
       <Border Grid.Column="2" Classes="card" Padding="0" VerticalAlignment="Top">
         <StackPanel>
           <TextBlock Classes="h2" Text="Expenses" Margin="20,16,20,12" />
-          <Grid ColumnDefinitions="140,8,*" RowDefinitions="Auto,8,Auto,8,Auto" Margin="20,0,20,12">
+          <Grid ColumnDefinitions="140,8,*" RowDefinitions="Auto,8,Auto,8,Auto,Auto" Margin="20,0,20,12">
             <c:DateBox Grid.Row="0" Grid.Column="0" SelectedDate="{Binding OutDate}" HorizontalAlignment="Stretch" />
             <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding OutAmount}" PlaceholderText="Amount, e.g. 349.99" />
             <TextBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding OutTo}" PlaceholderText="Paid to, e.g. Takealot" />
             <DockPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3">
               <Button DockPanel.Dock="Right" Classes="primary" Content="Add" Command="{Binding AddExpenseCommand}" Margin="8,0,0,0" />
+              <Button DockPanel.Dock="Right" Classes="quiet" Command="{Binding PickOutReceiptCommand}" Margin="8,0,0,0" IsVisible="{Binding !HasOutReceipt}"
+                      ToolTip.Tip="Keep the slip, invoice or a photo of it with this expense">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <c:Icon Data="{StaticResource Icon.Paperclip}" Size="14" VerticalAlignment="Center" />
+                  <TextBlock Text="Receipt" />
+                </StackPanel>
+              </Button>
               <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding OutCategory}" HorizontalAlignment="Stretch" />
+            </DockPanel>
+            <DockPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0" IsVisible="{Binding HasOutReceipt}">
+              <Button DockPanel.Dock="Right" Classes="link" Padding="6,0" Command="{Binding ClearOutReceiptCommand}" ToolTip.Tip="Don't keep this receipt">
+                <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
+              </Button>
+              <c:Icon Data="{StaticResource Icon.Paperclip}" Size="14" VerticalAlignment="Center" Margin="0,0,6,0" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding OutReceiptName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
             </DockPanel>
           </Grid>
           <TextBlock Classes="label problem" Text="{Binding OutMessage}" Margin="20,0,20,8" IsVisible="{Binding OutMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <TextBlock Classes="muted" Text="No expenses this month yet." Margin="20,4,20,16" IsVisible="{Binding !HasExpenses}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding MissingReceipts}" Margin="20,0,20,8" IsVisible="{Binding HasMissingReceipts}" TextWrapping="Wrap" />
           <ItemsControl ItemsSource="{Binding ExpenseRows}" Margin="0,0,0,8">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:EntryRowViewModel">
@@ -202,7 +217,14 @@
                       <TextBlock Text="{Binding Party}" TextTrimming="CharacterEllipsis" />
                       <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+                      <Button Classes="link" Padding="4,0" Command="{Binding OpenReceiptCommand}" IsVisible="{Binding HasReceipt}" ToolTip.Tip="{Binding ReceiptTip}">
+                        <c:Icon Data="{StaticResource Icon.Paperclip}" Size="14" />
+                      </Button>
+                      <Button Classes="link" Padding="4,0" Content="Add receipt" FontSize="{DynamicResource Text12}" Command="{Binding AddReceiptCommand}"
+                              IsVisible="{Binding NeedsReceipt}" ToolTip.Tip="Keep the slip, invoice or a photo of it with this expense" />
+                      <TextBlock Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
                     <Button Grid.Column="3" Classes="link" ToolTip.Tip="Remove" Command="{Binding DeleteCommand}">
                       <c:Icon Data="{StaticResource Icon.Close}" Size="12" />
                     </Button>

@@ -7,7 +7,15 @@ namespace Webignite.Desktop.Views;
 
 public partial class MoneyView : UserControl
 {
-    public MoneyView() => InitializeComponent();
+    public MoneyView()
+    {
+        InitializeComponent();
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is MoneyViewModel money)
+                money.PickReceipt = async () => (await Picker.Files(this, "Pick the receipt", Webignite.Core.Finance.Receipts.Patterns, kindName: "Receipts")).FirstOrDefault();
+        };
+    }
 
     /// <summary>Picks a supplier's PDF in the app's own explorer, then reads it into the bill boxes.</summary>
     private void PickBillPdf(object? sender, RoutedEventArgs e)
