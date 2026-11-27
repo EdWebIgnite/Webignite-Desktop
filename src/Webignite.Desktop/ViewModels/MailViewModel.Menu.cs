@@ -80,7 +80,7 @@ public partial class MailViewModel
         }) { Icon = "Todo" };
         var projects = Webignite.Core.Projects.ProjectRules.Listed(services.Projects.Projects(), showDone: false);
         if (projects.Count > 0)
-            yield return new("Add to a project") { Icon = "Projects", Items = [.. projects.Select(p => new MailMenuItem(p.Name, () =>
+            yield return new("Make a task in a project") { Icon = "Projects", Items = [.. projects.Select(p => new MailMenuItem(p.Name, () =>
             {
                 AddToProject(mail, p);
                 return Task.CompletedTask;

@@ -4132,6 +4132,34 @@ Save("site-check");
             if (services.Projects.Projects().FirstOrDefault(p => p.Name == "Homepage build") is { } homepage)
                 services.Projects.Delete(homepage.Id);
         }
+        {
+            // Mail filed under a project: it stays in its folder, and the project in Mail's sidebar lists it.
+            var filedQuote = store.ListMailSummaries("m1", "INBOX").First(m => m.Uid == 43);
+            store.SaveMailSummaries([Webignite.Core.Mail.MailCategories.With(filedQuote, Webignite.Core.Mail.MailProjects.Keyword(site.Id), true)]);
+            Open(Page.Mail);
+            vm.Mail.Reload();
+            Dispatcher.UIThread.RunJobs();
+            var bosveldGroup = vm.Mail.ProjectGroups.FirstOrDefault(g => g.Client == "Bosveld Builders");
+            Check("Mail's sidebar lists each client's projects to file mail under",
+                bosveldGroup is not null && bosveldGroup.Projects.Any(p => p.Name == "Bosveld Builders website"));
+            var siteNode = bosveldGroup!.Projects.First(p => p.Name == "Bosveld Builders website");
+            vm.Mail.Open(siteNode);
+            Dispatcher.UIThread.RunJobs();
+            Check("A project shows the mail filed under it, still in its folder",
+                vm.Mail.Messages.Select(m => m.Summary.Uid).SequenceEqual([43u]) && vm.Mail.Messages[0].Summary.Folder == "INBOX" && vm.Mail.ListTitle == "Bosveld Builders website");
+            Wait(vm.Mail.Select(vm.Mail.Messages[0]), "Opening the filed mail");
+            var projectMenu = vm.Mail.ProjectMenu();
+            Check("The mail's Projects menu ticks the project it's filed under, under its client",
+                projectMenu.Any(i => i.Header == "Bosveld Builders" && !i.IsEnabled) && projectMenu.Any(i => i.Header.Trim() == "Bosveld Builders website" && i.Checked == true));
+            Check("The open mail shows the project it's filed under beside its categories", vm.Mail.Reader?.Categories.Any(c => c.Name == "Bosveld Builders website") == true);
+            if (window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().FirstOrDefault(b => b.DataContext is CategoryNodeViewModel { ProjectId: not null }) is { } projectButton)
+                Avalonia.Controls.ControlExtensions.BringIntoView(projectButton, new Avalonia.Rect(0, 0, 10, 60));
+            Dispatcher.UIThread.RunJobs();
+            Save("mail-projects");
+            store.SaveMailSummaries([filedQuote]);
+            vm.Mail.Open(vm.Mail.Mailboxes.SelectMany(m => m.Folders).First(f => f.Kind == FolderKind.AllInboxes));
+            vm.Mail.Reload();
+        }
         Open(Page.Projects);
         var projectsPage = (ProjectsViewModel)vm[Page.Projects].Main.Page;
         projectsPage.OpenProject(site.Id);
@@ -4663,7 +4691,7 @@ SaveLooks("projects");
         if (vm.Mail.Messages.FirstOrDefault() is { } projectMail)
         {
             Wait(vm.Mail.Select(projectMail), "The mail opened");
-            var addTo = vm.Mail.MessageMenu().FirstOrDefault(i => i.Header == "Add to a project");
+            var addTo = vm.Mail.MessageMenu().FirstOrDefault(i => i.Header == "Make a task in a project");
             var into = addTo?.Items.FirstOrDefault(i => i.Header == "Bosveld Builders new website");
             into?.Run?.Invoke().GetAwaiter().GetResult();
             Check("A mail is added to a project as a task, with the mail linked", into is not null

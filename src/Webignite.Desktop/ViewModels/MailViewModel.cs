@@ -156,8 +156,18 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes, IDisp
     public bool NoMessages => Messages.Count == 0;
     public bool HasCategories => Categories.Count > 0;
 
+    /// <summary>Clients and their projects still going, each a list of the mail filed under it.</summary>
+    public ObservableCollection<MailProjectGroupNode> ProjectGroups { get; } = [];
+    public bool HasProjectGroups => ProjectGroups.Count > 0;
+
+    // Categories and projects alike: both show the mail carrying their keyword.
+    private IEnumerable<CategoryNodeViewModel> KeywordNodes => Categories.Concat(ProjectGroups.SelectMany(g => g.Projects));
+
+    internal void OpenProject(string id) => services.Go.Project(id);
+
     public string EmptyText => ClientFilter?.Value is { } client ? $"No mail from or to {client.Name} in this list."
         : Search.Trim().Length > 0 ? "Nothing matches that search."
+        : CurrentCategory is { ProjectId: not null } && Filter == MailFilter.All ? "No mail filed under this project yet. Right-click a mail and pick the project under Projects, or drag it here."
         : CurrentCategory is not null && Filter == MailFilter.All ? "No mail in this category yet. Right-click a message to add it, or drag it here."
         : CurrentFolder is { Kind: FolderKind.Important } && Filter == MailFilter.All ? "Nothing is marked important."
         : MailFilters.Empty(Filter);
@@ -198,6 +208,9 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes, IDisp
     internal FolderRole? RoleOf(MailSummary mail) => Mailboxes.SelectMany(m => m.Folders)
         .FirstOrDefault(f => f.Kind == FolderKind.Folder && f.Mailbox.Id == mail.AccountId && f.Path == mail.Folder)?.Role;
     internal IReadOnlyList<MailCategory> CategoryList => categories;
+
+    /// <summary>Your categories, then the projects mail can be filed under, as the reader shows them on a mail.</summary>
+    internal IReadOnlyList<MailCategory> CategoriesAndProjects => [.. categories, .. ProjectGroups.SelectMany(g => g.Projects).Select(p => p.Category)];
     internal AppServices Services => services;
 
     private CancellationTokenSource? searching;
@@ -258,7 +271,7 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes, IDisp
         LoadClientChoices();
 
         var folders = Mailboxes.SelectMany(m => m.Folders).ToList();
-        CurrentCategory = Categories.FirstOrDefault(c => c.Key == currentKey);
+        CurrentCategory = KeywordNodes.FirstOrDefault(c => c.Key == currentKey);
         CurrentFolder = CurrentCategory is not null ? null
             : folders.FirstOrDefault(f => f.Key == currentKey)
               ?? folders.FirstOrDefault(f => f.Kind == FolderKind.AllInboxes)
@@ -304,13 +317,18 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes, IDisp
         foreach (var category in categories)
             Categories.Add(new CategoryNodeViewModel(category, this));
         OnPropertyChanged(nameof(HasCategories));
+        ProjectGroups.Clear();
+        foreach (var group in MailProjects.Groups(services.Projects.Projects(), services.Clients.List()))
+            ProjectGroups.Add(new MailProjectGroupNode(group.Client, [.. group.Projects.Select(p =>
+                new CategoryNodeViewModel(new MailCategory(MailProjects.Keyword(p.Id), Webignite.Core.Clients.ClientPlanner.Title(p), "grey"), this) { ProjectId = p.Id })]));
+        OnPropertyChanged(nameof(HasProjectGroups));
     }
 
     internal void MarkCurrent()
     {
         foreach (var f in Mailboxes.SelectMany(m => m.Folders))
             f.IsCurrent = CurrentCategory is null && f == CurrentFolder;
-        foreach (var c in Categories)
+        foreach (var c in KeywordNodes)
             c.IsCurrent = c == CurrentCategory;
         foreach (var mailbox in Mailboxes)
             mailbox.ShowFolders();

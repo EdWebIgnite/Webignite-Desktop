@@ -21,7 +21,8 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     public bool HasCc => Summary.Cc.Count > 0;
     public string Date => Summary.Date.ToLocalTime().ToString("dddd, d MMMM yyyy, HH:mm");
     public bool IsImportant => Summary.Flagged;
-    public IReadOnlyList<MailCategory> Categories => MailCategories.Of(owner.CategoryList, Summary);
+    // Its categories, and the projects it's filed under (grey), as chips beside Reply.
+    public IReadOnlyList<MailCategory> Categories => MailCategories.Of(owner.CategoriesAndProjects, Summary);
     public bool HasCategories => Categories.Count > 0;
     public bool IsDraft => services.Store.ListMailFolders(account.Id).Any(f => f.Path == Summary.Folder && f.Role == FolderRole.Drafts);
     public bool IsNotDraft => !IsDraft;
