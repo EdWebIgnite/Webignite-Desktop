@@ -224,4 +224,17 @@ public partial class CategoryNodeViewModel(MailCategory category, MailViewModel 
 
     [RelayCommand]
     private void Edit() => owner.EditorsPart.StartEditCategory(category);
+
+    /// <summary>Set when this stands for a project mail is filed under, rather than a category of your own.</summary>
+    public string? ProjectId { get; init; }
+
+    [RelayCommand]
+    private void OpenInPlanner()
+    {
+        if (ProjectId is { } id)
+            owner.OpenProject(id);
+    }
 }
+
+/// <summary>A client in the Mail sidebar's Projects list, with their projects to file mail under.</summary>
+public sealed record MailProjectGroupNode(string Client, IReadOnlyList<CategoryNodeViewModel> Projects);

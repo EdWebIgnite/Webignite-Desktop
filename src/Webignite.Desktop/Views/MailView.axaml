@@ -404,6 +404,38 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
+
+              <!-- Projects: each client's projects still going; a project shows the mail filed under it, wherever it is -->
+              <TextBlock FontWeight="SemiBold" Text="Projects" Margin="10,14,4,4" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Margin="10,0,8,6" TextWrapping="Wrap" IsVisible="{Binding !HasProjectGroups}"
+                         Text="Add projects on a client's page, then file mail under them from the mail's menu." />
+              <ItemsControl ItemsSource="{Binding ProjectGroups}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MailProjectGroupNode">
+                    <StackPanel>
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Client}" Margin="10,6,8,2" TextTrimming="CharacterEllipsis" />
+                      <ItemsControl ItemsSource="{Binding Projects}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:CategoryNodeViewModel">
+                            <Button Classes="folder" Classes.current="{Binding IsCurrent}" Classes.drop="{Binding IsDropTarget}" Padding="10,6" Command="{Binding OpenCommand}"
+                                    DragDrop.AllowDrop="True" DragDrop.DragOver="CategoryDragOver" DragDrop.DragLeave="CategoryDragLeave" DragDrop.Drop="CategoryDrop">
+                              <Button.ContextMenu>
+                                <ContextMenu>
+                                  <MenuItem Header="Open in the Planner" Command="{Binding OpenInPlannerCommand}" />
+                                </ContextMenu>
+                              </Button.ContextMenu>
+                              <StackPanel Orientation="Horizontal" Spacing="10">
+                                <c:Icon Data="{StaticResource Icon.Projects}" Size="14" />
+                                <TextBlock Classes="name" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                              </StackPanel>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
           </ScrollViewer>
         </DockPanel>

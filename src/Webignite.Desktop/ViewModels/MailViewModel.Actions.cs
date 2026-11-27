@@ -194,6 +194,7 @@ public partial class MailViewModel
         var important = mail.All(m => m.Flagged);
         items.Add(new(important ? "Not important" : "Mark important", () => Mark(MailMark.Important, !important)) { Icon = "Flag", Gesture = "I" });
         items.Add(new("Categories") { Icon = "Tag", Items = CategoryMenu() });
+        items.Add(new("Projects") { Icon = "Projects", Items = ProjectMenu() });
         items.Add(new("Move to") { Icon = "FolderMove", Items = MoveMenu() });
         items.Add(new("Snooze") { Icon = "Snooze", Items = SnoozePart.SnoozeMenu() });
         items.Add(new("Archive", () => Do(ArchiveCommand)) { Icon = "Archive", Gesture = "E" });
@@ -230,6 +231,30 @@ public partial class MailViewModel
             EditorsPart.StartNewCategory(mail);
             return Task.CompletedTask;
         }));
+        return items;
+    }
+
+    /// <summary>
+    /// The projects still going, under their clients, each with a tick when all the selected mail is filed under
+    /// it. Picking one files the mail there (or takes it out); the mail stays where it is.
+    /// </summary>
+    public IReadOnlyList<MailMenuItem> ProjectMenu()
+    {
+        var mail = Targets();
+        var items = new List<MailMenuItem>();
+        foreach (var group in ProjectGroups)
+        {
+            if (items.Count > 0)
+                items.Add(MailMenuItem.Separator);
+            items.Add(new MailMenuItem(group.Client) { IsEnabled = false });
+            foreach (var project in group.Projects)
+            {
+                var all = mail.Count > 0 && mail.All(m => MailCategories.Has(m, project.Keyword));
+                items.Add(new MailMenuItem("   " + project.Name, () => SetCategory(project.Keyword, !all)) { Checked = all, IsEnabled = mail.Count > 0 });
+            }
+        }
+        if (items.Count == 0)
+            items.Add(new MailMenuItem("No projects yet. Add them on a client's page.") { IsEnabled = false });
         return items;
     }
 
