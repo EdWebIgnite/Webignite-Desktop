@@ -92,12 +92,37 @@ public sealed partial class MailSendingPart(AppServices services, MailViewModel 
         pending = null;
         PendingSendText = "";
         OnPropertyChanged(nameof(HasPendingSend));
-        Reopen(waiting.Composer);
-        page.SetStatus("Not sent. The mail is back in the editor.", false);
+        if (Reopen(waiting.Composer, null))
+            page.SetStatus("Not sent. The mail is back in the editor.", false);
     }
 
-    /// <summary>Opens an editor again, e.g. after Undo or when the server refused the mail.</summary>
-    internal void Reopen(ComposeViewModel composer) => page.Composer = composer;
+    /// <summary>
+    /// Opens an editor again, e.g. after Undo or when the server refused the mail, saying why in its bar. When
+    /// another mail is being written meanwhile, that one is left alone and this one is kept in Drafts instead.
+    /// True when it is back in the editor.
+    /// </summary>
+    internal bool Reopen(ComposeViewModel composer, string? why)
+    {
+        if (why is not null)
+            composer.SayProblem(why);
+        if (page.Composer is { } open && open != composer && open.HoldsWork)
+        {
+            KeepAside(composer, why).Forget("Keeping a mail that came back unsent", tell: true);
+            return false;
+        }
+        page.Composer = composer;
+        return true;
+    }
+
+    private async Task KeepAside(ComposeViewModel composer, string? why)
+    {
+        var said = why ?? "Not sent.";
+        await Task.Yield(); // the send that brought it back finishes first, so the editor is free to save
+        var kept = await composer.SaveToDraftsAsync();
+        page.SetStatus(kept
+            ? $"{said} You were writing another mail, so this one is in Drafts to finish there."
+            : $"{said} It couldn't be saved to Drafts either: {composer.Message}", true);
+    }
 
     /// <summary>Takes a draft off the send-later list, e.g. when it is opened to edit or Don't send is clicked.</summary>
     internal void Unschedule(string accountId, uint draftUid)

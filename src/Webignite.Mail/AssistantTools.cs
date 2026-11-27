@@ -117,9 +117,41 @@ public sealed class AssistantTools(LocalStore store, MailService mail, TimeProvi
         var (account, draft) = await BuildDraftAsync(mailbox, replyToId, replyAll, to, cc, subject, body, cancel);
         var message = MailComposer.Build(draft, account);
         message.Headers.Add(MailComposer.DraftedByHeader, draftedBy);
-        await mail.SaveDraftAsync(account, message, cancel: cancel);
+        // A second go at the same mail replaces the first, so Drafts doesn't fill with copies of one reply.
+        var earlier = await EarlierAssistantDraftsAsync(account, draft, cancel);
+        await mail.SaveDraftAsync(account, message, earlier.FirstOrDefault(), cancel);
+        foreach (var older in earlier.Skip(1))
+        {
+            try { await mail.DeleteDraftAsync(account, older, cancel); }
+            catch (MailException e) { AppLog.Write("Removing an older assistant draft", e); }
+        }
         return new DraftSaved(account.Address, draft.Subject, Recipients.Format(draft.To),
             $"Saved in the Drafts folder of {account.Address}. It has not been sent: Eddie reads it and sends it from Webignite or the phone.");
+    }
+
+    /// <summary>Earlier drafts of the same mail that an assistant saved (never ones Eddie wrote), newest first.</summary>
+    private async Task<IReadOnlyList<uint>> EarlierAssistantDraftsAsync(MailAccount account, OutgoingMail draft, CancellationToken cancel)
+    {
+        if (store.ListMailFolders(account.Id).FirstOrDefault(f => f.Role == FolderRole.Drafts) is not { } drafts)
+            return [];
+        await Refresh(account, drafts.Path, [], cancel);
+        var found = new List<uint>();
+        foreach (var candidate in AssistantMail.SameDraft(store.ListMailSummaries(account.Id, drafts.Path), draft))
+        {
+            try
+            {
+                var bytes = store.GetMailBody(account.Id, drafts.Path, candidate.Uid)
+                    ?? await mail.GetMessageAsync(account, drafts.Path, candidate.Uid, cancel);
+                var mime = await MimeKit.MimeMessage.LoadAsync(new MemoryStream(bytes), cancel);
+                if (mime.Headers.Contains(MailComposer.DraftedByHeader))
+                    found.Add(candidate.Uid);
+            }
+            catch (Exception e) when (e is MailException or FormatException or IOException)
+            {
+                AppLog.Write("Looking at an earlier draft", e);
+            }
+        }
+        return found;
     }
 
     internal async Task<(MailAccount Account, OutgoingMail Draft)> BuildDraftAsync(string? mailbox, string? replyToId, bool replyAll,

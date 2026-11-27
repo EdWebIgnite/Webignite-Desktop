@@ -20,6 +20,9 @@ public partial class ComposeViewModel : ViewModelBase
     private readonly byte[]? source;
     private readonly MailSummary? answering;
     private uint? draftUid;
+
+    /// <summary>The mailbox <see cref="draftUid"/> is in, so a draft moved to another mailbox is removed from the right one.</summary>
+    private string draftAccountId;
     private string savedState;
 
     private readonly Func<IReadOnlyList<MailPerson>, Task>? afterSent;
@@ -37,6 +40,7 @@ public partial class ComposeViewModel : ViewModelBase
         this.answering = answering;
         start = mail;
         draftUid = mail.DraftUid;
+        draftAccountId = mail.AccountId;
         Accounts = accounts;
         From = accounts.FirstOrDefault(a => a.Id == mail.AccountId) ?? accounts[0];
         To = Recipients.Format(mail.To);
@@ -254,13 +258,19 @@ public partial class ComposeViewModel : ViewModelBase
                 }
                 catch (Exception e) when (e is Webignite.Xero.XeroException or HttpRequestException or InvalidOperationException or TaskCanceledException)
                 {
-                    owner.SendingPart.Reopen(this);
-                    Say("Not sent: " + e.Message, true);
+                    owner.SendingPart.Reopen(this, "Not sent: " + e.Message);
                     return;
                 }
             }
             var message = MailComposer.Build(mail, From, source);
-            var note = await services.Mail.SendAsync(From, message, answering?.AccountId == From.Id ? answering : null, draftUid);
+            // A draft kept in another mailbox than the one it goes from is removed there once sent.
+            var draftHere = draftAccountId == From.Id ? draftUid : null;
+            var note = await services.Mail.SendAsync(From, message, answering?.AccountId == From.Id ? answering : null, draftHere);
+            if (draftUid is { } elsewhere && draftHere is null && Accounts.FirstOrDefault(a => a.Id == draftAccountId) is { } other)
+            {
+                try { await services.Mail.DeleteDraftAsync(other, elsewhere); }
+                catch (MailException) { note = (note is null ? "" : note + " ") + $"Sent, but the draft is still in Drafts in {other.Address}."; }
+            }
             services.RememberMailed([.. mail.To, .. mail.Cc, .. mail.Bcc]);
             if (afterSent is not null)
             {
@@ -277,19 +287,39 @@ public partial class ComposeViewModel : ViewModelBase
         }
         catch (MailException e)
         {
-            owner.SendingPart.Reopen(this);
-            Say("Not sent: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""), true);
+            owner.SendingPart.Reopen(this, "Not sent: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""));
         }
-        catch (IOException e)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            owner.SendingPart.Reopen(this);
-            Say("Not sent. Couldn't read an attachment: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""), true);
+            owner.SendingPart.Reopen(this, "Not sent. Couldn't read an attachment: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""));
+        }
+        catch (Exception e)
+        {
+            // Anything else: the mail must never just vanish, so it comes back with what went wrong.
+            Webignite.Data.AppLog.Write("Sending a mail", e);
+            owner.SendingPart.Reopen(this, "Not sent: " + e.Message + (told ? " Xero already shows it as sent, so send this mail again from here." : ""));
         }
         finally
         {
             IsWorking = false;
         }
     }
+
+    /// <summary>
+    /// True when closing this editor would lose something: what was typed, or a quote, invoice, statement or chaser
+    /// prepared for sending (its PDF and what happens in Xero once it goes), even before anything was typed.
+    /// </summary>
+    public bool HoldsWork => HasChanges || afterSent is not null || beforeSend is not null;
+
+    /// <summary>Saves it to Drafts whether or not anything changed. True when it is there.</summary>
+    internal async Task<bool> SaveToDraftsAsync()
+    {
+        await SaveDraft();
+        return !MessageIsProblem && draftUid is not null;
+    }
+
+    /// <summary>Shows a problem in this editor's bar, e.g. why it came back unsent.</summary>
+    internal void SayProblem(string text) => Say(text, true);
 
     [RelayCommand]
     private async Task SaveDraft()
@@ -303,13 +333,14 @@ public partial class ComposeViewModel : ViewModelBase
             var (mail, _) = Current();
             var message = MailComposer.Build(mail, From, source);
             var previous = draftUid;
-            // A draft moved to another mailbox is saved there and removed from the first one.
-            if (previous is not null && start.AccountId != From.Id && Accounts.FirstOrDefault(a => a.Id == start.AccountId) is { } first)
+            // A draft moved to another mailbox is saved there and removed from the one it was in.
+            if (previous is not null && draftAccountId != From.Id && Accounts.FirstOrDefault(a => a.Id == draftAccountId) is { } first)
             {
                 await services.Mail.DeleteDraftAsync(first, previous.Value);
                 previous = null;
             }
             draftUid = await services.Mail.SaveDraftAsync(From, message, previous);
+            draftAccountId = From.Id;
             savedState = State();
             Say($"Draft saved in {From.Address} at {DateTime.Now:HH:mm}.", false);
             owner.DraftSaved();

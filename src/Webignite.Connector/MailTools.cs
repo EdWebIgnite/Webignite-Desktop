@@ -60,9 +60,9 @@ public sealed class MailTools(AssistantTools tools)
     private static string DraftedBy(McpServer? server)
     {
         var name = server?.ClientInfo?.Name ?? "";
-        return name.Contains("openai", StringComparison.OrdinalIgnoreCase) || name.Contains("chatgpt", StringComparison.OrdinalIgnoreCase) ? "ChatGPT"
-            : name.Length == 0 || name.Contains("claude", StringComparison.OrdinalIgnoreCase) ? "Claude"
-            : name;
+        // Claude's apps connect under several names (claude-ai, local-agent-mode-..., Claude Code); only ChatGPT and
+        // Claude are offered the connector, so anything that isn't ChatGPT is Claude.
+        return name.Contains("openai", StringComparison.OrdinalIgnoreCase) || name.Contains("chatgpt", StringComparison.OrdinalIgnoreCase) ? "ChatGPT" : "Claude";
     }
 
     private static string Json<T>(T value) => JsonSerializer.Serialize(value, DocumentJson.Options);

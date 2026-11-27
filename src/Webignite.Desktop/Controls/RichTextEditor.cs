@@ -351,15 +351,13 @@ public sealed partial class RichTextEditor : Control
         _ => key,
     };
 
+    // The old layouts are let go, not disposed: on Windows the screen is drawn on a thread of its own from the last
+    // frame this control handed over, which still uses them. Disposing them there (as a resize or maximise lays the
+    // writing out again) broke that drawing and left the window showing what was behind it. The collector frees
+    // them once nothing draws them any more.
     private void DisposeLayouts()
     {
-        foreach (var p in placed)
-        {
-            p.Layout?.Dispose();
-            p.Marker?.Dispose();
-        }
         placed.Clear();
-        placeholderLayout?.Dispose();
         placeholderLayout = null;
         laidOutWidth = -1;
         dirty = true;

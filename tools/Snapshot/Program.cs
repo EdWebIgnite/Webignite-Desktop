@@ -6204,7 +6204,18 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
         .OfType<ComposeWindow>().FirstOrDefault() ?? window.OwnedWindows.OfType<ComposeWindow>().FirstOrDefault();
     Check("A new mail opens in a window of its own, named after its subject", composeWindow is { Title: "Proofs for Friday" } && writing is { ComposerOut: true, ShowComposerHere: false });
     if (composeWindow is not null)
+    {
         SaveWindow(composeWindow, "mail-compose-window");
+        // Made big (as when maximised), the mail and its boxes stretch to fill the window.
+        composeWindow.WindowState = Avalonia.Controls.WindowState.Maximized;
+        composeWindow.Width = 1600;
+        composeWindow.Height = 1000;
+        Dispatcher.UIThread.RunJobs();
+        SaveWindow(composeWindow, "mail-compose-window-big");
+        var composeView = composeWindow.GetVisualDescendants().OfType<ComposeView>().FirstOrDefault();
+        Check("A mail's window made big stretches the mail to fill it",
+            composeView is not null && composeView.Bounds.Width >= composeWindow.ClientSize.Width - 1 && composeView.Bounds.Height >= composeWindow.ClientSize.Height - 1);
+    }
     writing.Composer!.DiscardCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
     Check("Closing the mail closes its window", writing.Composer is null && !window.OwnedWindows.OfType<ComposeWindow>().Any());
