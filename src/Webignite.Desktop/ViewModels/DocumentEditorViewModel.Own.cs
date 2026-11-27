@@ -170,9 +170,39 @@ public partial class DocumentEditorViewModel
         }
         stored = recorded;
         RecordingPayment = false;
+        // It shows under Money received too, so the month's figures follow without typing it again.
+        services.Store.SaveEntry(new Webignite.Core.Finance.MoneyEntry
+        {
+            Id = Webignite.Core.Finance.MoneyEntry.NewId(),
+            Kind = Webignite.Core.Finance.EntryKind.Received,
+            Date = day!.Value,
+            Amount = Money.Cents(amount!.Value),
+            Party = recorded.Document.Customer.Name,
+            Note = recorded.Own!.Number + (string.IsNullOrWhiteSpace(note) ? "" : ", " + note.Trim()),
+            DocumentId = recorded.Id,
+            Created = DateTimeOffset.Now,
+        });
         ShowXero(recorded.Settled?.As == Settlement.Paid
             ? $"{Money.Rand(amount!.Value)} recorded. {recorded.Own!.Number} is paid."
             : $"{Money.Rand(amount!.Value)} recorded. {Money.Rand(OwnInvoicing.Due(recorded))} is still owed.", problem: false);
+        AfterOwnChange();
+    }
+
+    // A change to one made here, applied to it as stored now; says what happened, or that it had moved on meanwhile.
+    private void OwnChange(Func<StoredDocument, StoredDocument?> change, Func<StoredDocument, string> said)
+    {
+        if (stored is null)
+            return;
+        StoredDocument? made = null;
+        var saved = services.Documents.Change(stored.Id, s => made = change(s));
+        if (made is null || saved is null)
+        {
+            ShowXero("It couldn't be done: it changed on another page meanwhile.", problem: true);
+            AfterOwnChange();
+            return;
+        }
+        stored = saved;
+        ShowXero(said(saved), problem: false);
         AfterOwnChange();
     }
 
@@ -181,7 +211,9 @@ public partial class DocumentEditorViewModel
         RefreshXero();
         RefreshEmail();
         foreach (var name in new[] { nameof(IsIssued), nameof(ShowIssue), nameof(CanIssue), nameof(IssueHint), nameof(Title), nameof(NumberNote),
-            nameof(CanRecordPayment), nameof(PaymentHint), nameof(PaymentTitle), nameof(IsEditable), nameof(CanType), nameof(CanPickDates), nameof(ShowCreate) })
+            nameof(CanRecordPayment), nameof(PaymentHint), nameof(PaymentTitle), nameof(IsEditable), nameof(CanType), nameof(CanPickDates), nameof(ShowCreate),
+            nameof(CanVoid), nameof(VoidLabel), nameof(VoidQuestion), nameof(CanCredit), nameof(CreditHint), nameof(CreditButtonText), nameof(CreditTitle), nameof(CreditStartText), nameof(CreditNotesText),
+            nameof(HasCreditNotes), nameof(CanDecideQuote) })
             OnPropertyChanged(name);
     }
 }

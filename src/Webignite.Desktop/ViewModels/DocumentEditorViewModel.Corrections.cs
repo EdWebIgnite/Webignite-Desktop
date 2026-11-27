@@ -20,15 +20,22 @@ public partial class DocumentEditorViewModel
     [ObservableProperty]
     public partial string CreditReason { get; set; } = "";
 
-    public bool CanVoid => stored is not null && InvoiceCorrections.CanVoid(stored) && !XeroBusy && !ConfirmingVoid;
-    public string VoidLabel => stored is null ? "" : InvoiceCorrections.VoidLabel(stored);
-    public string VoidQuestion => stored is null ? "" : InvoiceCorrections.VoidQuestion(stored);
-    public bool CanCredit => stored is not null && InvoiceCorrections.CanCredit(stored) && !XeroBusy && !Crediting;
+    public bool CanVoid => stored is not null && (InvoiceCorrections.CanVoid(stored) || OwnInvoicing.CanVoid(stored)) && !XeroBusy && !ConfirmingVoid;
+    public string VoidLabel => stored is null ? "" : IsIssued ? "Void" : InvoiceCorrections.VoidLabel(stored);
+    public string VoidQuestion => stored is null ? "" : IsIssued ? OwnInvoicing.VoidQuestion(stored) : InvoiceCorrections.VoidQuestion(stored);
+    public bool CanCredit => stored is not null && (InvoiceCorrections.CanCredit(stored) || OwnInvoicing.CanCredit(stored)) && !XeroBusy && !Crediting;
 
     public string CreditHint => stored is null ? ""
+        : IsIssued ? $"Leave the amount empty to credit all {Money.Rand(OwnInvoicing.Due(stored))} still owed. It gets the next credit note number and takes the amount off what's owed."
         : $"Leave the amount empty to credit all {Money.Rand(InvoiceCorrections.Creditable(stored))} left. It goes into Xero as a draft for you to approve and allocate there.";
 
-    public IReadOnlyList<string> CreditNotesText => stored is null ? [] : InvoiceCorrections.Describe(stored, TimeZoneInfo.Local);
+    public string CreditButtonText => IsIssued ? "Make the credit note" : "Draft credit note in Xero";
+    public string CreditTitle => IsIssued ? "Make a credit note" : "Draft a credit note in Xero";
+    public string CreditStartText => IsIssued ? "Make a credit note" : "Draft a credit note";
+
+    public IReadOnlyList<string> CreditNotesText => stored is null ? []
+        : IsIssued ? [.. stored.Own!.Credits.Select(c => $"Credit note {c.Number}, {c.Date:d MMM yyyy}: {Money.Rand(c.Amount)}" + (c.Reason is { } why ? $", {why}" : ""))]
+        : InvoiceCorrections.Describe(stored, TimeZoneInfo.Local);
     public bool HasCreditNotes => CreditNotesText.Count > 0;
 
     partial void OnConfirmingVoidChanged(bool value) => OnPropertyChanged(nameof(CanVoid));
@@ -45,6 +52,11 @@ public partial class DocumentEditorViewModel
     private Task ConfirmVoid()
     {
         ConfirmingVoid = false;
+        if (IsIssued)
+        {
+            OwnChange(s => OwnInvoicing.Void(s, DateTimeOffset.Now), s => $"{s.Own!.Number} is void and no longer owed.");
+            return Task.CompletedTask;
+        }
         return Correct(async corrections =>
         {
             stored = await corrections.VoidAsync(stored!);
@@ -75,6 +87,21 @@ public partial class DocumentEditorViewModel
                 ShowXero("Type the amount as a number, like 500 or 1 250.50.", problem: true);
                 return Task.CompletedTask;
             }
+        }
+        if (IsIssued)
+        {
+            if (stored is not null && OwnInvoicing.CheckCredit(stored, amount) is { } ownProblem)
+            {
+                ShowXero(ownProblem, problem: true);
+                return Task.CompletedTask;
+            }
+            var why = CreditReason;
+            var all = services.Documents.List();
+            Crediting = false;
+            OwnChange(s => OwnInvoicing.Credit(s, amount, why, DateOnly.FromDateTime(DateTime.Today), all, DateTimeOffset.Now),
+                s => $"Credit note {s.Own!.Credits[^1].Number} for {Money.Rand(s.Own.Credits[^1].Amount)} is made. "
+                    + (OwnInvoicing.Due(s) > 0 ? $"{Money.Rand(OwnInvoicing.Due(s))} is still owed." : "Nothing is owed now."));
+            return Task.CompletedTask;
         }
         if (stored is not null && InvoiceCorrections.CheckAmount(stored, amount) is { } problem)
         {

@@ -6154,6 +6154,19 @@ void Sample(string customer, DocumentKind kind, params (string Description, deci
     Dispatcher.UIThread.RunJobs();
     Check("Part of it paid, the rest is still owed", own.PaymentHint.Contains("1 000.00", StringComparison.Ordinal) || own.XeroMessage.Contains("still owed", StringComparison.Ordinal));
     Save("own-invoice-part-paid");
+    own.StartCreditCommand.Execute(null);
+    own.CreditAmountText = "";
+    own.CreditReason = "Second round of changes not needed";
+    Wait(own.DraftCreditCommand.ExecuteAsync(null), "Making a credit note for the rest");
+    Dispatcher.UIThread.RunJobs();
+    var credited = services.Documents.List(Webignite.Core.Documents.DocumentKind.Invoice).Single(d => d.Own?.Number == ownNumber);
+    Check("A credit note for the rest gets its own number and leaves nothing owed",
+        credited.Own!.Credits.Count == 1 && credited.Own.Credits[0].Number.StartsWith("CN-", StringComparison.Ordinal)
+        && Webignite.Core.Documents.OwnInvoicing.Due(credited) == 0 && credited.Settled?.As == Webignite.Core.Documents.Settlement.Paid);
+    var books = Webignite.Core.Books.Postings.All(services.Documents.List(), Webignite.Core.Books.ChartOfAccounts.Default);
+    Check("Its invoice, payment and credit note are in the books, and they balance",
+        books.Count(e => e.SourceId == credited.Id) == 3 && Webignite.Core.Books.BookReports.Trial(Webignite.Core.Books.ChartOfAccounts.Default, books, DateOnly.MaxValue).Balances);
+    Save("own-invoice-credited");
     own.BackCommand.Execute(null);
     Dispatcher.UIThread.RunJobs();
     Check("The list says Sent and Not sent yet rather than Xero", vm.Invoices.ShowChips.Any(c => c.Label == "Sent") || vm.Invoices.Rows.Any(r => r.Number == ownNumber));

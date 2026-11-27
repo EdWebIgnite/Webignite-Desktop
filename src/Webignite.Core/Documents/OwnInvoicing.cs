@@ -9,7 +9,16 @@ public sealed record OwnIssue
     public required string Number { get; init; }
     public DateTimeOffset Issued { get; init; }
     public IReadOnlyList<OwnPayment> Payments { get; init; } = [];
+
+    /// <summary>Credit notes against it, made here: each takes its amount off what's owed.</summary>
+    public IReadOnlyList<OwnCredit> Credits { get; init; } = [];
+
+    /// <summary>When it was voided here.</summary>
+    public DateTimeOffset? Voided { get; init; }
 }
+
+/// <summary>A credit note made in Webignite against an invoice made here: its own number, the day, how much and why.</summary>
+public sealed record OwnCredit(string Number, DateOnly Date, decimal Amount, string? Reason = null, DateTimeOffset Recorded = default);
 
 /// <summary>Money received against an invoice made in Webignite: on a day, how much, and a note (EFT, PayFast).</summary>
 public sealed record OwnPayment(DateOnly Date, decimal Amount, string? Note = null, DateTimeOffset Recorded = default);
@@ -77,8 +86,10 @@ public static partial class OwnInvoicing
 
     public static decimal Paid(StoredDocument s) => s.Own?.Payments.Sum(p => p.Amount) ?? 0;
 
-    /// <summary>What's still owed on an invoice made here.</summary>
-    public static decimal Due(StoredDocument s) => Math.Max(0, Money.Cents((s.Document.Total ?? 0) - Paid(s)));
+    public static decimal Credited(StoredDocument s) => s.Own?.Credits.Sum(c => c.Amount) ?? 0;
+
+    /// <summary>What's still owed on an invoice made here: the total less what's been paid and credited.</summary>
+    public static decimal Due(StoredDocument s) => Math.Max(0, Money.Cents((s.Document.Total ?? 0) - Paid(s) - Credited(s)));
 
     /// <summary>An invoice made here, not settled, with something still owed: a payment can be recorded.</summary>
     public static bool CanRecord(StoredDocument s) =>
@@ -110,9 +121,70 @@ public static partial class OwnInvoicing
         };
     }
 
-    /// <summary>The word on the row for one made here: Sent, Part paid, or how it was settled.</summary>
+    /// <summary>The word on the row for one made here: Sent, Part paid, Part credited, or how it was settled.</summary>
     public static string Status(StoredDocument s) =>
         s.Settled?.As is { } settled ? Settlements.Label(settled)
         : s.Document.Kind == DocumentKind.Invoice && Paid(s) > 0 ? "Part paid"
+        : s.Document.Kind == DocumentKind.Invoice && Credited(s) > 0 ? "Part credited"
         : "Sent";
+
+    // Void and credit notes
+
+    /// <summary>An invoice made here with nothing paid or credited yet can be voided: it stops being owed.</summary>
+    public static bool CanVoid(StoredDocument s) =>
+        s.Status == DocumentStatus.Issued && s.Document.Kind == DocumentKind.Invoice && s.Settled is null && Paid(s) == 0 && Credited(s) == 0;
+
+    public static string VoidQuestion(StoredDocument s) =>
+        $"Void {NumberOf(s)}? It stays in the list marked void, is no longer owed, and can't be undone. The client isn't told; let them know yourself if they had it.";
+
+    public static StoredDocument? Void(StoredDocument s, DateTimeOffset now) => !CanVoid(s) ? null : s with
+    {
+        Own = s.Own! with { Voided = now },
+        Settled = new SettledState { On = now, As = Settlement.Voided },
+    };
+
+    /// <summary>An invoice made here with something still owed can have a credit note made against it.</summary>
+    public static bool CanCredit(StoredDocument s) =>
+        s.Status == DocumentStatus.Issued && s.Document.Kind == DocumentKind.Invoice && s.Settled is null && Due(s) > 0;
+
+    /// <summary>The next credit note number: CN-0001, then on from the highest made here or drafted in Xero.</summary>
+    public static string NextCreditNumber(IEnumerable<StoredDocument> all)
+    {
+        var numbers = all.SelectMany(d => (d.Own?.Credits.Select(c => c.Number) ?? []).Concat(d.CreditNotes.Select(c => c.Number).OfType<string>()))
+            .Select(n => Numbered().Match(n.Trim())).Where(m => m.Success)
+            .Select(m => (Prefix: m.Groups["prefix"].Value, Digits: m.Groups["digits"].Value, Value: long.Parse(m.Groups["digits"].Value, CultureInfo.InvariantCulture)))
+            .ToList();
+        if (numbers.Count == 0)
+            return "CN-0001";
+        var top = numbers.MaxBy(n => n.Value);
+        return top.Prefix + (top.Value + 1).ToString(CultureInfo.InvariantCulture).PadLeft(top.Digits.Length, '0');
+    }
+
+    /// <summary>Why a credit can't be made as typed, or null when it can. No amount means all that's still owed.</summary>
+    public static string? CheckCredit(StoredDocument s, decimal? amount) =>
+        amount is <= 0 ? "Type an amount above R 0, or leave it empty to credit all that's owed."
+        : amount > Due(s) ? $"That's more than the {Money.Rand(Due(s))} still owed."
+        : null;
+
+    /// <summary>
+    /// Makes a credit note against the invoice, for an amount or all that's owed. Credited in full with nothing paid,
+    /// it's settled as credited; with payments too, as paid. Returns null when it can't be made.
+    /// </summary>
+    public static StoredDocument? Credit(StoredDocument s, decimal? amount, string? reason, DateOnly date, IEnumerable<StoredDocument> all, DateTimeOffset now)
+    {
+        if (!CanCredit(s) || CheckCredit(s, amount) is not null)
+            return null;
+        var credit = new OwnCredit(NextCreditNumber(all), date, Money.Cents(amount ?? Due(s)), string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(), now);
+        var credited = s with { Own = s.Own! with { Credits = [.. s.Own.Credits, credit] } };
+        return Due(credited) > 0 ? credited : credited with
+        {
+            Settled = new SettledState { On = now, As = Paid(credited) > 0 ? Settlement.Paid : Settlement.Credited },
+        };
+    }
+
+    // Quotes
+
+    /// <summary>A quote made here with no answer yet: the client accepted or declined it.</summary>
+    public static bool CanDecide(StoredDocument s) =>
+        s.Status == DocumentStatus.Issued && s.Document.Kind == DocumentKind.Quote && s.Settled is null;
 }
