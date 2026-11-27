@@ -136,6 +136,13 @@ public sealed class AppSettings(LocalStore store)
     }
 
     /// <summary>The mail categories you made, with their colours. The mail itself carries them as keywords on the server.</summary>
+    /// <summary>Bank statement lines already brought in, and what was learnt from corrections (on this PC).</summary>
+    public Webignite.Core.Finance.BankSettings Bank
+    {
+        get => store.GetSetting<Webignite.Core.Finance.BankSettings>("bank") ?? new Webignite.Core.Finance.BankSettings();
+        set => store.SetSetting("bank", value);
+    }
+
     public IReadOnlyList<MailCategory> MailCategories
     {
         get => store.GetSetting<List<MailCategory>>("mail-categories") ?? [];

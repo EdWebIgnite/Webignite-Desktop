@@ -61,6 +61,47 @@
       </Border>
     </UniformGrid>
 
+    <!-- A bank statement brought in: its new lines, each with what it most likely is, to check and add -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="quiet" Content="Bring in a statement" Click="PickStatement" IsVisible="{Binding !ShowingBank}" VerticalAlignment="Top"
+                  ToolTip.Tip="An OFX or CSV statement downloaded from internet banking, e.g. FNB's Download transactions" />
+          <StackPanel Spacing="4">
+            <TextBlock Classes="label" Text="Bank statement" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !ShowingBank}"
+                       Text="Download your statement from internet banking as OFX or CSV and bring it in. Payments are matched to invoices and bills; the rest you check once." />
+            <TextBlock TextWrapping="Wrap" Text="{Binding BankMessage}" IsVisible="{Binding ShowingBank}" Classes.problem="{Binding BankMessageIsProblem}" />
+          </StackPanel>
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding BankLines}" IsVisible="{Binding ShowingBank}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:BankLineRowViewModel">
+              <Border Classes="taskrow">
+                <Grid ColumnDefinitions="Auto,56,*,Auto,Auto">
+                  <CheckBox Grid.Column="0" IsChecked="{Binding Include}" VerticalAlignment="Center" ToolTip.Tip="Add this line" />
+                  <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Description}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding What}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
+                    <TextBox Text="{Binding Party}" Width="140" PlaceholderText="Who" IsVisible="{Binding IsNew}" />
+                    <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding Category}" Width="190" IsVisible="{Binding IsExpense}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="4" Classes="amount" Text="{Binding Amount}" VerticalAlignment="Center" MinWidth="96" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowingBank}">
+          <Button Classes="primary" Content="Add" Command="{Binding AddBankLinesCommand}" />
+          <Button Classes="quiet" Content="Cancel" Command="{Binding CancelBankCommand}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <!-- Bills to pay, from Xero -->
     <Border Classes="card">
       <StackPanel Spacing="10">
