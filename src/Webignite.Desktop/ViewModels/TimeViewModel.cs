@@ -222,7 +222,7 @@ public partial class TimeViewModel : ViewModelBase, IRefreshable, IDisposable
     public void Refresh()
     {
         CatchUpDays();
-        clients = services.Clients.List();
+        clients = services.Clients.ForTime();
         ClientChoices = ClientPicker.Choices(TimeRules.NoClient, clients);
         OnPropertyChanged(nameof(ClientChoices));
         ClientChoice = ClientPicker.Keep(ClientChoices, ClientChoice);

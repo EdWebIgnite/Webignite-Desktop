@@ -33,7 +33,7 @@ public sealed partial class TimerClock : ObservableObject
     public string RunningFor => Running is not { } running ? ""
         : running.Note is { Length: > 0 } note ? note
         : TimeRules.Describe(new TimeEntry { Id = "", Date = DateOnly.FromDateTime(DateTime.Today), Minutes = 0, ClientId = running.ClientId, ProjectId = running.ProjectId },
-            services.Clients.List());
+            services.Clients.ForTime());
 
     public void Start(RunningTimer timer)
     {

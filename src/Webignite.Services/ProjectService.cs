@@ -88,6 +88,19 @@ public sealed class ProjectService(LocalStore store, Func<string> me, TimeProvid
 
     public Project? Get(string id) => store.GetProject(id) is { Deleted: null } project ? project : null;
 
+    /// <summary>
+    /// Projects still on the old list on a client are added to the Planner with the same id, so a client has one
+    /// list of projects for the Planner, time and mail. Safe to run often: each is added once.
+    /// </summary>
+    public int MergeClientProjects(IEnumerable<Webignite.Core.Clients.Client> clients)
+    {
+        var added = 0;
+        foreach (var project in Webignite.Core.Clients.ClientPlanner.ToMerge(clients, store.ListProjects()))
+            if (Add(project).Saved is not null)
+                added++;
+        return added;
+    }
+
     /// <summary>A new project at the end of the list. Returns the problems instead, saving nothing.</summary>
     public (Project? Saved, IReadOnlyList<string> Problems) Add(Project typed)
     {

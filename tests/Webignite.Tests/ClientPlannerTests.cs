@@ -43,3 +43,48 @@ public sealed class ClientPlannerTests
         Assert.False(ClientPlanner.IsLate(P("a", "c", ProjectStatus.Done, Today.AddDays(-1)), Today));
     }
 }
+
+public sealed class ClientProjectsMergeTests
+{
+    private static readonly Client Studio = new()
+    {
+        Id = "studio", Name = "Studio Nine",
+        Projects =
+        [
+            new ClientProject { Id = "old1", Name = "New website", HourlyRate = 650m },
+            new ClientProject { Id = "old2", Name = "Logo refresh", Finished = true },
+            new ClientProject { Id = "gone", Name = "Banner ads" },
+        ],
+    };
+
+    [Fact]
+    public void Projects_on_the_old_client_list_become_Planner_projects_with_the_same_id_once()
+    {
+        var deleted = new Project { Id = "gone", Name = "Banner ads", ClientId = "studio", Deleted = new Stamp("me", DateTimeOffset.UnixEpoch) };
+        var merged = ClientPlanner.ToMerge([Studio], [deleted]);
+
+        Assert.Equal(["old1", "old2"], merged.Select(p => p.Id));
+        Assert.Equal(650m, merged[0].HourlyRate);
+        Assert.True(merged.All(p => p.ClientId == "studio" && p.Shared));
+        Assert.Equal(ProjectStatus.Done, merged[1].Status);
+        Assert.Empty(ClientPlanner.ToMerge([Studio], [.. merged, deleted]));
+    }
+
+    [Fact]
+    public void Time_sees_the_Planner_projects_with_who_they_are_for()
+    {
+        var planner = new[]
+        {
+            new Project { Id = "old1", Name = "New website", ClientId = "studio", For = "Karoo Coffee", HourlyRate = 700m },
+            new Project { Id = "p2", Name = "Shop", ClientId = "studio", Status = ProjectStatus.Done },
+            new Project { Id = "p3", Name = "Elsewhere", ClientId = "other" },
+        };
+
+        var time = ClientPlanner.ForTime(Studio, planner);
+
+        Assert.Equal(["old1", "p2", "old2", "gone"], time.Select(p => p.Id));
+        Assert.Equal("New website for Karoo Coffee", time[0].Name);
+        Assert.Equal(700m, time[0].HourlyRate);
+        Assert.True(time[1].Finished);
+    }
+}

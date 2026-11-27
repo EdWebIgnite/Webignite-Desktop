@@ -4094,6 +4094,11 @@ Save("site-check");
         var pages = Add("Build the five pages", build.Id, team.Partner.Id, new DateOnly(2026, 11, 26));
         Add("Contact form to info@", build.Id);
         {
+            // As at start-up: the older projects on the client move into the Planner, with their time.
+            Check("The older projects on a client move into the Planner once, keeping their ids",
+                services.Projects.MergeClientProjects(services.Clients.List()) == 2 && services.Projects.Get("p1") is { ClientId: var movedTo } && movedTo == bosveldId
+                && services.Projects.Get("p2") is { Status: Webignite.Core.Projects.ProjectStatus.Done, HourlyRate: 800m }
+                && services.Projects.MergeClientProjects(services.Clients.List()) == 0);
             // The client's page lists their projects in the Planner, and one click opens the project there.
             Open(Page.Clients);
             vm.Clients.OpenCommand.Execute(vm.Clients.Rows.First(r => r.Client.Id == bosveldId));
@@ -4103,19 +4108,29 @@ Save("site-check");
             if (!wasOpen)
                 hubClient.Sections.Toggle("projects");
             Dispatcher.UIThread.RunJobs();
-            Check("A client's page lists their projects in the Planner, with when each is due",
-                hubClient.PlannerProjects.Select(p => p.Name).SequenceEqual(["Bosveld Builders website"]) && hubClient.PlannerProjects[0].Line.StartsWith("Due 4 Dec", StringComparison.Ordinal)
-                && hubClient.ProjectsSummary.StartsWith("1 project in the Planner", StringComparison.Ordinal));
+            Check("A client's page has one list of projects, the Planner's, the soonest due first with when it's due",
+                hubClient.ProjectRows.FirstOrDefault() is { Name: "Bosveld Builders website" } first && first.Line.StartsWith("Due 4 Dec", StringComparison.Ordinal)
+                && hubClient.ProjectsSummary.Contains(" project", StringComparison.Ordinal));
+            // A project for an agency's own client: added on the client's page, it's a Planner project with who it's for.
+            hubClient.NewProjectName = "Homepage build";
+            hubClient.NewProjectFor = "Karoo Coffee";
+            hubClient.AddProjectCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Check("A project added on the client's page is in the Planner, under the client, with who it's for",
+                services.Projects.Projects().FirstOrDefault(p => p.Name == "Homepage build") is { For: "Karoo Coffee" } added && added.ClientId == bosveldId
+                && hubClient.ProjectRows.Any(r => r.Name == "Homepage build" && r.For == "For Karoo Coffee"));
             if (window.GetVisualDescendants().OfType<Webignite.Desktop.Controls.FoldSection>().FirstOrDefault(r => r.Key == "projects") is { } projectsRow)
                 Avalonia.Controls.ControlExtensions.BringIntoView(projectsRow);
             Dispatcher.UIThread.RunJobs();
             Save("client-planner-projects");
-            hubClient.PlannerProjects[0].OpenCommand.Execute(null);
+            hubClient.ProjectRows[0].OpenCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
             Check("Clicking one opens it in the Planner", vm.Selected.Key == Page.Projects
                 && ((ProjectsViewModel)vm[Page.Projects].Main.Page).Showing == site.Id);
             if (!wasOpen)
                 hubClient.Sections.Toggle("projects");
+            if (services.Projects.Projects().FirstOrDefault(p => p.Name == "Homepage build") is { } homepage)
+                services.Projects.Delete(homepage.Id);
         }
         Open(Page.Projects);
         var projectsPage = (ProjectsViewModel)vm[Page.Projects].Main.Page;
@@ -4128,7 +4143,9 @@ Save("site-check");
         Save("projects-all");
         projectsPage.OpenProject(site.Id);
         Dispatcher.UIThread.RunJobs();
-        Check("Projects lists shared and personal projects", projectsPage.SharedProjects.Count == 1 && projectsPage.PersonalProjects.Count == 1);
+        Check("Projects lists shared and personal projects, the client's older projects moved in among the shared",
+            projectsPage.SharedProjects.Select(r => r.Name).Order(StringComparer.Ordinal).SequenceEqual(["Bosveld Builders website", "New website"])
+            && projectsPage.PersonalProjects.Count == 1);
         Check("An open project shows its headings with their tasks", projectsPage.Rows.OfType<SectionRow>().Select(r => r.Name).SequenceEqual(["No heading", "Design", "Build", "Launch"])
             && projectsPage.Rows.OfType<TaskRow>().Count() == 5 && projectsPage.Rows.OfType<TaskRow>().First(r => r.Title.StartsWith("Wireframes", StringComparison.Ordinal)).Subtasks == "1 of 2");
         var contactForm = projectsPage.Rows.OfType<TaskRow>().First(r => r.Title.StartsWith("Contact form", StringComparison.Ordinal));

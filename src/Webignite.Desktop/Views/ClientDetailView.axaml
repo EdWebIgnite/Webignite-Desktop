@@ -418,52 +418,47 @@
             </c:FoldSection>
             <c:FoldSection Key="projects" Title="Projects and time" Icon="{StaticResource Icon.Time}" Summary="{Binding ProjectsSummary}" IsVisible="{Binding IsSaved}">
               <StackPanel Spacing="10">
-                <!-- Their projects in the Planner, each opening there. -->
-                <StackPanel Spacing="2" IsVisible="{Binding HasPlannerProjects}">
-                  <TextBlock Classes="label" Text="IN THE PLANNER" />
-                  <ItemsControl ItemsSource="{Binding PlannerProjects}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ClientPlannerRow">
-                        <DockPanel Margin="0,2">
-                          <TextBlock DockPanel.Dock="Right" Classes="muted" Classes.short="{Binding IsLate}" FontSize="{DynamicResource Text12}"
-                                     Text="{Binding Line}" VerticalAlignment="Center" Margin="12,0,0,0" />
-                          <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,2" HorizontalAlignment="Left"
-                                  ToolTip.Tip="Open this project in the Planner" />
-                        </DockPanel>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-                <TextBlock Classes="label" Text="FOR LOGGING TIME" IsVisible="{Binding HasPlannerProjects}" Margin="0,6,0,0" />
                 <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasProjects}"
-                           Text="Add a project, like New website or Monthly SEO, to log time against it on the Time page." />
-                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" IsVisible="{Binding HasProjects}" Text="Tick a project when it's finished. Its time is kept." />
+                           Text="Add a project, like New website or Monthly SEO. It's in the Planner too, and you can log time and file mail under it." />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" IsVisible="{Binding HasProjects}"
+                           Text="Click a project to open it in the Planner. Tick it when it's finished; its time is kept." />
                 <ItemsControl ItemsSource="{Binding ProjectRows}" IsVisible="{Binding HasProjects}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ClientProjectRow">
-                      <StackPanel Margin="0,2" Spacing="2">
-                        <CheckBox IsChecked="{Binding Finished}" ToolTip.Tip="Tick when finished. Its time is kept.">
-                          <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
-                        </CheckBox>
-                        <!-- Time logged, and the project's own rate when it differs from the client's. -->
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="32,0,0,0">
-                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Time}" VerticalAlignment="Center" />
-                          <TextBox Text="{Binding Rate, UpdateSourceTrigger=LostFocus}" Width="96" MinHeight="0" FontSize="{DynamicResource Text12}" Padding="6,2"
-                                   PlaceholderText="Own rate, R" Classes.problem="{Binding RateProblem}"
-                                   ToolTip.Tip="This project's own hourly rate. Leave it empty to use the client's rate." />
+                      <DockPanel Margin="0,3">
+                        <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Finished}" VerticalAlignment="Top" Margin="0,1,4,0" ToolTip.Tip="Tick when finished. Its time is kept." />
+                        <TextBlock DockPanel.Dock="Right" Classes="muted" Classes.short="{Binding IsLate}" FontSize="{DynamicResource Text12}"
+                                   Text="{Binding Line}" VerticalAlignment="Top" Margin="12,4,0,0" />
+                        <StackPanel Spacing="2">
+                          <Button Classes="link" Content="{Binding Name}" Command="{Binding OpenCommand}" Padding="0,2" HorizontalAlignment="Left"
+                                  ToolTip.Tip="Open this project in the Planner" />
+                          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding For}" IsVisible="{Binding HasFor}" />
+                          <!-- Time logged, and the project's own rate when it differs from the client's. -->
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding Time}" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding Rate, UpdateSourceTrigger=LostFocus}" Width="96" MinHeight="0" FontSize="{DynamicResource Text12}" Padding="6,2"
+                                     PlaceholderText="Own rate, R" Classes.problem="{Binding RateProblem}"
+                                     ToolTip.Tip="This project's own hourly rate. Leave it empty to use the client's rate." />
+                          </StackPanel>
                         </StackPanel>
-                      </StackPanel>
+                      </DockPanel>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <DockPanel>
-                  <Button DockPanel.Dock="Right" Classes="quiet" Content="Add" Margin="8,0,0,0" Command="{Binding AddProjectCommand}" />
-                  <TextBox Text="{Binding NewProjectName}" PlaceholderText="New project, e.g. New website">
+                <Grid ColumnDefinitions="*,8,*,8,Auto">
+                  <TextBox Grid.Column="0" Text="{Binding NewProjectName}" PlaceholderText="New project, e.g. New website">
                     <TextBox.KeyBindings>
                       <KeyBinding Gesture="Enter" Command="{Binding AddProjectCommand}" />
                     </TextBox.KeyBindings>
                   </TextBox>
-                </DockPanel>
+                  <TextBox Grid.Column="2" Text="{Binding NewProjectFor}" PlaceholderText="For (their client), if any"
+                           ToolTip.Tip="When this client is an agency, who the work is for, e.g. Karoo Coffee">
+                    <TextBox.KeyBindings>
+                      <KeyBinding Gesture="Enter" Command="{Binding AddProjectCommand}" />
+                    </TextBox.KeyBindings>
+                  </TextBox>
+                  <Button Grid.Column="4" Classes="quiet" Content="Add" Command="{Binding AddProjectCommand}" />
+                </Grid>
               </StackPanel>
             </c:FoldSection>
             <c:FoldSection Key="logins" Title="Site logins" Icon="{StaticResource Icon.Key}" Summary="{Binding LoginsSummary}" IsVisible="{Binding IsSaved}">

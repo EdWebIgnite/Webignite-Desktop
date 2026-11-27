@@ -212,6 +212,16 @@ public sealed record Project : ITracked
     public string Name { get; init; } = "";
     public bool Shared { get; init; }
     public string? ClientId { get; init; }
+
+    /// <summary>
+    /// Who the work is for when the client is an agency passing on its own client's job, e.g. "Karoo Coffee" under a
+    /// design studio. Shown beside the name; billing still goes to the client.
+    /// </summary>
+    public string? For { get; init; }
+
+    /// <summary>The hourly rate for time on this project when it differs from the client's, in Rand.</summary>
+    public decimal? HourlyRate { get; init; }
+
     public ProjectStatus Status { get; init; }
     public DateOnly? Due { get; init; }
 

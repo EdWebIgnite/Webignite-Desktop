@@ -463,7 +463,7 @@ public sealed class AssistantBusiness
         var end = toGiven && toDay is { } t ? t : Today;
         var start = fromGiven && fromDay is { } f ? f : end.AddDays(-30);
         var clientId = client is { Length: > 0 } ? FindClient(client).Id : null;
-        var all = clients.List();
+        var all = clients.ForTime();
         return [.. store.ListTime(start, end).Where(e => clientId is null || e.ClientId == clientId)
             .OrderByDescending(e => e.Date).Select(e => Line(e, all))];
     }
@@ -483,7 +483,7 @@ public sealed class AssistantBusiness
         {
             if (owner is null)
                 throw new ArgumentException("Name the client the project belongs to.");
-            var (picked, projectProblem) = AssistantLookup.Find(owner.Projects.Where(p => !p.Finished), project, p => p.Id, p => p.Name, "project");
+            var (picked, projectProblem) = AssistantLookup.Find(ClientPlanner.ForTime(owner, store.ListProjects()).Where(p => !p.Finished), project, p => p.Id, p => p.Name, "project");
             projectId = (picked ?? throw new ArgumentException(projectProblem + $" {owner.Name}'s projects are on their client page.")).Id;
         }
         var saved = store.SaveTime(new TimeEntry
@@ -497,7 +497,7 @@ public sealed class AssistantBusiness
             Created = clock.GetUtcNow(),
         });
         Changed("time");
-        return Line(saved, clients.List());
+        return Line(saved, clients.ForTime());
     }
 
     // Renewals and retainers
