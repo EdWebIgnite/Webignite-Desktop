@@ -488,7 +488,7 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
     public bool Compose(OutgoingMail mail, byte[]? source = null, MailSummary? answering = null, Func<IReadOnlyList<MailPerson>, Task>? afterSent = null,
         Func<OutgoingMail, Task<OutgoingMail>>? beforeSend = null)
     {
-        if (Composer is { HasChanges: true } open)
+        if (Composer is { HoldsWork: true } open)
         {
             open.Message = "Finish or close this mail before starting another.";
             open.MessageIsProblem = true;

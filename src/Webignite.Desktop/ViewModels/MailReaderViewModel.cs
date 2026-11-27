@@ -197,10 +197,11 @@ public partial class MailReaderViewModel(MailSummary summary, MailAccount accoun
     {
         if (mime is null)
             return;
-        // Saving the edited draft makes a new one, so a send set for this one would find nothing: it is taken off.
-        if (Scheduled is not null)
+        // Saving the edited draft makes a new one, so a send set for this one would find nothing: it is taken off,
+        // but only once the editor has opened it (it refuses while another mail is being written).
+        var scheduled = Scheduled is not null;
+        if (owner.Compose(MailComposer.FromDraft(mime, account, Summary.Uid), source: mime) && scheduled)
             owner.SendingPart.Unschedule(account.Id, Summary.Uid);
-        owner.Compose(MailComposer.FromDraft(mime, account, Summary.Uid), source: mime);
     }
 
     /// <summary>The send set for this draft, if it is one waiting to go later.</summary>
