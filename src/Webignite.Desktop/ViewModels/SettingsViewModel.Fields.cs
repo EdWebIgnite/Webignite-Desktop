@@ -30,9 +30,45 @@ public partial class SettingsViewModel
         }
     }
 
+    [ObservableProperty]
+    public partial string NextQuoteNumber { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string NextInvoiceNumber { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string NumbersMessage { get; set; } = "";
+
+    // What each kind gets next: the number set here, or one past the highest used, Xero's included.
+    private void ShowNextNumbers()
+    {
+        var documents = services.Documents.List();
+        var settings = services.Settings.Documents;
+        NextQuoteNumber = OwnInvoicing.NextNumber(DocumentKind.Quote, documents, settings.NextQuoteNumber);
+        NextInvoiceNumber = OwnInvoicing.NextNumber(DocumentKind.Invoice, documents, settings.NextInvoiceNumber);
+    }
+
+    /// <summary>Keeps the next numbers as typed. One already used or behind moves on past the highest used.</summary>
+    [RelayCommand]
+    private void SaveNextNumbers()
+    {
+        if (!NextQuoteNumber.Trim().Any(char.IsAsciiDigit) || !NextInvoiceNumber.Trim().Any(char.IsAsciiDigit) || !char.IsAsciiDigit(NextQuoteNumber.Trim()[^1]) || !char.IsAsciiDigit(NextInvoiceNumber.Trim()[^1]))
+        {
+            NumbersMessage = "End each number with digits, like QU-1025 or INV-0200.";
+            return;
+        }
+        var wanted = (Quote: NextQuoteNumber.Trim(), Invoice: NextInvoiceNumber.Trim());
+        services.Settings.Documents = services.Settings.Documents with { NextQuoteNumber = wanted.Quote, NextInvoiceNumber = wanted.Invoice };
+        ShowNextNumbers();
+        NumbersMessage = NextQuoteNumber == wanted.Quote && NextInvoiceNumber == wanted.Invoice
+            ? $"Saved. The next ones are {NextQuoteNumber} and {NextInvoiceNumber}."
+            : $"Saved, but a number was already used, so the next ones are {NextQuoteNumber} and {NextInvoiceNumber}.";
+    }
+
     private void LoadFields()
     {
         OnPropertyChanged(nameof(MakeInWebignite));
+        ShowNextNumbers();
         DocumentFieldRows.Clear();
         foreach (var field in services.Settings.Documents.Fields)
             DocumentFieldRows.Add(new FieldSettingRow(field, this));

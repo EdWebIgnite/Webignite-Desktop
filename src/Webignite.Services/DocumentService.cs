@@ -83,6 +83,37 @@ public sealed class DocumentService(LocalStore store)
     }
 
     /// <summary>
+    /// Brings in old quotes and invoices from a spreadsheet (<see cref="DocumentImport"/>). Any whose number is here by
+    /// now is left out. Returns the ids brought in, for Undo (<see cref="Unimport"/>).
+    /// </summary>
+    public IReadOnlyList<string> Import(IEnumerable<StoredDocument> documents)
+    {
+        var here = store.List().Select(d => (d.Document.Kind, Number: (OwnInvoicing.NumberOf(d) ?? d.Document.Number)?.Trim().ToUpperInvariant())).ToHashSet();
+        var saved = new List<string>();
+        foreach (var document in documents.Where(d => d.Document.Origin == DocumentOrigin.Import))
+        {
+            if (here.Add((document.Document.Kind, document.Document.Number?.Trim().ToUpperInvariant())))
+                saved.Add(store.Save(document).Id);
+        }
+        return saved;
+    }
+
+    /// <summary>Takes out what one import brought in, for Undo. Only ones still as they came in from the spreadsheet.</summary>
+    public int Unimport(IEnumerable<string> ids)
+    {
+        var gone = 0;
+        foreach (var id in ids)
+        {
+            if (store.Get(id) is { Document.Origin: DocumentOrigin.Import } brought)
+            {
+                store.DeleteDocument(brought.Id);
+                gone++;
+            }
+        }
+        return gone;
+    }
+
+    /// <summary>
     /// Saves this exact record. Only for the Xero write steps, which hold the document (and keep the editor busy)
     /// from the first step to the last, saving each one before the next.
     /// </summary>

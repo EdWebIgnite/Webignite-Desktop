@@ -95,6 +95,29 @@ public sealed class DocumentTools(AssistantDocuments documents)
         }
     }
 
+    [McpServerTool(Name = "prepare_import", Title = "Bring in old quotes and invoices from a CSV", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Gets old quotes and invoices ready to bring into Webignite as a record, from CSV text: a heading line, then a row per document "
+        + "or per line (rows with the same number are lines of one document). Headings understood: Type (quote or invoice), Number, Client, "
+        + "Email, Date, Due date, Reference, Description, Quantity, Unit price, Line amount, Total, Amount paid, Amount due, Paid date, Status "
+        + "(Sent, Paid, Accepted, Declined, Invoiced, Void or Draft). Xero and QuickBooks exports work as they are. Dates like 2025-03-01 or "
+        + "01/03/2025 (day first). Use this when Eddie gives you a list or file of old ones to put in. Nothing is added from here: it waits on "
+        + "the Quotes and Invoices pages for Eddie to bring in or throw away, and numbers already in Webignite are left out. Nothing is "
+        + "mailed and nothing goes to Xero.")]
+    public string PrepareImport(
+        [Description("The CSV text, heading line first. Commas or semicolons.")] string csv,
+        [Description("quote or invoice, when the rows don't say. Leave out when there is a Type column or the numbers start QU or INV.")] string? kind = null,
+        McpServer? server = null)
+    {
+        try
+        {
+            return Json(documents.PrepareImport(csv, kind, Source(server)));
+        }
+        catch (ArgumentException e)
+        {
+            throw new McpException(e.Message);
+        }
+    }
+
     public sealed record DraftLineInput(
         [property: Description("What's included, e.g. WordPress installation, theme setup and essential settings. Don't repeat the item name here.")] string Description,
         [property: Description("How many, e.g. 1 or 3.5 hours. Leave out for a text-only line.")] decimal? Quantity = null,

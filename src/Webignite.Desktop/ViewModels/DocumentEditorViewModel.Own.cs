@@ -27,7 +27,7 @@ public partial class DocumentEditorViewModel
             ? $"It gets the next quote number ({NextNumberShown}), then the mail opens with the PDF attached. Nothing is sent until you press Send."
             : $"It gets the next invoice number ({NextNumberShown}) and counts as owed, then the mail opens with the PDF attached. Nothing is sent until you press Send.";
 
-    private string NextNumberShown => OwnInvoicing.NextNumber(Kind, services.Documents.List(Kind).Where(d => d.Id != stored?.Id));
+    private string NextNumberShown => OwnInvoicing.NextNumber(Kind, services.Documents.List(Kind).Where(d => d.Id != stored?.Id), services.Settings.Documents.NextNumberFor(Kind));
 
     public bool CanIssue => ShowIssue && IsReady && !XeroBusy;
 
@@ -57,7 +57,7 @@ public partial class DocumentEditorViewModel
         if (stored is null)
             return Task.CompletedTask;
         var all = services.Documents.List(Kind);
-        var issued = services.Documents.Change(stored.Id, s => OwnInvoicing.Issue(s, all, DateTimeOffset.Now));
+        var issued = services.Documents.Change(stored.Id, s => OwnInvoicing.Issue(s, all, DateTimeOffset.Now, services.Settings.Documents.NextNumberFor(Kind)));
         if (issued is not { Status: DocumentStatus.Issued })
         {
             ShowXero("It couldn't be made final: it may have gone to Xero from another page meanwhile.", problem: true);

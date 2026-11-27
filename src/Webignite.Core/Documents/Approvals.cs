@@ -68,7 +68,9 @@ public static class Approvals
     /// deleted there (Void in Xero), so the two never disagree.
     /// </summary>
     public static bool CanDelete(StoredDocument s) =>
-        s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: not DocumentOrigin.Xero };
+        s is { Xero: { Id: null, State: XeroWriteState.None }, Delivery: { Approved: null, Emailed: null }, Settled: null, Document.Origin: not DocumentOrigin.Xero }
+        // An old one brought in from a spreadsheet is only a record here, whatever became of it.
+        || s is { Document.Origin: DocumentOrigin.Import, Xero.Id: null };
 
     public static WaitingItem? Why(StoredDocument s)
     {

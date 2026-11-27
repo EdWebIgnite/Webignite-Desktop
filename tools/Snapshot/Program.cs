@@ -369,6 +369,30 @@ Open(Page.Invoices);
 Check("Invoices open on three figures: owed, overdue and paid this month",
     vm.Invoices.Tiles.Count == 3 && vm.Invoices.Tiles[0].Label == "Owed to you" && vm.Invoices.Tiles[1].Problem);
 Save("invoices");
+{
+    // Old ones from a CSV: what would come in is shown first, a number already here is left out, then they come in.
+    var csvPath = Path.Combine(Path.GetTempPath(), "webignite-old-invoices.csv");
+    var here = store.List(DocumentKind.Invoice).Select(OwnInvoicing.NumberOf).OfType<string>().FirstOrDefault() ?? "INV-0001";
+    File.WriteAllText(csvPath, $"Type,Number,Client,Date,Total,Status\nInvoice,{here},Karoo Coffee Roasters,2025-03-01,900,Paid\n"
+        + "Invoice,OLD-0050,G3,2025-03-01,1700,Paid\nInvoice,OLD-0051,G3,2025-04-01,1700,Sent\nQuote,OLD-Q-0901,Modics,2025-02-01,4500,Accepted\n,,G3,,10,\n");
+    var before = store.List().Count;
+    vm.Invoices.LookAtFile(csvPath);
+    Dispatcher.UIThread.RunJobs();
+    Check("A CSV of old quotes and invoices is shown first, with what's here already and rows that couldn't be read",
+        vm.Invoices.HasImport && vm.Invoices.CanBringIn && store.List().Count == before
+        && vm.Invoices.ImportNotes.Any(n => n.Contains("already here", StringComparison.Ordinal)) && vm.Invoices.ImportNotes.Any(n => n.Contains("no number", StringComparison.Ordinal)));
+    Save("invoices-import");
+    vm.Invoices.BringInCommand.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    var broughtIn = store.List().Where(d => d.Document.Origin == DocumentOrigin.Import).ToList();
+    Check("Bring them in adds the three new ones as they were, paid or still owed", broughtIn.Count == 3 && !vm.Invoices.HasImport
+        && broughtIn.Single(d => OwnInvoicing.NumberOf(d) == "OLD-0051") is var owed && Receivables.Outstanding(owed) == 1700m);
+    Save("invoices-imported");
+    foreach (var old in broughtIn)
+        store.DeleteDocument(old.Id);
+    File.Delete(csvPath);
+    vm.Invoices.Refresh();
+}
 vm.Invoices.Tiles[1].PickCommand.Execute(null);
 Dispatcher.UIThread.RunJobs();
 Check("Clicking a figure shows the rows behind it, and again shows all",

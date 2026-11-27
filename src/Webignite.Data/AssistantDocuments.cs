@@ -172,6 +172,40 @@ public sealed class AssistantDocuments(LocalStore store, TimeProvider? clock = n
             })];
 
     /// <summary>Eddie's standard packages and items, with their usual lines and prices.</summary>
+    /// <summary>
+    /// Old quotes and invoices from CSV text, kept for Eddie to look at on the Quotes or Invoices page and bring in or
+    /// throw away. Nothing is added from here. Returns what it would bring in, so the assistant can say so.
+    /// </summary>
+    public object PrepareImport(string csv, string? kind, DocumentSource source)
+    {
+        if (string.IsNullOrWhiteSpace(csv))
+            throw new ArgumentException("csv is empty. Send the rows with a heading line first.");
+        if (csv.Length > PendingImport.Largest)
+            throw new ArgumentException("That's too much at once. Send it in parts of a few thousand rows.");
+        DocumentKind? parsed = kind?.Trim().ToLowerInvariant() switch
+        {
+            null or "" => null,
+            "quote" or "quotes" => DocumentKind.Quote,
+            "invoice" or "invoices" => DocumentKind.Invoice,
+            _ => throw new ArgumentException("kind must be quote or invoice, or left out when the rows say."),
+        };
+        var plan = DocumentImport.Plan(csv, parsed, store.List(), clock.GetUtcNow());
+        if (plan.Documents.Count == 0)
+            return new { brought_in = 0, summary = DocumentImport.Summary(plan), skipped = plan.Skipped.Take(20), problems = plan.Problems.Take(20), waiting = false };
+        var who = source == DocumentSource.ChatGpt ? "ChatGPT" : "Claude";
+        store.SetSetting(PendingImport.SettingName, new PendingImport(csv, parsed, who, clock.GetUtcNow()));
+        return new
+        {
+            would_bring_in = plan.Documents.Count,
+            summary = DocumentImport.Summary(plan),
+            skipped = plan.Skipped.Take(20),
+            problems = plan.Problems.Take(20),
+            waiting = true,
+            message = $"Nothing is added yet. Eddie sees this on the Quotes and Invoices pages and brings them in or throws them away. "
+                + "A new import replaces one still waiting.",
+        };
+    }
+
     public IReadOnlyList<PriceEntry> Prices() => store.GetSetting<List<PriceEntry>>("price-list") ?? [];
 
     /// <summary>Quotes and invoices kept in Webignite, newest first.</summary>

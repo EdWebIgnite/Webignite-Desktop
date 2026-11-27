@@ -62,6 +62,8 @@ public static class XeroDocuments
         // Webignite's own whose write to Xero broke before Xero's id came back: Check Xero links those, so a row
         // that may be one of them waits rather than coming in twice.
         var unsure = existing.Where(d => d.Xero.Id is null && d.Xero.State is XeroWriteState.Writing or XeroWriteState.Uncertain).ToList();
+        // Made final here or brought in from a spreadsheet with the number Xero has: the same document, so not brought in twice.
+        var numberedHere = existing.Where(d => d.Xero.Id is null && d.Own?.Number is not null).ToList();
         var add = new List<StoredDocument>();
         var refresh = new List<StoredDocument>();
         var gone = new List<(string, Settlement)>();
@@ -75,7 +77,8 @@ public static class XeroDocuments
                     gone.Add((known.Id, row.Status == XeroStatuses.Voided ? Settlement.Voided : Settlement.Deleted));
                 continue;
             }
-            if (row.Status is XeroStatuses.Deleted or XeroStatuses.Voided || unsure.Any(d => MaybeSame(d, row)))
+            if (row.Status is XeroStatuses.Deleted or XeroStatuses.Voided || unsure.Any(d => MaybeSame(d, row))
+                || numberedHere.Any(d => d.Document.Kind == row.Kind && Same(d.Own!.Number, row.Number)))
                 continue;
             add.Add(ToStored(row, now, null));
         }
