@@ -53,8 +53,8 @@
         </StackPanel>
         <StackPanel Grid.Column="2">
           <TextBlock Classes="label" Text="Number" />
-          <TextBox Text="{Binding NumberText}" PlaceholderText="Xero's next" MaxLength="255"
-                   ToolTip.Tip="Leave empty and Xero gives it the next number, or type your own, e.g. WEB-2026-014" />
+          <TextBox Text="{Binding NumberText}" PlaceholderText="{Binding NumberPlaceholder}" MaxLength="255"
+                   ToolTip.Tip="Leave empty for the next number, or type your own, e.g. WEB-2026-014" />
         </StackPanel>
         <StackPanel Grid.Column="4">
           <TextBlock Classes="label" Text="Reference" />
@@ -182,12 +182,13 @@
         </Border>
         <Border Classes="pending" IsVisible="{Binding RecordingPayment}">
           <StackPanel Spacing="8">
-            <TextBlock FontWeight="SemiBold" Text="Record a payment in Xero" />
+            <TextBlock FontWeight="SemiBold" Text="{Binding PaymentTitle}" />
             <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="{DynamicResource Text12}" Text="{Binding PaymentHint}" />
             <Grid ColumnDefinitions="140,12,170,12,*">
               <TextBox Text="{Binding PaymentAmountText}" PlaceholderText="Amount (R)" />
               <c:DateBox Grid.Column="2" SelectedDate="{Binding PaymentDay}" Latest="{x:Static sys:DateTime.Today}" HorizontalAlignment="Stretch" />
-              <ComboBox Grid.Column="4" ItemsSource="{Binding BankAccounts}" SelectedItem="{Binding PaymentAccount}"
+              <TextBox Grid.Column="4" Text="{Binding PaymentNote}" PlaceholderText="Note, e.g. EFT or PayFast" IsVisible="{Binding IsIssued}" />
+              <ComboBox Grid.Column="4" ItemsSource="{Binding BankAccounts}" SelectedItem="{Binding PaymentAccount}" IsVisible="{Binding !IsIssued}"
                         PlaceholderText="Bank account it went into" HorizontalAlignment="Stretch">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="xero:XeroBankAccount">
@@ -277,6 +278,13 @@
             <TextBlock FontWeight="SemiBold" Text="Total" />
             <TextBlock Classes="amount" FontSize="20" FontWeight="SemiBold" Text="{Binding Total}" />
           </DockPanel>
+          <!-- Made final here (Settings, Quotes and invoices): numbered and mailed with Webignite's own PDF. -->
+          <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
+                  Content="{Binding IssueButtonText}" Command="{Binding IssueCommand}" IsVisible="{Binding ShowIssue}" IsEnabled="{Binding CanIssue}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Text12}" TextWrapping="Wrap" Text="{Binding IssueHint}" IsVisible="{Binding ShowIssue}" />
+          <Button Classes="link" HorizontalAlignment="Left" Padding="0" Content="Make it final without emailing" Command="{Binding IssueOnlyCommand}"
+                  IsVisible="{Binding ShowIssue}" IsEnabled="{Binding CanIssue}" FontSize="{DynamicResource Text12}"
+                  ToolTip.Tip="Gives it its number and counts it, for when it goes to the client another way." />
           <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0"
                   Content="Create draft in Xero" Command="{Binding CreateInXeroCommand}"
                   IsVisible="{Binding ShowCreate}" IsEnabled="{Binding CanCreate}" />

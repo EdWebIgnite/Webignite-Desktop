@@ -37,7 +37,7 @@ public static class DocumentHeadline
                 parts.Add($"{accepted} accepted");
         }
 
-        var onThisPc = mine.Count(d => d.Status != DocumentStatus.InXero);
+        var onThisPc = mine.Count(d => d.Status is DocumentStatus.Draft or DocumentStatus.AwaitingApproval);
         if (onThisPc > 0)
             parts.Add($"{onThisPc} not in Xero yet");
         return string.Join(", ", parts);
@@ -109,7 +109,7 @@ public static class DocumentHeadline
                 : $"{overdue.Count} invoices are overdue, {amount} in all.", "Show overdue", DocumentShow.Overdue);
         }
 
-        var onThisPc = mine.Count(d => d.Status != DocumentStatus.InXero);
+        var onThisPc = mine.Count(d => d.Status is DocumentStatus.Draft or DocumentStatus.AwaitingApproval);
         if (onThisPc > 0)
             return new(onThisPc == 1
                 ? $"1 {noun} is still on this PC. Open it and send it to Xero as a draft when it's ready."

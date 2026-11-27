@@ -118,7 +118,7 @@ public static class Projection
                 continue;
             var total = d.Document.Total ?? Money.Cents(d.Document.NetSubtotal() + (d.Document.TaxTotal ?? 0));
             if (total > 0)
-                items.Add(new ExpectedItem(due, Name(d.Document.Customer.Name, d.Xero.Number ?? d.Document.Reference), total));
+                items.Add(new ExpectedItem(due, Name(d.Document.Customer.Name, Webignite.Core.Documents.OwnInvoicing.NumberOf(d) ?? d.Document.Reference), total));
         }
 
         foreach (var r in retainers)

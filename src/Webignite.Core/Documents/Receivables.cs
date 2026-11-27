@@ -27,12 +27,14 @@ public static class Receivables
 
     /// <summary>An invoice the customer has and hasn't settled. Drafts still waiting for approval in Xero don't count.</summary>
     public static bool IsOpenInvoice(StoredDocument d) =>
-        d.Document.Kind == DocumentKind.Invoice && d.Status == DocumentStatus.InXero && d.Settled is null
-        && !XeroStatuses.IsDraft(d.Xero.Status);
+        d.Document.Kind == DocumentKind.Invoice && d.Settled is null
+        && (d.Status == DocumentStatus.Issued || d.Status == DocumentStatus.InXero && !XeroStatuses.IsDraft(d.Xero.Status));
 
     /// <summary>What's still owed on an invoice: Xero's amount due when known, otherwise the total.</summary>
     public static decimal Outstanding(StoredDocument d) =>
-        IsOpenInvoice(d) ? Math.Max(0, d.Xero.AmountDue ?? d.Document.Total ?? 0) : 0;
+        !IsOpenInvoice(d) ? 0
+        : d.Status == DocumentStatus.Issued ? OwnInvoicing.Due(d)
+        : Math.Max(0, d.Xero.AmountDue ?? d.Document.Total ?? 0);
 
     public static bool IsOverdue(StoredDocument d, DateOnly today) =>
         Outstanding(d) > 0 && d.Document.DueOrExpiryDate is { } due && due < today;
@@ -42,8 +44,9 @@ public static class Receivables
     /// accepted, declined or expired. A draft the client never saw isn't waiting on anyone, as with invoices.
     /// </summary>
     public static bool IsOpenQuote(StoredDocument d, DateOnly today) =>
-        d.Document.Kind == DocumentKind.Quote && d.Status == DocumentStatus.InXero && d.Settled is null
-        && (d.Delivery.Emailed is not null || d.Xero.Status == XeroStatuses.Sent)
+        d.Document.Kind == DocumentKind.Quote && d.Settled is null
+        && (d.Status == DocumentStatus.Issued
+            || d.Status == DocumentStatus.InXero && (d.Delivery.Emailed is not null || d.Xero.Status == XeroStatuses.Sent))
         && !(d.Document.DueOrExpiryDate < today);
 
     /// <summary>The word on a quote or invoice row: Draft, To approve, Overdue, Paid, Accepted and so on.</summary>
@@ -53,6 +56,8 @@ public static class Receivables
         DocumentStatus.AwaitingApproval => "To approve",
         DocumentStatus.InXero when IsOverdue(d, today) => "Overdue",
         DocumentStatus.InXero => Standing(d) ?? "In Xero",
+        DocumentStatus.Issued when IsOverdue(d, today) => "Overdue",
+        DocumentStatus.Issued => OwnInvoicing.Status(d),
         _ => d.Status.ToString(),
     };
 

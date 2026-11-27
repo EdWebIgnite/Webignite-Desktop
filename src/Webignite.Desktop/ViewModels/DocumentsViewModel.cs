@@ -19,7 +19,7 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
     {
         Kind = kind;
         this.services = services;
-        ShowChips = ShowChoices(kind).Select(c => new FilterChip(c.Label, () => Show = c.Value) { IsOn = c.Value == DocumentShow.All }).ToList();
+        ShowChips = ShowChoices(kind, services.Settings.Documents.MakeInWebignite).Select(c => new FilterChip(c.Label, () => Show = c.Value) { IsOn = c.Value == DocumentShow.All }).ToList();
         Refresh();
     }
 
@@ -45,19 +45,20 @@ public partial class DocumentsViewModel : ViewModelBase, IRefreshable, IHoldsWor
     public bool ShowTable => Rows.Count > 0;
 
     /// <summary>The quick filters above the list. Quotes are never overdue, and are accepted rather than paid.</summary>
-    public static IReadOnlyList<Choice<DocumentShow>> ShowChoices(DocumentKind kind) => kind == DocumentKind.Quote
+    /// <summary>With quotes and invoices made in Webignite, the chips speak of sent rather than Xero.</summary>
+    public static IReadOnlyList<Choice<DocumentShow>> ShowChoices(DocumentKind kind, bool own = false) => kind == DocumentKind.Quote
         ?
         [
             new("All", DocumentShow.All),
-            new("Not in Xero yet", DocumentShow.NotInXero),
-            new("In Xero", DocumentShow.InXero),
+            new(own ? "Not sent yet" : "Not in Xero yet", DocumentShow.NotInXero),
+            new(own ? "Sent" : "In Xero", DocumentShow.InXero),
             new("Accepted", DocumentShow.Settled),
         ]
         :
         [
             new("All", DocumentShow.All),
-            new("Not in Xero yet", DocumentShow.NotInXero),
-            new("In Xero", DocumentShow.InXero),
+            new(own ? "Not sent yet" : "Not in Xero yet", DocumentShow.NotInXero),
+            new(own ? "Sent" : "In Xero", DocumentShow.InXero),
             new("Overdue", DocumentShow.Overdue),
             new("Paid", DocumentShow.Settled),
         ];

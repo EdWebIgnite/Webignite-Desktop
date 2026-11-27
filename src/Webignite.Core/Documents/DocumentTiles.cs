@@ -31,7 +31,8 @@ public static class DocumentTiles
         var waiting = mine.Where(d => Receivables.IsOpenQuote(d, today)).ToList();
         var accepted = mine.Where(d => d.Settled?.As is Settlement.Accepted or Settlement.Invoiced && d.Settled.On is var at
             && Dates.MonthStart(DateOnly.FromDateTime(at.ToLocalTime().DateTime)) == Dates.MonthStart(today)).ToList();
-        var drafts = mine.Where(d => d.Status != DocumentStatus.InXero || (d.Settled is null && d.Delivery.Emailed is null && d.Xero.Status != XeroStatuses.Sent)).ToList();
+        var drafts = mine.Where(d => d.Status is DocumentStatus.Draft or DocumentStatus.AwaitingApproval
+            || (d.Status == DocumentStatus.InXero && d.Settled is null && d.Delivery.Emailed is null && d.Xero.Status != XeroStatuses.Sent)).ToList();
         return
         [
             new("Waiting on clients", Money.Rand(waiting.Sum(d => d.Document.Total ?? 0)), Count(waiting.Count, "quote"), DocumentShow.Waiting),

@@ -1172,6 +1172,15 @@
     </Border>
 
     <Border Classes="card" IsVisible="{Binding ShowDocuments}">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="h2" Text="Where quotes and invoices are made" />
+        <CheckBox IsChecked="{Binding MakeInWebignite}" Content="Make quotes and invoices in Webignite instead of Xero" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Ticked, a quote or invoice gets its number here, carrying on from the numbers you have, when you approve or email it. It goes out with Webignite's own PDF from your invoice mailbox, and payments are recorded here. Nothing new goes to Xero. Ones already in Xero carry on there. Leave it off while you still use Xero for new ones." />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card" IsVisible="{Binding ShowDocuments}">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="Your own fields" />
         <TextBlock Classes="muted" TextWrapping="Wrap"

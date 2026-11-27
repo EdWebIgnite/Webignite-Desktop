@@ -17,8 +17,22 @@ public partial class SettingsViewModel
     [ObservableProperty]
     public partial string FieldMessage { get; set; } = "";
 
+    /// <summary>Quotes and invoices are made final in Webignite, not Xero. Saved, and shared with the other PC, as soon as it's ticked.</summary>
+    public bool MakeInWebignite
+    {
+        get => services.Settings.Documents.MakeInWebignite;
+        set
+        {
+            if (value == services.Settings.Documents.MakeInWebignite)
+                return;
+            services.Settings.Documents = services.Settings.Documents with { MakeInWebignite = value };
+            OnPropertyChanged();
+        }
+    }
+
     private void LoadFields()
     {
+        OnPropertyChanged(nameof(MakeInWebignite));
         DocumentFieldRows.Clear();
         foreach (var field in services.Settings.Documents.Fields)
             DocumentFieldRows.Add(new FieldSettingRow(field, this));
