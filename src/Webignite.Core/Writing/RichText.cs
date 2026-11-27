@@ -168,11 +168,29 @@ public static partial class RichText
         probe.Blocks.AddRange(signature.OfType<TextBlock>().Select(b => b.Clone()));
         var words = Squeeze(ToText(probe));
         if (words.Length > 0 && Squeeze(ToText(document)).Contains(words, StringComparison.OrdinalIgnoreCase))
-            return false;
+            return AddSignaturePicture(document, signature);
         // A blank line between the writing and the signature, unless the writing already ends with one.
         if (document.Blocks.Count == 0 || document.Blocks[^1] is not TextBlock { Length: 0 })
             document.Blocks.Add(new TextBlock());
         RichEditing.InsertSignature(document, [.. signature.Select(b => b.Clone())]);
+        return true;
+    }
+
+    /// <summary>
+    /// The signature's words are there but its picture isn't (an assistant or the phone wrote the mail as text): the
+    /// picture goes in after the signature's last line, so the logo isn't lost when it is sent from here.
+    /// </summary>
+    private static bool AddSignaturePicture(RichDocument document, IReadOnlyList<Block> signature)
+    {
+        var pictures = signature.OfType<PictureBlock>().ToList();
+        if (pictures.Count == 0 || document.Blocks.OfType<PictureBlock>().Any())
+            return false;
+        var lastLine = signature.OfType<TextBlock>().Select(b => Squeeze(b.Text)).LastOrDefault(t => t.Length > 0);
+        var at = lastLine is null ? -1
+            : document.Blocks.FindLastIndex(b => b is TextBlock t && Squeeze(t.Text).Contains(lastLine, StringComparison.OrdinalIgnoreCase));
+        if (at < 0)
+            return false;
+        document.Blocks.InsertRange(at + 1, pictures.Select(b => b.Clone()));
         return true;
     }
 

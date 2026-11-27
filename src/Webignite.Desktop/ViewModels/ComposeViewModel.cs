@@ -339,11 +339,17 @@ public partial class ComposeViewModel : ViewModelBase
                 await services.Mail.DeleteDraftAsync(first, previous.Value);
                 previous = null;
             }
+            var replacedIn = draftAccountId;
+            var replaced = draftUid;
             draftUid = await services.Mail.SaveDraftAsync(From, message, previous);
             draftAccountId = From.Id;
             savedState = State();
-            Say($"Draft saved in {From.Address} at {DateTime.Now:HH:mm}.", false);
-            owner.DraftSaved();
+            // A quote, invoice, statement or chaser mail is only marked sent (and its PDF made fresh) when it goes
+            // from this editor; sent later from Drafts it is an ordinary mail.
+            Say(afterSent is not null || beforeSend is not null
+                ? $"Draft saved in {From.Address} at {DateTime.Now:HH:mm}. Send it from here: sent later from Drafts, Webignite and Xero won't know it went."
+                : $"Draft saved in {From.Address} at {DateTime.Now:HH:mm}.", false);
+            owner.DraftSaved(replacedIn, replaced);
         }
         catch (MailException e)
         {
