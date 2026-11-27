@@ -5,7 +5,7 @@ using Webignite.Core.Mail;
 namespace Webignite.Mail;
 
 /// <summary>Builds the message that goes out, and reads a saved draft back into something editable.</summary>
-public static class MailComposer
+public static partial class MailComposer
 {
     /// <summary>Header that marks the part of a draft that was typed, so a reopened draft doesn't quote the quote.</summary>
     private const string QuoteHeader = "X-Webignite-Quote";
@@ -45,7 +45,7 @@ public static class MailComposer
                 from.SignatureImage!, ContentType.Parse(from.SignatureImageType ?? "image/png"));
             image.ContentId = imageId = MimeUtils.GenerateMessageId();
         }
-        builder.HtmlBody = Replies.HtmlPart(mail, imageId);
+        builder.HtmlBody = LinkPictures(Replies.HtmlPart(mail, imageId), builder);
         var original = source is null ? null : MailReader.Parse(source).Attachments.ToList();
         foreach (var attachment in mail.Attachments)
         {
@@ -57,6 +57,35 @@ public static class MailComposer
         message.Body = builder.ToMessageBody();
         return message;
     }
+
+    /// <summary>
+    /// Pictures written into the HTML as data: addresses (those in a quoted or forwarded mail, as the reader shows
+    /// them) go with the mail as linked pictures instead, since Gmail and Outlook don't show data: pictures.
+    /// </summary>
+    internal static string LinkPictures(string? html, BodyBuilder builder)
+    {
+        if (string.IsNullOrEmpty(html) || !html.Contains("data:image/", StringComparison.OrdinalIgnoreCase))
+            return html ?? "";
+        var seen = new Dictionary<string, string>(StringComparer.Ordinal);
+        return DataPicture().Replace(html, m =>
+        {
+            var data = m.Groups["data"].Value;
+            if (seen.TryGetValue(data, out var known))
+                return "cid:" + known;
+            byte[] bytes;
+            try { bytes = Convert.FromBase64String(data); }
+            catch (FormatException) { return m.Value; }
+            var type = m.Groups["type"].Value.ToLowerInvariant();
+            var id = MimeUtils.GenerateMessageId();
+            var part = builder.LinkedResources.Add("picture" + seen.Count + Extension(type), bytes, ContentType.Parse(type));
+            part.ContentId = id;
+            seen[data] = id;
+            return "cid:" + id;
+        });
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"data:(?<type>image/[a-z0-9.+-]+);base64,(?<data>[A-Za-z0-9+/=]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase)]
+    private static partial System.Text.RegularExpressions.Regex DataPicture();
 
     public static byte[] ToBytes(MimeMessage message)
     {

@@ -145,6 +145,7 @@ public partial class MainViewModel : ViewModelBase
             FlashTaskbar?.Invoke();
     }
     private bool checkingMail;
+    private bool checkAgain;
     private readonly Module mailModule;
     private readonly Module inboxModule;
 
@@ -179,8 +180,13 @@ public partial class MainViewModel : ViewModelBase
     public async Task CheckMailAsync()
     {
         if (checkingMail)
+        {
+            // Mail the server says has landed while a check runs is fetched straight after it, not minutes later.
+            checkAgain = true;
             return;
+        }
         checkingMail = true;
+        checkAgain = false;
         Jobs.LastMailCheck = DateTimeOffset.Now;
         try
         {
@@ -228,6 +234,11 @@ public partial class MainViewModel : ViewModelBase
         finally
         {
             checkingMail = false;
+            if (checkAgain)
+            {
+                checkAgain = false;
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => CheckMailAsync().Forget("Checking mail"));
+            }
         }
     }
 

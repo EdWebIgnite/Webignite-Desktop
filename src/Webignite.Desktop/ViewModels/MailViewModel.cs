@@ -13,9 +13,9 @@ namespace Webignite.Desktop.ViewModels;
 /// What you can do to the selected mail (mark, move, archive, categories) is in MailViewModel.Actions.cs, and
 /// making folders and categories in MailViewModel.Editors.cs.
 /// </summary>
-public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
+public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes, IDisposable
 {
-    public bool HoldsWork => Composer is not null || SendingPart.HasPendingSend;
+    public bool HoldsWork => Composer is not null || SendingPart.HasPendingSend || SendingPart.IsSending;
 
     private readonly AppServices services;
 
@@ -72,6 +72,17 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
 
     // A reader replaced by another lets go of any attachment preview it was showing.
     partial void OnReaderChanged(MailReaderViewModel? oldValue, MailReaderViewModel? newValue) => oldValue?.ClosePreview();
+
+    /// <summary>The page is let go: a preview's pictures, a search still running and the send countdown go with it.</summary>
+    public void Dispose()
+    {
+        searching?.Cancel();
+        searching?.Dispose();
+        searching = null;
+        Reader = null;
+        SendingPart.Stop();
+        GC.SuppressFinalize(this);
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasComposer), nameof(ShowReader), nameof(ShowNothing), nameof(ShowMany), nameof(ShowActions))]
@@ -258,7 +269,32 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
         ShowSetup = accounts.Count == 0 || ShowSetup && Setup.IsOpen;
         if (accounts.Count == 0)
             Setup.StartNew();
-        ShowMessages();
+        ShowCurrent();
+    }
+
+    /// <summary>
+    /// Shows the list again: a search typed in runs in the background (every cached mail is unlocked to read it),
+    /// so a mail check never holds up the screen.
+    /// </summary>
+    private void ShowCurrent()
+    {
+        var query = Search.Trim();
+        if (query.Length == 0)
+        {
+            ShowMessages();
+            return;
+        }
+        searching?.Cancel();
+        searching = new CancellationTokenSource();
+        SearchNow(query, searching.Token).Forget("Searching mail");
+    }
+
+    private async Task SearchNow(string query, CancellationToken cancel)
+    {
+        var ids = accounts.Select(a => a.Id).ToList();
+        var found = await Task.Run(() => services.Store.SearchMail(ids, query, cancel: cancel), cancel);
+        if (!cancel.IsCancellationRequested && Search.Trim() == query)
+            ShowMessages(found);
     }
 
     internal void LoadCategories()
@@ -512,7 +548,16 @@ public partial class MailViewModel : ViewModelBase, IHoldsWork, IHasPanes
         SyncAll().Forget("Checking mail");
     }
 
-    internal void DraftSaved() => ShowMessages();
+    /// <summary>
+    /// A draft was saved: the list shows the new copy. A reading pane on the copy it replaced (now gone from the
+    /// server) is closed, so Edit draft can't open the old text again.
+    /// </summary>
+    internal void DraftSaved(string accountId, uint? replaced)
+    {
+        if (replaced is { } old && Reader is { IsDraft: true } reader && reader.Summary.AccountId == accountId && reader.Summary.Uid == old)
+            Reader = null;
+        ShowCurrent();
+    }
 
     /// <summary>Checks every mailbox for new mail. Safe to call often; a check already running is not doubled.</summary>
     public async Task SyncAll()

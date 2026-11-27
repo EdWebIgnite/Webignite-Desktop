@@ -60,8 +60,15 @@ public sealed partial class MailSendingPart(AppServices services, MailViewModel 
         pending = null;
         PendingSendText = "";
         OnPropertyChanged(nameof(HasPendingSend));
-        send().Forget("Sending a mail");
+        going = send();
+        going.Forget("Sending a mail", tell: true);
     }
+
+    // The send under way once the undo wait is over, so the page isn't let go and the app waits for it before closing.
+    private Task? going;
+
+    /// <summary>A mail is on its way to the server now (after its undo wait).</summary>
+    internal bool IsSending => going is { IsCompleted: false };
 
     /// <summary>
     /// Before the app closes: a mail still in its undo wait is sent now, and the open editor is saved to Drafts.
@@ -76,6 +83,11 @@ public sealed partial class MailSendingPart(AppServices services, MailViewModel 
             PendingSendText = "";
             OnPropertyChanged(nameof(HasPendingSend));
             await waiting.Send(); // a refused mail comes back in the editor, which is saved below
+        }
+        if (going is { IsCompleted: false } sending)
+        {
+            try { await sending; }
+            catch (Exception e) { Webignite.Data.AppLog.Write("Sending a mail as the app closed", e); }
         }
         if (page.Composer is { } open && !await open.KeepAsync())
             return $"The mail you're writing couldn't be saved to Drafts. {open.Message}".TrimEnd();
@@ -122,6 +134,13 @@ public sealed partial class MailSendingPart(AppServices services, MailViewModel 
         page.SetStatus(kept
             ? $"{said} You were writing another mail, so this one is in Drafts to finish there."
             : $"{said} It couldn't be saved to Drafts either: {composer.Message}", true);
+    }
+
+    /// <summary>Stops the countdown timer when the page is let go (it is only let go with no mail waiting).</summary>
+    internal void Stop()
+    {
+        countdown?.Stop();
+        countdown = null;
     }
 
     /// <summary>Takes a draft off the send-later list, e.g. when it is opened to edit or Don't send is clicked.</summary>
